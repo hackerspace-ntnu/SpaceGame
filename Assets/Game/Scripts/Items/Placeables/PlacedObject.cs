@@ -78,7 +78,13 @@ namespace SpaceGame.Items
             GameObject actor = arg.Resolve();
             if (actor == null) return;
 
-            var inventory = actor.GetComponentInChildren<PlayerInventoryComponent>();
+            // GetComponentInParent<IPlayerInventory>, exactly as PickupableItem does, and for two
+            // reasons that both bite. The interface, because the networked player carries only
+            // PlayerInventoryNetwork -- naming the concrete PlayerInventoryComponent resolves to
+            // null on every real player and the retrieval silently does nothing. And upward,
+            // because `actor` is the Interactor's own GameObject, which on this project's player
+            // is a child on the camera rig, so the inventory is above it and never below.
+            IPlayerInventory inventory = actor.GetComponentInParent<IPlayerInventory>();
             if (inventory == null || !inventory.TryAddItem(returnItem)) return;
 
             NetworkObject netObj = GetComponent<NetworkObject>();

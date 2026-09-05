@@ -401,6 +401,171 @@ def build_pack(coll, mats):
     _empty("SURF_PackRight", (-0.31, 0.0, -0.02), coll)
 
 
+
+# ── The Sandloper's back and flank, measured ───────────────────────────────
+# Same two casts as Appa's, on a very different animal: he is 0.11 m half-width
+# at the spine where Appa is 0.66, so nothing about that saddle scales onto this
+# one -- the proportions are not a size difference, they are a different shape.
+#
+# His file is -Y forward like the library standard, so unlike Appa there is no
+# rotation between his frame and the saddle's:
+#     loper = (saddle.x, LOPER_ORIGIN_Y + saddle.y, LOPER_ORIGIN_Z + saddle.z)
+LOPER_ORIGIN_Y = 0.15      # along his spine, behind the crest, ahead of the hips
+LOPER_ORIGIN_Z = 1.10      # his back height there
+
+LOPER_Y = [-0.35, -0.20, -0.05, 0.10, 0.25, 0.40, 0.55]
+LOPER_X = [0.00, 0.08, 0.16, 0.24]
+LOPER_TOP = [
+    [1.100, 1.049, 0.626, 0.626],
+    [1.158, 1.073, 0.800, 0.800],
+    [1.120, 1.092, 0.946, 0.946],
+    [1.102, 1.077, 0.940, 0.791],
+    [1.088, 1.066, 0.939, 0.781],
+    [1.072, 1.048, 0.831, 0.831],
+    [1.055, 1.018, 1.018, 1.018],
+]
+# Deepest-first, because _sample needs an ASCENDING axis -- see the note on
+# SIDE_Z above, which cost a rebuild to find.
+LOPER_Z = [-0.32, -0.24, -0.16, -0.08, 0.00]
+LOPER_HW = [
+    [0.094, 0.102, 0.115, 0.112, 0.088],
+    [0.212, 0.167, 0.150, 0.132, 0.099],
+    [0.227, 0.210, 0.188, 0.156, 0.113],
+    [0.289, 0.212, 0.188, 0.155, 0.108],
+    [0.266, 0.202, 0.186, 0.154, 0.098],
+    [0.178, 0.174, 0.162, 0.138, 0.072],
+    [0.128, 0.121, 0.128, 0.110, 0.110],
+]
+
+
+def loper_back(sx, sy):
+    """His back height under the saddle point (sx, sy), in saddle space."""
+    rows = [_sample(LOPER_X, row, abs(sx)) for row in LOPER_TOP]
+    return _sample(LOPER_Y, rows, LOPER_ORIGIN_Y + sy) - LOPER_ORIGIN_Z
+
+
+def loper_flank(sy, sz):
+    """His half-width at (fore/aft, height below the spine), in saddle space."""
+    rows = [_sample(LOPER_Z, row, sz) for row in LOPER_HW]
+    return _sample(LOPER_Y, rows, LOPER_ORIGIN_Y + sy)
+
+
+def wrap_loper(part, gap=0.012, keep_above=None):
+    """`wrap`, against the Sandloper instead of Appa."""
+    for v in part.bm.verts:
+        if keep_above is not None and v.co.z >= keep_above:
+            continue
+        w = loper_flank(v.co.y, v.co.z)
+        if w <= 0.01:
+            continue
+        side = 1.0 if v.co.x >= 0.0 else -1.0
+        v.co.x = side * (w + gap)
+
+
+def build_loper(coll, mats):
+    """A riding saddle fitted to the Sandloper.
+
+    Much smaller and simpler than Appa's: he is a narrow, bounding biped, so
+    there is no room for panniers hanging past his ribs and no barrel to strap
+    a girth around. Two flat boards behind the cantle carry what he carries.
+    """
+    HALF = 0.22               # fore-and-aft reach of the saddle
+    stations = [(-6 + i) * HALF / 6.0 for i in range(13)]
+    thickness = 0.012
+
+    # -- panel: the underside, lofted through his actual back ---------------
+    panel = B.Part(mats)
+    sections = []
+    for sy in stations:
+        span = 0.115 * (1.0 - 0.30 * (abs(sy) / HALF) ** 2)
+        top = []
+        low = []
+        xs = [(-4 + i) * span / 4.0 for i in range(9)]
+        for x in xs:
+            base = loper_back(x, sy) + CLEARANCE
+            low.append((x, base))
+            top.append((x, base + thickness))
+        sections.append((sy, top + list(reversed(low))))
+    panel.loft(sections, axis='Y', mat=LEATHER)
+    panel.bevel(width=0.005, segments=1)
+    panel.finish("Mesh_SaddlePanel_Loper", coll)
+
+    # -- seat, dished, with a pommel and a cantle ---------------------------
+    seat = B.Part(mats)
+    seat_half_x = 0.105
+    sections = []
+    for sy in stations:
+        t = abs(sy) / HALF
+        rise = 0.075 * t ** 2.0
+        xs = [(-5 + i) * seat_half_x / 5.0 for i in range(11)]
+        base = loper_back(0.0, sy) + CLEARANCE + thickness
+        top = [(x, base + rise + 0.055 - 0.040 * (abs(x) / seat_half_x) ** 2) for x in xs]
+        low = [(x, base) for x in reversed(xs)]
+        sections.append((sy, top + low))
+    seat.loft(sections, axis='Y', mat=LEATHER)
+    seat.bevel(width=0.006, segments=2)
+    seat.finish("Mesh_SaddleSeat_Loper", coll)
+
+    ends = B.Part(mats)
+    front_z = loper_back(0.0, -HALF) + CLEARANCE + thickness
+    rear_z = loper_back(0.0, HALF) + CLEARANCE + thickness
+    ends.box((0.0, -HALF + 0.02, front_z + 0.085), (0.085, 0.040, 0.10), mat=LEATHER)
+    ends.box((0.0, HALF - 0.02, rear_z + 0.095), (0.135, 0.045, 0.13), mat=LEATHER)
+    ends.bevel(width=0.016, segments=3)
+    ends.finish("Mesh_SaddleEnds_Loper", coll)
+
+    for side, tag in ((1.0, "L"), (-1.0, "R")):
+        # -- skirt: a small flap wrapped onto his flank ---------------------
+        skirt = B.Part(mats)
+        sections = []
+        for sy in stations[1:-1]:
+            hang = loper_back(side * 0.11, sy) + CLEARANCE
+            drop = hang - 0.20
+            # Several rungs down the flank rather than one tall face: `wrap`
+            # moves vertices sideways only, so a two-row flap can only ever be
+            # a flat board leaning against him. The rungs are what let it curve.
+            rows = []
+            for i in range(5):
+                z = hang - (hang - drop) * i / 4.0
+                rows.append((side * 0.12, z))
+            inner = [(side * 0.115, z) for _x, z in reversed(rows)]
+            sections.append((sy, rows + inner))
+        skirt.loft(sections, axis='Y', mat=LEATHER)
+        wrap_loper(skirt, gap=0.009)
+        skirt.bevel(width=0.004, segments=1)
+        skirt.finish("Mesh_SaddleSkirt_Loper_%s" % tag, coll)
+
+        # -- girth, wrapped hard, with the iron hung off where it ends ------
+        st = B.Part(mats)
+        top_z = loper_back(side * 0.10, -0.02) + CLEARANCE
+        st.slab((side * 0.10, -0.05, top_z - 0.30), (side * 0.13, 0.02, top_z), mat=WEBBING)
+        wrap_loper(st, gap=0.014, keep_above=top_z - 0.03)
+        end = hanging_end(st, -0.02, span=0.08)
+        if end is not None:
+            st.torus((end[0], end[1], end[2] - 0.045), 0.045, 0.010,
+                     axis='Y', maj_seg=12, min_seg=6, mat=BRASS)
+        st.finish("Mesh_SaddleStirrup_Loper_%s" % tag, coll)
+
+    # -- two cargo boards behind the cantle ---------------------------------
+    board_z = loper_back(0.0, HALF) + CLEARANCE
+    for side, tag in ((1.0, "L"), (-1.0, "R")):
+        board = B.Part(mats)
+        inner = side * 0.05
+        outer = side * 0.22
+        board.slab((inner, HALF - 0.02, board_z), (outer, HALF + 0.20, board_z + 0.02), mat=BOARD)
+        board.slab((inner, HALF - 0.04, board_z), (outer, HALF - 0.02, board_z + 0.04), mat=TIMBER)
+        board.bevel(width=0.004, segments=1)
+        board.finish("Mesh_SaddlePannier_Loper_%s" % tag, coll)
+
+    # Suffixed, because both saddles live in one .blend and _buildlib refuses to
+    # save a file where Blender has auto-renamed a collision. Each animal's
+    # builder searches for its own names.
+    _empty("SEAT_Rider_Loper", (0.0, 0.01, loper_back(0.0, 0.0) + CLEARANCE + 0.10), coll)
+    _empty("SURF_SaddleLeft_Loper", (0.135, HALF + 0.09, board_z + 0.02), coll)
+    _empty("SURF_SaddleRight_Loper", (-0.135, HALF + 0.09, board_z + 0.02), coll)
+    _empty("SURF_SaddleRear_Loper", (0.0, HALF + 0.20, board_z + 0.02), coll)
+
+
 def main():
     out = B.parse_out()
     B.start(out)
@@ -408,8 +573,10 @@ def main():
 
     appa = B.collection("Coll_Saddle_Appa")
     pack = B.collection("Coll_Saddle_Pack")
+    loper = B.collection("Coll_Saddle_Loper")
     build_appa(appa, mats)
     build_pack(pack, mats)
+    build_loper(loper, mats)
 
     B.save(out)
     B.report()

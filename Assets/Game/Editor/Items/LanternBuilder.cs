@@ -152,8 +152,12 @@ namespace SpaceGame.EditorTools
             root.AddComponent<TransformSaveable>();
             root.AddComponent<ItemGrip>();
 
+            // PlaceableItem owns the loop; GroundPlacement owns what "placing" means for a
+            // lantern -- flat enough ground, and a prefab spawned facing away from the placer.
             var placeable = root.AddComponent<PlaceableItem>();
-            SetObject(placeable, "placedPrefab", placed);
+            var placement = root.AddComponent<GroundPlacement>();
+            SetObject(placement, "placedPrefab", placed);
+            SetObject(placeable, "rule", placement);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, HeldPath);
             Object.DestroyImmediate(root);

@@ -6,7 +6,8 @@
 //                       onto a bone on every machine, so it must NOT carry a NetworkObject.
 //                       Carries the PackContainer and the "take it off" trigger.
 //   Saddle.prefab       the saddle as an ITEM: in a hand, in a hotbar, or lying in the sand.
-//                       Networked, pickupable, saveable, and the thing SaddleArtifact fires from.
+//                       Networked, pickupable, saveable, and a PLACEABLE: its placement rule
+//                       is SaddlePlacement, whose 'ground' is an animal with a socket.
 //
 // Re-running is safe and is the intended workflow. Both prefabs are rebuilt in place, so
 // everything the saddle needs must live in this file -- a component added by hand in the Inspector
@@ -26,39 +27,86 @@ namespace SpaceGame.EditorTools
 {
     public static class SaddleBuilder
     {
-        private const string Fbx = "Assets/Game/Art/Models/Items/saddle_appa.fbx";
         private const string WornDir = "Assets/Game/Prefabs/Items/Saddles";
-        private const string WornPath = WornDir + "/AppaSaddle.prefab";
         private const string ItemDir = "Assets/Game/Prefabs/Items/Artifacts/Gadgets";
-        private const string ItemPath = ItemDir + "/Saddle.prefab";
         private const string AssetDir = "Assets/Game/Resources/Items/Artifacts";
-        private const string AssetPath = AssetDir + "/Saddle.asset";
 
-        // Faces, in whole cells. 3x5 either side and 4x3 behind the cantle = 42 cells, against the
-        // expedition rig's 255 -- a saddle is a day's gear, not a household.
-        private static readonly (PackSurfaceId Id, string Empty, Vector2Int Cells)[] Surfaces =
+        // There is ONE saddle item, and it fits every animal that has a socket for one.
+        //
+        // What differs per animal is the saddle you SEE once it is on: a bison's panniers hang
+        // where a bounding biped has no ribs to hang them from. So the worn prefab is per animal
+        // and the item is not -- you carry "a saddle", and which one appears is the animal's
+        // business, exactly as SaddleSocket.saddlePrefab already said.
+        private const string ItemFile = "Saddle";
+        private const string ItemName = "Saddle";
+
+        /// <summary>
+        /// One animal's WORN saddle. Everything that differs between animals lives here rather
+        /// than in a second copy of the builder: the model, the names of the empties inside it,
+        /// how many cells each face carries, and the seat's own grip radius.
+        /// </summary>
+        private readonly struct Design
         {
-            (PackSurfaceId.SaddleLeft, "SURF_SaddleLeft", new Vector2Int(3, 5)),
-            (PackSurfaceId.SaddleRight, "SURF_SaddleRight", new Vector2Int(3, 5)),
-            (PackSurfaceId.SaddleRear, "SURF_SaddleRear", new Vector2Int(4, 3)),
+            public readonly string Name;          // "Appa" -> AppaSaddle.prefab
+            public readonly string Fbx;
+            public readonly string Suffix;        // empties are SURF_SaddleLeft + this
+            public readonly float GripRadius;
+            public readonly (PackSurfaceId Id, string Empty, Vector2Int Cells)[] Surfaces;
+
+            public Design(string name, string fbx, string suffix, float gripRadius,
+                          string wornFile, (PackSurfaceId, string, Vector2Int)[] surfaces)
+            {
+                Name = name; Fbx = fbx; Suffix = suffix;
+                GripRadius = gripRadius; Surfaces = surfaces;
+                WornPath = $"{WornDir}/{wornFile}.prefab";
+            }
+
+            public readonly string WornPath;
+
+            // Explicit, not derived from Name: the item shipped as Saddle.prefab / Saddle.asset
+            // and deriving a tidier name would move those files, silently breaking every GUID
+            // reference to them -- the network prefab list and AppaBuilder's SaddleItemPath among
+            // them.
+            public static string ItemPath => $"{ItemDir}/{ItemFile}.prefab";
+            public static string AssetPath => $"{AssetDir}/{ItemFile}.asset";
+        }
+
+        // Faces, in whole cells. Appa gets 3x5 either side and 4x3 behind the cantle = 42 cells,
+        // against the expedition rig's 255 -- a saddle is a day's gear, not a household. The
+        // Sandloper carries roughly half that: he is a narrow biped with no barrel to hang
+        // panniers off, so his boards sit behind the cantle rather than beside the seat.
+        private static readonly Design[] Designs =
+        {
+            new Design("Appa",
+                       "Assets/Game/Art/Models/Items/saddle_appa.fbx", "", 0.40f,
+                       "AppaSaddle",
+                       new (PackSurfaceId, string, Vector2Int)[]
+                       {
+                           (PackSurfaceId.SaddleLeft, "SURF_SaddleLeft", new Vector2Int(3, 5)),
+                           (PackSurfaceId.SaddleRight, "SURF_SaddleRight", new Vector2Int(3, 5)),
+                           (PackSurfaceId.SaddleRear, "SURF_SaddleRear", new Vector2Int(4, 3)),
+                       }),
+            new Design("Sandloper",
+                       "Assets/Game/Art/Models/Items/saddle_loper.fbx", "_Loper", 0.16f,
+                       "SandloperSaddle",
+                       new (PackSurfaceId, string, Vector2Int)[]
+                       {
+                           (PackSurfaceId.LoperLeft, "SURF_SaddleLeft_Loper", new Vector2Int(2, 3)),
+                           (PackSurfaceId.LoperRight, "SURF_SaddleRight_Loper", new Vector2Int(2, 3)),
+                           (PackSurfaceId.LoperRear, "SURF_SaddleRear_Loper", new Vector2Int(3, 2)),
+                       }),
         };
 
         [MenuItem("Tools/Creatures/Build Saddle")]
         public static void Build()
         {
-            GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(Fbx);
-            if (source == null)
-            {
-                Debug.LogError($"No saddle model at {Fbx}. Export it first:\n" +
-                               "  blender --background --python models/gear/saddle_export.py");
-                return;
-            }
-
-            GameObject worn = BuildWorn(source);
+            // One item, built from the first design's model. Which fitted saddle you actually see
+            // is the animal's business -- SaddleSocket.saddlePrefab -- so the thing in your pack is
+            // just "a saddle" and there is deliberately not one per creature to collect.
+            GameObject itemSource = AssetDatabase.LoadAssetAtPath<GameObject>(Designs[0].Fbx);
             InventoryItem asset = BuildItemAsset();
-            GameObject item = BuildItem(source, asset);
+            GameObject item = itemSource != null ? BuildItem(itemSource, asset) : null;
 
-            // The two files point at each other, so this link can only be made once both exist.
             if (asset != null && item != null)
             {
                 var so = new SerializedObject(asset);
@@ -67,13 +115,28 @@ namespace SpaceGame.EditorTools
                 EditorUtility.SetDirty(asset);
             }
 
+            int worn = 0;
+            foreach (Design design in Designs)
+            {
+                GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(design.Fbx);
+                if (source == null)
+                {
+                    Debug.LogError($"No saddle model at {design.Fbx}. Export it with " +
+                                   "blender --background --python models/gear/saddle_export.py");
+                    continue;
+                }
+
+                BuildWorn(source, design);
+                Debug.Log($"{design.Name} saddle: {design.WornPath} | " +
+                          $"{design.Surfaces.Sum(f => f.Cells.x * f.Cells.y)} pack cells across " +
+                          $"{design.Surfaces.Length} faces.");
+                worn++;
+            }
+
             AssetDatabase.SaveAssets();
-            Debug.Log($"Saddle built.\n  worn: {WornPath}\n  item: {ItemPath}\n  asset: {AssetPath}\n" +
-                      $"  {Surfaces.Sum(s => s.Cells.x * s.Cells.y)} pack cells across " +
-                      $"{Surfaces.Length} faces.\n" +
-                      "Now run Tools > SpaceGame > Multiplayer > Sync Network Prefabs, then " +
-                      "Tools > Generate All Item Icons.");
-            _ = worn;
+            Debug.Log($"{worn} worn saddle(s) and one item ({Design.ItemPath}). Now run Tools > " +
+                      "SpaceGame > Multiplayer > Sync Network Prefabs, Tools > Save System > Wire " +
+                      "Saveable Prefabs, then Tools > Generate All Item Icons.");
         }
 
         /// <summary>
@@ -82,22 +145,22 @@ namespace SpaceGame.EditorTools
         /// does, because a NetworkObject parented into a bone hierarchy has to have that parenting
         /// replicated and re-applied after every spawn and every load.
         /// </summary>
-        private static GameObject BuildWorn(GameObject source)
+        private static GameObject BuildWorn(GameObject source, Design design)
         {
             EnsureFolder(WornDir);
 
             GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(source);
-            root.name = "AppaSaddle";
+            root.name = design.Name + "Saddle";
             PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely,
                                                InteractionMode.AutomatedAction);
 
             // -- the pack faces -------------------------------------------------
-            foreach ((PackSurfaceId id, string emptyName, Vector2Int cells) in Surfaces)
+            foreach ((PackSurfaceId id, string emptyName, Vector2Int cells) in design.Surfaces)
             {
                 Transform anchor = Find(root.transform, emptyName);
                 if (anchor == null)
                 {
-                    Debug.LogError($"{Fbx} has no '{emptyName}'. The face cannot be placed, so " +
+                    Debug.LogError($"{design.Fbx} has no '{emptyName}'. The face cannot be placed, so " +
                                    "the saddle would silently carry nothing.");
                     continue;
                 }
@@ -121,15 +184,16 @@ namespace SpaceGame.EditorTools
             // furniture -- which is also where a person reaches to unstrap a saddle.
             foreach ((string anchor, float radius) in new[]
                      {
-                         ("SURF_SaddleLeft", 0.40f),
-                         ("SURF_SaddleRight", 0.40f),
-                         ("SEAT_Rider", 0.30f),      // and from up top, once you have dismounted
+                         ("SURF_SaddleLeft" + design.Suffix, design.GripRadius),
+                         ("SURF_SaddleRight" + design.Suffix, design.GripRadius),
+                         // and from up top, once you have dismounted
+                         ("SEAT_Rider" + design.Suffix, design.GripRadius * 0.75f),
                      })
             {
                 Transform at = Find(root.transform, anchor);
                 if (at == null)
                 {
-                    Debug.LogWarning($"{Fbx} has no '{anchor}'; that is one fewer place the saddle " +
+                    Debug.LogWarning($"{design.Fbx} has no '{anchor}'; that is one fewer place the saddle " +
                                      "can be taken off from.");
                     continue;
                 }
@@ -144,7 +208,7 @@ namespace SpaceGame.EditorTools
                 grip.AddComponent<SaddleRemover>();
             }
 
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, WornPath);
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, design.WornPath);
             Object.DestroyImmediate(root);
             return prefab;
         }
@@ -155,7 +219,7 @@ namespace SpaceGame.EditorTools
             EnsureFolder(ItemDir);
 
             GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(source);
-            root.name = "Saddle";
+            root.name = ItemName;
             PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely,
                                                InteractionMode.AutomatedAction);
 
@@ -191,9 +255,15 @@ namespace SpaceGame.EditorTools
             // Two hands and heavy: it is a metre of leather, not a pistol.
             SetEnum(grip, "holdStyle", (int)ItemGrip.HoldStyle.TwoHanded);
 
-            root.AddComponent<SaddleArtifact>();
+            // A placeable, not a bespoke artifact. PlaceableItem owns the loop -- aim, validate,
+            // place, spend -- and SaddlePlacement owns the two things that differ: the criteria
+            // (an animal with a free SaddleSocket) and the logic (fit it, which is not a spawn).
+            var placeable = root.AddComponent<PlaceableItem>();
+            var placement = root.AddComponent<SaddlePlacement>();
+            SetObject(placeable, "rule", placement);
+            SetFloat(placeable, "range", 4.5f);
 
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, ItemPath);
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, Design.ItemPath);
             Object.DestroyImmediate(root);
             return prefab;
         }
@@ -207,16 +277,16 @@ namespace SpaceGame.EditorTools
         {
             EnsureFolder(AssetDir);
 
-            var asset = AssetDatabase.LoadAssetAtPath<InventoryItem>(AssetPath);
+            var asset = AssetDatabase.LoadAssetAtPath<InventoryItem>(Design.AssetPath);
             if (asset == null)
             {
                 asset = ScriptableObject.CreateInstance<InventoryItem>();
-                AssetDatabase.CreateAsset(asset, AssetPath);
+                AssetDatabase.CreateAsset(asset, Design.AssetPath);
             }
 
             var so = new SerializedObject(asset);
             SerializedProperty name = so.FindProperty("itemName");
-            if (name != null) name.stringValue = "Saddle";
+            if (name != null) name.stringValue = ItemName;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
             return asset;
@@ -268,6 +338,14 @@ namespace SpaceGame.EditorTools
             SerializedProperty p = Find(target, field);
             if (p == null) return;
             p.objectReferenceValue = value;
+            p.serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetFloat(Object target, string field, float value)
+        {
+            SerializedProperty p = Find(target, field);
+            if (p == null) return;
+            p.floatValue = value;
             p.serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 

@@ -365,6 +365,8 @@ namespace SpaceGame.EditorTools
             controller.AddParameter("Roar", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Happy", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("IsGrazing", AnimatorControllerParameterType.Bool);
+            // Held true for the length of the roar. Ram and Hurt are gated on it below.
+            controller.AddParameter("IsRoaring", AnimatorControllerParameterType.Bool);
 
             AnimatorStateMachine root = controller.layers[0].stateMachine;
 
@@ -445,9 +447,16 @@ namespace SpaceGame.EditorTools
 
             // Long blends. He is five and a half metres of animal; snapping
             // between states in 80 ms reads as weightless.
+            // The roar is a TELEGRAPH, so nothing may cut it but death. Every one-shot here fires
+            // from AnyState and Unity consumes only the trigger the transition it takes actually
+            // used: the shot that enrages him sets Hurt as well as Roar, Roar wins the frame, and
+            // then Hurt is still pending and takes the very next one. The roar played for a single
+            // frame and read as never having happened. Enabling the melee does the same with Ram.
+            //
+            // Death is deliberately NOT gated: dying mid-roar has to win.
             AnimatorState roar = AddOneShot(root, "Roar", "Appa_Roar", "Roar", 0.18f);
-            AnimatorState ram = AddOneShot(root, "Ram", "Appa_Ram", "Ram", 0.14f);
-            AnimatorState hurt = AddOneShot(root, "Hurt", "Appa_Hurt", "Hurt", 0.10f);
+            AnimatorState ram = AddOneShot(root, "Ram", "Appa_Ram", "Ram", 0.14f, blockedWhileRoaring: true);
+            AnimatorState hurt = AddOneShot(root, "Hurt", "Appa_Hurt", "Hurt", 0.10f, blockedWhileRoaring: true);
 
             // Being petted. A one-shot like the others, not a hold: the reaction has a shape --
             // lean in, enjoy it, settle -- and holding its middle frame would be a stare.
@@ -521,12 +530,15 @@ namespace SpaceGame.EditorTools
         }
 
         private static AnimatorState AddOneShot(AnimatorStateMachine root, string stateName,
-                                                string clipName, string trigger, float blend)
+                                                string clipName, string trigger, float blend,
+                                                bool blockedWhileRoaring = false)
         {
             AnimatorState state = root.AddState(stateName);
             state.motion = FindClip(clipName);
             AnimatorStateTransition t = root.AddAnyStateTransition(state);
             t.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+            if (blockedWhileRoaring)
+                t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsRoaring");
             t.duration = blend;
             t.hasExitTime = false;
             // Without this a second trigger mid-charge restarts the state and he
@@ -779,6 +791,15 @@ namespace SpaceGame.EditorTools
             SetFloat(temperament, "rageDuration", 14f);
             // The roar clip runs 2.0 s and its last third is the settle.
             SetFloat(temperament, "roarDuration", 1.4f);
+
+            // His own voice. New FMOD events cannot be authored in this project -- the Studio
+            // project that built the banks is not in the repo -- and a Unity AudioSource is silent
+            // here because Unity audio is disabled project-wide. SfxFile plays a loose file
+            // through FMOD instead; see SfxFile.cs.
+            SetString(temperament, "roarFile", "appa_roar.mp3");
+            // He is 8 m of animal and the roar is the telegraph before he charges; it has to
+            // carry further than the charge does.
+            SetFloat(temperament, "roarClipRange", 70f);
             SetInt(temperament, "priority", ModulePriority.Override + 1);
 
             // -- faction and targeting -------------------------------------------

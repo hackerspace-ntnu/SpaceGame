@@ -26,19 +26,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 from _exportlib import unity_path  # noqa: E402
 
 SRC = os.path.join(HERE, "saddle.blend")
-DST = unity_path("Items", "saddle_appa.fbx")
-COLLECTION = "Coll_Saddle_Appa"
+
+# One collection per animal, exported to its own FBX. `saddle.blend` holds three
+# and shipping the whole file would put every other animal's saddle inside each.
+EXPORTS = [
+    ("Coll_Saddle_Appa", unity_path("Items", "saddle_appa.fbx")),
+    ("Coll_Saddle_Loper", unity_path("Items", "saddle_loper.fbx")),
+]
 
 
-def main():
-    if not os.path.exists(SRC):
-        raise SystemExit("No saddle at %s" % SRC)
-
+def export_one(collection, dst):
     bpy.ops.wm.open_mainfile(filepath=SRC)
 
-    coll = bpy.data.collections.get(COLLECTION)
+    coll = bpy.data.collections.get(collection)
     if coll is None:
-        raise SystemExit("No %s in %s" % (COLLECTION, SRC))
+        raise SystemExit("No %s in %s" % (collection, SRC))
 
     keep = {o.name for o in coll.objects}
     for obj in [o for o in bpy.data.objects if o.name not in keep]:
@@ -48,9 +50,9 @@ def main():
     for obj in bpy.data.objects:
         obj.select_set(True)
 
-    os.makedirs(os.path.dirname(DST), exist_ok=True)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
     bpy.ops.export_scene.fbx(
-        filepath=DST,
+        filepath=dst,
         use_selection=True,
         object_types={'MESH', 'EMPTY'},
         apply_scale_options='FBX_SCALE_NONE',
@@ -67,11 +69,16 @@ def main():
     meshes = [o for o in bpy.data.objects if o.type == 'MESH']
     empties = [o for o in bpy.data.objects if o.type == 'EMPTY']
     tris = sum(sum(max(0, len(p.vertices) - 2) for p in o.data.polygons) for o in meshes)
-    print("  wrote %s" % DST)
+    print("  wrote %s" % dst)
     print("  %d meshes, %d tris, %d empties" % (len(meshes), tris, len(empties)))
     for obj in sorted(empties, key=lambda o: o.name):
         loc = obj.location
-        print("  EMPTY %-20s (%.3f, %.3f, %.3f)" % (obj.name, loc.x, loc.y, loc.z))
+        print("  EMPTY %-24s (%.3f, %.3f, %.3f)" % (obj.name, loc.x, loc.y, loc.z))
+
+
+def main():
+    for collection, dst in EXPORTS:
+        export_one(collection, dst)
 
 
 main()

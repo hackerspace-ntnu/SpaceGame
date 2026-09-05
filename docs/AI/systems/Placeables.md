@@ -1,7 +1,7 @@
 ---
 system: Placeables
 layer: items
-summary: "Items you put down in the world and pick back up again with Q"
+summary: "Items put into the world under a placement rule, and picked back up with Q"
 paths:
   - Assets/Game/Scripts/Items/Placeables
   - Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs
@@ -34,12 +34,28 @@ finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 
 | Piece | Is |
 | --- | --- |
-| `PlaceableItem` | The thing in your hand. A `ToolItem`; on use it spawns the placed prefab and spends itself. |
-| `PlacedObject` | The thing on the ground. Answers **Q** and returns the item. |
+| `PlaceableItem` | The thing in your hand, and the **loop**: aim → validate → place → spend. Nothing else. |
+| `PlacementRule` | What placing *means* for this item: its **criteria** and its **logic**. On the item's prefab. |
+| `PlacedObject` | A thing on the ground. Answers **Q** and returns the item. |
 | `IRetrievable` | "This can be taken back", bound to Q the way `ISecondaryInteractable` is bound to LMB. |
 
-- **Two prefabs, not one wearing a hat.** The held half has a grip pose and a hold animation; the
-  placed half has a footprint, a collider you cannot walk through, and whatever it is *for*.
+**Rules that exist:**
+
+| Rule | Criteria | Logic |
+| --- | --- | --- |
+| `GroundPlacement` | ground no steeper than `maxGroundAngle` | spawn `placedPrefab`, facing away from the placer |
+| `SaddlePlacement` | the target has a free `SaddleSocket` | `socket.Fit()` — an `Instantiate` onto a bone, **not** a spawn |
+
+- **The system owns the loop; a rule owns the meaning.** Every placeable does the same four things
+  — aim on the holder's machine, ask whether it may go there, place it on the server, spend the item
+  only if the world changed. What differs is the two questions inside: *may this go HERE* and *what
+  does placing DO*. Those are a `PlacementRule` on the item, not branches in `PlaceableItem`, so
+  nothing in the system knows what a bone or an animal is. **A saddle is a placeable** — its
+  "ground" is an animal with a socket. Without the rule split it was a second copy of this loop
+  under another name (`SaddleArtifact`, now gone).
+- **Two prefabs, not one wearing a hat** — for rules that spawn one. The held half has a grip pose
+  and a hold animation; the placed half has a footprint, a collider you cannot walk through, and
+  whatever it is *for*. A rule need not spawn anything at all: `SaddlePlacement` does not.
 - **What it returns is authored on the placed prefab**, not sent at placement time. A placeable is
   a pair, so the placed half already knows what it is — nothing about that has to survive the wire,
   a save, or a client joining halfway through. Binding it at spawn would mean replicating the asset
@@ -51,8 +67,10 @@ finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 ## Flows
 
 **Placing.** `OnRequestUse` raycasts on the holder's machine — the server's `Camera.main` is the
-*host's* camera — and refuses ground steeper than `maxGroundAngle`. `Use()` (server) spawns through
-`GameServices.World.Spawn` and only then calls `Deplete()`.
+*host's* camera — packs point, yaw and the hit object into the `NetArg`, and asks
+`rule.CanPlace`. A refusal there costs no round trip and no item. `Use()` (server) rebuilds the
+`PlacementAim`, asks **again** because the first answer came from a machine that decides nothing,
+calls `rule.Place`, and calls `Deplete()` only on a true.
 
 **Retrieving.** Q → `Interactor.RetrieveTarget` resolves the crosshair through the ordinary
 `IInteractable` path and casts to `IRetrievable`, so retrieval inherits line of sight and reach for
@@ -73,16 +91,35 @@ its transform: what it returns is on the prefab, so `TransformSaveable` is the w
 
 ## Gotchas
 
-- **Consume after the spawn, never before.** A missing network-prefab registration makes `Spawn`
-  fail; deplete first and the item is eaten with nothing put down.
+- **Consume on the rule's answer, never before.** `Place` returns whether the world actually
+  changed — a missing network-prefab registration, an animal already saddled — and the item is spent
+  only on true. Deplete first and a refused placement eats what the player was holding.
+- **The aim's `Normal` is zero on the server.** `NetArg` does not carry one, so a rule that tests
+  slope must do it owner-side and tolerate the missing normal on the far side, as `GroundPlacement`
+  does. Re-testing against a fabricated straight-up normal passes everything and is worse than not
+  testing.
+- **`aim.Target` only resolves if it has a `NetworkObject`.** Terrain does not, so a ground rule
+  gets null there and must work from `Point`; an animal does, so `SaddlePlacement` gets its socket.
 - **`maxUses = 1` is the wrong way to spend a placeable.** The counter increments in `TryUse`
   *after* `Use()` returns, so it charges for the click that missed the ground as readily as the one
   that worked, and `RefundUse` cannot undo it from inside `Use()`. Call `Deplete()` on the path
   that actually placed something.
+- **Resolve the inventory as `IPlayerInventory`, upward from the Interactor.** The networked player
+  carries only `PlayerInventoryNetwork`, so naming the concrete `PlayerInventoryComponent` resolves
+  to null on every real player and the retrieval silently does nothing at all. And the Interactor
+  sits on a child of the player, so it is `GetComponentInParent`, never `InChildren`.
+  `PickupableItem` is the pattern to copy.
+- **A verb with no E has no crosshair unless you widen the hover test.** `Interactor` lit the
+  crosshair from `CanInteract()` alone, so a placeable — which deliberately has no primary verb —
+  showed no prompt and no highlight, and the player had no way to learn Q would work.
+  `IsActionable` now also asks `IRetrievable.CanRetrieve()`.
 - **`IRetrievable` alone is never found.** `Interactor.ResolveAlongRay` walks `IInteractable` only.
   Implement both; `PlacedObject` already does, with `CanInteract` false so E stays free.
 - **A trigger collider only answers for an interactable on its own GameObject** and never inherits
   one from a parent — the same rule that governs every other interactable.
+- **Every builder run clears the prefabId again.** `SaveAsPrefabAsset` writes a fresh asset, so
+  **Wire Saveable Prefabs is part of building a placeable, not a one-off** — it has to run after
+  every rebuild of either half. `SaveWiringOnDiskTests` is the guard and has caught this twice.
 - **Both halves need a prefabId stamped ON DISK, not just in memory.** `SaveableEntity.OnValidate`
   fills it in the editor, so a prefab looks correctly wired while the `.prefab` file ships an empty
   string — and anything spawned from it is written into the save and can never be restored. Both
@@ -94,12 +131,16 @@ its transform: what it returns is on the prefab, so `TransformSaveable` is the w
 
 ## Extending
 
-**A new placeable** — 1) Two prefabs: the held one (the ordinary artifact recipe in
-[Artifacts.md](Artifacts.md), with `PlaceableItem` instead of a bespoke script) and the placed one
-(`PlacedObject` + collider + `NetworkObject` + `SaveableEntity` + `TransformSaveable`). 2) Point
-`placedPrefab` at the second and its `returnItem` back at the first's item asset. 3) Register the
-placed prefab in the network prefab list *and* the saveable prefab registry. 4) Verify by placing,
-reloading, and picking it up on a client rather than the host.
+**A new placeable that stands on the ground** — 1) Two prefabs: the held one (the ordinary artifact
+recipe in [Artifacts.md](Artifacts.md), carrying `PlaceableItem` + `GroundPlacement`) and the placed
+one (`PlacedObject` + collider + `NetworkObject` + `SaveableEntity` + `TransformSaveable`). 2) Point
+`GroundPlacement.placedPrefab` at the second and its `returnItem` back at the first's item asset.
+3) Register the placed prefab in the network prefab list *and* the saveable prefab registry.
+4) Verify by placing, reloading, and picking it up on a client rather than the host.
+
+**A placeable that attaches to something** — write a `PlacementRule` instead. `CanPlace` is the
+criteria, `Place` returns whether the world changed, and no other file needs to know it exists.
+`SaddlePlacement` is 60 lines and is the worked example.
 
 **A placeable that does something** — subclass `PlacedObject`, override `CanInteract`/`Interact`
 for the E verb. Q keeps working underneath.

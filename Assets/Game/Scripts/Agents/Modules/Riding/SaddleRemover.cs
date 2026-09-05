@@ -10,7 +10,7 @@ using SpaceGame.Gameplay;
 namespace SpaceGame.Agents
 {
     [RequireComponent(typeof(Collider))]
-    public class SaddleRemover : MonoBehaviour, IInteractable, IInteractionReadout
+    public class SaddleRemover : MonoBehaviour, IInteractable, IRetrievable, IInteractionReadout
     {
         [SerializeField] private string label = "Saddle";
 
@@ -30,7 +30,16 @@ namespace SpaceGame.Agents
         // them and disable the module still holding them.
         public bool CanInteract() => socket != null && socket.IsSaddled && !RiderAboard();
 
-        public void Interact(Interactor interactor)
+        public void Interact(Interactor interactor) => TakeOff(interactor);
+
+        // Q as well as E, and the same Q that picks up every other placeable. A saddle IS placed
+        // into the world -- onto an animal rather than onto the ground -- so the verb that undoes
+        // that should not be a different key here than it is on a lantern.
+        public bool CanRetrieve() => CanInteract();
+
+        public void Retrieve(Interactor interactor) => TakeOff(interactor);
+
+        private void TakeOff(Interactor interactor)
         {
             if (!CanInteract() || interactor == null) return;
             socket.Request(false, interactor.gameObject);
@@ -43,7 +52,7 @@ namespace SpaceGame.Agents
         }
 
         public string Label => label;
-        public string Prompt => "E: take saddle off";
+        public string Prompt => "E or Q: take saddle off";
         public float? Value01 => null;
         public string ValueText => "";
     }

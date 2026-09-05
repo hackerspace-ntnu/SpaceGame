@@ -685,7 +685,8 @@ GameObject:
   - component: {fileID: 1629992289146494553}
   - component: {fileID: 6987184303871023018}
   - component: {fileID: 3260420670956602811}
-  - component: {fileID: 4404909457187546713}
+  - component: {fileID: 4827639694190488344}
+  - component: {fileID: 5245737289221470020}
   m_Layer: 0
   m_Name: Saddle
   m_TagString: Untagged
@@ -818,14 +819,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 726261036
+  GlobalObjectIdHash: 3735702948
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -893,7 +894,7 @@ MonoBehaviour:
   packSize: 0
   sizeReference: {fileID: 0}
   keepColliders: 0
---- !u!114 &4404909457187546713
+--- !u!114 &4827639694190488344
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -902,9 +903,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 6651126544930326803}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: edf5992737a324d408bf095288bafe04, type: 3}
+  m_Script: {fileID: 11500000, guid: ddea0cbafb34de8499bba45128e77e04, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.SaddleArtifact
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PlaceableItem
   maxUses: -1
   useSoundId: 0
   useSound:
@@ -914,8 +915,22 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  rule: {fileID: 5245737289221470020}
   range: 4.5
-  fitSound: 401
+  placeSound: 401
+--- !u!114 &5245737289221470020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6651126544930326803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ce7f1c72a86df348b6240755b836ec4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.SaddlePlacement
+  fitsSocketsFor: {fileID: 0}
 --- !u!1 &6839338898735733291
 GameObject:
   m_ObjectHideFlags: 0

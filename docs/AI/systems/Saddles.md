@@ -5,7 +5,7 @@ summary: "Fitting a saddle to an animal: what makes it rideable, what it carries
 paths:
   - Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs
   - Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs
-  - Assets/Game/Scripts/Items/Artifacts/Gadgets/SaddleArtifact.cs
+  - Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs
   - Assets/Game/Editor/Creatures/SaddleBuilder.cs
   - "Assets/Game/Art/Models/_Source~/models/gear"
 symptoms:
@@ -29,7 +29,7 @@ updated: 2026-09-05
 
 A saddle turns an animal into something you can ride and something that carries gear. It is an assembly of three systems rather than a new one, which is why it has its own page: no single one of them owns it.
 
-**Scope:** `SaddleSocket` / `SaddleRemover` ([Riding/](Assets/Game/Scripts/agents/Modules/Riding)), [`SaddleArtifact`](Assets/Game/Scripts/Items/Artifacts/Gadgets/SaddleArtifact.cs), [`SaddleBuilder`](Assets/Game/Editor/Creatures/SaddleBuilder.cs), and the model under `_Source~/models/gear/`.
+**Scope:** `SaddleSocket` / `SaddleRemover` ([Riding/](Assets/Game/Scripts/agents/Modules/Riding)), [`SaddlePlacement`](Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs), [`SaddleBuilder`](Assets/Game/Editor/Creatures/SaddleBuilder.cs), and the model under `_Source~/models/gear/`.
 **Related:** [AgentSystem.md](AgentSystem.md) (the animal), [Backpack.md](Backpack.md) (the container), [Artifacts.md](Artifacts.md) (the item), [Vehicles.md](Vehicles.md) (`MountModule`).
 
 ## Model
@@ -40,13 +40,17 @@ Three pieces, each living where it belongs:
 | --- | --- | --- |
 | `SaddleSocket` | the **animal** | Whether a saddle is on. The only replicated state — one bool. |
 | `AppaSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. |
-| `SaddleArtifact` | the **item** | Aimed use that asks a socket to fit one, and is spent when it does. |
+| `SaddlePlacement` | the **item** | The saddle is a [placeable](Placeables.md); this is its rule. Criteria: an animal with a free socket. Logic: `Fit()`. |
 | `SteerModule` | the **animal** | Rider input to the motor. Always on; it self-gates on `IsMounted`. |
 | `SaddleQuickRelease` | the **animal** | `Q` while standing beside it. Same `Request(false)` as the grips. |
 
 - **The saddle is a plain `Instantiate`, not a spawned `NetworkObject`** — the same call `BackpackController` makes for the pack. A `NetworkObject` parented into a bone hierarchy needs that reparenting replicated and re-applied after every spawn and every load, and what is actually replicated here is one bool. `NetMsg.SaddleFit` (100) asks the server, `SaddleSet` (101) tells everyone, and each machine builds its own copy in `ApplySaddled`.
 - **Riding and steering are two components.** `MountModule` puts a body in the seat; `SteerModule` is what makes the animal go. A mount with only the first is a chair — you climb on and it carries on with whatever its AI was doing. `SteerModule` needs a motor that implements `IRiderControllable`, which `NavMeshAgentMotor` does, so on a NavMesh creature it is one component and no other work.
 - **"You cannot ride it bareback" is the `MountModule` being disabled.** `AppaBuilder` adds it with `enabled = false`; the socket turns it on with the saddle. A disabled `Behaviour` is one the `Interactor` skips outright, so a bare animal offers no verb at all rather than one that appears and refuses.
+- **The saddle is a [placeable](Placeables.md), not a bespoke item.** Its "ground" is an animal.
+  `PlaceableItem` owns the loop and `SaddlePlacement` owns the criteria and the logic, so the
+  saddle gets aim handling, server validation, conserving consumption and the Q verb for free.
+  It was a second copy of that loop (`SaddleArtifact`) until the rule split replaced it.
 - **Fitting and removing are deliberately different verbs.** The item fits. The saddle carries `SaddleRemover` — a trigger with its own `IInteractable`, so looking at the saddle offers "take saddle off" while the animal's solid collider goes on offering "ride". You need no saddle in hand to remove one, and a removed saddle has to go somewhere anyway.
 - **The faces are ordinary `PackSurface`s.** `WallInventory` is reused verbatim: it is documented as "a `PackContainer` bolted to something, with no fold, no deploy and no owner", which is a saddle exactly. Three faces, `SaddleLeft`/`SaddleRight`/`SaddleRear` (ids 8–10), 42 cells against the expedition rig's 255.
 
@@ -55,11 +59,11 @@ Three pieces, each living where it belongs:
 **The loop conserves.** Fitting spends the item; removing returns it through `SpillAndReturn`. So
 there is exactly one saddle at any moment — in a pack, or on an animal — and no place/remove cycle
 multiplies it. `SaddleSocket.Fit()` returns whether the saddle actually went on, and only then does
-the artifact call `Deplete()`: a click at an animal already wearing one must not eat the saddle.
+`PlaceableItem` call `Deplete()`: a click at an animal already wearing one must not eat the saddle.
 That answer cannot come back through `Request` (a message has no return value), which is why an
 already-server caller asks directly.
 
-**Fitting.** `SaddleArtifact.OnRequestUse` raycasts on the holder's machine, resolves a `SaddleSocket` with `GetComponentInParent` and puts it in the `NetArg` — the aim is read there because the server's `Camera.main` is the *host's* camera. `Use()` (server) resolves it and calls `Request(true)`. The server flips the bool and broadcasts; every machine instantiates.
+**Fitting.** The saddle is placed, not used: `PlaceableItem` raycasts on the holder's machine — the server's `Camera.main` is the *host's* camera — and `SaddlePlacement.CanPlace` looks for a free `SaddleSocket` with `GetComponentInParent`, because an animal's collider is on its root but a ray lands just as easily on a horn. On the server `Place` calls `socket.Fit()`, which flips the bool and broadcasts; every machine instantiates. The item is spent only if `Fit()` returned true.
 
 **Removing.** Two ways in, one decision: `SaddleRemover.Interact` (E, aimed at a grip) and
 `SaddleQuickRelease` (Q, standing near) both call `Request(false)`, so "is there a saddle" and
@@ -113,5 +117,12 @@ Two ids, both on the **animal's** relay: the saddle has no channel of its own. `
 - **The pannier boards are modelled horizontal**, not flush to the flank — a `PackSurface` maps a uv onto a plane, and a board following the barrel would slope every item.
 
 ## Extending
+
+**Worked example: the Sandloper.** A large rideable cousin of the dune rat, built from the rat's
+shipped FBX (its `.blend` cannot be opened by Blender 4.2) with a subdivided, repainted mesh at
+2x scale. It carries the whole stack — `Coll_Saddle_Loper` in `saddle.blend`, its own
+`PackSurfaceId`s (11-13, sized for a narrow biped rather than a bison), a disabled `MountModule`,
+`SteerModule`, `SaddleSocket`, `SaddleQuickRelease` and `SaddleSaveable` — and none of it needed a
+change to the saddle system itself. `SaddleBuilder` grew a `Design` table instead of a second copy.
 
 **A saddle for another animal** — 1) Add a collection to `saddle.blend` fitted to that animal's measured back (`Coll_Saddle_Pack` is a started cargo pad). 2) Export it. 3) Copy `SaddleBuilder.BuildWorn` with the new FBX and face sizes; append new `PackSurfaceId` values and **never renumber** — they are persisted bytes and travel on the wire. 4) In that creature's builder add a disabled `MountModule`, a `SteerModule` pointing at it, a `SaddleSocket` pointing at the new prefab, and `SaddleSaveable`. Turn `jumpEnabled`/`leapEnabled` off unless that creature's controller actually plays them — the motor will happily leap 8 m in a walk cycle. 5) Verify it survives a reload and appears on a joining client.

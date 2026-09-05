@@ -94,6 +94,20 @@ namespace SpaceGame.Items
         /// </summary>
         SaddleLeft = 8,
         SaddleRight = 9,
-        SaddleRear = 10
+        SaddleRear = 10,
+
+        /// <summary>
+        /// The same three faces on a Sandloper's saddle, which are their own ids rather than a
+        /// reuse of 8-10 because they are a different SIZE. A surface's cell count is authored per
+        /// id, and he is a narrow biped: two small boards behind the cantle and a deck, against the
+        /// broad panniers a six-legged bison can carry.
+        ///
+        /// <para>
+        /// Appended, never renumbered. These are persisted bytes and they travel on the wire.
+        /// </para>
+        /// </summary>
+        LoperLeft = 11,
+        LoperRight = 12,
+        LoperRear = 13
     }
 }

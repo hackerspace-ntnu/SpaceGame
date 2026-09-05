@@ -117,7 +117,7 @@ namespace SpaceGame.Agents
         private void OnFitRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Owns(this)) return;
-            Decide(arg.A != 0);
+            Decide(arg.A != 0, arg.Resolve());
         }
 
         /// <summary>
@@ -125,20 +125,20 @@ namespace SpaceGame.Agents
         /// went on.
         ///
         /// <para>
-        /// The answer is the point. <c>SaddleArtifact</c> spends the item it was used from, and it
+        /// The answer is the point. <c>PlaceableItem</c> spends the item it was used from, and it
         /// may only do that when something happened: a click at an animal already wearing one, or
         /// at a socket with no prefab, must not eat the saddle. Going through <see cref="Request"/>
         /// could not tell it — a message has no return value — so an already-server caller asks
         /// directly.
         /// </para>
         /// </summary>
-        public bool Fit() => Network.Owns(this) && Decide(true);
+        public bool Fit() => Network.Owns(this) && Decide(true, null);
 
         /// <summary>
         /// The whole decision, in one place because both ways in have to make it identically.
         /// Returns whether the state changed.
         /// </summary>
-        private bool Decide(bool wanted)
+        private bool Decide(bool wanted, GameObject actor)
         {
             if (wanted == saddled) return false;
             if (wanted && saddlePrefab == null) return false;
@@ -148,7 +148,7 @@ namespace SpaceGame.Agents
             if (!wanted && mount != null && mount.IsMounted) return false;
 
             if (!wanted)
-                SpillAndReturn();
+                SpillAndReturn(actor);
 
             saddled = wanted;
             this.NetToAll(NetMsg.SaddleSet, new NetArg { A = saddled ? 1 : 0 });
@@ -211,7 +211,7 @@ namespace SpaceGame.Agents
         /// the saddle off has to put every item somewhere the player can pick it up again.
         /// </para>
         /// </summary>
-        private void SpillAndReturn()
+        private void SpillAndReturn(GameObject actor)
         {
             var spilled = new List<InventoryItem>();
 
@@ -233,7 +233,23 @@ namespace SpaceGame.Agents
                 }
             }
 
-            if (saddleItem != null) spilled.Add(saddleItem);
+            // The saddle goes back to whoever took it off, not onto the sand. Taking a placeable
+            // back into your inventory is what Q does everywhere else, and a saddle that lands at
+            // your feet reads as dropped rather than as retrieved -- worse on an animal that is
+            // still walking, because it walks away from it.
+            //
+            // Its CARGO still spills, and that difference is deliberate: it can be far more than a
+            // pack has room for, and losing a saddle to a full inventory would be worse than
+            // picking a few things up.
+            bool returned = false;
+            if (saddleItem != null && actor != null)
+            {
+                IPlayerInventory inventory = actor.GetComponentInParent<IPlayerInventory>();
+                returned = inventory != null && inventory.TryAddItem(saddleItem);
+            }
+
+            if (saddleItem != null && !returned)
+                spilled.Add(saddleItem);        // full pack, or nobody asked: it falls
 
             for (int i = 0; i < spilled.Count; i++)
                 DropIntoWorld(spilled[i], i, spilled.Count);

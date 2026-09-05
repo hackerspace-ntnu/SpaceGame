@@ -94,6 +94,22 @@ namespace SpaceGame.Agents
 
         [SerializeField] private SfxId roarSound = SfxId.EntityAggro;
 
+        [Tooltip("A sound FILE under StreamingAssets/Audio that replaces the FMOD event above for this creature. Named, it wins; empty, the catalog id plays as before. This exists because new FMOD events cannot be authored in this project - the Studio project that built the banks is not in the repo - so the 19 shipped events are all there is. It is a file rather than an AudioClip because Unity audio is DISABLED project-wide (AudioManager m_DisableAudio) and there is no Unity AudioListener, so an AudioSource here is silent; SfxFile plays it through FMOD instead.")]
+        [SerializeField] private string roarFile;
+
+        [Tooltip("Animator bool held true for the length of the roar. The controller uses it to " +
+                 "stop Hurt and the attack from cutting the roar short: they fire from AnyState, " +
+                 "Unity consumes only the trigger it takes, and a Hurt set by the same shot that " +
+                 "enraged the animal interrupts the roar one frame in - which looks exactly like " +
+                 "the roar never playing at all. Empty to skip the gate.")]
+        [SerializeField] private string roaringFlag = "IsRoaring";
+
+        [Tooltip("How far the roar carries, in metres. A telegraph the player cannot hear is not a telegraph.")]
+        [SerializeField] private float roarClipRange = 60f;
+
+        [Tooltip("Loudness of the file, 0..1.")]
+        [SerializeField, Range(0f, 1f)] private float roarClipVolume = 1f;
+
         [Header("Wiring")]
         [Tooltip("Enabled only while fleeing. Found on this object when left empty.")]
         [SerializeField] private FleeModule fleeModule;
@@ -297,6 +313,33 @@ namespace SpaceGame.Agents
 
             if (animatorDriver != null && !string.IsNullOrEmpty(roarTrigger))
                 animatorDriver.TriggerByName(roarTrigger);
+
+            PlayRoar();
+        }
+
+        /// <summary>
+        /// The roar, from a clip when one is pinned and from the FMOD catalog otherwise.
+        ///
+        /// <para>
+        /// Every machine that runs this reaches here, which is what you want for a telegraph:
+        /// the point of a roar is that the player hears the charge coming, and a sound only the
+        /// server plays is heard by nobody on a client.
+        /// </para>
+        /// </summary>
+        private void SetRoaringFlag(bool value)
+        {
+            if (animatorDriver != null && !string.IsNullOrEmpty(roaringFlag))
+                animatorDriver.SetBoolByName(roaringFlag, value);
+        }
+
+        private void PlayRoar()
+        {
+            // The file first, the catalog second. SfxFile returns false when the file is
+            // missing or FMOD refuses it, so a typo falls back to the event rather than to silence.
+            if (!string.IsNullOrEmpty(roarFile) &&
+                SfxFile.Play(roarFile, transform.position, roarClipVolume,
+                             Mathf.Min(6f, roarClipRange * 0.1f), roarClipRange))
+                return;
 
             Sfx.Play(roarSound, transform.position, GetInstanceID());
         }

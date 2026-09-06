@@ -25,8 +25,11 @@ symptoms:
   - "a rope goes onto a slot and can never come off it"
   - "the rope snaps the instant I try to haul a crate or a dropped item anywhere"
   - "a rope tied to a walking animal moves it not at all, as if it were bolted down"
-reads_with: [Artifacts, Lasso, Multiplayer, Persistence, PlayerCharacter, Locomotion]
-updated: 2026-09-05
+  - "a roped player clicks the rope and is free at once, so nobody ever struggles"
+  - "clicking my own rope does nothing at all and no prompt says why"
+  - "a captive unties themselves by walking to the far knot and clicking there"
+reads_with: [Artifacts, Hogtie, Lasso, Multiplayer, Persistence, PlayerCharacter, Locomotion]
+updated: 2026-09-06
 ---
 
 # Leash System
@@ -38,7 +41,8 @@ A rope tied between any two things in the world — creature to post, player to 
 ## Model
 
 - **A dropped item is a legitimate far end.** Its `LeashEnd.Kind` is `Object` with a live, dynamic body, so it takes the `AddForceAtPosition` branch and a crate roped by one corner turns to face the pull. That only became true on 2026-09-03: item prefabs used to freeze themselves kinematic on landing, which put them on the `MovePosition` branch — dragged flat, with no tumble and no resistance — and they carried no `NetworkTransform`, so the pull moved them on the simulating machine and nowhere else. See [Inventory.md](Inventory.md).
-- **Hook, then hook.** One button (Use). Empty hands + a thing → rope runs from it to your hand. Holding a rope + anything solid → tied, and the rope is now a world object. Click nothing → let go. Empty hands + **a rope** → untie. One held rope at a time; unequip drops it, tied ropes stay.
+- **Hook, then hook.** One button (Use). Empty hands + a thing → rope runs from it to your hand. Holding a rope + anything solid → tied, and the rope is now a world object. Click nothing → let go. Empty hands + **a rope** → untie. One held rope at a time; unequip drops it, tied ropes stay. Empty hands + a body **already on the ground** → a fifth verb, `Tie` (4): rope round them rather than onto them, its own 120 s pool, no `Leash` at all — whole subject in [Hogtie.md](docs/AI/systems/Hogtie.md).
+- **You cannot click your own way out of a rope.** The untie is a **bystander's** verb: `Leash.Restrains(owner)` refuses it to whoever the rope is knotted to, and their only exit is the struggle `LeashedBody` already runs. A click that beat it would make the struggle the strictly worse of two exits and retire capture with it (`GDC-L1-DESIGN-0002`); capture is balanced by having an *answer*, not an off switch (`GDC-L1-BAL-0004`). Asked of **both** ends, because the untie travels addressed to the anchor *nearest the click* and a captive would otherwise walk to the far knot and cut it there — and of any **part** of a body, because a rope thrown at a downed player anchors to the ragdoll bone it hit. Cutting somebody **else** loose is untouched, and is the whole point of the verb.
 - **No second key.** `dropAction` was deleted: an `InputActionReference` read in `Update` runs on *every* copy of the artifact on this machine (including remote players' hands) and bypasses `Use`/`Present`.
 - A [`Leash`](Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) is a bare runtime `GameObject` — no prefab, no `NetworkObject`, `DontDestroyOnLoad` (it outlives the chunk either end streamed in from). Every machine builds and draws its own copy because `Present` runs everywhere.
 - **Each machine resolves the ends it owns** — `LeashEnd.ResolvedHere` is `Network.Owns(Body ?? Anchor)`, nothing else. Rope length is fixed and both endpoints replicate, so both machines compute the same overshoot and apply only their own share.
@@ -55,7 +59,7 @@ A rope tied between any two things in the world — creature to post, player to 
 
 | Type | File | Role |
 |---|---|---|
-| `Leash` | [Leash.cs](Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) | One rope. `A`/`B`, `Settings`, static `All`/`Create`/`Aimed`/`Nearest`, the constraint (`ShareOf`, `ArrestSpeed`, `CorrectionDistance`, `PullOf`, `TowCap`, `CombinedPull`), resist (`ResistSeconds`, `ResistStrain`, `StrainOn`), `Tension01`/`IsTaut`, `Snap`/`Dispose` |
+| `Leash` | [Leash.cs](Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) | One rope. `A`/`B`, `Settings`, static `All`/`Create`/`Aimed`/`Nearest`, the constraint (`ShareOf`, `ArrestSpeed`, `CorrectionDistance`, `PullOf`, `TowCap`, `CombinedPull`), resist (`ResistSeconds`, `ResistStrain`, `StrainOn`), `Restrains`, `Tension01`/`IsTaut`, `Snap`/`Dispose` |
 | `LeashEnd` | [LeashEnd.cs](Assets/Game/Scripts/Items/Artifacts/Leash/LeashEnd.cs) | One knot: `Kind`, `Anchor`, `LocalOffset`, `Mass`, `TopSpeed`, `PullStrength`, `Towable`, `ResolvedHere`, `Pull` |
 | `LeashArtifact` | [LeashArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Leash/LeashArtifact.cs) | The equipped `ToolItem`. `UseAuthority.Owner`. Aims, encodes verb+length, owns the tuning |
 | `LeashedBody` | [LeashedBody.cs](Assets/Game/Scripts/Items/Artifacts/Leash/LeashedBody.cs) | `[DefaultExecutionOrder(200)]`, added on demand. The player half of the constraint |
@@ -112,6 +116,7 @@ no longer share one axis. With no bend it reduces exactly to the relative veloci
 ## Multiplayer
 
 - **Aim** is owner-authoritative; **simulation** is per end by `Network.Owns`.
+- **"Not your rope" is re-asked in `Present`, on every machine.** `UntieAt` and the hogtie branch beside it both re-run the check against `owner` — the item's holder, which `UseChannel` sets from the `EquipmentController`'s own GameObject everywhere, so a peer knows whose hand this copy is in. A refusal that lived only in `OnRequestUse` would be a refusal the clicking client was trusted to have run (`GDC-L1-MP-0004`). **What this cannot reach:** a hostile client still disposes its own copy, and a player's constraint runs on their own machine, so they would go unroped locally — the same limit `Snap`'s owner verdict already has, and not fixable without taking player physics off the owner. What the check does buy is that the rope stays on for everybody else, the host included.
 - **Not "the server runs it".** A player's `NetworkTransform` is owner-authoritative, so server writes are silently overwritten within a tick. `NetMsg.RopeTug` (62) is retired — its receiver was never installed, so no rope ever pulled anyone.
 - **Ownership, not `Network.Server`.** A ridden mount belongs to its **rider** (`MountNetworkSync` transfers ownership), so a `Network.Server` test made the rope hold a host-ridden animal and be inert against a client-ridden one.
 - **Breaking is the resisting end's *owner's* verdict**, not the server's. It used to be the server's because the verdict was stretch and every machine could measure it; resist is accumulated from movement input, which only the struggling player's machine has. `Snap` sends when `!Network.IsNetworked || Network.Owns(listening) || Network.Server` (`Network.Owns` takes a `Component`, and `listening` is a `Transform`, so it is passed directly). The snap is broadcast as [`NetMsg.LeashSnap`](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs) (85) on the channel of whichever **anchor** has a network id, addressed by point exactly as an untie is. Peers reach `Snap` *from* the announcement and must not re-broadcast — the `disposed` flag set before the send is what guarantees that.
@@ -124,10 +129,7 @@ no longer share one axis. With no bend it reduces exactly to the relative veloci
 
 ## Persistence
 
-**Wrap points are not saved.** The path rebuilds from the two endpoints on load, so a rope wound the
-long way round a pillar can come back wound the short way. Saving the list would key it to collider
-instance ids that do not survive a reload, and a path that disagrees with the world it loaded into
-is worse than one that is merely re-derived.
+**Wrap points are not saved.** The path rebuilds from the two endpoints on load, so a rope wound the long way round a pillar can come back wound the short way. Saving the list would key it to collider instance ids that do not survive a reload, and a path that disagrees with the world it loaded into is worse than one that is merely re-derived.
 
 **Resist strain is deliberately transient** — it is not saved, not sent, and resets to zero on load. A struggle is a thing you are doing right now, not a property of the rope; banking it across a quit would let a player tear free of a fresh rope instantly.
 
@@ -150,6 +152,7 @@ is worse than one that is merely re-derived.
 - **`Leash.Snap` sets `disposed` before the send.** `NetTo.All` dispatches inline on the host, and the handler resolves this same rope and calls `Snap` again — flag-after-send is unbounded recursion.
 - **A kinematic end reports no velocity**, so nothing is arrested on that side and the position term does it all. That converges to a **standing overstretch** (~0.5 m for a creature walking off at 4 m/s), not to zero. That is the intended "straining at the leash" look.
 - **`everTied`** exists because a rope is built untied and its ends attached one at a time; a physics step landing between the two calls would read a half-built rope as "the thing is gone" and dispose it.
+- **`Restrains` walks the hierarchy, and `ReferencesObject` does not.** They look interchangeable and are not: `LeashEnd.TieTo` anchors to the `Rigidbody` it finds walking **up** from the collider, so a rope thrown at a downed player lands on their forearm bone and an identity test against the player root answers *no* — freeing the captive to click it off, silently, and only while ragdolled, which is exactly when it matters. `IsChildOf` is also true of the transform itself, so a hand end on the root still answers yes. A refused untie composes no verb at all, so it is **silent**: it reads as a dead button until the struggle's strain shows, and a "you must struggle" signifier (`GDC-L1-UX-0004`) is not built. One corner has neither exit: a player who **mounts after** being roped is kinematic, so `Struggle` returns early and the click is refused too — they must dismount, or be cut loose. Roping somebody *already* mounted is fine, because `LeashEnd.TieTo` unseats them.
 - **Clicking a rope is analytic** — no collider, and it is not getting one. `LeashRope.Aimed` runs `RayToSegment` against the points *actually drawn*, so a rope sagging on the ground is grabbed where it lies. Two clamps matter: solved as infinite lines, a rope **behind** you is as pickable as one in front; past a segment's end the nearest point is its **endpoint**. The `grabRadius` slack is what lets a rope resting on the ground win against the ground it rests on.
 - **`LeashGround` is gone.** A downward height probe is not how a rope meets the world: it *drew* the rope draped on a hillside the constraint still measured straight through. The bends are real contacts now, so drawing them is just drawing where the rope is.
 - **Unwrap runs before wrap, within one step.** The other order re-tests a waypoint inserted this same step against a neighbour it has not met yet and removes it again immediately.

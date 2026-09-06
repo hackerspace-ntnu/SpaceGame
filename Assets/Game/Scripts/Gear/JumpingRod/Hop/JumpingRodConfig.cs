@@ -40,6 +40,43 @@ namespace SpaceGame.Gear.JumpingRod
                  "hop — that is what the floor above is for.")]
         [SerializeField, Range(0.5f, 1f)] private float energyReturn = 0.9f;
 
+        [Header("Landing boost")]
+        //
+        // Press Jump as the rod meets the ground and the hop is multiplied; chain those presses and
+        // the multiplier compounds. The window is deliberately asymmetric — see the two fields
+        // below — and a landing that is not hit on the beat drops the chain, so the boost is a
+        // rhythm the player is playing rather than a bonus they are accumulating.
+
+        [Tooltip("How long BEFORE the rod touches down a Jump press still counts, seconds. This " +
+                 "is a buffer, not an assist: human timing scatters by tens of milliseconds and a " +
+                 "press the player perceives as on the beat must not be thrown away for landing a " +
+                 "frame or two early (GDC-L1-FEEL-0003). Wider than the late half because pressing " +
+                 "early is the commoner error — the player is anticipating a landing they can see " +
+                 "coming.")]
+        [SerializeField, Min(0f)] private float boostWindowEarly = 0.12f;
+
+        [Tooltip("How long AFTER touchdown a Jump press still counts, seconds. Narrower than the " +
+                 "early half: this half is paid out by topping the hop up in mid-air, so every " +
+                 "millisecond of it is a visible surge after the launch. Keep it under " +
+                 "Rebounce Lockout.")]
+        [SerializeField, Min(0f)] private float boostWindowLate = 0.08f;
+
+        [Tooltip("Take-off speed multiplier per link of the chain, compounding. Height goes as the " +
+                 "SQUARE of this: 1.12 is 12% more speed and 25% more height per link.")]
+        [SerializeField, Range(1f, 1.5f)] private float boostPerLink = 1.12f;
+
+        [Tooltip("Longest chain, in links. The cap on the whole mechanic: at 1.12 per link, five " +
+                 "links is 1.76x speed and 3.1x height — the 3.4 m cruise hop becomes 10.4 m. It " +
+                 "multiplies the take-off CLAMP, floor and ceiling both, so the chain is what " +
+                 "makes heights above Max Hop Speed reachable at all.")]
+        [SerializeField, Min(0)] private int maxChainLinks = 5;
+
+        [Tooltip("Links lost when a landing is missed — no press, a mistimed one, or two presses " +
+                 "in one hop. At or above Max Chain Links this is a full reset, which is what ships: " +
+                 "the top of the ladder should be a run the player is currently making, not a total " +
+                 "they banked ten hops ago. Set it to 1 for a gentler decay.")]
+        [SerializeField, Min(1)] private int linksLostOnMiss = 5;
+
         [Header("Contact")]
         [Tooltip("How close the rod's tip has to come to the ground to bounce, metres. Measured " +
                  "from the player's feet, so it is also how far the tip hangs below them.")]
@@ -62,5 +99,11 @@ namespace SpaceGame.Gear.JumpingRod
         public float ContactHeight => contactHeight;
         public float CompressHeight => compressHeight;
         public float RebounceLockout => rebounceLockout;
+
+        public float BoostWindowEarly => boostWindowEarly;
+        public float BoostWindowLate => boostWindowLate;
+        public float BoostPerLink => boostPerLink;
+        public int MaxChainLinks => maxChainLinks;
+        public int LinksLostOnMiss => linksLostOnMiss;
     }
 }

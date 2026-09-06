@@ -94,16 +94,96 @@ namespace SpaceGame.EditorTools
             public readonly Wire[] Wires;
             public readonly Paint[] Paints;
 
+            /// <summary>
+            /// What this one is drawn at on the pack mat, in the metres <c>ItemGrip.packSize</c> is
+            /// authored in. <see cref="GauntletPrefab.PackSize"/> — zero, meaning the device's true
+            /// size — for all but the ruin scanner.
+            ///
+            /// <para>
+            /// It lives in the table because this script REWRITES the field: a size typed onto the
+            /// prefab by hand is silently replaced with the family default on the next reseat, and
+            /// the only symptom is an item that grew back. Any divergence here must also be listed
+            /// in <c>PackSizeTests</c>, which is what makes it a decision rather than a stray number.
+            /// </para>
+            /// </summary>
+            public readonly float PackSize;
+
+            /// <summary>
+            /// How far round the forearm this one is worn from where its model puts it, in the
+            /// degrees <c>GauntletFit.rollDegrees</c> is authored in. Zero for a model built in
+            /// the family's frame, which is all of them but the item scanner.
+            ///
+            /// <para>
+            /// In the table for the same reason the pack size is: this script REWRITES the field,
+            /// so a roll typed onto the prefab by hand comes back as zero on the next reseat and
+            /// the only symptom is a device that went back to the flank it was taken off.
+            /// </para>
+            /// </summary>
+            public readonly float Roll;
+
             public Gauntlet(string prefab, string model, string[] keep, Wire[] wires,
-                            Paint[] paints = null)
+                            Paint[] paints = null, float packSize = GauntletPrefab.PackSize,
+                            float roll = 0f)
             {
                 Prefab = Gadgets + prefab;
                 Model = Models + model;
                 Keep = keep;
                 Wires = wires;
                 Paints = paints ?? Array.Empty<Paint>();
+                PackSize = packSize;
+                Roll = roll;
             }
         }
+
+        /// <summary>
+        /// What the ruin scanner is drawn at on the pack mat, in the metres <c>packSize</c> is
+        /// authored in — 0.58x the 0.389 m the artist built it at, and the only gauntlet that
+        /// diverges.
+        ///
+        /// <para>
+        /// At true size the device measured 4 x 5 cells, twenty of the rig's 255, for a gadget
+        /// that is worn on a forearm. That is a hierarchy failure rather than a fit one
+        /// (<c>GDC-L1-UX-0003</c>: rank by salience, and every element competes for attention) —
+        /// nothing refused to hold it, it simply read as the most important thing on the mat. At
+        /// 0.225 it is <b>2 x 3 = 6 cells</b>.
+        /// </para>
+        /// <para>
+        /// <b>0.225 rather than the 0.2334 that is exactly 0.6x</b>, because the binding axis is
+        /// not the one the number names. The device is 0.301 across against 0.389 along, so the
+        /// width crosses its second cell at 0.2326 — 0.2334 costs a whole third column for 0.3%
+        /// of overflow and draws the scanner loose inside 3 x 3. 0.225 sits 3% clear of that line
+        /// and costs the same six cells any value between 0.19 and 0.2326 would. The precedent is
+        /// <c>PackSizeTests.CellWhy</c>: a rule of thumb bends, a cell boundary does not.
+        /// </para>
+        /// </summary>
+        private const float RuinScannerPackSize = 0.225f;
+
+        /// <summary>
+        /// How far round the forearm the item scanner's console is worn from where its model puts
+        /// it: half a turn.
+        ///
+        /// <para>
+        /// The .blend is hand-authored, and its 2026-09-03 edit stood the whole console on ONE
+        /// flank — the model's +X, which <c>ForearmSeat</c>'s mirror makes the same flank of both
+        /// arms. The lead wants the other one (user, 2026-09-06: <i>"mounted on the wrong side of
+        /// the arm. Rotate it 180 degrees and move its attachment point so it sits on the opposite
+        /// side of the wrist"</i>), and half a turn about the arm axis is both halves of that at
+        /// once: the console swings across to the far flank at the same distance from the bone,
+        /// carrying its own mount with it.
+        /// </para>
+        /// <para>
+        /// <b>A roll rather than a mirror, and the display survives it</b> — the axis runs along
+        /// the arm, so the screen plate's own up (which points at the hand) does not move, and a
+        /// rotation cannot change the handedness <c>ItemScannerScreen</c> measures for
+        /// <c>_FlipX</c>. The reader still sees the plate face-on, the same way up.
+        /// </para>
+        /// <para>
+        /// Here rather than in the .blend because that file must not be regenerated — its
+        /// generator no longer reproduces the hand edits — and turning a gauntlet about the arm is
+        /// exactly what <c>GauntletFit.rollDegrees</c> exists for.
+        /// </para>
+        /// </summary>
+        private const float ItemScannerRollDegrees = 180f;
 
         private static readonly Gauntlet[] Roster =
         {
@@ -136,11 +216,16 @@ namespace SpaceGame.EditorTools
                     // is the shader ItemScannerScreen writes its blips into.
                     new Paint("Mesh_Terminal_Scanner_Screen", 0,
                               "Assets/Game/Art/Materials/Items/ItemScannerScreen.mat"),
-                }),
+                },
+                // The one gauntlet worn turned off its model's own frame — see the constant.
+                roll: ItemScannerRollDegrees),
 
+            // The one gauntlet that is not drawn at its true size — see ScannerWhy in PackSizeTests
+            // for the 0.225 and what it costs.
             new("RuinScanner.prefab", "gauntlet_ruin_scanner.fbx",
                 Array.Empty<string>(),
-                new[] { new Wire("RuinScannerArtifact", "muzzle", "Emitter", Kind.Transform) }),
+                new[] { new Wire("RuinScannerArtifact", "muzzle", "Emitter", Kind.Transform) },
+                packSize: RuinScannerPackSize),
         };
 
         [MenuItem("Tools/SpaceGame/Items/Reseat Gauntlets On The Base")]
@@ -195,7 +280,7 @@ namespace SpaceGame.EditorTools
                 var grip = new GameObject("GripPoint");
                 grip.transform.SetParent(contents.transform, false);
 
-                GauntletPrefab.MakeWorn(contents, grip.transform, instance.transform);
+                GauntletPrefab.MakeWorn(contents, grip.transform, instance.transform, g.PackSize, g.Roll);
 
                 foreach (Wire wire in g.Wires) Connect(contents, instance.transform, wire, g.Prefab, log);
                 foreach (Paint paint in g.Paints) Repaint(instance.transform, paint, g.Prefab, log);
@@ -360,9 +445,13 @@ namespace SpaceGame.EditorTools
                                    "not the family's 1x1 — it will be the wrong size on the arm.");
 
                 if (!Mathf.Approximately(grip.HoldSize, GauntletPrefab.HoldSize) ||
-                    !Mathf.Approximately(grip.PackSize, GauntletPrefab.PackSize))
+                    !Mathf.Approximately(grip.PackSize, g.PackSize))
                     log.AppendLine($"  VERIFY {g.Prefab}: sizes are {grip.HoldSize}/{grip.PackSize}, " +
-                                   $"not {GauntletPrefab.HoldSize}/{GauntletPrefab.PackSize}.");
+                                   $"not {GauntletPrefab.HoldSize}/{g.PackSize}.");
+
+                if (!Mathf.Approximately(fit.RollDegrees, g.Roll))
+                    log.AppendLine($"  VERIFY {g.Prefab}: worn rolled {fit.RollDegrees} deg about " +
+                                   $"the arm, not {g.Roll} — it is on the wrong flank.");
 
                 Transform model = prefab.transform.Find("Model");
                 if (model == null) { log.AppendLine($"  VERIFY {g.Prefab}: no Model child."); continue; }

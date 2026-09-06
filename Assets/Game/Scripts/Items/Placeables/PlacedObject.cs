@@ -1,15 +1,17 @@
 // The world half of a placeable: the thing standing on the ground, and the way back.
 //
-// It answers Q rather than E so that a placeable which DOES something keeps E for doing it. A
-// placed lamp switches on with E and is pocketed with Q; neither has to give way to the other.
+// It answers the interact button (RMB), which is the button that picks up every other loose thing
+// in the world -- see IRetrievable. A placeable that DOES something keeps its own verb on LMB
+// (ISecondaryInteractable), which is also the button that put it down, rather than taking the
+// interact button back and leaving the player with no way to pocket it.
 //
 // What it returns is authored on the prefab, not sent at placement time. A placeable is a PAIR --
 // one held prefab, one placed prefab -- so the placed half already knows what it is, and nothing
 // about that has to survive the wire, a save, or a client joining halfway through. The alternative,
 // binding it at spawn, would need the asset id replicated and re-applied on every load.
 //
-// Retrieval is server-authoritative for the obvious reason: two players pressing Q on the same
-// crate on the same frame must not produce two crates. The server gives, then despawns.
+// Retrieval is server-authoritative for the obvious reason: two players clicking the same crate on
+// the same frame must not produce two crates. The server gives, then despawns.
 using UnityEngine;
 using Unity.Netcode;
 using SpaceGame.Core;
@@ -39,17 +41,19 @@ namespace SpaceGame.Items
         /// <summary>What this returns as, or null if it can never be picked up.</summary>
         public InventoryItem ReturnItem => returnItem;
 
-        // ── E: nothing, unless a subclass gives it something ─────────────────
+        // ── nothing to operate, unless a subclass gives it something ─────────
 
         /// <summary>
-        /// False by default: a plain placeable has no primary verb, only Q. Overriding this and
-        /// <see cref="Interact"/> is how a placeable that DOES something gets its E back.
+        /// False by default: a plain placeable has no primary verb, only the pick-up. A subclass
+        /// that overrides this takes the interact button for itself and loses the pick-up with it
+        /// (see <see cref="Interactor.PressPicksUp"/>) — so a placeable that DOES something puts
+        /// that verb on LMB (<see cref="ISecondaryInteractable"/>), the same button that placed it.
         /// </summary>
         public virtual bool CanInteract() => false;
 
         public virtual void Interact(Interactor interactor) { }
 
-        // ── Q: take it back ──────────────────────────────────────────────────
+        // ── RMB: take it back ────────────────────────────────────────────────
 
         public bool CanRetrieve() => retrievable && returnItem != null;
 
@@ -99,7 +103,9 @@ namespace SpaceGame.Items
             : returnItem != null ? returnItem.itemName
             : "Placed item";
 
-        public string Prompt => CanRetrieve() ? "Q: pick up" : string.Empty;
+        // The resolver's own words for this, rather than a second copy of them here: the crosshair
+        // must never name a different button from the one the press uses.
+        public string Prompt => CanRetrieve() ? InteractionPromptResolver.RetrievePrompt : string.Empty;
 
         /// <summary>Null: a thing standing on the ground has no position to draw a bar for.</summary>
         public float? Value01 => null;

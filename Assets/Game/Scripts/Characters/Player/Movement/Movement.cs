@@ -397,10 +397,18 @@ namespace SpaceGame.Characters
         /// <para>
         /// Deliberately much narrower than <see cref="tethered"/>, and the narrowness is the point.
         /// A tether takes over horizontal motion; this changes nothing about how the player moves.
-        /// It suppresses <b>fall damage only</b>, because the whole business of a pogo stick is
-        /// arriving hard and leaving harder: at this project's -18 gravity a three-metre hop lands
-        /// at about -11 m/s, which the fall table prices at a fifth of the player's health — so a
-        /// rod that bounced you well would kill you in five bounces.
+        /// It does two things and no more.
+        /// </para>
+        /// <para>
+        /// It suppresses <b>fall damage</b>, because the whole business of a pogo stick is arriving
+        /// hard and leaving harder: at this project's -18 gravity a three-metre hop lands at about
+        /// -11 m/s, which the fall table prices at a fifth of the player's health — so a rod that
+        /// bounced you well would kill you in five bounces.
+        /// </para>
+        /// <para>
+        /// And it hands over the <b>Jump button</b>: <see cref="OnJump"/> steps aside, leaving the
+        /// press to whatever is doing the bouncing. On the rod a press means the landing boost, and
+        /// a 7 m/s leg jump firing underneath it would overwrite an 11 m/s hop.
         /// </para>
         /// <para>
         /// The rod is left to write <c>linearVelocity.y</c> directly rather than being given a
@@ -628,6 +636,15 @@ namespace SpaceGame.Characters
         public void OnJump()
         {
             if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+            {
+                return;
+            }
+
+            // Something sprung owns Jump while it is carrying this player — see SetBouncing. Not
+            // merely tidiness: the leg jump is 7 m/s and it SETS the vertical axis, so pressing it
+            // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
+            // a smaller number and the player would go lower for having timed it well.
+            if (bouncing)
             {
                 return;
             }

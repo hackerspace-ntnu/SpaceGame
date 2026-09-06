@@ -142,9 +142,9 @@ Every gadget, spell, scanner, throwable and hand tool that occupies a hotbar slo
 
 ### The backpack you lay gear on *(Backpack)*
 
-A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear.
+A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear. It lands **shut** — a box you set down and open, not a mat that unrolls itself: click the standing board, or press R, to lay it flat and get at your gear.
 
-**Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix.
+**Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix. The ship's gear wall shares the whole placement layer, so it answers a click the same way.
 
 ### Roping an animal *(Lasso)*
 
@@ -157,6 +157,12 @@ Hold the button and a loop starts turning over your head, opening wider the long
 One button ties a rope between any two things in the world: creature to post, player to crate, anything to a moving vehicle. The rope is a fixed-length limit rather than a spring, so below its length it does nothing at all, and each machine draws its own copy and only ever pulls the end it owns. Rope length is set once when you tie it, and it sags and lies over the ground it crosses.
 
 **Worth knowing:** the AI is never told it has been leashed — a roped creature keeps trying to walk where it was going, and that visible straining against the rope is the whole effect.
+
+### Tying somebody up *(Hogtie)*
+
+The same leash also hogties, but only somebody who is **already on the ground** — netted, or knocked flat by a blast. You cannot tie a person who is standing, so a tie is always the second thing you do, never the first, and whoever you are tying got a chance to answer the first one. Once the rope is on they stay down for **two minutes**, and there are only two ways out early: fight it, which takes about forty-five seconds of throwing yourself about — four times longer than struggling out of a net, because a tie is meant to feel like being properly captured rather than briefly caught — or have somebody walk over and cut you loose, empty-handed, which is instant. Being netted and tied at once is exactly what it sounds like: whichever comes off first, the other still has you.
+
+**Worth knowing:** a tie is over the moment you die, and nothing about it survives quitting and reloading — you come back untied. That is on purpose: a saved game that put you back in the world unable to move, with nothing telling you why, would be a far worse thing to ship than a rope that quietly falls off. There is also no rope drawn round the body yet, so for now a tied person and a netted person look the same.
 
 ### Looking at things and right-clicking *(InteractionSystem)*
 
@@ -195,6 +201,12 @@ Oxygen tanks and batteries are not full-or-empty — each one carries its own pe
 
 **Worth knowing:** this is why the pack can hold two of something at all. Until this existed, a container identified everything it carried by *what kind of thing it was*, so it could never hold two of one kind — a limit nobody had noticed, because the only thing anyone wanted two of was an oxygen tank, and a full one and an empty one used to count as different kinds.
 
+### Reading a tank at a glance *(SupplyGauge)*
+
+Oxygen tanks and batteries wear their charge on the outside: a bar that fills along the little window on the front, green when full, through amber, to red when it is nearly out. You get the same reading wherever the object is — held, dropped in the sand, plugged into the oxygen plant while it fills, or lying on your pack — because all three are painted from the same place.
+
+**Worth knowing:** the *bar* is the reading and the colour is only a second opinion. Roughly one man in twelve cannot reliably tell the green from the red, so a gauge that changed only colour told them nothing at all — which is exactly what the old one did. It also means the battery finally has a real gauge: the five lit segments moulded into its case were always just decoration, and could never move.
+
 ### The torch *(Flashlight)*
 
 Toggled with L, built in three layers: an ordinary short-range spot light of about 40 m that lights the world for everyone, a cheap shadowless long-throw glow reaching 120 m that only certain terrain and cave surfaces respond to, and a screen-space cone so you can see the beam hanging in the air. The split is what lets the near light be bright without blowing out a wall a metre in front of you. The beam's visible length comes from firing a handful of probe rays and taking the shortest hit.
@@ -223,7 +235,7 @@ A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; 
 
 ### The wingsuit *(Wingsuit)*
 
-A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about four metres forward for every metre down, pointing where you look — mouse to aim the nose, A and D to bank into a turn, Ctrl to pull your arms in and dive. Tap Space twice again to fold, and touching the ground folds it for you.
+A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about five metres forward for every metre down, pointing where you look — the mouse steers at exactly the sensitivity it turns your head on foot, so aiming the wing feels like aiming anything else, and the wing visibly rolls into the turn. A and D bank harder on top; Ctrl pulls your arms in and dives. Tap Space twice again to fold, and touching the ground folds it for you.
 
 It takes the same single slot as the wing pack, so you carry one or the other. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
 

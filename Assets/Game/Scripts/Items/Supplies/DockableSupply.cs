@@ -1,5 +1,4 @@
 using UnityEngine;
-using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
@@ -45,17 +44,10 @@ namespace SpaceGame.Items
         [SerializeField, Range(0f, 1f)] private float startingCharge = 1f;
 
         [Header("Gauge")]
-        [Tooltip("The emissive gauge or charge ladder. Optional.")]
+        [Tooltip("The mesh carrying the gauge. Not painted directly any more -- the fill bar is " +
+                 "built over it -- but it is still what says WHERE the gauge is, which is how a " +
+                 "dock derives the roll that turns the readable face towards the room.")]
         [SerializeField] private Renderer readout;
-
-        [Tooltip("Which submesh of that renderer is the emissive one. -1 paints all of them.")]
-        [SerializeField] private int readoutMaterialIndex = EmissiveLamp.WholeRenderer;
-
-        [SerializeField] private Color chargedColour = new Color(0.35f, 1f, 0.45f);
-
-        [Tooltip("What the gauge reads at empty. Not black: an unlit CRT is dark GLASS, and a " +
-                 "black one reads as a hole in the object.")]
-        [SerializeField] private Color emptyColour = new Color(0.06f, 0.09f, 0.07f);
 
         /// <summary>
         /// How full THIS instance is, 0..1. Lives here only while the item exists as an object;
@@ -78,23 +70,23 @@ namespace SpaceGame.Items
         /// <summary>How full this one is, in the kind's own unit.</summary>
         public float Stored => charge01 * capacity;
 
-        /// <summary>The emissive part, so a dock can paint the copy of this item standing in it.</summary>
+        /// <summary>
+        /// Which mesh carries the gauge, so a dock can work out which way round to seat this item.
+        /// The bar itself is found by name through <see cref="SupplyGauge"/>, not through here.
+        /// </summary>
         public Renderer Readout => readout;
 
-        /// <summary>Which submesh of <see cref="Readout"/> is emissive.</summary>
-        public int ReadoutMaterialIndex => readoutMaterialIndex;
+        /// <summary>
+        /// This instance's own bar. Bound once: <see cref="SetCharge"/> is called on every equip,
+        /// restore, drop and pickup, and a hierarchy walk on each of those is a walk too many.
+        /// </summary>
+        private SupplyGauge gauge;
 
-        /// <summary>Gauge colour at full.</summary>
-        public Color ChargedColour => chargedColour;
-
-        /// <summary>Gauge colour at empty.</summary>
-        public Color EmptyColour => emptyColour;
-
-        /// <summary>The gauge colour for a charge in 0..1. Shared so a dock's animation matches.</summary>
-        public Color ColourAt(float charge) =>
-            Color.Lerp(emptyColour, chargedColour, Mathf.Clamp01(charge));
-
-        private void Awake() => SetCharge(startingCharge);
+        private void Awake()
+        {
+            gauge = SupplyGauge.Bind(transform);
+            SetCharge(startingCharge);
+        }
 
         /// <summary>
         /// Set how full this one is and repaint its gauge. Clamped, because every caller is either
@@ -103,16 +95,8 @@ namespace SpaceGame.Items
         public void SetCharge(float charge)
         {
             charge01 = Mathf.Clamp01(charge);
-            PaintReadout(charge01);
+            gauge.Paint(charge01);
         }
-
-        /// <summary>
-        /// Show <paramref name="charge"/> on the gauge without changing what this holds. Called by
-        /// a dock on the inert display copy standing in it while a tank fills — that copy has no
-        /// scripts of its own, so the generator paints it through the PREFAB's component.
-        /// </summary>
-        public void PaintReadout(float charge) =>
-            EmissiveLamp.Paint(readout, readoutMaterialIndex, ColourAt(charge));
 
         /// <summary>
         /// Nothing. The reservoir's verb belongs to the receptacle it is plugged into — see the
@@ -143,11 +127,10 @@ namespace SpaceGame.Items
             SetCharge(stored < 0f ? startingCharge : stored);
         }
 
-    #if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (!Application.isPlaying) PaintReadout(startingCharge);
-        }
-    #endif
+        // No OnValidate repaint. The old one existed because a flat tint is a MaterialPropertyBlock
+        // and a property block is not serialized, so nothing outside play mode showed the authored
+        // charge. The bar's length IS serialized — OxygenGearBuilder bakes the anchor at the
+        // starting charge — so the prefab, its icon and every display copy already read correctly
+        // on disk, and an OnValidate here would only write to the asset behind the builder's back.
     }
 }

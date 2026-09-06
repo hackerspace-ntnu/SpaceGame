@@ -339,9 +339,16 @@ namespace SpaceGame.Items
             //
             // An authored component is left exactly as it is, because it carries per-prefab
             // tuning. This only fills the gap.
+            //
+            // The opt-out is checked BEFORE the component is looked up, not only before it is
+            // added: an item that says it poses nothing must pose nothing, and gating only the
+            // AddComponent left the opt-out silently undone the moment somebody dropped a
+            // HoldAnimator on the prefab.
+            if (!UsesHoldPose) return;
+
             var hold = GetComponent<HoldAnimator>();
-            if (hold == null && UsesHoldPose) hold = gameObject.AddComponent<HoldAnimator>();
-            if (hold != null) hold.SetHeld(holder, true);
+            if (hold == null) hold = gameObject.AddComponent<HoldAnimator>();
+            hold.SetHeld(holder, true);
         }
 
         /// <summary>
@@ -358,11 +365,27 @@ namespace SpaceGame.Items
         public bool Worn { get; set; }
 
         /// <summary>
+        /// Which forearm a worn gauntlet sits on. Set beside <see cref="Worn"/> by the controller
+        /// that seats it, and meaningless without it — a torso item leaves it at its default.
+        ///
+        /// <para>
+        /// Here rather than found by the item because the item cannot work it out: an instance is
+        /// parented to a forearm BONE, and reading the arm back off the hierarchy means matching
+        /// bone names, which is exactly the guess <c>ForearmSeat</c> exists to avoid. The slot is
+        /// the fact; this is it, passed on.
+        /// </para>
+        /// </summary>
+        public ItemGrip.Hand WornOn { get; set; }
+
+        /// <summary>
         /// Whether holding this item should pose the holder's body.
         ///
         /// <para>
-        /// True for anything gripped. Override to false for something worn rather than held — a
-        /// pack, a suit module — where posing the arms as though gripping it is wrong.
+        /// True for anything gripped. Override to false where posing the arms around this item is
+        /// wrong: something worn rather than held — a pack, a suit module — or something held
+        /// whose only available pose says the wrong thing. Every hold style on the Upper Body
+        /// layer is a firearm clip, so an item that is not aimed like a firearm is better served
+        /// by the base layer's own arms than by a pose that reads as taking aim with a pistol.
         /// </para>
         /// </summary>
         protected virtual bool UsesHoldPose => true;

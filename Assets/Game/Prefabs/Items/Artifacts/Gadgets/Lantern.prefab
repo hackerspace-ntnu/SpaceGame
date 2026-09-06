@@ -113,6 +113,7 @@ GameObject:
   - component: {fileID: 2058892598719488786}
   - component: {fileID: 5106652337568809824}
   - component: {fileID: 3253416467898124340}
+  - component: {fileID: -7516546503828275608}
   m_Layer: 0
   m_Name: Lantern
   m_TagString: Untagged
@@ -416,6 +417,18 @@ MonoBehaviour:
   placedPrefab: {fileID: 7073937156331823205, guid: 1c0e00b2f80346349b980e83d000a676, type: 3}
   maxGroundAngle: 35
   faceAwayFromPlacer: 1
+--- !u!114 &-7516546503828275608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5017773823256745679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &6831535930710036267
 GameObject:
   m_ObjectHideFlags: 0

@@ -69,6 +69,7 @@ namespace SpaceGame.Core.Persistence
                     Pose pose = Controller.SavedPose;
                     state.packPosition = pose.position;
                     state.packRotation = pose.rotation;
+                    state.racked = pack.IsRacked;
                 }
             }
 
@@ -91,10 +92,12 @@ namespace SpaceGame.Core.Persistence
 
             pendingDeployed = true;
             pendingPose = new Pose(restored.packPosition, restored.packRotation);
+            pendingRacked = restored.racked;
         }
 
         private bool pendingDeployed;
         private Pose pendingPose;
+        private bool pendingRacked;
 
         /// <summary>
         /// Set the pack back down, once there is ground under it.
@@ -118,7 +121,7 @@ namespace SpaceGame.Core.Persistence
             if (!pendingDeployed || Controller == null) return;
 
             pendingDeployed = false;
-            Controller.RestoreDeployState(BackpackController.State.Open, pendingPose);
+            Controller.RestoreDeployState(BackpackController.State.Open, pendingPose, pendingRacked);
         }
     }
 
@@ -265,6 +268,19 @@ namespace SpaceGame.Core.Persistence
             public Vector3 packPosition;
 
             public Quaternion packRotation;
+
+            /// <summary>
+            /// True when the front flap was standing up — the pack shut like a box — rather than
+            /// lying flat as a mat. Only meaningful with <see cref="deployed"/>.
+            ///
+            /// <para>
+            /// Worth a bool of its own now that every deploy LANDS closed: an open board is
+            /// something the player did, and a load that quietly undid it would read as the save
+            /// having half worked. A file written before this field existed reads as false, which
+            /// is the flat mat those saves recorded.
+            /// </para>
+            /// </summary>
+            public bool racked;
         }
 
         public static State Capture(PackLayout layout)

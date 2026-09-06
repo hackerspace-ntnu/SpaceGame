@@ -18,8 +18,8 @@ symptoms:
   - "an item's charge resets when I scroll one hotbar slot and back"
   - "a rifle shows a gauge reading 0%"
   - "a charge written into a slot never reaches the owning client"
-reads_with: [Inventory, Backpack, Oxygen, Persistence, Multiplayer]
-updated: 2026-09-05
+reads_with: [SupplyGauge, Inventory, Backpack, Oxygen, Persistence, Multiplayer]
+updated: 2026-09-06
 ---
 
 # Supply charge
@@ -28,7 +28,7 @@ How full a carried thing is — an oxygen tank, a battery — as **one fraction 
 survives an equip, a stow, a drag, a drop, a save and the wire.
 
 **Scope:** [Items/Supplies/](Assets/Game/Scripts/Items/Supplies) · [PackItemKey.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs)
-**Related:** [Oxygen.md](Oxygen.md) (its only consumers today) · [Inventory.md](Inventory.md) (`ItemState`, the hotbar wire) · [Backpack.md](Backpack.md) (placements) · [Persistence.md](Persistence.md)
+**Related:** [SupplyGauge.md](SupplyGauge.md) (how it is DRAWN) · [Oxygen.md](Oxygen.md) (its only consumers today) · [Inventory.md](Inventory.md) (`ItemState`, the hotbar wire) · [Backpack.md](Backpack.md) (placements) · [Persistence.md](Persistence.md)
 
 ## Model
 
@@ -44,10 +44,11 @@ survives an equip, a stow, a drag, a drop, a save and the wire.
   rifle is not an empty tank. A `None` is never written into a bag, so a bag never carries a key
   meaning "not applicable" — absent already means that, and a nullable field in a save record keeps
   "written before charges existed" distinguishable from "written empty".
-- **The player always reads a whole percent** (`Describe`), everywhere: the visor gauge, the item's
-  own emissive gauge, the pack mat's hover label and the machine's reticle readout. Slightly lossy —
-  a 15-minute tank at 100% reads like a 30-minute one — and one number in four places beats four
-  correct-but-different ones.
+- **The player always reads a whole percent** (`Describe`), everywhere: the visor gauge, the pack
+  mat's hover label and the machine's reticle readout. Slightly lossy — a 15-minute tank at 100%
+  reads like a 30-minute one — and one number in four places beats four correct-but-different ones.
+- **On the object itself the reading is a BAR, not a hue** — see [SupplyGauge.md](SupplyGauge.md),
+  which owns everything about how a charge is drawn.
 - **`SupplyKind` decides which receptacle accepts it.** `Oxygen` / `Power`; persisted and sent as a
   byte, so append only. `PackContainer.TryFindSocketed(kind)` asks by kind, not by face, so a second
   socket needs no change there.
@@ -59,6 +60,7 @@ survives an equip, a stow, a drag, a drop, a save and the wire.
 | `SupplyCharge` | [Supplies/SupplyCharge.cs](Assets/Game/Scripts/Items/Supplies/SupplyCharge.cs) | Static. The state key, the byte quantisation, capacity/kind lookup off a prefab, `Describe`. |
 | `SupplyKind` | same | `Oxygen` / `Power`. Persisted and sent as a byte — append only. |
 | `DockableSupply` | [Supplies/DockableSupply.cs](Assets/Game/Scripts/Items/Supplies/DockableSupply.cs) | The reservoir on the item: kind, capacity, starting charge, live charge, its own gauge. `IItemStateCarrier`. No use verb. |
+| `SupplyGauge` | [Supplies/SupplyGauge.cs](Assets/Game/Scripts/Items/Supplies/SupplyGauge.cs) | The fill bar that draws a charge. [SupplyGauge.md](SupplyGauge.md). |
 | `PackItemKey` | [Placement/PackItemKey.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs) | `<assetId>` / `<assetId>#2` … — the instance handle a container keys a placement by. |
 | `HotbarSlotWire` | [Components/PlayerInventoryNetwork.cs](Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs) | One hotbar slot on the wire: item id **plus a charge byte**. |
 | `PackPlacementWire` | [Backpack/BackpackNetwork.cs](Assets/Game/Scripts/Items/Backpack/BackpackNetwork.cs) | One placement on the wire, same extra byte. Shared with the ship's wall. |
@@ -84,6 +86,9 @@ knows about charges", and reads as the item's **authored starting charge**, not 
 
 **Onto the pack.** `TryStowFromHotbar` reads `slot.State` **before** the removal (removing takes the
 bag with the item), mints a `PackItemKey`, and places with the charge.
+
+**Drawn.** Three places, one painter, because two of them have no scripts left — the table is in
+[SupplyGauge.md](SupplyGauge.md). A `SupplyCharge.None` is **skipped** there, never painted as zero.
 
 **Dropped.** `IPlayerInventory.OnItemDropped(item, charge)` → `PlayerDropService.DropItem` →
 `SetCharge` on the spawned world object. **Picked up.** `PickupableItem` reads the world instance's
@@ -154,7 +159,8 @@ empty would drain every tank in every existing save on its first load.
 
 **A new kind of reservoir** — append to `SupplyKind` (persisted, so never renumber), put
 `DockableSupply` on the item prefab with its capacity and starting charge, and give the receptacle
-that accepts it a `PackSurface.AcceptsOnly` naming the item. Nothing in the containers changes.
+that accepts it a `PackSurface.AcceptsOnly` naming the item. Nothing in the containers changes, and
+its gauge costs one row in `OxygenGearBuilder.Roster` — see [SupplyGauge.md](SupplyGauge.md).
 
 **A new container** — store the fraction beside the item id and quantise it with
 `SupplyCharge.ToByte` on the wire. Reconstruct as `SupplyCharge.None` for an item that does not carry

@@ -1,5 +1,6 @@
-// Guards the ship-parts salvage loop: the modules a player finds, the sockets they go into, and
-// the two rules that make the loop a loop (one module per socket, one module per pack rack).
+// Guards the ship-parts salvage loop: the modules a player finds, the sockets they go into, one
+// module per socket, and the haul ladder that decides how big and what shape a module is once it
+// is off the hull and on the mat or the ship's gear wall.
 //
 // In Editor/ rather than beside the other EditMode tests because these touch Assembly-CSharp
 // types, and an asmdef cannot reference Assembly-CSharp.
@@ -24,6 +25,19 @@ namespace SpaceGame.Tests
 
         /// <summary>The rack face of the expedition rig, in cells. See PackSurfaceId.Rack.</summary>
         private const int RackCells = 9;
+
+        /// <summary>
+        /// The ship's gear wall, in cells. See PackSurfaceId.WallGrid and
+        /// InventoryWallBuilder.SurfaceCellsAcross/Up — the largest face a module can be stowed on.
+        /// </summary>
+        private const int WallCellsAcross = 30;
+        private const int WallCellsUp = 22;
+
+        /// <summary>
+        /// The single packSize every module shared before the haul ladder, in metres. Kept as the
+        /// floor the ladder is measured against, not as a size anything still uses.
+        /// </summary>
+        private const float OldSharedPackSize = 0.80f;
 
         private readonly List<GameObject> spawned = new();
 
@@ -173,27 +187,151 @@ namespace SpaceGame.Tests
         // ─────────────────────────── The pack rule ───────────────────────────
 
         /// <summary>
-        /// A module takes the whole rack and fits nowhere else.
+        /// A module is shaped by its own outline, and no two of them are the same rectangle.
         ///
-        /// That is the cost the salvage loop is built on — you haul an engine or you carry your
-        /// gear — and it is carried entirely by the authored shape, so a missing or resized row in
-        /// PackShapes.asset silently removes the tradeoff.
+        /// <para>
+        /// Every module used to carry a solid nine-by-nine row in PackShapes.asset — the rack
+        /// exactly, so hauling one cost the whole face. An authored row wins over the derived
+        /// footprint outright, so the price of that rule was seven identical squares: the 11 m
+        /// nuclear motor, the intake plate and the stubby belly turbine were one object to the
+        /// layout and to the eye. The rows are gone (ShipPartItemBuilder.ClearPackShapes) and one
+        /// coming back is silent — nothing throws, the modules simply stop being distinguishable
+        /// on the mat and on the ship's gear wall.
+        /// </para>
         /// </summary>
         [Test]
-        public void EveryModule_FillsTheWholeRack()
+        public void EveryModule_IsShapedByItsOwnOutline()
         {
             PackShapeLibrary library = LoadShapeLibrary();
+            var seen = new Dictionary<Vector2Int, string>();
+
+            foreach (InventoryItem item in ItemsOnDisk())
+            {
+                Assert.IsNull(library.Find(item.ID),
+                    $"'{item.itemName}' has a row in PackShapes.asset, which overrides its own " +
+                    "outline. Every hull module is shaped by its silhouette.");
+
+                PackShape shape = PackShapes.For(item, library);
+                PackShape derived = PackShape.ForFootprint(ItemFootprint.FootprintOf(item));
+
+                Assert.AreEqual(derived.Width, shape.Width,
+                    $"'{item.itemName}' is not the width its own outline asks for.");
+                Assert.AreEqual(derived.Height, shape.Height,
+                    $"'{item.itemName}' is not the depth its own outline asks for.");
+
+                var footprint = new Vector2Int(shape.Width, shape.Height);
+                Assert.IsFalse(seen.ContainsKey(footprint),
+                    $"'{item.itemName}' occupies the same {shape.Width}x{shape.Height} cells as " +
+                    $"'{seen.GetValueOrDefault(footprint)}'. Two modules the player cannot tell " +
+                    "apart on the wall is the bug the nine-by-nine rows were removed to fix.");
+                seen[footprint] = item.itemName;
+            }
+        }
+
+        /// <summary>
+        /// Every module is drawn bigger on the mat than the one size they all used to share.
+        ///
+        /// <para>
+        /// The haul ladder is four brackets rather than a multiple of true size precisely because
+        /// the family spans 6.2 to 1: a single ratio that keeps the nuclear motor inside the
+        /// wall's 30 cells drops the intake and the belly turbine BELOW the 0.80 m every module
+        /// was drawn at, which is the complaint the ladder answers. That floor is the thing worth
+        /// pinning — the exact rungs are a tuning decision and live in the builder.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void EveryModule_IsDrawnBiggerThanTheOldSharedSize()
+        {
+            foreach (InventoryItem item in ItemsOnDisk())
+            {
+                var grip = item.itemPrefab.GetComponent<ItemGrip>();
+                Assert.IsNotNull(grip, $"'{item.itemName}' has no ItemGrip to size it.");
+
+                Assert.Greater(grip.PackSize, OldSharedPackSize,
+                    $"'{item.itemName}' is drawn at {grip.PackSize} m on the mat, no bigger than " +
+                    $"the {OldSharedPackSize} m every module shared before the haul ladder.");
+            }
+        }
+
+        /// <summary>
+        /// The ladder never puts a smaller module ahead of a bigger one.
+        ///
+        /// <para>
+        /// Brackets compress the range; they must not reorder it. A reactor core drawn longer
+        /// than the nuclear motor is worse than the old squares — it does not merely fail to say
+        /// what a module is, it says something false.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void TheHaulLadder_KeepsTrueSizeOrder()
+        {
+            List<(string name, float trueLength, float packSize)> rungs = ItemsOnDisk()
+                .Select(item =>
+                {
+                    Vector3 size = ItemBounds.Measure(item.itemPrefab, null).size;
+                    var grip = item.itemPrefab.GetComponent<ItemGrip>();
+
+                    return (item.itemName, Mathf.Max(size.x, Mathf.Max(size.y, size.z)),
+                            grip != null ? grip.PackSize : 0f);
+                })
+                .OrderBy(row => row.Item2)
+                .ToList();
+
+            for (int i = 1; i < rungs.Count; i++)
+            {
+                Assert.GreaterOrEqual(rungs[i].packSize, rungs[i - 1].packSize,
+                    $"'{rungs[i].name}' is {rungs[i].trueLength:F2} m against " +
+                    $"'{rungs[i - 1].name}'s {rungs[i - 1].trueLength:F2} m, but is drawn " +
+                    $"{rungs[i].packSize} m to its {rungs[i - 1].packSize} m.");
+            }
+        }
+
+        /// <summary>
+        /// Every module fits the ship's gear wall, and can still be lashed to the pack's rack.
+        ///
+        /// <para>
+        /// The two containers bound the ladder from opposite ends, and neither refusal says
+        /// anything in the console — an oversized module simply shows red wherever it is dragged.
+        /// The wall is 30 x 22 cells and STRICT. The rack is 9 x 9 and allows overhang along u
+        /// only, and only for RECTANGLES, which is exactly what removing the authored rows made
+        /// these: a long module lashed across the rack occupies every cell of the columns it
+        /// crosses and hangs off both ends. Either orientation counts — a quarter turn is allowed
+        /// for a derived shape.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void EveryModule_FitsTheGearWallAndTheRack()
+        {
+            PackShapeLibrary library = LoadShapeLibrary();
+            Vector2 wall = new Vector2(WallCellsAcross, WallCellsUp) * PackGrid.Cell;
+            Vector2 rack = new Vector2(RackCells, RackCells) * PackGrid.Cell;
 
             foreach (InventoryItem item in ItemsOnDisk())
             {
                 PackShape shape = PackShapes.For(item, library);
 
-                Assert.AreEqual(RackCells, shape.Width,
-                    $"'{item.itemName}' is {shape.Width} cells wide, not the rack's {RackCells}. " +
-                    "Other gear would fit beside it and the module would cost nothing to carry.");
-                Assert.AreEqual(RackCells, shape.Height,
-                    $"'{item.itemName}' is {shape.Height} cells deep, not the rack's {RackCells}.");
+                Assert.IsTrue(FitsEitherWay(PackSurfaceId.WallGrid, wall, shape),
+                    $"'{item.itemName}' is {shape.Width}x{shape.Height} cells and fits no " +
+                    $"orientation of the {WallCellsAcross}x{WallCellsUp} gear wall, so it can " +
+                    "never be stowed on the ship.");
+
+                Assert.IsTrue(FitsEitherWay(PackSurfaceId.Rack, rack, shape),
+                    $"'{item.itemName}' is {shape.Width}x{shape.Height} cells and fits no " +
+                    "orientation of the pack's rack even with its overhang, so it can only ever " +
+                    "be carried in the hand.");
             }
+        }
+
+        /// <summary>Does this shape fit the face at either yaw, after the face's own clamp?</summary>
+        private static bool FitsEitherWay(PackSurfaceId surface, Vector2 size, PackShape shape) =>
+            Fits(surface, size, shape) || Fits(surface, size, shape.Rotated(1));
+
+        private static bool Fits(PackSurfaceId surface, Vector2 size, PackShape oriented)
+        {
+            PackShape clamped = PackOverhang.Clamp(surface, size, oriented);
+            Vector2Int grid = PackGrid.CellsOn(size);
+
+            return clamped.Width <= grid.x && clamped.Height <= grid.y;
         }
 
         // ─────────────────────────── Helpers ───────────────────────────
@@ -212,7 +350,7 @@ namespace SpaceGame.Tests
         {
             string[] found = AssetDatabase.FindAssets("t:PackShapeLibrary");
             Assert.IsNotEmpty(found, "No PackShapeLibrary in the project, so this test could not " +
-                                     "tell an authored 9x9 from a derived block.");
+                                     "tell an authored row from a derived outline.");
 
             var library = AssetDatabase.LoadAssetAtPath<PackShapeLibrary>(
                 AssetDatabase.GUIDToAssetPath(found[0]));

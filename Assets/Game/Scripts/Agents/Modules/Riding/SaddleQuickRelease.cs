@@ -1,6 +1,6 @@
 // Q, standing next to a saddled animal, takes the saddle off.
 //
-// The saddle already offers "E: take saddle off" on its own grips, and that is the discoverable
+// The saddle already offers "RMB: take saddle off" on its own grips, and that is the discoverable
 // route -- it puts a prompt on the screen. This is the same request without the aiming, which
 // matters more the bigger the animal is: on Appa the straps sit three metres up and a metre out,
 // so lining a crosshair up on one is real work for a thing you do all the time.
@@ -25,7 +25,8 @@ namespace SpaceGame.Agents
                  "size of Appa it is a bigger number than on a goat.")]
         [SerializeField] private float reach = 4f;
 
-        [Tooltip("Input action that takes the saddle off. Bound to Q in the Player map — the same verb placeables use.")]
+        [Tooltip("Input action that takes the saddle off. Bound to Q in the Player map. This is the " +
+                 "only thing left on that action: aimed pick-up moved onto the interact button.")]
         [SerializeField] private string actionName = "Retrieve";
 
         private InputAction action;
@@ -42,7 +43,7 @@ namespace SpaceGame.Agents
             action = InputSystem.actions != null ? InputSystem.actions.FindAction(actionName) : null;
             if (action == null)
                 Debug.LogWarning($"{name}: no '{actionName}' action, so the saddle can only be " +
-                                 "taken off by looking at it and pressing E.", this);
+                                 "taken off by looking at it and clicking.", this);
         }
 
         private void Update()

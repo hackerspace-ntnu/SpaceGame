@@ -536,5 +536,43 @@ namespace SpaceGame.Core
         /// and the despawn is what every other machine sees.
         /// </summary>
         public const ushort RetrieveRequest = 102;
+
+        // ── Hogtie ──
+        // The leash's tie, which is a net's hold with a four-times-longer pool and no net. The
+        // pair mirrors the net's SnareStruggled/SnareFreed exactly, and for the same two reasons:
+        // only the tied player's own machine knows which keys they are pressing, and only the
+        // server may decide when a hold ends.
+        //
+        // There is deliberately NO "a tie happened" id. The tie is applied by the leash's
+        // Present() on every machine, the way SnareCatch is built by the net gun's — the target
+        // travels in the ordinary UseItem/ItemUsed pair, and every machine re-checks Hogtie.CanTie
+        // against ragdoll state that has already replicated. An extra announcement would carry
+        // nothing the item's own message did not, and could not fix the one case it looks like it
+        // would (a machine whose copy of the body is not down yet), because that machine has to
+        // refuse either way.
+        //
+        // Both ride the TIED BODY's own relay, not the tier's: the tier's leash is consumed and
+        // its item instance destroyed the moment the tie lands, so nothing is left there to
+        // listen. No payload — which body it is, is the channel it arrived on.
+
+        /// <summary>
+        /// Tied body's owner -> server, on the BODY's relay: "I fought the ropes, once".
+        ///
+        /// The fact of the input only, never a level: a level computed on the client is the escape
+        /// the client chose (GDC-L1-MP-0004). The server keeps its own meter under the same
+        /// authored cap and works the load out from a run of these. Not idempotent, and must not
+        /// be — the whole content is that one more input happened.
+        /// </summary>
+        public const ushort HogtieStruggled = 104;
+
+        /// <summary>
+        /// Server -> everyone, on the BODY's relay: "the ropes are off".
+        ///
+        /// Every route out of a tie ends here — the two-minute ceiling, struggling out, dying, and
+        /// a third party cutting somebody loose — so exactly one place gives the claim back and
+        /// exactly one place puts the rope on the ground. Idempotent: a machine that already untied
+        /// locally does nothing on hearing this.
+        /// </summary>
+        public const ushort HogtieUntied = 105;
     }
 }

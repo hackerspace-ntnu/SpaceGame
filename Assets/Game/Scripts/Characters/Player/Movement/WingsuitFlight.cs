@@ -38,7 +38,7 @@ namespace SpaceGame.Characters
     public class WingsuitFlight : MonoBehaviour, ITeleportAware
     {
         [Header("Flight")]
-        [Tooltip("The whole flight model, tuned for a human under four square metres of membrane. " +
+        [Tooltip("The whole flight model, tuned for a human under a few square metres of membrane. " +
                  "Thrust is zero and must stay zero — that is what makes it a wingsuit.")]
         [SerializeField] private WingsuitFlightConfig flight = new WingsuitFlightConfig();
 
@@ -51,10 +51,11 @@ namespace SpaceGame.Characters
                  "suit catches.")]
         [SerializeField, Min(0.01f)] private float spreadDuration = 0.35f;
 
-        [Tooltip("Airspeed a deploy starts at even when the pilot had less, m/s. Below the stall " +
-                 "the wing makes nothing, and a suit that read as broken on the frame it opened " +
-                 "would be blamed for the fall that followed.")]
-        [SerializeField, Min(0f)] private float minAirspeed = 14f;
+        [Tooltip("Airspeed a deploy starts at even when the pilot had less, m/s. Keep it ABOVE " +
+                 "the config's stall speed: below the stall the wing makes nothing, and a suit " +
+                 "that read as broken on the frame it opened would be blamed for the fall that " +
+                 "followed.")]
+        [SerializeField, Min(0f)] private float minAirspeed = 17f;
 
         [Tooltip("Fraction of the pilot's speed carried into the glide. 1 is all of it.")]
         [SerializeField, Range(0f, 1f)] private float speedCarry = 1f;
@@ -65,13 +66,10 @@ namespace SpaceGame.Characters
                  "is the whole promise of 'fly where you look' — less than that reads as lag.")]
         [SerializeField, Min(0.05f)] private float lookSensitivityShare = 1f;
 
-        [Tooltip("How hard the mouse's horizontal movement rolls the wing, per unit of look " +
-                 "sensitivity. This is the main way to turn.")]
+        [Tooltip("How far the mouse's horizontal movement LEANS the wing, per degree it would " +
+                 "have turned the look. The turn itself is at look speed either way — this is how " +
+                 "much the wing rolls into it, and the extra bite the banked lift adds.")]
         [SerializeField, Min(0f)] private float mouseBank = 0.05f;
-
-        [Tooltip("How much of the mouse's swing reaches the BANK. Whatever is left over goes to " +
-                 "the flat rudder, which is what keeps the wing answering below flying speed.")]
-        [SerializeField, Range(0f, 1f)] private float bankShare = 0.85f;
 
         [Tooltip("How fast the mouse's swing falls back to centre when the mouse stops, per " +
                  "second. High rolls level quickly out of a turn; low holds the bank in.")]
@@ -100,6 +98,7 @@ namespace SpaceGame.Characters
 
         private float commandedPitch;
         private float swing;
+        private float pendingYaw;
 
         /// <summary>Animator bool every machine reads to know the wings are out. Replicated by
         /// <c>ClientNetworkAnimator</c> like every other parameter, which is why the pose and the
@@ -194,6 +193,7 @@ namespace SpaceGame.Characters
             state = entry;
             commandedPitch = state.Pitch;
             swing = 0f;
+            pendingYaw = 0f;
             gliding = true;
 
             // One source of weight. The model integrates its own g, and this world's is -18 —
@@ -261,9 +261,19 @@ namespace SpaceGame.Characters
             commandedPitch = WingsuitControl.AimNose(
                 commandedPitch, mouseY * perUnit, flight.MaxPitch);
 
-            // Horizontal mouse rolls the wing. mouseBank converts "degrees I would have turned" into
-            // stick units, so the roll scales with the player's own sensitivity setting like
-            // everything else.
+            // Horizontal mouse turns the flight, at exactly the degrees per unit the ordinary look
+            // would have yawed the body — the term below is PlayerLook's own, verbatim. Banked
+            // flight turns a wingsuit at about 80°/s at full lock and the mouse can ask for many
+            // times that on foot, so a suit that could only answer aerodynamically was the mouse
+            // going dead the moment the wings came out. Spent in FixedUpdate: the heading is the
+            // flight model's state and poses a Rigidbody, and a Rigidbody may only be moved on the
+            // physics clock. Banked here rather than sampled there for the reason PlayerLook
+            // documents — sampling on the physics step drops four mouse movements out of five.
+            pendingYaw += inputs.LookInput.x * perUnit;
+
+            // The same movement leans the wing. mouseBank converts "degrees I would have turned"
+            // into stick units, so the roll scales with the player's own sensitivity setting like
+            // everything else, and the lift it tilts sideways tightens the turn on top.
             swing = WingsuitControl.Swing(
                 swing, inputs.LookInput.x * perUnit * mouseBank, swingCentring, Time.deltaTime);
         }
@@ -293,14 +303,15 @@ namespace SpaceGame.Characters
 
             OrnithopterFlightInput stick = WingsuitControl.Stick(
                 WingsuitControl.NoseStick(commandedPitch, state.Pitch, noseSaturation),
-                WingsuitControl.Bank(swing, strafe, bankShare),
-
-                // Whatever share of the swing the bank did not take becomes flat yaw. It is what
-                // keeps the wing answering at low speed, where a bank has too little lift to turn.
-                swing * (1f - bankShare),
+                WingsuitControl.Bank(swing, strafe),
                 inputs != null && inputs.CrouchHeld);
 
             state = OrnithopterFlightModel.Step(state, stick, flight, dt);
+
+            // The mouse's own turn, spent after the aerodynamics rather than through them. See
+            // WingsuitControl.Steer for why the suit steers at look speed at all.
+            state = WingsuitControl.Steer(state, pendingYaw);
+            pendingYaw = 0f;
 
             ApplyPose();
             CheckForLanding();

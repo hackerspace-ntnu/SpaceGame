@@ -34,16 +34,25 @@ namespace SpaceGame.EditorTools
         public const float HoldSize = 0f;
 
         /// <summary>
-        /// What every gauntlet is drawn at on the pack mat: nothing, which means its true size.
+        /// What a gauntlet is drawn at on the pack mat unless it asks for something else: nothing,
+        /// which means its true size.
         ///
         /// <para>
-        /// This was 0.54 m — a deliberate shrink, because a gauntlet was a device wrapped in a
-        /// bracer and the bracer's girth round a whole forearm made the pair 0.77 m long and absurd
-        /// lying on a mat. Since 2026-09-04 the bracer is worn permanently and is not part of the
-        /// item, so what goes on the mat is the device alone: 0.39 m for the flashlight, 0.60 for
-        /// the grappling hook. Those are gadget-sized already, and <see cref="ItemGrip.PackSize"/>
-        /// is explicit that a size here is only for items whose true size reads as absurd. The
-        /// reason for the shrink went away with the bracer, so the shrink went with it.
+        /// This was 0.54 m for the whole family — a deliberate shrink, because a gauntlet was a
+        /// device wrapped in a bracer and the bracer's girth round a whole forearm made the pair
+        /// 0.77 m long and absurd lying on a mat. Since 2026-09-04 the bracer is worn permanently
+        /// and is not part of the item, so what goes on the mat is the device alone: 0.39 m for the
+        /// flashlight, 0.60 for the grappling hook. Those are gadget-sized already, and
+        /// <see cref="ItemGrip.PackSize"/> is explicit that a size here is only for items whose
+        /// true size reads as absurd. The reason for the family-wide shrink went away with the
+        /// bracer, so the family-wide shrink went with it.
+        /// </para>
+        /// <para>
+        /// <b>It is a default rather than a rule</b>, which is the 2026-09-06 change: the ruin
+        /// scanner's true size cost 4 x 5 of the rig's 255 cells for one forearm device, so it
+        /// carries its own number and passes it to <see cref="MakeWorn"/>. Per-gauntlet rather
+        /// than family-wide because the family's sizes are not one decision — each device is as
+        /// big as it is — and a second family constant would say they were.
         /// </para>
         /// </summary>
         public const float PackSize = 0f;
@@ -57,13 +66,26 @@ namespace SpaceGame.EditorTools
         /// the glove. On the forearm the model's own axes are the frame, so any offset here is a
         /// tilt nobody asked for.
         /// </para>
+        /// <para>
+        /// <paramref name="packSize"/> defaults to <see cref="PackSize"/> — the family's "true
+        /// size on the mat". A caller passes its own only where that true size costs more of the
+        /// rig than the device is worth; see <c>PackSizeTests</c>, which is where such a
+        /// divergence has to be written down.
+        /// </para>
+        /// <para>
+        /// <paramref name="rollDegrees"/> is a fact about the MODEL rather than a preference: how
+        /// far round the arm the FBX's own dorsal face sits from the +Y the family is authored
+        /// against. Zero for a model built in the frame, which is all but one — see
+        /// <c>GauntletReseat</c>'s roster for the exception and why it has one.
+        /// </para>
         /// </summary>
-        public static void MakeWorn(GameObject root, Transform gripPoint, Transform sizeReference)
+        public static void MakeWorn(GameObject root, Transform gripPoint, Transform sizeReference,
+                                    float packSize = PackSize, float rollDegrees = 0f)
         {
             var grip = root.GetComponent<ItemGrip>() ?? root.AddComponent<ItemGrip>();
             SetPrivate(grip, "gripPoint", gripPoint);
             SetPrivate(grip, "holdSize", HoldSize);
-            SetPrivate(grip, "packSize", PackSize);
+            SetPrivate(grip, "packSize", packSize);
             SetPrivate(grip, "rotationOffset", Vector3.zero);
             SetPrivate(grip, "positionOffset", Vector3.zero);
             SetPrivate(grip, "sizeReference", sizeReference);
@@ -77,7 +99,7 @@ namespace SpaceGame.EditorTools
             SetPrivate(fit, "cuffScale", GauntletFit.DefaultCuffScale);
             SetPrivate(fit, "lengthScale", GauntletFit.DefaultLengthScale);
             SetPrivate(fit, "wristGap", GauntletFit.DefaultWristGap);
-            SetPrivate(fit, "rollDegrees", 0f);
+            SetPrivate(fit, "rollDegrees", rollDegrees);
         }
 
         /// <summary>

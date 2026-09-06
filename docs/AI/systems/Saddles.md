@@ -22,7 +22,7 @@ symptoms:
   - "looking at the saddle always offers to ride, never to take it off"
   - "the saddle is the right size for the world but too small for the animal wearing it"
 reads_with: [AgentSystem, Backpack, Artifacts, Vehicles]
-updated: 2026-09-05
+updated: 2026-09-06
 ---
 
 # Saddles
@@ -49,7 +49,7 @@ Three pieces, each living where it belongs:
 - **"You cannot ride it bareback" is the `MountModule` being disabled.** `AppaBuilder` adds it with `enabled = false`; the socket turns it on with the saddle. A disabled `Behaviour` is one the `Interactor` skips outright, so a bare animal offers no verb at all rather than one that appears and refuses.
 - **The saddle is a [placeable](Placeables.md), not a bespoke item.** Its "ground" is an animal.
   `PlaceableItem` owns the loop and `SaddlePlacement` owns the criteria and the logic, so the
-  saddle gets aim handling, server validation, conserving consumption and the Q verb for free.
+  saddle gets aim handling, server validation, conserving consumption and the pick-up verb for free.
   It was a second copy of that loop (`SaddleArtifact`) until the rule split replaced it.
 - **Fitting and removing are deliberately different verbs.** The item fits. The saddle carries `SaddleRemover` — a trigger with its own `IInteractable`, so looking at the saddle offers "take saddle off" while the animal's solid collider goes on offering "ride". You need no saddle in hand to remove one, and a removed saddle has to go somewhere anyway.
 - **The faces are ordinary `PackSurface`s.** `WallInventory` is reused verbatim: it is documented as "a `PackContainer` bolted to something, with no fold, no deploy and no owner", which is a saddle exactly. Three faces, `SaddleLeft`/`SaddleRight`/`SaddleRear` (ids 9–11 — `BackPanelCentre` took 8 on main while this branch was in flight, and persisted bytes cannot alias), 42 cells against the expedition rig's 255.
@@ -65,7 +65,8 @@ already-server caller asks directly.
 
 **Fitting.** The saddle is placed, not used: `PlaceableItem` raycasts on the holder's machine — the server's `Camera.main` is the *host's* camera — and `SaddlePlacement.CanPlace` looks for a free `SaddleSocket` with `GetComponentInParent`, because an animal's collider is on its root but a ray lands just as easily on a horn. On the server `Place` calls `socket.Fit()`, which flips the bool and broadcasts; every machine instantiates. The item is spent only if `Fit()` returned true.
 
-**Removing.** Two ways in, one decision: `SaddleRemover.Interact` (E, aimed at a grip) and
+**Removing.** Two ways in, one decision: `SaddleRemover.Interact` (RMB, aimed at a grip — it
+implements `IRetrievable` too, but both meanings of that press land on `TakeOff`) and
 `SaddleQuickRelease` (Q, standing near) both call `Request(false)`, so "is there a saddle" and
 "is someone in the seat" are answered once, on the server. Q exists because aiming at a strap
 three metres up and a metre out is real work for something you do constantly.

@@ -110,6 +110,51 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void AHalfTurnRollSwingsTheModelToTheOtherFlank()
+        {
+            // A point on the model's +X flank, 0.1 m of the way toward the hand: the item
+            // scanner's console, which its .blend stands off one side of the arm rather than on
+            // the back of it.
+            var onFlank = new Vector3(0.3f, 0f, 0.1f);
+            Vector3 arm = (Wrist - Elbow).normalized;
+
+            ForearmSeat.Apply(instance, forearm.transform, hand.transform, Grip, left: false, Fit(1f, 1f, 0.02f, 0f));
+            Vector3 seat = instance.transform.position;
+            Vector3 before = instance.transform.TransformPoint(onFlank) - seat;
+
+            ForearmSeat.Apply(instance, forearm.transform, hand.transform, Grip, left: false, Fit(1f, 1f, 0.02f, 180f));
+            Vector3 after = instance.transform.TransformPoint(onFlank) - seat;
+
+            Assert.AreEqual(0f, Vector3.Distance(seat, instance.transform.position), 1e-4f,
+                "the roll turns the model about the arm; it does not move the seat");
+            Assert.AreEqual(Vector3.Dot(before, arm), Vector3.Dot(after, arm), 1e-4f,
+                "and the axis IS the arm, so nothing slides along it");
+            Assert.AreEqual(0f, Vector3.Distance(-Vector3.ProjectOnPlane(before, arm),
+                                                 Vector3.ProjectOnPlane(after, arm)), 1e-4f,
+                "across the arm it comes out the same distance from the bone on the far flank");
+        }
+
+        /// <summary>
+        /// The item scanner is the one gauntlet worn turned off its own model's frame, and the
+        /// number is pinned here because the prefab is not where it is decided: a hand-typed roll
+        /// is silently rewritten by <c>GauntletReseat</c>, which carries the same 180 in
+        /// <c>ItemScannerRollDegrees</c> and is where the reasoning lives.
+        /// </summary>
+        [Test]
+        public void TheItemScannerAsksForTheHalfTurn()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Prefabs/Items/Artifacts/Gadgets/ItemScanner.prefab");
+            Assert.IsNotNull(prefab, "the item scanner prefab moved");
+
+            var fit = prefab.GetComponent<GauntletFit>();
+            Assert.IsNotNull(fit, "a gauntlet without a GauntletFit cannot be worn at all");
+            Assert.AreEqual(180f, fit.RollDegrees, 1e-3f,
+                "backlog GEAR-01: the hand-edited .blend stands the console on the model's +X " +
+                "flank, and the lead wants it on the other side of the wrist");
+        }
+
+        [Test]
         public void ADegenerateArmStillGetsAUsablePose()
         {
             // Hand exactly on the elbow: toHand is undefined and the cross product collapses.

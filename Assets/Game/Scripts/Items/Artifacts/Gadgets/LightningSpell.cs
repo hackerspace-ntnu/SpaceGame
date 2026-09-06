@@ -24,6 +24,20 @@ namespace SpaceGame.Items
         [SerializeField] private bool damagesCaster;
 
         /// <summary>
+        /// The rod is held, not aimed, so it takes no upper-body pose.
+        ///
+        /// <para>
+        /// Every hold style on the Upper Body layer is a firearm clip — <c>Relaxed</c>, despite
+        /// the name, is <c>HumanM@Gun_Aim02</c>. On a rod that calls a bolt out of the sky that
+        /// read as the character holding an invisible pistol up in the air, which is both odd to
+        /// look at and a lie about what the item does: the pose said "taking aim with a gun" while
+        /// the strike lands wherever the CROSSHAIR is, from any posture. Dropping it leaves the
+        /// arms on the Base Layer, where they idle and walk with the rod in hand.
+        /// </para>
+        /// </summary>
+        protected override bool UsesHoldPose => false;
+
+        /// <summary>
         /// Where the bolt lands, decided by the player who cast it.
         ///
         /// Every machine has to strike the same spot, and only the caster's machine can work out

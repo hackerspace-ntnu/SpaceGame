@@ -28,16 +28,16 @@ namespace SpaceGame.EditorTools
                 "A wingsuit has no engine. FlapThrust must stay zero — see WingsuitFlightConfig.");
 
             OrnithopterFlightInput asked = WingsuitControl.Stick(
-                noseStick: 1f, rollStick: 0f, rudderStick: 0f, tucking: false);
+                noseStick: 1f, rollStick: 0f, tucking: false);
             Assert.LessOrEqual(asked.Flap, 0f, "The stick must never ask for a positive flap.");
 
             OrnithopterFlightInput tucked = WingsuitControl.Stick(
-                noseStick: 0f, rollStick: 0f, rudderStick: 0f, tucking: true);
+                noseStick: 0f, rollStick: 0f, tucking: true);
             Assert.Less(tucked.Flap, 0f, "Tucking is the one flap input the suit does have.");
         }
 
         [Test]
-        public void ItGlidesAboutFourToOneAndStallsAroundEighteen()
+        public void ItGlidesAboutFiveToOneAndStallsAroundFifteen()
         {
             WingsuitFlightConfig cfg = Config();
 
@@ -45,13 +45,15 @@ namespace SpaceGame.EditorTools
             // area or the drag polar moves them without anybody noticing. These are the numbers
             // the feel is described in, so they are the ones worth a failing test.
             float glide = WingsuitFlightConfig.BestGlideRatio(cfg);
-            Assert.That(glide, Is.InRange(3.4f, 4.6f),
-                $"Best glide is {glide:F2}:1. Under three and the suit is a parachute; over five " +
-                "and it is an aircraft. Retune DragCoefficientZeroLift / InducedDragFactor.");
+            Assert.That(glide, Is.InRange(4.6f, 6f),
+                $"Best glide is {glide:F2}:1. Under four and the height a player has is gone " +
+                "before they can aim it anywhere; over six and it is a sailplane. Retune " +
+                "DragCoefficientZeroLift / InducedDragFactor.");
 
             float stall = OrnithopterFlightModel.StallSpeed(cfg);
-            Assert.That(stall, Is.InRange(15f, 21f),
-                $"Stall is {stall:F1} m/s. Mass, WingArea and the lift curve all feed it.");
+            Assert.That(stall, Is.InRange(13f, 18f),
+                $"Stall is {stall:F1} m/s. Mass, WingArea and the lift curve all feed it, and " +
+                "WingsuitFlight.minAirspeed must stay above whatever it comes to.");
         }
 
         [Test]
@@ -61,7 +63,7 @@ namespace SpaceGame.EditorTools
 
             // Deployed, at cruise, hands off. Over ten seconds this must go down — a wing with no
             // thrust that finds level flight has invented energy from somewhere.
-            OrnithopterFlightState state = OrnithopterFlightState.Launch(24f, 0f, -14f);
+            OrnithopterFlightState state = OrnithopterFlightState.Launch(20f, 0f, -11f);
             state.Deployment = 1f;
             state.WingSpread = 1f;
             state.Pitch = 0f;

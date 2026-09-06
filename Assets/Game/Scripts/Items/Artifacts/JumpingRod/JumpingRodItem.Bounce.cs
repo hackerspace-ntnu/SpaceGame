@@ -16,6 +16,20 @@ namespace SpaceGame.Items
     {
         private float lastBounceTime = float.NegativeInfinity;
 
+        /// <summary>
+        /// The arrival and the take-off of the hop currently in the air, kept so a Jump press that
+        /// arrives inside the late half of the window can be paid out.
+        ///
+        /// <para>
+        /// The payment is the DIFFERENCE between the hop the player got and the one they have now
+        /// earned, added to a body that is already rising — which leaves them on exactly the arc an
+        /// early press would have given them, gravity having taken the same toll from both. Setting
+        /// the speed outright instead would pay a late press slightly BETTER than a punctual one.
+        /// </para>
+        /// </summary>
+        private float lastArrival;
+        private float lastTakeoff;
+
         /// <summary>Clearance under the holder's feet as of the last probe, metres.</summary>
         public float HeightAboveGround { get; private set; }
 
@@ -94,15 +108,61 @@ namespace SpaceGame.Items
         /// </summary>
         private void Bounce(float arrival)
         {
-            float takeoff = JumpingRodHopModel.TakeoffSpeed(arrival, hop);
+            // Settles the landing: was Jump hit on the beat, and what is the chain worth now. The
+            // hop has to know before it leaves the ground, so a press that comes in later is
+            // handled by topping this up — see OnJumpPressed.
+            int links = chain != null ? chain.Land(Time.time) : 0;
+            float takeoff = JumpingRodHopModel.TakeoffSpeed(arrival, hop, links);
 
             Vector3 v = holderBody.linearVelocity;
             holderBody.linearVelocity = new Vector3(v.x, takeoff, v.z);
 
             lastBounceTime = Time.time;
+            lastArrival = arrival;
+            lastTakeoff = takeoff;
             arrivalSpeed = 0f;
 
-            Sfx.Play(SfxId.PlayerJump, holderBody.position, GetInstanceID());
+            Sfx.Play(chain != null && chain.OnBeat ? boostSoundId : SfxId.PlayerJump,
+                     holderBody.position, GetInstanceID());
+        }
+
+        // ── The landing boost ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// Jump, while the rod is out. The whole of the timing rule is in
+        /// <see cref="JumpingRodChain"/>; this is the half that has a Rigidbody in it.
+        ///
+        /// <para>
+        /// Owner-gated on every press rather than at subscription time, because ownership is a
+        /// question with a live answer and this is the one place the item writes another body's
+        /// velocity if it gets it wrong. The rest of the press — the chain, the rhythm — is not
+        /// worth running on a machine that cannot act on it either.
+        /// </para>
+        /// <para>
+        /// The ordinary jump does not also fire underneath this: <c>PlayerMovement.OnJump</c> steps
+        /// aside while <c>SetBouncing</c> is on. It has to, and not only for tidiness — a 7 m/s leg
+        /// jump written in the same physics step as an 11 m/s hop would REPLACE it, and pressing
+        /// Jump on the beat would make the player go lower.
+        /// </para>
+        /// </summary>
+        private void OnJumpPressed()
+        {
+            if (!planted || chain == null || holderBody == null) return;
+            if (!OwnerIsLocal()) return;
+
+            // False means the press was buffered for the landing to come, or spoiled it. Either
+            // way there is nothing to pay out now.
+            if (!chain.Press(Time.time)) return;
+
+            float earned = JumpingRodHopModel.TakeoffSpeed(lastArrival, hop, chain.Links);
+            float owed = earned - lastTakeoff;
+            if (owed <= 0f) return;
+
+            Vector3 v = holderBody.linearVelocity;
+            holderBody.linearVelocity = new Vector3(v.x, v.y + owed, v.z);
+            lastTakeoff = earned;
+
+            Sfx.Play(boostSoundId, holderBody.position, GetInstanceID());
         }
 
         /// <summary>
@@ -144,8 +204,11 @@ namespace SpaceGame.Items
             if (deployed != null || deployedPrefab == null || owner == null) return;
 
             // A rod that has just come out has not seen a fall: without this, stowing it mid-drop
-            // and planting it again later spends that old descent on the first bounce.
+            // and planting it again later spends that old descent on the first bounce. The chain
+            // goes for the same reason — a rhythm is something the player is currently playing,
+            // and a rod that was in the pack a moment ago is not part of one.
             arrivalSpeed = 0f;
+            chain?.Reset();
 
             Bounds bounds = ItemBounds.Measure(deployedPrefab, null);
             float scale = ScaleFor(bounds, deployedSize);

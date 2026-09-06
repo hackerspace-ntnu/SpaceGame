@@ -78,5 +78,32 @@ namespace SpaceGame.Presentation
         /// <summary>Paint every submesh. The plain case: a lamp that is a mesh of its own.</summary>
         public static void Paint(Renderer renderer, Color colour) =>
             Paint(renderer, WholeRenderer, colour);
+
+        /// <summary>
+        /// Write the same three colours into a MATERIAL, for a lamp whose colour has to survive
+        /// outside play.
+        ///
+        /// <para>
+        /// The deliberate opposite of <see cref="Paint"/>, and the exception to the rule in this
+        /// class summary rather than a second way of doing the same thing. A property block is not
+        /// serialized and <c>Awake</c> never runs on a prefab in the editor, so a block-painted lamp
+        /// is right in play and wrong in every generated icon, on the backpack's mat and on the
+        /// ship's gear wall. Only ever call it on a material this project OWNS and generated — never
+        /// on one out of the shared palette, which is the same asset on a dozen models and would
+        /// change all of them at once, on disk.
+        /// </para>
+        /// </summary>
+        public static void Bake(Material material, Color colour)
+        {
+            if (material == null) return;
+
+            if (material.HasProperty(BaseColorId)) material.SetColor(BaseColorId, colour);
+            if (material.HasProperty(ColorId)) material.SetColor(ColorId, colour);
+
+            if (!material.HasProperty(EmissionColorId)) return;
+
+            material.SetColor(EmissionColorId, colour * EmissionGain);
+            material.EnableKeyword("_EMISSION");
+        }
     }
 }

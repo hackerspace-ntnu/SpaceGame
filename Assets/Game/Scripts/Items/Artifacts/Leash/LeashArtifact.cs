@@ -90,6 +90,11 @@ namespace SpaceGame.Items
                  "origin, which is between their feet.")]
         [SerializeField] private Transform muzzle;
 
+        [Header("Tying somebody up")]
+        [Tooltip("How long a hogtie lasts and what fighting it is worth. Only ever used against " +
+                 "a body that is ALREADY down — see Hogtie.CanTie.")]
+        [SerializeField] private HogtieSettings tie = new HogtieSettings();
+
         [Header("Untying")]
         [Tooltip("How close the aim has to pass to a rope to count as pointing at it, in metres. " +
                  "A rope is 5 cm wide, so some forgiveness is the difference between a control and " +
@@ -131,6 +136,18 @@ namespace SpaceGame.Items
         /// </para>
         /// </summary>
         private const int HitLocal = 3;
+
+        /// <summary>
+        /// Rope round a body that is already on the ground, so it cannot get back up.
+        ///
+        /// <para>
+        /// A fifth verb rather than a second meaning for <see cref="Hit"/>, because the two do
+        /// opposite things to the same click: Hit anchors a rope TO something and leaves the item
+        /// in the hand, Tie spends the item and anchors nothing. Packed in the same low byte as the
+        /// other four — see <see cref="Encode"/> — so nothing about the wire changes.
+        /// </para>
+        /// </summary>
+        private const int Tie = 4;
 
         // ── The verb and the rope's length, packed into NetArg.B ───────────────
         //
@@ -203,9 +220,25 @@ namespace SpaceGame.Items
 
             if (!aimed || hit.collider == null) return;
 
+            // Empty hands on somebody already tied: the click cuts them loose. Checked after the
+            // rope search above so a rope tied TO a hogtied body is still untieable, and before
+            // everything below because a tied body is a body and would otherwise be roped.
+            if (held == null && TryAimAtTiedBody(hit.collider, ref arg)) return;
+
             // Terrain is the one refusal. A bare return leaves arg.B on the Miss seeded at the top
             // of this method, which already means "drop what you are holding".
             if (!IsTieable(hit.collider)) return;
+
+            // A body already on the ground gets the rope round IT, not onto it.
+            //
+            // Before the layer mask and before the anchor path, and both orderings are load-bearing.
+            // Before the anchor path because a body is a perfectly good rope anchor and would
+            // otherwise swallow the click. Before the mask because `leashableLayers` is documented
+            // as needing to EXCLUDE the player layer — its whole job there is to stop you roping
+            // yourself — and a downed player's ragdoll bones are on that same layer, so a tie
+            // filtered through it would be impossible to land on the one target it exists for. The
+            // self-refusal the mask was standing in for is made explicitly inside.
+            if (TryAimAtDownedBody(hit.collider, ref arg)) return;
 
             if ((leashableLayers.value & (1 << hit.collider.gameObject.layer)) == 0) return;
 
@@ -268,6 +301,17 @@ namespace SpaceGame.Items
 
             if (distance > surfaceDistance + grabRadius) return false;
 
+            // Your own rope is not a thing you can click off. A captive who can cut themselves
+            // loose in one frame makes the struggle the rope already has — LeashedBody.Struggle,
+            // seconds of movement input pointing away from a taut knot — the strictly worse of two
+            // exits, and dead content the moment anyone notices (GDC-L1-DESIGN-0002). Capture needs
+            // an answer, not an off switch (GDC-L1-BAL-0004), and the answer is the struggle.
+            //
+            // Asked of the whole rope rather than of the end nearest the click: see
+            // Leash.Restrains. Re-asked in UntieAt on every machine, because an aim-side refusal is
+            // a refusal only the owner's client ran (GDC-L1-MP-0004).
+            if (rope.Restrains(owner)) return false;
+
             // Named relative to one of the rope's own ANCHORS, so the point rides whatever the rope
             // is tied to. A bare world point names nothing once that thing starts moving: the click
             // travels for a relay, and a rope on an animal running at 8 m/s has left the tolerance
@@ -288,10 +332,146 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Nothing. The rope is built by <see cref="Present"/> on every machine, and which machine
-        /// resolves which END of it is decided inside <see cref="Leash"/>.
+        /// Empty hands on a hogtied body: the click cuts them loose.
+        ///
+        /// <para>
+        /// The body itself is what is clicked, not a rope: a tie is not a <see cref="Leash"/> and
+        /// has no endpoints to find, so <see cref="TryAimAtRope"/> can never answer for one. That
+        /// makes the tie's identity the body's <c>NetworkObject</c> id, which is a far stronger
+        /// name than the world point a rope has to be identified by.
+        /// </para>
         /// </summary>
-        protected override void Use() { }
+        private bool TryAimAtTiedBody(Collider hit, ref NetArg arg)
+        {
+            GameObject body = Hogtie.BodyOf(hit);
+            if (body == null) return false;
+            if (!body.TryGetComponent(out Hogtie knot) || !knot.IsBound) return false;
+
+            // Your own ropes are the struggle's business, exactly as a leash on you is — the tie
+            // already has SnareStruggleMeter and a 45 s escape, and a click that beat it would
+            // retire both. Reachable because a tied player is a ragdoll whose camera can end up
+            // looking along their own limbs.
+            if (body == owner) return false;
+
+            // Composed first and only assigned once the verb is certain, so a refusal leaves the
+            // caller's arg exactly as it found it. `Untie` is the one verb that means two different
+            // things depending on what resolved, and an unresolvable body would reach every peer as
+            // an untie addressed to nothing — which `UntieAt` answers by disposing whatever rope
+            // happens to pass within a metre of the world origin.
+            NetArg cut = arg.With(body);
+            if (cut.Target == 0 && Network.IsNetworked) return false;
+
+            arg = cut;
+            arg.B = Encode(Untie, 0f);
+            return true;
+        }
+
+        /// <summary>
+        /// A body already on the ground: the rope goes round them and the leash is spent.
+        ///
+        /// <para>
+        /// Refused for anyone still on their feet — see <see cref="Hogtie.CanTie"/>, which is where
+        /// that rule lives so that every caller asks the same question.
+        /// </para>
+        /// <para>
+        /// Refused while a rope is in hand, because that click is about THAT rope: the second click
+        /// of a two-click tie has to be able to land on a body, and a leash you are already holding
+        /// is not one you can spend.
+        /// </para>
+        /// <para>
+        /// Refused for yourself, twice over. You cannot press Use while limp — <c>Suspend</c>
+        /// disables the whole PlayerInputManager on the way down — so this is unreachable today;
+        /// it is written anyway because the layer mask that used to stand in for it is deliberately
+        /// bypassed above, and "unreachable" is a property of a different file.
+        /// </para>
+        /// <para>
+        /// Refused when the body has no networked identity in a live session. The id is what every
+        /// other machine resolves the tie against, and <see cref="HitLocal"/> — the escape hatch a
+        /// rope has for that case — is not available to a tie: a rope pinned to a phantom point is
+        /// a cosmetic disagreement, a body limp on one screen and running on another is not.
+        /// </para>
+        /// </summary>
+        private bool TryAimAtDownedBody(Collider hit, ref NetArg arg)
+        {
+            if (held != null) return false;
+
+            GameObject body = Hogtie.BodyOf(hit);
+            if (body == null || body == owner) return false;
+            if (owner != null && body.transform.IsChildOf(owner.transform)) return false;
+            if (!Hogtie.CanTie(body)) return false;
+
+            // Composed first and assigned only once the verb is certain, so a refusal here leaves
+            // the caller's arg untouched for the ordinary anchor path below it.
+            NetArg tied = arg.With(body);
+            if (tied.Target == 0 && Network.IsNetworked) return false;
+
+            arg = tied;
+            arg.B = Encode(Tie, 0f);
+            return true;
+        }
+
+        /// <summary>
+        /// Owner side, after <see cref="Present"/> has already run on this machine: spend the rope.
+        ///
+        /// <para>
+        /// This item is <see cref="UseAuthority.Owner"/>, so <c>UseChannel.Press</c> presents first
+        /// and then runs this — and only here, never on a peer and never on the server. That
+        /// ordering is what lets this ask whether the tie actually took rather than guessing:
+        /// <see cref="tiedThisUse"/> is set by the Present immediately above.
+        /// </para>
+        /// <para>
+        /// <c>Deplete</c> rather than a <c>maxUses</c> of one: the leash is authored unlimited and
+        /// must stay that way, because every click that misses, drops a rope or unties one would
+        /// otherwise consume it as readily as the one that tied somebody up. <c>Deplete</c> raises
+        /// <c>OnItemDepleted</c>, which <c>EquipmentController.ItemDepleted</c> answers by removing
+        /// the selected slot and unequipping — the established path, and the reason nothing here
+        /// reaches into the inventory.
+        /// </para>
+        /// </summary>
+        protected override void Use()
+        {
+            if (!tiedThisUse) return;
+
+            tiedThisUse = false;
+            if (!Consumable) return;
+
+            Deplete();
+        }
+
+        /// <summary>
+        /// Can this instance actually be taken out of the player's gear when it is spent?
+        ///
+        /// <para>
+        /// <b>Today the leash is a GAUNTLET (<c>equipKind: 1</c>), and the answer is no.</b>
+        /// <c>Deplete</c> raises <c>OnItemDepleted</c>, and the two controllers answer it very
+        /// differently: <c>EquipmentController.ItemDepleted</c> removes the selected hotbar slot
+        /// and unequips, while <c>BodyEquipmentController.OnWornDepleted</c> logs a warning and
+        /// leaves the item worn, because — in its own words — "a consumable gauntlet would need a
+        /// server-side removal the body does not have yet". There is no primitive for it:
+        /// <c>BodyEquipmentNetwork</c> can move gear between two refs and place an item, and has
+        /// nothing that empties a body slot.
+        /// </para>
+        /// <para>
+        /// So a worn leash ties for free and gives nothing back, and a hand-slot leash is consumed
+        /// and returns its rope at the body. That is a deliberate, stated limitation rather than a
+        /// silent one — the alternative was either a warning in the console on every tie, or a rope
+        /// pickup spawned from an item that was never taken, which is an item duplication bug.
+        /// Closing it is a change to <b>BodyEquipment</b>, not to the leash.
+        /// </para>
+        /// </summary>
+        private bool Consumable => !Worn;
+
+        /// <summary>
+        /// Did the Present that just ran on this machine actually put ropes on somebody?
+        ///
+        /// <para>
+        /// Set in <see cref="Present"/> and consumed by <see cref="Use"/> one call later, on the
+        /// owner's machine only. It cannot be re-derived in <c>Use</c> from the target's state: a
+        /// body that is tied by the time the rope is spent may have been tied by somebody else
+        /// between the aim and the press, and spending a rope for that is a rope lost to a race.
+        /// </para>
+        /// </summary>
+        private bool tiedThisUse;
 
         /// <summary>Every machine: act on the click the owner reported.</summary>
         protected override void Present()
@@ -300,10 +480,34 @@ namespace SpaceGame.Items
             int verb = VerbOf(arg.B);
             float paidOut = LengthOf(arg.B);
 
+            // Cleared first, always. Use() reads it one call later on the owner's machine, and a
+            // flag left standing from an earlier press would spend a rope for a click that missed.
+            tiedThisUse = false;
+
+            if (verb == Tie)
+            {
+                TieUp(arg.Resolve());
+                return;
+            }
+
             if (verb == Untie)
             {
-                GameObject anchorObject = arg.Resolve();
-                UntieAt(anchorObject != null ? anchorObject.transform : null, arg.P);
+                GameObject subject = arg.Resolve();
+
+                // A tied body first. It is also a rope anchor, so the anchor search below would
+                // happily answer for a rope that happens to be knotted to the same person and
+                // untie that instead of the ropes the player clicked.
+                if (subject != null && subject.TryGetComponent(out Hogtie knot) && knot.IsBound)
+                {
+                    // Re-checked here for the reason UntieAt re-checks: the aim ran on one client.
+                    if (subject == owner) return;
+
+                    knot.Untie();
+                    Sfx.Play(SfxId.InteractDrop, subject.transform.position);
+                    return;
+                }
+
+                UntieAt(subject != null ? subject.transform : null, arg.P);
                 return;
             }
 
@@ -365,6 +569,45 @@ namespace SpaceGame.Items
             Sfx.Play(SfxId.InteractLever, root.transform.TransformPoint(localOffset));
         }
 
+        /// <summary>
+        /// Put ropes on a body that is already down. Every machine runs this; one of them decides.
+        ///
+        /// <para>
+        /// <b>Every machine, and the hold is not gated on anything.</b> A peer that skipped it
+        /// would watch a tied player stand up and walk about while every other machine sees them on
+        /// the floor. What IS gated is the pool: <c>Network.Simulates</c> asked of the BODY — not
+        /// of this item, which is instantiated into a hand and never spawned, so its own
+        /// NetworkObject is dormant and every peer in the session would answer yes and start
+        /// draining a pool of its own. The same trap <c>NetGunArtifact.Present</c> documents for
+        /// the shooter.
+        /// </para>
+        /// <para>
+        /// <see cref="Hogtie.Bind"/> re-checks <see cref="Hogtie.CanTie"/> on each machine rather
+        /// than trusting the verb, so a fabricated Tie aimed at somebody standing is refused
+        /// everywhere including the server. The state it checks — the ragdoll adapters' own — is
+        /// applied on every machine by whatever put the body down, so all of them agree.
+        /// </para>
+        /// </summary>
+        private void TieUp(GameObject body)
+        {
+            if (body == null) return;
+
+            Hogtie knot = Hogtie.Ensure(body);
+            if (knot == null) return;
+
+            // The rope only comes back if a rope was actually spent — see Consumable, and see Use.
+            // Handing a tie an item it never took would MINT a leash out of nothing every two
+            // minutes, which is a worse failure than the tie being free.
+            InventoryItem spent = Consumable ? TryResolveItem() : null;
+
+            if (!knot.Bind(tie, spent, Network.Simulates(body.transform))) return;
+
+            // Read by Use() on the owner's machine, immediately after this returns.
+            tiedThisUse = true;
+
+            Sfx.Play(SfxId.InteractLever, body.transform.position);
+        }
+
         private void PinTo(Vector3 point, float paidOutLength)
         {
             if (held == null)
@@ -414,6 +657,11 @@ namespace SpaceGame.Items
             Leash rope = Leash.Nearest(anchor, point, untieTolerance);
             if (rope == null) return;
 
+            // The rule the aim already applied, re-applied here on every machine — a refusal that
+            // lives only in OnRequestUse is a refusal the clicking client is trusted to have run.
+            // The point on the wire names the rope, and the rope is what answers.
+            if (rope.Restrains(owner)) return;
+
             // Read before the rope goes: Dispose releases both ends, so A.Position answers zero
             // afterwards and the sound would play at the world origin.
             Vector3 heard = rope.A.Position;
@@ -452,6 +700,35 @@ namespace SpaceGame.Items
         };
 
         /// <summary>
+        /// The leash's own <see cref="InventoryItem"/>, or null if the build has none.
+        ///
+        /// <para>
+        /// What a hogtie gives back when it ends. Found through the registry rather than through a
+        /// serialized reference for the reason <see cref="TryResolveSettings"/> gives: the item
+        /// table already holds every InventoryItem in the build together with the prefab it equips,
+        /// so there is no second asset to wire up and keep in step — and a tie outlives the item
+        /// instance that made it, so it cannot simply be handed one.
+        /// </para>
+        /// </summary>
+        public static InventoryItem TryResolveItem()
+        {
+            foreach (InventoryItem item in Registry<InventoryItem>.All)
+            {
+                if (item == null || item.itemPrefab == null) continue;
+                if (item.itemPrefab.GetComponent<LeashArtifact>() != null) return item;
+            }
+
+            return null;
+        }
+
+        /// <summary>The LeashArtifact on that item's prefab, which is where the authored numbers live.</summary>
+        private static LeashArtifact TryResolvePrefab()
+        {
+            InventoryItem item = TryResolveItem();
+            return item != null ? item.itemPrefab.GetComponent<LeashArtifact>() : null;
+        }
+
+        /// <summary>
         /// The rope tuning to rebuild a saved leash with, read off the leash item's own prefab.
         ///
         /// <para>
@@ -464,13 +741,9 @@ namespace SpaceGame.Items
         /// </summary>
         public static bool TryResolveSettings(out Leash.Settings settings)
         {
-            foreach (InventoryItem item in Registry<InventoryItem>.All)
+            LeashArtifact artifact = TryResolvePrefab();
+            if (artifact != null)
             {
-                if (item == null || item.itemPrefab == null) continue;
-
-                var artifact = item.itemPrefab.GetComponent<LeashArtifact>();
-                if (artifact == null) continue;
-
                 settings = artifact.RopeSettings;
                 return true;
             }

@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 282103110834890746}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.32683146, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.32683143}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9959,18 +9959,17 @@ GameObject:
   m_Component:
   - component: {fileID: 1073747989178044075}
   - component: {fileID: 2212416728612570209}
-  - component: {fileID: 8820803801436352498}
   - component: {fileID: 3126073418507432103}
+  - component: {fileID: 8820803801436352498}
+  - component: {fileID: 7657407555663021103}
+  - component: {fileID: 5755932535820139892}
+  - component: {fileID: 6813239318284966488}
+  - component: {fileID: 2220018949168160328}
   - component: {fileID: 3819968853922887521}
   - component: {fileID: 8820336782948889780}
   - component: {fileID: 4998363041636646209}
   - component: {fileID: 607614334990591209}
   - component: {fileID: 2233656274746881895}
-  - component: {fileID: 5755932535820139892}
-  - component: {fileID: 6813239318284966488}
-  - component: {fileID: 2220018949168160328}
-  - component: {fileID: 7657407555663021103}
-  - component: {fileID: 1522842270486055130}
   m_Layer: 0
   m_Name: LaserStaff
   m_TagString: Untagged
@@ -10016,12 +10015,34 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
+--- !u!114 &3126073418507432103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3687192415451933108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PickupableItem
+  ShowTopMostFoldoutHeaderGroup: 1
+  item: {fileID: 11400000, guid: 0a253a69974fa4c9ab285facd212241c, type: 2}
+  pickupId: 503
+  pickupSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
 --- !u!54 &8820803801436352498
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -10049,144 +10070,27 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &3126073418507432103
-MonoBehaviour:
+--- !u!65 &7657407555663021103
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3687192415451933108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PickupableItem
-  ShowTopMostFoldoutHeaderGroup: 1
-  item: {fileID: 11400000, guid: 0a253a69974fa4c9ab285facd212241c, type: 2}
-  pickupId: 503
-  pickupSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
---- !u!114 &3819968853922887521
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3687192415451933108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
-  ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &8820336782948889780
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3687192415451933108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 21555e6dd57dc491ab65d42d065b4e3c
-  instanceId: 
-  authored: 0
-  scope: 0
---- !u!114 &4998363041636646209
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3687192415451933108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
---- !u!114 &607614334990591209
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3687192415451933108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
-  gripPoint: {fileID: 0}
-  hand: 0
-  holdStyle: 3
-  rotationOffset: {x: 0, y: 0, z: 0}
-  positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 1.35
-  packSize: 0
-  sizeReference: {fileID: 7793877422023729677}
-  keepColliders: 0
---- !u!114 &2233656274746881895
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3687192415451933108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e533e9c7868fe4ea8838bf93f95b9142, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.LaserStaffArtifact
-  maxUses: -1
-  useSoundId: 203
-  useSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-  range: 120
-  hitMask:
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
-  muzzle: {fileID: 1956313727594832670}
-  beam: {fileID: 4634175972667586057}
-  burnDuration: 3
-  cooldown: 10
-  arcSegments: 26
-  arcSpread: 0.035
-  arcMaxOffset: 0.55
-  arcRestrikeRate: 22
-  damagePerSecond: 100
-  damageTicksPerSecond: 50
-  impactRoot: {fileID: 4191372554167758733}
-  impactGlow: {fileID: 2557287721253688826}
-  sparks: {fileID: 154463162309053699}
-  embers: {fileID: 8206739465742743290}
-  smoke: {fileID: 4900052564320809090}
-  impactLight: {fileID: 6190554345905111907}
-  strikeVfx: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
-  strikeInterval: 0.7
-  strikeLifetime: 3
-  strikeColor: {r: 1, g: 0.09, b: 0.06, a: 1}
-  impactLightIntensity: 7
-  impactLightFlicker: 0.35
-  glowPulse: 0.18
-  glowSize: 0.7
-  biteBurst: 45
-  igniteTime: 0.08
-  fadeTime: 0.12
-  aimSmoothing: 22
-  holdTimeout: 0.5
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.10299765, y: 0.11994484, z: 1.5468315}
+  m_Center: {x: -0.009851739, y: 0.008152809, z: -0.44658428}
 --- !u!114 &5755932535820139892
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10268,28 +10172,7 @@ MonoBehaviour:
   linearDamping: 1.5
   angularDamping: 4
   minimumGrabSize: 0.45
---- !u!65 &7657407555663021103
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3687192415451933108}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.11994485, y: 1.5468314, z: 0.10299757}
-  m_Center: {x: 0.008152809, y: -0.44658422, z: -0.009851761}
---- !u!114 &1522842270486055130
+--- !u!114 &3819968853922887521
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10298,9 +10181,114 @@ MonoBehaviour:
   m_GameObject: {fileID: 3687192415451933108}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &8820336782948889780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3687192415451933108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 21555e6dd57dc491ab65d42d065b4e3c
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &4998363041636646209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3687192415451933108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &607614334990591209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3687192415451933108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
+  gripPoint: {fileID: 0}
+  hand: 0
+  holdStyle: 2
+  rotationOffset: {x: 270, y: 270, z: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  holdSize: 1.35
+  packSize: 0
+  sizeReference: {fileID: 7793877422023729677}
+  confinedToSurfaces: 
+  keepColliders: 0
+--- !u!114 &2233656274746881895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3687192415451933108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e533e9c7868fe4ea8838bf93f95b9142, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.LaserStaffArtifact
+  maxUses: -1
+  useSoundId: 203
+  useSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  range: 120
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  muzzle: {fileID: 1956313727594832670}
+  beam: {fileID: 4634175972667586057}
+  burnDuration: 3
+  cooldown: 10
+  arcSegments: 26
+  arcSpread: 0.035
+  arcMaxOffset: 0.55
+  arcRestrikeRate: 22
+  damagePerSecond: 100
+  damageTicksPerSecond: 50
+  impactRoot: {fileID: 4191372554167758733}
+  impactGlow: {fileID: 2557287721253688826}
+  sparks: {fileID: 154463162309053699}
+  embers: {fileID: 8206739465742743290}
+  smoke: {fileID: 4900052564320809090}
+  impactLight: {fileID: 6190554345905111907}
+  strikeVfx: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
+  strikeInterval: 0.7
+  strikeLifetime: 3
+  strikeColor: {r: 1, g: 0.09, b: 0.06, a: 1}
+  impactLightIntensity: 7
+  impactLightFlicker: 0.35
+  glowPulse: 0.18
+  glowSize: 0.7
+  biteBurst: 45
+  igniteTime: 0.08
+  fadeTime: 0.12
+  aimSmoothing: 22
+  holdTimeout: 0.5
 --- !u!1 &4224026822538528870
 GameObject:
   m_ObjectHideFlags: 0
@@ -15292,19 +15280,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 91dd67f06acfe453f91b8173252f46f8, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071067
+      value: 0.70710677
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 91dd67f06acfe453f91b8173252f46f8, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0.00000005960465
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 91dd67f06acfe453f91b8173252f46f8, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.00000005960465
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 91dd67f06acfe453f91b8173252f46f8, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0.70710677
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 91dd67f06acfe453f91b8173252f46f8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

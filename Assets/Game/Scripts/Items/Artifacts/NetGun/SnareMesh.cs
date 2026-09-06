@@ -60,9 +60,30 @@ namespace SpaceGame.Items
         /// authored at; written about its own centre it is exact.
         /// </para>
         /// </summary>
-        public Mesh Build(SnareLattice lattice, Vector3 toViewer, float cordWidth, Vector3 origin)
+        public Mesh Build(SnareLattice lattice, Vector3 toViewer, float cordWidth, Vector3 origin) =>
+            Build(lattice.Positions, lattice.Resolution, toViewer, cordWidth, origin);
+
+        /// <summary>
+        /// The same rebuild, for nodes that are no longer the lattice's.
+        ///
+        /// <para>
+        /// A bound net's nodes come from <see cref="SnareBinding"/> — the solver has stopped — and
+        /// there is exactly one ribbon winding in this project on purpose. Getting that winding
+        /// backwards is the failure this file's summary is about: no error, no warning, and under
+        /// ordinary back-face culling a net that renders as nothing at all. A second copy of it for
+        /// the bound case would be a second copy that can be wrong on its own.
+        /// </para>
+        /// <para>
+        /// <paramref name="nodes"/> is row-major, <c>row * resolution + col</c>, which is the layout
+        /// <c>SnareLattice.Positions</c> is in. It is indexed rather than length-checked: an array
+        /// of the wrong size is a programming error, and throwing on it here is louder than drawing
+        /// a net out of somebody else's numbers.
+        /// </para>
+        /// </summary>
+        public Mesh Build(Vector3[] nodes, int resolution, Vector3 toViewer, float cordWidth,
+                          Vector3 origin)
         {
-            int side = lattice.Resolution;
+            int side = resolution;
             int segments = 2 * side * (side - 1);
 
             Allocate(segments);
@@ -75,13 +96,13 @@ namespace SpaceGame.Items
             // difference between its two endpoints or a direction, and translation changes neither.
             for (int row = 0; row < side; row++)
             for (int col = 0; col < side - 1; col++)
-                WriteSegment(segment++, lattice.NodeAt(row, col) - origin,
-                             lattice.NodeAt(row, col + 1) - origin, view, cordWidth);
+                WriteSegment(segment++, nodes[row * side + col] - origin,
+                             nodes[row * side + col + 1] - origin, view, cordWidth);
 
             for (int col = 0; col < side; col++)
             for (int row = 0; row < side - 1; row++)
-                WriteSegment(segment++, lattice.NodeAt(row, col) - origin,
-                             lattice.NodeAt(row + 1, col) - origin, view, cordWidth);
+                WriteSegment(segment++, nodes[row * side + col] - origin,
+                             nodes[(row + 1) * side + col] - origin, view, cordWidth);
 
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);

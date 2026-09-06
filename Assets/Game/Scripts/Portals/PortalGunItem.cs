@@ -55,20 +55,20 @@ namespace SpaceGame.Items
     public sealed class PortalGunItem : ToolItem
     {
         [Header("Jet")]
-        [Tooltip("Metres per second the paint leaves the nozzle. With gravity on, this is what sets the reach: about 17 m lobbed at 45 degrees, nearer 9 held level.")]
-        [SerializeField] private float jetSpeed = 13f;
+        [Tooltip("Metres per second the paint leaves the nozzle. Under this world's 18 m/s2 gravity that is the reach: about 32 m lobbed at 45 degrees, 10 held level from chest height. It was 13, which reached 9 lobbed and 5 level — a wall on the far side of a room was simply unpaintable.")]
+        [SerializeField] private float jetSpeed = 24f;
 
         [Tooltip("How hard gravity pulls the stream. 1 is real gravity, which is what makes it a hose rather than a gun.")]
         [SerializeField] private float jetGravity = 1f;
 
-        [Tooltip("Seconds of flight before the stream is given up on. Also the droplets' lifetime.")]
-        [SerializeField] private float jetFlightTime = 1.6f;
+        [Tooltip("Seconds of flight before the stream is given up on. Also the droplets' lifetime. Must outlast a full 45-degree lob — 2 x speed x sin45 / gravity — or the far end of the arc is abandoned in mid-air and the reach above is never actually available.")]
+        [SerializeField] private float jetFlightTime = 2f;
 
         [Tooltip("Corrects the landing delay for the fact that an arc is longer than the straight line across it. 1 lands paint slightly before the droplets arrive.")]
         [SerializeField, Range(1f, 1.4f)] private float flightBias = 1.08f;
 
-        [Tooltip("Radius of one blob of paint on the wall, in metres. A single tap is a hole twice this across; sweeping is how you get one you can run through.")]
-        [SerializeField] private float dabRadius = 0.62f;
+        [Tooltip("Radius of one blob of paint on the wall, in metres. A single tap is a hole twice this across; sweeping is still how you get one you can run through.")]
+        [SerializeField] private float dabRadius = 0.85f;
 
         [Tooltip("Layers paint sticks to. Anything else splashes and is not part of an aperture.")]
         [SerializeField] private LayerMask surfaceMask = ~0;
@@ -114,8 +114,8 @@ namespace SpaceGame.Items
         [SerializeField] private string primaryMaterialName = "Mat_Emissive_Portal_Orange";
         [SerializeField] private string secondaryMaterialName = "Mat_Emissive_Portal_Blue";
 
-        [Tooltip("Tank spent per blob of paint. A full tank is 1, so 0.045 buys about twenty-two blobs — a second and a half of sweeping.")]
-        [SerializeField, Range(0.005f, 0.25f)] private float paintPerDab = 0.045f;
+        [Tooltip("Tank spent per blob of paint. A full tank is 1, so 0.03 buys about thirty-three blobs — better than two seconds of sweeping, and more than the shape can hold as separate dabs.")]
+        [SerializeField, Range(0.005f, 0.25f)] private float paintPerDab = 0.03f;
 
         [Tooltip("Tank refilled per second, per barrel.")]
         [SerializeField] private float rechargePerSecond = 0.30f;

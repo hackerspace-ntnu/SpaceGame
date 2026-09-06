@@ -209,10 +209,11 @@ namespace SpaceGame.Gameplay
         // item's own DockableSupply off the copy along with every other script.
         private GameObject tankCopy;
         private GameObject cellCopy;
-        private Renderer tankGauge;
-        private int tankGaugeIndex = EmissiveLamp.WholeRenderer;
-        private Color tankGaugeEmpty;
-        private Color tankGaugeFull;
+        /// <summary>
+        /// The fill bar on the bottle standing in the collar, bound once per copy. A handle rather
+        /// than a renderer because the bar is a length as well as a colour — see <see cref="SupplyGauge"/>.
+        /// </summary>
+        private SupplyGauge tankGauge;
 
         /// <summary>Is a battery fitted at all? A FLAT one still counts as fitted.</summary>
         public bool HasBattery => plant.Battery >= 0f;
@@ -691,10 +692,9 @@ namespace SpaceGame.Gameplay
             if (filling && !fillLoop.IsPlaying) fillLoop.Play(fillLoopId, gameObject, fillLoopSound);
             else if (!filling && fillLoop.IsPlaying) fillLoop.Stop();
 
-            if (!filling || tankGauge == null) return;
+            if (!filling) return;
 
-            EmissiveLamp.Paint(tankGauge, tankGaugeIndex,
-                               Color.Lerp(tankGaugeEmpty, tankGaugeFull, TankCharge));
+            tankGauge.Paint(TankCharge);
         }
 
         // ── State ──────────────────────────────────────────────────────────────
@@ -740,9 +740,7 @@ namespace SpaceGame.Gameplay
             if (wasPowered != Powered) ApplyPower();
 
             if (hadTank != hasTank) RefreshTankVisual();
-            else if (hasTank && tankGauge != null && !IsFilling)
-                EmissiveLamp.Paint(tankGauge, tankGaugeIndex,
-                                   Color.Lerp(tankGaugeEmpty, tankGaugeFull, TankCharge));
+            else if (hasTank && !IsFilling) tankGauge.Paint(TankCharge);
 
             if (silent) return;
 
@@ -795,19 +793,20 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private void RefreshTankVisual()
         {
-            tankGauge = null;
+            tankGauge = default;
             Rebuild(ref tankCopy, tankSeat, HasTank ? tankItem : null);
 
             if (tankCopy == null) return;
 
-            BindTankGauge(tankItem);
+            // By NAME, off the copy itself: DisplayCopy.Strip takes the bottle's own DockableSupply
+            // off with every other script, so the copy cannot draw its own bar and nothing on it
+            // can be asked what its charge is. The machine paints it instead.
+            tankGauge = SupplyGauge.Bind(tankCopy.transform);
 
-            // The copy is built from the prefab, so it is painted at the prefab's starting charge
-            // until something says otherwise. A tank docked at 40% would show full for as long as
-            // nothing was filling.
-            if (tankGauge != null)
-                EmissiveLamp.Paint(tankGauge, tankGaugeIndex,
-                                   Color.Lerp(tankGaugeEmpty, tankGaugeFull, TankCharge));
+            // The copy is built from the prefab, so it stands at the prefab's starting charge until
+            // something says otherwise. A tank docked at 40% would show full for as long as nothing
+            // was filling.
+            tankGauge.Paint(TankCharge);
         }
 
         private static void Rebuild(ref GameObject copy, Transform seat, InventoryItem item)
@@ -828,34 +827,6 @@ namespace SpaceGame.Gameplay
             copy = DisplayCopy.Make(item.itemPrefab, seat);
         }
 
-        /// <summary>
-        /// Find the gauge on the copy that was just built, and the two colours to lerp it between.
-        ///
-        /// <para>
-        /// By NAME, off the item's own prefab, because <c>DisplayCopy.Strip</c> takes the copy's
-        /// <see cref="DockableSupply"/> off with every other script — the copy is scenery and has no
-        /// business running gameplay code. So the prefab is asked which part its gauge is and the
-        /// copy is searched for the same part.
-        /// </para>
-        /// </summary>
-        private void BindTankGauge(InventoryItem item)
-        {
-            var supply = item.itemPrefab.GetComponent<DockableSupply>();
-            if (supply == null || supply.Readout == null) return;
-
-            tankGaugeIndex = supply.ReadoutMaterialIndex;
-            tankGaugeEmpty = supply.EmptyColour;
-            tankGaugeFull = supply.ChargedColour;
-
-            string wanted = supply.Readout.name;
-            foreach (Renderer candidate in tankCopy.GetComponentsInChildren<Renderer>(true))
-            {
-                if (candidate.name != wanted) continue;
-
-                tankGauge = candidate;
-                return;
-            }
-        }
 
         // ── Persistence ────────────────────────────────────────────────────────
 

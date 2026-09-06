@@ -207,12 +207,18 @@ namespace SpaceGame.Items
         /// down, so the pose reads the lamp's state from across a cave. Anything actually in the
         /// hands still outranks it; <see cref="PlayerAimRig"/> resolves that.
         /// </para>
+        /// <para>
+        /// The arm is passed because the pose is not symmetric. The hold clips are right-handed —
+        /// the one-handed one leaves the left hand at the hip — so a torch worn on the left has
+        /// its pose mirrored, and a torch that did not say which arm it was on would raise the
+        /// wrong one half the time.
+        /// </para>
         /// </summary>
         private void PoseArm(bool lit)
         {
             if (aimRig == null) return;
 
-            aimRig.SetTorchStyle(lit ? litPose : ItemGrip.HoldStyle.None);
+            aimRig.SetTorchStyle(WornOn, lit ? litPose : ItemGrip.HoldStyle.None);
         }
 
         private void PaintBulb(bool lit)

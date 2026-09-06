@@ -116,7 +116,8 @@ namespace SpaceGame.Tests
             "in the frame packSize is authored in";
 
         /// <summary>
-        /// <b>The seven gauntlets used to be listed here and deliberately are not any more.</b>
+        /// <b>The seven gauntlets were listed here as one block and deliberately are not any more
+        /// — only the ruin scanner is.</b>
         ///
         /// <para>
         /// Until 2026-09-04 a gauntlet was a device wrapped in a bracer, and in true metres the
@@ -125,14 +126,54 @@ namespace SpaceGame.Tests
         /// `packSize` of 0.54, and that divergence was recorded here. The bracer is now worn
         /// permanently and is not part of the item: what goes on the mat is the device alone,
         /// 0.39 m for the flashlight up to 0.60 for the grappling hook. Those are gadget-sized,
-        /// so `GauntletPrefab.PackSize` went to 0 and the family stopped diverging at all.
+        /// so `GauntletPrefab.PackSize` went to 0 and the family stopped diverging as a family.
         /// </para>
         /// <para>
-        /// It is written down because the absence is the interesting part: a gauntlet reappearing
-        /// in this list means someone gave the family a pack size again, and the question to ask
-        /// is whether a bracer has crept back into the models.
+        /// It is written down because the shape of the absence is the interesting part. A gauntlet
+        /// appearing here as part of a BLOCK — all seven, one shared number — means someone gave
+        /// the family a pack size again, and the question to ask is whether a bracer has crept back
+        /// into the models. One gauntlet appearing alone is a different claim: that one device is
+        /// too big for what it is, which is what <see cref="ScannerWhy"/> says.
         /// </para>
         /// </summary>
+
+        /// <summary>
+        /// Why the ruin scanner is the one gauntlet drawn below its true size.
+        ///
+        /// <para>
+        /// Reported 2026-09-06 as backlog INV-03: too big in the inventory, wanted at roughly
+        /// 0.6x. At the family's 0 it was drawn at the 0.389 m the artist built and cost 4 x 5 =
+        /// 20 of the rig's 255 cells — nothing refused to hold it, it just read as the biggest
+        /// thing on the mat for a device worn on a forearm (<c>GDC-L1-UX-0003</c>: rank by
+        /// salience; every element competes for attention).
+        /// </para>
+        /// <para>
+        /// <b>0.225 rather than the 0.2334 that is exactly 0.6x.</b> The binding axis is not the
+        /// one <c>packSize</c> names: the device is 0.301 m across against 0.389 along, so its
+        /// width crosses into a third cell at 0.2326 and 0.2334 would buy a whole extra column
+        /// for 0.3% of overflow, drawing the scanner loose inside 3 x 3. 0.225 sits 3% clear of
+        /// that line and costs the same 2 x 3 = 6 cells that anything from 0.19 to 0.2326 does.
+        /// Same reasoning as <see cref="CellWhy"/>, from the other side of the boundary.
+        /// </para>
+        /// <para>
+        /// <b>This also moves the scanner in the sand</b>, from <c>ItemBounds.DefaultSize</c> x
+        /// 1.908 = 0.572 m to 0.429 m, because <see cref="ItemWorldScale"/> is derived from what
+        /// the gear wall draws. That is the intended coupling and not a side effect to undo: the
+        /// wall is where the player last saw the item before putting it down.
+        /// </para>
+        /// <para>
+        /// The number is written in three places on purpose and they are pinned together here:
+        /// this row, the prefab on disk, and <c>GauntletReseat.RuinScannerPackSize</c> — which
+        /// REWRITES the prefab's field on every reseat, so a value that lives only on the prefab
+        /// grows silently back.
+        /// </para>
+        /// </summary>
+        private const string ScannerWhy =
+            "backlog INV-03: at the gauntlet family's 0 the 0.389 m device was drawn at true size " +
+            "and cost 4 x 5 = 20 of the rig's 255 cells, reading as the biggest thing on the mat " +
+            "for a gadget worn on a forearm. 0.225 is 0.58x, which is the asked-for 'roughly 0.6x' " +
+            "backed off the cell boundary its 0.301 m WIDTH crosses at 0.2326 — 2 x 3 = 6 cells. " +
+            "GauntletReseat.RuinScannerPackSize carries the same number and rewrites the prefab";
 
         /// <summary>Metres of slop when matching an authored value.</summary>
         private const float Slack = 1e-3f;
@@ -159,17 +200,35 @@ namespace SpaceGame.Tests
             new(Gadgets + "Lasso.prefab", 0.60f, 0.36f,
                 "a coil of rope, and at hand size it lay on the mat as long as a sidearm"),
 
+            // The one worn gauntlet that does not go on the mat at the size the artist built.
+            // Its holdSize stays 0: nothing here touches how it sits on the arm.
+            new(Gadgets + "RuinScanner.prefab", 0f, 0.225f, ScannerWhy),
+
             // ── The oxygen plant's three supplies ─────────────────────────────────────────
             new(Supplies + "OxygenTank.prefab", 0.90f, 0.50f, BottleWhy),
             new(Supplies + "Battery.prefab", 0.90f, 0.63f, CellWhy),
 
-            new(Portals + "PortalGun.prefab", 1.25f, 0.54f,
-                "a 0.4445 m fire extinguisher carried at the ladder's 1.25 m Anchor bracket, " +
-                "which is 2.8x life size — the hand is inflated for a 3 m astronaut and the mat " +
-                "is in true-world metres, so following holdSize drew it 1.875 m tall on a 1.08 m " +
-                "leaf and spent 36 of the rig's 255 cells on one bottle; 0.54 is its true size " +
-                "rounded up to the next 0.09 m webbing pitch plus a cell, which is 2 x 4 = 8 " +
-                "cells and fits every face but LongGoods strictly"),
+            // The second gun to leave the bracket, and for the same reason. "Guns stay at the
+            // anchor on the mat, because big gear goes on the rack with overhang" was the rule
+            // NetGunBuilder shipped with; it holds for a launcher whose true size IS about a
+            // metre, and not for a pistol.
+            new(Gadgets + "NetGun.prefab", 1.25f, 0.63f,
+                "a 0.629 m capture pistol carried at the ladder's 1.25 m Gun bracket, which is " +
+                "2.0x life size — following holdSize drew it 1.31 m long for 7 x 14 = 98 of " +
+                "the rig's 255 cells, and dropped it in the sand 2.39 m long; 0.63 is its true " +
+                "size rounded up to the next 0.09 m webbing pitch, with the roster's extra cell " +
+                "left off for CellWhy's reason — 0.72 measures exactly the leaf's eight cells. " +
+                "4 x 7 = 28 cells, life size to within 5%"),
+
+            new(Portals + "PortalGun.prefab", 0.73f, 0.54f,
+                "a 0.4445 m fire extinguisher that was carried at the ladder's 1.25 m Gun " +
+                "bracket, which is 2.8x life size — the hand is inflated for a 3 m astronaut and " +
+                "the mat is in true-world metres, so following holdSize drew it 1.875 m tall on a " +
+                "1.08 m leaf and spent 36 of the rig's 255 cells on one bottle; 0.54 is its true " +
+                "size rounded up to the next 0.09 m webbing pitch plus a cell, which is 2 x 4 = 8 " +
+                "cells and fits every face but LongGoods strictly. The HAND moved to 0.73 on " +
+                "2026-09-06 (backlog GEAR-02) and the mat did not follow it, which is exactly " +
+                "what an authored packSize is for — see ItemScaleLadder.VesselWhy"),
 
             // The one item that diverges UPWARDS, and the one sized against a face rather than
             // against a bracket. Its value is derived, not chosen — see the Why — so if this row

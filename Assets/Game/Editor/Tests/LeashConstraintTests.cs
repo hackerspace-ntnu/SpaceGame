@@ -603,6 +603,81 @@ namespace SpaceGame.EditorTools
             Object.DestroyImmediate(runner);
         }
 
+        // ── Who may untie ──────────────────────────────────────────────────────
+        //
+        // A captive who can click the rope off has no reason ever to struggle, which retires
+        // LeashedBody.Struggle and the whole capture verb with it. Leash.Restrains is the one
+        // question both the aim and every machine's Present ask; these pin the three answers that
+        // are easy to get wrong.
+
+        [Test]
+        public void ARopeRestrainsThePlayerOnItsFarEndToo()
+        {
+            // The "connected area as a whole" rule. An untie is addressed to the anchor NEAREST the
+            // click, so a check that followed the address alone would let a captive walk to the far
+            // knot and untie themselves from there — the same escape by a longer route.
+            var captive = new GameObject("captive") { tag = "Player" };
+            var post = new GameObject("post");
+
+            var rope = Leash.Create(new Leash.Settings { length = 8f, rope = new LeashRope() });
+            rope.TieEndTo(true, post, Vector3.zero);
+            rope.TieEndTo(false, captive, Vector3.zero);
+
+            Assert.That(rope.Restrains(captive), Is.True,
+                        "the rope did not own up to the player on its B end, so they could untie " +
+                        "themselves by clicking near the post");
+
+            rope.Dispose();
+            Object.DestroyImmediate(captive);
+            Object.DestroyImmediate(post);
+        }
+
+        [Test]
+        public void ARopeKnottedToABoneRestrainsTheBodyItBelongsTo()
+        {
+            // A rope thrown at a downed player lands on the ragdoll bone it hit: LeashEnd.TieTo
+            // anchors to the Rigidbody it finds walking up, not to the player root. An identity
+            // test against the root answers no here, and the captive is free to click it off.
+            var captive = new GameObject("captive") { tag = "Player" };
+            var forearm = new GameObject("forearm");
+            forearm.transform.SetParent(captive.transform);
+            forearm.AddComponent<Rigidbody>();
+
+            var rope = Leash.Create(new Leash.Settings { length = 8f, rope = new LeashRope() });
+            rope.PinEndTo(true, Vector3.zero);
+            rope.TieEndTo(false, forearm, Vector3.zero);
+
+            Assert.That(rope.B.Anchor, Is.Not.EqualTo(captive.transform),
+                        "test setup: the knot must land on the bone, or this passes for the " +
+                        "wrong reason");
+
+            Assert.That(rope.Restrains(captive), Is.True,
+                        "a rope on a ragdoll bone read as somebody else's rope");
+
+            rope.Dispose();
+            Object.DestroyImmediate(captive);
+        }
+
+        [Test]
+        public void ARopeDoesNotRestrainABystander()
+        {
+            // The other half of the rule, and the one a too-broad check would break: cutting
+            // somebody else loose is the point of the untie click and must keep working.
+            var captive = new GameObject("captive") { tag = "Player" };
+            var rescuer = new GameObject("rescuer") { tag = "Player" };
+
+            var rope = Leash.Create(new Leash.Settings { length = 8f, rope = new LeashRope() });
+            rope.PinEndTo(true, Vector3.zero);
+            rope.TieEndTo(false, captive, Vector3.zero);
+
+            Assert.That(rope.Restrains(rescuer), Is.False,
+                        "a bystander was refused the untie, so nobody can be cut loose");
+
+            rope.Dispose();
+            Object.DestroyImmediate(captive);
+            Object.DestroyImmediate(rescuer);
+        }
+
         // ── Path geometry ──────────────────────────────────────────────────────
         //
         // A rope is a polyline now, not a chord. The arithmetic that follows from that is pure, so

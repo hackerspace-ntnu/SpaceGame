@@ -74,6 +74,12 @@ namespace SpaceGame.EditorTools
 
         private const float GroundHeight = 0f;
 
+        /// <summary>
+        /// The net id <see cref="FireNet"/> builds with, named so a receiver registering that net
+        /// can be handed the same one. In the game it is the shot's seed.
+        /// </summary>
+        private const int NetIdFired = 4242;
+
         /// <summary>Metres under the floor a settled hem may sit — float noise on the clamp, no more.</summary>
         private const float GroundTolerance = 0.01f;
 
@@ -113,6 +119,26 @@ namespace SpaceGame.EditorTools
         /// whatever NUnit runs next. Same reason <c>ParkedBodyCarryTests</c> does it.
         /// </summary>
         private readonly object carrier = new object();
+
+        /// <summary>
+        /// Wipe the per-test fields, because NUnit does NOT give each test its own fixture.
+        ///
+        /// <para>
+        /// One instance is built for the whole class and reused, so an instance field carries
+        /// whatever the previous test left in it. <c>spawned</c> gets away with being a field only
+        /// because <see cref="TearDown"/> empties it; anything else a test writes needs the same
+        /// service, and the counters below are the first such fields this file has had. Without
+        /// this, <c>AnUnheldBodyReportsNothing</c> inherits the two reports its neighbour sent and
+        /// fails on an assertion about a message it never saw — which reads as a defect in the
+        /// send rather than as fixture bleed.
+        /// </para>
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            reportsHeard = 0;
+            reportedCaptive = null;
+        }
 
         [TearDown]
         public void TearDown()
@@ -1434,6 +1460,31 @@ namespace SpaceGame.EditorTools
         // no exception, no warning and no missing frame; the net simply never notices anyone
         // fighting it. Every test below that registers a handler on the shooter is, among other
         // things, a test that the report was addressed to the shooter.
+        //
+        // ── What this section does NOT pin, so nobody reads more into it than is there ──
+        //
+        // Every test here runs with no NetworkManager, which is the only thing an EditMode test can
+        // be. Three properties of the feature are therefore asserted by reading the source and by
+        // nothing else, and each of them is exactly the kind that fails on clients while the host
+        // stays perfect:
+        //
+        //   Network.MayActFor — the check that stops one client reporting struggles on another
+        //   player's captive. It short-circuits on !IsNetworked, so every test below passes
+        //   identically with the call deleted. It is not testable here at all; only a two-machine
+        //   session can move it.
+        //
+        //   SnareReceiver.Decides — Network.Simulates answers true unconditionally with no
+        //   NetworkManager, so a peer's receiver cannot be built. The authority split is pinned one
+        //   layer down instead, at SnareCatch's own authoritative flag, which is a plain bool.
+        //
+        //   NetTo.Server — offline, Server and All both fall through to the same local dispatch, so
+        //   nothing here can tell them apart. Online the difference is loud rather than silent:
+        //   NetRelay.RequireServer refuses a broadcast from a client and logs it. That is why the
+        //   constant is left unpinned rather than propped up with machinery.
+        //
+        // What IS pinned, and covers the failure mode all three share, lives in NetGunWiringTests:
+        // the tag, the Rigidbody and the NetworkObject sit on ONE GameObject, so the body Capture
+        // records and the body NetArg.Resolve hands back on the far side are the same object.
 
         /// <summary>Seconds of net life these tests run, and the tick they run it at.</summary>
         private const float StruggleSeconds = 5f;
@@ -1556,28 +1607,32 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void AnUnheldBodyReportsNothing()
+        public void AStruggleAgainstAnAnchorThatIsNotANetIsSurvivedInSilence()
         {
-            // Belt to the braces on the server's ownership check. Step already refuses to read
-            // input on a machine that does not own the body — this pins that the SEND sits on the
-            // same side of that gate, so a peer watching a captive flail does not report it as
-            // well and bill the shooter's net once per machine in the session.
+            // The one guard in ReportStruggle nothing else reaches. The net is resolved from the
+            // ANCHOR on demand rather than kept in a field, so `anchor.GetComponent<SnareCatch>()`
+            // can legitimately answer null — and the shortest way to write the send,
+            // `anchor.GetComponent<SnareCatch>().Shooter`, throws when it does.
             //
-            // Offline every machine owns everything, so what this can actually check is that the
-            // send is downstream of the push rather than beside it: an unbound body reads no input,
-            // pushes nothing, and must therefore say nothing.
-            GameObject shooter = NewObject("Shooter");
-            shooter.transform.NetOn(NetMsg.SnareStruggled, CountStruggleReport);
+            // Not a hypothetical shape: NewCaptive and every struggle test above it bind a bare
+            // transform, so an unguarded send would take those down as well — but with a
+            // NullReferenceException out of Step, which names neither this file's send nor the
+            // property it came from. Naming the case is what turns that into a one-line diagnosis.
+            //
+            // A real anchor with a real net is the other half, and AnAcceptedStruggleIsReported...
+            // covers it; this is only the half where there is nobody to tell. There is deliberately
+            // no "and it reported nothing" assertion here: with no net there is no shooter to
+            // address, so no reachable implementation could report anywhere a test could listen,
+            // and the assertion would pass on every one of them.
+            SnaredBody snared = NewCaptive();
 
-            SnareCatch net = NetHolding(shooter, out GameObject captive);
-            SnaredBody snared = captive.GetComponent<SnaredBody>();
+            Assert.DoesNotThrow(() => snared.Step(0f, jumpPressed: true, Vector2.zero),
+                "A captive bound to an anchor carrying no SnareCatch threw on its first struggle. " +
+                "ReportStruggle is dereferencing the net without checking it resolved.");
 
-            snared.Release(net.transform);
-            snared.Step(0f, jumpPressed: true, Vector2.zero);
-
-            Assert.AreEqual(0, reportsHeard,
-                "A player no net is holding reported a struggle. The send is running ahead of the " +
-                "bound check rather than behind the accepted push.");
+            Assert.That(snared.StruggleLevel, Is.GreaterThan(0f),
+                "The push was never accepted, so the send under test was never reached — this " +
+                "test would then pass against a ReportStruggle that throws on its first line.");
         }
 
         [Test]
@@ -1604,10 +1659,20 @@ namespace SpaceGame.EditorTools
         [Test]
         public void HammeringTheKeyGainsNothingOverStrugglingAtTheCap()
         {
-            // GDC-L1-UX-0006, checked where it can actually be violated. The cap has to survive the
-            // trip over the wire: the captive's meter throttles what they send, and the server's
-            // discards anything that arrives too fast anyway. Remove either cooldown and a macro
-            // pins the level at 1 permanently, which is a third off the escape time.
+            // The cap, checked where it can actually be violated. It has to survive the trip over
+            // the wire: the captive's meter throttles what they send, and the server's discards
+            // anything that arrives too fast anyway. Remove either cooldown and a macro pins the
+            // level at 1 permanently, which is a third off the escape time.
+            //
+            // This is an EXTENSION of GDC-L1-UX-0006 rather than a quotation of it. That principle
+            // is accessibility-as-design and its named features are remapping, text scaling,
+            // colourblind-safe visuals, captions and assist options — not input-rate caps. What
+            // carries over is its rationale, which names motor disability among the barriers worth
+            // designing out, and its instruction to design so accessibility is possible rather than
+            // to bolt it on: a mechanic whose difficulty is how fast you can press a key has no
+            // remap, no assist option and no toggle that would help, because the barrier is the
+            // mechanic. The principle is `contextual` at confidence 4, so it is a reason and not a
+            // rule; the cap is also just better play (a macro should not beat a person).
             GameObject shooter = NewObject("Shooter");
 
             SnareCatch spammed = NetHolding(shooter, out GameObject spammer);
@@ -1725,7 +1790,11 @@ namespace SpaceGame.EditorTools
             SnareReceiver receiver = ListeningReceiver(shooter);
 
             SnareCatch net = NetHolding(shooter, out GameObject captive);
-            receiver.Track(netId: 11, net, catchableLayers: ~0, captureHeight: 2.5f);
+            // The id FireNet actually built the net with. It makes no difference today — the
+            // struggle handler sweeps live.Values rather than keying by id — but a receiver whose
+            // registry disagrees with its nets is the state in which a future lookup would silently
+            // find nothing, and this test would go on passing for the wrong reason.
+            receiver.Track(NetIdFired, net, catchableLayers: ~0, captureHeight: 2.5f);
 
             SnaredBody snared = captive.GetComponent<SnaredBody>();
 
@@ -2116,7 +2185,7 @@ namespace SpaceGame.EditorTools
             go.transform.position = muzzle;
 
             var net = go.AddComponent<SnareCatch>();
-            net.Begin(netId: 4242, muzzle, aim, HalfWidth, CordWidth,
+            net.Begin(NetIdFired, muzzle, aim, HalfWidth, CordWidth,
                       NewLattice(), new SnareStruggle(), authority, firedBy: shooter);
             return net;
         }
@@ -2134,6 +2203,44 @@ namespace SpaceGame.EditorTools
 
             Assert.IsTrue(net.HasLanded, "the net never landed at all.");
             return flown;
+        }
+
+        [Test]
+        public void AFiredNetComesDownFlatRatherThanOnItsEdge()
+        {
+            // ART-03, and the reason nothing in this file caught it: every other flight test asks
+            // WHERE the net went or WHETHER it stopped moving. None asks what SHAPE it is when it
+            // arrives — and a net that meets the ground edge-on does not lie down on it, it buckles
+            // into a strip. That strip is also the Footprint SnareReceiver sizes its OverlapBox
+            // from, so an edge-on net is a gun that fires, lands, drapes and catches nothing.
+            //
+            // Measured against this exact bed: 2.5 m deep with the facing left to follow the
+            // closed-form velocity alone, 5.2 m deep once SnareCatch drives the turn. The net is
+            // six metres across, so half its own width is the bar — comfortably above the broken
+            // number and comfortably below the fixed one.
+            GameObject floor = NewPrimitive(PrimitiveType.Cube, "Floor");
+            floor.transform.position = new Vector3(0f, -0.5f, 0f);
+            floor.transform.localScale = new Vector3(400f, 1f, 400f);
+            Physics.SyncTransforms();
+
+            // Level, from about where a held gun's muzzle sits. Level is the case that matters:
+            // the flatter the shot, the less the arc bends and the less the net turns on its own.
+            SnareCatch net = FireNet(new Vector3(0f, 1.45f, 0f), Vector3.forward, shooter: null);
+
+            AdvanceUntilLanded(net);
+            for (int i = 0; i < SettleSteps; i++) net.Advance(Substep);
+
+            Bounds landed = net.Footprint;
+
+            // Along the flight axis, not across it. Across is free — SnareLattice.Deploy lays the
+            // sheet out that way at the muzzle and nothing takes it away again — so a check on the
+            // wider axis passes for a curtain standing on its edge.
+            Assert.That(landed.size.z, Is.GreaterThan(HalfWidth),
+                $"The net landed {landed.size.x:F1} m across but only {landed.size.z:F1} m deep, " +
+                $"against a {HalfWidth * 2f:F0} m net. It arrived on its edge and buckled: on " +
+                "screen that is a hank of rope rather than a net, and the capture box " +
+                "SnareReceiver sizes off this footprint is a slab too thin to have anything " +
+                "standing in it.");
         }
 
 
@@ -3706,6 +3813,550 @@ namespace SpaceGame.EditorTools
 
             meter.Advance(0.5f);
             Assert.IsTrue(meter.Push(), "Past the cooldown it counts again.");
+        }
+
+        // ── SnarePhase: the phase machine ─────────────────────────────────────
+        //
+        // This is where the parts meet, and every defect the previous round paid for lived exactly
+        // here rather than in any one of them. Each part below passed its own test while the
+        // assembled net was invisible, so what these pin is the SEAMS: which phase a net is in,
+        // what runs in it, and what ends it.
+
+        /// <summary>
+        /// The cinch window, mirrored from <c>SnareCatch.CinchSeconds</c> rather than read from it.
+        ///
+        /// Same reason <see cref="DefaultCinchStiffness"/> is mirrored: retuning the window is then
+        /// a visible two-place edit instead of a silent move of everything measured below.
+        /// </summary>
+        private const float CinchWindow = 0.7f;
+
+        /// <summary>
+        /// The cinch's latency backstop and the fallen net's settle window, mirrored from
+        /// <c>SnareCatch</c> for the same reason <see cref="CinchWindow"/> is.
+        ///
+        /// These are three separate numbers in the code on purpose — the cinch window is feel, the
+        /// backstop is how long a peer will wait for a capture that has to cross the wire, and the
+        /// settle window is how long cord takes to lie down. They are mirrored separately here so
+        /// that collapsing any two of them into one fails a test rather than passing quietly.
+        /// </summary>
+        private const float MaxCinchWindow = 3f;
+        private const float SettleWindow = 2.75f;
+
+        /// <summary>
+        /// The bracket a net's own life clock has to fall inside.
+        ///
+        /// Flight, plus a full pool drained at nothing but the idle rot, plus the rot, plus the
+        /// margin — about 124 s for an authored net. Bracketed rather than recomputed, because a
+        /// test that rebuilt the number out of the same constants the code uses would agree with
+        /// whatever those constants happened to be.
+        /// </summary>
+        private const float LifeFloor = 60f;
+        private const float LifeCeiling = 130f;
+
+        /// <summary>Ground for a net to come down on. Wide enough that no shot in here can miss it.</summary>
+        private void NewFloor()
+        {
+            GameObject floor = NewPrimitive(PrimitiveType.Cube, "Floor");
+            floor.transform.position = new Vector3(0f, -0.5f, 0f);
+            floor.transform.localScale = new Vector3(200f, 1f, 200f);
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>A net on its arc with nothing in front of it.</summary>
+        private SnareCatch NetInFlight() =>
+            FireNet(new Vector3(0f, 1.6f, 0f), Vector3.forward, shooter: null);
+
+        /// <summary>A net on the sand and still flattening onto it.</summary>
+        private SnareCatch NetSettling()
+        {
+            NewFloor();
+
+            SnareCatch net = NetInFlight();
+            AdvanceUntilLanded(net);
+
+            Assert.AreEqual(SnarePhase.Settling, net.Phase,
+                "A net that met the floor did not start settling — everything below is arranged " +
+                "wrong.");
+            return net;
+        }
+
+        /// <summary>The same net, done moving and frozen.</summary>
+        private SnareCatch NetFallen()
+        {
+            SnareCatch net = NetSettling();
+            AdvancePast(net, SettleWindow);
+
+            Assert.AreEqual(SnarePhase.Fallen, net.Phase,
+                "The settle window never closed, so nothing below is measuring a frozen net.");
+            return net;
+        }
+
+        /// <summary>
+        /// A net closing around a player.
+        ///
+        /// <para>
+        /// The capsule is added here because <see cref="NewRagdollBody"/> deliberately strips its
+        /// parts' colliders — <c>RagdollRig</c> puts its own on the way down — so a body built for
+        /// the hold tests has nothing whatever for a flying net to meet. Without it the net sails
+        /// straight through and every landing test below would quietly measure a miss.
+        /// </para>
+        /// </summary>
+        private SnareCatch NetCinching(out GameObject victim)
+        {
+            victim = NewNettablePlayer("Victim");
+            victim.transform.position = new Vector3(0f, 1f, 12f);
+            victim.AddComponent<CapsuleCollider>();
+            Physics.SyncTransforms();
+
+            SnareCatch net = NetInFlight();
+            AdvanceUntilLanded(net);
+
+            Assert.AreEqual(SnarePhase.Cinching, net.Phase,
+                "The net landed without deciding it had hit a body, so it is closing around " +
+                "nothing. Either the shot missed or the catchable test does not recognise a player.");
+            return net;
+        }
+
+        /// <summary>The same net, past the window and nailed to the captive's bones.</summary>
+        private SnareCatch NetBound(out GameObject victim)
+        {
+            SnareCatch net = NetCinching(out victim);
+
+            // What SnareReceiver's landing pass does on the authority, by hand: nothing drives its
+            // Update here, and the bind has nothing to nail the cord to until a captive is recorded.
+            Assert.IsTrue(net.Capture(victim),
+                "The victim was never caught, so the bind below has no skeleton to reach.");
+
+            AdvancePast(net, CinchWindow);
+            return net;
+        }
+
+        /// <summary>Run a net for a stretch of its life, a solver substep at a time.</summary>
+        private static void AdvancePast(SnareCatch net, float seconds)
+        {
+            int steps = Mathf.CeilToInt(seconds / Substep) + 1;
+            for (int i = 0; i < steps; i++) net.Advance(Substep);
+        }
+
+        [Test]
+        public void ANetStartsItsLifeInFlight()
+        {
+            SnareCatch net = NetInFlight();
+
+            Assert.AreEqual(SnarePhase.Flight, net.Phase,
+                "A net that is not in Flight the moment it leaves the muzzle never flies: every " +
+                "other phase has the solver stopped or the carry off.");
+            Assert.IsFalse(net.HasLanded,
+                "HasLanded is what SnareReceiver polls to decide when to ask what a net caught. " +
+                "True in the air means the capture query runs at the muzzle, on the shooter.");
+            Assert.IsFalse(net.Frozen, "A net in the air that has stopped solving is a plank.");
+        }
+
+        [Test]
+        public void AFallenNetLiesDownBeforeItFreezes()
+        {
+            // The defect the settle window exists for. The impact cast has a radius of 0.75, so
+            // contact is reported with the net's CENTRE that far above the floor, and a drape only
+            // lifts nodes that are already UNDER the ground — so a net frozen on the contact frame
+            // keeps the shape of a sheet arriving edge-on, held up in the middle by nothing at all.
+            // It looks like a net. It is a tent, and it never comes down.
+            SnareCatch net = NetSettling();
+
+            Assert.IsFalse(net.Frozen,
+                "The net stopped solving on the frame it touched the ground, so it can never " +
+                "flatten onto it.");
+
+            Bounds arrived = net.Footprint;
+            AdvancePast(net, SettleWindow);
+            Bounds lying = net.Footprint;
+
+            Assert.AreEqual(SnarePhase.Fallen, net.Phase);
+
+            // Descent alone is not the claim, and on its own it is nearly free: a quarter-metre of
+            // unopposed fall takes a fifth of a second, so any non-zero window clears it — and so
+            // does a net that has sunk fifty metres through the floor. What the window exists for
+            // is the SHAPE, so the shape is what is asserted.
+            Assert.That(lying.center.y, Is.LessThan(arrived.center.y - 0.25f),
+                $"The net's middle sat at {arrived.center.y:F2} m when it landed and " +
+                $"{lying.center.y:F2} m when it froze. It never came down.");
+
+            Assert.That(lying.size.y, Is.LessThan(arrived.size.y * 0.5f),
+                $"The net stood {arrived.size.y:F2} m tall when it landed and {lying.size.y:F2} m " +
+                "when it froze. It is still the sheet that arrived, not one lying down.");
+
+            Assert.That(lying.size.y, Is.LessThan(1.5f),
+                $"A six-metre net froze {lying.size.y:F2} m tall on a flat floor. That is the tent " +
+                "the settle window exists to collapse — either the window is too short or the " +
+                "grip is not taking the speed off it.");
+
+            Assert.That(lying.min.y, Is.EqualTo(0f).Within(0.25f),
+                $"The net came to rest with its lowest cord at {lying.min.y:F2} m against a floor " +
+                "at 0. Above it, it is hanging on a ground height sampled somewhere else; below " +
+                "it, it has gone through the sand.");
+        }
+
+        [Test]
+        public void ANetTornInMidAirIsNotAskedWhatItCaught()
+        {
+            // HasLanded is what SnareReceiver polls before throwing an OverlapBox around a net's
+            // footprint, felling everything inside it and broadcasting NetMsg.Snared. A torn net
+            // has already run ReleaseAll and is a second from being destroyed, so it has nothing to
+            // answer about — and a FLYING one's footprint is wherever the arc has got to, which for
+            // a net torn early is a box around the shooter's own chest.
+            SnareCatch net = NetInFlight();
+            net.Advance(Substep);
+            net.Tear();
+
+            Assert.IsTrue(net.IsTearing);
+            Assert.IsFalse(net.HasLanded,
+                "A net torn in mid-air still claims to have landed, so the capture pass will run " +
+                "against it and catch whatever the net happens to be flying through.");
+        }
+
+        [Test]
+        public void ANetThatMissesEverythingFallsAndStopsSolving()
+        {
+            SnareCatch net = NetFallen();
+
+            Assert.IsTrue(net.Frozen,
+                "A net that caught nothing is still solving. That is ninety substeps a second " +
+                "for the rest of its half-minute, three at a time per gun, to hold a shape that " +
+                "is not going to change — and nothing anywhere reports it.");
+
+            Bounds settled = net.Footprint;
+            AdvancePast(net, 2f);
+
+            Assert.That(Vector3.Distance(settled.center, net.Footprint.center), Is.LessThan(0.01f),
+                "A frozen net moved. Either the phase is still running the solver or the drape " +
+                "is writing through a lattice that has stopped.");
+        }
+
+        [Test]
+        public void TheFlightClockDoesNotFreezeTheNetInMidAir()
+        {
+            // NetGunFlight.MaxFlightSeconds is a RANGE limit, not a landing: it is where the net
+            // runs out of momentum, which for any shot aimed above the horizontal is several metres
+            // up. Treating it as a touchdown freezes the net where the arc stopped, and it hangs
+            // there for its whole life with nothing under it — no error, and the shot still fires.
+            NewFloor();
+
+            Vector3 muzzle = new Vector3(0f, 1.6f, 0f);
+            Vector3 aim = Quaternion.Euler(-25f, 0f, 0f) * Vector3.forward;
+
+            SnareCatch net = FireNet(muzzle, aim, shooter: null);
+            AdvanceUntilLanded(net);
+            AdvancePast(net, SettleWindow);
+
+            Assert.AreEqual(SnarePhase.Fallen, net.Phase);
+
+            // This arc ends 10.6 m up, and the net is six metres across, so even one frozen on its
+            // edge has its middle around two. Four is the gap between "it fell" and "it stopped
+            // where the arc did", which is the only distinction being drawn.
+            Assert.That(net.Footprint.center.y, Is.LessThan(4f),
+                $"The net settled {net.Footprint.center.y:F1} m above a floor at y=0, and its arc " +
+                "ran out of momentum at 10.6 m. It stopped on its flight clock instead of when it " +
+                "reached the ground.");
+        }
+
+        [Test]
+        public void ANetThatHitsABodyClosesAroundItWithTheSolverStillAlive()
+        {
+            SnareCatch net = NetCinching(out GameObject victim);
+
+            Assert.IsTrue(net.HasLanded,
+                "Cinching is past Flight, so the receiver has to be asking what this net caught.");
+            Assert.IsFalse(net.Frozen,
+                "The solver was stopped at the moment of contact. The cinch IS a constraint the " +
+                "solver relaxes, so a frozen lattice closes around nothing and the net stays the " +
+                "flat sheet it arrived as.");
+
+            Assert.IsNotNull(victim);
+        }
+
+        [Test]
+        public void TheCinchWindowClosesAndTheNetBindsToWhatItCaught()
+        {
+            SnareCatch net = NetBound(out GameObject victim);
+
+            Assert.AreEqual(SnarePhase.Bound, net.Phase,
+                "The cinch is a WINDOW. A net that never leaves it never stops solving, and " +
+                "nothing about that is visible on screen.");
+            Assert.IsTrue(net.Frozen, "A bound net that is still solving is paying for both.");
+
+            Assert.IsNotNull(victim);
+        }
+
+        [Test]
+        public void ABoundNetsCordRidesTheBodyRatherThanTheFrozenLattice()
+        {
+            SnareCatch net = NetBound(out GameObject victim);
+
+            Bounds before = net.Footprint;
+            Vector3 drawnFrom = net.transform.position;
+
+            // The BONES, not the root: SnareBinding stores each node in its own bone's local space,
+            // so moving anything else would leave the binding resolving to exactly where it was and
+            // this test would pass just as happily against a net bound to nothing.
+            //
+            // Adding rather than assigning is safe because these bones are flat siblings —
+            // RagdollRig.MeasureRigidParts skips the root and nothing in the build reparents
+            // anything, so no bone here is inside another and none is moved twice.
+            const float Hauled = 7f;
+
+            foreach (Transform bone in victim.GetComponent<RagdollRig>().BoneTransforms())
+                bone.position += Vector3.right * Hauled;
+
+            Physics.SyncTransforms();
+            net.Advance(Substep);
+
+            Assert.That(net.Footprint.center.x - before.center.x, Is.EqualTo(Hauled).Within(0.05f),
+                $"The captive was dragged {Hauled} m and the net's footprint moved " +
+                $"{net.Footprint.center.x - before.center.x:F2} m. The lattice is frozen, so a net " +
+                "still reading it stays behind on the sand while the body walks off wearing nothing.");
+
+            Assert.That(net.transform.position.x - drawnFrom.x, Is.EqualTo(Hauled).Within(0.05f),
+                "The renderer stayed at the touchdown point. SnareMesh.Build subtracts this " +
+                "transform for float precision, so a net drawn from hundreds of metres away is " +
+                "cord written in coordinates that no longer resolve its 0.03 m width.");
+        }
+
+        [Test]
+        public void ABodyWithNoSkeletonSendsTheNetBackDownInsteadOfFreezingMidCinch()
+        {
+            // RagdollRig.Build can measure a real skeleton and keep NONE of it — the weight floor
+            // and the bone cap trim every candidate away and it logs nothing. This creature is the
+            // blunter version of the same state: no rig at all. A net that bound to it anyway would
+            // hang in the air exactly where the animal used to be.
+            GameObject creature = NewNettableCreature("Creature");
+            creature.transform.position = new Vector3(0f, 1f, 12f);
+            Physics.SyncTransforms();
+
+            SnareCatch net = NetInFlight();
+            AdvanceUntilLanded(net);
+
+            Assert.AreEqual(SnarePhase.Cinching, net.Phase,
+                "An AgentController in the parents is what makes a creature catchable, and the " +
+                "net did not recognise one.");
+            Assert.IsTrue(net.Capture(creature), "The creature was never caught.");
+
+            AdvancePast(net, CinchWindow);
+
+            Assert.AreEqual(SnarePhase.Settling, net.Phase,
+                "The net reported itself bound to a body with no bones, or froze where the cinch " +
+                "left it. Either way it is gathered in the air around a body at chest height, held " +
+                "up by nothing, over a creature that walks out of it hobbled.");
+            Assert.IsFalse(net.Frozen,
+                "The fallback froze immediately. The freeze is the LAST thing that may happen " +
+                "here, not the first — the net has to come down before it stops.");
+
+            // Named for the transition rather than for a height, because there is no honest height
+            // to assert: SampleGround casts one ray straight down and this net's is over the
+            // creature, so its "ground" is the creature's own back. What the settle window does to
+            // the shape from there is pinned by AFallenNetLiesDownBeforeItFreezes on a real floor.
+            AdvancePast(net, SettleWindow);
+
+            Assert.AreEqual(SnarePhase.Fallen, net.Phase);
+            Assert.IsTrue(net.Frozen, "The fallback still has to stop the solver in the end.");
+        }
+
+        [Test]
+        public void ACaptureAfterTheNetLandedStillClosesItAroundTheBody()
+        {
+            // The impact sweep lives in the CARRY, and it traces the net's 0.75 m centre. Two
+            // consequences, and the capture pass sees through both: a shot at the end of its range
+            // falls its last ten metres with nothing casting at all, so it can drop straight
+            // through a creature; and the capture query runs against the whole draped footprint,
+            // which is far wider than the trace, so a net that landed BESIDE an animal still holds
+            // it. Either way the creature is felled and hobbled while the net lies flat on the sand
+            // next to it, on every machine at once.
+            SnareCatch net = NetSettling();
+
+            GameObject victim = NewNettablePlayer("Victim");
+            victim.transform.position = net.Footprint.center;
+            Physics.SyncTransforms();
+
+            Assert.IsTrue(net.Capture(victim), "The victim was never caught.");
+
+            Assert.AreEqual(SnarePhase.Cinching, net.Phase,
+                "The net took hold of a body and went on lying there. Nothing on screen accounts " +
+                "for the capture, and the net never closes.");
+            Assert.IsFalse(net.Frozen, "A net promoted back into the cinch has to be solving again.");
+        }
+
+        [Test]
+        public void TheCinchDoesNotCloseTheMomentSomethingIsCaught()
+        {
+            // The lower bound on CinchSeconds, which nothing else here pins: with the bind waiting
+            // on a CONDITION, an authored zero would bind on the frame the capture lands and freeze
+            // an open sheet across a body it has not begun to close around.
+            SnareCatch net = NetCinching(out GameObject victim);
+
+            Assert.IsTrue(net.Capture(victim), "The victim was never caught.");
+            net.Advance(Substep);
+
+            Assert.AreEqual(SnarePhase.Cinching, net.Phase,
+                "The net bound on the frame the capture arrived. CinchSeconds is how long the ring " +
+                "takes to draw in, and the bind has to wait for it as well as for the captive.");
+        }
+
+        [Test]
+        public void TheCinchWaitsForALateCaptureRatherThanBindingToNothing()
+        {
+            // The bind needs a captive to nail the cord to, and on a PEER the capture arrives over
+            // the wire — after the authority's own landing pass has recorded it, which SnareReceiver
+            // gives 0.8 s to do against a 0.7 s cinch. Binding on the clock alone means a peer whose
+            // message is a frame late finds nothing, falls back to Fallen, and draws the net lying
+            // on the sand while every other machine has it wrapped round a body. Raising the cinch
+            // above the receiver's window would also fix it, and would tie a FEEL number to a
+            // netcode one — so the next person to shorten the cinch because it reads slow puts the
+            // desync straight back.
+            SnareCatch net = NetCinching(out GameObject victim);
+
+            AdvancePast(net, CinchWindow);
+
+            Assert.AreEqual(SnarePhase.Cinching, net.Phase,
+                "The net bound past its cinch window with nothing recorded under it. On a peer " +
+                "that is a net on the sand and a captive nobody is holding.");
+            Assert.IsFalse(net.Frozen);
+
+            // The message, arriving late.
+            Assert.IsTrue(net.Capture(victim), "The victim was never caught.");
+            net.Advance(Substep);
+
+            Assert.AreEqual(SnarePhase.Bound, net.Phase,
+                "The capture arrived and the net went on cinching. It binds on the CONDITION, so " +
+                "the condition being met has to end it.");
+        }
+
+        [Test]
+        public void TheCinchGivesUpRatherThanSolvingForever()
+        {
+            // The other half of that condition. Waiting for a captive is only safe because the wait
+            // is bounded: a capture that never arrives at all — the shooter despawned, the message
+            // was dropped — must still stop the solver rather than leave it running for the net's
+            // whole thirty seconds, which is the entire cost this task exists to remove.
+            SnareCatch net = NetCinching(out GameObject _);
+
+            // The lower bound first, and it is the half that matters: a backstop authored short
+            // enough to fire before a capture can cross the wire IS the desync this condition
+            // exists to prevent, dressed up as a safety net.
+            AdvancePast(net, MaxCinchWindow * 0.5f);
+
+            Assert.AreEqual(SnarePhase.Cinching, net.Phase,
+                $"The backstop fired inside {MaxCinchWindow * 0.5f:F1} s. A peer's capture crosses " +
+                "the wire after the authority's own 0.8 s landing pass, so giving up that early " +
+                "puts the net on the sand while every other machine has it round a body.");
+
+            AdvancePast(net, MaxCinchWindow);
+
+            Assert.AreEqual(SnarePhase.Settling, net.Phase,
+                "No capture ever came and the net is still closing. Nothing will ever end it.");
+
+            AdvancePast(net, SettleWindow);
+
+            Assert.AreEqual(SnarePhase.Fallen, net.Phase);
+            Assert.IsTrue(net.Frozen, "The backstop has to stop the solver, not just the phase.");
+        }
+
+        [Test]
+        public void ANetTornOffACaptiveComesAwayWithItRatherThanHangingInTheAir()
+        {
+            // A torn net still has 1.1 s of rot to live through, and what it must not do is stop
+            // presenting: the captive has just been released and is getting up, so a net that
+            // stopped resolving hangs welded to the pose the body had at the instant it was freed
+            // while the body itself walks out of it, and then pops.
+            SnareCatch net = NetBound(out GameObject victim);
+            net.Tear();
+
+            Bounds before = net.Footprint;
+            const float Freed = 5f;
+
+            foreach (Transform bone in victim.GetComponent<RagdollRig>().BoneTransforms())
+                bone.position += Vector3.right * Freed;
+
+            Physics.SyncTransforms();
+            net.Advance(Substep);
+
+            Assert.That(net.Footprint.center.x - before.center.x, Is.EqualTo(Freed).Within(0.05f),
+                $"The freed body moved {Freed} m and the rotting net moved " +
+                $"{net.Footprint.center.x - before.center.x:F2} m. It is hanging where the captive " +
+                "used to be for the whole of the rot.");
+        }
+
+        [Test]
+        public void ANetTearsFromEveryPhaseItCanBeIn()
+        {
+            // ORDER MATTERS, because these five share one scene. The two ground landings have to
+            // be arranged before any victim exists: a body standing at z=12 is met at t=0.34 and
+            // the floor not until t=0.50, so a net fired after one is in the world closes around it
+            // instead of coming down on sand, and this test would then be tearing three cinching
+            // nets while claiming to cover five phases.
+            SnareCatch settling = NetSettling();
+            settling.Tear();
+            Assert.AreEqual(SnarePhase.Tearing, settling.Phase, "A net torn as it lay down.");
+
+            SnareCatch fallen = NetFallen();
+            fallen.Tear();
+            Assert.AreEqual(SnarePhase.Tearing, fallen.Phase, "A net torn where it lay.");
+
+            SnareCatch flying = NetInFlight();
+            flying.Tear();
+            Assert.AreEqual(SnarePhase.Tearing, flying.Phase, "A net torn in the air.");
+
+            SnareCatch cinching = NetCinching(out GameObject _);
+            cinching.Tear();
+            Assert.AreEqual(SnarePhase.Tearing, cinching.Phase, "A net torn mid-close.");
+
+            SnareCatch bound = NetBound(out GameObject captive);
+            bound.Tear();
+            Assert.AreEqual(SnarePhase.Tearing, bound.Phase, "A net torn off a bound captive.");
+            Assert.IsFalse(captive.GetComponent<SnaredBody>().IsBound,
+                "The captive is still held by a net that has given out. Tear releases from every " +
+                "phase or it releases from none of them.");
+
+            // Idempotent, because two things reach it: the authority tears its own net and then
+            // announces it, and a second Tear that restarted the rot would keep the net in the
+            // world for another RotSeconds every time it is told what it already knows.
+            fallen.Tear();
+            Assert.AreEqual(SnarePhase.Tearing, fallen.Phase);
+        }
+
+        [Test]
+        public void APeersNetExpiresOnItsOwnClockWithNobodyLeftToTellIt()
+        {
+            // The failsafe, and the phase machine must not have lost it. A peer's net never drains
+            // — it waits to be told it has torn — and that message never arrives when the shooter
+            // despawns with nets live: the announcement rides the SHOOTER's relay, and a player
+            // being destroyed has none left to send from. Nothing can be sent at that moment, by
+            // anyone, so each net has to know its own worst case.
+            NewFloor();
+
+            SnareCatch net = FireNet(new Vector3(0f, 1.6f, 0f), Vector3.forward,
+                                     shooter: null, authority: false);
+
+            float lived = 0f;
+            int ceiling = Mathf.CeilToInt(LifeCeiling / Substep);
+
+            // Stopped ON the tear rather than run past it: the rot ends in Destroy(gameObject),
+            // which EditMode refuses outright.
+            for (int i = 0; i < ceiling && net.Phase != SnarePhase.Tearing; i++)
+            {
+                net.Advance(Substep);
+                lived += Substep;
+            }
+
+            Assert.AreEqual(SnarePhase.Tearing, net.Phase,
+                $"A peer's net was still holding after {lived:F0} s with nothing left alive to " +
+                "tell it otherwise. It holds its captives for the rest of the session.");
+
+            Assert.That(lived, Is.GreaterThan(LifeFloor),
+                $"The net gave out after {lived:F0} s. A peer must not tear on a schedule of its " +
+                "own before the authority has had its say, or the captive is free on one screen " +
+                "and limp on every other.");
+
+            Assert.That(net.HoldFraction, Is.EqualTo(1f).Within(1e-4f),
+                "A peer's net spent its own pool. Only the authority drains, so this net can only " +
+                "have torn on the life clock — which is the one thing being measured here.");
         }
     }
 }

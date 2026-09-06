@@ -539,8 +539,11 @@ namespace SpaceGame.Gameplay.Arrival
             GameObject player = arg.Resolve();
             if (player == null) return;
 
-            var netObj = player.GetComponent<NetworkObject>();
-            if (netObj == null || netObj.OwnerClientId != sender) return;
+            // The shared check, which this used to carry an inline half of: it refused a body with
+            // no NetworkObject (which VehicleStation and SnareReceiver waved through) but never
+            // asked whether that object was SPAWNED (which both of those did). Network.MayActFor
+            // takes the strict half of each, so this call site gains the spawn test.
+            if (!Network.MayActFor(player, sender)) return;
 
             Release(player);
         }

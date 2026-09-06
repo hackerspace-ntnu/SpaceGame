@@ -670,9 +670,15 @@ MonoBehaviour:
     minHopSpeed: 11
     maxHopSpeed: 16
     energyReturn: 0.9
+    boostWindowEarly: 0.12
+    boostWindowLate: 0.08
+    boostPerLink: 1.12
+    maxChainLinks: 5
+    linksLostOnMiss: 5
     contactHeight: 0.12
     compressHeight: 0.5
     rebounceLockout: 0.15
+  boostSoundId: 104
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295

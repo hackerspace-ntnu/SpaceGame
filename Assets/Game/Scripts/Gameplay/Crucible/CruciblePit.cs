@@ -9,6 +9,7 @@
 // round, re-rig, pull again — and the room turns from a test of nerve into a test of planning. That
 // is not a difficulty slider; it is a different game in the same geometry, which is why the swap is
 // worth having rather than just locking the room behind a second player.
+using SpaceGame.Core;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -25,6 +26,11 @@ namespace SpaceGame.Gameplay
 
         [Tooltip("Where a destroyed cell comes back.")]
         [SerializeField] private Transform cradle;
+
+        [Tooltip("The cell this room hands out. One is put in the cradle when the room spawns.")]
+        [SerializeField] private GameObject cellPrefab;
+
+        private CrucibleCarrier cell;
 
         private readonly NetworkVariable<bool> hazard = new(false);
 
@@ -50,6 +56,7 @@ namespace SpaceGame.Gameplay
             NetworkManager.OnClientConnectedCallback += OnRosterChanged;
             NetworkManager.OnClientDisconnectCallback += OnRosterChanged;
             Recount();
+            EnsureCell();
         }
 
         public override void OnNetworkDespawn()
@@ -80,6 +87,31 @@ namespace SpaceGame.Gameplay
         {
             if (lavaVisuals != null) lavaVisuals.SetActive(active);
             if (floorVisuals != null) floorVisuals.SetActive(!active);
+        }
+
+        /// <summary>
+        /// Put a cell in the cradle. Server only.
+        ///
+        /// <para>
+        /// The cell is deliberately not persisted — the lava eats it several times a minute — so an
+        /// unsolved room hands out a fresh one rather than restoring the last one it had.
+        /// <see cref="CrucibleCarrier.Recradle"/> reuses that same body from then on, so this
+        /// runs once per room.
+        /// </para>
+        /// </summary>
+        private void EnsureCell()
+        {
+            if (cell != null) return;
+
+            if (cellPrefab == null || cradle == null)
+            {
+                Debug.LogError("[Crucible] No cell prefab or cradle wired — the room has nothing to " +
+                               "carry and cannot be finished.", this);
+                return;
+            }
+
+            GameObject spawned = GameServices.World.Spawn(cellPrefab, cradle.position, cradle.rotation);
+            cell = spawned != null ? spawned.GetComponent<CrucibleCarrier>() : null;
         }
 
         private void OnTriggerEnter(Collider other)

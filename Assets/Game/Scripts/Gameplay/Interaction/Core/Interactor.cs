@@ -93,7 +93,6 @@ namespace SpaceGame.Gameplay
             PlayerInputManager input = GetComponent<PlayerController>().Input;
             input.OnInteractPressed += Interact;
             input.OnUsePressed += SecondaryInteract;
-            input.OnRetrievePressed += RetrieveTarget;
         }
 
         /// <summary>
@@ -145,14 +144,57 @@ namespace SpaceGame.Gameplay
             HoveredPoint = hitInfo.point;
         }
 
+        /// <summary>
+        /// The interact button, on whatever the crosshair is on. It has two meanings and they do
+        /// not overlap: <b>operate</b> the thing, or — when the thing has no verb to operate and
+        /// can be taken back — <b>pick it up</b>.
+        ///
+        /// <para>
+        /// Picking up used to be a key of its own (Q), which put the two halves of one verb on two
+        /// different buttons: loose salvage came up on right mouse and a lantern the player had put
+        /// down came up on Q. Worse, Q is also the left gauntlet's trigger, so the pocket gesture
+        /// fired a worn device at the same time. One button, and which of its two meanings applies
+        /// is decided by the target rather than by the player remembering — see
+        /// <see cref="PressPicksUp"/>.
+        /// </para>
+        /// </summary>
         private void Interact()
         {
             if (!DoInteractionTest(out IInteractable interactable)) return;
 
             if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
-            if (!IsAvailable(interactable)) return;
-            interactable.Interact(this);
 
+            bool available = IsAvailable(interactable);
+            if (available)
+            {
+                interactable.Interact(this);
+                return;
+            }
+
+            if (PressPicksUp(interactable, available) && interactable is IRetrievable retrievable)
+                retrievable.Retrieve(this);
+        }
+
+        /// <summary>
+        /// Whether the interact press on this target means "take it back" rather than "use it".
+        ///
+        /// <para>
+        /// Asked in exactly two places — here, and by the crosshair through
+        /// <see cref="IsActionable"/> — so the prompt can never offer a pick-up the press then
+        /// refuses, or light up for a target the press does nothing to.
+        /// </para>
+        /// <para>
+        /// The primary verb wins when there is one. A placeable that <i>does</i> something keeps
+        /// the interact button for doing it and offers its pick-up on LMB
+        /// (<see cref="ISecondaryInteractable"/>) instead, which is the same split placing already
+        /// uses: LMB puts a thing down, this button takes it back.
+        /// </para>
+        /// </summary>
+        /// <param name="canUse">Whether the target's own primary verb is available right now.</param>
+        public static bool PressPicksUp(IInteractable interactable, bool canUse)
+        {
+            if (canUse) return false;
+            return interactable is IRetrievable retrievable && retrievable.CanRetrieve();
         }
 
         /// <summary>
@@ -166,14 +208,15 @@ namespace SpaceGame.Gameplay
         /// </summary>
         /// <summary>
         /// Whether the player can do ANYTHING here, which is what the crosshair and the prompt
-        /// answer to. Wider than <see cref="IsAvailable"/> on purpose: a placeable has no E verb at
-        /// all, only Q, and gating the hover on <c>CanInteract</c> alone left it with no prompt and
-        /// an unlit crosshair — the player had no way to learn it could be picked up.
+        /// answer to. Wider than <see cref="IsAvailable"/> on purpose: a placeable has no verb to
+        /// operate at all, only a pick-up, and gating the hover on <c>CanInteract</c> alone left it
+        /// with no prompt and an unlit crosshair — the player had no way to learn it could be
+        /// picked up.
         /// </summary>
         private bool IsActionable(IInteractable interactable)
         {
-            if (IsAvailable(interactable)) return true;
-            return interactable is IRetrievable retrievable && retrievable.CanRetrieve();
+            bool available = IsAvailable(interactable);
+            return available || PressPicksUp(interactable, available);
         }
 
         private bool IsAvailable(IInteractable interactable)
@@ -198,21 +241,6 @@ namespace SpaceGame.Gameplay
                 return;
             if (!secondary.CanSecondaryInteract()) return;
             secondary.SecondaryInteract(this);
-        }
-
-        /// <summary>
-        /// Pick up, on whatever the crosshair is on. Only reaches things that opt in by
-        /// implementing <see cref="IRetrievable"/>, so Q over an ordinary interactable does
-        /// nothing rather than something surprising.
-        /// </summary>
-        private void RetrieveTarget()
-        {
-            if (!DoInteractionTest(out IInteractable interactable)) return;
-            if (interactable is not IRetrievable retrievable) return;
-
-            if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
-            if (!retrievable.CanRetrieve()) return;
-            retrievable.Retrieve(this);
         }
 
         private bool DoInteractionTest(out IInteractable interactable)

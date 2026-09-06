@@ -14,8 +14,12 @@ symptoms:
   - "a portal stays open forever with no partner after someone traverses"
   - "half the player is uncoloured while standing in the aperture"
   - "a rider arrives twice the aperture separation past the exit"
+  - "the portal's glowing outline is drawn well clear of the hole it surrounds"
+  - "the aperture's edge and its halo wobble out of phase with one another"
+  - "the paint sprayer cannot reach the far wall of an ordinary room"
+  - "paint lands somewhere the stream of droplets was never seen to go"
 reads_with: [SceneTransitions, Artifacts, Combat]
-updated: 2026-09-01
+updated: 2026-09-06
 ---
 
 # Portals
@@ -29,6 +33,7 @@ Sprayable one-way-pair apertures: a plane you walk through, replicated as messag
 - A portal is a **door, not a window**. The old `PortalRenderer` (second camera → RenderTexture) is deleted: the surface is a stylised swirl ([`PortalSurface.shader`](Assets/Game/Art/Shaders/Portal/PortalSurface.shader)), so nothing here has to agree with a rendered view — `TransferFrom` answers to physics alone.
 - **A portal is not a `NetworkObject`.** Placement replicates as a message and every machine builds its own copy — same pattern as the grappling rope. That is why portals work offline, on a host, and on a peer with no prefab registration.
 - Coordinate convention: the normal is **local +Z / `transform.forward`**, pointing *out of the wall*. The back (−Z) is masonry. Every crossing gate is front-to-back only. **The Portal root must stay at unit scale** — `TransferFrom` composes `localToWorldMatrix` with a partner's `worldToLocalMatrix`, so root scale would resize the traveller.
+- **The two quads are sized in metres, and each material is told half of its own quad.** `_Extents` is what both shaders rebuild a metric position from, so a material handed anything but half the mesh it is drawn on draws the whole outline at the wrong scale. `SurfaceMargin` (0.14 m) covers the crawling edge; the halo's is `SurfaceMargin + ReferenceScale * RimReach`, because `PortalRim` measures its ring in stroke radii and a quad scaled by a fixed *ratio* of the box had metres to spare on a swept portal and none on a small one.
 - The opening is a **distance field**, not a rectangle: `PortalStencil` is an inscribed ellipse until paint lands, then the smooth union of up to `MaxDabs = 24` circles. The shader evaluates the identical field ([`PortalStencil.hlsl`](Assets/Game/Art/Shaders/Portal/PortalStencil.hlsl), `Smoothing = 0.35` must match `PORTAL_SMOOTH`). A lobe you can see is a lobe you can walk through.
 - The door is **swept explicitly once per frame** from `LateUpdate`, never via trigger callbacks.
 - **Navigation is left ignorant on purpose.** Nothing paths through a portal; things are *carried* through when they touch one.
@@ -44,7 +49,7 @@ Sprayable one-way-pair apertures: a plane you walk through, replicated as messag
 | `PortalStencil` / `PortalDab` | [PortalStencil.cs](Assets/Game/Scripts/Portals/PortalStencil.cs) | Pure C#, no MonoBehaviour. `Contains`, `Fits`, `Bounds`, `ClampInside`, `WriteShaderData`. Testable without a scene. |
 | `PortalPlacement` / `NonPortalable` | [PortalPlacement.cs](Assets/Game/Scripts/Portals/PortalPlacement.cs) | Static `Fit(hit, size, viewForward, mask, …) → Result`. Shooter-only; the result travels verbatim. |
 | `PortalGunItem` | [PortalGunItem.cs](Assets/Game/Scripts/Portals/PortalGunItem.cs) | A `ToolItem` on the ordinary Use/Present + hold-stream split. Owner authority. |
-| `PortalJet` | [PortalJet.cs](Assets/Game/Scripts/Portals/PortalJet.cs) | Static ballistic `Sample` / `Trace` (20 chords). Particles must match its speed + gravity. |
+| `PortalJet` | [PortalJet.cs](Assets/Game/Scripts/Portals/PortalJet.cs) | Static ballistic `Sample` / `Trace` (20 chords). Particles must match its speed + gravity. 24 m/s: ~32 m lobbed, ~10 m level. |
 | `PortalSplat` | [PortalSplat.cs](Assets/Game/Scripts/Portals/PortalSplat.cs) | One quad of exhaust paint, ~0.5 s. Seed is `SeedFor(point)` (cm-quantised hash), so every machine draws the same splash. |
 
 ## Flows
@@ -72,6 +77,7 @@ N/A for the gun's apertures — a portal's lifetime is 20 s and nothing writes o
 
 ## Gotchas
 
+- **The gun is a bottle, not a barrel, and that broke its hold size.** `ItemGrip.holdSize` measures an item's LONGEST axis; an `ItemScaleLadder` bracket is a *reach*. On the extinguisher chassis those are not the same edge — its longest axis is its own height and it is gripped at the top of it — so the Gun bracket's 1.25 m hung a 1.25 m bottle out of the fist to below the knee and out of the first-person view (backlog GEAR-02). It is on `BigTool` at **0.73** and `HoldStyle.OneHanded` since 2026-09-06; `PortalContentBuilder.HoldSize` mirrors the ladder and both must move together. `packSize` (0.54) is authored, so the mat, the gear wall and the sand never saw any of it. Details in [Inventory.md](Inventory.md).
 - **Trigger callbacks never worked here.** The volume is a `BoxCollider` on a *child*; Unity delivers trigger messages only to the collider's own GameObject and its attached Rigidbody's, so traversal silently did nothing in every scene, forever. `travellerVolume` is authoring/gizmo only and is disabled in play mode. Never reintroduce `OnTriggerEnter`.
 - **`Physics.IgnoreCollision` does nothing to raycasts.** `SetWallIgnored` must *also* call `IGroundProbeExclusions.ExcludeFromGroundProbes`, or legged and probing movers read the far side as a cliff and stop at the rim.
 - **Composite entities are one traveller.** `PortalTraveller.Carrier` walks up from `transform.parent` (never `GetComponentInParent` on itself — it never terminates) and returns the outermost. A rider that traverses under its own name *and* is carried arrives twice the aperture separation past the exit. Non-parented carriers check `traveller.InPortal` instead — see [`WalkerPlatformCarrier`](Assets/Game/Scripts/Vehicles/Systems/WalkerPlatformCarrier.cs).
@@ -79,6 +85,9 @@ N/A for the gun's apertures — a portal's lifetime is 20 s and nothing writes o
 - **`CarryMomentum` before the move, not after.** `PlayerMovement` lerps horizontal velocity 30 % toward a walk every FixedUpdate; without the flag a 40 m/s exit is confiscated in ~0.2 s.
 - **A ceiling portal composes a 180° roll.** Hand it to a walking capsule and the player lies down in mid-air. `PlayerPortalTraveller` gives the body yaw only and sends pitch through `PlayerLook.LookAlong` (setting the camera transform is overwritten from the stored float next frame).
 - **`Portal.Crossing` must run *before* a projectile's collision cast**, and only once per frame — two facing apertures would otherwise recurse without bound.
+- **`PortalRim`'s `_Radius` is a GAP measured in stroke radii, not a normalised fraction.** The property changed meaning when the shaders went metric and `PortalRim_Primary.mat` kept the 0.62 it was born with — so the halo was drawn 0.62 x the dab radius *clear* of the opening: two thirds of a metre of bare wall between the hole and its own outline, which is what "the portal and the outline do not line up" turned out to be. `PortalContentBuilder` writes `_Radius`, `_Thickness` and `_Crawl` on every run for exactly that reason; a `.mat` is not a safe place for a number whose meaning can change.
+- **The crawling edge has one definition, `PortalStencilCrawl` in [PortalStencil.hlsl](Assets/Game/Art/Shaders/Portal/PortalStencil.hlsl).** Surface and halo both call it with their own `_Crawl`, which the builder writes from one constant. The halo used to roll its own noise at its own frequency, so the ring shimmered around an outline the hole did not have.
+- **The jet is measured against `Physics.gravity`, which is 18 in this project, not 9.81.** Every reach figure in the sources used to be an Earth calculation: "about 17 m lobbed" was a stream that actually made 9, which is why the sprayer could not paint the far side of a room. Recompute, never copy.
 - **Never move a portal's transform laterally to follow paint.** `ConformToSurface` moves along the normal only; lateral origin is what `TransferFrom` is built on, and shifting it drags the exit out from under whoever is mid-crossing.
 - `ConformToSurface` and `GatherHostSurfaces` must reject `attachedRigidbody != null` and `CharacterController` — otherwise a body standing in front of the paint reads as a bulge and shoves the aperture metres off the wall.
 - **`Fits` is checked before tracking, not before teleporting.** Being tracked already disables the wall, so an oversized creature would otherwise walk into the masonry. Refusal is the whole remedy.
@@ -97,4 +106,5 @@ N/A for the gun's apertures — a portal's lifetime is 20 s and nothing writes o
 3. **A new thing that can go through:** nothing to do — `PortalTraveller.For` adopts anything with a `Rigidbody`, `CharacterController` or `NavMeshAgent`. If its colliders are an unhandled type, extend `ShapeOf`; an unmeasured collider makes the object read as *smaller* than it is and squeeze through holes it should not.
 4. **Bring extra world-space state through:** implement `ITeleportAware` (see [SceneTransitions.md](SceneTransitions.md)), not a `PortalTraveller` subclass. Subclass only to change the *move itself*.
 5. **A new transform-driven projectile:** call `Portal.Crossing` before your collision cast, trace from the segment it returns, and cross at most once per frame.
-6. **Tune the shape:** change `PortalStencil` constants **and** the matching constants in `PortalStencil.hlsl` in the same commit — the picture and the physics read one field, and a disagreement is the failure the class is shaped to prevent.
+6. **Retune the hose:** `jetSpeed` / `jetGravity` / `jetFlightTime` live on the gun prefab **and** in `PortalContentBuilder`, which writes them to the prefab *and* to the jet's ParticleSystem — change the constants and re-run *SpaceGame > Portals > Build Portal Gun Content*, never the prefab alone. `jetFlightTime` must outlast a full 45-degree lob (`2 v sin45 / g`) or the arc is abandoned mid-air. `PortalGunWiringTests.TheDropletsFlyTheArcThePaintIsTracedAlong` is the guard.
+7. **Tune the shape:** change `PortalStencil` constants **and** the matching constants in `PortalStencil.hlsl` in the same commit — the picture and the physics read one field, and a disagreement is the failure the class is shaped to prevent.

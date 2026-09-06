@@ -15,6 +15,7 @@ using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEditor;
 using UnityEngine;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
 
@@ -34,10 +35,13 @@ namespace SpaceGame.EditorTools
         // Rails sit at RailY on the rim's inner face. Anything taller than that must be threaded;
         // anything shorter is a shortcut. That is the whole difficulty dial.
 
-        private const float PitLength = 24f;      // along X
-        private const float PitWidth = 16f;       // along Z
-        private const float RimHeight = 1.2f;
-        private const float LavaY = -9f;
+        // internal, not private: CruciblePlacement builds the ground the room stands on and has to
+        // agree with these to the centimetre. One copy of the numbers, not two.
+        internal const float PitLength = 24f;      // along X
+        internal const float PitWidth = 16f;       // along Z
+        internal const float RimHeight = 1.2f;
+        internal const float RimThickness = 1.2f;
+        internal const float LavaY = -9f;
         private const float RailY = -0.4f;
         private const float WallTopY = 0.6f;      // above RailY: cannot be cleared
         private const float LowWallTopY = -1.4f;  // below RailY: can be cleared
@@ -82,10 +86,10 @@ namespace SpaceGame.EditorTools
             root.AddComponent<LeashAttachable>();
             root.AddComponent<CrucibleCarrier>();
 
-            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, CellPath);
+            PrefabUtility.SaveAsPrefabAsset(root, CellPath);
             Object.DestroyImmediate(root);
 
-            return saved;
+            return StampNetworkHash(CellPath);
         }
 
         /// <summary>
@@ -144,11 +148,13 @@ namespace SpaceGame.EditorTools
 
             // The kill volume sits just above the surface so the cell is caught as it arrives
             // rather than after it has sunk through.
-            var hazard = new GameObject("HazardTrigger");
-            hazard.transform.SetParent(root.transform, false);
-            hazard.transform.localPosition = new Vector3(0f, LavaY + 0.8f, 0f);
-            var hazardBox = hazard.AddComponent<BoxCollider>();
+            //
+            // On the ROOT, offset by its centre, rather than on a child of its own: Unity delivers
+            // OnTriggerEnter to the collider's own GameObject, and CruciblePit — which handles it —
+            // is on the root. A child trigger here is a lava pit that silently eats nothing.
+            var hazardBox = root.AddComponent<BoxCollider>();
             hazardBox.isTrigger = true;
+            hazardBox.center = new Vector3(0f, LavaY + 0.8f, 0f);
             hazardBox.size = new Vector3(PitLength, 1.4f, PitWidth);
 
             var cradle = new GameObject("Cradle");
@@ -166,29 +172,38 @@ namespace SpaceGame.EditorTools
             Wire(pit, "lavaVisuals", lava);
             Wire(pit, "floorVisuals", floor);
             Wire(pit, "cradle", cradle.transform);
+            Wire(pit, "cellPrefab", cellPrefab);
             Wire(room, "vaultDoor", vault);
             Wire(socket, "room", room);
 
             root.AddComponent<NetworkObject>();
 
+            // CrucibleRoom is an ISaveable, and an ISaveable with no SaveableEntity beside it is
+            // never visited: SaveableEntity.Savers() is what walks the components.
+            root.AddComponent<SaveableEntity>();
+
             Debug.Log($"[Crucible] {rails.Count} rails, wired both ways.");
 
             PrefabUtility.SaveAsPrefabAsset(root, RoomPath);
             Object.DestroyImmediate(root);
+
+            StampNetworkHash(RoomPath);
         }
 
         private static void BuildRim(Transform parent)
         {
             float halfL = PitLength * 0.5f, halfW = PitWidth * 0.5f;
 
-            Slab(parent, "Rim_North", new Vector3(0f, RimHeight * -0.5f, halfW + 0.6f),
-                 new Vector3(PitLength + 2.4f, RimHeight, 1.2f), Color.grey);
-            Slab(parent, "Rim_South", new Vector3(0f, RimHeight * -0.5f, -halfW - 0.6f),
-                 new Vector3(PitLength + 2.4f, RimHeight, 1.2f), Color.grey);
-            Slab(parent, "Rim_East", new Vector3(halfL + 0.6f, RimHeight * -0.5f, 0f),
-                 new Vector3(1.2f, RimHeight, PitWidth), Color.grey);
-            Slab(parent, "Rim_West", new Vector3(-halfL - 0.6f, RimHeight * -0.5f, 0f),
-                 new Vector3(1.2f, RimHeight, PitWidth), Color.grey);
+            float half = RimThickness * 0.5f;
+
+            Slab(parent, "Rim_North", new Vector3(0f, RimHeight * -0.5f, halfW + half),
+                 new Vector3(PitLength + RimThickness * 2f, RimHeight, RimThickness), Color.grey);
+            Slab(parent, "Rim_South", new Vector3(0f, RimHeight * -0.5f, -halfW - half),
+                 new Vector3(PitLength + RimThickness * 2f, RimHeight, RimThickness), Color.grey);
+            Slab(parent, "Rim_East", new Vector3(halfL + half, RimHeight * -0.5f, 0f),
+                 new Vector3(RimThickness, RimHeight, PitWidth), Color.grey);
+            Slab(parent, "Rim_West", new Vector3(-halfL - half, RimHeight * -0.5f, 0f),
+                 new Vector3(RimThickness, RimHeight, PitWidth), Color.grey);
         }
 
         /// <summary>
@@ -324,6 +339,32 @@ namespace SpaceGame.EditorTools
                                     new Vector3(2.5f, 3f, 0.3f), new Color(0.5f, 0.42f, 0.2f));
 
             return vault;
+        }
+
+        /// <summary>
+        /// Re-save a freshly written prefab so its <c>GlobalObjectIdHash</c> reaches disk.
+        ///
+        /// <para>
+        /// A script-built prefab ships hash <c>0</c>: <c>NetworkObject.OnValidate</c> derives the
+        /// hash from the asset's <c>GlobalObjectId</c>, and while the object is still the scene copy
+        /// being saved there is no asset to resolve. The in-memory value reads correctly and lies.
+        /// Hash 0 is not a cosmetic defect — NGO keys its override table on it, the first 0 wins,
+        /// and every other 0-hash prefab silently fails to register.
+        /// </para>
+        /// </summary>
+        private static GameObject StampNetworkHash(string path)
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var netObj = asset != null ? asset.GetComponent<NetworkObject>() : null;
+
+            if (netObj == null)
+                throw new System.InvalidOperationException($"No NetworkObject on {path}");
+
+            EditorUtility.SetDirty(netObj);
+            PrefabUtility.SavePrefabAsset(asset);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path);
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────

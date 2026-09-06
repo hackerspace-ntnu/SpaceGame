@@ -1,7 +1,7 @@
 ---
 system: Placeables
 layer: items
-summary: "Items put into the world under a placement rule, and picked back up with Q"
+summary: "Items put into the world under a placement rule with LMB, and picked back up with RMB"
 paths:
   - Assets/Game/Scripts/Items/Placeables
   - Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs
@@ -10,9 +10,11 @@ symptoms:
   - "placing an item did not consume it, or consumed it without placing anything"
   - "picking a placed thing up gave back a different item, or nothing"
   - "a placed object is gone after a save and reload"
-  - "pressing Q over a placed object does nothing"
+  - "right-clicking a placed object does nothing"
+  - "the lantern needs a different button to pick up than every other loose item"
+  - "pressing Q over a placed object pockets it and fires the left gauntlet at the same time"
 reads_with: [Artifacts, InteractionSystem, Backpack, Saddles]
-updated: 2026-09-05
+updated: 2026-09-06
 ---
 
 # Placeables
@@ -27,8 +29,8 @@ at no point should a placeable exist in the world *and* in an inventory.
 **Scope:** [`PlaceableItem`](Assets/Game/Scripts/Items/Placeables/PlaceableItem.cs),
 [`PlacedObject`](Assets/Game/Scripts/Items/Placeables/PlacedObject.cs),
 [`IRetrievable`](Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs).
-**Related:** [Artifacts.md](Artifacts.md) (the held item), [InteractionSystem.md](InteractionSystem.md) (how Q
-finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
+**Related:** [Artifacts.md](Artifacts.md) (the held item), [InteractionSystem.md](InteractionSystem.md) (how the
+press finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 
 ## Model
 
@@ -36,8 +38,8 @@ finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 | --- | --- |
 | `PlaceableItem` | The thing in your hand, and the **loop**: aim → validate → place → spend. Nothing else. |
 | `PlacementRule` | What placing *means* for this item: its **criteria** and its **logic**. On the item's prefab. |
-| `PlacedObject` | A thing on the ground. Answers **Q** and returns the item. |
-| `IRetrievable` | "This can be taken back", bound to Q the way `ISecondaryInteractable` is bound to LMB. |
+| `PlacedObject` | A thing on the ground. Answers **RMB** and returns the item. |
+| `IRetrievable` | "This can be taken back", reached by the interact press when there is no primary verb to spend it on. |
 
 **Rules that exist:**
 
@@ -60,9 +62,15 @@ finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
   a pair, so the placed half already knows what it is — nothing about that has to survive the wire,
   a save, or a client joining halfway through. Binding it at spawn would mean replicating the asset
   id and re-applying it on every load, for a fact that never changes.
-- **Q, not E, undoes a placement.** A placeable that *does* something keeps E for doing it: a
-  placed lamp switches on with E and is pocketed with Q. One key for both would make the player
-  guess which way the next press goes.
+- **LMB places, RMB takes back — the same two buttons on every loose thing in the game.** Right
+  mouse is what picks up salvage (`PickupableItem` is a plain `IInteractable`), so it is what picks
+  up a lantern the player put down; left mouse is what put it there. Until 2026-09-06 retrieval was
+  its own key, Q, which meant the player had to know *what kind of object* they were looking at
+  before they knew which button to press — and Q is also the left gauntlet's trigger, so pocketing
+  a lamp fired a worn device with it (`GDC-L1-UX-0004`, `GDC-L1-UX-0005`). A placeable that *does*
+  something now puts that verb on **LMB** (`ISecondaryInteractable`), not on the interact button:
+  the primary verb wins the press (`Interactor.PressPicksUp`), so taking it back would cost the
+  pick-up entirely.
 
 ## Flows
 
@@ -72,15 +80,16 @@ finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 `PlacementAim`, asks **again** because the first answer came from a machine that decides nothing,
 calls `rule.Place`, and calls `Deplete()` only on a true.
 
-**Retrieving.** Q → `Interactor.RetrieveTarget` resolves the crosshair through the ordinary
-`IInteractable` path and casts to `IRetrievable`, so retrieval inherits line of sight and reach for
-free. `PlacedObject.Retrieve` sends `NetMsg.RetrieveRequest` (102) to the server, which adds the
-item to the asker's inventory and **then** despawns.
+**Retrieving.** RMB → `Interactor.Interact` resolves the crosshair through the ordinary
+`IInteractable` path, finds no primary verb available, and asks `Interactor.PressPicksUp` — which
+casts to `IRetrievable` — so retrieval inherits line of sight and reach for free.
+`PlacedObject.Retrieve` sends `NetMsg.RetrieveRequest` (102) to the server, which adds the item to
+the asker's inventory and **then** despawns.
 
 ## Multiplayer
 
 One id, on the placed object's own relay, gated on `Network.Owns`. Retrieval must be
-server-authoritative: two players pressing Q on the same crate on the same frame must not produce
+server-authoritative: two players clicking the same crate on the same frame must not produce
 two crates. There is no reply message — the despawn is what every other machine sees.
 
 ## Persistence
@@ -109,12 +118,17 @@ its transform: what it returns is on the prefab, so `TransformSaveable` is the w
   to null on every real player and the retrieval silently does nothing at all. And the Interactor
   sits on a child of the player, so it is `GetComponentInParent`, never `InChildren`.
   `PickupableItem` is the pattern to copy.
-- **A verb with no E has no crosshair unless you widen the hover test.** `Interactor` lit the
-  crosshair from `CanInteract()` alone, so a placeable — which deliberately has no primary verb —
-  showed no prompt and no highlight, and the player had no way to learn Q would work.
-  `IsActionable` now also asks `IRetrievable.CanRetrieve()`.
+- **A thing with only a pick-up has no crosshair unless you widen the hover test.** `Interactor` lit
+  the crosshair from `CanInteract()` alone, so a placeable — which deliberately has no primary verb
+  — showed no prompt and no highlight, and the player had no way to learn it could be picked up.
+  `IsActionable` asks `PressPicksUp` as well, which is the *same* question the press asks, so the
+  prompt can never offer a pick-up the click then refuses.
 - **`IRetrievable` alone is never found.** `Interactor.ResolveAlongRay` walks `IInteractable` only.
-  Implement both; `PlacedObject` already does, with `CanInteract` false so E stays free.
+  Implement both; `PlacedObject` already does, with `CanInteract` false — which is now what *earns*
+  it the interact press rather than what forfeits it.
+- **Overriding `PlacedObject.CanInteract` silently costs the pick-up.** The primary verb wins the
+  button, so a subclass that gives itself one leaves the player nothing to press to get the item
+  back. Put the operating verb on `ISecondaryInteractable` (LMB) instead.
 - **A trigger collider only answers for an interactable on its own GameObject** and never inherits
   one from a parent — the same rule that governs every other interactable.
 - **Every builder run clears the prefabId again.** `SaveAsPrefabAsset` writes a fresh asset, so
@@ -142,5 +156,6 @@ one (`PlacedObject` + collider + `NetworkObject` + `SaveableEntity` + `Transform
 criteria, `Place` returns whether the world changed, and no other file needs to know it exists.
 `SaddlePlacement` is 60 lines and is the worked example.
 
-**A placeable that does something** — subclass `PlacedObject`, override `CanInteract`/`Interact`
-for the E verb. Q keeps working underneath.
+**A placeable that does something** — subclass `PlacedObject` and implement
+`ISecondaryInteractable` for the operating verb, which puts it on LMB. Do **not** override
+`CanInteract`/`Interact`: the interact press is the pick-up, and a primary verb takes it away.

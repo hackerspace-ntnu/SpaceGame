@@ -385,6 +385,31 @@ namespace SpaceGame.Items
             go != null && ((A.Anchor != null && A.Anchor.gameObject == go) ||
                            (B.Anchor != null && B.Anchor.gameObject == go));
 
+        /// <summary>
+        /// Whether this rope is knotted to <paramref name="who"/> — at either end, and to any part
+        /// of them rather than only to their root.
+        ///
+        /// <para>
+        /// A rope is one connected thing, so the question "am I on this rope" has to be asked of
+        /// BOTH ends. Asking only the end nearest the click would let a captive walk to the far
+        /// knot and untie themselves from there, which is the same escape by a longer route.
+        /// </para>
+        /// <para>
+        /// <c>IsChildOf</c> rather than <see cref="ReferencesObject"/> because a player's knot does
+        /// not land on their root: <see cref="LeashEnd.TieTo"/> anchors to the Rigidbody it finds,
+        /// which on a downed player is the ragdoll bone the rope was thrown at. <c>IsChildOf</c> is
+        /// true of the transform itself, so a hand end anchored on the root still answers yes.
+        /// </para>
+        /// </summary>
+        public bool Restrains(GameObject who)
+        {
+            if (who == null) return false;
+
+            Transform them = who.transform;
+            return (A.Anchor != null && A.Anchor.IsChildOf(them)) ||
+                   (B.Anchor != null && B.Anchor.IsChildOf(them));
+        }
+
         // ── Constraint ─────────────────────────────────────────────────────────
 
         /// <summary>

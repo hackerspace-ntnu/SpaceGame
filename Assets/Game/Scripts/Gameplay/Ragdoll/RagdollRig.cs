@@ -12,9 +12,17 @@ namespace SpaceGame.Gameplay.Ragdoll
     /// <para>
     /// Rig-agnostic on purpose. The project ships ten skeletons — a Mixamo humanoid, an ostrich, a
     /// six-legged hexapod, a rat, a golem, several robots — and no authored ragdolls at all. This
-    /// walks the skinned meshes, asks <see cref="RagdollSkeleton"/> which bones carry enough of the
-    /// mesh to be worth simulating, and wires capsules and <c>CharacterJoint</c>s through what
-    /// survives. A rig re-exported tomorrow with different bone names still works.
+    /// finds the model's rig, asks <see cref="RagdollSkeleton"/> which of its bones carry enough of
+    /// the creature to be worth simulating, and wires shapes and <c>CharacterJoint</c>s down the
+    /// hierarchy the model was rigged with. A rig re-exported tomorrow with different bone names
+    /// still works.
+    /// </para>
+    ///
+    /// <para>
+    /// Bodies go on the BONES, whichever of the project's two kinds of model this is — a skinned
+    /// character binding one surface to a skeleton, or a hard-surface creature with rigid pieces
+    /// parented onto one. Meshes are leaves and leaves cannot form a chain, so a ragdoll built on
+    /// them has no articulation to follow and comes apart; see <see cref="Build"/>.
     /// </para>
     ///
     /// <para>
@@ -45,13 +53,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         [SerializeField] private int maxBones = 20;
 
         [Tooltip("Fewest bones that count as a body.\n\n" +
-                 "Below this the skinned measure is treated as having FAILED and the rig is rebuilt " +
-                 "from its rigid mesh parts instead. Hard-surface models are why: a robot is often " +
-                 "rigid pieces parented to bones plus one or two small skinned bits, so the vertex " +
-                 "weight lands almost entirely on a couple of bones and the skinned measure " +
-                 "confidently returns a two-bone 'skeleton' for a fifty-bone rig.\n\n" +
-                 "Note this cannot rescue a model that simply has little geometry — see the " +
-                 "remarks on the fallback in Build.")]
+                 "A body that comes out of the build with fewer than this folds at almost no joints, " +
+                 "so it is worth a warning: from the prefab, a two-bone ragdoll and a good one look " +
+                 "exactly alike. Usually an asset limit rather than a wiring mistake — PatrolRobot 1 " +
+                 "genuinely has four mesh parts and near-rigid skinning, and no threshold here will " +
+                 "change that.")]
         [SerializeField] private int minimumUsefulBones = 4;
 
         [Header("Shape")]
@@ -149,12 +155,46 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "(GDC-L1-PERF-0004). One blast into a crowd is what this is sized against.")]
         [SerializeField] private int maxConcurrentRagdolls = 12;
 
+        /// <summary>
+        /// One collider a bone's body owns, and what it was before the ragdoll took it.
+        ///
+        /// <para>
+        /// A bone does not always get to bring its own collider. Adding a Rigidbody to a transform
+        /// makes PhysX adopt every collider beneath it, so a model with an authored collision proxy
+        /// — the crab carries twenty-two hand-placed <c>COL_*</c> boxes — hands its whole proxy to
+        /// the ragdoll whether or not anyone asked. Those boxes overlap each other by design, the
+        /// way any collision hull does, and left out of the self-collision filter they are the
+        /// contacts the solver fights every tick and can never win. They have to be known about, so
+        /// they are recorded here rather than discovered.
+        /// </para>
+        ///
+        /// <para>
+        /// <see cref="WasEnabled"/> is what lets recovery be exact. An authored proxy is normally ON
+        /// — it is how the creature blocks and is hit — and a ragdoll that switched everything off
+        /// on the way out would take that with it. Only what the rig <see cref="Created"/> is the
+        /// rig's to destroy, for the same reason.
+        /// </para>
+        /// </summary>
+        private readonly struct OwnedCollider
+        {
+            public readonly Collider Collider;
+            public readonly bool WasEnabled;
+            public readonly bool Created;
+
+            public OwnedCollider(Collider collider, bool created)
+            {
+                Collider = collider;
+                Created = created;
+                WasEnabled = collider != null && collider.enabled;
+            }
+        }
+
         /// <summary>One simulated bone, and everything hung off it.</summary>
         private sealed class Bone
         {
             public Transform Transform;
             public Rigidbody Body;
-            public Collider Collider;
+            public OwnedCollider[] Colliders;
 
             /// <summary>Where this bone was pointing when the body went still — the blend's start.</summary>
             public Quaternion RecoverFrom;
@@ -382,7 +422,9 @@ namespace SpaceGame.Gameplay.Ragdoll
 
                 foreach (Bone bone in bones)
                 {
-                    bone.Collider.enabled = true;
+                    foreach (OwnedCollider owned in bone.Colliders)
+                        if (owned.Collider != null) owned.Collider.enabled = true;
+
                     bone.Body.detectCollisions = true;
 
                     // The hips are the one bone a watching machine does not simulate: they are
@@ -450,19 +492,30 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </para>
         ///
         /// <para>
-        /// Quadratic in the bone count and that is fine: the cap is <see cref="maxBones"/>, so the
-        /// worst case is a couple of hundred calls on the frame a body goes down, once.
+        /// Across EVERY collider each body owns, not one per bone. A bone that inherited a hand-authored
+        /// collision proxy owns several, and an authored hull overlaps itself the way every hull does —
+        /// the crab's twenty-two <c>COL_*</c> boxes sat outside a filter that only knew about one shape
+        /// per bone, and were twenty-two contacts the solver fought every tick and could never win. They
+        /// were invisible to the diagnostic for the same reason, so the audit called the body clean while
+        /// it tore itself apart.
+        /// </para>
+        ///
+        /// <para>
+        /// Quadratic in the collider count and that is fine: the cap is <see cref="maxBones"/> bodies
+        /// with a handful of shapes each, so the worst case is a few hundred calls on the frame a body
+        /// goes down, once.
         /// </para>
         /// </summary>
         private void ApplySelfCollision()
         {
-            for (int i = 0; i < bones.Count; i++)
-            for (int j = i + 1; j < bones.Count; j++)
-            {
-                Collider a = bones[i].Collider;
-                Collider b = bones[j].Collider;
-                if (a != null && b != null) Physics.IgnoreCollision(a, b, !selfCollision);
-            }
+            var all = new List<Collider>();
+            foreach (Bone bone in bones)
+                foreach (OwnedCollider owned in bone.Colliders)
+                    if (owned.Collider != null) all.Add(owned.Collider);
+
+            for (int i = 0; i < all.Count; i++)
+            for (int j = i + 1; j < all.Count; j++)
+                Physics.IgnoreCollision(all[i], all[j], !selfCollision);
         }
 
         // ── Standing back up ──────────────────────────────────────────────────
@@ -494,8 +547,15 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 bone.RecoverFrom = bone.Transform.localRotation;
                 bone.Body.isKinematic = true;
-                bone.Body.detectCollisions = false;
-                bone.Collider.enabled = false;
+
+                // Each collider back to what it was, rather than the body's detectCollisions off
+                // wholesale. A bone that inherited an authored proxy is holding the creature's own
+                // collision — how it blocks, how it is shot — and switching that off with the
+                // ragdoll would leave a creature that got up and could no longer be touched.
+                // Everything this rig CREATED was born disabled and goes back to disabled, so a
+                // purely skinned body is left exactly as it was before.
+                foreach (OwnedCollider owned in bone.Colliders)
+                    if (owned.Collider != null) owned.Collider.enabled = owned.WasEnabled;
             }
 
             PlaceRootUnderHips();
@@ -539,7 +599,17 @@ namespace SpaceGame.Gameplay.Ragdoll
 
             foreach (Bone bone in bones)
             {
-                if (bone.Collider != null) Destroy(bone.Collider);
+                // Only what this rig made. An authored collider was here before the ragdoll and has
+                // to still be here after it — destroying one would silently delete a piece of the
+                // creature's collision the first time the budget evicted its corpse.
+                foreach (OwnedCollider owned in bone.Colliders)
+                {
+                    if (owned.Collider == null) continue;
+
+                    if (owned.Created) Destroy(owned.Collider);
+                    else owned.Collider.enabled = owned.WasEnabled;
+                }
+
                 if (bone.Body != null) Destroy(bone.Body);
             }
             bones.Clear();
@@ -744,48 +814,49 @@ namespace SpaceGame.Gameplay.Ragdoll
         // ── Building the skeleton ─────────────────────────────────────────────
 
         /// <summary>
-        /// Walk the skinned meshes, decide which bones matter, and wire capsules and joints through
-        /// what survives. Runs once, on the first limp.
+        /// Find the model's rig, decide which of its bones are worth simulating, and wire bodies,
+        /// shapes and joints through what survives. Runs once, on the first limp.
+        ///
+        /// <para>
+        /// Bodies go on the RIG, never on the pieces of geometry hanging off it, and that is the
+        /// whole of this pass. Both kinds of model in this project have a rig — a skinned character
+        /// binds its surface to one, a hard-surface creature parents rigid pieces onto one — and
+        /// only the rig knows which end of a limb bends. Bodies on the meshes instead produced a
+        /// star: no mesh is another mesh's ancestor, so nothing could find a parent to joint to and
+        /// every limb ended up connected straight to one hub across the width of the body, while
+        /// the hip-knee-ankle chain the model was actually rigged with sat unused beside it. The
+        /// golem came out of that with seventeen of its eighteen joints on the pelvis, the crab with
+        /// nineteen of twenty on the carapace, and both flew apart on the first blast.
+        /// </para>
         /// </summary>
         private void Build()
         {
             built = true;
 
-            Dictionary<Transform, float> importance = MeasureBones();
+            Hierarchy rig = FlattenRig();
+            Dictionary<Transform, float> importance = MeasureRig(rig);
+            CandidateCount = importance.Count;
+
             if (importance.Count == 0)
             {
-                Debug.LogWarning($"{name}: RagdollRig found neither skinned bones nor rigid mesh " +
-                                 "parts — this body cannot ragdoll. Expected a SkinnedMeshRenderer " +
-                                 "with bones, or a hierarchy of MeshFilters, somewhere under it.", this);
+                Debug.LogWarning($"{name}: RagdollRig found no rig to build on — this body cannot " +
+                                 "ragdoll. Expected a SkinnedMeshRenderer with bones, or bones with " +
+                                 "MeshFilters parented onto them, somewhere under it.", this);
                 return;
             }
 
-            List<Transform> kept = Select(importance);
-
-            // A skinned measure that yields two bones out of fifty-four has found the RIG but not
-            // the BODY: the weight sits on a couple of bones while the rest of the model is drawn
-            // by rigid MeshRenderers this pass never looked at. That is the ordinary shape of a
-            // hard-surface model and the part measure is the right answer for it.
-            //
-            // It is a fallback, not a repair, and the distinction is worth keeping in mind when
-            // reading an audit. PatrolRobot 1 ("Robert") trips this guard and comes out of the part
-            // measure with two bones as well — because that model genuinely has only four mesh
-            // parts and near-rigidly bound skinning. Its two-bone ragdoll is the honest maximum for
-            // the asset, not a failure of this code, and no threshold here will change it.
-            if (!rigidParts && kept.Count < minimumUsefulBones)
-            {
-                Dictionary<Transform, float> parts = MeasureRigidParts();
-                if (parts.Count > kept.Count)
-                {
-                    rigidParts = true;
-                    Measure = "parts";
-                    CandidateCount = parts.Count;
-                    importance = parts;
-                    kept = Select(importance);
-                }
-            }
-
+            List<Transform> kept = Select(importance, rig);
             if (kept.Count == 0) return;
+
+            // Not a failure to abort on — a model can genuinely have nothing more to give, and
+            // PatrolRobot 1 ("Robert") maxes out at two bones because it has four mesh parts and
+            // near-rigid skinning. Worth saying out loud, because from the prefab a two-bone
+            // ragdoll and a good one look exactly alike.
+            if (kept.Count < minimumUsefulBones)
+                Debug.LogWarning($"{name}: RagdollRig kept only {kept.Count} bone(s) of " +
+                                 $"{importance.Count} on the rig — this body will fold at almost " +
+                                 "no joints. Usually an asset limit rather than a wiring mistake.",
+                                 this);
 
             Hips = kept[0];
             standingHipHeight = Mathf.Max(Hips.position.y - transform.position.y, 0f);
@@ -796,15 +867,20 @@ namespace SpaceGame.Gameplay.Ragdoll
             var bodies = new Dictionary<Transform, Rigidbody>();
             foreach (Transform bone in kept)
             {
-                Bone made = BuildBone(bone, kept, importance[bone], keptWeight);
+                Bone made = BuildBone(bone, kept, rig, importance[bone], keptWeight);
                 bones.Add(made);
                 bodies[bone] = made.Body;
 
                 Transform parent = NearestKeptAncestor(bone, bodies);
 
-                // On the rigid path a part with no kept ancestor is not disconnected from the
-                // creature, only from this particular branch of its hierarchy — hang it on the hub.
-                if (parent == null && rigidParts && bone != Hips) parent = Hips;
+                // A branch whose own root is not below any other simulated bone hangs off the
+                // ragdoll's root bone. Rigs meet at a node that draws nothing — the ostrich's legs,
+                // spine and neck all hang off a Root with no mesh of its own, so it carries no bulk
+                // and is not worth a body — and a leg jointed to the torso is what a hand-built
+                // ragdoll does anyway. Giving that empty node the body instead makes the root of
+                // the whole chain the lightest thing in it: 0.6 kg holding a 57 kg spine, which is
+                // the mass ratio minBoneMass exists to prevent.
+                if (parent == null && bone != Hips) parent = Hips;
 
                 if (parent != null && bodies.TryGetValue(parent, out Rigidbody parentBody))
                     joints.Add(BuildJoint(made, parentBody));
@@ -812,21 +888,104 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
-        /// How much of the mesh each bone carries — or, when that cannot be read, how long it is.
+        /// Every transform under this one, parents before children, with the rig picked out of it.
         ///
         /// <para>
-        /// Weight is the better signal and it is not always available: a mesh imported without
-        /// Read/Write Enabled exposes no vertex data at runtime, and most of this project's FBXs
-        /// are imported that way because nothing else needed to read them. Bone length stands in
-        /// for it, and stands in well — the reason weight works is that fingers are small, and the
-        /// reason length works is the same one.
+        /// Flattened because the two questions this pass asks — which nodes articulate the model,
+        /// and which of them carries each piece of geometry — are both answered in one sweep over a
+        /// parent-index array, and both live in <see cref="RagdollSkeleton"/> where they can be
+        /// tested without a scene.
         /// </para>
         /// </summary>
-        private Dictionary<Transform, float> MeasureBones()
+        private sealed class Hierarchy
+        {
+            public Transform[] Nodes;
+            public Dictionary<Transform, int> Index;
+
+            /// <summary>Parent index per node, <c>-1</c> for the root.</summary>
+            public int[] Parents;
+
+            /// <summary>The rig node at or above each node — whose body its geometry ends up on.</summary>
+            public int[] Carrier;
+        }
+
+        private Hierarchy FlattenRig()
+        {
+            var nodes = new List<Transform>();
+            Flatten(transform, nodes);
+
+            var index = new Dictionary<Transform, int>(nodes.Count);
+            for (int i = 0; i < nodes.Count; i++) index[nodes[i]] = i;
+
+            var parents = new int[nodes.Count];
+            var draws = new bool[nodes.Count];
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Transform parent = nodes[i].parent;
+                parents[i] = parent != null && index.TryGetValue(parent, out int p) ? p : -1;
+                draws[i] = MeshOf(nodes[i]) != null;
+            }
+
+            bool[] isRigNode = RagdollSkeleton.SelectRigNodes(parents, draws);
+
+            // A skinned bone draws nothing and has no geometry beneath it either — the surface is
+            // one mesh stretched over the whole skeleton, parented somewhere else entirely — so the
+            // structural rule above cannot see it. The renderer names its own bones; take them.
+            foreach (SkinnedMeshRenderer renderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                Transform[] rigBones = renderer.bones;
+                if (rigBones == null) continue;
+
+                foreach (Transform bone in rigBones)
+                    if (bone != null && index.TryGetValue(bone, out int b)) isRigNode[b] = true;
+            }
+
+            // Never this component's own transform. It is the entity, not a bone: FollowHips moves
+            // it to wherever the hips ended up and puts the hips back afterwards, which is a no-op
+            // if they are the same object — so a body whose root were its own hips would flail
+            // twenty metres away and leave its transform, its NetworkTransform and its save record
+            // standing where it died.
+            isRigNode[0] = false;
+
+            return new Hierarchy
+            {
+                Nodes = nodes.ToArray(),
+                Index = index,
+                Parents = parents,
+                Carrier = RagdollSkeleton.NearestRigNode(parents, isRigNode),
+            };
+        }
+
+        private static void Flatten(Transform node, List<Transform> into)
+        {
+            into.Add(node);
+            for (int i = 0; i < node.childCount; i++) Flatten(node.GetChild(i), into);
+        }
+
+        /// <summary>
+        /// How much of the creature each bone is, in cubic metres.
+        ///
+        /// <para>
+        /// One unit for both kinds of rig, which is what makes them comparable at all. A rigid part
+        /// states its own bulk — the bounds of the mesh it draws. A skinned bone's share of its
+        /// renderer's vertex weight, scaled by that renderer's bounds, states the same thing about
+        /// the surface it carries. The two can then be added, so a bolted-on plate and the skin it
+        /// is bolted to both count towards the bone that moves them.
+        /// </para>
+        ///
+        /// <para>
+        /// Raw vertex weight cannot do this, and the failure is not subtle. Weight measures SURFACE,
+        /// which only stands in for mass while one density covers the model — and a model built from
+        /// several meshes has no such thing. The ostrich's neck is eleven separate densely-tessellated
+        /// vertebrae, so by weight a single vertebra outscored the whole torso, every body bone fell
+        /// under the weight floor, and the bird's ragdoll came out as eleven neck segments and
+        /// nothing else. Scaling by each renderer's own bounds is what fixes that.
+        /// </para>
+        /// </summary>
+        private Dictionary<Transform, float> MeasureRig(Hierarchy rig)
         {
             var importance = new Dictionary<Transform, float>();
-            var candidates = new List<Transform>();
-            bool allReadable = true;
+            bool skin = false, parts = false;
 
             foreach (SkinnedMeshRenderer renderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
@@ -834,131 +993,125 @@ namespace SpaceGame.Gameplay.Ragdoll
                 Transform[] rigBones = renderer.bones;
                 if (mesh == null || rigBones == null || rigBones.Length == 0) continue;
 
-                foreach (Transform bone in rigBones)
-                    if (bone != null && !candidates.Contains(bone)) candidates.Add(bone);
+                float volume = WorldVolume(mesh.bounds.size, renderer.transform.lossyScale);
+                if (volume <= 0f) continue;
 
-                if (!mesh.isReadable)
+                // Shares within THIS renderer, so the volume they are scaled by is the one they
+                // actually describe. The old measure summed raw weights across every renderer at
+                // once and had to be all-or-nothing about readability because of it — a rig with
+                // one unreadable mesh silently produced a skeleton out of whichever ones happened
+                // to be readable. Per-renderer shares make that choice per-renderer too, and a
+                // renderer measured by bone length still comes out in cubic metres.
+                Dictionary<Transform, float> shares = mesh.isReadable
+                    ? WeightShares(mesh, rigBones)
+                    : LengthShares(rigBones);
+
+                float total = 0f;
+                foreach (float share in shares.Values) total += share;
+                if (total <= 0f) continue;
+
+                foreach (KeyValuePair<Transform, float> share in shares)
                 {
-                    allReadable = false;
-                    continue;
+                    importance.TryGetValue(share.Key, out float carried);
+                    importance[share.Key] = carried +
+                        RagdollSkeleton.CarriedVolume(share.Value, total, volume);
                 }
 
-                var perVertex = mesh.GetBonesPerVertex();
-                var weights = mesh.GetAllBoneWeights();
-                int cursor = 0;
-
-                for (int v = 0; v < perVertex.Length; v++)
-                {
-                    int influences = perVertex[v];
-                    for (int i = 0; i < influences; i++, cursor++)
-                    {
-                        BoneWeight1 weight = weights[cursor];
-                        if (weight.boneIndex < 0 || weight.boneIndex >= rigBones.Length) continue;
-
-                        Transform bone = rigBones[weight.boneIndex];
-                        if (bone == null) continue;
-
-                        importance.TryGetValue(bone, out float accumulated);
-                        importance[bone] = accumulated + weight.weight;
-                    }
-                }
+                skin = true;
             }
-
-            // All or nothing, deliberately. A rig whose meshes are only PARTLY readable produced a
-            // skeleton out of whichever ones happened to be — and did it silently. PatrolRobot 1
-            // came back with two bones and one joint while its siblings got seventeen, because the
-            // one readable mesh on it was a small accessory carrying two bones; the body it is
-            // bolted to was invisible to this and simply absent from the ragdoll.
-            //
-            // Weight and length are not comparable quantities (one sums to a vertex count, the
-            // other is metres), so they cannot be blended to fill the gap. Using the measure that
-            // covers EVERY bone is the answer that is right for the whole rig, and a coarser
-            // ragdoll built from all the bones beats a precise one built from two.
-            if (importance.Count > 0 && allReadable)
-            {
-                Measure = "skin";
-                CandidateCount = importance.Count;
-                return importance;
-            }
-
-            if (candidates.Count > 0)
-            {
-                importance.Clear();
-
-                foreach (Transform bone in candidates)
-                    importance[bone] = SegmentLength(bone, candidates);
-
-                Measure = "length";
-                CandidateCount = importance.Count;
-                return importance;
-            }
-
-            rigidParts = true;
-            Measure = "parts";
-            Dictionary<Transform, float> parts = MeasureRigidParts();
-            CandidateCount = parts.Count;
-
-            return parts;
-        }
-
-        /// <summary>
-        /// True when this body is a hierarchy of separate rigid meshes rather than one skinned
-        /// surface. Decides how disconnected pieces are treated — see <see cref="Select"/>.
-        /// </summary>
-        private bool rigidParts;
-
-        /// <summary>
-        /// The fallback for a creature that is not skinned at all: a hierarchy of separate rigid
-        /// meshes, one per part.
-        ///
-        /// <para>
-        /// Not a rare shape here — it is how several of this project's creatures are built. The
-        /// golem, the six-legged crab and the humanoid robot have ZERO SkinnedMeshRenderers between
-        /// them; they are parts positioned every frame by <c>LeggedLocomotion</c>'s IK, and the
-        /// skinned path above finds nothing to ragdoll on any of them. It found nothing silently,
-        /// too, which is the worse half: they looked wired and would have done nothing on the first
-        /// blast that hit them.
-        /// </para>
-        ///
-        /// <para>
-        /// A part hierarchy is in one way the EASIER ragdoll — each part already has real geometry
-        /// with real bounds, so its collider is a box around the mesh it draws rather than a capsule
-        /// estimated from a bone length. Importance is the part's volume, which plays the role
-        /// vertex weight plays for a skinned rig: it is how much of the creature this piece is, and
-        /// it drops the bolts and antennae for the same reason the skinned path drops fingers.
-        /// </para>
-        /// </summary>
-        private Dictionary<Transform, float> MeasureRigidParts()
-        {
-            var importance = new Dictionary<Transform, float>();
 
             foreach (MeshFilter filter in GetComponentsInChildren<MeshFilter>(true))
             {
                 Mesh mesh = filter.sharedMesh;
-                if (mesh == null || filter.transform == transform) continue;
+                if (mesh == null) continue;
+                if (!rig.Index.TryGetValue(filter.transform, out int node)) continue;
 
-                Vector3 size = mesh.bounds.size;
-                float volume = Mathf.Max(size.x, 1e-3f) * Mathf.Max(size.y, 1e-3f) * Mathf.Max(size.z, 1e-3f);
+                int carrier = rig.Carrier[node];
+                if (carrier < 0) continue;
 
-                importance.TryGetValue(filter.transform, out float accumulated);
-                importance[filter.transform] = accumulated + volume;
+                float volume = WorldVolume(mesh.bounds.size, filter.transform.lossyScale);
+                if (volume <= 0f) continue;
+
+                Transform bone = rig.Nodes[carrier];
+                importance.TryGetValue(bone, out float carried);
+                importance[bone] = carried + volume;
+                parts = true;
             }
+
+            Measure = skin && parts ? "skin+parts" : skin ? "skin" : parts ? "parts" : "none";
 
             return importance;
         }
+
+        /// <summary>Each bone's share of a readable mesh, by the vertex weight bound to it.</summary>
+        private static Dictionary<Transform, float> WeightShares(Mesh mesh, Transform[] rigBones)
+        {
+            var shares = new Dictionary<Transform, float>();
+
+            var perVertex = mesh.GetBonesPerVertex();
+            var weights = mesh.GetAllBoneWeights();
+            int cursor = 0;
+
+            for (int v = 0; v < perVertex.Length; v++)
+            {
+                int influences = perVertex[v];
+                for (int i = 0; i < influences; i++, cursor++)
+                {
+                    BoneWeight1 weight = weights[cursor];
+                    if (weight.boneIndex < 0 || weight.boneIndex >= rigBones.Length) continue;
+
+                    Transform bone = rigBones[weight.boneIndex];
+                    if (bone == null) continue;
+
+                    shares.TryGetValue(bone, out float carried);
+                    shares[bone] = carried + weight.weight;
+                }
+            }
+
+            return shares;
+        }
+
+        /// <summary>
+        /// Each bone's share of a mesh that cannot be read, by how long it is.
+        ///
+        /// A mesh imported without Read/Write Enabled exposes no vertex data at runtime, and most
+        /// of this project's FBXs are imported that way because nothing else needed to read them.
+        /// Length stands in well: the reason weight works is that fingers are small, and the reason
+        /// length works is the same one.
+        /// </summary>
+        private static Dictionary<Transform, float> LengthShares(Transform[] rigBones)
+        {
+            var shares = new Dictionary<Transform, float>();
+
+            foreach (Transform bone in rigBones)
+            {
+                if (bone == null || shares.ContainsKey(bone)) continue;
+
+                shares[bone] = bone.parent != null
+                    ? Mathf.Max(Vector3.Distance(bone.position, bone.parent.position), 0.01f)
+                    : 0.01f;
+            }
+
+            return shares;
+        }
+
+        private static float WorldVolume(Vector3 size, Vector3 scale) =>
+            Mathf.Max(Mathf.Abs(size.x * scale.x), 1e-4f)
+            * Mathf.Max(Mathf.Abs(size.y * scale.y), 1e-4f)
+            * Mathf.Max(Mathf.Abs(size.z * scale.z), 1e-4f);
 
         /// <summary>
         /// The bones worth simulating, ordered so every bone comes after its ancestors — which is
         /// what lets the joint pass find each bone's parent body already built.
         ///
         /// <para>
-        /// Everything outside the hips' branch is dropped rather than jointed to it. A rig can hold
-        /// several weighted hierarchies (a cape, a mount's saddle rig, a detached prop) and
-        /// connecting one to the body across a gap produces a joint with a metre of slack, which
-        /// PhysX resolves by flinging both ends apart.
+        /// The first bone out is the ROOT of the ragdoll, which makes the order load-bearing rather
+        /// than cosmetic. Branches that share no simulated ancestor hang off it (see
+        /// <see cref="Build"/>), so picking it by accident is how a body ends up rooted at a neck
+        /// vertebra with the rest of the animal treated as something else's branch.
         /// </para>
         /// </summary>
-        private List<Transform> Select(Dictionary<Transform, float> importance)
+        private List<Transform> Select(Dictionary<Transform, float> importance, Hierarchy rig)
         {
             var candidates = new List<Transform>(importance.Keys);
             var weights = new float[candidates.Count];
@@ -971,56 +1124,45 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (keep[i]) selected.Add(candidates[i]);
 
             // Heaviest first, then cut to the cap — so a rig with unusual weights loses its least
-            // significant bones rather than an arbitrary tail.
+            // significant bones rather than an arbitrary tail. A bone cut here is not a piece lost:
+            // its geometry is still parented to it and it is still parented to a bone that IS
+            // simulated, so it rides along instead of being left behind in mid-air.
             selected.Sort((a, b) => importance[b].CompareTo(importance[a]));
             if (selected.Count > maxBones) selected.RemoveRange(maxBones, selected.Count - maxBones);
 
-            selected.Sort((a, b) => Depth(a).CompareTo(Depth(b)));
-            if (selected.Count == 0) return selected;
-
-            // A skinned rig's stray hierarchy really is stray — a cape, a saddle rig, a prop
-            // parented on — and jointing one to the body across a gap gives PhysX a joint with a
-            // metre of slack, which it resolves by flinging both ends apart. Drop them.
-            //
-            // A rigid-part rig is the opposite case and needs the opposite answer. Its pieces are
-            // routinely FLAT: every part a sibling under one grouping node, so not one of them has
-            // a kept ancestor and this same rule threw away all but the heaviest. The golem, the
-            // crab and the humanoid robot each came out as a single box with no joints at all —
-            // wired, built, and still not a ragdoll. Those pieces are not strays, they ARE the
-            // creature, so they hang off the heaviest one instead.
-            Transform root = selected[0];
-            if (!rigidParts)
+            // Shallowest first, so the joint pass finds every bone's parent body already built —
+            // and, among equals, the heaviest BRANCH first, so the bone the rest of the body hangs
+            // from is the one carrying the creature. Its own bulk is the wrong tiebreak: a thigh
+            // outweighs a chest, which is how PatrolRobot 1 came out rooted at its right leg with
+            // the left leg jointed to it. See RagdollSkeleton.SubtreeBulk.
+            float[] branch = BranchBulk(importance, rig);
+            selected.Sort((a, b) =>
             {
-                selected.RemoveAll(bone => bone != root && !IsDescendantOf(bone, root));
-                return selected;
-            }
+                int byDepth = Depth(a).CompareTo(Depth(b));
+                if (byDepth != 0) return byDepth;
 
-            // Heaviest first among the shallowest, so the hub is the creature's bulk rather than
-            // whichever part happened to sort first.
-            int shallowest = Depth(root);
-            Transform hub = root;
-            foreach (Transform bone in selected)
-                if (Depth(bone) == shallowest && importance[bone] > importance[hub]) hub = bone;
-
-            selected.Remove(hub);
-            selected.Insert(0, hub);
+                return Branch(branch, rig, b).CompareTo(Branch(branch, rig, a));
+            });
 
             return selected;
         }
 
-        private Bone BuildBone(Transform bone, List<Transform> kept, float weight, float totalWeight)
+        /// <summary>What hangs below each node of the rig, so branch roots can be compared.</summary>
+        private static float[] BranchBulk(Dictionary<Transform, float> importance, Hierarchy rig)
         {
-            float length = SegmentLength(bone, kept);
+            var bulk = new float[rig.Nodes.Length];
+            for (int i = 0; i < rig.Nodes.Length; i++)
+                bulk[i] = importance.TryGetValue(rig.Nodes[i], out float carried) ? carried : 0f;
 
-            // Local units, not world. An FBX in this project can import at a lossyScale of 100, and
-            // a collider is sized in local space and then scaled by it — so a capsule authored in
-            // metres would come out a hundred times too big on exactly those rigs.
-            float scale = Mathf.Max(Mathf.Abs(bone.lossyScale.x),
-                          Mathf.Max(Mathf.Abs(bone.lossyScale.y), Mathf.Abs(bone.lossyScale.z)));
-            if (scale < 1e-5f) scale = 1f;
+            return RagdollSkeleton.SubtreeBulk(rig.Parents, bulk);
+        }
 
-            Vector2 capsule = RagdollSkeleton.CapsuleSize(length, length * limbAspect, minRadius);
+        private static float Branch(float[] branch, Hierarchy rig, Transform bone) =>
+            rig.Index.TryGetValue(bone, out int node) ? branch[node] : 0f;
 
+        private Bone BuildBone(Transform bone, List<Transform> kept, Hierarchy rig,
+                               float weight, float totalWeight)
+        {
             var body = bone.gameObject.AddComponent<Rigidbody>();
             body.mass = RagdollSkeleton.MassFor(weight, totalWeight, totalMass, minBoneMass);
             body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -1034,42 +1176,111 @@ namespace SpaceGame.Gameplay.Ragdoll
             body.isKinematic = true;
             body.detectCollisions = false;
 
-            Collider collider = BuildCollider(bone, kept, capsule, scale);
-            collider.enabled = false;
-
             return new Bone
             {
                 Transform = bone,
                 Body = body,
-                Collider = collider,
+                Colliders = OwnColliders(bone, kept, rig),
                 RecoverFrom = bone.localRotation,
             };
         }
 
         /// <summary>
-        /// The shape for one bone: a box around its own mesh if it has one, a capsule down its
-        /// length if it does not.
+        /// Every collider this bone's body will own — the authored ones it inherits, or one shaped
+        /// for it if there are none.
         ///
         /// <para>
-        /// The split is between the two kinds of rig, and each side gets the better answer. A
-        /// skinned bone draws nothing of its own — the mesh is one surface stretched over the whole
-        /// skeleton — so the only measurement available is how far it is to the next joint, and a
-        /// capsule down that line is the honest approximation. A rigid PART draws exactly itself,
-        /// so its own mesh bounds are not an approximation at all, and a box around them is both
-        /// more accurate and cheaper than anything derived.
+        /// Inherits rather than adds, wherever it can. Adding a Rigidbody makes PhysX adopt every
+        /// collider beneath the transform regardless, so on a model with a hand-authored collision
+        /// proxy the choice is not whether the ragdoll uses those shapes but whether it KNOWS about
+        /// them. Left undiscovered they are outside the self-collision filter, and an authored hull
+        /// overlaps itself the way every hull does — the crab's twenty-two <c>COL_*</c> boxes were
+        /// twenty-two contacts the solver fought every tick and could never win. Discovered, they
+        /// are better shapes than anything derived here, because somebody fitted them by hand.
+        /// </para>
+        ///
+        /// <para>
+        /// The set stops at the next simulated bone, because that is exactly where PhysX stops:
+        /// a collider under a deeper bone belongs to that bone's body, not to this one.
         /// </para>
         /// </summary>
-        private Collider BuildCollider(Transform bone, List<Transform> kept, Vector2 capsule,
-                                       float scale)
+        private OwnedCollider[] OwnColliders(Transform bone, List<Transform> kept, Hierarchy rig)
         {
-            var filter = bone.GetComponent<MeshFilter>();
-            if (filter != null && filter.sharedMesh != null)
+            var owned = new List<OwnedCollider>();
+            bool shaped = false;
+
+            foreach (Collider collider in bone.GetComponentsInChildren<Collider>(true))
+            {
+                // Triggers generate no contacts, so they cannot be what tears a body apart — and
+                // they are usually somebody else's: an interaction volume, a mount's boarding zone.
+                if (collider.isTrigger) continue;
+                if (NearestBone(collider.transform, kept) != bone) continue;
+                if (UnderAnotherBody(collider.transform, bone)) continue;
+
+                owned.Add(new OwnedCollider(collider, created: false));
+
+                // Adopted for FILTERING either way — PhysX attaches it to this body whatever this
+                // thinks of it — but only a collider with nothing DRAWN at or below it is the
+                // bone's own SHAPE. Anything that leads to a renderer is a prop riding along: the
+                // patrol robots carry a sword and a gun under the right hand, and counting those
+                // left four of them with a fourteen-kilo hand that had no collision of its own at
+                // all. Below it, not on it — the sword's collider sits on a bare object whose mesh
+                // hangs one level down, so asking only about the collider's own GameObject still
+                // took the weapon for a hand. A hull authored by hand, like the crab's COL_* boxes,
+                // draws nothing anywhere under it, which is exactly what this keeps.
+                shaped |= collider.GetComponentInChildren<Renderer>(true) == null;
+            }
+
+            if (!shaped)
+                owned.Add(new OwnedCollider(CreateCollider(bone, kept, rig), created: true));
+
+            return owned.ToArray();
+        }
+
+        /// <summary>
+        /// A shape for a bone that brought none: a box around the geometry it carries, or a capsule
+        /// down its length if it carries none of its own.
+        ///
+        /// <para>
+        /// The split is between the two kinds of rig and each side gets the better answer. A rigid
+        /// bone moves specific pieces, so the box around those pieces is not an approximation at
+        /// all. A skinned bone draws nothing — the mesh is one surface over the whole skeleton — so
+        /// the only measurement available is how far it is to the next joint, and a capsule down
+        /// that line is the honest guess.
+        /// </para>
+        /// </summary>
+        private Collider CreateCollider(Transform bone, List<Transform> kept, Hierarchy rig)
+        {
+            if (TryCarriedBounds(bone, rig, out Bounds carried))
             {
                 var box = bone.gameObject.AddComponent<BoxCollider>();
-                box.center = filter.sharedMesh.bounds.center;
-                box.size = filter.sharedMesh.bounds.size;
+                box.center = carried.center;
+
+                // Floored on every axis. Plenty of these parts are flat — a shroud, a plate, a
+                // panel — and a box with a zero extent is one PhysX warns about and then tunnels
+                // straight through at the speed the gauntlet throws bodies.
+                float thinnest = minRadius / Mathf.Max(Mathf.Abs(bone.lossyScale.x),
+                                 Mathf.Max(Mathf.Abs(bone.lossyScale.y),
+                                           Mathf.Max(Mathf.Abs(bone.lossyScale.z), 1e-5f)));
+                box.size = new Vector3(Mathf.Max(carried.size.x, thinnest),
+                                       Mathf.Max(carried.size.y, thinnest),
+                                       Mathf.Max(carried.size.z, thinnest));
+                box.enabled = false;
+
                 return box;
             }
+
+            // Local units, not world. An FBX in this project can import at a lossyScale of 100, and
+            // a collider is sized in local space and then scaled by it — so a capsule authored in
+            // metres would come out a hundred times too big on exactly those rigs. The box above
+            // needs no such correction: its corners were brought into this bone's local space,
+            // which already removed the scale.
+            float scale = Mathf.Max(Mathf.Abs(bone.lossyScale.x),
+                          Mathf.Max(Mathf.Abs(bone.lossyScale.y), Mathf.Abs(bone.lossyScale.z)));
+            if (scale < 1e-5f) scale = 1f;
+
+            float length = SegmentLength(bone, kept);
+            Vector2 capsule = RagdollSkeleton.CapsuleSize(length, length * limbAspect, minRadius);
 
             var capsuleCollider = bone.gameObject.AddComponent<CapsuleCollider>();
             capsuleCollider.radius = capsule.x / scale;
@@ -1077,8 +1288,85 @@ namespace SpaceGame.Gameplay.Ragdoll
             capsuleCollider.direction = LongAxis(bone, kept, out float sign);
             capsuleCollider.center =
                 AxisVector(capsuleCollider.direction) * (sign * capsuleCollider.height * 0.5f);
+            capsuleCollider.enabled = false;
 
             return capsuleCollider;
+        }
+
+        /// <summary>
+        /// The box around every mesh this bone moves, in the bone's own local space.
+        ///
+        /// Its own meshes and those of any node below it that is not itself simulated — the pieces
+        /// that will travel with this body and nothing else. Corners rather than centre-and-extents,
+        /// because a part is routinely rotated relative to the bone it hangs on and an axis-aligned
+        /// box built from a rotated box's extents is not the same box.
+        /// </summary>
+        private bool TryCarriedBounds(Transform bone, Hierarchy rig, out Bounds local)
+        {
+            local = default;
+            bool any = false;
+
+            foreach (MeshFilter filter in bone.GetComponentsInChildren<MeshFilter>(true))
+            {
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null) continue;
+                if (!rig.Index.TryGetValue(filter.transform, out int node)) continue;
+
+                int carrier = rig.Carrier[node];
+                if (carrier < 0 || rig.Nodes[carrier] != bone) continue;
+
+                Bounds bounds = mesh.bounds;
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    Vector3 point = bounds.center + Vector3.Scale(bounds.extents, new Vector3(
+                        (corner & 1) == 0 ? -1f : 1f,
+                        (corner & 2) == 0 ? -1f : 1f,
+                        (corner & 4) == 0 ? -1f : 1f));
+
+                    point = bone.InverseTransformPoint(filter.transform.TransformPoint(point));
+
+                    if (any) local.Encapsulate(point);
+                    else { local = new Bounds(point, Vector3.zero); any = true; }
+                }
+            }
+
+            return any;
+        }
+
+        /// <summary>
+        /// Is there another Rigidbody between this collider and the bone — something carried rather
+        /// than something the bone is made of?
+        ///
+        /// <para>
+        /// A held weapon is the case that matters. Its colliders sit under the hand bone but belong
+        /// to the WEAPON's own body, so counting them as the hand's leaves the hand thinking it
+        /// brought a shape and skipping the one it needed: four of the robots came out with a
+        /// fourteen-kilo hand and no collision at all on it. PhysX decides this by the nearest
+        /// Rigidbody above a collider, and so does this.
+        /// </para>
+        /// </summary>
+        private static bool UnderAnotherBody(Transform node, Transform bone)
+        {
+            for (Transform at = node; at != null && at != bone; at = at.parent)
+                if (at.GetComponent<Rigidbody>() != null) return true;
+
+            return false;
+        }
+
+        /// <summary>The simulated bone this transform belongs to: itself if it is one, else the nearest above.</summary>
+        private static Transform NearestBone(Transform node, List<Transform> kept)
+        {
+            for (Transform at = node; at != null; at = at.parent)
+                if (kept.Contains(at)) return at;
+
+            return null;
+        }
+
+        private static Mesh MeshOf(Transform node)
+        {
+            var filter = node.GetComponent<MeshFilter>();
+
+            return filter != null ? filter.sharedMesh : null;
         }
 
         private Joint BuildJoint(Bone bone, Rigidbody parent)
@@ -1180,14 +1468,6 @@ namespace SpaceGame.Gameplay.Ragdoll
             for (Transform parent = bone.parent; parent != null; parent = parent.parent) depth++;
 
             return depth;
-        }
-
-        private static bool IsDescendantOf(Transform bone, Transform ancestor)
-        {
-            for (Transform parent = bone.parent; parent != null; parent = parent.parent)
-                if (parent == ancestor) return true;
-
-            return false;
         }
     }
 }

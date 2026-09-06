@@ -47,8 +47,16 @@ namespace SpaceGame.EditorTools
     /// webbing pitch plus one cell of margin — so <b>the mat is in true-world metres and this
     /// ladder is not</b>, and an item whose hold size happens to sit near life size (the Dragon
     /// Bazooka, hold 1.25 against a true 1.37) needs no second number at all. The gun needed the
-    /// biggest correction on the roster because it carries the biggest inflation: a 0.4445 m fire
-    /// extinguisher on the Gun bracket is 2.8x life size.</para>
+    /// biggest correction on the roster because it carried the biggest inflation: a 0.4445 m fire
+    /// extinguisher on the Gun bracket was 2.8x life size, until that turned out to be a defect in
+    /// the HAND as well and it left the bracket — see <see cref="VesselWhy"/>.</para>
+    ///
+    /// <para><b>A bracket number is a REACH, and <c>holdSize</c> is a LONGEST AXIS.</b> They are the
+    /// same edge on everything shaped like a barrel, which is most of the roster, and they are not
+    /// the same edge on an upright vessel gripped at the top of it. Before putting a new prefab on a
+    /// bracket, ask which of its axes the number is about to land on; if it is not the one pointing
+    /// away from the player, the bracket will size it by an edge nobody was thinking about. The
+    /// Portal Gun is the one item this has happened to (<see cref="VesselWhy"/>).</para>
     ///
     /// <para><b>Idempotent.</b> Every entry names the value it expects to find before it will write,
     /// so a second run reports "already at 1.25" rather than climbing the ladder twice.</para>
@@ -109,6 +117,18 @@ namespace SpaceGame.EditorTools
             "built' IS the size — on the arm and, since the bracer left the model on 2026-09-04, " +
             "on the mat as well. See GauntletPrefab.PackSize";
 
+        /// <summary>
+        /// The scanner's row says the same thing about the ARM and the opposite about the mat, so
+        /// it cannot share <see cref="GauntletWhy"/>. Its <c>holdSize</c> is pinned at 0 for
+        /// exactly the family's reason; its <c>packSize</c> stopped being 0 on 2026-09-06 because
+        /// the size the artist built cost 20 of the rig's 255 cells for a forearm gadget.
+        /// </summary>
+        private const string ScannerWhy =
+            "PINNED at 0 for the family's reason — worn on the forearm at GauntletFit scale 1, so " +
+            "'the size the artist built' IS the size on the arm. The MAT is the exception: it " +
+            "carries a chosen packSize of 0.225 (backlog INV-03), which is the only gauntlet that " +
+            "does. See PackSizeTests.ScannerWhy and GauntletReseat.RuinScannerPackSize";
+
         private readonly struct Step
         {
             public readonly string Path;
@@ -137,6 +157,7 @@ namespace SpaceGame.EditorTools
         private const string Gadgets = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/";
         private const string Guns = "Assets/Game/Prefabs/Items/Artifacts/Guns/";
         private const string Supplies = "Assets/Game/Prefabs/Items/Supplies/";
+        private const string Portals = "Assets/Game/Prefabs/Items/Artifacts/Portals/";
 
         /// <summary>
         /// Why the three oxygen-plant supplies share one size, in one place rather than three
@@ -164,6 +185,53 @@ namespace SpaceGame.EditorTools
             "number — see PackSizeTests";
 
         /// <summary>
+        /// Why the Portal Gun left the <see cref="Bracket.Gun"/> bracket on 2026-09-06.
+        ///
+        /// <para>
+        /// <b>A bracket number is a REACH, and <c>holdSize</c> measures the LONGEST AXIS. For every
+        /// other gun those are the same edge.</b> The launcher, the blaster, the sidearms and the
+        /// staff are all longest along the barrel, so 1.25 m of "longest axis" is 1.25 m of gun
+        /// pointing away from the player and the two readings agree by accident of shape. The
+        /// Portal Gun is a fire extinguisher: it has no barrel, its longest axis is its own HEIGHT,
+        /// and it is gripped at the top of it. Giving it the reach number therefore did not make it
+        /// reach 1.25 m — it made a 1.25 m bottle hang out of the fist to below the knee, through
+        /// the thigh and out of the first-person frustum, which is what backlog GEAR-02 reported as
+        /// "not visible in the hand".
+        /// </para>
+        /// <para>
+        /// It sizes on <see cref="Bracket.BigTool"/> instead, with the other two upright vessels
+        /// held two-handed. Not at their 0.90: that number is 1.65x the true size of the 0.54 m
+        /// bottle and the 0.55 m battery it was chosen for, and this extinguisher is 0.4445 m. The
+        /// same inflation on its own true size is 0.73, which keeps the astronaut's hand as
+        /// oversized as the rest of the ladder assumes while leaving the smaller vessel visibly the
+        /// smaller vessel — the silhouette a bracket exists to buy (<c>GDC-L1-UX-0003</c>).
+        /// </para>
+        /// <para>
+        /// Deriving it from the bracket rather than picking a number by eye is <c>GDC-L1-FEEL-0007</c>
+        /// taken at its word: the ladder is deliberately not life size, and what that principle asks
+        /// in return is that the unrealistic space stay <em>internally consistent</em> — so a second
+        /// upright vessel is inflated by what the first two were inflated by, not by a fresh guess.
+        /// </para>
+        /// <para>
+        /// The pose moved with it. <c>holdStyle</c> is <c>OneHanded</c>, not <c>TwoHanded</c>: this
+        /// chassis has no second handle, and the two-handed clip folds the empty left arm across
+        /// the chest in front of the gun — an off hand gripping air, over the thing the player is
+        /// meant to be looking at.
+        /// </para>
+        /// <para>
+        /// The mat is untouched and always was: <c>packSize</c> is authored at 0.54, so none of
+        /// this reaches the backpack, the gear wall or the sand. See <c>PackSizeTests</c>.
+        /// </para>
+        /// </summary>
+        private const string VesselWhy =
+            "backlog GEAR-02: a bracket is a REACH and holdSize is the LONGEST AXIS, and on a " +
+            "0.4445 m fire extinguisher gripped by its top handle those are not the same edge — " +
+            "the Gun bracket's 1.25 m bought no reach at all, it hung a 1.25 m bottle out of the " +
+            "fist past the knee. 0.73 is the BigTool bracket's own 1.65x inflation (0.90 over a " +
+            "0.54 m pressure bottle) applied to this vessel's true size, so it reads as the " +
+            "smaller vessel it is. The mat keeps its authored 0.54 either way";
+
+        /// <summary>
         /// Every prefab in the project that carries an <see cref="ItemGrip"/>, with the size it
         /// lands on and the reason. Pinned entries carry <c>From == To</c>.
         /// </summary>
@@ -174,8 +242,9 @@ namespace SpaceGame.EditorTools
                 "the item the whole ladder is measured against; tuned by eye and kept"),
 
             new(Gadgets + "LaserStaff.prefab", Bracket.Anchor, 1.35f, 1.35f,
-                "a staff is meant to out-reach the launcher, and 1.35 already does; " +
-                "it stands on end in the pack rather than lying down, so its length costs no mat"),
+                "a staff is meant to out-reach the launcher, and 1.35 already does; it lies down " +
+                "in the pack (LaserStaffBuilder.LieDown), so its length is 15 of the 18 cells on " +
+                "the lash line that was cut for it"),
 
             // ── Guns: the bracket the anchor's size was asked for by name ─────────────────
             new(Guns + "Gun.prefab", Bracket.Gun, 0.60f, AnchorSize,
@@ -184,11 +253,6 @@ namespace SpaceGame.EditorTools
             new(Guns + "CixinGunEquipped.prefab", Bracket.Gun, 0.70f, 1.20f,
                 "ball lightning is a sidearm, so it sits just under the launcher rather than level " +
                 "with it — the one place in this bracket where silhouette beats uniformity"),
-
-            new("Assets/Game/Prefabs/Items/Artifacts/Portals/PortalGun.prefab", Bracket.Gun,
-                0.60f, AnchorSize,
-                "two-handed and held by a top handle with the body hanging below, so it carries " +
-                "the full size without the grip point moving"),
 
             new(Gadgets + "GravelBlaster.prefab", Bracket.Gun, 1.05f, AnchorSize,
                 "was already within a fifth of the anchor; the gap read as an accident, not a class"),
@@ -210,6 +274,8 @@ namespace SpaceGame.EditorTools
             new(Supplies + "OxygenTank.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
             new(Supplies + "Battery.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
 
+            new(Portals + "PortalGun.prefab", Bracket.BigTool, AnchorSize, 0.73f, VesselWhy),
+
             // ── Consumables: read as a phial, not a weapon ────────────────────────────────
             new(Gadgets + "AntiGravityPotion.prefab", Bracket.Consumable, 0.30f, 0.50f,
                 "a bottle this hand could plausibly drink from; deliberately the bottom of the ladder"),
@@ -229,7 +295,7 @@ namespace SpaceGame.EditorTools
             new(Gadgets + "ItemScanner.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
             new(Gadgets + "GrapplingHook.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
             new(Gadgets + "Leash.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
-            new(Gadgets + "RuinScanner.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
+            new(Gadgets + "RuinScanner.prefab", Bracket.Fitted, 0f, 0f, ScannerWhy),
 
             new("Assets/Game/Prefabs/Items/Equipment/WingPack.prefab", Bracket.Fitted, 1.26f, 1.26f,
                 "PINNED: worn across the back, so its span is the wearer's, not the ladder's"),

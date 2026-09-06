@@ -272,9 +272,15 @@ namespace SpaceGame.Agents
             // tying with the real Main Camera, so which camera the game rendered through was
             // arbitrary -- and each carried an AudioListener and a StudioListener besides.
             //
-            // DontSaveInEditor rather than DontSave: the latter also means "do not destroy on
-            // scene load", which for a camera would trade a save-file leak for a cross-scene one.
+            // DontSaveInEditor rather than DontSave, so a scene load in play mode still destroys
+            // it. Nothing destroys it in EDIT mode, though: Unity delivers no OnDestroy to a plain
+            // MonoBehaviour there, so an EditMode test destroying its mount never releases this,
+            // and closing the scene detaches a DontSaveInEditor object rather than destroying it.
+            // What is left is a scene-less, enabled camera that the next play session renders
+            // through. The marker below is what lets it be found and swept -- see
+            // MountRuntimeCamera.
             cameraObject.hideFlags = HideFlags.DontSaveInEditor;
+            MountRuntimeCamera.Attach(cameraObject, this);
 
             // Without the parent to start it in the right place, the first frame must snap rather
             // than lerp — otherwise the camera swoops in from wherever the prefab was authored.

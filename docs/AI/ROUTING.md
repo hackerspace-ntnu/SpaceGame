@@ -253,6 +253,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
 | how do I actually prove this works on a client and not just the host | [Testing](systems/Testing.md) |
 | how do I run the tests or type-check the code without clicking around the Unity GUI | [Testing](systems/Testing.md) |
+| Hull_MountThirdPersonCamera or PassengerSeat1_MountThirdPersonCamera exists while nothing is mounted, or was saved into a scene file | [Vehicles](systems/Vehicles.md) |
 | I added a binding to the .inputactions asset and nothing happens in game | [PlayerCharacter](systems/PlayerCharacter.md) |
 | I added a chunk or interior scene and nothing ever loads it | [Scenes](systems/Scenes.md) |
 | I am stopped by nothing walking past the ship's gear wall, or wedged in a doorway I used to fit through | [Backpack](systems/Backpack.md) |
@@ -506,6 +507,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the model comes out 100x too big when parented to a socket | [ArtPipeline](systems/ArtPipeline.md) |
 | the module the schematic had lit goes dark the moment the mouse button goes down | [ShipSchematic](systems/ShipSchematic.md) |
 | the modules on the schematic are almost impossible to click | [ShipSchematic](systems/ShipSchematic.md) |
+| the moment I press Play the game renders through some camera other than the player's, and nothing in the Hierarchy explains it | [Vehicles](systems/Vehicles.md) |
 | the mouse turns my body while the wings are out, and the flight fights it | [Wingsuit](systems/Wingsuit.md) |
 | the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk | [Scenes](systems/Scenes.md) |
 | the near edge of the board is cut off the bottom of the frame after I raised the focus camera | [Backpack](systems/Backpack.md) |
@@ -959,4 +961,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 677 symptoms, 256 paths, 44 docs -->
+<!-- 679 symptoms, 256 paths, 44 docs -->

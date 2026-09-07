@@ -17,10 +17,12 @@ namespace SpaceGame.Characters
     public class PlayerAimRig : MonoBehaviour
     {
         /// <summary>Int parameter the Upper Body layer's Any State transitions compare against.</summary>
-        private const string HoldStyleParameter = "HoldStyle";
+        // Public: HoldAnimator drives the same parameter and layer on an NPC that wears this
+        // controller without a rig, so the names live in one place.
+        public const string HoldStyleParameter = "HoldStyle";
 
         /// <summary>Name of the masked layer this component owns outright.</summary>
-        private const string UpperBodyLayer = "Upper Body";
+        public const string UpperBodyLayer = "Upper Body";
 
         [Header("References")]
         [SerializeField] private Animator animator;

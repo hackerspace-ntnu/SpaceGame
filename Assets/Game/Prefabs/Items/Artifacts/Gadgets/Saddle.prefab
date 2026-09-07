@@ -689,6 +689,7 @@ GameObject:
   - component: {fileID: 3260420670956602811}
   - component: {fileID: 4827639694190488344}
   - component: {fileID: 5245737289221470020}
+  - component: {fileID: -2917586398298487650}
   m_Layer: 0
   m_Name: Saddle
   m_TagString: Untagged
@@ -999,6 +1000,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.SaddlePlacement
   fitsSocketsFor: {fileID: 0}
+--- !u!114 &-2917586398298487650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6651126544930326803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &6839338898735733291
 GameObject:
   m_ObjectHideFlags: 0

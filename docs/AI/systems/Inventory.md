@@ -10,6 +10,7 @@ paths:
   - Assets/Game/Prefabs/Items
   - Assets/Game/Editor/Items/ItemWorldPresence.cs
 symptoms:
+  - "an NPC holding an item slides along in a frozen gun-aim pose, legs not moving, with a valid avatar"
   - "my new item never appears in the dev item browser (O key)"
   - "the item floats beside the hand instead of in it, or comes out comically large"
   - "a hotbar slot comes back empty after loading a save, but the others kept their positions"
@@ -26,7 +27,7 @@ symptoms:
   - "I cannot get the crosshair onto a small item lying on the ship's floor"
   - "a dropped item is buried up to its middle in the ground"
 reads_with: [Artifacts, Backpack, BodyEquipment, Persistence, Combat, Oxygen]
-updated: 2026-09-05
+updated: 2026-09-07
 ---
 
 # Items & Inventory core
@@ -63,7 +64,7 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 | `HandGripFrame` | [Equipped/HandGripFrame.cs](Assets/Game/Scripts/Items/Equipped/HandGripFrame.cs) | Anatomy-derived hand frame: +Y thumb side, +Z the way an item points, origin mid-fist |
 | `WornSeat` / `ForearmSeat` | [Equipped/](Assets/Game/Scripts/Items/Equipped/WornSeat.cs) | Where a *worn* item sits: a trunk bone from `WornFit`, the forearm from `GauntletFit`. Extracted from `BodyEquipmentController` so the body screen's ghosts seat through exactly the same arithmetic as the real thing — see [BodyEquipment.md](BodyEquipment.md) |
 | `DisplayCopy` | [Equipped/DisplayCopy.cs](Assets/Game/Scripts/Items/Equipped/DisplayCopy.cs) | Staged instantiate + `Strip`: the inert, script-free, collider-free copy every surface and ghost draws instead of a live item. Never an item — see [Backpack.md](Backpack.md) |
-| `HoldAnimator` | [Equipped/HoldAnimator.cs](Assets/Game/Scripts/Items/Equipped/HoldAnimator.cs) | Player → `PlayerAimRig.SetHeldStyle`; NPC/turret → a `Hold` bool |
+| `HoldAnimator` | [Equipped/HoldAnimator.cs](Assets/Game/Scripts/Items/Equipped/HoldAnimator.cs) | Player → `PlayerAimRig.SetHeldStyle`; an NPC wearing the player's layered controller (the nomad family) → `HoldStyle` + Upper Body layer weight written directly; any other NPC/turret → a `Hold` bool |
 | `ItemState` / `IItemStateCarrier` / `IItemDeferredRestore` | [Inventory/Core/ItemState.cs](Assets/Game/Scripts/Items/Inventory/Core/ItemState.cs) | String bag per slot; capture/restore; deferred pass for world references |
 | `HotbarSlotWire` | [Inventory/Components/PlayerInventoryNetwork.cs](Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs) | One slot on the wire: item id **plus one charge byte**. The bag does not replicate; this does. |
 | `SupplyCharge` | [Items/Supplies/SupplyCharge.cs](Assets/Game/Scripts/Items/Supplies/SupplyCharge.cs) | The one definition of a carried charge: state key, byte quantisation, capacity lookup |
@@ -109,6 +110,8 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 - Dropped items persist because `PlayerDropService` stamps `SaveableEntity.EnsureRuntime(obj, item.ID)` — the *item's* registry ID, so no prefab needs a hand-stamped `prefabId`.
 
 ## Gotchas
+
+- **The legacy `Hold` bool freezes any NPC on `AstronautArmature`.** That controller's Base Layer answers `Hold` by parking the whole body in `HumanM@Gun_Aim01` — legs included — and nothing brings it back while the item is held, so a sand nomad handed a gun slid across the desert as a statue: valid Humanoid avatar, `SpeedY` feeding the tree, clean console, 1° of thigh swing against the Nomad's 60°. The player never sees it because `PlayerAimRig` drives `HoldStyle` and the masked Upper Body layer instead. `HoldAnimator` now does the same for any holder whose animator has that layer and parameter; the bool is only for controllers built around it.
 
 - **`InventoryItem.ID` needs `[field: SerializeField]`.** `OnValidate` is editor-only; without the attribute every built player ships a null ID and `Registry.Register` throws on the first item — editor-invisible, build-only, i.e. every real multiplayer session.
 - **Item asset outside `Resources/Items`** = never registered, absent from the dev browser, and every save slot holding it comes back empty. No error. It can still be *held and displayed* by anything that keeps a direct reference — a `PackContainer`'s starting items did exactly that with the dead duplicates in `Assets/Game/ScriptableObjects/Items/`, so the item looked healthy on the pack and vanished the moment it crossed into the ID-keyed hotbar. `PackContainer.HotbarCanResolve` now refuses that crossing loudly, and [`PackStartingItemTests`](Assets/Game/Tests/Editor/PackStartingItemTests.cs) sweeps shipped container prefabs for it — see [Backpack.md](Backpack.md)'s Gotchas.

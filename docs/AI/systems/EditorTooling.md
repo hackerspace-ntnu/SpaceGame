@@ -16,7 +16,7 @@ symptoms:
   - "scenes are full of missing prefab instances a GUID grep cannot find"
   - "a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0)"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-05
+updated: 2026-09-06
 ---
 # Editor Tooling
 
@@ -61,7 +61,8 @@ Every custom Unity Editor window, menu command, prefab/asset builder and importe
 | Tools/Save System/Wire Saveable {Scene Objects, Chunk Scenes} | [SaveableWiring.cs](Assets/Game/Scripts/Core/Persistence/Editor/SaveableWiring.cs) | Same for the open scenes, or for every streamed chunk scene |
 | Tools/Save System/Validate Save Wiring | [SaveWiringValidator.cs](Assets/Game/Scripts/Core/Persistence/Editor/SaveWiringValidator.cs) | Reports wiring that would fail silently (missing ids, duplicate ids, unregistered prefabs) |
 | Tools/Save System/Report Unsaved State | [SaveCoverageReport.cs](Assets/Game/Scripts/Core/Persistence/Editor/SaveCoverageReport.cs) | Heuristic: mutable component state covered by no saver |
-| Tools/SpaceGame/Agents/Build Nomad NPC [(prefab only)] | [NomadPrefabBuilder.cs](Assets/Game/Editor/Agents/NomadPrefabBuilder.cs) | Builds `Nomad.prefab`, and (first variant only) places it in `persistentScene` |
+| Tools/SpaceGame/Agents/Build Nomad NPC [(prefab only)] | [NomadPrefabBuilder.cs](Assets/Game/Editor/Agents/NomadPrefabBuilder.cs) | Builds `Nomad.prefab` from the `Nomad` recipe, and (first variant only) places it in `persistentScene` |
+| Tools/SpaceGame/Agents/Build Sand Nomad NPCs · Place Sand Nomad Caravan | [NomadPrefabBuilder.cs](Assets/Game/Editor/Agents/NomadPrefabBuilder.cs) | The four `SandNomads` recipes: imports `nomad_{umber,tan,maroon,strawhat}.fbx` as Humanoid, builds `Nomad_*.prefab` with the random-weapon stack, adds the `sand-nomads` caravan to `NpcWorldSim`, syncs network prefabs and wires savers. The second menu reruns only the caravan step. Both `Sync Network Prefabs` and the scene step can raise modal dialogs, so run them from a focused editor |
 | Tools/SpaceGame/Cleanup/{Report, Remove} Missing Prefab Instances | [MissingPrefabInstanceCleaner.cs](Assets/Game/Editor/Multiplayer/MissingPrefabInstanceCleaner.cs) | Lists scene objects whose source prefab is deleted; Remove deletes them across every scene and saves |
 | Tools/SpaceGame/Items/{Build Repulsor Gauntlet, Wire FlungBody Into Player} | [RepulsorGauntletBuilder.cs](Assets/Game/Editor/AssetPipeline/RepulsorGauntletBuilder.cs) | Gauntlet prefab + item + 3 materials + 2 shake assets; then adds `FlungBody` to `PlayerCharacterNetworked.prefab` |
 | Tools/SpaceGame/Items/Build Expedition Rig Prefab | [ExpeditionRigWiring.cs](Assets/Game/Editor/Backpack/ExpeditionRigWiring.cs) | Rebuilds the backpack rig + 5 holder prefabs from FBX; edits the player prefab |
@@ -98,7 +99,7 @@ Everything below overwrites its output **wholesale** (`SaveAsPrefabAsset`/`Creat
 | Script | Generates/overwrites |
 | --- | --- |
 | [PlayerShipBuilder](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) · [DesertCrawlerBuilder](Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs) · [DuneFoilBuilder](Assets/Game/Editor/Vehicles/DuneFoilBuilder.cs) · [OrnithopterBuilder](Assets/Game/Editor/Vehicles/OrnithopterBuilder.cs) | `Prefabs/Agents/Vehicles/**` and `Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` |
-| [CrabWalkerBuilder](Assets/Game/Editor/Creatures/CrabWalkerBuilder.cs) · [DuneRatBuilder](Assets/Game/Editor/Creatures/DuneRatBuilder.cs) · [GolemBuilder](Assets/Game/Editor/Creatures/GolemBuilder.cs) · [VrescalBuilder](Assets/Game/Editor/Creatures/VrescalBuilder.cs) · [NomadPrefabBuilder](Assets/Game/Editor/Agents/NomadPrefabBuilder.cs) | `Prefabs/Agents/Creatures/*.prefab`, `Prefabs/Agents/Characters/Nomad.prefab` |
+| [CrabWalkerBuilder](Assets/Game/Editor/Creatures/CrabWalkerBuilder.cs) · [DuneRatBuilder](Assets/Game/Editor/Creatures/DuneRatBuilder.cs) · [GolemBuilder](Assets/Game/Editor/Creatures/GolemBuilder.cs) · [VrescalBuilder](Assets/Game/Editor/Creatures/VrescalBuilder.cs) · [NomadPrefabBuilder](Assets/Game/Editor/Agents/NomadPrefabBuilder.cs) | `Prefabs/Agents/Creatures/*.prefab`, `Prefabs/Agents/Characters/Nomad.prefab`, `Prefabs/Agents/Characters/Nomad_{Umber,Tan,Maroon,StrawHat}.prefab` |
 | [DragonBazookaBuilder](Assets/Game/Editor/AssetPipeline/DragonBazookaBuilder.cs) · [GravelBlasterBuilder](Assets/Game/Editor/AssetPipeline/GravelBlasterBuilder.cs) · [LaserStaffBuilder](Assets/Game/Editor/AssetPipeline/LaserStaffBuilder.cs) · [SuckerPuncherBuilder](Assets/Game/Editor/AssetPipeline/SuckerPuncherBuilder.cs) · [RepulsorGauntletBuilder](Assets/Game/Editor/AssetPipeline/RepulsorGauntletBuilder.cs) · [PortalContentBuilder](Assets/Game/Editor/Portals/PortalContentBuilder.cs) | `Prefabs/Items/Artifacts/**` + `Resources/Items/Artifacts/*.asset` + shake and material assets |
 | [NetGunBuilder](Assets/Game/Editor/Items/NetGunBuilder.cs) · [JumpingRodBuilder](Assets/Game/Editor/Items/JumpingRodBuilder.cs) · [ShipPartItemBuilder](Assets/Game/Editor/Items/ShipPartItemBuilder.cs) · [WingPackBuilder](Assets/Game/Editor/Vehicles/WingPackBuilder.cs) | Item prefabs + item assets (+ rope textures, pack shapes, test-world placement) |
 | [ExpeditionRigWiring](Assets/Game/Editor/Backpack/ExpeditionRigWiring.cs) | Backpack rig + 5 holder prefabs; also edits `PlayerCharacter.prefab` |

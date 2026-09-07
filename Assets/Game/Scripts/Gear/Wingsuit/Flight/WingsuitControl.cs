@@ -4,8 +4,9 @@ using UnityEngine;
 namespace SpaceGame.Gear.Wingsuit
 {
     /// <summary>
-    /// The stick, as pure functions: how a first-person player's mouse and keys become the four
-    /// axes <see cref="OrnithopterFlightModel"/> expects, and how far the view leans with the bank.
+    /// The stick, as pure functions: how a first-person player's mouse and keys become the axes
+    /// <see cref="OrnithopterFlightModel"/> expects — plus the one turn that goes round it — and
+    /// how far the view leans with the bank.
     ///
     /// <para>
     /// Separate from the MonoBehaviour for the reason the flight model is: this is where "fly where
@@ -60,11 +61,10 @@ namespace SpaceGame.Gear.Wingsuit
         /// it settles".
         /// </para>
         /// <para>
-        /// Used for BOTH the bank and the flat rudder, deliberately. Turning a wing is banking it,
-        /// and a mouse that only supplied a weak rudder meant the only real way to turn was A and D
-        /// — which is not what "fly where you look" promises, and was the single most common
-        /// complaint about how this steered. The mouse now rolls you into the turn the way it would
-        /// in any flight game, and A/D still bank directly on top for anyone who wants them.
+        /// This is the LEAN, not the turn. <see cref="Steer"/> is what actually changes the heading;
+        /// the wing rolling into the swing is what makes that turn read as flying rather than as a
+        /// body pirouetting in mid-air, and the lift it tilts sideways adds a little to the turn on
+        /// top. A/D bank directly and sum with it.
         /// </para>
         /// </summary>
         public static float Swing(float stick, float mouseDegrees, float decayPerSecond, float dt)
@@ -74,14 +74,37 @@ namespace SpaceGame.Gear.Wingsuit
         }
 
         /// <summary>
+        /// Turn the flight by the degrees the mouse asked for, outside the aerodynamics.
+        ///
+        /// <para>
+        /// The suit steers at the player's ordinary look sensitivity, and that is a deliberate lie
+        /// (GDC-L1-FEEL-0007). A wing turns by banking, and banking turns a 20 m/s wingsuit at
+        /// about 80°/s at full lock — perhaps a fifth of the speed the same mouse movement turns
+        /// the player's head on foot. That gap read as the suit ignoring the player: the mouse was
+        /// the one control that stopped behaving like the mouse the moment the wings came out. So
+        /// the heading answers it the way the look does, and the aerodynamic turn from the bank
+        /// adds on top rather than being the whole of it.
+        /// </para>
+        /// <para>
+        /// A rotation, so nothing is minted: airspeed and flight path angle are untouched and the
+        /// velocity only changes direction. It does not fade with airspeed either, which is what
+        /// replaced the tail fan — a stalled wing still answers the mouse.
+        /// </para>
+        /// </summary>
+        public static OrnithopterFlightState Steer(OrnithopterFlightState state, float yawDegrees)
+        {
+            state.Heading = Mathf.Repeat(state.Heading + yawDegrees, 360f);
+            return state;
+        }
+
+        /// <summary>
         /// The bank the wing is actually asked for: the mouse's swing and the strafe keys, together.
         ///
         /// Summed rather than one overriding the other, so holding A while pulling the mouse left
         /// banks harder rather than fighting itself, and clamped so the pair cannot exceed one
         /// stick's worth.
         /// </summary>
-        public static float Bank(float swing, float strafe, float mouseShare) =>
-            Mathf.Clamp(strafe + swing * mouseShare, -1f, 1f);
+        public static float Bank(float swing, float strafe) => Mathf.Clamp(strafe + swing, -1f, 1f);
 
         /// <summary>
         /// Everything the pilot is asking of the wing this step.
@@ -93,14 +116,19 @@ namespace SpaceGame.Gear.Wingsuit
         /// field somebody can type a number into, and this is not. Negative flap is still allowed
         /// and is the tuck — arms in, area shed, dive.
         /// </para>
+        /// <para>
+        /// <b>There is no rudder.</b> The model's yaw input is a tail fan and this suit has no
+        /// tail: the mouse turns the flight through <see cref="Steer"/> instead, which neither
+        /// fades with airspeed nor collapses in a stall. A rudder term alongside it would be a
+        /// second, weaker reply to the same movement of the same mouse.
+        /// </para>
         /// </summary>
-        public static OrnithopterFlightInput Stick(float noseStick, float rollStick,
-                                                   float rudderStick, bool tucking) =>
+        public static OrnithopterFlightInput Stick(float noseStick, float rollStick, bool tucking) =>
             new OrnithopterFlightInput(
                 pitch: Mathf.Clamp(noseStick, -1f, 1f),
                 roll: Mathf.Clamp(rollStick, -1f, 1f),
                 flap: tucking ? -1f : 0f,
-                turn: Mathf.Clamp(rudderStick, -1f, 1f));
+                turn: 0f);
 
         /// <summary>
         /// How far the view leans into a bank, in degrees.

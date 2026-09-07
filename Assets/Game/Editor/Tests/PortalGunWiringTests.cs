@@ -113,6 +113,81 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(jet.main.loop, "the jet stops after one burst instead of while held");
         }
 
+        /// <summary>
+        /// The droplets fly the arc the paint is traced along.
+        ///
+        /// The one drift a code default cannot catch. PortalJet integrates a parabola in C# from
+        /// the serialized numbers below; the stream the player watches is an ordinary
+        /// ParticleSystem under Unity's own gravity, and it traces the same curve only while its
+        /// start speed, gravity modifier and lifetime are the same three numbers. They have
+        /// already disagreed once — the prefab kept the hitscan gun's 55 m/s while the paint flew
+        /// at 13 — and the symptom is paint landing somewhere the player never saw the stream go,
+        /// which reads as the gun being inaccurate rather than as a mismatch.
+        /// </summary>
+        [Test]
+        public void TheDropletsFlyTheArcThePaintIsTracedAlong()
+        {
+            PortalGunItem gun = Load<PortalGunItem>(GunPath);
+            var so = new SerializedObject(gun);
+
+            var jet = so.FindProperty("jet").objectReferenceValue as ParticleSystem;
+            Assert.IsNotNull(jet, "the gun has no jet, so spraying is invisible");
+
+            ParticleSystem.MainModule main = jet.main;
+
+            Assert.AreEqual(so.FindProperty("jetSpeed").floatValue, main.startSpeed.constant, 1e-3f,
+                            "the droplets leave the nozzle at a different speed than the paint");
+            Assert.AreEqual(so.FindProperty("jetGravity").floatValue, main.gravityModifier.constant,
+                            1e-3f, "the droplets fall at a different rate than the paint");
+            Assert.AreEqual(so.FindProperty("jetFlightTime").floatValue,
+                            main.startLifetime.constant, 1e-3f,
+                            "the droplets and the trace give up on the stream at different times");
+        }
+
+        /// <summary>
+        /// The halo is drawn ON the aperture's edge, on a sheet big enough to hold it.
+        ///
+        /// Both halves of "the portal and its outline do not line up". PortalRim puts its ring
+        /// _Radius outside the edge and _Thickness wide, in units of _Depth — the radius the
+        /// stroke was sprayed at — and reaches 2.2 bands further with its sparks. So _Radius is a
+        /// GAP, in stroke radii, and the shipped material carried 0.62 of one: two thirds of a
+        /// metre of bare wall between the hole and the ring drawn around it, because the property
+        /// used to be normalised against the aperture's own size and the .mat kept the number it
+        /// was born with when the shader went metric.
+        ///
+        /// The second assert is the other end of it: Portal sizes the rim quad from
+        /// <see cref="Portal.RimReach"/> in those same units, and a ring that outgrows its own
+        /// sheet is cut off at the quad's edge, which looks the same to a player.
+        ///
+        /// Asked of the aperture the GUN opens, not of a path — PortalOrange and PortalBlue are
+        /// still on disk and nothing instantiates them.
+        /// </summary>
+        [Test]
+        public void TheHaloIsDrawnOnTheEdgeAndFitsItsSheet()
+        {
+            PortalGunItem gun = Load<PortalGunItem>(GunPath);
+            Portal portal = gun.PortalPrefab;
+            Assert.IsNotNull(portal, "the gun's aperture prefab reference is null");
+
+            var so = new SerializedObject(portal);
+            var rim = so.FindProperty("rimRenderer").objectReferenceValue as Renderer;
+            Assert.IsNotNull(rim, "the aperture has no rim renderer");
+
+            Material material = rim.sharedMaterial;
+            Assert.IsNotNull(material, "the rim renderer has no material");
+
+            float gap = material.GetFloat("_Radius");
+            float reach = gap + material.GetFloat("_Thickness") * 2.2f;
+
+            Assert.Less(gap, 0.25f,
+                $"the halo is drawn {gap:0.###} stroke radii clear of the opening, which is a " +
+                "visible gap between the aperture and its own outline");
+
+            Assert.GreaterOrEqual(Portal.RimReach, reach,
+                $"the halo reaches {reach:0.###} stroke radii out and its quad only carries " +
+                $"{Portal.RimReach:0.###}, so the outline is clipped at the sheet's edge");
+        }
+
         /// <summary>The hotbar instantiates the InventoryItem's prefab, not the one tests load.</summary>
         [Test]
         public void TheInventoryItemPointsAtTheGun()
@@ -197,9 +272,14 @@ namespace SpaceGame.EditorTools
         /// <c>ItemGrip.packSize</c> of <c>0</c> does not mean "unset". It means "follow
         /// <c>holdSize</c>", which is the HAND's number off <c>ItemScaleLadder</c>'s bracket
         /// ladder — a ladder that is deliberately not life size, because the astronaut's hand is
-        /// about 1.7x a human's. This gun is a 0.4445 m fire extinguisher on the Gun bracket at
-        /// 1.25 m, so through that fallback the pack drew it 1.875 m tall on a 1.08 m leaf and
-        /// charged 36 of the rig's 255 cells for it.
+        /// about 1.7x a human's. This gun is a 0.4445 m fire extinguisher that was on the Gun
+        /// bracket at 1.25 m, so through that fallback the pack drew it 1.875 m tall on a 1.08 m
+        /// leaf and charged 36 of the rig's 255 cells for it.
+        /// </para>
+        /// <para>
+        /// It has since left that bracket for <c>BigTool</c>'s 0.73 (2026-09-06, backlog GEAR-02),
+        /// and the mat did not move a millimetre — which is the whole point of the two numbers
+        /// being separate, and is why this test asserts both rather than a ratio between them.
         /// </para>
         /// <para>
         /// The bug that comes BACK is a bracket edit. Nudge <c>holdSize</c> for feel — which is
@@ -229,9 +309,11 @@ namespace SpaceGame.EditorTools
                 "the portal gun's mat size is no longer the 0.54 m PortalContentBuilder derives " +
                 "from its true 0.4445 m model. Read that constant's note before changing this.");
 
-            Assert.AreEqual(1.25f, grip.HoldSize, 1e-3f,
-                "holdSize moved. It is the ItemScaleLadder Gun bracket and the hand's number " +
-                "only — sizing the gun for the mat must not touch how it is held.");
+            Assert.AreEqual(0.73f, grip.HoldSize, 1e-3f,
+                "holdSize moved. It is the ItemScaleLadder BigTool bracket and the hand's number " +
+                "only — sizing the gun for the mat must not touch how it is held. It left the Gun " +
+                "bracket's 1.25 m on 2026-09-06 (backlog GEAR-02): that number is a REACH and " +
+                "holdSize is a LONGEST AXIS, which on a bottle gripped at the top is its height.");
 
             var asset = AssetDatabase.LoadAssetAtPath<InventoryItem>(ItemAssetPath);
             Assert.IsNotNull(asset, $"no InventoryItem at {ItemAssetPath}");

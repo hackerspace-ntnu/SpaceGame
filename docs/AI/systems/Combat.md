@@ -14,8 +14,14 @@ symptoms:
   - "a client sees no damage numbers at all, or its own shots do nothing"
   - "damage numbers and nameplates exist in code but nothing ever shows in game, for host and clients alike"
   - "the ragdoll jitters and vibrates instead of falling limp"
+  - "a creature built from several meshes blows apart when it dies, while single-mesh ones fall fine"
+  - "every limb of the ragdoll is jointed straight to one hub instead of down the limb"
+  - "parts of the model stay hanging in the air while the rest of the corpse falls"
+  - "the ragdoll is only the creature's neck, or a single body, and the rest of the animal is missing"
+  - "the ragdoll audit reports unfiltered: 0 on a body that visibly tears itself apart"
   - "loot drops or the enrage fires again every time I load the world"
   - "the corpse stays suspended in the air with its brain switched off"
+  - "pressing respawn does nothing and the console shows MissingReferenceException from RagdollRig.Recover"
   - "the turret or NPC aims its weapon at the host's camera"
   - "the gun fires at the ground, or at the vehicle, while its holder is mounted"
   - "the projectile works on the host but never appears for clients"
@@ -24,7 +30,7 @@ symptoms:
   - "the orb discharges on the host and on a client at slightly different moments"
   - "firing a gun near wildlife or a guard provokes no reaction at all"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-04
+updated: 2026-09-07
 ---
 
 # Combat
@@ -42,7 +48,9 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 - **Aim travels, it is never recomputed.** `Weapon.OnRequestUse` stamps `arg.P` (spawn point) and `arg.R` (look rotation) from the owner's own aim. `GetAimPoint`/`GetFireDirection` prefer `UseArg` and only fall back to the local one. That local answer comes from the holder's [`AimProvider`](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) — `Camera.main` is the *host's* camera on a server, and is not the mount's orbit camera either (that one is deliberately left `Untagged`), so the `aimCamera`/`Camera.main` path is now the fallback for a weapon with no player behind it. Range is `aimRange` (500 m), serialized, and used by all three of the aim paths.
 - **Health replicates by assignment, not delta.** `NetworkedHealthComponent` holds a `NetworkVariable<int>` (read Everyone / write Server — Owner permission published server-owned creatures to nobody) and clients apply it via `RestoreHealth`, which is the "this value is now the truth" path.
 - **Death is `HealthComponent.OnDeath`**, raised both by a killing blow and by a save restoring a lethal value. `IsRestoring` tells them apart: state must be re-applied, consequences (loot, death sound, despawn timer, ragdoll impulse) must not repeat.
-- **Ragdolls are derived, never authored.** `CharacterJoint` appears nowhere on disk; [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) picks bones by share of mesh vertex weight, so one implementation covers all ten rigs.
+- **Ragdolls are derived, never authored.** `CharacterJoint` appears nowhere on disk; [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) picks bones by the share of the creature each one carries, so one implementation covers all ten rigs.
+- **Bodies go on the RIG, never on the meshes hanging off it.** Both kinds of model here have one — a skinned character binds its surface to a skeleton, a hard-surface creature parents rigid pieces onto one — and only the rig knows where a limb bends. Meshes are leaves, so a skeleton built on them can find no parent to joint to and collapses into a star around one hub. `SelectRigNodes` picks the articulating nodes; `NearestRigNode` says which of them carries each piece of geometry.
+- **Importance is a volume, not a vertex count.** A bone's share of its renderer's weight, scaled by that renderer's own bounds (`CarriedVolume`) — the one unit that ranks a skinned bone and a bolted-on rigid part together, and the only one that survives a model built from several meshes at different densities.
 
 ## Key types
 
@@ -63,7 +71,7 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 | `AgentProjectile` | [AgentProjectile.cs](Assets/Game/Scripts/agents/Weapons/AgentProjectile.cs) | Rigidbody bullet for NPCs; friendly-fire filter via `EntityFaction` |
 | `AgentWeaponDefinition` / `AgentFireProfile` / `AgentAimProfile` | [agents/Weapons/](Assets/Game/Scripts/agents/Weapons/) | ScriptableObjects: damage+prefab, range/cadence/burst, spread+lead |
 | `RagdollRig` | [RagdollRig.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollRig.cs) | Builds bodies/joints on first limp; `GoLimp`/`Recover`/`Freeze`, `Drives`, `IsSettled` |
-| `RagdollSkeleton` | [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) | Pure math: bone selection by weight, settle test. Unit-testable |
+| `RagdollSkeleton` | [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) | Pure math: `SelectRigNodes`, `NearestRigNode`, `SubtreeBulk`, `CarriedVolume`, `SelectBones`, settle test. Unit-testable |
 | `RagdollBudget` | [RagdollBudget.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollBudget.cs) | Static per-process cap; freezes the oldest *settled* body |
 | `AgentRagdoll` / `PlayerRagdoll` | [Gameplay/Ragdoll/](Assets/Game/Scripts/Gameplay/Ragdoll/) | Decide *when* to go limp and suspend the layers that own the transform |
 | `DamageNumbers` / `PlayerNameplates` | [Presentation/UI/World/](Assets/Game/Scripts/Presentation/UI/World/) | Screen-space overlays hosted by `WorldOverlay` |
@@ -135,6 +143,12 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 - **Missing registration fails on clients only** — the host instantiates its own copy and never consults the list, so solo playtesting cannot find it.
 - **`private void OnEnable` on a `Weapon` subclass hides the base** and Unity calls only the subclass: the magazine is never resolved or refilled, `CanUse()` returns false, and the gun silently fires nothing. Same trap with `new` instead of `override` on `GetSpawnPosition` — base-class callers keep the base answer.
 - **Ragdoll self-collision must stay off.** Colliders are *estimated* from bone length, and sibling limbs (two thighs, both jointed to the hips and not to each other) necessarily interpenetrate — measured at 15 cm on the Nomad. That is what a jittering ragdoll is.
+- **The filter must cover every collider a body owns, not one per bone.** Adding a `Rigidbody` makes PhysX adopt everything beneath the transform, so a model with a hand-authored collision proxy hands its whole hull to the ragdoll whether or not anyone asked — CrabWalker6 carries twenty-two `COL_*` boxes. An authored hull overlaps itself the way every hull does, and outside the filter that is twenty-two contacts the solver fights every tick and can never win. `RagdollRig.OwnedCollider` records them; `Diagnose Wired Prefabs` had the identical blind spot (`GetComponent<Collider>()`, the body's own object) and reported `unfiltered: 0` on a body tearing itself apart.
+- **The bone a rig's branches meet at usually carries nothing, so it gets no body.** The ostrich's legs, spine and neck all hang off a `Root` with no mesh of its own — it scores no bulk and misses the weight floor. Giving it one anyway is worse than not: it would be the root of the whole chain at `minBoneMass`, 0.6 kg holding a 57 kg spine, the very ratio `minBoneMass` exists to prevent. Instead a branch with no simulated ancestor is jointed to the ragdoll's **root bone** — a leg jointed to the torso, which is what a hand-built ragdoll does anyway.
+- **The root bone is the heaviest BRANCH, not the heaviest bone.** `Select` orders shallowest-first (so the joint pass finds parents already built) and breaks ties on `RagdollSkeleton.SubtreeBulk`. Its own bulk is the wrong tiebreak: a thigh outweighs a chest, and PatrolRobot 1 came out rooted at its right leg with the left leg jointed to it and the whole upper body hanging off the pair. Getting this wrong is silent — the body still holds together, it just hangs from the wrong end.
+- **A held weapon's colliders are not the hand's.** A sword and a gun sit under the robots' right arm, and a bone that counts them thinks it brought a shape and skips synthesising the one it needed — four robots ended up with a 14 kg hand carrying no collision of its own. They still have to be adopted for *filtering* (PhysX attaches them to that body regardless); they just are not the bone's shape. The test is whether anything is **drawn at or below** the collider: a prop leads to a renderer, a hand-authored hull like the crab's `COL_*` draws nothing anywhere under it. On the collider's own GameObject is not enough — the sword's collider sits on a bare object whose mesh hangs one level down.
+- **Recovery restores each collider, it does not switch the body's `detectCollisions` off.** A bone that inherited an authored proxy is holding the creature's own collision — how it blocks and how it is hit — and taking that down with the ragdoll leaves a creature that stood up and can no longer be touched. Everything the rig *created* was born disabled and goes back to disabled, so a purely skinned body is left exactly as it was.
+- **A bone can be destroyed out from under the rig.** The skeleton is built over transforms `RagdollRig` does not own, and a body wears things that come and go — a gauntlet stripped, a backpack swapped, a held item unequipped, each an `Instantiate` onto a bone and a `Destroy` later. `Build` takes any node under the root that carries geometry, so gear worn at the moment of the first limp can end up holding bodies. Reading one of those transforms afterwards throws a `MissingReferenceException`, and from `Recover` that exception escapes through `HealthComponent`'s revive event: the rest of the revive never runs and the player is left dead with their controls never handed back — seen as a respawn button that does nothing on a world entered dead. `DropLostBones` forgets a bone whose transform or body is gone, at the top of `GoLimp` and `Recover`. Anything new that iterates `bones` must tolerate the same loss.
 - **Two owners of one transform.** A `NavMeshAgent` writes the transform every enabled frame and `LeggedLocomotion` rewrites it from world-space foot state every `LateUpdate`. `AgentRagdoll` resolves `ISelfDrivingMotor` lazily because caching it in `Awake` races `AgentController.Awake` — and a null motor is a body that glitches rather than falls, decided by component order on the prefab.
 - **A ragdoll frozen out from under you.** `RagdollBudget` may `Freeze` a limp rig; `AgentRagdoll.Update` watches for `!rig.IsLimp` and restores, or the creature stays suspended with its brain off forever.
 - **`Weapon.ExternallyAimed`** must be set when an NPC or turret holds a weapon, or `UpdateWeaponRotation` passes its ownership test on the server and swings every NPC's barrel to follow the host's head.

@@ -390,7 +390,7 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static Vector3 FaceDirection(InventoryItem item)
         {
-            var supply = item.itemPrefab.GetComponent<DockableSupply>();
+            SupplyReservoir supply = SupplyReservoir.On(item.itemPrefab);
             if (supply == null || supply.Readout == null) return Vector3.zero;
 
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(item.itemPrefab);

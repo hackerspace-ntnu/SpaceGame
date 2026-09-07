@@ -42,9 +42,6 @@ namespace SpaceGame.Core
     
         public event Action OnInteractPressed;
 
-        /// <summary>Q: take back whatever the crosshair is on. See IRetrievable.</summary>
-        public event Action OnRetrievePressed;
-    
         public event Action OnUsePressed;
 
         /// <summary>
@@ -81,6 +78,22 @@ namespace SpaceGame.Core
         /// will ever come back to cancel.
         /// </summary>
         public bool CrouchHeld { get; private set; }
+
+        /// <summary>
+        /// Whether Jump is DOWN, as opposed to having been pressed.
+        ///
+        /// <para>
+        /// The jetpack's throttle. Every other consumer of Jump wants the edge — one press, one
+        /// hop — but a motor that fires for as long as you hold the button has to be able to ask
+        /// the state, and reconstructing it from the two events at every call site is how two
+        /// systems end up disagreeing about whether the key is down.
+        /// </para>
+        /// <para>
+        /// Cleared in <see cref="OnDisable"/> for the same reason <see cref="CrouchHeld"/> is: a
+        /// held key that outlives the map is a throttle nothing will ever come back to close.
+        /// </para>
+        /// </summary>
+        public bool JumpHeld { get; private set; }
 
         public event Action OnJumpPressed;
 
@@ -369,8 +382,8 @@ namespace SpaceGame.Core
 
             // World interaction
             inputs.Player.Interact.performed += _ => OnInteractPressed?.Invoke();
-            inputs.Player.Retrieve.performed += _ => OnRetrievePressed?.Invoke();
-            inputs.Player.Jump.performed     += _ => HandleJump();
+            inputs.Player.Jump.performed     += _ => { JumpHeld = true; HandleJump(); };
+            inputs.Player.Jump.canceled      += _ => JumpHeld = false;
             inputs.Player.GauntletLeft.performed  += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Left);
             inputs.Player.GauntletLeft.canceled   += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Left);
             inputs.Player.GauntletRight.performed += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Right);
@@ -424,6 +437,7 @@ namespace SpaceGame.Core
             MoveInput = Vector2.zero;
             LookInput = Vector2.zero;
             CrouchHeld = false;
+            JumpHeld = false;
         }
 
         private void OnDestroy()

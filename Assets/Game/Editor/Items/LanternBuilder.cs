@@ -6,7 +6,7 @@
 //                         physics, and PlaceableItem, which spawns the other one and spends
 //                         itself doing it.
 //   PlacedLantern.prefab  the thing standing on the ground. A Light, a collider you cannot walk
-//                         through, and PlacedObject, which hands the item back on Q.
+//                         through, and PlacedObject, which hands the item back on right-click.
 //
 // Re-running is safe and is the intended workflow: both prefabs are rebuilt in place, so anything
 // added by hand in the Inspector is discarded by the next run with nothing said.

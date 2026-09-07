@@ -160,7 +160,7 @@ namespace SpaceGame.Items
                 input.OnPackRackPressed += OnRackKey;
             }
 
-            focusCamera = PackFocusCamera.Spawn(controller.Pack.transform, ViewDirection(), PlayerCamera());
+            focusCamera = PackFocusCamera.Spawn(controller.Pack, ViewDirection(), PlayerCamera());
 
             if (focusCamera != null)
                 hand = PackHandController.Attach(focusCamera, controller, LocalInteractor(), input);

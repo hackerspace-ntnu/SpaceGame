@@ -96,8 +96,18 @@ already disagree wildly — `gravel_blaster` is 1.22 m in Blender and
 The bracket a net gun belongs in is therefore **`Gun`, 1.25 m** — the anchor
 itself, shared by `Gun.prefab`, `PortalGun` and `GravelBlaster`. Nothing new was
 invented and nothing was rounded to a nearby number. **Task 12 must set
-`ItemGrip.holdSize` to 1.25** and leave `packSize` at 0; guns stay at the anchor
-on the mat on purpose, because big gear goes on the rack with overhang.
+`ItemGrip.holdSize` to 1.25.**
+
+`packSize` was left at 0 here on the reasoning that guns stay at the anchor on
+the mat too, because big gear goes on the rack with overhang. **That was wrong
+for this gun and is now 0.63** (`NetGunBuilder.PackSize`): the 0.09 m webbing
+pitch above the model's own 0.629 m. The overhang argument holds for a launcher
+whose true size really is about a metre; a 0.629 m capture pistol drawn at 1.25 m
+took 7 x 14 = 98 of the rig's 255 cells, and `ItemWorldScale` dropped it in the
+sand 2.39 m long — nearly four times the modelled gun. At 0.63 it measures
+0.288 x 0.465 x 0.661 m on the mat: **4 x 7 = 28 cells**, and 1.20 m in the sand. `packSize` is the size in every frame that is not the hand — mat,
+gear wall and world — and it is authored in true-world metres, which is why it
+is the one number here the model's own 0.629 m does feed.
 
 0.62 m in Blender is then a modelling convention, not a game size, and it is the
 right one: it is a plausible real-world capture pistol, so the proportions the

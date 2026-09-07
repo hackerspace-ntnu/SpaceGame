@@ -556,8 +556,14 @@ namespace SpaceGame.Items
         /// same place. Every machine builds its own pack in Awake and moves it on this message, so
         /// there is nothing to spawn — only a state to agree on.
         /// </para>
+        /// <para>
+        /// <paramref name="racked"/> is whether the front flap was standing up — the pack closed —
+        /// when the file was written. It rides its own <c>NetworkVariable</c> rather than this
+        /// message, so it is applied here and travels separately, which is the same split a joiner
+        /// gets.
+        /// </para>
         /// </summary>
-        public void RestoreDeployState(State state, Pose grounded)
+        public void RestoreDeployState(State state, Pose grounded, bool racked)
         {
             if (Pack == null) return;
 
@@ -566,6 +572,13 @@ namespace SpaceGame.Items
             if (state == State.Open)
             {
                 FinishDeploy(grounded);
+
+                // After the landing, not before it: FinishDeploy's SetOpen(true) is what makes a
+                // rack mean anything, and the sheet it starts leaves a raised leaf alone anyway
+                // because LeafFromOpen takes whichever demand is further from the open pose.
+                // A pack restored SHOULDERED is not asked at all — a worn pack is never racked,
+                // and SnapToWorn's own backstop is what says so.
+                Pack.RestoreRack(racked);
             }
             else
             {
@@ -616,6 +629,13 @@ namespace SpaceGame.Items
             Pack.SetFlying(true);
             Pack.SetWorn(false);
             Pack.transform.SetParent(null, true);
+
+            // The rig lands CLOSED, and this is the frame that decides it. Taken here rather than
+            // at the landing because the pack is still folded, so the leaf is already at the angle
+            // the rack holds and claiming it moves nothing; the unfold that FinishDeploy starts
+            // then leaves the flap alone. AFTER SetWorn(false), or the "a pack on a back is never
+            // racked" backstop in there would clear it again on the same frame.
+            Pack.ResolveRackForDeploy();
 
             RefreshFirstPersonHidden();
 

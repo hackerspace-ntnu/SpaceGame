@@ -240,6 +240,100 @@ namespace SpaceGame.EditorTools
             Assert.Less(MeanRadius(line, Vector3.zero), open * 0.8f, "the loop never cinched shut");
         }
 
+        [Test]
+        public void TheRopeEndsOnTheLoopAndNotInTheMiddleOfIt()
+        {
+            // Reported as "the loop doesn't connect to the rope properly", and it did not: the
+            // artifact drew the cable to the point the loop was centred on, so it stopped dead in
+            // the hole with the loop hovering unattached around it. The knot each drawing method
+            // now returns is the fix, and it is only a fix if it is genuinely ON the drawn line.
+            LassoLoop loop = NewLoop(out LineRenderer line);
+            loop.Show();
+
+            Vector3 centre = new Vector3(3f, 2f, -1f);
+
+            Vector3 twirled = loop.Twirl(centre, Vector3.up, charge: 1f, deltaTime: 0.1f);
+            AssertOnTheLoop(line, twirled, "twirling");
+
+            Vector3 flown = loop.Fly(centre, Vector3.forward, charge: 1f, deltaTime: 0.1f);
+            AssertOnTheLoop(line, flown, "in flight");
+
+            Vector3 ridden = loop.Ride(centre, Vector3.back, 0.1f);
+            AssertOnTheLoop(line, ridden, "riding the catch");
+
+            // And on the RIM, which is the half that makes it a knot rather than a rename of the
+            // centre. A honda a rope's width from the middle would pass the test above and still
+            // draw the same disconnected hoop.
+            Assert.Greater(Vector3.Distance(ridden, centre), loop.Radius * 0.5f,
+                "the knot sat near the loop's centre rather than on its rim");
+        }
+
+        [Test]
+        public void TheLoopIsPinchedAtTheKnotAndOpenOppositeIt()
+        {
+            // Reported as "a perfect circle" — which it was, to within a 10% wobble. A rope loop is
+            // not: it is drawn together into a throat where the standing part passes through the
+            // honda, and carries its width at the far end. That asymmetry is the whole tell, so it
+            // is what gets pinned rather than the radius, which a circle also has.
+            LassoLoop loop = NewLoop(out LineRenderer line);
+            loop.Show();
+            loop.Fly(Vector3.zero, Vector3.forward, charge: 1f, deltaTime: 0.1f);
+
+            int last = line.positionCount - 1;   // the closing vertex, back at the knot
+            int opposite = last / 2;
+
+            // The two strands either side of the knot, against the two either side of the belly.
+            float throat = Vector3.Distance(line.GetPosition(1), line.GetPosition(last - 1));
+            float mouth = Vector3.Distance(line.GetPosition(opposite - 1), line.GetPosition(opposite + 1));
+
+            Assert.Less(throat, mouth * 0.5f,
+                "the strands left the knot as wide apart as the far side of the loop — that is a hoop");
+
+            // The belly hangs further from the centre than the knot does, which is what makes it a
+            // pear rather than a ring with a dent in it.
+            Assert.Greater(Vector3.Distance(line.GetPosition(opposite), Vector3.zero),
+                           Vector3.Distance(line.GetPosition(0), Vector3.zero),
+                           "the far side of the loop did not hang past the knot");
+        }
+
+        /// <summary>
+        /// The mouth is still as wide as <c>Radius</c> says it is.
+        ///
+        /// <para>
+        /// The catch is a sphere of that radius and <c>LassoAim</c> draws a ring of it, so pinching
+        /// the shape without holding this would quietly close the mouth while the guide went on
+        /// promising the old one — the exact failure the "drawn radius is the catch radius" rule
+        /// exists to prevent.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void PinchingTheKnotDoesNotNarrowTheMouth()
+        {
+            LassoLoop loop = NewLoop(out LineRenderer line);
+            loop.Show();
+            loop.Fly(Vector3.zero, Vector3.forward, charge: 1f, deltaTime: 0.1f);
+
+            float widest = 0f;
+            for (int i = 0; i < line.positionCount; i++)
+                widest = Mathf.Max(widest, Vector3.Distance(line.GetPosition(i), Vector3.zero));
+
+            // A third, because the belly and the wobble are both allowed to reach past Radius: at
+            // the shipped shape the furthest vertex sits between 1.13 and 1.25 of it depending on
+            // where the wobble happens to be. Wide enough to leave that alone, narrow enough to
+            // catch a mouth that has closed or ballooned.
+            Assert.That(widest, Is.EqualTo(loop.Radius).Within(loop.Radius * 0.35f),
+                "the drawn loop was no longer the size Radius promises the aim guide and the catch");
+        }
+
+        private static void AssertOnTheLoop(LineRenderer line, Vector3 knot, string state)
+        {
+            float nearest = float.MaxValue;
+            for (int i = 0; i < line.positionCount; i++)
+                nearest = Mathf.Min(nearest, Vector3.Distance(line.GetPosition(i), knot));
+
+            Assert.Less(nearest, 1e-4f, $"the knot was not a point on the loop while {state}");
+        }
+
         // ── LassoTether ────────────────────────────────────────────────────────
 
         [Test]

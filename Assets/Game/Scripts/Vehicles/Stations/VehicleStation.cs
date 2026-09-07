@@ -484,9 +484,10 @@ namespace SpaceGame.Vehicles
             //
             // The server is waved through the way MountNetworkSync.MayDismount waves it through: it
             // seats and unseats people for reasons no client asked for, and offline every send is
-            // attributed to the server id. So is a player with no spawned NetworkObject, which is
-            // single-player and tests, where there is no id to compare against.
-            if (!MayActFor(player, sender)) return;
+            // attributed to the server id. A player with no spawned NetworkObject is refused rather
+            // than waved through — see Network.MayActFor for why that is the strict reading, and
+            // note that the offline case this used to be worried about never reaches the test.
+            if (!Network.MayActFor(player, sender)) return;
 
             if (arg.B == FreeVerb)
             {
@@ -527,19 +528,6 @@ namespace SpaceGame.Vehicles
             }
 
             ClaimOnServer(player, arg.P.x);
-        }
-
-        /// <summary>May <paramref name="sender"/> speak for <paramref name="player"/>? See the
-        /// call site for why this is checked and why the server and unnetworked bodies are not.</summary>
-        private static bool MayActFor(GameObject player, ulong sender)
-        {
-            if (!Network.IsNetworked) return true;
-            if (sender == NetworkManager.ServerClientId) return true;
-
-            NetworkObject body = player.GetComponent<NetworkObject>();
-            if (body == null || !body.IsSpawned) return true;
-
-            return body.OwnerClientId == sender;
         }
 
         private void ClaimOnServer(GameObject player, float wanted)

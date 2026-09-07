@@ -4,7 +4,6 @@
 **Status:** approved, not yet implemented
 **Governs:** [`Assets/Game/Scripts/Items/Artifacts/Leash/`](../../../Assets/Game/Scripts/Items/Artifacts/Leash)
 **Doc to update on landing:** [docs/AI/systems/LeashSystem.md](../../AI/systems/LeashSystem.md)
-**Depended on by:** [2026-09-05-crucible-puzzle-design.md](2026-09-05-crucible-puzzle-design.md)
 
 ## Problem
 

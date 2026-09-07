@@ -146,9 +146,9 @@ Shader "SpaceGame/Portal/PortalSurface"
                 float t = _Time.y * _Speed;
 
                 // The edge is not a clean curve — it crawls. Sampled in polar coordinates so the
-                // wobble travels AROUND the aperture rather than sliding across it.
-                float crawl = (PortalFbm(float2(angle * 2.2, t * 0.6), 3) - 0.5) * 2.0 * _Crawl;
-                d += crawl;
+                // wobble travels AROUND the aperture rather than sliding across it, and taken from
+                // PortalStencil.hlsl because PortalRim draws its halo around the SAME edge.
+                d += PortalStencilCrawl(angle, _Crawl);
 
                 clip(-d);
 

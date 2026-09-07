@@ -58,6 +58,53 @@ namespace SpaceGame.EditorTools
         /// <summary>The strike graph the arc drops on whatever it rests on. Tinted at runtime.</summary>
         private const string StrikeVfxPath = "Assets/Game/Prefabs/VisualEffects/Lightning/Lightning.prefab";
 
+        /// <summary>
+        /// The turn that lays the staff DOWN, applied to the model on top of the FBX importer's
+        /// own axis conversion.
+        ///
+        /// <para>
+        /// The importer's −90&#176; about X puts the staff's long axis on prefab <b>+Y</b> with the
+        /// crown up, and <c>ItemFootprint.FootprintOf</c> is <em>defined</em> as
+        /// <c>(size.x, size.z)</c> — the shadow an item casts with its own up still up. So a staff
+        /// left in that frame reserved a 2 x 1 cell stub on the pack and was drawn balanced on its
+        /// tip, 1.42 m of it standing straight out of the mat. That read as a bug and it was
+        /// authored data (backlog INV-01).
+        /// </para>
+        /// <para>
+        /// <c>Euler(0, 90, 90)</c> cycles the axes <c>+X -&gt; +Y -&gt; +Z -&gt; +X</c>, which does
+        /// two things at once and both are measured off the mesh rather than judged. It takes the
+        /// long axis to <b>+Z</b>, crown forward — the axis <see cref="ItemGrip"/> calls "the way
+        /// the item points". And it stands the <em>thicker</em> of the two cross-sections up:
+        /// <c>Mesh_Staff_Gnarled</c> measures 0.1199 x 0.1030 across a 1.5468 m length
+        /// (walking_staff.blend), which on the mat is 1.163 cells by 0.999. Putting the thick one
+        /// up leaves a <b>1 x 15</b> footprint instead of 2 x 15, and that is the difference
+        /// between an item the 18 x 1 cell <see cref="PackSurfaceId.LongGoods"/> lash line takes
+        /// and one it refuses — a lash line that was cut for this staff and nothing else (see
+        /// <see cref="PackSurfaceId.LongGoods"/>, which shows the arithmetic). The remaining
+        /// choice — this turn or the same turn plus a half-turn about the shaft — is free, and
+        /// it is the one thing here that is not measured: a gnarled pole has no grip, no sight
+        /// and no foot, so unlike a rifle it has no upside down to get wrong.
+        /// </para>
+        /// <para>
+        /// <b>The pose in the hand does not move.</b> The grip's <c>rotationOffset</c> is set to
+        /// the inverse of this and <c>rotation = handRotation * Euler(offset)</c> multiplies the
+        /// two back out; the origin IS the grip, so turning about it leaves the same point in the
+        /// palm. That is the correction <c>ItemPackOrientation.Reframe</c> applies to hand-authored
+        /// prefabs, living here instead because this prefab is rebuilt wholesale by
+        /// <see cref="Build"/> and would swallow one made there without a word —
+        /// <c>JumpingRodBuilder.LieDown</c> is the other worked example.
+        /// </para>
+        /// <para>
+        /// <b>Take the inverse as a quaternion, never by negating the euler.</b>
+        /// <c>-LieDown</c> is the right answer for a turn about ONE axis, which is what the jumping
+        /// rod needed and is why the idiom looks safe; here it is
+        /// <c>Euler(0, -90, -90)</c>, which is <b>120&#176; away</b> from the real inverse
+        /// (<c>Euler(-90, -90, 0)</c>). A staff a third of a turn out of the fist is what that
+        /// shortcut ships.
+        /// </para>
+        /// </summary>
+        private static readonly Vector3 LieDown = new(0f, 90f, 90f);
+
         [MenuItem("Tools/Build Laser Staff Artifact")]
         public static void Build()
         {
@@ -109,10 +156,16 @@ namespace SpaceGame.EditorTools
             modelInstance.name = "Model";
             modelInstance.transform.SetParent(root.transform, false);
 
-            // The staff was authored along +Z with its origin at the grip (see
-            // walking_staff_BUILD.md), and Unity's convention for a held item is that it points
-            // along the item's own +Z too — so no correction rotation is applied here. The
-            // LightningSpell prefab's -90° X rotation is that item's own posing, not a units fix.
+            // Laid down, and COMPOSED with what the instance already carries rather than assigned
+            // over it: the FBX imports with bakeAxisConversion off, so the model prefab's own root
+            // holds the -90° X the importer needs. An assignment here discards that, leaving the
+            // mesh in Blender's own Z-up frame turned by this instead of on top of it — a staff
+            // pointing somewhere nobody chose. See LieDown for the axis and the arithmetic.
+            modelInstance.transform.localRotation =
+                Quaternion.Euler(LieDown) * modelInstance.transform.localRotation;
+
+            // After the turn, not before: the muzzle, the collider, the grip and the pack footprint
+            // all read these bounds and every one of them must read the LAID-DOWN ones.
             Bounds local = LocalBounds(root.transform, modelInstance);
 
             // ── Muzzle, at the far end of the longest axis ──
@@ -210,15 +263,25 @@ namespace SpaceGame.EditorTools
             SetPrivate(grip, "holdSize", 1.35f);
             SetPrivate(grip, "sizeReference", modelInstance.transform);
 
-            // Both zero, and that is the answer rather than a placeholder.
+            // Exactly the turn LieDown put into the contents, taken back out again, so the hand
+            // sees no change at all and only the mat and the sand see a staff lying down.
             //
-            // The FBX importer rotates the model −90° about X, which puts the staff's long axis on
-            // prefab +Y with the crown up. ItemGrip's zero pose already means "+Y out the thumb
-            // side, as a torch's flame would" — so a staff gripped at its own origin, crown out of
-            // the top of the fist, is what no rotation gives. And the origin IS the grip
-            // (walking_staff_BUILD.md), which is what makes the position offset zero too: the
-            // whole point of that origin choice was that holding it costs no per-model number.
-            SetPrivate(grip, "rotationOffset", Vector3.zero);
+            // The offset used to be zero, and that was the right answer while the importer's -90°
+            // about X left the staff's long axis on prefab +Y: ItemGrip's zero pose means "+Y out
+            // the thumb side, as a torch's flame would", which is a staff held with the crown out
+            // of the top of the fist. The contents have turned since; the pose has not.
+            //
+            // Derived from LieDown rather than typed beside it — a typed (-90, -90, 0) is a number
+            // that goes silently wrong the day somebody retunes the turn above, and "silently" is
+            // the whole problem: a wrong offset here looks like a fine prefab and a staff held at
+            // an angle nobody authored.
+            SetPrivate(grip, "rotationOffset",
+                       Quaternion.Inverse(Quaternion.Euler(LieDown)).eulerAngles);
+
+            // Zero, and that is the answer rather than a placeholder: the origin IS the grip
+            // (walking_staff_BUILD.md), and turning the contents about it leaves the same point in
+            // the palm. The whole point of that origin choice was that holding it costs no
+            // per-model number.
             SetPrivate(grip, "positionOffset", Vector3.zero);
 
             // ── The artifact ──

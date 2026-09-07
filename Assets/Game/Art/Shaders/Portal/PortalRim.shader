@@ -19,6 +19,10 @@ Shader "SpaceGame/Portal/PortalRim"
         _Thickness  ("Ring thickness (x depth)", Range(0.01, 1.0)) = 0.22
         _Falloff    ("Outer falloff", Range(0.5, 8.0)) = 2.6
 
+        // Must equal PortalSurface's _Crawl on the matching aperture — the two draw one edge.
+        // PortalContentBuilder writes both from one constant.
+        _Crawl      ("Edge crawl (m)", Range(0.0, 0.4)) = 0.06
+
         _Sparks     ("Spark density", Range(0.0, 40.0)) = 14.0
         _SparkSpeed ("Spark speed", Range(0.0, 8.0)) = 2.2
         _Churn      ("Churn", Range(0.0, 1.0)) = 0.45
@@ -69,6 +73,7 @@ Shader "SpaceGame/Portal/PortalRim"
                 float  _Sparks;
                 float  _SparkSpeed;
                 float  _Churn;
+                float  _Crawl;
                 float  _Open;
             CBUFFER_END
 
@@ -114,16 +119,22 @@ Shader "SpaceGame/Portal/PortalRim"
                 // see PortalSurface.
                 d += (1.0 - open) * max(_CloseDepth, _Depth);
 
-                float band = max(_Thickness * _Depth, 1e-4);
+                // The SAME crawling edge the aperture draws. The halo used to roll noise of its
+                // own here — a different frequency at a different speed — so the ring was drawn
+                // around an outline the hole did not have: the two wandered a tenth of a metre
+                // apart and shimmered out of phase. One edge, one definition, both shaders.
+                d += PortalStencilCrawl(angle, _Crawl);
+
+                // Churn varies the band's WIDTH around the circumference rather than its
+                // position, so the halo still breathes without ever leaving the edge.
+                float churn = 1.0 + (PortalFbm(float2(angle * 3.0, t * 0.4), 3) - 0.5)
+                                  * _Churn * 1.2;
+
+                float band = max(_Thickness * _Depth * churn, 1e-4);
                 float ringD = _Radius * _Depth;
 
-                // Ring, wobbled around its circumference so it never reads as
-                // a perfect circle drawn on the wall.
-                float wobble = (PortalFbm(float2(angle * 3.0, t * 0.4), 3) - 0.5)
-                             * band * _Churn * 2.0;
-
                 // Distance from the ring, which sits ringD metres OUTSIDE the aperture's edge.
-                float off = abs(d - (ringD + wobble));
+                float off = abs(d - ringD);
 
                 float ring = saturate(1.0 - off / band);
                 ring = pow(ring, _Falloff);
@@ -138,12 +149,17 @@ Shader "SpaceGame/Portal/PortalRim"
                 float radial = saturate(1.0 - abs(d - ringD) / (band * 2.2));
                 float glow = ring + spark * radial * 2.0;
 
-                // Fade the whole halo as the aperture closes, and kill anything
-                // outside the quad's inscribed circle so the corners stay clean.
-                // Kill the corners in QUAD space, not aperture space: r is the aperture's own
-                // coordinate and on a sprayed shape it says nothing about how close to the edge
-                // of the quad we are.
-                glow *= open * saturate(1.0 - smoothstep(0.94, 1.0, length(p)));
+                // Fade the whole halo as the aperture closes, and feather it out at the quad's
+                // border so the sheet never ends in a visible seam.
+                //
+                // A BOX, not the inscribed circle this used to be. Measured in quad space the
+                // circle reaches 1 only at the corners, so an aperture that ran diagonally — the
+                // shape a diagonal sweep paints — had its halo erased at exactly the two ends the
+                // paint reached furthest, while the aperture itself carried on. Portal.cs now
+                // sizes this quad to the halo's own reach in metres, so the ring is inside this
+                // fade at every size and only the last few per cent of the sheet is touched.
+                float2 border = abs(p);
+                glow *= open * saturate(1.0 - smoothstep(0.93, 1.0, max(border.x, border.y)));
 
                 // Hot core, warm falloff: a halo that is one flat colour reads
                 // as a decal. The brightest part of a real discharge is nearly

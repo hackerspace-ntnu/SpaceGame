@@ -73,6 +73,147 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
+        /// Which nodes of a hierarchy are the RIG — the articulated skeleton, as opposed to the
+        /// pieces of geometry hanging off it.
+        ///
+        /// <para>
+        /// The counterpart of <see cref="SelectBones"/> for a model that is not skinned at all: a
+        /// chain of empty bones with rigid meshes parented on as leaves, which is how every
+        /// hard-surface creature in this project is built. The rule is that a rig node draws
+        /// nothing itself and has something below it that does — an empty that leads to geometry
+        /// is articulation, an empty that leads nowhere is an attach point or an aim target.
+        /// </para>
+        ///
+        /// <para>
+        /// Which nodes get the bodies is the whole difference between a ragdoll and a bag of parts,
+        /// and it is not a matter of taste. Meshes are LEAVES: no mesh is ever another mesh's
+        /// ancestor, so a skeleton built on them can find no parent for anything and degenerates
+        /// into a star — every limb jointed straight to one hub across the width of the body, with
+        /// the real chain (hip, knee, ankle) sitting unused beside it. Worse, a mesh that is not
+        /// kept is left parented to a bone nothing drives any more, so it hangs in the air while
+        /// the rest of the body falls. Bodies on the BONES have neither problem: the joints follow
+        /// the articulation the model was rigged with, and every piece of geometry — simulated or
+        /// dropped — is still a child of a bone that moves.
+        /// </para>
+        /// </summary>
+        /// <param name="parents">Parent index per node, <c>-1</c> for a root. Parents precede children.</param>
+        /// <param name="drawsGeometry">Whether each node draws a mesh of its own.</param>
+        public static bool[] SelectRigNodes(int[] parents, bool[] drawsGeometry)
+        {
+            if (parents == null || drawsGeometry == null) return System.Array.Empty<bool>();
+
+            var leadsToGeometry = new bool[parents.Length];
+
+            // Backwards, so a node is visited after every one of its descendants and the flag has
+            // already reached it from below.
+            for (int i = parents.Length - 1; i >= 0; i--)
+            {
+                if (!drawsGeometry[i] && !leadsToGeometry[i]) continue;
+
+                int parent = parents[i];
+                if (parent >= 0 && parent < parents.Length) leadsToGeometry[parent] = true;
+            }
+
+            var rig = new bool[parents.Length];
+            for (int i = 0; i < parents.Length; i++)
+                rig[i] = !drawsGeometry[i] && leadsToGeometry[i];
+
+            return rig;
+        }
+
+        /// <summary>
+        /// Which rig node each node belongs to: itself if it is one, otherwise the nearest above it.
+        ///
+        /// <para>
+        /// This is what turns "a bone" into "a body with a shape". A rig node draws nothing, so the
+        /// only thing that can tell you how big it is, or where its surface lies, is the geometry
+        /// parented under it — and that geometry belongs to exactly one bone, the nearest one at or
+        /// above it. Everything else follows: a bone's importance is the bulk it carries, and its
+        /// collider is the box around it.
+        /// </para>
+        /// </summary>
+        /// <returns><c>-1</c> for a node with no rig node at or above it.</returns>
+        public static int[] NearestRigNode(int[] parents, bool[] isRigNode)
+        {
+            if (parents == null || isRigNode == null) return System.Array.Empty<int>();
+
+            var carrier = new int[parents.Length];
+
+            // Forwards: parents precede children, so each node's parent already has its answer.
+            for (int i = 0; i < parents.Length; i++)
+            {
+                if (isRigNode[i]) { carrier[i] = i; continue; }
+
+                int parent = parents[i];
+                carrier[i] = parent >= 0 && parent < i ? carrier[parent] : -1;
+            }
+
+            return carrier;
+        }
+
+        /// <summary>
+        /// How much of the creature hangs from each node, itself included.
+        ///
+        /// <para>
+        /// Which branch is the BODY, in one number. The ragdoll has to be rooted somewhere, and when
+        /// a rig's own root carries too little to be worth simulating its children become branch
+        /// roots at equal depth with nothing above them — for PatrolRobot 1 that is a chest and two
+        /// legs. By its own bulk a thigh outscores a chest, so the robot came out rooted at its
+        /// right leg, with the left leg jointed to it and the entire upper body hanging off the
+        /// pair. By the bulk of what hangs BELOW it the chest wins easily, because it carries the
+        /// head, both arms and every finger.
+        /// </para>
+        /// </summary>
+        /// <param name="parents">Parent index per node, <c>-1</c> for a root. Parents precede children.</param>
+        /// <param name="bulk">What each node carries on its own.</param>
+        public static float[] SubtreeBulk(int[] parents, float[] bulk)
+        {
+            if (parents == null || bulk == null) return System.Array.Empty<float>();
+
+            var total = (float[])bulk.Clone();
+
+            // Backwards, so a node is added to its parent only once its own children have been
+            // added to it and the total below it is complete.
+            for (int i = parents.Length - 1; i >= 0; i--)
+            {
+                int parent = parents[i];
+                if (parent >= 0 && parent < total.Length) total[parent] += total[i];
+            }
+
+            return total;
+        }
+
+        /// <summary>
+        /// How much of the creature one bone is, as a volume — the measure that ranks a skinned
+        /// bone and a bolted-on rigid part on the same scale.
+        ///
+        /// <para>
+        /// Vertex weight measures how much of the SURFACE a bone carries, and that stands in for
+        /// mass only while the mesh has one density. A model built from several meshes does not:
+        /// the ostrich's neck is eleven separate vertebra meshes, each densely tessellated and each
+        /// bound to a single bone, so by raw weight one vertebra outscores the whole torso. The
+        /// bird came out of that with a ragdoll made of nothing but neck — every body bone under
+        /// the weight floor, and the one surviving branch taken for the whole animal.
+        /// </para>
+        ///
+        /// <para>
+        /// Scaling the share by the renderer's own bounds fixes the units. A bone that carries a
+        /// tenth of a big mesh outranks one that carries all of a small one, which is what the word
+        /// "importance" was always supposed to mean — and the answer comes out in cubic metres, the
+        /// same thing a rigid part's bounds give directly, so one number ranks both kinds of rig.
+        /// </para>
+        /// </summary>
+        /// <param name="boneWeight">This bone's vertex weight within the renderer.</param>
+        /// <param name="rendererWeight">The renderer's total vertex weight across all its bones.</param>
+        /// <param name="rendererVolume">The renderer's own bounds volume, cubic metres.</param>
+        public static float CarriedVolume(float boneWeight, float rendererWeight, float rendererVolume)
+        {
+            if (rendererWeight <= 0f) return 0f;
+
+            return boneWeight / rendererWeight * rendererVolume;
+        }
+
+        /// <summary>
         /// The capsule for one bone: <c>x</c> is the radius, <c>y</c> the height along the bone.
         ///
         /// <para>

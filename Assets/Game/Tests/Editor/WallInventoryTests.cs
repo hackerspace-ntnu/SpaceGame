@@ -50,6 +50,7 @@ namespace SpaceGame.Tests
 
         private readonly List<InventoryItem> created = new();
         private readonly List<GameObject> spawned = new();
+        private readonly List<PackShapeLibrary> libraries = new();
 
         [SetUp]
         public void ClearMeasurementCache() => ItemFootprint.ClearCache();
@@ -63,8 +64,12 @@ namespace SpaceGame.Tests
             foreach (InventoryItem item in created)
                 if (item != null) UnityEngine.Object.DestroyImmediate(item);
 
+            foreach (PackShapeLibrary library in libraries)
+                if (library != null) UnityEngine.Object.DestroyImmediate(library);
+
             spawned.Clear();
             created.Clear();
+            libraries.Clear();
         }
 
         /// <summary>
@@ -296,6 +301,70 @@ namespace SpaceGame.Tests
             protected override void Use() { }
         }
 
+        /// <summary>
+        /// The other half of what a press means: with something in hand on cells that are RED, it
+        /// turns the item a quarter rather than sending anything — the backpack's rule, brought to
+        /// the wall so one inventory has one set of gestures.
+        ///
+        /// <para>
+        /// It is only an offer when there is a turn worth making, and there are two ways for there
+        /// not to be. A SQUARE lands on the cells it was refused on. A row that forbids ROTATION is
+        /// straightened by <c>PackContainer.TryStowFromHotbar</c> on the server, so turning it here
+        /// would draw a ghost the placement then contradicts — this is the half the pack's own
+        /// click deliberately ignores, because nothing straightens an item that is merely being
+        /// held.
+        /// </para>
+        /// <para>
+        /// Asked of <see cref="PackShapes"/> rather than of the controller: the press itself needs
+        /// a player, a crosshair and a physics scene, and this is the whole of the decision it
+        /// makes.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void ARefusedPressOffersATurnOnlyWhenThereIsOneWorthMaking()
+        {
+            InventoryItem rod = Item("rod");
+            InventoryItem crate = Item("crate");
+            InventoryItem bolted = Item("bolted");
+
+            PackShapeLibrary shapes = Shapes(
+                Row(rod, 5, 2),
+                Row(crate, 2, 2),
+                Row(bolted, 5, 2, allowRotation: false));
+
+            Assert.IsTrue(PackShapes.QuarterTurnChangesCells(rod, shapes, 0f),
+                          "a 5 x 2 rod across a full shelf is the case the whole offer exists " +
+                          "for — turned, it fits.");
+
+            Assert.IsFalse(PackShapes.QuarterTurnChangesCells(crate, shapes, 0f),
+                           "a square turns onto its own cells: the press would change the yaw " +
+                           "and nothing the player can see.");
+
+            Assert.IsFalse(PackShapes.QuarterTurnChangesCells(bolted, shapes, 0f),
+                           "an item whose row forbids rotation is straightened again by the " +
+                           "server, so the wall must not offer a turn it cannot keep.");
+        }
+
+        /// <summary>One row of an authored shape library, for the test above.</summary>
+        private static PackShapeLibrary.Entry Row(InventoryItem item, int width, int height,
+                                                  bool allowRotation = true) =>
+            new()
+            {
+                item = item,
+                width = width,
+                height = height,
+                allowRotation = allowRotation,
+            };
+
+        private PackShapeLibrary Shapes(params PackShapeLibrary.Entry[] rows)
+        {
+            var library = ScriptableObject.CreateInstance<PackShapeLibrary>();
+            libraries.Add(library);
+
+            library.Entries.AddRange(rows);
+            return library;
+        }
+
         // ── The wire's encoding ──────────────────────────────────────────────
 
         /// <summary>
@@ -458,7 +527,7 @@ namespace SpaceGame.Tests
                 remove => inner.OnSlotChanged -= value;
             }
 
-            public event Action<InventoryItem, float> OnItemDropped
+            public event Action<InventoryItem, ItemState> OnItemDropped
             {
                 add => inner.OnItemDropped += value;
                 remove => inner.OnItemDropped -= value;
@@ -772,6 +841,60 @@ namespace SpaceGame.Tests
                             "this is a new decision, restate it here, rebuild both prefabs and " +
                             "re-run PlayerShipTests' wall probes; if it is not, put the " +
                             "constant back.");
+        }
+
+        /// <summary>
+        /// <see cref="PackGrid.WidestFaceCells"/> is the widest face the shipped containers
+        /// actually have.
+        ///
+        /// <para>
+        /// It is the ceiling <c>ItemFootprint</c> measures an item against before accusing its
+        /// prefab of being unsized, so it decides which items warn — and the warning names the
+        /// prefab and tells its author to go and give it a size it already has. Left behind by a
+        /// re-cut of the wall it is wrong in whichever direction the re-cut went: too low and
+        /// every item sized for the new face warns, too high and the un-gripped 11 m prefab the
+        /// warning exists to catch goes quiet.
+        /// </para>
+        /// <para>
+        /// Measured off both shipped containers rather than restated, because "widest" is a fact
+        /// about them and not a decision — the wall's 30 has been the answer only since the wall
+        /// existed, and before that it was the rig's lash line at 18.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void TheWidestFaceConstantMatchesTheShippedContainers()
+        {
+            string[] containers =
+            {
+                "Assets/Game/Prefabs/Items/Equipment/InventoryWall.prefab",
+                "Assets/Game/Prefabs/Items/Equipment/ExpeditionRig.prefab",
+            };
+
+            int widest = 0;
+            string widestFace = "none";
+
+            foreach (string path in containers)
+            {
+                var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.IsNotNull(prefab, "No container prefab at " + path + ", so this test " +
+                                         "could not measure the faces it exists to measure.");
+
+                foreach (PackSurface surface in prefab.GetComponentsInChildren<PackSurface>(true))
+                {
+                    Vector2Int cells = surface.Cells;
+                    int longest = Mathf.Max(cells.x, cells.y);
+                    if (longest <= widest) continue;
+
+                    widest = longest;
+                    widestFace = surface.Id + " on " + System.IO.Path.GetFileName(path);
+                }
+            }
+
+            Assert.AreEqual(widest, PackGrid.WidestFaceCells,
+                            "PackGrid.WidestFaceCells is " + PackGrid.WidestFaceCells +
+                            ", but the widest face actually shipped is " + widest + " cells (" +
+                            widestFace + "). ItemFootprint measures every item against this " +
+                            "before warning that its prefab is unsized.");
         }
 
         /// <summary>

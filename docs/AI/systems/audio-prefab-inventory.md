@@ -175,7 +175,7 @@ Every one of these carries `PickupableItem` → `pickupId: 503` (`InteractPickup
 | ” | Discovery found | `InteractScannerDiscovery` 507 → **pinned `event:/SFX/ElectricHum`** | Positive discovery chime |
 | `Items/Equipment/WingPack.prefab` | Equip / deploy | `None` 0 | Wing pack unfurl — **nothing plays today** |
 | ” | `StudioEventEmitter`, trigger `2` | **`event:/SFX/MetalPickup`** | Fires independently of `Sfx`; the one prefab with a raw FMOD emitter |
-| `Items/Debug/Cube.prefab`, `Items/Debug/Sphere.prefab` | Pick up | `InteractPickup` 503 | Debug props — leave as is |
+| `Items/Debug/Sphere.prefab` | Pick up | `InteractPickup` 503 | Debug prop — leave as is. `Items/Debug/Cube.prefab` was deleted 2026-09-06 (backlog SHIP-02) |
 | `Systems/InventoryItemModule.prefab` | Pick up | `InteractPickup` 503 | Template used by spawned inventory items |
 
 > `WingPack` is the gap: `WingsDeploy` 600 / `WingsFold` 604 exist and are wired on the ornithopter,

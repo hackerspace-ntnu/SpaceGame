@@ -2,7 +2,7 @@ namespace SpaceGame.Gameplay
 {
     /// <summary>
     /// An interactable with a second, opposite action bound to Use (left click / gamepad west)
-    /// alongside the usual Interact (E).
+    /// alongside the usual Interact (right click).
     ///
     /// For controls that run both ways — pay out rope vs. haul it in, raise vs. lower, open vs.
     /// close — a single toggle button is the wrong shape: the player has to guess which way the

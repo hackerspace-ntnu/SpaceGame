@@ -10,7 +10,7 @@
 // OxygenTankEmpty were separate assets -- because ItemState does not replicate and an id does.
 // A tank the player reads to a percent cannot work that way (a hundred assets for a hundred
 // readings, and a hundred more per tank type), so the charge is a fraction on the instance and
-// SupplyCharge carries it through every container. See DockableSupply and Oxygen.md.
+// SupplyCharge carries it through every container. See SupplyReservoir and Oxygen.md.
 //
 // PowerCell was renamed to Battery in the same pass, by MoveAsset rather than by writing a new
 // file: a move PRESERVES the GUID, and an InventoryItem's ID is its GUID, so every existing save
@@ -127,14 +127,58 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float CellPackSize = 0.63f;
 
-        /// <summary>Gauge colour at full. The palette's own CRT green, read off the model.</summary>
-        private static readonly Color GaugeFull = new Color(0.36f, 0.95f, 0.45f);
-
         /// <summary>
-        /// Gauge colour at empty. Dark glass rather than black: a black gauge reads as a hole
-        /// punched in the bottle instead of as an instrument that is off.
+        /// The bar's unlit track. Dark glass rather than black: a black gauge reads as a hole punched
+        /// in the object instead of as an instrument with nothing in it.
+        ///
+        /// <para>
+        /// The three LIT colours are not here. They are constants on <see cref="SupplyGauge"/>,
+        /// because two of the three things that draw this bar are display copies with every script
+        /// stripped off them — a colour authored into a prefab field would be honoured on the item in
+        /// your hand and silently ignored on the same item lying on the mat beside it.
+        /// </para>
         /// </summary>
         private static readonly Color GaugeEmpty = new Color(0.05f, 0.08f, 0.06f);
+
+        /// <summary>The two bar materials, shared by every supply item — see EnsureGaugeMaterial.</summary>
+        private const string FillMatPath = "Assets/Game/Art/Materials/Items/SupplyGaugeFill.mat";
+
+        private const string TrackMatPath = "Assets/Game/Art/Materials/Items/SupplyGaugeTrack.mat";
+
+        /// <summary>
+        /// Metres the track stands off the gauge face, and the thickness of each of the two boxes.
+        ///
+        /// <para>
+        /// Small, but never zero. Both models bury their gauge in a recess whose walls the bar has to
+        /// clear, and two coplanar faces z-fight rather than stack — the trap the model scripts
+        /// themselves record as "every decorative sub-part overshoots or is buried, never meets".
+        /// At 0.8 mm the pair adds 2 mm to a 0.54 m bottle: below the eye at arm's length, and enough
+        /// separation that no view angle flickers.
+        /// </para>
+        /// </summary>
+        private const float BarProud = 0.0008f;
+
+        private const float BarThickness = 0.0008f;
+
+        /// <summary>
+        /// How far the TRACK oversizes the lit geometry it covers, in metres.
+        ///
+        /// <para>
+        /// It has to hide that geometry, not merely sit beside it: both models light their gauge
+        /// permanently — the bottle's strip is an emissive material and the battery's ladder has
+        /// three of five bars baked on — so anything left showing round the edge of the track reads
+        /// as charge that is not there. 3 mm clears the battery's slot surrounds, which stand 2.5 mm
+        /// proud of the bars themselves, and still lands inside the bottle's slate bezel.
+        /// </para>
+        /// </summary>
+        private const float BarMargin = 0.003f;
+
+        /// <summary>
+        /// How far the fill is inset from the track across the bar, so the track reads as a channel
+        /// the fill runs in rather than as a second slab the same size. Also what keeps a FULL bar
+        /// legible as a bar: with no visible track behind it, 100% and "no gauge at all" look alike.
+        /// </summary>
+        private const float BarInset = 0.0015f;
 
         /// <summary>One supply unit: which model, which files, and how it reads.</summary>
         private readonly struct Supply
@@ -153,11 +197,17 @@ namespace SpaceGame.EditorTools
             /// <summary>How full one enters the world, 0..1.</summary>
             public readonly float StartingCharge;
 
-            /// <summary>The mesh carrying the emissive gauge, or null for one that never changes.</summary>
+            /// <summary>The mesh carrying the gauge.</summary>
             public readonly string ReadoutPart;
 
-            /// <summary>Which submesh of that mesh is the emissive material.</summary>
-            public readonly int ReadoutIndex;
+            /// <summary>
+            /// The emissive material on that mesh, BY NAME. Never a submesh index: these models are
+            /// one mesh per PART and up to nine materials deep, so the index is an accident of the
+            /// export order, and a stale one silently picks out the enamel instead of the lamp -
+            /// which looks like a broken shader rather than like a wrong number. The sibling
+            /// <c>OxygenGeneratorBuilder</c> has always resolved its lamps this way.
+            /// </summary>
+            public readonly string ReadoutMaterial;
 
             public readonly float PackSize;
 
@@ -178,7 +228,7 @@ namespace SpaceGame.EditorTools
             public readonly Vector3 Lay;
 
             public Supply(string model, string file, string name, SupplyKind kind, float capacity,
-                          float startingCharge, string readoutPart, int readoutIndex,
+                          float startingCharge, string readoutPart, string readoutMaterial,
                           float packSize, Vector3 lay)
             {
                 Lay = lay;
@@ -190,18 +240,34 @@ namespace SpaceGame.EditorTools
                 Capacity = capacity;
                 StartingCharge = startingCharge;
                 ReadoutPart = readoutPart;
-                ReadoutIndex = readoutIndex;
+                ReadoutMaterial = readoutMaterial;
                 PackSize = packSize;
             }
         }
 
-        /// <summary>
-        /// Submesh 0 of the bottle's five-material gauge mesh is its <c>Mat_Emissive_Green_CRT</c>.
-        /// The index matters: the same mesh also carries the orange collar and two metals, so
-        /// painting the whole renderer would enamel the bottle.
-        /// </summary>
+        /// <summary>The bottle's contents window: a dark plate carrying one lit strip.</summary>
         private const string TankGauge = "Mesh_OxygenTank_Gauge";
-        private const int TankGaugeIndex = 0;
+
+        /// <summary>
+        /// The battery's accent plate, which carries its charge ladder.
+        ///
+        /// <para>
+        /// It had no readout wired at all until the fill bar existed, and the reason was sound while
+        /// it lasted: the ladder is <b>five bars with three baked lit</b>, and lit and unlit are not
+        /// separable - the lit three share one submesh with nothing else and the unlit two share
+        /// theirs with the surround plate, so no amount of submesh painting can drive them. The
+        /// charge was read off the machine and off the reticle instead. The bar COVERS the ladder
+        /// rather than driving it.
+        /// </para>
+        /// </summary>
+        private const string CellGauge = "Mesh_PowerCell_Slab_Face";
+
+        /// <summary>
+        /// The palette's readout emissive, and the material both gauges are found by. It is the lit
+        /// geometry on each model - the bottle's strip, the battery's three baked-on bars - which is
+        /// what says where the instrument is and how big it is.
+        /// </summary>
+        private const string GaugeMaterial = "Mat_Emissive_Green_CRT";
 
         /// <summary>
         /// A quarter turn back about X, which lays the bottle on its side and points its GAUGE
@@ -244,13 +310,10 @@ namespace SpaceGame.EditorTools
         private static readonly Supply[] Roster =
         {
             new(TankModel, "OxygenTank", "Oxygen Tank", SupplyKind.Oxygen, TankSeconds, StockedFull,
-                TankGauge, TankGaugeIndex, TankPackSize, BottleLiesDown),
+                TankGauge, GaugeMaterial, TankPackSize, BottleLiesDown),
 
-            // No readout. The battery's charge ladder is five bars with three lit, authored into
-            // the model, and there is no separate emissive submesh to drive -- so its charge is
-            // read off the machine it is fitted to and off the reticle, not off the brick.
             new(CellModel, "Battery", "Battery", SupplyKind.Power, BatteryWattHours, StockedFull,
-                null, 0, CellPackSize, Vector3.zero),
+                CellGauge, GaugeMaterial, CellPackSize, Vector3.zero),
         };
 
         [MenuItem("Tools/SpaceGame/Items/Build Oxygen Gear")]
@@ -336,16 +399,11 @@ namespace SpaceGame.EditorTools
             // one describing a pose the item no longer has.
             modelInstance.transform.localRotation = Quaternion.Euler(supply.Lay);
 
-            Renderer readout = null;
-            if (supply.ReadoutPart != null)
+            Renderer readout = FindReadout(modelInstance, supply, out int gaugeSubmesh);
+            if (readout == null)
             {
-                readout = FindReadout(modelInstance, supply);
-                if (readout == null)
-                {
-                    Object.DestroyImmediate(root);
-                    return null;
-                }
-
+                Object.DestroyImmediate(root);
+                return null;
             }
 
             // ── Pickup / world presence ──
@@ -390,19 +448,265 @@ namespace SpaceGame.EditorTools
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
             // ── The item's own behaviour ──
-            DockableSupply supplyItem = root.AddComponent<DockableSupply>();
-            var supplySo = new SerializedObject(supplyItem);
+            //
+            // Two components, because a reservoir and a verb are two things: the tank is a
+            // SupplyReservoir any item may hold, and DockableSupply is the verb-less UsableItem
+            // that gives this one its hold pose and nothing else. DockableSupply's
+            // [RequireComponent] adds the reservoir for us, so it is fetched rather than added --
+            // a second AddComponent of a [DisallowMultipleComponent] type returns null.
+            root.AddComponent<DockableSupply>();
+
+            var reservoir = root.GetComponent<SupplyReservoir>();
+            var supplySo = new SerializedObject(reservoir);
             Field.SetEnum(supplySo, "kind", (int)supply.Kind);
             Field.SetFloat(supplySo, "capacity", supply.Capacity);
             Field.SetFloat(supplySo, "startingCharge", supply.StartingCharge);
             Field.Set(supplySo, "readout", readout);
-            Field.SetInt(supplySo, "readoutMaterialIndex",
-                         readout != null ? supply.ReadoutIndex : EmissiveLamp.WholeRenderer);
-            Field.SetColor(supplySo, "chargedColour", GaugeFull);
-            Field.SetColor(supplySo, "emptyColour", GaugeEmpty);
             supplySo.ApplyModifiedPropertiesWithoutUndo();
 
+            // The drain policy is left at its defaults, all zero: nothing empties a bottle or a
+            // battery by carrying it. They are drained by the machine they are fitted to and
+            // refilled by the plant, both of which write the charge directly.
+
+            // Last, because it is measured off the model in the ROOT's frame and the lay-down turn
+            // above is part of that frame.
+            if (!AddFillBar(root, modelInstance, readout, gaugeSubmesh, supply))
+            {
+                Object.DestroyImmediate(root);
+                return null;
+            }
+
             return root;
+        }
+
+        // ─────────────────────────── The fill bar ───────────────────────────
+
+        /// <summary>
+        /// Build the charge bar over the model's own gauge face: a dark track, and a fill that grows
+        /// from one end of it. Both are plain boxes on the PREFAB ROOT — see <see cref="SupplyGauge"/>
+        /// for why the runtime finds them by name.
+        ///
+        /// <para>
+        /// Children of the root rather than of the gauge mesh, for the reason
+        /// <see cref="AddGripPoint"/> gives: this prefab owns its own transforms and an FBX re-import
+        /// cannot null them. It also puts every number below in METRES, because the root is at unit
+        /// scale while the imported nodes under it are not.
+        /// </para>
+        /// </summary>
+        private static bool AddFillBar(GameObject root, GameObject modelInstance, Renderer readout,
+                                       int submesh, Supply supply)
+        {
+            if (!MeasureGauge(root, readout, submesh, modelInstance, out Vector3 centre,
+                              out Quaternion rotation, out Vector2 size))
+                return false;
+
+            Material fillMaterial = EnsureGaugeMaterial(FillMatPath, readout, submesh, SupplyGauge.Full);
+            Material trackMaterial = EnsureGaugeMaterial(TrackMatPath, readout, submesh, GaugeEmpty);
+            if (fillMaterial == null || trackMaterial == null) return false;
+
+            Vector3 outward = rotation * Vector3.forward;
+
+            // The track first and the fill a step further out, so neither z-fights the model face
+            // nor the other.
+            Box(root.transform, SupplyGauge.TrackName, trackMaterial,
+                centre + outward * BarProud, rotation,
+                new Vector3(size.x, size.y, BarThickness));
+
+            // The anchor sits at the LOW end of the bar and is scaled along its own +X; the box hangs
+            // off it by half a length so the pair grows from that end. Baked at the authored starting
+            // charge, which is what makes the prefab, its generated icon and every stripped display
+            // copy read correctly with no script having run.
+            var anchor = new GameObject(SupplyGauge.AnchorName).transform;
+            anchor.SetParent(root.transform, false);
+            anchor.localPosition = centre + outward * (BarProud + BarThickness)
+                                          - rotation * Vector3.right * (size.x * 0.5f);
+            anchor.localRotation = rotation;
+            anchor.localScale = new Vector3(supply.StartingCharge, 1f, 1f);
+
+            // Twice the track's thickness, so the fill is BURIED in it rather than resting on it.
+            // Two parallel faces meeting exactly on a plane is the flicker the model scripts
+            // themselves warn about ("every decorative sub-part overshoots or is buried, never
+            // meets"), and the fill's back face would otherwise land precisely on the track's front.
+            Box(anchor, SupplyGauge.FillName, fillMaterial,
+                new Vector3(size.x * 0.5f, 0f, 0f), Quaternion.identity,
+                new Vector3(size.x, Mathf.Max(size.y - BarInset * 2f, BarInset), BarThickness * 2f));
+
+            return true;
+        }
+
+        /// <summary>
+        /// Where the bar goes, in the root's frame: the middle of the gauge face, a rotation whose +X
+        /// runs along the bar and whose +Z points out of the model, and the bar's size in metres.
+        ///
+        /// <para>
+        /// Measured off the emissive submesh's own vertices rather than typed in, because both
+        /// <c>.blend</c> files are hand-edited finals whose numbers no longer match the scripts that
+        /// first generated them. The lit geometry IS the instrument: on the bottle it is the contents
+        /// strip, on the battery the three baked-on ladder bars.
+        /// </para>
+        /// <para>
+        /// <b>Then mirrored to symmetry about the middle of the GAUGE MESH.</b> That is what makes one
+        /// rule fit both. The battery's lit three-of-five cover only one side of a ladder that is
+        /// symmetric about its plate, and mirroring recovers all five; the bottle's strip is already
+        /// centred on its own plate, so mirroring is a no-op there. Reading the lit extent literally
+        /// on the battery builds a bar 60% the length of the housing it sits in, and it looks
+        /// deliberate rather than broken.
+        /// </para>
+        /// <para>
+        /// The reference is the gauge mesh and <b>not the whole model</b>, which was the first
+        /// attempt and is wrong for a reason worth keeping: a model's bounds centre is pulled about
+        /// by everything it happens to contain, and the bottle's sits 6 mm off its own gauge. Mirrored
+        /// about that, the bar came out 36% too long and visibly off-centre on its plate — while the
+        /// battery, which is symmetric, looked perfect. The gauge mesh IS the instrument's housing,
+        /// so its middle is the middle of the instrument by construction.
+        /// </para>
+        /// </summary>
+        private static bool MeasureGauge(GameObject root, Renderer readout, int submesh,
+                                         GameObject modelInstance, out Vector3 centre,
+                                         out Quaternion rotation, out Vector2 size)
+        {
+            centre = Vector3.zero;
+            rotation = Quaternion.identity;
+            size = Vector2.zero;
+
+            var filter = readout.GetComponent<MeshFilter>();
+            Mesh mesh = filter != null ? filter.sharedMesh : null;
+            if (mesh == null || submesh >= mesh.subMeshCount)
+            {
+                Debug.LogError("[OxygenGear] " + readout.name + " has no readable mesh for submesh " +
+                               submesh + ", so the gauge cannot be measured.");
+                return false;
+            }
+
+            int[] triangles = mesh.GetTriangles(submesh);
+            if (triangles.Length == 0)
+            {
+                Debug.LogError("[OxygenGear] Submesh " + submesh + " of " + readout.name +
+                               " is empty, so there is no lit geometry to size the bar from.");
+                return false;
+            }
+
+            Matrix4x4 toRoot = root.transform.worldToLocalMatrix * readout.transform.localToWorldMatrix;
+            Vector3[] vertices = mesh.vertices;
+
+            var lit = new Bounds(toRoot.MultiplyPoint3x4(vertices[triangles[0]]), Vector3.zero);
+            for (int i = 1; i < triangles.Length; i++)
+                lit.Encapsulate(toRoot.MultiplyPoint3x4(vertices[triangles[i]]));
+
+            // The whole gauge mesh: the plate, bezel and surround the lit part is set into.
+            var plate = new Bounds(toRoot.MultiplyPoint3x4(vertices[0]), Vector3.zero);
+            for (int i = 1; i < vertices.Length; i++)
+                plate.Encapsulate(toRoot.MultiplyPoint3x4(vertices[i]));
+
+            // The gauge face is a thin slab: its shallowest axis points out of the model, and the
+            // longest of the other two is the one a bar runs along.
+            int thin = Axis(lit.size, smallest: true);
+            int along = Axis(lit.size, smallest: false, exclude: thin);
+            int across = 3 - thin - along;
+
+            Bounds model = ItemBounds.Measure(root, modelInstance.transform);
+
+            Vector3 outward = Vector3.zero;
+            outward[thin] = lit.center[thin] >= model.center[thin] ? 1f : -1f;
+
+            Vector3 alongAxis = Vector3.zero;
+            alongAxis[along] = 1f;
+
+            // Mirror about the gauge's own midline — see the note above.
+            float middle = plate.center[along];
+            float half = Mathf.Max(Mathf.Abs(lit.min[along] - middle),
+                                   Mathf.Abs(lit.max[along] - middle));
+
+            centre = lit.center;
+            centre[along] = middle;
+            centre[thin] = outward[thin] > 0f ? lit.max[thin] : lit.min[thin];
+
+            size = new Vector2(half * 2f + BarMargin * 2f, lit.size[across] + BarMargin * 2f);
+
+            var basis = new Matrix4x4();
+            basis.SetColumn(0, alongAxis);
+            basis.SetColumn(1, Vector3.Cross(outward, alongAxis));
+            basis.SetColumn(2, outward);
+            basis.SetColumn(3, new Vector4(0f, 0f, 0f, 1f));
+            rotation = basis.rotation;
+
+            return true;
+        }
+
+        /// <summary>The index of the largest or smallest component of <paramref name="v"/>.</summary>
+        private static int Axis(Vector3 v, bool smallest, int exclude = -1)
+        {
+            int best = -1;
+            for (int i = 0; i < 3; i++)
+            {
+                if (i == exclude) continue;
+                if (best < 0 || (smallest ? v[i] < v[best] : v[i] > v[best])) best = i;
+            }
+
+            return best;
+        }
+
+        /// <summary>One box of the bar, sized in metres in its parent's frame.</summary>
+        private static void Box(Transform parent, string name, Material material,
+                                Vector3 position, Quaternion rotation, Vector3 size)
+        {
+            GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            box.name = name;
+
+            // A primitive arrives with a collider. On an item that is picked up, dropped and stowed
+            // that collider would join the prefab's own fitted one and change what the world, the
+            // pack and the interaction ray all think this shape is.
+            Object.DestroyImmediate(box.GetComponent<Collider>());
+
+            box.GetComponent<MeshRenderer>().sharedMaterial = material;
+
+            Transform t = box.transform;
+            t.SetParent(parent, false);
+            t.localPosition = position;
+            t.localRotation = rotation;
+            t.localScale = size;
+        }
+
+        /// <summary>
+        /// One of the two bar materials, as a copy of the model's OWN gauge material so it inherits
+        /// the palette's shader and emissive setup rather than guessing at one.
+        ///
+        /// <para>
+        /// Real material assets and not a <c>MaterialPropertyBlock</c>, because a property block is
+        /// not serialized and <c>Awake</c> never runs on a prefab in the editor: a block-only bar
+        /// would be right in play and wrong in every generated icon, on the pack mat and on the
+        /// ship's gear wall. The runtime still tints the fill through <see cref="SupplyGauge"/> —
+        /// this is what it reads as before anything has painted it.
+        /// </para>
+        /// </summary>
+        private static Material EnsureGaugeMaterial(string path, Renderer readout, int submesh,
+                                                    Color colour)
+        {
+            Material source = readout.sharedMaterials[submesh];
+            if (source == null)
+            {
+                Debug.LogError("[OxygenGear] The gauge submesh has no material to copy for " + path);
+                return null;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(source);
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            // Re-pointed and re-coloured on every run, not only at creation: a .mat freezes the
+            // shader defaults it was BORN with, so one written against an older palette keeps them
+            // forever and the constants here quietly become a lie.
+            material.shader = source.shader;
+            material.CopyPropertiesFromMaterial(source);
+            EmissiveLamp.Bake(material, colour);
+            EditorUtility.SetDirty(material);
+
+            return material;
         }
 
         /// <summary>
@@ -422,12 +726,13 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The emissive gauge, and proof that the submesh index still names an emissive material.
-        /// An index that has drifted paints the shell instead, which looks like a broken shader
-        /// rather than like a wrong number.
+        /// The mesh carrying the gauge, and the submesh its emissive material sits on — resolved by
+        /// NAME, because the index is an accident of the export order.
         /// </summary>
-        private static Renderer FindReadout(GameObject modelInstance, Supply supply)
+        private static Renderer FindReadout(GameObject modelInstance, Supply supply, out int submesh)
         {
+            submesh = -1;
+
             Renderer found = modelInstance.GetComponentsInChildren<Renderer>(true)
                 .FirstOrDefault(r => r.name == supply.ReadoutPart);
 
@@ -440,21 +745,24 @@ namespace SpaceGame.EditorTools
             }
 
             Material[] materials = found.sharedMaterials;
-            if (supply.ReadoutIndex < 0 || supply.ReadoutIndex >= materials.Length)
+            for (int i = 0; i < materials.Length; i++)
             {
-                Debug.LogError("[OxygenGear] " + supply.ReadoutPart + " has " + materials.Length +
-                               " materials, so submesh " + supply.ReadoutIndex + " does not exist.");
-                return null;
+                // Unity suffixes an imported material with " (Instance)" in some contexts, and the
+                // palette's own names are unique, so a prefix test is both enough and stable.
+                if (materials[i] == null || !materials[i].name.StartsWith(supply.ReadoutMaterial))
+                    continue;
+
+                submesh = i;
+                break;
             }
 
-            Material material = materials[supply.ReadoutIndex];
-            if (material == null || !material.name.Contains("Emissive"))
+            if (submesh < 0)
             {
-                Debug.LogError("[OxygenGear] Submesh " + supply.ReadoutIndex + " of " +
-                               supply.ReadoutPart + " is '" +
-                               (material != null ? material.name : "null") +
-                               "', which is not an emissive material. The model's material order " +
-                               "changed; re-read it before trusting the index.");
+                Debug.LogError("[OxygenGear] " + supply.ReadoutPart + " in " + supply.Model +
+                               " carries no '" + supply.ReadoutMaterial + "' among its " +
+                               materials.Length + " materials (" +
+                               string.Join(", ", materials.Select(m => m != null ? m.name : "null")) +
+                               "). The gauge is found by that material; the model changed.");
                 return null;
             }
 
@@ -712,8 +1020,12 @@ namespace SpaceGame.EditorTools
                         problems.Add(supply.Name + " packSize reads " + grip.PackSize.ToString("F3"));
                 }
 
-                var supplyItem = prefab.GetComponent<DockableSupply>();
-                if (supplyItem == null) problems.Add(supply.Name + " has no DockableSupply");
+                if (prefab.GetComponent<DockableSupply>() == null)
+                    problems.Add(supply.Name + " has no DockableSupply, so it equips with no hold " +
+                                 "pose and carries no item state");
+
+                var supplyItem = prefab.GetComponent<SupplyReservoir>();
+                if (supplyItem == null) problems.Add(supply.Name + " has no SupplyReservoir");
                 else
                 {
                     // The three numbers that make a reservoir what it is. Checked off the saved
@@ -728,6 +1040,17 @@ namespace SpaceGame.EditorTools
                         problems.Add(supply.Name + " startingCharge reads " + supplyItem.StartingCharge);
                 }
 
+                // The bar, off disk. It is generated geometry rather than a serialized field, so a
+                // discarded prefab save loses it silently and leaves an item whose gauge simply
+                // never moves — which looks like a broken drain rather than like a failed build.
+                SupplyGauge gauge = SupplyGauge.Bind(prefab.transform);
+                if (!gauge.Exists)
+                    problems.Add(supply.Name + " has no " + SupplyGauge.AnchorName +
+                                 " — the fill bar did not survive the prefab save");
+                else if (prefab.transform.Find(SupplyGauge.TrackName) == null)
+                    problems.Add(supply.Name + " has no " + SupplyGauge.TrackName +
+                                 ", so its permanently-lit gauge geometry shows through an empty bar");
+
                 problems.AddRange(ItemWorldPresence.ProblemsWith(prefab)
                                                    .Select(p => supply.Name + ": " + p));
 
@@ -737,9 +1060,10 @@ namespace SpaceGame.EditorTools
 
             if (problems.Count == 0)
             {
-                Debug.Log("[OxygenGear] VERIFIED off disk: three items, holdSize " +
+                Debug.Log("[OxygenGear] VERIFIED off disk: " + Roster.Length + " items, holdSize " +
                           HoldSize.ToString("F2") + ", packSize " + TankPackSize.ToString("F2") +
-                          "/" + CellPackSize.ToString("F2") + ", all registered for clients.");
+                          "/" + CellPackSize.ToString("F2") + ", both gauged, all registered for " +
+                          "clients.");
                 return true;
             }
 

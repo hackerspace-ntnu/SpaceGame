@@ -22,7 +22,7 @@ namespace SpaceGame.Items
     /// those two methods.
     /// </para>
     /// </summary>
-    public class Leash : MonoBehaviour
+    public class Leash : MonoBehaviour, ICuttableRope
     {
         // ── Ends ───────────────────────────────────────────────────────────────
 
@@ -51,8 +51,8 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// Gates the struggle: strain is what it costs to fight a rope, and a slack rope is not
-        /// fighting you. Without this, walking away from a knot you are standing next to would tear
-        /// the rope off after <c>resistSeconds</c> without it ever having gone taut.
+        /// fighting you. Without this, throwing yourself about beside a knot you are standing next
+        /// to would tear the rope off without it ever having gone taut.
         /// </para>
         /// </summary>
         public bool IsTaut => Tension01 > 0f;
@@ -73,8 +73,23 @@ namespace SpaceGame.Items
             /// <summary>Ceiling on how far one step may move an end, in metres.</summary>
             public float maxCorrectionStep;
 
-            /// <summary>Seconds of squarely-away struggle to tear free of an equally strong end.</summary>
-            public float resistSeconds;
+            /// <summary>Yanks needed to tear free of an end as strong and as heavy as you are.</summary>
+            public float resistJerks;
+
+            /// <summary>Floor on the hold ratio, so nothing light and snagged parts instantly.</summary>
+            public float minResistRatio;
+
+            /// <summary>Ceiling on it, so even a wall stays escapable.</summary>
+            public float maxResistRatio;
+
+            /// <summary>Yanks per second past which a struggle gains nothing. Anti-macro.</summary>
+            public float maxUsefulStruggleRate;
+
+            /// <summary>How far the stick must be pushed for a direction to count as meant.</summary>
+            public float struggleMoveDeadzone;
+
+            /// <summary>How far round the captive must throw themselves for a yank, in degrees.</summary>
+            public float struggleReversalAngle;
 
             /// <summary>Strain given back per second when not struggling.</summary>
             public float strainDecay;
@@ -129,11 +144,15 @@ namespace SpaceGame.Items
         private void OnEnable()
         {
             if (!LiveLeashes.Contains(this)) LiveLeashes.Add(this);
+
+            CuttableRopes.Register(this);
         }
 
         private void OnDisable()
         {
             LiveLeashes.Remove(this);
+
+            CuttableRopes.Unregister(this);
 
             if (listening != null) listening.NetOff(NetMsg.LeashSnap, OnSnapAnnounced);
             listening = null;
@@ -385,6 +404,31 @@ namespace SpaceGame.Items
             go != null && ((A.Anchor != null && A.Anchor.gameObject == go) ||
                            (B.Anchor != null && B.Anchor.gameObject == go));
 
+        /// <summary>
+        /// Whether this rope is knotted to <paramref name="who"/> — at either end, and to any part
+        /// of them rather than only to their root.
+        ///
+        /// <para>
+        /// A rope is one connected thing, so the question "am I on this rope" has to be asked of
+        /// BOTH ends. Asking only the end nearest the click would let a captive walk to the far
+        /// knot and untie themselves from there, which is the same escape by a longer route.
+        /// </para>
+        /// <para>
+        /// <c>IsChildOf</c> rather than <see cref="ReferencesObject"/> because a player's knot does
+        /// not land on their root: <see cref="LeashEnd.TieTo"/> anchors to the Rigidbody it finds,
+        /// which on a downed player is the ragdoll bone the rope was thrown at. <c>IsChildOf</c> is
+        /// true of the transform itself, so a hand end anchored on the root still answers yes.
+        /// </para>
+        /// </summary>
+        public bool Restrains(GameObject who)
+        {
+            if (who == null) return false;
+
+            Transform them = who.transform;
+            return (A.Anchor != null && A.Anchor.IsChildOf(them)) ||
+                   (B.Anchor != null && B.Anchor.IsChildOf(them));
+        }
+
         // ── Constraint ─────────────────────────────────────────────────────────
 
         /// <summary>
@@ -542,13 +586,46 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// The authored base figure. Named to avoid colliding with the static
-        /// <see cref="ResistSeconds"/>, which scales this by the captor's pull — a property and a
+        /// <see cref="ResistJerks"/>, which scales this by the captor's hold — a property and a
         /// method may not share a name in one C# type.
         /// </summary>
-        public float ResistBaseSeconds => settings.resistSeconds;
+        public float ResistBaseJerks => settings.resistJerks;
 
-        /// <summary>Strain given back per second when the body stops struggling.</summary>
+        /// <summary>Yanks' worth of strain given back per second when the body stops fighting.</summary>
         public float StrainDecay => settings.strainDecay;
+
+        /// <summary>Clamps on the hold ratio <see cref="ResistJerks"/> scales by.</summary>
+        public float MinResistRatio => settings.minResistRatio;
+
+        /// <inheritdoc cref="MinResistRatio"/>
+        public float MaxResistRatio => settings.maxResistRatio;
+
+        /// <summary>Anti-macro throttle on the struggle. See <see cref="SnareStruggleMeter"/>.</summary>
+        public float MaxUsefulStruggleRate => settings.maxUsefulStruggleRate;
+
+        /// <summary>
+        /// How long one yank's worth of strain takes to fade, in seconds — the same figure as
+        /// <see cref="StrainDecay"/> the other way up.
+        ///
+        /// <para>
+        /// Exists because <see cref="SnareStruggleMeter"/> is authored in seconds and this rope is
+        /// authored in yanks per second. <see cref="LeashedBody"/> uses that meter only for its
+        /// throttle, but handing it a fade that matches the rope's own keeps its
+        /// <c>Level</c> meaning what it says rather than being a number nobody may trust.
+        /// </para>
+        /// </summary>
+        public float StrainFadeSeconds => 1f / Mathf.Max(0.01f, settings.strainDecay);
+
+        /// <inheritdoc cref="Settings.struggleMoveDeadzone"/>
+        public float StruggleMoveDeadzone => settings.struggleMoveDeadzone;
+
+        /// <summary>
+        /// The reversal angle as a dot product, which is the form
+        /// <see cref="SnareStruggleReader.Counts"/> takes. Authored in degrees because that is what
+        /// a designer tuning "how far round is a yank" should be typing.
+        /// </summary>
+        public float StruggleReversalDot =>
+            Mathf.Cos(settings.struggleReversalAngle * Mathf.Deg2Rad);
 
         /// <summary>
         /// How much of the constraint's work this end does, by inverse mass.
@@ -633,73 +710,76 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// How long a struggle against <paramref name="theirPull"/> should take, in seconds.
+        /// How many yanks it takes to tear free of the far end.
         ///
         /// <para>
         /// A ratio rather than a difference, so it stays sane at both ends of the scale: tearing
-        /// free of the lander is proportionally harder than tearing free of another player, and
-        /// tearing free of a crate is quick without ever being instant.
+        /// free of the lander takes proportionally more of them than tearing free of another
+        /// player, and tearing free of a light animal is quick without ever being one yank.
+        /// </para>
+        /// <para>
+        /// The ratio is what HOLDS you, which is the greater of two different things: how hard the
+        /// far end can haul (<see cref="PullOf"/>) and how much heavier than you it simply is.
+        /// Keying it on pull alone inverted the whole scale, because a wall, a rock, the lander and
+        /// a crate all have no engine and therefore score zero pull — so the most immovable anchors
+        /// in the game were the quickest to tear free of, at the old 0.1 floor. Mass is the term
+        /// that answers for them; an anchor with no body at all is infinitely heavy and lands on
+        /// <paramref name="maxRatio"/>.
+        /// </para>
+        /// <para>
+        /// Both ends of the ratio are clamped, and both clamps are load-bearing.
+        /// <paramref name="minRatio"/> is what stops something light and snagged parting in a
+        /// fraction of a second; <paramref name="maxRatio"/> is what keeps a wall escapable, so
+        /// capture stays a situation with an answer rather than an off switch
+        /// (<c>GDC-L1-BAL-0004</c>).
         /// </para>
         /// </summary>
-        public static float ResistSeconds(float theirPull, float myPull, float baseSeconds)
+        public static float ResistJerks(float theirPull, float myPull,
+                                        float theirMass, float myMass,
+                                        float baseJerks, float minRatio, float maxRatio)
         {
-            float mine = Mathf.Max(1f, myPull);
-            float ratio = Mathf.Max(0.1f, theirPull / mine);
+            float byPull = theirPull / Mathf.Max(1f, myPull);
 
-            return Mathf.Max(0.1f, baseSeconds * ratio);
+            // Guarded rather than divided: an anchor with no Rigidbody answers an infinite mass,
+            // and Infinity / Infinity is a NaN that would poison the clamp below.
+            float byMass = float.IsInfinity(theirMass)
+                ? float.PositiveInfinity
+                : theirMass / Mathf.Max(0.01f, myMass);
+
+            float ratio = Mathf.Clamp(Mathf.Max(byPull, byMass), minRatio, maxRatio);
+
+            return Mathf.Max(1f, baseJerks * ratio);
         }
 
         /// <summary>
-        /// How much of a body's attempt to leave the knot is actually being stopped by the rope,
-        /// 0 (going where it wants) to 1 (going nowhere, or losing ground).
+        /// One step of a struggle, as a fraction of the way through tearing free.
         ///
         /// <para>
-        /// This is what tells a TOW from a STRUGGLE, and nothing else can: both are the same input,
-        /// a player holding a movement key that points away from a taut rope. Before this the rope
-        /// counted every haul as an escape attempt, and because a dropped item scores zero pull —
-        /// no motor, so <see cref="LeashEnd.TopSpeed"/> is 0 and <see cref="PullOf"/> returns 0 —
-        /// every item hit the ratio floor in <see cref="ResistSeconds"/> at 0.2 s. Hauling anything
-        /// tore the rope off in a fifth of a second, before the load had moved.
+        /// <b>Strain is charged per YANK, never per second of holding a key.</b> That is the whole
+        /// separation between being towed and fighting: a player dragged across the desert who
+        /// does not fight goes on being dragged for as long as the hauler likes, and a player
+        /// hauling a load can lean on the key forever without their own rope parting. Only
+        /// throwing yourself about — a reversal past
+        /// <see cref="SnareStruggleReader.Counts"/>'s angle, throttled to
+        /// <see cref="Settings.maxUsefulStruggleRate"/> so a macro is worth no more than hands —
+        /// moves this number up.
         /// </para>
-        /// <para>
-        /// The difference is not in the input but in the result. A load that comes along with you
-        /// is not restraining you, however hard you are pulling; a post that will not move is
-        /// restraining you completely. So strain is charged for the part of the movement the rope
-        /// actually cancelled, which is exactly the part a player experiences as being stuck.
-        /// </para>
-        /// </summary>
-        /// <param name="wishAway">How squarely the body is trying to leave, `dot(wish, away)`, 0–1.</param>
-        /// <param name="actualAway">Its real speed along that direction, m/s. Negative while losing ground.</param>
-        /// <param name="topSpeed">What it would manage unimpeded. Zero disables the struggle.</param>
-        public static float HeldBackFraction(float wishAway, float actualAway, float topSpeed)
-        {
-            // Not trying to leave, or nothing to leave with. The second guard is the divide: every
-            // end without a motor answers TopSpeed 0, and 0/0 would poison every clamp downstream.
-            if (wishAway <= 0f || topSpeed <= 0f) return 0f;
-
-            float wanted = wishAway * topSpeed;
-
-            return 1f - Mathf.Clamp01(actualAway / wanted);
-        }
-
-        /// <summary>
-        /// One step of a struggle. <paramref name="away"/> is how squarely the body is pulling
-        /// against the rope — the dot of its move input with the direction away from the knot,
-        /// so leaning sideways earns nothing.
-        ///
         /// <para>
         /// Pure, and takes its own delta, because <c>Time.time</c> starts at zero outside play
         /// mode and an EditMode test that read the clock would be measuring the Editor's frame.
         /// Clamped at both ends: never negative, so resting banks no credit against the next rope,
-        /// and never past 1, so a long step cannot overshoot the snap.
+        /// and never past 1, so one yank cannot overshoot the snap.
         /// </para>
         /// </summary>
-        public static float ResistStrain(float strain, float away, float resistSeconds,
+        /// <param name="jerked">Whether an accepted yank landed this step.</param>
+        /// <param name="jerksNeeded">Yanks to tear free of this end — see <see cref="ResistJerks"/>.</param>
+        /// <param name="decay">Yanks' worth of strain given back per second of not fighting.</param>
+        public static float ResistStrain(float strain, bool jerked, float jerksNeeded,
                                          float dt, float decay)
         {
-            float gain = Mathf.Max(0f, away) / Mathf.Max(0.1f, resistSeconds);
+            float perJerk = 1f / Mathf.Max(1f, jerksNeeded);
 
-            strain += gain > 0f ? gain * dt : -decay * dt;
+            strain += jerked ? perJerk : -decay * perJerk * dt;
 
             return Mathf.Clamp01(strain);
         }
@@ -801,6 +881,28 @@ namespace SpaceGame.Items
             // still excluding the previous one would rest the rope on the thing it is now tied to.
             settings.rope.Draw(path.PointsBetween(A.Position, B.Position), Length, Tension01);
         }
+
+        // ── Being cut ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The rope as something with a blade in it would meet it: the same polyline
+        /// <see cref="LateUpdate"/> draws, wraps and all.
+        ///
+        /// <para>
+        /// Deliberately the drawn shape rather than the chord between the anchors. A rope round a
+        /// pillar is two straight runs meeting at the bend, and cutting it along the chord instead
+        /// would part a rope nobody's beam ever touched while sparing one it went straight through.
+        /// </para>
+        /// </summary>
+        public void AppendSpan(List<Vector3> into)
+        {
+            if (disposed || !A.IsAlive || !B.IsAlive) return;
+
+            into.AddRange(path.PointsBetween(A.Position, B.Position));
+        }
+
+        /// <summary>Cut. A rope that is cut is a rope that broke, and it already knows how to do that.</summary>
+        public void Cut() => Snap();
 
         // ── Lifecycle ──────────────────────────────────────────────────────────
 

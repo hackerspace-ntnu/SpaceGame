@@ -11,6 +11,11 @@ public class JumpingRodHopTests
 
     // ── Take-off ───────────────────────────────────────────────────────────────
 
+    // Every take-off case below passes chainLinks 0. BoostFactor is 1 for an empty chain,
+    // so these measure the unboosted arithmetic — the clamps and EnergyReturn — exactly as
+    // they did before the landing boost existed. The chain itself is covered by
+    // JumpingRodBoostTests in Assets/Game/Editor/Tests/.
+
     [Test]
     public void StandingOnItAndDoingNothingStillHopsHigh()
     {
@@ -18,7 +23,7 @@ public class JumpingRodHopTests
 
         // No arrival speed at all. This is the promise the whole item is built on: plant it, do
         // nothing, and it throws you the cruise height every time.
-        Assert.AreEqual(cfg.MinHopSpeed, JumpingRodHopModel.TakeoffSpeed(0f, cfg), 1e-4f);
+        Assert.AreEqual(cfg.MinHopSpeed, JumpingRodHopModel.TakeoffSpeed(0f, cfg, 0), 1e-4f);
     }
 
     [Test]
@@ -36,7 +41,7 @@ public class JumpingRodHopTests
     {
         JumpingRodConfig cfg = Config();
 
-        Assert.AreEqual(cfg.MaxHopSpeed, JumpingRodHopModel.TakeoffSpeed(400f, cfg), 1e-4f);
+        Assert.AreEqual(cfg.MaxHopSpeed, JumpingRodHopModel.TakeoffSpeed(400f, cfg, 0), 1e-4f);
     }
 
     [Test]
@@ -45,8 +50,8 @@ public class JumpingRodHopTests
         JumpingRodConfig cfg = Config();
 
         // Both above the floor and below the ceiling, so neither clamp is what is being measured.
-        float gentle = JumpingRodHopModel.TakeoffSpeed(13f, cfg);
-        float hard = JumpingRodHopModel.TakeoffSpeed(15f, cfg);
+        float gentle = JumpingRodHopModel.TakeoffSpeed(13f, cfg, 0);
+        float hard = JumpingRodHopModel.TakeoffSpeed(15f, cfg, 0);
 
         Assert.Greater(hard, gentle);
     }
@@ -58,7 +63,7 @@ public class JumpingRodHopTests
 
         float speed = cfg.MaxHopSpeed;
         for (int i = 0; i < 200; i++)
-            speed = JumpingRodHopModel.TakeoffSpeed(speed, cfg);
+            speed = JumpingRodHopModel.TakeoffSpeed(speed, cfg, 0);
 
         // Settles ON the cruise hop, never below it: the rod keeps working forever, it just stops
         // handing back the extra height a cliff gave it.
@@ -70,8 +75,8 @@ public class JumpingRodHopTests
     {
         JumpingRodConfig cfg = Config();
 
-        Assert.AreEqual(JumpingRodHopModel.TakeoffSpeed(13f, cfg),
-                        JumpingRodHopModel.TakeoffSpeed(-13f, cfg), 1e-4f);
+        Assert.AreEqual(JumpingRodHopModel.TakeoffSpeed(13f, cfg, 0),
+                        JumpingRodHopModel.TakeoffSpeed(-13f, cfg, 0), 1e-4f);
     }
 
     // ── Touchdown ──────────────────────────────────────────────────────────────

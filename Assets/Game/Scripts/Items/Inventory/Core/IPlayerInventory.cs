@@ -10,17 +10,26 @@ namespace SpaceGame.Items
         event Action<InventorySlot> OnSlotSelected;
         event Action<int, InventorySlot> OnSlotChanged;
         /// <summary>
-        /// Something left the bar for the ground. The float is the item's charge
-        /// (<see cref="SupplyCharge"/>), or <see cref="SupplyCharge.None"/> for the great majority
-        /// of items, which hold nothing.
+        /// Something left the bar for the ground, with the whole <see cref="ItemState"/> the slot
+        /// was holding for it — a tank's charge, a gun's spent charges, whatever else the item had
+        /// become. Null for an item at its authored defaults, which is most of them.
         ///
         /// <para>
-        /// The charge rides the event rather than being looked up afterwards because by then it is
-        /// gone: the slot has been cleared, and clearing a slot takes its <see cref="ItemState"/>
-        /// with it. Without it a drained tank dropped on the sand comes back full.
+        /// The bag rides the event rather than being looked up afterwards because by then it is
+        /// gone: the slot has been cleared, and clearing a slot takes its bag with it. Without it a
+        /// drained tank dropped on the sand comes back full.
+        /// </para>
+        /// <para>
+        /// It carried only a charge until 2026-09-07, and the rest of the bag was discarded by the
+        /// act of putting an item down. That was survivable while the only per-instance state
+        /// anybody could see was a fill level, and stopped being survivable the moment an item
+        /// could hold a living thing. One value on this event is one value the drop path has to
+        /// know about; the bag is the mechanism the hotbar, the save file and the gear slots
+        /// already share, so the world uses it too and the next item with state costs this
+        /// signature nothing.
         /// </para>
         /// </summary>
-        event Action<InventoryItem, float> OnItemDropped;
+        event Action<InventoryItem, ItemState> OnItemDropped;
 
         bool TryAddItem(InventoryItem item);
 

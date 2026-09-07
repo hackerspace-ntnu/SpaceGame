@@ -305,11 +305,17 @@ namespace SpaceGame.Items
             return new Measurement(measured * fit, local.center * fit);
         }
 
-        /// Larger than the rig's widest surface plus a generous margin. Nothing legitimate reaches
-        /// this; a measurement that does is an authoring mistake, not a big item. On the mat, so it
-        /// scales with the mat: the lash line alone is 18 cells, and a fixed 2 m would have made
-        /// the warning fire on the one surface built to take long goods at any factor above 1.11.
-        private static readonly float Implausible = PackScale.Apply(2f);
+        /// The widest face in the game — the ship's gear wall's 30 cells. Nothing legitimate
+        /// reaches this; a measurement that does is an authoring mistake, not a big item. Derived
+        /// from the grid rather than typed, so it scales with the mat: the rig's lash line alone
+        /// is 18 cells, and a fixed 2 m would have made the warning fire on the one surface built
+        /// to take long goods at any factor above 1.11.
+        ///
+        /// Stated against the widest face IN THE GAME rather than the widest face on the RIG,
+        /// because the two stopped being the same thing when the gear wall was added: at the rig's
+        /// figure, the nuclear motor — sized for the wall, on purpose, and fitting it with six
+        /// cells to spare — tripped a warning telling its author to go and size it.
+        private static readonly float Implausible = PackGrid.WidestFaceCells * PackGrid.Cell;
 
         /// <summary>
         /// Complain once about a measurement that cannot be right.
@@ -328,7 +334,8 @@ namespace SpaceGame.Items
 
             Debug.LogWarning(
                 $"ItemFootprint: '{itemPrefab.name}' measures {longest:F2} m on its longest axis, " +
-                "which is larger than any surface on the pack. Give its prefab an ItemGrip with a " +
+                $"which is larger than the widest face in the game ({Implausible:F2} m, the " +
+                "ship's gear wall). Give its prefab an ItemGrip with a " +
                 "holdSize (or a packSize) in metres — without one the raw mesh bounds are used, " +
                 "and an oversized item fills the screen while it is being carried.", itemPrefab);
         }

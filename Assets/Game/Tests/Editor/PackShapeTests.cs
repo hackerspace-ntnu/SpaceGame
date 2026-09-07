@@ -229,6 +229,35 @@ namespace SpaceGame.Tests
             Assert.IsTrue(turned.IsRectangular);
         }
 
+        /// <summary>
+        /// The question both containers ask when a press lands on red cells: is a turn worth
+        /// offering? A refusal is answered with a quarter turn — on the mat and, since INV-04, on
+        /// the gear wall — so a shape that turns onto the cells it was just refused on has to say
+        /// so, or the fix for a refusal is a press that visibly does nothing.
+        ///
+        /// <para>
+        /// The L is the case a width-and-height comparison gets wrong: 2 x 2 either way round, and
+        /// a completely different set of cells. It is also the reason this is asked of the mask
+        /// rather than of <c>Size</c>.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void OnlyAShapeThatWouldLandOnDifferentCellsOffersATurn()
+        {
+            Assert.IsTrue(PackShape.Rect(5, 2).QuarterTurnChangesCells(0),
+                          "a 5 x 2 block turns into a 2 x 5 one — the whole point of the offer");
+
+            Assert.IsTrue(PackShape.Rect(5, 2).QuarterTurnChangesCells(1),
+                          "and back again from the turned orientation");
+
+            Assert.IsFalse(PackShape.Rect(2, 2).QuarterTurnChangesCells(0),
+                           "a square turns onto its own cells, so there is nothing to offer");
+
+            Assert.IsTrue(LowerL().QuarterTurnChangesCells(0),
+                          "an L is 2 x 2 at every turn and fills different cells at each of " +
+                          "them — measuring the bounding block alone would have missed it");
+        }
+
         // ── Derived shapes ───────────────────────────────────────────────────
 
         /// <summary>

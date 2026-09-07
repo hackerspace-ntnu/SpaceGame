@@ -116,7 +116,7 @@ namespace SpaceGame.Tests
 
         /// <summary>
         /// A tank: an item carrying an oxygen reservoir, authored full. The
-        /// <see cref="DockableSupply"/> is not decoration — <c>TryFindSocketed</c> asks the
+        /// <see cref="SupplyReservoir"/> is not decoration — <c>TryFindSocketed</c> asks the
         /// PREFAB what kind it holds, so an item without one is invisible to the socket.
         /// </summary>
         private InventoryItem Tank()
@@ -130,7 +130,7 @@ namespace SpaceGame.Tests
             gripSo.FindProperty("packSize").floatValue = 0.25f;
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
-            var supply = tankPrefab.AddComponent<DockableSupply>();
+            var supply = tankPrefab.AddComponent<SupplyReservoir>();
             var supplySo = new SerializedObject(supply);
             supplySo.FindProperty("kind").enumValueIndex = (int)SupplyKind.Oxygen;
             supplySo.FindProperty("capacity").floatValue = 1800f;

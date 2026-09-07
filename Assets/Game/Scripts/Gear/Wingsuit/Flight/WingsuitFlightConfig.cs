@@ -17,7 +17,7 @@ namespace SpaceGame.Gear.Wingsuit
     /// </para>
     /// <para>
     /// A real wingsuit glides about 2.5:1 at around 180 km/h and would be miserable to fly. These
-    /// numbers are tuned for the sensation instead (GDC-L1-FEEL-0007): a fast, committed ~4:1
+    /// numbers are tuned for the sensation instead (GDC-L1-FEEL-0007): a long, committed ~5.3:1
     /// glide that stalls if you hold the nose up. Read the two derived numbers back with
     /// <see cref="OrnithopterFlightModel.StallSpeed"/> and <see cref="BestGlideRatio"/> after any
     /// edit rather than assuming — mass, area and the whole lift curve feed both.
@@ -34,10 +34,12 @@ namespace SpaceGame.Gear.Wingsuit
     {
         public WingsuitFlightConfig()
         {
-            // Airframe: an astronaut, their suit and what they are carrying, under about four
-            // square metres of membrane between arm and hip.
+            // Airframe: an astronaut, their suit and what they are carrying, under the membrane
+            // between arm and hip. The area is generous for the span it is drawn on — it is the
+            // cheapest lever on wing loading, and wing loading is what sets both the stall and how
+            // fast a hands-off glide sinks.
             Mass = 110f;
-            WingArea = 4f;
+            WingArea = 5.5f;
 
             // A fabric wing with a blunt leading edge and a body in the middle of it: less lift
             // per degree than the aircraft's, but it hangs on to a higher angle before letting go.
@@ -46,10 +48,12 @@ namespace SpaceGame.Gear.Wingsuit
             StallFadeAngle = 14f;
             PostStallLiftFraction = 0.45f;
 
-            // A human is draggy in a way an airframe is not, and the induced factor is what sets
-            // the glide ratio: 1/(2·sqrt(cd0·k)) comes to just under 4:1.
-            DragCoefficientZeroLift = 0.10f;
-            InducedDragFactor = 0.16f;
+            // Together these ARE the glide ratio: 1/(2·sqrt(cd0·k)), here about 5.3:1. A human is
+            // draggy in a way an airframe is not and an honest suit is draggier still, but a suit
+            // tuned honestly sank at 6 m/s and spent every flight arriving — the height a player
+            // had was gone before they could aim it anywhere (GDC-L1-FEEL-0007).
+            DragCoefficientZeroLift = 0.075f;
+            InducedDragFactor = 0.12f;
 
             // No flapping, ever. The beat frequencies still tick because FlapPhase drives the
             // membrane's idle breath, but with no thrust behind it that is cosmetic.
@@ -72,9 +76,10 @@ namespace SpaceGame.Gear.Wingsuit
             MaxPitch = 70f;
             MaxRoll = 70f;
 
-            // The flat yaw. A rudder for lining up rather than a way to turn — banking is what
-            // turns you — but not so weak that a slow wing stops answering at all.
-            TailYawRate = 35f;
+            // No aerodynamic rudder. The mouse yaws the flight directly, at the player's own look
+            // sensitivity and outside these equations (WingsuitControl.Steer), so a tail fan would
+            // be a second, weaker answer to the same input — and this suit has no tail.
+            TailYawRate = 0f;
 
             // Low, because a deploy starts near the stall and controls that fade out exactly when
             // the player is first taking hold of them read as a suit that ignores you.
@@ -90,7 +95,7 @@ namespace SpaceGame.Gear.Wingsuit
         /// down, flown at the angle of attack that gets it.
         ///
         /// Derived rather than tuned, for the same reason <see cref="OrnithopterFlightModel.StallSpeed"/>
-        /// is: it is the number the feel is actually described in ("about a four to one glide"),
+        /// is: it is the number the feel is actually described in ("about a five to one glide"),
         /// and a separately tuned copy of it would drift out of agreement with the drag curve that
         /// produces it. Standard result for a parabolic drag polar: L/D peaks at 1/(2·sqrt(cd0·k)).
         /// </summary>

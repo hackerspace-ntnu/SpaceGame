@@ -158,6 +158,15 @@ bearing. Measured from the file:
 - The export applies no transforms, so **all of that ships into Unity as node
   rotation and node scale**, not baked into the meshes.
 
+**Unity wears the console on the OTHER flank (2026-09-06, backlog GEAR-01.)** The
+model still stands it on the little-finger side below; the game turns the whole
+gauntlet half a turn about the arm when it seats it, through
+`GauntletFit.rollDegrees` = 180, decided in `GauntletReseat.ItemScannerRollDegrees`.
+So every "flank" in this file is a fact about the .blend, and the worn side is its
+mirror. The roll axis is the arm, so nothing here moves along it and the screen
+keeps the up it was built with. **The .blend was not touched** — it must not be
+regenerated, and a roll about the arm is what the fit component is for.
+
 ## Screen, verified from the data
 
 Re-measured from the hand-edited file, in world space, through the largest

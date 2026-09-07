@@ -207,21 +207,43 @@ namespace SpaceGame.EditorTools
 
         // ── The jet arcs, and does not reach far ─────────────────────────────
 
+        /// <summary>The shipped hose. Kept here so the sums below read as one set of numbers.</summary>
+        private const float Speed = 24f;
+        private const float Flight = 2f;
+
         [Test]
         public void TheStreamFallsUnderGravity()
         {
-            Vector3 level = PortalJet.Sample(Vector3.zero, Vector3.forward, 13f, 1f, 0.8f);
+            Vector3 level = PortalJet.Sample(Vector3.zero, Vector3.forward, Speed, 1f, 0.8f);
 
-            Assert.Less(level.y, -1f, "half a second out, the stream has visibly dropped");
+            Assert.Less(level.y, -1f, "most of a second out, the stream has visibly dropped");
             Assert.Greater(level.z, 5f, "and is still going forward");
         }
 
         [Test]
-        public void TheStreamDoesNotReachAcrossARoom()
+        public void TheStreamIsLobbedRatherThanAimed()
         {
-            // Held level, a 13 m/s stream from chest height is on the floor well inside 30 m — the
-            // range the hitscan version used to place a portal at.
-            Assert.Less(PortalJet.BallisticRange(13f, 1f), 20f);
+            // The pressure went up so a wall across a room is reachable — but the shape of the
+            // thing did not change. Held level from chest height the stream is on the floor around
+            // ten metres out, so the far wall still has to be LOBBED at, which is the whole
+            // difference between this and the hitscan gun that placed a portal at 30 m on a ray.
+            //
+            // Everything here is measured against Physics.gravity, which is 18 in this project.
+            // Doing the same sums against 9.81 is what left the shipped hose reaching half what
+            // its own comments claimed.
+            float lobbed = PortalJet.BallisticRange(Speed, 1f);
+
+            Assert.Greater(lobbed, 25f, "the hose has no pressure; a room is out of reach");
+            Assert.Less(lobbed, 45f, "at this range it is a paint gun again, not a hose");
+
+            float chestHeight = 1.5f;
+            float level = Speed * Mathf.Sqrt(2f * chestHeight / Physics.gravity.magnitude);
+            Assert.Less(level, lobbed * 0.5f, "pointing straight at it must not be the best throw");
+
+            // And the arc must fit in the flight budget, or the paint is given up on in mid-air
+            // and a full lob silently falls short of the range above.
+            Assert.Greater(Flight, 2f * Speed * 0.7071f / Physics.gravity.magnitude * 0.8f,
+                           "the stream is abandoned before the lob has landed");
         }
 
         [Test]
@@ -234,12 +256,12 @@ namespace SpaceGame.EditorTools
 
             Physics.SyncTransforms();
 
-            Assert.IsTrue(PortalJet.Trace(Vector3.zero, Vector3.forward, 13f, 1f, 1.6f, ~0,
+            Assert.IsTrue(PortalJet.Trace(Vector3.zero, Vector3.forward, Speed, 1f, Flight, ~0,
                                           out RaycastHit hit, out float flight));
 
             Assert.Less(Mathf.Abs(hit.point.z - 5.75f), 0.3f, "stopped at the wall's near face");
             Assert.Greater(flight, 0f, "and took time to get there");
-            Assert.Less(flight, 1.6f, "well inside its flight budget");
+            Assert.Less(flight, Flight, "well inside its flight budget");
 
             // Gravity has pulled it below the muzzle by the time it arrives.
             Assert.Less(hit.point.y, -0.05f);
@@ -248,8 +270,70 @@ namespace SpaceGame.EditorTools
         [Test]
         public void AStreamAimedAtNothingReportsNoHit()
         {
-            Assert.IsFalse(PortalJet.Trace(new Vector3(0f, 500f, 0f), Vector3.up, 13f, 1f, 1.6f, ~0,
-                                           out RaycastHit _, out float _));
+            Assert.IsFalse(PortalJet.Trace(new Vector3(0f, 500f, 0f), Vector3.up, Speed, 1f,
+                                           Flight, ~0, out RaycastHit _, out float _));
+        }
+
+        /// <summary>
+        /// A solved launch lands on the target, not near it.
+        ///
+        /// This is what a machine that does not own the gun aims its droplets with: it knows where
+        /// the paint landed and nothing else, so the arc is recovered from the landing. Checked by
+        /// flying it — sampling the parabola the solve claims and asking whether it passes through
+        /// the point — because an angle that is merely plausible is exactly the failure this is for.
+        /// </summary>
+        [Test]
+        public void ALaunchSolvedForAPointFliesThroughIt()
+        {
+            var origin = new Vector3(0f, 1.5f, 0f);
+
+            foreach (Vector3 target in new[]
+                     {
+                         new Vector3(0f, 1.2f, 6f),      // across a room, roughly level
+                         new Vector3(4f, 4.5f, 9f),      // high on a wall, off to one side
+                         new Vector3(-3f, -2f, 2f),      // close and below, a floor at your feet
+                     })
+            {
+                Assert.IsTrue(PortalJet.TryAimAt(origin, target, Speed, 1f, out Vector3 direction),
+                              $"{target} is inside the hose's reach and was refused");
+
+                // Finely enough that the residual is the solve's, not the sampling's: at 24 m/s
+                // even a 5 ms step steps 12 cm along the arc.
+                float best = float.PositiveInfinity;
+                for (int i = 0; i <= 4000; i++)
+                {
+                    Vector3 point = PortalJet.Sample(origin, direction, Speed, 1f,
+                                                     Flight * i / 4000f);
+                    best = Mathf.Min(best, Vector3.Distance(point, target));
+                }
+
+                Assert.Less(best, 0.02f, $"the solved arc misses {target} by {best} m");
+            }
+        }
+
+        /// <summary>
+        /// The flat arc, not the lob. Both reach the target; only one is the shot the player took.
+        /// </summary>
+        [Test]
+        public void ASolvedLaunchTakesTheFlatArc()
+        {
+            Assert.IsTrue(PortalJet.TryAimAt(Vector3.zero, new Vector3(0f, 0f, 8f), Speed, 1f,
+                                             out Vector3 direction));
+
+            float elevation = Mathf.Asin(Mathf.Clamp(direction.normalized.y, -1f, 1f))
+                            * Mathf.Rad2Deg;
+
+            Assert.Greater(elevation, 0f, "a level target still has to be thrown slightly up");
+            Assert.Less(elevation, 45f, "the lob was chosen over the throw");
+        }
+
+        /// <summary>Out of reach is refused rather than answered with a wrong angle.</summary>
+        [Test]
+        public void APointBeyondTheHoseIsNotSolved()
+        {
+            Assert.IsFalse(PortalJet.TryAimAt(Vector3.zero,
+                                              new Vector3(0f, 0f, PortalJet.BallisticRange(Speed, 1f) + 20f),
+                                              Speed, 1f, out Vector3 _));
         }
 
         // ── The aperture stays on top of what it is painted on ───────────────
@@ -413,6 +497,67 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(portal.WithinAperture(new Vector3(2f, 0f, 0f)), "the paint is the hole");
             Assert.IsFalse(portal.WithinAperture(Vector3.zero),
                            "and the origin need not be inside it");
+        }
+
+        /// <summary>
+        /// Both quads carry the whole shape, and each material is told the span of its OWN quad.
+        ///
+        /// This is the invariant behind "the portal and its outline do not line up". Each shader
+        /// rebuilds a metric position from its uv times _Extents, so a material handed anything
+        /// other than half the mesh it is drawn on draws the entire outline at the wrong scale —
+        /// and the two quads are deliberately different sizes, so there is no single number to
+        /// fall back on. The rim's sheet also has to be the larger of the two, because the halo it
+        /// draws is outside the opening by construction.
+        /// </summary>
+        [Test]
+        public void EachQuadCarriesTheShapeAndItsMaterialKnowsItsOwnSpan()
+        {
+            Portal portal = NewPortal(Vector3.zero, Quaternion.identity);
+            Renderer surface = AttachQuad(portal, "surfaceRenderer", "SpaceGame/Portal/PortalSurface");
+            Renderer rim = AttachQuad(portal, "rimRenderer", "SpaceGame/Portal/PortalRim");
+
+            // Instances the shape is actually pushed to, rather than the shared assets.
+            portal.SetColour(Color.white);
+
+            portal.BeginStroke();
+            portal.AddStroke(new Vector2(-1.2f, -0.7f), new Vector2(1.2f, 0.7f), 6, 0.85f);
+
+            foreach (Renderer renderer in new[] { surface, rim })
+            {
+                Vector3 scale = renderer.transform.localScale;
+                Vector4 extents = renderer.sharedMaterial.GetVector("_Extents");
+
+                Assert.AreEqual(scale.x * 0.5f, extents.x, 1e-4f,
+                                $"{renderer.name}: told a different width than its mesh covers");
+                Assert.AreEqual(scale.y * 0.5f, extents.y, 1e-4f,
+                                $"{renderer.name}: told a different height than its mesh covers");
+
+                Assert.Greater(scale.x, portal.Size.x, $"{renderer.name} clips the shape across");
+                Assert.Greater(scale.y, portal.Size.y, $"{renderer.name} clips the shape along");
+            }
+
+            Assert.Greater(rim.transform.localScale.x, surface.transform.localScale.x,
+                           "the halo spills outside the opening, so its sheet must be the larger");
+        }
+
+        /// <summary>A quad wearing one of the portal shaders, wired into a private field.</summary>
+        private Renderer AttachQuad(Portal portal, string field, string shader)
+        {
+            GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = field;
+            quad.transform.SetParent(portal.transform, false);
+
+            Shader found = Shader.Find(shader);
+            Assert.IsNotNull(found, $"shader missing from the project: {shader}");
+
+            var renderer = quad.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = new Material(found) { hideFlags = HideFlags.HideAndDontSave };
+
+            var so = new UnityEditor.SerializedObject(portal);
+            so.FindProperty(field).objectReferenceValue = renderer;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            return renderer;
         }
 
         [Test]

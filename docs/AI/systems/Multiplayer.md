@@ -18,7 +18,7 @@ symptoms:
   - "the game is laggy with five or six players but fine with two"
   - "Could not start a local session on port N / another program may be using it"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-03
+updated: 2026-09-06
 ---
 
 # Multiplayer / Netcode core
@@ -82,6 +82,7 @@ Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/
 | --- | --- |
 | Decide / mutate | Server only, gated on `Network.Simulates(this)` — not `IsServer`: an un-networked entity has no wire and must still act |
 | Drive from input | `Network.Owns(this)` — covers host, offline, and a mount handed to its rider |
+| Act on a body a message NAMES | `Network.MayActFor(subject, sender)` — the server's counterpart of `Owns`. Nothing ties `NetArg.Target` to the sender id, so a client may name any body in the session; every handler that acts on one asks this first (`SnareReceiver`, `VehicleStation`, `SeatedRider`). In a live session a subject with no **spawned** `NetworkObject` is **refused**; offline and a `ServerClientId` sender are waved through |
 | Broadcast | Server only; `NetRelay.RequireServer` warns and drops a client's `All`/`Others` |
 | Player transform | **Owner-authoritative.** A server write to a remote player is overwritten within a tick, silently ⇒ `NetworkedTeleport.Move`, owner-gated failsafes |
 | Item use | `Use()` on the authority, `Present()` everywhere; `NetMsg.UseItem`/`ItemUsed`, hold stream `UseItemHold`/`ItemUseHeld` (B=1 continue, 0 stop; P/R carry the aim **ray**, not the hit point). A hold identical to the last one sent goes out only every `UseChannel.HoldKeepAliveInterval` (0.2 s) — the local `PlayHold`/`TryHold` still run every tick; artifacts with a `holdTimeout` must keep it above that |
@@ -97,7 +98,8 @@ Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/
 The layer saves nothing itself; it *carries* persistence. `ReportProfileServerRpc` tells the server which save profile a client plays so the world streams around that player's saved position (`TryGetSavedSpawn`); binding and validation belong to [PlayerSaveSync.cs](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveSync.cs). `SnapshotCapture` deliberately does **not** reuse savers: a `SaveRef` does not resolve on a client, so the join snapshot addresses everything by `NetworkObjectId` (session lifetime) while the save file keeps `SaveRef`s (restart lifetime). See [Persistence.md](Persistence.md).
 
 ## Gotchas
-
+- **A message names a body, but nothing on the wire says the sender is entitled to it.** `NetArg.Target` is a `NetworkObjectId` a client chooses; the sender id is separate. A server handler that acts on `arg.Resolve()` without `Network.MayActFor` lets one player leave another's seat, claim another's station or drain a net holding another's captive — none of which the host can reproduce, because the host is always waved through as `ServerClientId`.
+- **The tag, the `Rigidbody` and the `NetworkObject` of a player must be on ONE GameObject.** Physics queries return the Rigidbody's object, `NetArg.Resolve` returns the NetworkObject's, and a tag check asks a third. Separate them and the object recorded locally is not the object announced, so the handler acts on the wrong body **on clients only and in silence** — the host still holds `NetArg.localTarget`, which never leaves the machine, so it is right by accident. `NetGunWiringTests.ThePlayerTagRigidbodyAndNetworkObjectShareOneGameObject` pins it.
 - **Unregistered network prefab = perfect host, blind clients.** Run `Sync Network Prefabs`. The live list is `Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset`; the root `Assets/DefaultNetworkPrefabs.asset` regenerates itself and is **not** what NetworkManager loads. A script-created `NetworkObject` ships `GlobalObjectIdHash: 0`, and duplicate 0s make NGO drop all but one prefab silently.
 - **`[Rpc]` on a non-`NetworkBehaviour` is silently inert** — ILPP only rewrites NetworkBehaviours.
 - **Sibling components share one channel.** A ship with four seats or a hull with two doors gets every message on all of them; number them with `NetChannel.IndexOf<T>` into `NetArg.A`. That index is *positional* and does not survive reordering prefab children between builds.

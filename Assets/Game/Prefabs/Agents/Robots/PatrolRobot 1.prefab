@@ -284,6 +284,8 @@ GameObject:
   - component: {fileID: 3645939159779782140}
   - component: {fileID: 6364417085089234789}
   - component: {fileID: 3722843691887095326}
+  - component: {fileID: 2719479229666816616}
+  - component: {fileID: 3043014975983418845}
   m_Layer: 0
   m_Name: PatrolRobot 1
   m_TagString: Untagged
@@ -518,9 +520,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3aa84eac4a1ad44cda3a8ef8b0e164c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NoiseEmitter
-  receiverLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  selfRoot: {fileID: 0}
 --- !u!114 &1130429238043732256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -632,6 +632,7 @@ MonoBehaviour:
     Path: event:/SFX/PlayerDie
   despawnDelay: 12
   disableAgentOnDeath: 1
+  logDamage: 0
 --- !u!114 &5659964076644315265
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1290,6 +1291,58 @@ MonoBehaviour:
   slopeFollow: 0.35
   maxTiltDegrees: 30
   tiltFollowSpeed: 8
+--- !u!114 &2719479229666816616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+  frozen:
+    seconds: 10
+    shatterDamage: 25
+  slick:
+    seconds: 20
+    grip: 0.05
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  inflationTarget: {fileID: 0}
+--- !u!114 &3043014975983418845
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69eae6986bef940a180aa26bee3169a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StatusReactionModule
+  priority: 100
+  active: 1
+  reactions:
+  - Kind: 0
+    Response: 1
+  - Kind: 1
+    Response: 2
+  - Kind: 4
+    Response: 2
 --- !u!1 &1070476875886083830
 GameObject:
   m_ObjectHideFlags: 0

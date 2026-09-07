@@ -40,10 +40,12 @@ namespace SpaceGame.Portals
         /// <summary>
         /// How many dabs a shape may hold.
         ///
-        /// A full reservoir buys about twenty-two, so this is one tank plus slack — and it is also
-        /// the length of the array the shader declares, which is the real constraint. Past it a new
-        /// dab is merged into whichever one is nearest rather than dropped: a player topping a
-        /// portal up after the tank refills should see the paint land, not watch it vanish.
+        /// This is the length of the array the shader declares, which is the real constraint — and
+        /// since the tank became generous enough to buy about thirty-three blobs, a long stroke
+        /// reaches it. Past it a new dab is merged into whichever one is nearest rather than
+        /// dropped: a player still painting when the array fills should see the paint land, not
+        /// watch it vanish. Raising it means raising PORTAL_MAX_DABS in PortalStencil.hlsl in the
+        /// same commit, and paying for the extra loop iterations on every aperture fragment.
         /// </summary>
         public const int MaxDabs = 24;
 

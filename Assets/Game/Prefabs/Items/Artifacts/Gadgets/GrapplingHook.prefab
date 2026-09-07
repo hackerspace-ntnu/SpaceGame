@@ -45,8 +45,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3710813884188851966}
-  - {fileID: 2262443544823818390}
-  - {fileID: 6643816055667231100}
+  - {fileID: 4651025759304529377}
+  - {fileID: 5679936292239861546}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6804105784119938970
@@ -89,7 +89,7 @@ MonoBehaviour:
   maxExitSpeed: 34
   stallTimeout: 0.7
   lineRenderer: {fileID: 6375959681007371853}
-  muzzle: {fileID: 7426292037422598231}
+  muzzle: {fileID: 4098678498740278560}
   rope:
     segments: 28
     cornerVertices: 2
@@ -109,7 +109,7 @@ MonoBehaviour:
   hookHeadEmbed: 0.06
   minBiteDot: 0.35
   hookHeadScale: 0.5999897
-  seatedHook: {fileID: 801520601934577861}
+  seatedHook: {fileID: 6120815885577297330}
   fovKick: 12
   fovKickFromSpeed: 9
   fovKickAtSpeed: 30
@@ -276,14 +276,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
-  gripPoint: {fileID: 6643816055667231100}
+  gripPoint: {fileID: 5679936292239861546}
   hand: 0
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 0
   packSize: 0
-  sizeReference: {fileID: 2262443544823818390}
+  sizeReference: {fileID: 4651025759304529377}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &8385947851679125136
 MonoBehaviour:
@@ -403,7 +404,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.399, y: 0.80610555, z: 0.598163}
   m_Center: {x: 0.009500012, y: 0.21146944, z: -0.06091851}
---- !u!1 &6264662135218601664
+--- !u!1 &8214767275010277916
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -411,7 +412,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6643816055667231100}
+  - component: {fileID: 5679936292239861546}
   m_Layer: 0
   m_Name: GripPoint
   m_TagString: Untagged
@@ -419,13 +420,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6643816055667231100
+--- !u!4 &5679936292239861546
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6264662135218601664}
+  m_GameObject: {fileID: 8214767275010277916}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -434,7 +435,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5922617653601194455}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1796770326988984189
+--- !u!1001 &5116505016738566666
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -491,20 +492,20 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d7fa6322a79c44dc0a86ba8fc0670219, type: 3}
---- !u!1 &801520601934577861 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1436924989186232248, guid: d7fa6322a79c44dc0a86ba8fc0670219, type: 3}
-  m_PrefabInstance: {fileID: 1796770326988984189}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &2262443544823818390 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d7fa6322a79c44dc0a86ba8fc0670219, type: 3}
-  m_PrefabInstance: {fileID: 1796770326988984189}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &7426292037422598231 stripped
+--- !u!4 &4098678498740278560 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9214387191625991978, guid: d7fa6322a79c44dc0a86ba8fc0670219, type: 3}
-  m_PrefabInstance: {fileID: 1796770326988984189}
+  m_PrefabInstance: {fileID: 5116505016738566666}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4651025759304529377 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d7fa6322a79c44dc0a86ba8fc0670219, type: 3}
+  m_PrefabInstance: {fileID: 5116505016738566666}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6120815885577297330 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1436924989186232248, guid: d7fa6322a79c44dc0a86ba8fc0670219, type: 3}
+  m_PrefabInstance: {fileID: 5116505016738566666}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6942781312838273709
 PrefabInstance:

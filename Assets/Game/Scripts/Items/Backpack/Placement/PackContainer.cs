@@ -1226,6 +1226,18 @@ namespace SpaceGame.Items
 
                 visuals[placement.ItemId] = visual;
 
+                // The copy came out of the prefab, so its fill bar stands at the item's AUTHORED
+                // starting charge — a tank stowed at 12% would lie on the mat reading full. The
+                // placement is the only thing here that knows better, and the copy has no scripts
+                // left to ask it, so the container paints it. A no-op for everything with no bar.
+                //
+                // SupplyCharge.None is skipped rather than clamped to zero. "Has never been through
+                // a container that knows about charges" is not "is empty", and the prefab is already
+                // built at the authored starting charge — which is exactly what None means to read
+                // as. Painting it would drain every such item on sight.
+                if (placement.Charge >= 0f)
+                    SupplyGauge.Bind(visual.transform).Paint(placement.Charge);
+
                 // Null all the way down when there is no library or no art for this item's shape.
                 // A missing holder is cosmetic and must never cost the item its display copy.
                 GameObject holder = HolderBuilder.Build(

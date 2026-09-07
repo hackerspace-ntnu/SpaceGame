@@ -21,6 +21,14 @@ namespace SpaceGame.Characters
         // controller without a rig, so the names live in one place.
         public const string HoldStyleParameter = "HoldStyle";
 
+        /// <summary>
+        /// Bool selecting the mirrored copy of whichever hold state <see cref="HoldStyleParameter"/>
+        /// names. Every hold clip is right-handed — the one-handed pose puts the RIGHT hand forward
+        /// and leaves the left at the hip — so a pose struck for something on the LEFT arm has to
+        /// be the mirror of it or the wrong arm comes up.
+        /// </summary>
+        private const string HoldMirrorParameter = "HoldMirror";
+
         /// <summary>Name of the masked layer this component owns outright.</summary>
         public const string UpperBodyLayer = "Upper Body";
 
@@ -59,11 +67,16 @@ namespace SpaceGame.Characters
 
         private int upperBodyLayerIndex = -1;
         private int holdStyleHash;
+        private int holdMirrorHash;
         private int armRaiseHash;
         private int aimPitchHash;
 
         private ItemGrip.HoldStyle heldStyle = ItemGrip.HoldStyle.None;
-        private ItemGrip.HoldStyle torchStyle = ItemGrip.HoldStyle.None;
+
+        // One per arm, because the pose is not symmetric: a lamp on the left forearm needs the
+        // mirror of the pose a lamp on the right one needs, and a player may wear both.
+        private ItemGrip.HoldStyle torchRight = ItemGrip.HoldStyle.None;
+        private ItemGrip.HoldStyle torchLeft = ItemGrip.HoldStyle.None;
         private float holdT;
 
         // One raise per arm: the decision, and its blend.
@@ -92,11 +105,52 @@ namespace SpaceGame.Characters
         /// <para>
         /// A held item wins, and it wins for free rather than through a rule: something in the
         /// hand is a better answer to "what are the arms doing" than a lamp on the wrist, and both
-        /// hands are on it anyway.
+        /// hands are on it anyway. Between two lit torches the right one wins, which is arbitrary
+        /// and has to be: there is one pose and it faces one way.
         /// </para>
         /// </summary>
-        private ItemGrip.HoldStyle EffectiveStyle =>
-            heldStyle != ItemGrip.HoldStyle.None ? heldStyle : torchStyle;
+        public ItemGrip.HoldStyle PoseStyle =>
+            heldStyle != ItemGrip.HoldStyle.None ? heldStyle :
+            torchRight != ItemGrip.HoldStyle.None ? torchRight : torchLeft;
+
+        /// <summary>
+        /// Whether that pose is played mirrored — true only when the LEFT arm is the one that
+        /// asked for it.
+        ///
+        /// <para>
+        /// Every hold clip is right-handed. Measured off the assets: the one-handed pose
+        /// (<c>HumanM@Gun_Aim01</c>) puts the right hand 0.19 up and 0.19 forward of the body
+        /// centre and leaves the left one at the hip, so a torch on the left forearm played
+        /// unmirrored lights the ground beside the player — the pose comes on, and it comes on for
+        /// the wrong arm, which is worse than no pose because it looks deliberate.
+        /// </para>
+        /// <para>
+        /// A held item is never mirrored. The off hand grips an item without the body turning
+        /// round it, and mirroring the pose for it would swap which shoulder every two-handed item
+        /// is braced against.
+        /// </para>
+        /// </summary>
+        public bool PoseMirrored =>
+            heldStyle == ItemGrip.HoldStyle.None &&
+            torchRight == ItemGrip.HoldStyle.None &&
+            torchLeft != ItemGrip.HoldStyle.None;
+
+        /// <summary>
+        /// Whether the masked layer should be carrying a pose at all this frame — the thing the
+        /// layer WEIGHT is eased towards.
+        ///
+        /// <para>
+        /// It reads <see cref="PoseStyle"/> and not <c>heldStyle</c>, and that is the whole of
+        /// ANIM-01: a lit torch used to write its style into the animator while the weight stayed
+        /// at zero, so the state machine dutifully entered the pose on a layer nobody could see.
+        /// Every symptom of that is a silence — no error, the right parameter, the right state,
+        /// and an arm hanging at the player's side.
+        /// </para>
+        /// </summary>
+        public bool Posing =>
+            (PoseStyle != ItemGrip.HoldStyle.None || gestureTimer > 0f)
+            && !Relaxed
+            && (controller == null || !controller.IsDead);
 
         private void Awake()
         {
@@ -108,6 +162,7 @@ namespace SpaceGame.Characters
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
 
             holdStyleHash = Animator.StringToHash(HoldStyleParameter);
+            holdMirrorHash = Animator.StringToHash(HoldMirrorParameter);
             gesturingHash = Animator.StringToHash(GesturingParameter);
             armRaiseHash = Animator.StringToHash(ArmRaiseParameter);
             aimPitchHash = Animator.StringToHash(AimPitchParameter);
@@ -164,10 +219,13 @@ namespace SpaceGame.Characters
         }
 
         /// <summary>
-        /// Bring the body into a hold pose because a lit torch wants the arm up, or let it drop.
+        /// Bring the body into a hold pose because a lit torch on <paramref name="arm"/> wants
+        /// that arm up, or let it drop.
         ///
         /// <para>
-        /// <see cref="ItemGrip.HoldStyle.None"/> releases it. Called by
+        /// <see cref="ItemGrip.HoldStyle.None"/> releases it, for that arm alone — a player with a
+        /// lamp on each wrist switches them off one at a time. Which arm is asking decides whether
+        /// the pose plays mirrored; see <see cref="PoseMirrored"/>. Called by
         /// <see cref="SpaceGame.Items.FlashlightGauntletArtifact"/> off <c>Flashlight.Switched</c>,
         /// so it follows the lamp on every machine — the wearer switching it, a peer being told by
         /// <c>netTorch</c>, or a save restore — and a peer sees the same posture with nothing extra
@@ -181,9 +239,10 @@ namespace SpaceGame.Characters
         /// the same shape for none of the assets.
         /// </para>
         /// </summary>
-        public void SetTorchStyle(ItemGrip.HoldStyle style)
+        public void SetTorchStyle(ItemGrip.Hand arm, ItemGrip.HoldStyle style)
         {
-            torchStyle = style;
+            if (arm == ItemGrip.Hand.Left) torchLeft = style;
+            else torchRight = style;
         }
 
         private void Update()
@@ -217,12 +276,8 @@ namespace SpaceGame.Characters
 
             // The pose comes off entirely while dead, whatever is in the hand. The death clip runs
             // on the Base Layer, and an Upper Body layer left at weight 1 would override its arms
-            // and leave the corpse holding its rifle out in front of it.
-            bool posed = (heldStyle != ItemGrip.HoldStyle.None || gestureTimer > 0f)
-                         && !Relaxed
-                         && (controller == null || !controller.IsDead);
-
-            holdT = PoseBlend.Ease(holdT, posed ? 1f : 0f, holdBlendTime, deltaTime);
+            // and leave the corpse holding its rifle out in front of it. That rule lives in Posing.
+            holdT = PoseBlend.Ease(holdT, Posing ? 1f : 0f, holdBlendTime, deltaTime);
 
             // A raised gauntlet arm, dead or not: the corpse rule above applies to it too.
             bool alive = !Relaxed && (controller == null || !controller.IsDead);
@@ -240,7 +295,10 @@ namespace SpaceGame.Characters
 
             // The lit torch's style is written into the same parameter the hand uses, so a torch
             // pose and a held item cannot both be on: there is one pose and one state machine.
-            animator.SetInteger(holdStyleHash, (int)EffectiveStyle);
+            // The mirror is a second parameter rather than more values of the first, so every hold
+            // style gets a left-armed twin without the enum growing a mirrored half.
+            animator.SetInteger(holdStyleHash, (int)PoseStyle);
+            animator.SetBool(holdMirrorHash, PoseMirrored);
             animator.SetBool(gesturingHash, gestureTimer > 0f);
 
             // The raise is a state on the same layer — three pointing clips blended on the look
@@ -275,7 +333,8 @@ namespace SpaceGame.Characters
             raiseRight = false;
             raiseLeftT = 0f;
             raiseRightT = 0f;
-            torchStyle = ItemGrip.HoldStyle.None;
+            torchLeft = ItemGrip.HoldStyle.None;
+            torchRight = ItemGrip.HoldStyle.None;
             heldStyle = ItemGrip.HoldStyle.None;
             WriteAnimator();
         }

@@ -20,7 +20,7 @@ symptoms:
   - "the key strip on the terminal renders pink"
   - "the terminal stands on the deck but pressing a tab does nothing"
 reads_with: [ShipSchematic, InteractionSystem, PlayerShip, Multiplayer, Backpack, Oxygen]
-updated: 2026-09-05
+updated: 2026-09-07
 ---
 
 # Terminal
@@ -165,9 +165,9 @@ in case the wiring policy ever changes its mind.
    them in `Present`; add a key in `TerminalFocusSession.PageKey`. Compose its text in `ShipTelemetry`.
 3. **A new readout**: add the field to `TelemetrySnapshot`, read it in `ShipTelemetrySource.Read` from
    something already replicated, compose it in `ShipTelemetry`.
-4. **Another screen prop** (a desk monitor, a wall panel): export a `crt_monitor` variation, give it
-   a builder reusing `ScreenPlane`, `WorldCanvasBuilder` and `TerminalScreen`; keep `TerminalConsole`
-   if it is shared state, or drop it for a read-only display.
+4. **Another screen prop** (a desk monitor, the scanner's wrist display — `ItemScannerScreenBuilder`,
+   [Artifacts.md](Artifacts.md)): a builder reusing `ScreenPlane`, `WorldCanvasBuilder` (which owns
+   the phosphor palette every screen shares) and `TerminalScreen`; `TerminalConsole` only if shared.
 5. **Verify on a client and after a reload**: the page must follow the operator on the other
    machine, "In use" must clear when they leave, and the fixture must stand where it was built after
    a load (the hull's record places it; nothing of its own is saved).

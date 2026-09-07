@@ -1,36 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1542156067307202449
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5914073997281376249}
-  m_Layer: 0
-  m_Name: GripPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5914073997281376249
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1542156067307202449}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2144321378813799127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4068742862036462037
 GameObject:
   m_ObjectHideFlags: 0
@@ -73,8 +42,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7875456116823473298}
-  - {fileID: 5914073997281376249}
+  - {fileID: 3835368970524102258}
+  - {fileID: 3659046825298614546}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4240483984631009102
@@ -106,10 +75,21 @@ MonoBehaviour:
   correction: 0.35
   maxCorrectionSpeed: 25
   maxCorrectionStep: 0.5
-  resistSeconds: 2
-  strainDecay: 0.5
+  resistJerks: 8
+  minResistRatio: 0.5
+  maxResistRatio: 1.5
+  strainDecay: 0.25
+  maxUsefulStruggleRate: 2.5
+  struggleMoveDeadzone: 0.5
+  struggleReversalAngle: 120
   payOutMargin: 0.4
   maxPaidOutLength: 16
+  wrapLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wrapRadius: 0.05
+  wrapClearance: 0.06
+  maxWrapPoints: 8
   rope:
     segments: 32
     cornerVertices: 3
@@ -120,12 +100,6 @@ MonoBehaviour:
     tensionThinning: 0.3
     braidsPerMetre: 6
     maxSag: 3
-    restOnGround: 1
-    groundMask:
-      serializedVersion: 2
-      m_Bits: 4294967295
-    groundClearance: 0.03
-    groundProbeAbove: 1.5
     swayAmplitude: 0.06
     swaySpeed: 0.9
     shiverAmplitude: 0.035
@@ -134,7 +108,14 @@ MonoBehaviour:
     biteWaves: 4
     biteSpeed: 30
     biteDuration: 0.4
-  muzzle: {fileID: 1522657258004749395}
+  muzzle: {fileID: 5571897132637400755}
+  tie:
+    holdSeconds: 120
+    maxUsefulStruggleRate: 2.5
+    struggleDecaySeconds: 1.2
+    struggleMoveDeadzone: 0.5
+    struggleReversalAngle: 120
+    struggleMultiplier: 1.96
   grabRadius: 0.4
   untieTolerance: 1
 --- !u!114 &3831389210071514068
@@ -263,14 +244,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
-  gripPoint: {fileID: 5914073997281376249}
+  gripPoint: {fileID: 3659046825298614546}
   hand: 0
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 0
   packSize: 0
-  sizeReference: {fileID: 7875456116823473298}
+  sizeReference: {fileID: 3835368970524102258}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &6751343354418583340
 MonoBehaviour:
@@ -390,7 +372,38 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.418, y: 0.7695833, z: 0.52218497}
   m_Center: {x: 0.000000014901161, y: 0.1932083, z: -0.09890753}
---- !u!1001 &7692575743679519609
+--- !u!1 &4399002681865624077
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3659046825298614546}
+  m_Layer: 0
+  m_Name: GripPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3659046825298614546
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4399002681865624077}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2144321378813799127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &3653350306853972377
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -447,13 +460,13 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e74fae9ecd41e4516869b79ee3cef29c, type: 3}
---- !u!4 &1522657258004749395 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 9214387191625991978, guid: e74fae9ecd41e4516869b79ee3cef29c, type: 3}
-  m_PrefabInstance: {fileID: 7692575743679519609}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &7875456116823473298 stripped
+--- !u!4 &3835368970524102258 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e74fae9ecd41e4516869b79ee3cef29c, type: 3}
-  m_PrefabInstance: {fileID: 7692575743679519609}
+  m_PrefabInstance: {fileID: 3653350306853972377}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5571897132637400755 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9214387191625991978, guid: e74fae9ecd41e4516869b79ee3cef29c, type: 3}
+  m_PrefabInstance: {fileID: 3653350306853972377}
   m_PrefabAsset: {fileID: 0}

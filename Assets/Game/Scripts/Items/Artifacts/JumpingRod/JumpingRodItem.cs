@@ -16,8 +16,13 @@
 //   * The rod being OUT is cosmetic on every other machine, so it toggles in Present().
 //   * The spring's squash is a pure function of the player's clearance, so every machine works it
 //     out from a pose it already has and nothing about the bounce needs sending anywhere.
+//   * The landing boost is read off the holder's OWN Jump key and paid into their OWN velocity, so
+//     it is owner-side from end to end and adds no message at all. A peer sees a higher hop for
+//     the same reason it sees any hop: the body's transform is replicated.
 using UnityEngine;
+using SpaceGame.Audio;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Locomotion;
 using SpaceGame.Gear.JumpingRod;
 
@@ -51,6 +56,12 @@ namespace SpaceGame.Items
         [Header("Bounce")]
         [SerializeField] private JumpingRodConfig hop = new JumpingRodConfig();
 
+        [Tooltip("Played instead of the ordinary hop sound when a landing was hit on the beat. " +
+                 "The boost is otherwise invisible until the player is already at the top of an " +
+                 "arc they cannot compare to anything, and a rhythm nobody can hear is a rhythm " +
+                 "nobody learns (GDC-L1-FEEL-0004, GDC-L1-UX-0001).")]
+        [SerializeField] private SfxId boostSoundId = SfxId.PlayerDash;
+
         [Tooltip("Layers the tip can push off.")]
         [SerializeField] private LayerMask groundMask = ~0;
 
@@ -77,6 +88,21 @@ namespace SpaceGame.Items
 
         private PlayerMovement holderMovement;
         private Rigidbody holderBody;
+
+        /// <summary>
+        /// The holder's Jump key, subscribed for the landing boost.
+        ///
+        /// <para>
+        /// Bound for every holder rather than only the owner, the way `EquipmentController` binds
+        /// Use: a replicated player's input map is switched off, so the event never comes. The
+        /// handler asks about ownership anyway — the one thing it must never do is write velocity
+        /// into a body this machine does not own.
+        /// </para>
+        /// </summary>
+        private PlayerInputManager holderInput;
+
+        /// <summary>The rhythm, and everything the boost knows. See <see cref="JumpingRodChain"/>.</summary>
+        private JumpingRodChain chain;
 
         /// <summary>
         /// Ground sampling that rejects the holder's own colliders <i>and</i> anything under its own
@@ -121,6 +147,18 @@ namespace SpaceGame.Items
 
             feet = holder != null ? new BodyFeet(holder.transform) : null;
 
+            chain = new JumpingRodChain(hop);
+
+            // Equipping twice without an unequip in between is not a path this item takes today,
+            // but a doubled subscription would judge every landing twice and spoil every hop.
+            Unbind();
+
+            holderInput = holder != null && holder.TryGetComponent(out PlayerController player)
+                ? player.Input
+                : null;
+
+            if (holderInput != null) holderInput.OnJumpPressed += OnJumpPressed;
+
             // A rod that was out when this slot was last held comes back out. RestoreItemState has
             // already run by now on a load, so this is also the path that puts a saved ride back.
             if (planted) Plant();
@@ -129,10 +167,29 @@ namespace SpaceGame.Items
         public override void OnUnequipped(GameObject holder)
         {
             base.OnUnequipped(holder);
+            Unbind();
             Stow();
         }
 
-        private void OnDestroy() => Stow();
+        private void OnDestroy()
+        {
+            Unbind();
+            Stow();
+        }
+
+        /// <summary>
+        /// Let go of the Jump key. Both teardown paths run it, and it is idempotent, because an
+        /// item instance that kept a subscription would go on judging landings for a rod that is
+        /// back in the pack — and it is destroyed on unequip, so the handler would be running on a
+        /// dead object.
+        /// </summary>
+        private void Unbind()
+        {
+            if (holderInput == null) return;
+
+            holderInput.OnJumpPressed -= OnJumpPressed;
+            holderInput = null;
+        }
 
         // ── The press ──────────────────────────────────────────────────────────
 

@@ -20,13 +20,13 @@ import sys
 HUE_COUNT = 16
 
 # Lightness steps, palest first.
-LIGHTNESSES = [0.92, 0.82, 0.72, 0.61, 0.49, 0.36]
+LIGHTNESSES = [0.95, 0.88, 0.8, 0.7, 0.58, 0.43]
 
 # Chroma is a real axis: a muted and a vivid variant per hue and lightness, given as
 # fractions of the in-gamut ceiling rather than absolute chroma (sRGB holds wildly
 # different chroma per hue, so a fixed pair would collapse into duplicates at some).
-CHROMA_FRACTIONS = [0.5, 1.0]
-CHROMA_CEILING = 0.20
+CHROMA_FRACTIONS = [0.35, 0.75]
+CHROMA_CEILING = 0.13
 
 # The neutral ramp is pure grey — chroma zero — running black-ish up to near white.
 NEUTRAL_COUNT = 12
@@ -113,8 +113,11 @@ def default_palette():
 
 # --- Checking ----------------------------------------------------------------
 
+# The lattice constants moved out of PastelPalette.cs into PaletteShape.Default when the
+# palette became rebuildable at runtime. The colour *math* is still in PastelPalette.cs;
+# only the numbers live here.
 CSHARP = os.path.join('Assets', 'Game', 'Scripts', 'World', 'Environment', 'ColorGrade',
-                      'PastelPalette.cs')
+                      'PaletteShape.cs')
 
 
 def check_mirrors_csharp(repo_root):
@@ -135,7 +138,9 @@ def check_mirrors_csharp(repo_root):
     problems = []
 
     def scalar(name, expected):
-        match = re.search(r'\b%s\s*=\s*([0-9.]+)f?\s*;' % name, source)
+        # Terminator is ',' inside PaletteShape.Default's object initialiser and ';' for
+        # a plain const, so accept either rather than pinning the declaration style.
+        match = re.search(r'\b%s\s*=\s*([0-9.]+)f?\s*[,;]' % name, source)
         if match is None:
             problems.append('%s: no %s found' % (CSHARP, name))
         elif abs(float(match.group(1)) - expected) > 1e-6:
@@ -143,7 +148,7 @@ def check_mirrors_csharp(repo_root):
                             % (CSHARP, name, match.group(1), expected))
 
     def float_array(name, expected):
-        match = re.search(r'%s\s*=\s*\{([^}]*)\}' % name, source, re.S)
+        match = re.search(r'\b%s\s*=\s*(?:new\[\]\s*)?\{([^}]*)\}' % name, source, re.S)
         if match is None:
             problems.append('%s: no %s array found' % (CSHARP, name))
             return
@@ -152,21 +157,58 @@ def check_mirrors_csharp(repo_root):
             problems.append('%s: %s differs from this port\n'
                             '    C#: %s\n    here: %s' % (CSHARP, name, found, expected))
 
-    float_array('Lightnesses', LIGHTNESSES)
-    float_array('ChromaFractions', CHROMA_FRACTIONS)
-    scalar('ChromaCeiling', CHROMA_CEILING)
+    float_array('lightnesses', LIGHTNESSES)
+    float_array('chromaFractions', CHROMA_FRACTIONS)
+    scalar('chromaCeiling', CHROMA_CEILING)
 
-    scalar('HueCount', HUE_COUNT)
-    scalar('NeutralCount', NEUTRAL_COUNT)
-    scalar('NeutralMinL', NEUTRAL_MIN_L)
-    scalar('NeutralMaxL', NEUTRAL_MAX_L)
+    scalar('hueCount', HUE_COUNT)
+    scalar('neutralCount', NEUTRAL_COUNT)
+    scalar('neutralMinL', NEUTRAL_MIN_L)
+    scalar('neutralMaxL', NEUTRAL_MAX_L)
 
+    return problems
+
+
+GOLDEN = os.path.join('tools', 'palette_golden.txt')
+
+
+def check_matches_golden(repo_root, colors):
+    """Compares the built palette against the committed look, entry for entry.
+
+    The constant mirror above catches a retuned number; this catches a changed formula,
+    which is the failure mode a refactor of the palette code actually has. Regenerate
+    the golden file only when the committed look is *meant* to change.
+    """
+    path = os.path.join(repo_root, GOLDEN)
+    try:
+        with open(path) as handle:
+            golden = [line.strip() for line in handle if line.strip()]
+    except OSError as error:
+        return ['cannot read %s: %s' % (GOLDEN, error)]
+
+    built = [hex_of(color) for color in colors]
+    if len(built) != len(golden):
+        return ['%s holds %d colours, the palette builds %d'
+                % (GOLDEN, len(golden), len(built))]
+
+    problems = ['entry %d is %s, %s says %s' % (i, b, GOLDEN, g)
+                for i, (b, g) in enumerate(zip(built, golden)) if b != g]
+    if problems:
+        problems.append('the committed look changed. If that was intended, regenerate '
+                        'with: python3 tools/palette_preview.py --dump > ' + GOLDEN)
     return problems
 
 
 def hsv_saturation_value(color):
     high, low = max(color), min(color)
     return (0.0 if high == 0.0 else (high - low) / high), high
+
+
+def hex_of(color):
+    """A palette entry as #RRGGBB. The single place a colour becomes text, so the
+    golden file, the duplicate check and the JS cross-check can never disagree about
+    rounding."""
+    return '#%02X%02X%02X' % tuple(round(c * 255) for c in color)
 
 
 def check(colors):
@@ -182,7 +224,7 @@ def check(colors):
 
     seen = {}
     for i, color in enumerate(colors):
-        name = '#%02X%02X%02X' % tuple(round(c * 255) for c in color)
+        name = hex_of(color)
         if name in seen:
             problems.append('entry %d %s duplicates entry %d — a collapsed entry is a '
                             'wasted palette slot' % (i, name, seen[name]))
@@ -232,12 +274,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true',
                         help='validate the palette without writing the image')
+    parser.add_argument('--dump', action='store_true',
+                        help='print the palette as one #RRGGBB per line and exit')
     parser.add_argument('--out', default=None, help='output path for the contact sheet')
     args = parser.parse_args()
 
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     colors = default_palette()
-    problems = check_mirrors_csharp(repo_root) + check(colors)
+
+    if args.dump:
+        for color in colors:
+            print(hex_of(color))
+        return 0
+
+    problems = (check_mirrors_csharp(repo_root)
+                + check_matches_golden(repo_root, colors)
+                + check(colors))
 
     print('%d colours' % len(colors))
     if problems:

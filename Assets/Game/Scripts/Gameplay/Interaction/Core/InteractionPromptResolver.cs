@@ -51,8 +51,12 @@ namespace SpaceGame.Gameplay
         /// <summary>Appended when the interactable also takes a Use action.</summary>
         public const string SecondarySuffix = "   LMB: use";
 
-        /// <summary>Appended when the interactable can also be picked up.</summary>
-        public const string RetrieveSuffix = "   Q: pick up";
+        /// <summary>
+        /// Shown INSTEAD of <see cref="DefaultPrompt"/> when the same button's only meaning here is
+        /// "take it back" — a placeable has nothing to operate, so offering both would name two
+        /// verbs for one press.
+        /// </summary>
+        public const string RetrievePrompt = "RMB: pick up";
 
         // Trailing words that describe the plumbing rather than the thing. "DoorInteraction" is a
         // door; "MountModule" is a mount. Order matters only in that longer suffixes are listed
@@ -154,12 +158,26 @@ namespace SpaceGame.Gameplay
             return false;
         }
 
-        /// <summary>"RMB: interact", plus the Use line when the component takes one.</summary>
+        /// <summary>
+        /// "RMB: interact", plus the Use line when the component takes one — or "RMB: pick up"
+        /// when the same button's only meaning here is to take the thing back.
+        ///
+        /// <para>
+        /// Which of the two it is comes from the same question <see cref="Interactor.PressPicksUp"/>
+        /// asks of the press: is there a primary verb to spend the button on. Per-player refusals
+        /// (<see cref="IContextualInteractable"/>) are not visible here — the resolver is handed a
+        /// component, not an interactor — so a target that is retrievable AND refuses one player's
+        /// press specifically still reads "interact" for them. Nothing in the project is both.
+        /// </para>
+        /// </summary>
         public static string DerivePrompt(IInteractable interactable)
         {
+            if (interactable is IRetrievable retrievable
+                && !SafeCanInteract(interactable)
+                && SafeCanRetrieve(retrievable)) return RetrievePrompt;
+
             string prompt = DefaultPrompt;
             if (interactable is ISecondaryInteractable) prompt += SecondarySuffix;
-            if (interactable is IRetrievable) prompt += RetrieveSuffix;
             return prompt;
         }
 
@@ -203,6 +221,17 @@ namespace SpaceGame.Gameplay
         {
             try { return interactable.CanInteract(); }
             catch { return true; }
+        }
+
+        /// <summary>
+        /// The same guard for the pick-up half, and it errs the other way: an author's
+        /// <c>CanRetrieve</c> that throws leaves the default "interact" prompt standing rather
+        /// than promising a pick-up nothing can honour.
+        /// </summary>
+        private static bool SafeCanRetrieve(IRetrievable retrievable)
+        {
+            try { return retrievable.CanRetrieve(); }
+            catch { return false; }
         }
 
         private static string FirstNonEmpty(string a, string b, string c)

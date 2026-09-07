@@ -16,7 +16,6 @@ using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Ragdoll;
-using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
@@ -45,10 +44,15 @@ namespace SpaceGame.Items
         private SnareStruggle settings;
         private Transform anchor;
         private SnareStruggleMeter meter;
-        private InputControls struggleInput;
 
-        /// <summary>The last direction the captive actually pushed, to measure the next against.</summary>
-        private Vector2 heading;
+        /// <summary>
+        /// The captive's own keys, and the memory of which way they last pushed.
+        ///
+        /// Shared with <see cref="Hogtie"/> rather than written twice: a net and a tie hold the
+        /// same body for different reasons and ask it the same question. See
+        /// <see cref="SnareStruggleReader"/> for what could not be duplicated safely.
+        /// </summary>
+        private readonly SnareStruggleReader input = new SnareStruggleReader();
 
         private bool bound;
 
@@ -132,7 +136,7 @@ namespace SpaceGame.Items
             anchor = netAnchor;
             meter = new SnareStruggleMeter(settings.MaxUsefulStruggleRate,
                                            settings.StruggleDecaySeconds);
-            heading = Vector2.zero;
+            input.ForgetHeading();
             bound = true;
             return true;
         }
@@ -154,8 +158,8 @@ namespace SpaceGame.Items
             anchor = null;
             meter = null;
             settings = null;
-            heading = Vector2.zero;
-            ReleaseStruggleInput();
+            input.ForgetHeading();
+            input.Release();
 
             HealthComponent vitals = Vitals;
             if (vitals != null) vitals.OnDeath -= OnCaptiveDied;
@@ -180,8 +184,12 @@ namespace SpaceGame.Items
         /// The captive stays in <c>SnareCatch</c>'s own captive list until the net rots — this ends
         /// the struggle, not the base load of a body lying in the net. The authority's own meter
         /// for them is not cleared here and does not need to be: nothing pushes it once the reports
-        /// stop, so it decays back to a corpse's flat <c>ReferenceLoad</c> within a couple of
-        /// seconds of the death.
+        /// stop, so it decays back to a corpse's flat <c>ReferenceLoad</c> within a few seconds of
+        /// the death. Not instantly, and the decay is exponential rather than linear: at the
+        /// authored 1.2 s a saturated meter is still worth 0.19 two seconds later — about a third
+        /// of an extra captive — and takes four or five to come within a twentieth of the flat
+        /// load. That is a short tail on a body nobody is fighting with any more, not a corpse
+        /// eating the net.
         /// </para>
         /// </summary>
         private void OnCaptiveDied() => Release(anchor);
@@ -203,7 +211,7 @@ namespace SpaceGame.Items
         {
             if (bound) Release(anchor);
 
-            ReleaseStruggleInput();
+            input.Release();
         }
 
         /// <summary>
@@ -225,9 +233,11 @@ namespace SpaceGame.Items
 
             if (!Network.Owns(this)) return;
 
-            // Measured before the heading is updated, or every input compares against itself.
-            bool struggled = jumpPressed || IsReversal(move);
-            RememberHeading(move);
+            // The reader measures the reversal against the last direction and then remembers this
+            // one; doing it the other way round compares every input against itself.
+            bool struggled = input.Counts(jumpPressed, move,
+                                          settings.StruggleMoveDeadzone,
+                                          settings.StruggleReversalDot);
 
             if (!struggled) return;
 
@@ -281,107 +291,23 @@ namespace SpaceGame.Items
         /// </summary>
         private SnareCatch Net => anchor != null ? anchor.GetComponent<SnareCatch>() : null;
 
-        /// <summary>Has the captive thrown themselves the other way since last time?</summary>
-        private bool IsReversal(Vector2 move)
-        {
-            if (heading == Vector2.zero || !IsPushed(move)) return false;
-
-            return Vector2.Dot(move.normalized, heading) < settings.StruggleReversalDot;
-        }
-
-        /// <summary>
-        /// Remember which way they are pushing, ignoring a stick that is not being pushed at all.
-        ///
-        /// A released stick must not overwrite the heading, or letting go for one frame between two
-        /// opposite presses hides the reversal — and a menu closing over the captive does exactly
-        /// that, because <see cref="Update"/> passes a zero move while the gate is shut.
-        /// </summary>
-        private void RememberHeading(Vector2 move)
-        {
-            if (IsPushed(move)) heading = move.normalized;
-        }
-
-        /// <summary>Is this a direction the captive meant, or a stick at rest?</summary>
-        private bool IsPushed(Vector2 move)
-        {
-            float deadzone = settings.StruggleMoveDeadzone;
-            return move.sqrMagnitude >= deadzone * deadzone;
-        }
-
         /// <summary>
         /// Read the captive's keys and hand them to <see cref="Step"/>.
         ///
         /// <para>
-        /// <b>The menu check is <see cref="GameplayMenuScope.IsActive"/> and it CANNOT be
-        /// <c>AcceptsGameplayInput</c>,</b> which is the shared gate every other gameplay hotkey in
-        /// this project uses. That property asks whether the local player's own
-        /// <c>PlayerController.Input</c> is enabled — and going limp is precisely what disables it
-        /// (see <see cref="StruggleInput"/>). It is therefore false for every netted player, always,
-        /// and gating on it would leave the struggle silently unreadable for the entire feature
-        /// while looking like the careful thing to do.
-        /// </para>
-        /// <para>
-        /// <c>IsActive</c> asks the question that is actually meant here — is a menu holding the
-        /// controls — and stays answerable while the captive's own input is switched off. It is
-        /// needed: this component reads its own copy of the input asset, which a chat box or a pause
-        /// screen does not disable, so without it typing "s" into chat is a struggle.
+        /// The gate is <see cref="SnareStruggleReader.MayRead"/>, which is NOT the shared
+        /// <c>AcceptsGameplayInput</c> hotkey gate — that one is false for every netted player by
+        /// construction. See there for the full reason.
         /// </para>
         /// </summary>
         private void Update()
         {
             if (!bound) return;
 
-            bool jumpPressed = false;
-            Vector2 move = Vector2.zero;
-
-            if (Network.Owns(this) && !GameplayMenuScope.IsActive)
-            {
-                InputControls controls = StruggleInput;
-                jumpPressed = controls.Player.Jump.WasPressedThisFrame();
-                move = controls.Player.Move.ReadValue<Vector2>();
-            }
+            input.Poll(SnareStruggleReader.MayRead(Network.Owns(this)),
+                       out bool jumpPressed, out Vector2 move);
 
             Step(Time.deltaTime, jumpPressed, move);
-        }
-
-        /// <summary>
-        /// This component's OWN copy of the input asset, and it has to be its own.
-        ///
-        /// <para>
-        /// The obvious source is <c>PlayerController.Input</c>, and it is switched off: going limp
-        /// runs <c>PlayerRagdoll.Suspend</c>, which disables the <c>PlayerInputManager</c> outright
-        /// — killed at the source, because jump and dash arrive as events a merely-disabled
-        /// PlayerMovement is still subscribed to — and that component zeroes <c>MoveInput</c> on
-        /// its way down. So the one thing that could report a struggle is disabled by the very act
-        /// that makes struggling necessary, and it reports a resting stick while it is.
-        /// </para>
-        /// <para>
-        /// Constructing one is the established pattern in this codebase rather than a special case
-        /// invented here — <c>HotbarController</c>, <c>ChatUI</c>, <c>PauseMenuUI</c>,
-        /// <c>BodyInventoryUI</c> and <c>DevInventoryUI</c> each build their own. Only the Player
-        /// map is enabled, only on the machine that owns this body, and only from the first frame a
-        /// net has hold of it.
-        /// </para>
-        /// </summary>
-        private InputControls StruggleInput
-        {
-            get
-            {
-                if (struggleInput != null) return struggleInput;
-
-                struggleInput = new InputControls();
-                struggleInput.Player.Enable();
-                return struggleInput;
-            }
-        }
-
-        private void ReleaseStruggleInput()
-        {
-            if (struggleInput == null) return;
-
-            struggleInput.Player.Disable();
-            struggleInput.Dispose();
-            struggleInput = null;
         }
     }
 }

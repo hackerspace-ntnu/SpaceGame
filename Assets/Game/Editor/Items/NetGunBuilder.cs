@@ -62,11 +62,40 @@ namespace SpaceGame.EditorTools
         /// <para>
         /// Not the size the model was built at. <c>EquipItemSocket.Seat</c> rescales a held item so
         /// its longest axis measures this, so the FBX's own 0.629 m is a modelling convention that
-        /// never reaches the hand. <c>packSize</c> is deliberately left at 0: guns stay at the anchor
-        /// on the pack mat too, because big gear goes on the rack with overhang.
+        /// never reaches the hand. What it is stowed at is a second number — see
+        /// <see cref="PackSize"/>.
         /// </para>
         /// </summary>
         private const float HoldSize = 1.25f;
+
+        /// <summary>
+        /// Metres along the gun's longest axis lying on the backpack mat, on the ship's gear wall
+        /// and in the sand — every frame that is not the hand.
+        ///
+        /// <para>
+        /// <b>Authored, where the other guns are not.</b> The rest of the Gun bracket follows
+        /// <c>holdSize</c> onto the mat because big gear goes on the rack with overhang, and that
+        /// is what this builder used to say too. It is wrong for this gun, and the Portal Gun's
+        /// note in <c>PackSizeTests</c> says why in the same words: the hand's ladder is tuned
+        /// against a rig whose hand is ~1.7x a human's, the mat is in true-world metres, and a
+        /// 0.629 m capture pistol carried at the anchor's 1.25 m is drawn 1.31 m long — 7 x 14 =
+        /// 98 of the rig's 255 cells for one pistol, and a 2.39 m gun lying in the sand.
+        /// </para>
+        /// <para>
+        /// 0.63 is the roster's usual rule — the true 0.629 m rounded up to the next 0.09 m webbing
+        /// pitch — with the customary extra cell deliberately left off, for the reason the power
+        /// cell's <c>CellWhy</c> gives: 0.72 measures EXACTLY the leaf's eight cells, and a float
+        /// division landing on an integer decides at random whether the item fits the leaf at all.
+        /// At 0.63 the gun measures 0.288 x 0.465 x 0.661 m on the mat — <b>4 x 7 = 28 cells</b>,
+        /// life size to within 5%, and 1.20 m in the sand.
+        /// </para>
+        /// <para>
+        /// Authored next to the hand's metres and NOT premultiplied: <c>ItemFootprint.Measure</c>
+        /// is the one place <c>PackScale.Factor</c> goes in. <c>PackSizeTests</c> carries the
+        /// divergence with its reason, and fails any prefab that diverges without being listed.
+        /// </para>
+        /// </summary>
+        private const float PackSize = 0.63f;
 
         /// <summary>
         /// Layers <c>SnareReceiver</c>'s landing query looks in. Default only.
@@ -201,7 +230,7 @@ namespace SpaceGame.EditorTools
             var gripSo = new SerializedObject(itemGrip);
             Field.Set(gripSo, "gripPoint", grip);
             Field.SetFloat(gripSo, "holdSize", HoldSize);
-            Field.SetFloat(gripSo, "packSize", 0f);
+            Field.SetFloat(gripSo, "packSize", PackSize);
             Field.Set(gripSo, "sizeReference", modelInstance.transform);
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -440,6 +469,9 @@ namespace SpaceGame.EditorTools
                 if (grip == null) problems.Add("no ItemGrip");
                 else if (!Mathf.Approximately(grip.HoldSize, HoldSize))
                     problems.Add($"holdSize reads {grip.HoldSize:F3}, expected {HoldSize:F3}");
+                else if (!Mathf.Approximately(grip.PackSize, PackSize))
+                    problems.Add($"packSize reads {grip.PackSize:F3}, expected {PackSize:F3} — " +
+                                 "without it the gun is stowed and dropped at the hand's bracket");
 
                 var artifact = prefab.GetComponent<NetGunArtifact>();
                 if (artifact == null) problems.Add("no NetGunArtifact");
@@ -456,6 +488,7 @@ namespace SpaceGame.EditorTools
             if (problems.Count == 0)
             {
                 Debug.Log($"[NetGun] VERIFIED off disk: maxUses {MaxUses}, holdSize {HoldSize:F2}, " +
+                          $"packSize {PackSize:F2}, " +
                           "muzzle, cord material and bundle all bound, registered for clients.");
                 return true;
             }

@@ -19,6 +19,9 @@ paths:
 symptoms:
   - "a double tap of Space does nothing while I am standing on the ground"
   - "the wings come out and I drop like a brick anyway"
+  - "the glide sinks so fast there is no time to aim it anywhere"
+  - "the mouse goes dead the moment the wings come out, and I can only turn with A and D"
+  - "steering under the wing is far slower than turning my head on foot"
   - "I cannot move after landing from a glide"
   - "the worn wingsuit is a box on my back instead of wings"
   - "the worn wing has a yoke and spars but no cloth between them"
@@ -37,8 +40,8 @@ symptoms:
   - "a mid-air quicksave reloads standing still in the sky"
   - "the wingsuit and the wing pack cannot both be carried"
   - "gliding into a cliff at full speed costs nothing"
-reads_with: [Ornithopter, BodyEquipment, PlayerCharacter, Multiplayer, Persistence]
-updated: 2026-09-04
+reads_with: [Ornithopter, BodyEquipment, PlayerCharacter, Jetpack, Multiplayer, Persistence]
+updated: 2026-09-07
 ---
 
 # Wingsuit
@@ -52,18 +55,19 @@ the thrust set to zero, run on the player's Rigidbody.
 
 ## Model
 
-- **A back item.** `Wingsuit.asset` is `EquipKind.Back`, worn on the spine, fired by a **double tap of Space** through `BodyEquipmentController`'s back channel. There is one torso slot, so the wingsuit and the wing pack are **mutually exclusive with no rule needed**.
+- **A back item.** `Wingsuit.asset` is `EquipKind.Back`, worn on the spine, fired by a **double tap of Space** through `BodyEquipmentController`'s back channel. There is one torso slot, so the wingsuit, the wing pack and the jetpack ([Jetpack.md](Jetpack.md)) are **mutually exclusive with no rule needed**.
 - **Two models, one item.** Worn, the suit is `wingsuit_worn.fbx`: two cloth panels running from each shoulder out along the arm and down past the hip, on an over-shoulder yoke that laces back to the pack's lash rail. In the hand and on the ground it is `wingsuit.fbx`, the flight suit — a slim spar case with its wings folded away. [`WornVisual`](Assets/Game/Scripts/Items/Equipped/WornVisual.cs) swaps them (see [BodyEquipment.md](BodyEquipment.md)), and `WingsuitWings` swaps the worn wing out again for the length of a glide, because the worn wing and the flight wing are the same wing in two states and exactly one of them may be visible. The worn model is authored at true wearer scale in the **spine bone's** frame — its wing roots are the measured upper-arm joints — so `WornFit.anchorToBone` is set and it ignores the lash rail that back gear normally clips to.
 - **The worn wing is built along a 45° arm line**, the same one the gear screen holds the wearer's arms at *for this item* (`InspectStance.DefaultDroop`, asked for by `WornFit.holdsArmsOut`; see [BodyEquipment.md](BodyEquipment.md)). The two are one number and have to move together. Lowering the arm is what forced the panel's trailing edge to be **raked** rather than square: a loft's sections are perpendicular to its span, so at 45° a square chord runs 45° inboard as well as down and walks the cloth into the wearer's ribs within about 10 cm. `wingsuit_worn.py`'s `SWEEP` shears the finished panel along its own span, which puts the root's trailing corner on the flank and makes the free edge run wrist-to-hip the way a real arm wing's does.
 - **The flight is `OrnithopterFlightModel.Step`, unchanged**, run on the player's own Rigidbody by `WingsuitFlight`. Same two angles (`Gamma` where you are moving, `Pitch` where you are pointing), same stall, same energy trade. None of the physics is a copy.
 - **"It cannot climb" is enforced twice.** `FlapThrust` is 0 *and* `WingsuitControl.Stick` never returns a positive `Flap` — a number somebody types in and an input that would climb at zero thrust fail differently. A **tuck** (LeftCtrl, `Flap < 0`) is still the dive, and zoom-climbing by spending speed is energy rather than thrust, so it is not blocked.
-- **Tuned for the sensation, not for a real wingsuit** (`GDC-L1-FEEL-0007`, which glides 2.5:1 and would be miserable): **~3.9:1, stall ~18 m/s, cruise ~23 m/s** sinking ~6. Both are *derived* — read them back from `WingsuitFlightConfig.BestGlideRatio` and `OrnithopterFlightModel.StallSpeed` rather than assuming.
+- **Tuned for the sensation, not for a real wingsuit** (`GDC-L1-FEEL-0007`, which glides 2.5:1 and would be miserable): **~5.3:1, stall ~15.4 m/s, cruise ~20 m/s** sinking ~3.8. Both are *derived* — read them back from `WingsuitFlightConfig.BestGlideRatio` and `OrnithopterFlightModel.StallSpeed` rather than assuming. The first shipped tune was ~3.9:1 sinking ~6, and it spent every flight arriving: a hundred metres of height bought seventeen seconds, which is not long enough to pick somewhere to go. The area is the lever that moved most of it — wing loading sets both the stall and the sink.
 - **It opens along your LOOK, not along your fall.** `WingsuitControl.Deploy` takes the heading AND the flight path from the camera's forward, carrying the speed you had as a magnitude. Reading the velocity instead — which is what the wing pack does, because it spawns a craft you then aim — snapped the view to the ground and made the first second of every flight a recovery from a dive nobody asked for. Rotating a fall onto the look direction converts vertical speed into horizontal: a real and deliberate gift, but the same joules and the same altitude.
-- **Steering is "fly where you look" plus A/D.** Mouse Y aims the nose as a **position** (it stays where you put it, so the crosshair means something). Mouse X **banks** you as a **rate**, decaying to centre — banking is what turns a wing, and a mouse that only supplied a weak rudder meant the only real way to turn was A and D, which is not what "fly where you look" promises. A/D still bank directly and sum with it. Whatever share of the swing the bank does not take becomes flat yaw, which is what keeps the wing answering below flying speed. The stick handed to the model is the *error* between commanded and actual pitch, so the model keeps its rate limit and its stall fade.
-- **The mouse moves the nose at the player's own look sensitivity**, read off `PlayerLook.LookDegreesPerUnit` rather than tuned here. A control that IS the look has to move like the look: carrying its own smaller number made aiming the wing about 40% of the speed of looking around, and every player read that as input lag rather than as weight.
+- **Steering is "fly where you look", in both axes, at the player's own look sensitivity.** Mouse Y aims the nose as a **position** (it stays where you put it, so the crosshair means something); the stick handed to the model is the *error* between commanded and actual pitch, so the model keeps its rate limit and its stall fade. Mouse X **turns the flight directly** — `WingsuitControl.Steer` adds the degrees to `Heading` after the model has run, outside the aerodynamics — and the same movement also **leans** the wing as a decaying rate (`Swing`), whose banked lift tightens the turn on top. A/D bank directly and sum with the lean.
+- **Both axes read `PlayerLook.LookDegreesPerUnit`** rather than a number tuned here, and the horizontal term is PlayerLook's own, verbatim. A control that IS the look has to move like the look. The nose was already 1:1; the heading was not, because a banked 20 m/s wingsuit turns at about 80°/s at full lock and the same mouse movement turns a head on foot several times faster. That gap was the mouse going dead the moment the wings came out, and no amount of extra roll rate fixes it — it is the *aerodynamics* that are slow. So the turn is a deliberate lie (`GDC-L1-FEEL-0007`) and the bank is what sells it as flying.
+- **There is no rudder.** `TailYawRate` is 0 and `Stick` passes `turn: 0`. The model's yaw input is a tail fan the suit does not have, and it faded with airspeed and collapsed in a stall — `Steer` does neither, so a stalled wing still answers the mouse, which is what the flat-yaw share used to be for.
 - **The body only ever yaws.** The capsule is 3 m of upright collider that the ground probe, the crouch and the head look all assume stands up. Pitch and bank are shown on the view (`PlayerLook.SetFlightAttitude`; `viewRollFraction` 0.5, dial-to-zero — `GDC-L1-FEEL-0006`) and on the skeleton (`WingsuitPose`).
 - **A glide is a thing you are committed to** (`GDC-L1-FEEL-0008`): while the wings are out the mouse is the stick, not the look. Input is still heard on frame one; what is deliberate is the resolution time.
-- **Landing is the ornithopter's rule with a human's numbers** — `OrnithopterCrash.ImpactDamage` on **closing speed**. A flown arrival (~6 m/s) is free, a level dive into a cliff hurts, a held vertical dive kills. Ordinary fall damage is suppressed, so exactly one rule is in play.
+- **Landing is the ornithopter's rule with a human's numbers** — `OrnithopterCrash.ImpactDamage` on **closing speed**. A flown arrival (~3.8 m/s) is free, a level dive into a cliff hurts, a held vertical dive kills. Ordinary fall damage is suppressed, so exactly one rule is in play.
 
 ## Key types
 
@@ -71,7 +75,7 @@ the thrust set to zero, run on the player's Rigidbody.
 | --- | --- | --- |
 | `WingsuitFlightConfig` | [Flight/](Assets/Game/Scripts/Gear/Wingsuit/Flight/WingsuitFlightConfig.cs) | `: OrnithopterFlightConfig` with a constructor: the whole tuning, thrust zero. `BestGlideRatio` is derived |
 | `WingsuitLandingConfig` | [Flight/](Assets/Game/Scripts/Gear/Wingsuit/Flight/WingsuitLandingConfig.cs) | `: OrnithopterCrashConfig`. Safe 9 m/s, lethal 30; the Recovery fields are inert — nobody dismounts |
-| `WingsuitControl` | [Flight/](Assets/Game/Scripts/Gear/Wingsuit/Flight/WingsuitControl.cs) | Pure: `AimNose`, `NoseStick`, `Swing`, `Bank`, `Stick`, `ViewRoll`, `Deploy`. Where "fly where you look" is defined |
+| `WingsuitControl` | [Flight/](Assets/Game/Scripts/Gear/Wingsuit/Flight/WingsuitControl.cs) | Pure: `AimNose`, `NoseStick`, `Swing`, `Steer`, `Bank`, `Stick`, `ViewRoll`, `Deploy`. Where "fly where you look" is defined |
 | `WingsuitFlight` | [Player/Movement/](Assets/Game/Scripts/Characters/Player/Movement/WingsuitFlight.cs) | Owner only. The state, both hand-overs, the landing, `ITeleportAware`. Execution order **150** |
 | `WingsuitPose` | [Player/Movement/](Assets/Game/Scripts/Characters/Player/Movement/WingsuitPose.cs) | Every machine. Tilts the hips from **measured** motion. Order **920**, before `PlayerHeadLook` (950) |
 | `WingsuitItem` | [Items/Equipped/](Assets/Game/Scripts/Items/Equipped/WingsuitItem.cs) | `UsableItem`, `UseAuthority.Owner`. The gesture, the rule, attaching the other three, the mid-glide save |
@@ -84,15 +88,15 @@ the thrust set to zero, run on the player's Rigidbody.
 
 | Field | Default | Effect |
 | --- | --- | --- |
-| `Mass` / `WingArea` | 110 kg / 4 m² | The two numbers that set the stall. Re-read `StallSpeed` after any edit |
+| `Mass` / `WingArea` | 110 kg / 5.5 m² | The two numbers that set the stall — and, as wing loading, most of the sink. Re-read `StallSpeed` after any edit |
 | `LiftSlopePerDegree` / `StallAngle` | 0.075 / 18° | A fabric wing with a body in it: less lift per degree, hangs on longer |
-| `DragCoefficientZeroLift` / `InducedDragFactor` | 0.10 / 0.16 | Together these ARE the glide ratio — `1/(2·√(cd0·k))` |
+| `DragCoefficientZeroLift` / `InducedDragFactor` | 0.075 / 0.12 | Together these ARE the glide ratio — `1/(2·√(cd0·k))` |
 | `FlapThrust` | **0** | Never anything else |
 | `PitchRate` / `RollRate` / `MaxPitch` / `MaxRoll` | 150 / 220 °/s, 70° / 70° | Well past an aircraft's on purpose — a wingsuit is a person moving their own arms |
-| `TailYawRate` / `FullAuthoritySpeed` / `StalledAuthority` | 35 °/s / 10 m/s / 0.45 | Low authority speed, because a deploy starts near the stall and controls that fade out as the player takes hold read as a suit that ignores them |
-| Flight: `spreadDuration` / `minAirspeed` | 0.35 s / 14 m/s | The opening ramp; the floor a deploy starts at |
+| `TailYawRate` / `FullAuthoritySpeed` / `StalledAuthority` | **0** / 10 m/s / 0.45 | No tail fan — `Steer` replaced it. Low authority speed, because a deploy starts near the stall and controls that fade out as the player takes hold read as a suit that ignores them |
+| Flight: `spreadDuration` / `minAirspeed` | 0.35 s / 17 m/s | The opening ramp; the floor a deploy starts at. Keep the floor **above `StallSpeed`** or a step-off opens into a wing that makes nothing |
 | Flight: `lookSensitivityShare` / `noseSaturation` | 1 / 2.5° | The nose moves at the player's own look speed; how far off before the stick is hard over |
-| Flight: `mouseBank` / `bankShare` / `swingCentring` / `viewRollFraction` | 0.05 / 0.85 / 2.2 per s / 0.5 | How hard the mouse rolls you, how much of that is bank rather than rudder, how fast it rolls level again, how far the horizon leans |
+| Flight: `mouseBank` / `swingCentring` / `viewRollFraction` | 0.05 / 2.2 per s / 0.5 | How far the mouse LEANS you per degree it would have turned the look, how fast it rolls level again, how far the horizon leans. None of the three changes how fast you turn |
 | Landing: `SafeClosingSpeed` / `LethalClosingSpeed` | 9 / 30 m/s | Free arrival ↔ full player health |
 | Pose: `bankFromTurn` / `maxBank` / `response` | 0.5 / 60° / 8 per s | How far the body rolls into its turns, and how fast |
 | Wings: `fullBillowSpeed` / `maxBillow` / `upwardBias` | 24 m/s / 0.35 m / 0.55 | How hard the membrane bulges, how far the airflow is bent up into it |
@@ -100,7 +104,7 @@ the thrust set to zero, run on the player's Rigidbody.
 ## Flows
 
 1. **Deploy.** Double Space → back channel → `CanUse`: allowed if already gliding (a fold is always legal), refused with a log if `PlayerMovement.IsOnGround`. Owner `Use()` toggles; `Begin()` reads the look direction off `AimProvider` and hands it to `WingsuitControl.Deploy`, which opens the wing flying that way at the speed the player had — `Pitch = Gamma`, so angle of attack is zero and the camera does not jump — then turns `useGravity` off and takes the body off `PlayerMovement` and `PlayerLook`.
-2. **Fly.** `Update` (render loop, where the mouse moves) accumulates the commanded nose angle and the rudder; `FixedUpdate` advances `Deployment`, runs `Step`, writes velocity and heading, hands the attitude to the view, then checks for ground.
+2. **Fly.** `Update` (render loop, where the mouse moves) accumulates the commanded nose angle, the lean, and the yaw the mouse asked for; `FixedUpdate` advances `Deployment`, runs `Step`, spends that yaw through `Steer`, writes velocity and heading, hands the attitude to the view, then checks for ground.
 3. **Show.** The flight sets the `IsGliding` animator bool, `ClientNetworkAnimator` replicates it, and every machine reads it back to show the membranes, enable `WingsuitPose` and play the clip.
 4. **Land.** `PlayerMovement.IsOnGround`, or `OnCollisionEnter` for a cliff face, which is never underneath you. Closing speed is read from the **flight state** before the glide ends, damage goes through `NetDamage.Apply`, and `CarryMomentum()` stops air control confiscating the speed.
 5. **Fold.** Another double Space, landing, death, unequipping or `OnDisable` — all reach `End()`, which is what hands `PlayerMovement` and `PlayerLook` back.
@@ -121,6 +125,8 @@ the thrust set to zero, run on the player's Rigidbody.
 
 ## Gotchas
 
+- **The mouse's turn is spent OUTSIDE the flight model, and both halves of that matter.** It is banked in `Update` and applied in `FixedUpdate` for `PlayerLook`'s own reason — `LookInput` is read per rendered frame, so sampling it on the physics step drops four movements out of five, and the heading poses a Rigidbody, which may only be moved on the physics clock. It is applied *after* `Step` rather than folded into `input.Turn` because the model's yaw fades with airspeed and collapses in a stall, which is exactly the fade that made the suit feel dead. It stays a pure rotation: touch `Airspeed` or `Gamma` in `Steer` and a player can mint energy by waggling the mouse.
+- **Turning is the sum of two things, and only one of them is the mouse's own.** `Steer` supplies the look-speed turn; the bank the same movement asks for adds its aerodynamic turn on top. That double-count is deliberate — it is what makes a hard bank bite — but it means `mouseBank` is not a free knob: raise it far and a swipe of the mouse turns you further than the same swipe turns your head on foot, which is the original complaint inverted.
 - **`SetGliding` is narrower than `DisableGroundSnap` and wider than `SetTethered`, and both halves matter.** A disabled ground snap returns from `FixedUpdate` before doing anything — no grounded state, no animator — which is the bug the tether was written to stop repeating, and the wing *asks `PlayerMovement` where the ground is*. A tether only changes how move input is applied. So `gliding` skips exactly two things: the horizontal write, and fall damage.
 - **The execution order between `PlayerMovement` and `WingsuitFlight` is load-bearing** — hence `[DefaultExecutionOrder(150)]`. Movement runs first, sees `gliding` still true, skips fall damage and writes `wasGrounded = true`; the flight then ends the glide and bills the closing speed. Reverse them and one landing is charged twice. There is also **one ground probe and it is `PlayerMovement`'s** — a second would disagree at the edges, and the edges are where a landing happens, so a deploy could open the wings into a state that lands on the next step.
 - **`PlayerLook` owns the lens's local rotation, all of it.** The roll goes through it because `Update` reassembles the whole `localRotation` every frame and would delete anything else written there. `ApplyLensRotation` is now the single writer; there used to be three copies.
@@ -138,7 +144,7 @@ the thrust set to zero, run on the player's Rigidbody.
 - **Two authored fits, not one mirrored.** The membranes are already true mirrors in the model, and a humanoid rig's left and right arm bones are *not* mirror-image frames — the gauntlets pay for that with a negative scale and a hand-derived dorsal axis. **`WingsuitWings.Detach` must run before the item is destroyed**, because a reparented membrane is no longer in the item's hierarchy: two wings would hang off the astronaut for the rest of the session. And **a gauntlet fired mid-glide carries its wing with it** — the better of the two artefacts, but an artefact.
 - **The recolour has its own table**, not an entry in `SuitPalette.Relationships`, because `SuitCustomizationTests` asserts every name in that one exists on `astronaut.fbx`. Worn gear is painted by `PlayerIdentity.Repaint`, which the item calls when it seats itself — a suit colour arrives as a NetworkVariable change and gear worn afterwards has simply missed it.
 - **`WingsuitBuilder` owns the whole prefab.** `SaveAsPrefabAsset` replaces it wholesale, so anything added by hand is stripped on the next run — the wing pack lost its `NetworkObject`, its `PickupableItem` and both savers exactly that way, with no error anywhere.
-- Tests: `WingsuitFlightTests` (no self-made energy; glide ratio and stall in band; a hands-off glide always descends) and `WingsuitControlTests` (the nose is aimed and stays, the rudder is pushed and decays, a deploy carries the pilot's motion, a flown arrival is free and a dive is not) — in [Editor/Tests](Assets/Game/Editor/Tests), because they touch Assembly-CSharp types.
+- Tests: `WingsuitFlightTests` (no self-made energy; glide ratio and stall in band; a hands-off glide always descends) and `WingsuitControlTests` (the nose is aimed and stays, the lean is pushed and decays, steering turns the compass without touching the airspeed or the descent, a deploy carries the pilot's motion, a flown arrival is free and a dive is not) — in [Editor/Tests](Assets/Game/Editor/Tests), because they touch Assembly-CSharp types.
 
 ## Extending
 

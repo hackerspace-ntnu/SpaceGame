@@ -11,7 +11,6 @@
 // ItemState exists because of the same truth. Anything that has to outlive an equip cannot live on
 // the item, so this is the piece that does not.
 using System.Collections.Generic;
-using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
 
@@ -274,42 +273,21 @@ namespace SpaceGame.Items
         /// <c>SnareCatch.Capture</c> never records a captive something else already holds — which
         /// makes the first net that answers the only one that could have.
         /// </para>
+        /// <para>
+        /// <see cref="Network.MayActFor"/> is what stops a client reporting struggles on somebody
+        /// else's behalf. Without it one player could drain a net holding another player's catch
+        /// at the full cap, from across the map, while never being netted themselves.
+        /// </para>
         /// </summary>
         private void OnSnareStruggled(in NetArg arg, ulong sender)
         {
             if (!Decides) return;
 
             GameObject captive = arg.Resolve();
-            if (captive == null || !MayActFor(captive, sender)) return;
+            if (captive == null || !Network.MayActFor(captive, sender)) return;
 
             foreach (Tracked tracked in live.Values)
                 if (tracked.Net != null && tracked.Net.Struggled(captive)) return;
-        }
-
-        /// <summary>
-        /// May <paramref name="sender"/> speak for <paramref name="captive"/>?
-        ///
-        /// <para>
-        /// Checked rather than trusted, the same way <c>VehicleStation</c> and
-        /// <c>SeatedRider.OnLeaveSeatRequested</c> check theirs. Without it any client could report
-        /// struggles on any captive's behalf and drain a net holding somebody else's catch, which
-        /// is a way of freeing another player's prize while never being netted at all.
-        /// </para>
-        /// <para>
-        /// The server and unnetworked bodies are not checked: the server speaks for everyone by
-        /// definition, and offline there is only one machine, whose captives have no owner to
-        /// disagree with.
-        /// </para>
-        /// </summary>
-        private static bool MayActFor(GameObject captive, ulong sender)
-        {
-            if (!Network.IsNetworked) return true;
-            if (sender == NetworkManager.ServerClientId) return true;
-
-            NetworkObject body = captive.GetComponent<NetworkObject>();
-            if (body == null || !body.IsSpawned) return true;
-
-            return body.OwnerClientId == sender;
         }
 
         private void Update()

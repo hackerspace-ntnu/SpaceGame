@@ -202,6 +202,36 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Would one more quarter turn change which cells this shape fills?
+        ///
+        /// <para>
+        /// The question a refused click asks. Turning is the usual answer to "it does not fit
+        /// here", so both containers offer it on a refusal — but a SYMMETRIC shape (a 1x1, a 2x2,
+        /// any square, a mask that maps onto itself) turns onto the identical cells, and offering
+        /// that as the fix is a click that changes the yaw and nothing the player can see. The
+        /// callers use the answer to say something else instead.
+        /// </para>
+        /// <para>
+        /// Not an equality operator, deliberately: this is the one comparison anybody needs, and a
+        /// public <c>Equals</c> would invite the mask to be compared for reasons the shape has no
+        /// opinion about. Cheap enough to run on a click — never per frame.
+        /// </para>
+        /// </summary>
+        public bool QuarterTurnChangesCells(int fromQuarterTurns)
+        {
+            PackShape now = Rotated(fromQuarterTurns);
+            PackShape next = Rotated(fromQuarterTurns + 1);
+
+            if (now.Width != next.Width || now.Height != next.Height) return true;
+
+            for (int y = 0; y < now.Height; y++)
+                for (int x = 0; x < now.Width; x++)
+                    if (now[x, y] != next[x, y]) return true;
+
+            return false;
+        }
+
+        /// <summary>
         /// Do two shapes, laid at their own origin cells on the same surface, share a filled cell?
         ///
         /// <para>

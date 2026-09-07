@@ -81,6 +81,13 @@ namespace SpaceGame.Presentation
         private IVisorGaugeSource source;
         private Align align;
 
+        /// <summary>
+        /// Which slot down its corner this gauge sits in, 0 at the top. Gauges that only appear
+        /// with a piece of equipment take the rows below the two survival numbers, which are
+        /// always there — so the permanent readouts never move when a pack is put on or taken off.
+        /// </summary>
+        private int row;
+
         private CanvasGroup group;
         private TextMeshProUGUI labelText;
         private TextMeshProUGUI valueText;
@@ -97,15 +104,22 @@ namespace SpaceGame.Presentation
         /// prefab for this — the whole visor is drawn in code, like every other HUD surface here.
         /// </summary>
         public static VisorGauge Create(RectTransform parent, string name, Align align,
-                                        IVisorGaugeSource source)
+                                        IVisorGaugeSource source, int row = 0)
         {
             RectTransform rect = UIBuilder.Rect(name, parent);
             VisorGauge gauge = rect.gameObject.AddComponent<VisorGauge>();
             gauge.align = align;
             gauge.source = source;
+            gauge.row = row;
             gauge.Build(rect);
             return gauge;
         }
+
+        /// <summary>
+        /// Gap between two gauges stacked in the same corner. Wider than the rows inside a gauge,
+        /// so a stack reads as two readouts rather than as one tall one.
+        /// </summary>
+        private const float RowGap = 18f;
 
         private void Build(RectTransform rect)
         {
@@ -116,7 +130,9 @@ namespace SpaceGame.Presentation
             // canvas size UIScale can produce.
             rect.anchorMin = rect.anchorMax = new Vector2(right ? 1f : 0f, 1f);
             rect.pivot = new Vector2(right ? 1f : 0f, 1f);
-            rect.anchoredPosition = new Vector2(right ? -margin : margin, -margin);
+            rect.anchoredPosition = new Vector2(
+                right ? -margin : margin,
+                -margin - row * (VisorStyle.GaugeHeight + RowGap));
             rect.sizeDelta = new Vector2(VisorStyle.GaugeWidth, VisorStyle.GaugeHeight);
 
             group = rect.gameObject.AddComponent<CanvasGroup>();

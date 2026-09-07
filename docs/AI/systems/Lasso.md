@@ -21,8 +21,11 @@ symptoms:
   - "there is nothing to do with a roped animal except drag it around"
   - "the lasso makes a generic hit sound when I press the button and is silent when it catches"
   - "the rope is drawn in a wood texture, smeared once along its whole length"
-reads_with: [Artifacts, LeashSystem, Multiplayer, Persistence, AgentSystem]
-updated: 2026-09-05
+  - "the loop on the end of the rope is a hard perfect circle and looks unrealistic"
+  - "the rope stops dead in the middle of the loop instead of joining it"
+  - "a laser beam through a live lasso rope does nothing"
+reads_with: [Artifacts, LeashSystem, Multiplayer, Persistence, AgentSystem, RopeCutting]
+updated: 2026-09-07
 ---
 
 # Lasso
@@ -38,6 +41,7 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 
 - **The gesture is the item.** `IsContinuous => true`, `WantsHold => false`: the press starts a twirl, the **release** throws. A lasso that fires on the press is a rope gun.
 - **Loft is flight time, never extra upward speed.** [`LassoThrow.SolveVelocity`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoThrow.cs) picks an apex, derives the flight time from it, and solves the launch so the loop passes **through** the aim point on the way down. `throwSpeed` is a speed *cap*, not the pace-setter: when a throw would exceed it the flight is lengthened and the arc **re-solved**.
+- **The loop is a lariat, and the rope ends on its knot.** [`LassoLoop`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoLoop.cs) draws a shape pinched into a throat at the honda and bellied opposite it, and `Twirl`/`Fly`/`Ride` each **return that knot's world position** so [`LassoArtifact`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoArtifact.cs) can end the cable on it. Drawn to the loop's centre instead — which is what it used to do — the rope dies in the hole with the loop hovering unattached around it.
 - **The drawn radius is the catch radius.** [`LassoLoop.Radius`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoLoop.cs) is what the arc is tested against and what the aim guide draws, so a fully wound loop genuinely has a wider mouth than a flicked one.
 - **The catch is swept, not sampled** — a `SphereCast` between the head's last and current position, plus an overlap at the destination for the case of arriving already inside a collider.
 - **The thrower sees the arc; everyone else sees the loop.** [`LassoAim`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoAim.cs) draws an owner-only arc-and-ring guide from the same solver the throw uses. The twirling loop stays overhead for observers.
@@ -46,6 +50,8 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 - **The rope is a contest with two opposing loops** ([`LassoTension`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoTension.cs)). Straining pays line out and tires the animal; slack winds line back within reach and lets the animal recover. Held under strain long enough the rope **wears through and parts**.
 - **A catch ends somewhere.** Pressing Use while roped and aiming at a hitchable surface within `hitchRange` builds a real [`Leash`](Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) between the creature and that anchor and drops the lasso. Aiming at nothing still means "let go" — the same shape `LeashArtifact` gives the gesture.
 
+- **A rope on a catch can be cut by somebody else.** The laser staff parts it, and the lasso hears that as `LassoVerb.Snapped` — the same verb, the same sound, the same release, so the creature gets its legs back by the path it already had. A throw still in the air is deliberately not cuttable. See [RopeCutting.md](RopeCutting.md).
+
 ## Key types
 
 | Type | File | Role |
@@ -53,7 +59,7 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 | `LassoArtifact` | [LassoArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoArtifact.cs) | `ToolItem`, **Owner** authority, `IsContinuous`, `IItemDeferredRestore`, `[DefaultExecutionOrder(200)]`. Gestures, the arc, the wire, save/restore, dallying |
 | `LassoThrow` | [LassoThrow.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoThrow.cs) | Pure static ballistics. `ApexFor`, `SolveVelocity`, `PointAt` |
 | `LassoRope` | [LassoRope.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoRope.cs) | Verlet cable. `Straighten` (closed form when taut), `Unkink` (Laplacian bend resistance), `Snap` (the tension crack) |
-| `LassoLoop` | [LassoLoop.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoLoop.cs) | The honda, four states: coil → twirl → fly → cinch/collar |
+| `LassoLoop` | [LassoLoop.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoLoop.cs) | The honda, four states: coil → twirl → fly → cinch/collar. Each state returns the knot the rope ties to |
 | `LassoAim` | [LassoAim.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoAim.cs) | Owner-only arc + landing-ring guide. Its own runtime `GameObject`; never networked |
 | `LassoTension` | [LassoTension.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoTension.cs) | Serialized tuning + pure static `Strain01` / `Wear` |
 | `LassoStruggle` | [LassoStruggle.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoStruggle.cs) | Serialized tuning for the caught creature, handed to the tether on the catch |
@@ -109,6 +115,10 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 - **Judge strain on one machine and publish the edge.** Every machine measuring its own overshoot against its own interpolated copy of two moving ends gives every one of them a different rope length within seconds — permanently, because the length is what the constraint and the break verdict are both measured against.
 - **`Sfx` is played at the moment, not at the button.** `UsableItem.PlayUse` plays `useSound` inside `Present`, which for this item is the **press** — so the item's one sound fired at the start of the wind-up and again on the press that dropped the rope, while the throw, the catch, the crack and the coil-back were silent. `useSound` on the prefab is now empty and the six `SfxId.Rope*` entries are played where they happen.
 - **A LineRenderer's texture is Stretched by default.** The rope and loop were drawn in `Custom_Wood` — a surface material off a prop — fitted once across up to 26 m of cable. Both now take `Rope_Leash.mat` (the braid the leash already uses) with `LineTextureMode.Tile`, and neither casts shadows: a view-aligned ribbon casts the shadow of a flat strip that changes shape as the player turns their head.
+- **A circle is not a rope loop, and a rope that stops in the middle of one is not tied to it.** The loop was 28 segments of `cos`/`sin` with a 10% wobble, centred on exactly the point the artifact drew the cable to — so it read as a hard hoop, and the two objects never touched. Both halves are one fix: the profile is pinched at `phi = 0` (`hondaPinch`, `belly`) and that vertex is handed back as the rope's far end. Two consequences worth knowing. The throat costs mouth: at the shipped 0.55/0.12 the largest circle that fits inside the drawn hole is **84% of `Radius`**, while the catch sphere is still the full `Radius` — it errs generous, which is the right direction, but the drawing no longer bounds the catch exactly. And `hondaPinch` is normalised by `ThroatPeak()` precisely so tightening the knot does not silently shrink the whole loop while `LassoAim` goes on drawing the old ring.
+- **The honda rides the spin rather than facing the hand.** The obvious rule — put the knot at the rim point nearest the rope's origin — is degenerate exactly where the loop matters most: during the twirl the hand is almost straight below the loop's own plane, so the projection has no length and the knot flickers round the rim. Riding the phase is also what a turning loop actually does, and it is what puts the sweeping spoke between hand and loop.
+- **`Mathf.Pow` of a negative base is NaN, and `sin(π)` is negative.** The throat term is `Pow(Sin(phi/2), hondaPinch)`, and at `phi = 2π` the sine lands a hair below zero in float. Unclamped that puts the loop's closing vertex — which is the knot, which is the rope's endpoint — at NaN, and a NaN in a LineRenderer takes the whole line with it.
+- **`LassoRope.Simulate` pins its ends outside the substep loop as well as inside.** The substep is a fixed 90 Hz, so a frame drawn faster than that runs none at all and leaves the ends where the last one put them. That was invisible while the far end was a slow-moving head; it is a visible gap between rope and loop now that the far end is a knot on something turning at 620°/s.
 - **`Show(start, start)` stacks every node on one point** with zero-length segments the solver cannot give a direction to. Seed along the aim.
 - **Slack, not span, is the shape of a rope.** `FlightSlack` must stay well outside `Straighten`'s 0.9–1.0 band or the cable is snapped onto the chord every substep and the throw draws as a straight line. `ThrownRopeTrailsInACurve` and `RopeStaysSmoothWhileBeingThrown` pin both halves; either is trivial to satisfy alone by breaking the other.
 - **A release with no orientation is a cancel, not a throw.** `EndHold(send: false)` delivers a `default` NetArg on unequip, disable and death; `arg.HasOrientation` is the test.

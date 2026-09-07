@@ -18,7 +18,7 @@ symptoms:
   - "EntityProfile_RobotPhil / _DesertRat is referenced but does not exist"
   - "a moving NPC keeps nine chunks loaded around itself"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-09-05
+updated: 2026-09-06
 ---
 
 # Entity System
@@ -65,6 +65,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 | `EntityInventoryComponent` | [agents/Entity/EntityInventoryComponent.cs](Assets/Game/Scripts/agents/Entity/EntityInventoryComponent.cs) | Same `Inventory` class the player uses, on an NPC. |
 | `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
 | `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents + rolled `LootEntry` list. |
+| `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
 | `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling, hurt/death SFX, despawn after `despawnDelay` via `SetActive(false)`. |
 
 ## Flows
@@ -103,6 +104,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 - Clients receive migrations as RPCs and apply them by `NetworkObjectId` + scene name; they never initiate one.
 - An entity that migrates **must** have a spawned `NetworkObject` (and be registered in the network prefab list if runtime-spawned), or clients destroy their copy when its old chunk unloads while the host keeps and saves it. `Pin` is the escape hatch for purely local props.
 - Behaviour authority (who runs the AI, who presents effects) is [AgentSystem.md](AgentSystem.md); item use inside `EntityEquipmentController` follows the `Use()`/`Present()` split.
+- **`EntityInventoryComponent` does not replicate.** Every machine fills it from `startingItems` in `Awake`, and every machine's `EntityEquipmentController` draws slot 0 from its own copy — which agrees only while the list is fixed. Anything chosen at runtime (the sand nomads' random weapon) goes through `NpcRandomLoadout`: the server writes the slot's item id to a `NetworkVariable`, clients mirror the slot from it, and a late joiner reads it in `OnNetworkSpawn`.
 
 ## Persistence
 
@@ -110,6 +112,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 - **Authored vs runtime is the whole storage split.** Authored objects already exist when the chunk loads, so records are *applied in place*; runtime objects are *re-instantiated* from `prefabId` into the chunk's own scene.
 - Records are keyed by **identity, never by scene** — an entity that walked into another chunk still finds its record.
 - `SaveScope.External` takes an object out of world capture (players; `NpcWorldSim` caravan members via `DisownToExternal`, which is refused outside play mode).
+- `NpcRandomLoadout` saves nothing of its own. The bag is `EntityInventorySaveable`'s and the hand `EntityEquipmentSaveable`'s (both added by `SaveablePolicy`); the roll only fills an EMPTY slot, so a restored bag wins, and a disowned caravan member rolls afresh every time it walks into range — which is the "random per spawn" the sand nomads were asked for.
 - Unresolvable `prefabId` ⇒ the record is **kept**, not dropped, and warns `No prefab registered for id`. Format details: [Persistence.md](Persistence.md).
 
 ## Gotchas
@@ -121,6 +124,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 - **A `Migrate` entity with no `NetworkObject` desyncs silently for clients** — the warning fires once, per object, and is easy to miss. Prefer `Pin` or add a `NetworkObject`.
 - **Migration only moves roots.** A rider parented to a mount migrates with the mount; unparent it mid-migration and it is left in the old scene.
 - **Runtime-spawned NPCs must call `SceneTracked.SetKeepChunksLoaded(false)`** (as `NpcWorldSim` does) or every caravan drags nine loaded chunks around with it.
+- **A random `startingItems` pick on the server is a different pick on every client.** The NPC bag is local state (see Multiplayer). Replicate the result, never the roll: `NpcRandomLoadout` is the worked example, and it must sit on the `NetworkObject`'s own GameObject to spawn its `NetworkVariable`.
 - **`NeedsSaving` inferences all miss this game's machines.** A legged rig is a *kinematic* Rigidbody with no `NavMeshAgent`; the DuneFoil has no Rigidbody on its root. Implement `IPersistentEntity` — do not rely on health/agent/rigidbody heuristics.
 - **Death is `SetActive(false)`, not `Destroy`.** Anything treating "in `LiveEntities`" as "alive" is wrong; that mistake previously re-instantiated dead runtime entities on every hydrate.
 - **`SaveableEntity` is `[DisallowMultipleComponent]`**, and `DeriveAuthoredId` collides for identically placed objects — it appends a deterministic `#n` rather than randomising.

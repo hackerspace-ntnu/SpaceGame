@@ -17,6 +17,7 @@ Recorded 2026-09-01 during the full documentation pass.
 | Trading has no content | The trade flow is code-complete, but no `TraderProfile` asset exists and no prefab or scene references `TraderInteraction` (verified by GUID grep). | [Interaction](systems/InteractionSystem.md) |
 | Camera shake is inert | The only `CameraShaker` component sits on a prefab whose GUID has zero references, so every `CameraShakerHandler.Shake(...)` call silently no-ops. That path also never reads the accessibility intensity setting. | [Cutscenes](systems/Cutscenes.md) |
 | Crosshair hover never runs | `CrosshairUI.playerInteractor` is unwired on the HUD prefab, so hover-brightening has never executed. | [UI](systems/UI.md), [Interaction](systems/InteractionSystem.md) |
+| Rock prefabs are unusable | Every prefab under `Prefabs/Environment/Nature/Rocks/` has no collider, and the 100× FBX scale sits one level down inconsistently: `BoulderLarge_A`'s mesh child is at 160×, `BoulderSmall_A`'s at 89×, `BoulderSmall_C`'s root at 0.01×. Placed at scale 1 a "large" boulder is 590–860 m across (measured 2026-09-07 when `RobotSettlementGenerator` put three of them over the Clanker settlement, each wider than the town). `BoulderLarge_B` is in one scene today. Rebuild them through a builder before using them anywhere. | [TerrainGeneration](systems/TerrainGeneration.md), [ArtPipeline](systems/ArtPipeline.md) |
 
 ## Wiring that does nothing
 

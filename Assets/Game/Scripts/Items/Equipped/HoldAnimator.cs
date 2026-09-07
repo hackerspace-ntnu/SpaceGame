@@ -19,9 +19,11 @@ namespace SpaceGame.Items
     /// while the player walks. All of the movement gating went with it.
     /// </para>
     /// <para>
-    /// Two kinds of holder, because they have different rigs. A player has a
-    /// <see cref="PlayerAimRig"/> and gets a hold style. Anything else — an NPC, a turret — keeps
-    /// the original <c>Hold</c> bool, which is what its controller is still built around.
+    /// Three kinds of holder, because they have different rigs. A player has a
+    /// <see cref="PlayerAimRig"/> and gets a hold style. An NPC that wears the player's layered
+    /// controller — the nomad family — gets the same style and layer, written directly. Anything
+    /// else — a turret, a robot with its own controller — keeps the original <c>Hold</c> bool,
+    /// which is what its controller is still built around.
     /// </para>
     /// </summary>
     public class HoldAnimator : MonoBehaviour
@@ -75,25 +77,58 @@ namespace SpaceGame.Items
             {
                 rig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
                 resolvedAnimator = rig != null ? null : ResolveAnimator(holder);
+                var grip = GetComponent<ItemGrip>();
+                ItemGrip.HoldStyle style = grip != null ? grip.Style : ItemGrip.HoldStyle.OneHanded;
 
                 if (rig != null)
-                {
-                    var grip = GetComponent<ItemGrip>();
-                    rig.SetHeldStyle(grip != null ? grip.Style : ItemGrip.HoldStyle.OneHanded);
-                }
+                    rig.SetHeldStyle(style);
+                else if (HasLayeredHold(resolvedAnimator))
+                    WriteLayered(style);
                 else
-                {
                     WriteBool(true);
-                }
 
                 return;
             }
 
             if (rig != null) rig.SetHeldStyle(ItemGrip.HoldStyle.None);
+            else if (wroteLayered) WriteLayered(ItemGrip.HoldStyle.None);
             else WriteBool(false);
 
             rig = null;
             resolvedAnimator = null;
+        }
+
+        private bool wroteLayered;
+
+        /// <summary>
+        /// Does this holder wear the player's layered controller without the player's rig?
+        ///
+        /// <para>
+        /// The sand nomads do: they animate with <c>AstronautArmature</c>, whose Base Layer answers
+        /// the legacy <c>Hold</c> bool by parking the WHOLE body in a static gun-aim state — legs
+        /// included, so a nomad handed a gun walked the desert as a statue sliding on its feet,
+        /// with a valid avatar and a clean console. The player never trips this because
+        /// <see cref="PlayerAimRig"/> drives <c>HoldStyle</c> and the masked Upper Body layer
+        /// instead. A holder with that layer and that parameter is held the same way.
+        /// </para>
+        /// </summary>
+        private static bool HasLayeredHold(Animator a) =>
+            a != null && a.runtimeAnimatorController != null
+            && a.GetLayerIndex(PlayerAimRig.UpperBodyLayer) >= 0
+            && HasParam(a, Animator.StringToHash(PlayerAimRig.HoldStyleParameter));
+
+        /// <summary>
+        /// The layered hold without the rig's easing: the style into <c>HoldStyle</c> and the
+        /// Upper Body layer fully up, or both cleared. Snapped rather than blended because nobody
+        /// is watching an NPC's hands from first person as the layer fades in.
+        /// </summary>
+        private void WriteLayered(ItemGrip.HoldStyle style)
+        {
+            if (resolvedAnimator == null) return;
+            bool held = style != ItemGrip.HoldStyle.None;
+            resolvedAnimator.SetInteger(PlayerAimRig.HoldStyleParameter, (int)style);
+            resolvedAnimator.SetLayerWeight(resolvedAnimator.GetLayerIndex(PlayerAimRig.UpperBodyLayer), held ? 1f : 0f);
+            wroteLayered = held;
         }
 
         /// <summary>

@@ -17,7 +17,7 @@ symptoms:
   - "arena spawns are not filtered for reachability"
   - "every agent hovers a few centimetres to half a metre above the ground"
 reads_with: [WorldStreaming, AgentSystem, Locomotion]
-updated: 2026-09-05
+updated: 2026-09-07
 ---
 
 # NavMesh
@@ -31,7 +31,7 @@ One NavMesh for the whole streamed world, baked at author time into a single ass
 
 - **One mesh, not per-chunk.** [WorldNavMeshBaker](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) opens all 48 chunk scenes at once, collects sources, and calls `NavMeshBuilder.BuildNavMeshData` once over their union bounds. Chunk scenes carry no `NavMeshSurface` and no NavMesh data of their own.
 - **Runtime is load-only.** [WorldNavMeshProvider](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) on the `NavMesh` GameObject in [persistentScene.unity](Assets/Game/Scenes/world/persistentScene.unity) does `AddNavMeshData` in `OnEnable`, `Remove()` in `OnDisable`. No bake, no rebuild, no dirty flag. The `NavMeshSourceCache` / park-and-release system the older revision of this doc described is **deleted**.
-- **Collision, not render meshes.** Sources are `Terrain` + non-trigger `Collider`s. Colliders on a non-kinematic `Rigidbody` are skipped (scenery that moves must not be frozen into a permanent mesh).
+- **Collision, not render meshes.** Sources are `Terrain` + non-trigger `Collider`s, filtered by `WorldNavMeshBaker.IsBakeable`: colliders on a non-kinematic `Rigidbody` are skipped (scenery that moves must not be frozen into a permanent mesh), and so is anything under a `NavMeshAgent` (a walker is never part of what it walks on — see Gotchas).
 - **Bake mirrors the runtime.** The baker snaps each chunk's `Terrain` to its grid X/Z (mirroring `WorldStreamer.CacheTerrainForChunk`) and calls `TerrainFeatureSpawner.SpawnBaked()` before collecting, then discards those edits. Skip either and the mesh is silently offset from the ground.
 - **Staleness is enforced at build time.** [WorldNavMeshStaleness](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) compares each chunk's `AssetDatabase.GetAssetDependencyHash` against the stamp recorded at bake; `WorldNavMeshBuildCheck : IPreprocessBuildWithReport` throws `BuildFailedException` when they differ.
 - **Caves are separate surfaces**, not part of the world mesh — see Gotchas.
@@ -57,7 +57,7 @@ The world bake **overrides** those numbers (`WorldNavMeshBakeSettings.ToBuildSet
 | tileSize | 256 | ≈85 m tiles at this voxel size |
 | minRegionArea | 2 m² | |
 | layerMask | `0xFFFFFC89` | excludes TransparentFX, Ignore Raycast, Water, UI, Player, Hologram, Interior |
-| stamps / sourceCount / bakedAtUtc | 48 chunks / 130 sources / 2026-08-15 23:36:55Z | |
+| stamps / sourceCount / bakedAtUtc | 48 chunks / 511 sources / 2026-09-07 (re-baked for the Clanker settlement) | |
 
 Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not Walkable` (cost 1), `2 Jump` (cost 2). Slots 3–31 are empty. Every source is baked with `area = 0`, no code constructs a `NavMeshQueryFilter`, and every query passes `NavMesh.AllAreas` — **area costs are effectively unused**.
 
@@ -106,6 +106,7 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 
 ## Gotchas
 
+- **A creature hand-placed in a chunk scene used to bake in as a hole in its own mesh.** The baker kept every kinematic body as scenery, and every NavMesh creature here *is* a kinematic body with a solid collider — so the six patrol robots in the Clanker settlement each carved a robot-shaped hole exactly where they would spawn (2026-09-07: no mesh within 0.35 m of any robot, mesh everywhere around them). `WorldNavMeshBaker.IsBakeable` now refuses any collider under a `NavMeshAgent`; `WorldNavMeshBakerSourceTests` pins it. A walker driven by something other than `NavMeshAgent` (a `LeggedDriver`) is still baked if it is kinematic and sits in a chunk scene — none does today.
 - **The baked mesh sits above the ground, and by a varying amount.** Measured over 1384 samples on
   six terrains: mean +0.264 m, median +0.257, p25 +0.199, p75 +0.321, p95 +0.480, max +0.600, min
   −0.262. Recast places each polygon at the top of the voxel column it came from, so the error

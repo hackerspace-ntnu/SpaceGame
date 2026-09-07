@@ -133,6 +133,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a position 16 km out reads as terrain in the corner of the world | [WorldStreaming](systems/WorldStreaming.md) |
+| a pouch, ring or band on a nomad renders inside out in Unity but looks fine in Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | a prefab has no SaveableEntity right after I rebuilt it from its own builder | [PlayerShip](systems/PlayerShip.md) |
 | a prefab I deleted is still a row in the network prefab list, and re-running the sync says everything is already in sync | [Inventory](systems/Inventory.md) |
 | a probe that excludes one part of a prefab measures that part anyway | [Testing](systems/Testing.md) |
@@ -172,6 +173,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a saddle on an animal holds nothing, or its faces are on a slope | [Backpack](systems/Backpack.md) |
 | a saddled animal can be ridden but not driven — the rider has no control | [Saddles](systems/Saddles.md) |
 | a saddled animal comes back bare after a save and reload | [Saddles](systems/Saddles.md) |
+| a sand nomad walks across the ground but its legs and arms barely move, avatar valid and Humanoid | [ArtPipeline](systems/ArtPipeline.md) |
 | a save-restored creature is on the NavMesh but never moves | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a scene I did not touch opens with a missing-prefab placeholder after I deleted an item | [Inventory](systems/Inventory.md) |
 | a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
@@ -220,6 +222,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an item was placed but cannot be picked up again | [Placeables](systems/Placeables.md) |
 | an item's charge resets when I scroll one hotbar slot and back | [SupplyCharge](systems/SupplyCharge.md) |
 | an item, faction or targeting asset never turns up in Registry<T>.Get | [CoreServices](systems/CoreServices.md) |
+| an NPC holding an item slides along in a frozen gun-aim pose, legs not moving, with a valid avatar | [Inventory](systems/Inventory.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
 | an NPC or legged machine touches a portal but never goes through | [Portals](systems/Portals.md) |
 | an NPC spawns and then stands still forever with a clean console | [NavMeshSystem](systems/NavMeshSystem.md) |
@@ -383,7 +386,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
 | one pod vectors and the other one does not | [Jetpack](systems/Jetpack.md) |
 | one press seated the player in all four ship chairs at once | [Vehicles](systems/Vehicles.md) |
+<<<<<<< HEAD
 | one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
+=======
+| one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
+>>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
 | only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
@@ -819,6 +826,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | typecheck.py says a type I just added to an asmdef does not exist | [Testing](systems/Testing.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
+| walking into the robot town raises no alarm and nobody comes | [AgentSystem](systems/AgentSystem.md) |
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
 | what an item was holding is gone the moment I press drop, but a slot switch keeps it | [Inventory](systems/Inventory.md) |
 | which menu item rebuilds this prefab, item, creature or vehicle | [EditorTooling](systems/EditorTooling.md) |
@@ -1123,4 +1131,8 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
+<<<<<<< HEAD
 <!-- 810 symptoms, 287 paths, 48 docs -->
+=======
+<!-- 684 symptoms, 256 paths, 44 docs -->
+>>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757

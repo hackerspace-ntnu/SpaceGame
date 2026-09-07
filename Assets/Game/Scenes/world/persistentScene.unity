@@ -381,6 +381,77 @@ MonoBehaviour:
       LongitudinalJitter: 1.3
       DriftAmplitude: 0.8
       DriftRate: 0.07
+  - id: sand-nomads
+    displayName: Sand Nomads
+    members:
+    - prefab: {fileID: 154119959528579656, guid: c3ae6b451d3393043b8ad3f1c9f152b0, type: 3}
+      isLeader: 1
+      count: 1
+    - prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
+      isLeader: 0
+      count: 1
+    - prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
+      isLeader: 0
+      count: 1
+    - prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
+      isLeader: 0
+      count: 1
+    tasks:
+    - label: running goods between the trade posts
+      targetSite: 5
+      searchRadius: 2000
+      searchFromHome: 0
+      dwellSeconds: {x: 40, y: 110}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Three days to the next post on foot.
+      - Salt sells better east.
+      dwellFlag: 
+      weight: 1.5
+      arriveRadius: 10
+      travelSpeedMultiplier: 1
+    - label: filling the water skins
+      targetSite: 4
+      searchRadius: 1200
+      searchFromHome: 0
+      dwellSeconds: {x: 50, y: 140}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Fill every skin. The next well is far.
+      - Should be water in the low ground.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 10
+      travelSpeedMultiplier: 1
+    - label: picking over an old wreck
+      targetSite: 2
+      searchRadius: 1600
+      searchFromHome: 0
+      dwellSeconds: {x: 70, y: 200}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Something came down here, long back.
+      - Anything not buried is already taken.
+      dwellFlag: 
+      weight: 0.8
+      arriveRadius: 10
+      travelSpeedMultiplier: 1
+    travelSpeed: 2.6
+    startNearSite: 1
+    useStartPosition: 1
+    startPosition: {x: 3700, y: 100, z: 1560}
+    bountyHunters: 0
+    formation:
+      Lanes: 2
+      RowSpacing: 3.5
+      LaneSpacing: 2.4
+      LateralJitter: 1
+      LongitudinalJitter: 1.3
+      DriftAmplitude: 0.8
+      DriftRate: 0.07
   - id: bounty-hunters
     displayName: Bounty Hunters
     members:
@@ -2425,7 +2496,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1741768407
 MonoBehaviour:
   m_ObjectHideFlags: 0

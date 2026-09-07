@@ -336,13 +336,7 @@ namespace SpaceGame.EditorTools
             // same run, anything NOT rewritten -- another prefab, an override,
             // an AnimatorOverrideController -- keeps a reference to a GUID that
             // no longer exists and goes silently null.
-            AnimatorController controller =
-                AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
-
-            if (controller == null)
-                controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
-            else
-                Clear(controller);
+            AnimatorController controller = AnimatorControllerRebuild.LoadOrCreateEmpty(ControllerPath);
 
             // These names are AgentAnimatorDriver's, verbatim, misspelling and
             // all -- it calls SetFloat/SetBool on them unconditionally and a
@@ -524,9 +518,7 @@ namespace SpaceGame.EditorTools
             ReturnToLocomotion(hurt, locomotion, 0.75f);
             ReturnToLocomotion(happy, locomotion, 0.88f);
 
-            EditorUtility.SetDirty(controller);
-            AssetDatabase.SaveAssets();
-            return controller;
+            return AnimatorControllerRebuild.SaveAndVerify(controller, ControllerPath, minimumStates: 9);
         }
 
         private static AnimatorState AddOneShot(AnimatorStateMachine root, string stateName,
@@ -554,28 +546,6 @@ namespace SpaceGame.EditorTools
             back.hasExitTime = true;
             back.exitTime = exitTime;
             back.duration = 0.22f;
-        }
-
-        /// <summary>
-        /// Empty an existing controller so it can be rebuilt without replacing the
-        /// asset. Order matters: transitions reference states, so the states go
-        /// last.
-        /// </summary>
-        private static void Clear(AnimatorController controller)
-        {
-            AnimatorStateMachine sm = controller.layers[0].stateMachine;
-
-            foreach (AnimatorStateTransition t in sm.anyStateTransitions.ToArray())
-                sm.RemoveAnyStateTransition(t);
-            foreach (AnimatorTransition t in sm.entryTransitions.ToArray())
-                sm.RemoveEntryTransition(t);
-            foreach (ChildAnimatorStateMachine child in sm.stateMachines.ToArray())
-                sm.RemoveStateMachine(child.stateMachine);
-            foreach (ChildAnimatorState child in sm.states.ToArray())
-                sm.RemoveState(child.state);
-
-            while (controller.parameters.Length > 0)
-                controller.RemoveParameter(0);
         }
 
         // -------------------------------------------------------------------

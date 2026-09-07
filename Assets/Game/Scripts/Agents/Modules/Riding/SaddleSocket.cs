@@ -47,6 +47,12 @@ namespace SpaceGame.Agents
                  "rig is genuinely unscaled.")]
         [SerializeField] private bool compensateBoneScale = true;
 
+        [Tooltip("Born wearing one. For an animal whose saddle is part of the chassis -- the " +
+                 "Clankers' robot horses -- rather than gear a player fitted. Only the FIRST life " +
+                 "reads this: a save records the socket's state and a reload restores that, so a " +
+                 "horse the player unsaddled stays bare.")]
+        [SerializeField] private bool startSaddled;
+
         [Header("What it enables")]
         [Tooltip("Enabled while saddled, disabled while bare. Nobody rides a bare animal.")]
         [SerializeField] private MountModule mount;
@@ -78,7 +84,7 @@ namespace SpaceGame.Agents
         {
             if (mount == null) mount = GetComponentInChildren<MountModule>(true);
             if (mountBone == null) mountBone = FindBone("spine1");
-            ApplySaddled(saddled);
+            ApplySaddled(saddled || startSaddled);
         }
 
         private void OnEnable()

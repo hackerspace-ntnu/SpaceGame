@@ -1,8 +1,8 @@
 Shader "Hidden/PastelQuantize"
 {
-    // No properties: the palette, blend and ink come from PastelQuantizeRenderFeature
-    // each frame, so a material-level copy would only be a second source of truth that
-    // drifts.
+    // No properties: the palette, blend, ink and noise come from
+    // PastelQuantizeRenderFeature each frame, so a material-level copy would only be a
+    // second source of truth that drifts.
     Properties { }
 
     SubShader
@@ -18,6 +18,8 @@ Shader "Hidden/PastelQuantize"
             HLSLPROGRAM
             #pragma vertex FullscreenVert
             #pragma fragment frag
+            // The speckle hash is integer arithmetic; 2.5 has no uint.
+            #pragma target 3.5
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             // _CameraDepthTexture + SampleSceneDepth, for the silhouette half of the ink.
@@ -63,6 +65,13 @@ Shader "Hidden/PastelQuantize"
             float _InkLumaThreshold;
             float _InkDepthThreshold;
             float _InkSoftness;
+            float _InkWidth;
+            float _InkTint;
+            float4 _InkColor;         // Oklab, converted once on the CPU
+            float _NoiseKind;         // matches the NoiseKind enum
+            float _NoiseAmount;
+            float _NoiseScale;
+            float _NoiseDensity;
 
             // Bjorn Ottosson's Oklab. Nearest-neighbour distances here track perceived
             // colour; the same search in raw RGB drags greens toward grey and crushes blues.
@@ -115,7 +124,9 @@ Shader "Hidden/PastelQuantize"
                     return 0.0;
                 }
 
-                float2 texel = 1.0 / _ScreenParams.xy;
+                // Scaled by the line breadth: reaching further finds gentler edges as
+                // well as drawing a wider line, which is why one dial does both.
+                float2 texel = max(_InkWidth, 0.5) / _ScreenParams.xy;
                 float2 dx = float2(texel.x, 0.0);
                 float2 dy = float2(0.0, texel.y);
 
@@ -140,15 +151,88 @@ Shader "Hidden/PastelQuantize"
                     smoothstep(_InkDepthThreshold, _InkDepthThreshold + _InkSoftness, depthGradient));
             }
 
+            // Integer hash rather than frac(sin(...)): the sine version drifts between
+            // drivers, and noise that changes with the driver is not a look.
+            uint NoiseHash(uint2 cell, uint salt)
+            {
+                uint h = cell.x * 374761393u + cell.y * 668265263u + salt * 3266489917u;
+                h = (h ^ (h >> 13u)) * 1274126177u;
+                return h ^ (h >> 16u);
+            }
+
+            float NoiseCell(uint2 cell, uint salt)
+            {
+                return float(NoiseHash(cell, salt) & 0xFFFFFFu) / 16777215.0;
+            }
+
+            float ValueNoise(float2 p)
+            {
+                float2 corner = floor(p);
+                float2 f = p - corner;
+                // Smoothstep: bilinear alone leaves visible creases along the lattice.
+                f = f * f * (3.0 - 2.0 * f);
+                uint2 cell = uint2(int2(corner) + 4096);
+                return lerp(
+                    lerp(NoiseCell(cell, 0u),               NoiseCell(cell + uint2(1u, 0u), 0u), f.x),
+                    lerp(NoiseCell(cell + uint2(0u, 1u), 0u), NoiseCell(cell + uint2(1u, 1u), 0u), f.x),
+                    f.y);
+            }
+
+            // Applied before the snap, so the noise decides which palette entry a pixel
+            // lands on and nothing off-palette is ever emitted. Screen-anchored on purpose:
+            // these are marks on the picture, not on the world — see NoiseShape.
+            float3 Noise(float3 okl, float2 uv)
+            {
+                if (_NoiseAmount <= 0.0 || _NoiseKind < 0.5)
+                {
+                    return okl;
+                }
+
+                float2 pixel = uv * _ScreenParams.xy;
+                float shift = 0.0;
+
+                if (_NoiseKind < 1.5) // Paper
+                {
+                    float2 p = pixel / max(_NoiseScale, 1.0);
+                    float field = lerp(ValueNoise(p), ValueNoise(p * 2.37 + 17.0), 0.5);
+                    shift = (field - 0.5) * 2.0;
+                }
+                else if (_NoiseKind < 2.5) // Dither
+                {
+                    shift = (NoiseCell(uint2(pixel), 1u) - 0.5) * 2.0;
+                }
+                else // Speckle
+                {
+                    uint2 cell = uint2(pixel / max(_NoiseScale, 1.0));
+                    // One fleck per cell at most, and only in cells the density picks, so
+                    // the result reads as spatter rather than as a texture.
+                    if (NoiseCell(cell, 2u) < _NoiseDensity)
+                    {
+                        shift = -NoiseCell(cell, 3u);
+                    }
+                }
+
+                okl.x = saturate(okl.x + shift * _NoiseAmount);
+                return okl;
+            }
+
             half4 frag(Varyings input) : SV_Target
             {
                 half4 source = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, input.texcoord);
 
-                // Ink darkens lightness before the snap rather than compositing a line
-                // after it, so the line lands on a palette entry a step or two below what
-                // it crosses instead of introducing a colour the palette does not hold.
+                // Both move the colour before the snap rather than being composited
+                // after it, so each lands on a palette entry instead of introducing a
+                // colour the palette does not hold. The ink's edge detector reads the
+                // untouched source, so noise never grows an outline of its own.
                 float3 okl = LinearToOklab(saturate(source.rgb));
-                okl.x = saturate(okl.x - _InkAmount * InkEdge(input.texcoord));
+                okl = Noise(okl, input.texcoord);
+
+                float edge = InkEdge(input.texcoord);
+                okl.x = saturate(okl.x - _InkAmount * edge);
+                // Toward the pen's own colour only as far as `tint` asks. At 0 a line stays
+                // the hue of what it crosses, which is what keeps it reading as a wash
+                // rather than as a sticker laid over the frame.
+                okl = lerp(okl, _InkColor.xyz, saturate(_InkTint * edge));
                 float3 painted = OklabToLinear(okl);
 
                 int best = 0;

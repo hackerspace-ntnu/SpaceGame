@@ -24,8 +24,22 @@ namespace SpaceGame.World.Environment
     public struct InkShape
     {
         [Tooltip("Oklab lightness subtracted at a full-strength edge. One lightness step " +
-                 "is ~0.10, so 0.22 is about two palette entries darker.")]
+                 "is ~0.12, so 0.22 is about two palette entries darker.")]
         [Range(0f, 0.6f)] public float amount;
+
+        [Tooltip("Line breadth, in screen pixels. This is the distance the edge detector " +
+                 "reaches, so a wider line also finds gentler edges — breadth and how much " +
+                 "gets outlined are one dial, not two.")]
+        [Range(0.5f, 6f)] public float width;
+
+        [Tooltip("The pen's colour. It only reaches the frame through `tint`; at tint 0 " +
+                 "the line is a darker shade of whatever it crosses instead.")]
+        [ColorUsage(false)] public Color color;
+
+        [Tooltip("How far a line is pulled toward `color` rather than simply darkened. 0 " +
+                 "keeps a line the hue of the surface under it, the way a wash does; 1 " +
+                 "makes every line the same ink.")]
+        [Range(0f, 1f)] public float tint;
 
         [Tooltip("Lightness gradient between neighbouring pixels that counts as an edge. " +
                  "Lower draws more interior detail; too low and every shading ramp inks.")]
@@ -42,6 +56,9 @@ namespace SpaceGame.World.Environment
         public static InkShape Default => new InkShape
         {
             amount = 0.22f,
+            width = 1f,
+            color = new Color(0.11f, 0.12f, 0.17f),
+            tint = 0f,
             lumaThreshold = 0.03f,
             depthThreshold = 0.02f,
             softness = 0.03f,

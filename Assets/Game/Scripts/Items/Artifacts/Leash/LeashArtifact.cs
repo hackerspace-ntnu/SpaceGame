@@ -53,12 +53,40 @@ namespace SpaceGame.Items
         [SerializeField] private float maxCorrectionStep = 0.5f;
 
         [Header("Resist")]
-        [Tooltip("Seconds of pulling squarely away to tear free of an end as strong as you are. " +
-                 "Scales with the other end's pull, so a ship holds you far longer than a player.")]
-        [SerializeField, Min(0.1f)] private float resistSeconds = 2f;
+        [Tooltip("Yanks — reversals of direction — needed to tear free of an end as strong and as " +
+                 "heavy as you are.\n\n" +
+                 "A rope is fought by throwing yourself about, never by leaning on a movement key: " +
+                 "somebody being towed who does not fight is towed indefinitely, and hauling a " +
+                 "load can never part your own rope. Scales with what the other end HOLDS you " +
+                 "with — the greater of its pull and its mass — so a wall takes more yanks than a " +
+                 "player and a player more than a light animal.")]
+        [SerializeField, Min(1f)] private float resistJerks = 8f;
 
-        [Tooltip("Strain given back per second when you stop pulling away.")]
-        [SerializeField, Min(0f)] private float strainDecay = 0.5f;
+        [Tooltip("Floor on that scale. Nothing takes fewer than this many times the base yanks, " +
+                 "however light the far end is.")]
+        [SerializeField, Min(0.05f)] private float minResistRatio = 0.5f;
+
+        [Tooltip("Ceiling on it. This is what keeps a rope tied to terrain escapable at all — an " +
+                 "immovable anchor is infinitely heavy and lands here.")]
+        [SerializeField, Min(0.1f)] private float maxResistRatio = 1.5f;
+
+        [Tooltip("Yanks' worth of progress given back per second when you stop fighting. A slow, " +
+                 "half-hearted struggle never adds up to an escape.")]
+        [SerializeField, Min(0f)] private float strainDecay = 0.25f;
+
+        [Tooltip("Yanks per second past which nothing more is gained.\n\n" +
+                 "The cap is the design, not a balance knob: above it a struggle rewards input " +
+                 "rate, which excludes anyone who cannot spam a key and rewards an autofire macro " +
+                 "(GDC-L1-UX-0006).")]
+        [SerializeField, Min(0.1f)] private float maxUsefulStruggleRate = 2.5f;
+
+        [Tooltip("How far a direction must be pushed before it counts as one you meant.")]
+        [SerializeField, Range(0.05f, 0.95f)] private float struggleMoveDeadzone = 0.5f;
+
+        [Tooltip("How far round you must throw yourself for it to read as a yank rather than a " +
+                 "turn, in degrees. 120 counts mashing A against D and refuses strafing round a " +
+                 "corner.")]
+        [SerializeField, Range(90f, 179f)] private float struggleReversalAngle = 120f;
 
         [Header("Tying")]
         [Tooltip("Slack added when a tie lands further away than the rope is long.")]
@@ -690,8 +718,13 @@ namespace SpaceGame.Items
             correction = correction,
             maxCorrectionSpeed = maxCorrectionSpeed,
             maxCorrectionStep = maxCorrectionStep,
-            resistSeconds = resistSeconds,
+            resistJerks = resistJerks,
+            minResistRatio = minResistRatio,
+            maxResistRatio = maxResistRatio,
             strainDecay = strainDecay,
+            maxUsefulStruggleRate = maxUsefulStruggleRate,
+            struggleMoveDeadzone = struggleMoveDeadzone,
+            struggleReversalAngle = struggleReversalAngle,
             wrapLayers = wrapLayers,
             wrapRadius = wrapRadius,
             wrapClearance = wrapClearance,
@@ -755,7 +788,9 @@ namespace SpaceGame.Items
             settings = new Leash.Settings
             {
                 length = 8f, correction = 0.35f, maxCorrectionSpeed = 25f, maxCorrectionStep = 0.5f,
-                resistSeconds = 2f, strainDecay = 0.5f,
+                resistJerks = 8f, minResistRatio = 0.5f, maxResistRatio = 1.5f, strainDecay = 0.25f,
+                maxUsefulStruggleRate = 2.5f, struggleMoveDeadzone = 0.5f,
+                struggleReversalAngle = 120f,
                 wrapLayers = 0, wrapRadius = 0.05f, wrapClearance = 0.06f, maxWrapPoints = 8,
                 rope = new LeashRope(),
             };

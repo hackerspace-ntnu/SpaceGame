@@ -21,6 +21,7 @@
 // swing steering: it lets a player pump an arc, preserves the speed they build across it, and
 // suppresses fall damage for the whole swing. A leash that set it would be a second grappling hook
 // with a longer reach.
+using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
@@ -44,6 +45,12 @@ namespace SpaceGame.Items
     {
         private Rigidbody body;
         private PlayerMovement movement;
+
+        /// <summary>This player's reversal memory, shared by every rope on them. See <see cref="Yanked"/>.</summary>
+        private readonly SnareStruggleReader struggle = new();
+
+        /// <summary>Their anti-macro throttle. Built from the first rope, because it needs its rate.</summary>
+        private SnareStruggleMeter meter;
 
         public static LeashedBody Ensure(GameObject player)
         {
@@ -73,6 +80,13 @@ namespace SpaceGame.Items
             if (body.isKinematic && GetComponentInParent<ITowable>() == null) return;
 
             var ropes = Leash.All;
+
+            // Read the keys ONCE, before any rope sees them. SnareStruggleReader.Counts measures a
+            // reversal against the last direction and then remembers this one, so asking it per
+            // rope would have every rope after the first compare the input against itself and no
+            // yank would ever land. One player, one pair of hands, one answer per step.
+            bool jerked = Yanked(ropes);
+
             for (int i = ropes.Count - 1; i >= 0; i--)
             {
                 Leash rope = ropes[i];
@@ -82,55 +96,107 @@ namespace SpaceGame.Items
                 if (mine == null) continue;
 
                 rope.ResolveEnd(mine, rope.Opposite(mine));
-                Struggle(rope, mine);
+                Struggle(rope, mine, jerked);
             }
         }
 
         /// <summary>
-        /// One step of fighting the rope. Strain builds while the player's movement input points
-        /// squarely away from the knot and decays when it does not; at full strain the rope parts.
+        /// Did this player throw themselves about hard enough to count as one yank this step?
+        ///
+        /// <para>
+        /// The reader and the meter are shared by every rope on this body — the reversal memory is
+        /// a property of the player, not of a rope, and so is the throttle: it is their hands the
+        /// cap exists to protect (<c>GDC-L1-UX-0006</c>). The thresholds come from the first rope
+        /// tied to them, because the question is asked once and cannot be asked per rope; ropes in
+        /// this project all come from one leash prefab, so in practice there is one answer anyway.
+        /// </para>
+        /// <para>
+        /// Unlike <see cref="SnaredBody"/> this does not poll its own <c>InputControls</c>. A
+        /// netted player goes limp, which switches their input off and forces the reader to hold a
+        /// copy of the asset; a leashed player is on their feet with their own controls live, so
+        /// <see cref="PlayerMovement.WishDirection"/> already carries what they are asking for —
+        /// and it is zero while a menu holds the controls, which is the gate the reader's own
+        /// <c>MayRead</c> would otherwise have to supply.
+        /// </para>
+        /// </summary>
+        private bool Yanked(IReadOnlyList<Leash> ropes)
+        {
+            Leash first = FirstRopeOnThisBody(ropes);
+            if (first == null || movement == null) return false;
+
+            meter ??= new SnareStruggleMeter(first.MaxUsefulStruggleRate, first.StrainFadeSeconds);
+            meter.Advance(Time.fixedDeltaTime);
+
+            // Measured in the PLAYER'S OWN frame, not the world's. WishDirection is world-space
+            // and turns with the camera, so a captive who merely spun the mouse round while
+            // holding one key would be reversing their heading twice a second without ever having
+            // changed which key they are pressing. Back in local space it is the keys again: A
+            // against D is a reversal from any facing, and turning on the spot is not one.
+            Vector3 wish = movement.transform.InverseTransformDirection(movement.WishDirection);
+
+            bool counts = struggle.Counts(jumpPressed: false, new Vector2(wish.x, wish.z),
+                                          first.StruggleMoveDeadzone, first.StruggleReversalDot);
+
+            // Offered rather than counted. Push answering false means the yank landed inside the
+            // cooldown, so hammering the key faster than a person can is worth exactly nothing.
+            return counts && meter.Push();
+        }
+
+        /// <summary>The first rope of the set that is tied to this body, or null if none is.</summary>
+        private Leash FirstRopeOnThisBody(IReadOnlyList<Leash> ropes)
+        {
+            for (int i = 0; i < ropes.Count; i++)
+            {
+                if (ropes[i] != null && ropes[i].PlayerEndOn(body) != null) return ropes[i];
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// One step of fighting the rope. Each accepted yank buys a fixed share of the way out and
+        /// the strain fades when the player stops fighting; at full strain the rope parts.
         ///
         /// <para>
         /// Here rather than in <see cref="Leash"/> because the input it reads is LOCAL — only the
         /// struggling player's own machine has it, which is also why this end's owner is the one
         /// that announces the snap. Strain itself is never sent.
         /// </para>
+        /// <para>
+        /// <b>A rope you are HOLDING can never be torn off by your own movement.</b> A hand end is
+        /// a hauler, not a captive: walking away with the far end tied to a 1000 kg hull is the
+        /// item working, and charging that as an escape attempt is what used to part a rope
+        /// mid-haul. The captive is the other end, and the only end that may fight is one the rope
+        /// is tied TO.
+        /// </para>
         /// </summary>
-        private void Struggle(Leash rope, LeashEnd mine)
+        private void Struggle(Leash rope, LeashEnd mine, bool jerked)
         {
             LeashEnd other = rope.Opposite(mine);
             if (!other.IsAlive) return;
 
-            // A passenger cannot struggle. Their body is kinematic and parented into a seat, so it
-            // reports no velocity of its own however fast the mount is carrying them — and reading
-            // that zero as "the rope is holding me" would charge full strain and tear the rope off
-            // a mounted player in a fifth of a second. This became reachable the moment LeggedDriver
-            // started implementing ITowable, which stopped FixedUpdate returning early for riders.
+            // See the summary: hauling is not struggling, however hard the load resists.
+            if (mine.Kind == LeashEndKind.PlayerHand) return;
+
+            // A passenger cannot struggle. Their body is kinematic and parented into a seat, and
+            // the wish direction that reaches this class is the one they steer the mount with, so
+            // a rider swerving would be tearing ropes off with the steering wheel. This became
+            // reachable the moment LeggedDriver started implementing ITowable, which stopped
+            // FixedUpdate returning early for riders.
             if (body.isKinematic) return;
 
-            Vector3 knotToMe = body.position - other.Position;
-            if (knotToMe.sqrMagnitude <= 1e-4f) return;
+            // Only a rope that is actually pulling can be fought. Yanking against a slack one earns
+            // nothing, so throwing yourself about beside a knot you are standing next to never
+            // tears it off.
+            bool fought = jerked && rope.IsTaut;
 
-            Vector3 away = knotToMe.normalized;
-            Vector3 wish = movement != null ? movement.WishDirection : Vector3.zero;
-
-            // Only a rope that is actually pulling can be fought. Struggling against a slack one
-            // earns nothing, so walking around a knot you are standing next to never tears it off.
-            float wishAway = rope.IsTaut ? Mathf.Max(0f, Vector3.Dot(wish, away)) : 0f;
-
-            // ...and only the part of that the rope actually STOPPED. Towing and struggling are the
-            // same input — a movement key pointing away from a taut rope — so the input alone
-            // cannot tell them apart, and reading it as a struggle meant hauling any dropped item
-            // tore the rope off in 0.2 s. What separates them is whether the load came along.
-            // See Leash.HeldBackFraction.
-            float against = wishAway * Leash.HeldBackFraction(
-                wishAway, Vector3.Dot(body.linearVelocity, away), mine.TopSpeed);
-
-            float seconds = Leash.ResistSeconds(other.PullStrength, mine.PullStrength,
-                                                rope.ResistBaseSeconds);
+            float jerks = Leash.ResistJerks(other.PullStrength, mine.PullStrength,
+                                            other.Mass, mine.Mass,
+                                            rope.ResistBaseJerks,
+                                            rope.MinResistRatio, rope.MaxResistRatio);
 
             rope.SetStrainOn(mine,
-                Leash.ResistStrain(rope.StrainOn(mine), against, seconds,
+                Leash.ResistStrain(rope.StrainOn(mine), fought, jerks,
                                    Time.fixedDeltaTime, rope.StrainDecay));
 
             if (rope.StrainOn(mine) >= 1f) rope.Snap();

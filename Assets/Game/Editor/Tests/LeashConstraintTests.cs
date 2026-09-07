@@ -244,102 +244,121 @@ namespace SpaceGame.EditorTools
         // ── Resist ─────────────────────────────────────────────────────────────
 
         [Test]
-        public void ResistBuildsWhilePullingAwayAndDecaysWhenYouStop()
+        public void EachYankBuysAFixedShareOfTheWayOutAndItFadesWhenYouStop()
         {
-            const float Decay = 0.5f;
+            const float Jerks = 8f, Decay = 0.25f;
 
-            // Straight away from the knot, against an evenly-matched captor.
-            float strain = Leash.ResistStrain(0f, away: 1f, resistSeconds: 2f, dt: 1f, decay: Decay);
-            Assert.That(strain, Is.EqualTo(0.5f).Within(1e-3f));
+            // One accepted yank out of the eight this rope needs.
+            Assert.That(Leash.ResistStrain(0f, jerked: true, jerksNeeded: Jerks, dt: 0f, decay: Decay),
+                        Is.EqualTo(0.125f).Within(1e-3f));
 
-            // Sideways earns nothing: it is the component ALONG the rope that counts.
-            Assert.That(Leash.ResistStrain(0f, away: 0f, resistSeconds: 2f, dt: 1f, decay: Decay),
+            // Holding a key is not fighting. A step with no yank in it earns nothing at all --
+            // which is what lets somebody be towed indefinitely if they do not struggle.
+            Assert.That(Leash.ResistStrain(0f, jerked: false, jerksNeeded: Jerks, dt: 1f, decay: Decay),
                         Is.Zero);
 
-            // Standing still gives it back.
-            Assert.That(Leash.ResistStrain(0.5f, away: 0f, resistSeconds: 2f, dt: 1f, decay: Decay),
-                        Is.EqualTo(0f).Within(1e-3f));
+            // Four seconds of not fighting gives one yank's worth back.
+            Assert.That(Leash.ResistStrain(0.25f, jerked: false, jerksNeeded: Jerks, dt: 4f, decay: Decay),
+                        Is.EqualTo(0.125f).Within(1e-3f));
 
             // It never runs negative, so a long rest does not bank credit against the next rope.
-            Assert.That(Leash.ResistStrain(0.1f, away: 0f, resistSeconds: 2f, dt: 5f, decay: Decay),
+            Assert.That(Leash.ResistStrain(0.1f, jerked: false, jerksNeeded: Jerks, dt: 60f, decay: Decay),
                         Is.Zero);
 
-            // And it is capped, so one very long step cannot overshoot past the snap point.
-            Assert.That(Leash.ResistStrain(0.9f, away: 1f, resistSeconds: 2f, dt: 10f, decay: Decay),
+            // And it is capped, so the last yank cannot overshoot past the snap point.
+            Assert.That(Leash.ResistStrain(0.95f, jerked: true, jerksNeeded: Jerks, dt: 0f, decay: Decay),
                         Is.EqualTo(1f).Within(1e-3f));
         }
 
         [Test]
-        public void TearingFreeOfSomethingStrongerTakesLonger()
+        public void SustainedYankingTearsFreeAndDawdlingNeverDoes()
         {
-            // resistSeconds scales with the captor's pull, so a ship holds you longer than a player
-            // does. Two seconds against an equal, proportionally more against a ship.
-            Assert.That(Leash.ResistSeconds(theirPull: 480f, myPull: 480f, baseSeconds: 2f),
-                        Is.EqualTo(2f).Within(1e-3f));
+            float jerks = Resist(theirPull: 720f, myPull: 720f, theirMass: 80f, myMass: 80f);
+            float strain = 0f;
 
-            Assert.That(Leash.ResistSeconds(theirPull: 1920f, myPull: 480f, baseSeconds: 2f),
-                        Is.EqualTo(8f).Within(1e-3f));
+            // At the meter's 2.5 Hz cap the yanks land 0.4 s apart, and the fade between them is
+            // what a half-hearted struggle loses to -- so the count is what the base figure says
+            // only when the fighting is sustained.
+            for (int i = 0; i < (int)jerks + 1; i++)
+            {
+                // The gap first, then the yank, so the last thing measured is the yank that parts
+                // it rather than the fade after it.
+                strain = Leash.ResistStrain(strain, jerked: false, jerksNeeded: jerks,
+                                            dt: 0.4f, decay: 0.25f);
+                strain = Leash.ResistStrain(strain, jerked: true, jerksNeeded: jerks,
+                                            dt: 0f, decay: 0.25f);
+            }
 
-            // Tearing free of something weaker than you is quick, but never instant.
-            Assert.That(Leash.ResistSeconds(theirPull: 0f, myPull: 480f, baseSeconds: 2f),
-                        Is.GreaterThan(0f));
+            Assert.That(strain, Is.EqualTo(1f).Within(1e-3f),
+                        "Nine sustained yanks -- about 3.6 s at the cap -- must part an even rope.");
+
+            // Yanking once every four seconds instead never adds up: the fade takes back as much
+            // as each yank buys.
+            float dawdling = 0f;
+            for (int i = 0; i < 40; i++)
+            {
+                dawdling = Leash.ResistStrain(dawdling, jerked: false, jerksNeeded: jerks,
+                                              dt: 4f, decay: 0.25f);
+                dawdling = Leash.ResistStrain(dawdling, jerked: true, jerksNeeded: jerks,
+                                              dt: 0f, decay: 0.25f);
+            }
+
+            Assert.That(dawdling, Is.LessThan(0.2f));
         }
 
-        // ── Towing is not struggling ───────────────────────────────────────────
-        //
-        // Walking away from a taut rope is the ONLY input either action has, so before this the
-        // rope read every tow as an escape attempt. Every dropped item in the project scores zero
-        // pull (no motor, so TopSpeed is 0), which floors resistSeconds at 0.2 s -- so hauling any
-        // item tore the rope off in a fifth of a second, before the item had moved. What separates
-        // the two is not the input but the RESULT: a load that comes with you is not holding you.
+        // The scale is keyed on what HOLDS you: the greater of the far end's pull and its mass
+        // relative to yours. Keyed on pull alone, every engineless anchor -- a wall, a rock, the
+        // lander, a crate -- scored zero and hit the floor, so the most immovable things in the
+        // game were the fastest to tear free of.
+
+        private const float Base = 8f, MinRatio = 0.5f, MaxRatio = 1.5f;
+
+        private static float Resist(float theirPull, float myPull, float theirMass, float myMass) =>
+            Leash.ResistJerks(theirPull, myPull, theirMass, myMass, Base, MinRatio, MaxRatio);
 
         [Test]
-        public void HaulingSomethingThatComesWithYouIsNotAStruggle()
+        public void TearingFreeOfSomethingStrongerTakesMoreYanks()
         {
-            // Walking away at 9 m/s and actually getting 9 m/s: the load is following.
-            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 9f, topSpeed: 9f),
-                        Is.EqualTo(0f).Within(1e-3f));
-        }
+            // An even match -- another player -- is the authored base figure.
+            Assert.That(Resist(theirPull: 720f, myPull: 720f, theirMass: 80f, myMass: 80f),
+                        Is.EqualTo(Base).Within(1e-3f));
 
-        [Test]
-        public void APostThatWillNotBudgeHoldsYouCompletely()
-        {
-            // Leaning on the rope and going nowhere is what a struggle actually is.
-            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 0f, topSpeed: 9f),
-                        Is.EqualTo(1f).Within(1e-3f));
-        }
+            // Something that out-pulls you holds you longer, up to the ceiling.
+            Assert.That(Resist(theirPull: 1440f, myPull: 720f, theirMass: 80f, myMass: 80f),
+                        Is.EqualTo(Base * MaxRatio).Within(1e-3f));
 
-        [Test]
-        public void BeingDraggedBackwardsCountsAsFullyHeld()
-        {
-            // Losing ground is not less of a struggle than standing still, and the clamp is what
-            // stops a negative velocity reading past 1 and snapping the rope early.
-            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: -4f, topSpeed: 9f),
-                        Is.EqualTo(1f).Within(1e-3f));
-        }
-
-        [Test]
-        public void HalfSpeedIsHalfAStruggle()
-        {
-            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 4.5f, topSpeed: 9f),
-                        Is.EqualTo(0.5f).Within(1e-3f));
-        }
-
-        [Test]
-        public void StandingStillEarnsNothingHoweverTautTheRopeIs()
-        {
-            // No input away from the knot is no struggle, whatever the rope is doing.
-            Assert.That(Leash.HeldBackFraction(wishAway: 0f, actualAway: 0f, topSpeed: 9f),
-                        Is.EqualTo(0f).Within(1e-3f));
+            // Something lighter and weaker lets go sooner, but never instantly.
+            Assert.That(Resist(theirPull: 160f, myPull: 720f, theirMass: 40f, myMass: 80f),
+                        Is.EqualTo(Base * MinRatio).Within(1e-3f));
         }
 
         [Test]
-        public void AnEndWithNoSpeedOfItsOwnCannotStruggle()
+        public void AnImmovableAnchorIsTheHardestToTearFreeOf()
         {
-            // Guards the divide. TopSpeed is 0 on anything with no motor, and 0/0 would poison
-            // every clamp downstream.
-            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 0f, topSpeed: 0f),
-                        Is.EqualTo(0f).Within(1e-3f));
+            // A wall, a rock, the lander: no engine, so zero pull, and no body, so infinite mass.
+            float wall = Resist(theirPull: 0f, myPull: 720f,
+                                theirMass: Mathf.Infinity, myMass: 80f);
+
+            Assert.That(wall, Is.EqualTo(Base * MaxRatio).Within(1e-3f),
+                        "An anchor that cannot be moved must land on the ceiling, not the floor.");
+
+            Assert.That(wall, Is.GreaterThan(Resist(720f, 720f, 80f, 80f)),
+                        "Terrain must hold you longer than another player does.");
+
+            // ...and it must still be finite, or capture has no answer at all.
+            Assert.That(wall, Is.LessThan(Mathf.Infinity));
+        }
+
+        [Test]
+        public void AHeavyEnginelessLoadHoldsYouByItsMassAlone()
+        {
+            // A crate scores no pull whatever it weighs, so mass is the only term that can
+            // separate a barrel from the lander.
+            float barrel = Resist(theirPull: 0f, myPull: 720f, theirMass: 20f, myMass: 80f);
+            float crate = Resist(theirPull: 0f, myPull: 720f, theirMass: 100f, myMass: 80f);
+
+            Assert.That(crate, Is.GreaterThan(barrel));
+            Assert.That(barrel, Is.EqualTo(Base * MinRatio).Within(1e-3f));
         }
 
         // ── Several ropes on one body ──────────────────────────────────────────

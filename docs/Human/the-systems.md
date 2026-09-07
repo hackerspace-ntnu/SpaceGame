@@ -83,11 +83,14 @@ The game's colours come from a fixed palette — every pixel on screen snaps to 
 should be used to mean editing code and waiting minutes to see the result, one place in the
 world at a time.
 
-The Look Lab is a photographer's contact sheet for that decision. Screenshots taken around
-the world sit side by side in a browser, and moving a slider repaints all of them at once —
-and the running game with them. Hold a key and it flickers between what you have now and the
-version you saved earlier, because the eye is far better at spotting a change than at
-comparing two things side by side.
+The Look Lab is a mixing desk for that decision. It is a window inside the editor: move a
+slider and the game repaints on the same frame, whether or not it is running. One button
+flips back to the palette the game currently ships with, because the eye is far better at
+spotting a change than at comparing two things side by side.
+
+It used to be a web page driven by a small server, so that screenshots taken around the world
+could be repainted side by side. That was three moving parts in service of a worse picture
+than the game itself already draws, and it is gone.
 
 It is a workshop, not a wardrobe. You can try as many looks as you like in it, but the game
 still ships with exactly one, written into the code — which is what keeps the palette from
@@ -173,7 +176,17 @@ Hold the button and a loop starts turning over your head, opening wider the long
 
 One button ties a rope between any two things in the world: creature to post, player to crate, anything to a moving vehicle. The rope is a fixed-length limit rather than a spring, so below its length it does nothing at all, and each machine draws its own copy and only ever pulls the end it owns. Rope length is set once when you tie it, and it sags and lies over the ground it crosses.
 
+Getting a rope **off** you is an act, not a matter of walking away from it: you throw yourself from side to side, and about nine of those tears an ordinary rope — a dozen if the other end is bolted to the landscape, half that if it is something small and light. Simply holding a movement key does nothing at all, which is what lets somebody drag you across the desert for as long as they like if you do not fight, and what lets you tow a loaded hull behind a ship without your own rope parting under it.
+
 **Worth knowing:** the AI is never told it has been leashed — a roped creature keeps trying to walk where it was going, and that visible straining against the rope is the whole effect.
+
+### Cutting a rope *(RopeCutting)*
+
+A rope is not only broken by whoever is fighting it — anybody with the laser staff can cut it. Sweep the arc across a rope and it parts on contact: a tied rope, a lasso somebody has a creature on, or the cable a player is swinging from. There is no burning through and no holding it there; the beam either crossed the rope or it did not.
+
+That makes the staff the answer to being roped by somebody else, and it makes a swinging player something a bystander can drop out of the air. A rope behind cover is safe, because the cut only reaches as far as the beam does, and a throw still in the air cannot be swatted down — the loop has to have caught something first.
+
+**Worth knowing:** the cut is the rope's own break, not a separate outcome. A lasso that is cut cracks and lets the animal go exactly as it does when it wears through, so nothing about it needs to be learned twice.
 
 ### Tying somebody up *(Hogtie)*
 
@@ -254,9 +267,19 @@ A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; 
 
 A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about five metres forward for every metre down, pointing where you look — the mouse steers at exactly the sensitivity it turns your head on foot, so aiming the wing feels like aiming anything else, and the wing visibly rolls into the turn. A and D bank harder on top; Ctrl pulls your arms in and dives. Tap Space twice again to fold, and touching the ground folds it for you.
 
-It takes the same single slot as the wing pack, so you carry one or the other. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
+It takes the same single slot as the wing pack and the jetpack, so you carry one of the three. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
 
 **Worth knowing:** It uses the ornithopter's crash rule, so flying it onto sand properly costs nothing while a held dive into a rock face is still fatal — the wingsuit is a way down, not a way out of falling.
+
+### The jetpack *(Jetpack)*
+
+Two motors on a bar across your back. Tap Space twice — standing on flat sand is fine, unlike the other two — and they light, kick you off the ground and fly your own body. Hold Space for full thrust, let go and you hang there, hold Ctrl and the motors cut out and you fall.
+
+**The motors swing, and they are what you are actually steering.** W, A, S and D do not push you; they tell the nozzles where to point, and the nozzles take about half a second to get there. Where you look changes how far over they swing — look down while holding W and you go flat and fast, look up and the same key climbs. Turning your body with the mouse swings the thrust with it. The result is that you fly arcs rather than corners: you have to set a turn up before you need it, and stopping is something you plan. That is the whole difficulty of the thing, and it is one rule rather than a list of them.
+
+**It runs on heat, not fuel.** Held at full thrust it overheats in fifteen seconds; just hanging in the air it lasts twenty-five. Nothing cools it except cutting the motors and falling — so a long flight is a rhythm of burning, cutting out, coasting and burning again, and a pilot who does that can stay up indefinitely. When it does overheat the motors cut dead and will not relight until it is most of the way cool, so overheating high up is a real fall. The nozzle tips glow red and smoke as it gets close, and because they are behind you there is a burn gauge on your visor as well — it empties toward danger, like the air and health bars beside it.
+
+**Worth knowing:** Hanging still with the nozzles hard over costs you altitude — the hover can only just hold your weight straight down, and pointed sideways it cannot. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so an overheat pays for itself.
 
 ## What you see and hear
 

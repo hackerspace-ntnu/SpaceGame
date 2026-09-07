@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -70,7 +71,7 @@ namespace SpaceGame.Items
     /// </para>
     /// </summary>
     [DefaultExecutionOrder(200)]
-    public class LassoArtifact : ToolItem, IItemDeferredRestore
+    public class LassoArtifact : ToolItem, IItemDeferredRestore, ICuttableRope
     {
         /// <summary>
         /// Owner-run, and nearly moot: <see cref="Use"/> does nothing, because the throw is built
@@ -1057,11 +1058,55 @@ namespace SpaceGame.Items
             }
 
             _channel = channel;
+
+            // The same seam decides whether this rope can be cut, because it asks the same question:
+            // does this machine hold a live copy of the item. Registering on the catch instead would
+            // be a state edge in the middle of a throw, and one missed edge is a rope that cannot be
+            // cut or a destroyed component left in a static list.
+            CuttableRopes.Unregister(this);
+
             if (_channel == null) return;
+
+            CuttableRopes.Register(this);
 
             _channel.NetOn(NetMsg.LassoRope, OnRopeRequested);
             _channel.NetOn(NetMsg.LassoRoped, OnRopeAnnounced);
             if (manager != null) manager.OnClientConnectedCallback += OnPeerJoined;
+        }
+
+        // ── Being cut ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The rope from the hand to whatever it caught, and only while it has caught something.
+        ///
+        /// <para>
+        /// A throw still in the air is deliberately not a rope here. The loop is a projectile for
+        /// the few tenths of a second it is out, and a beam that swatted one down would be a reflex
+        /// nobody can aim and nobody can read.
+        /// </para>
+        /// <para>
+        /// The straight chord rather than the Verlet cable's own nodes: the sag is presentation,
+        /// simulated per machine and never sent, so cutting against it would be a verdict off a
+        /// shape the server and the thrower do not agree on to the centimetre.
+        /// </para>
+        /// </summary>
+        public void AppendSpan(List<Vector3> into)
+        {
+            if (!_isLassoed) return;
+
+            into.Add(GetRopeStart());
+            into.Add(_ropeEndPoint);
+        }
+
+        /// <summary>
+        /// Cut. Identical to the rope tearing under strain, which already has a sound, a release on
+        /// every machine and a creature that gets its legs back — see <see cref="JudgeTension"/>.
+        /// </summary>
+        public void Cut()
+        {
+            if (!_isLassoed) return;
+
+            SendRope(LassoVerb.Snapped, null);
         }
 
         /// <summary>Owner-side: tell the session what the rope just did.</summary>

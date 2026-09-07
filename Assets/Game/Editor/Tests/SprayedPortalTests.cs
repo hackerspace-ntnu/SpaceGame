@@ -274,6 +274,68 @@ namespace SpaceGame.EditorTools
                                            Flight, ~0, out RaycastHit _, out float _));
         }
 
+        /// <summary>
+        /// A solved launch lands on the target, not near it.
+        ///
+        /// This is what a machine that does not own the gun aims its droplets with: it knows where
+        /// the paint landed and nothing else, so the arc is recovered from the landing. Checked by
+        /// flying it — sampling the parabola the solve claims and asking whether it passes through
+        /// the point — because an angle that is merely plausible is exactly the failure this is for.
+        /// </summary>
+        [Test]
+        public void ALaunchSolvedForAPointFliesThroughIt()
+        {
+            var origin = new Vector3(0f, 1.5f, 0f);
+
+            foreach (Vector3 target in new[]
+                     {
+                         new Vector3(0f, 1.2f, 6f),      // across a room, roughly level
+                         new Vector3(4f, 4.5f, 9f),      // high on a wall, off to one side
+                         new Vector3(-3f, -2f, 2f),      // close and below, a floor at your feet
+                     })
+            {
+                Assert.IsTrue(PortalJet.TryAimAt(origin, target, Speed, 1f, out Vector3 direction),
+                              $"{target} is inside the hose's reach and was refused");
+
+                // Finely enough that the residual is the solve's, not the sampling's: at 24 m/s
+                // even a 5 ms step steps 12 cm along the arc.
+                float best = float.PositiveInfinity;
+                for (int i = 0; i <= 4000; i++)
+                {
+                    Vector3 point = PortalJet.Sample(origin, direction, Speed, 1f,
+                                                     Flight * i / 4000f);
+                    best = Mathf.Min(best, Vector3.Distance(point, target));
+                }
+
+                Assert.Less(best, 0.02f, $"the solved arc misses {target} by {best} m");
+            }
+        }
+
+        /// <summary>
+        /// The flat arc, not the lob. Both reach the target; only one is the shot the player took.
+        /// </summary>
+        [Test]
+        public void ASolvedLaunchTakesTheFlatArc()
+        {
+            Assert.IsTrue(PortalJet.TryAimAt(Vector3.zero, new Vector3(0f, 0f, 8f), Speed, 1f,
+                                             out Vector3 direction));
+
+            float elevation = Mathf.Asin(Mathf.Clamp(direction.normalized.y, -1f, 1f))
+                            * Mathf.Rad2Deg;
+
+            Assert.Greater(elevation, 0f, "a level target still has to be thrown slightly up");
+            Assert.Less(elevation, 45f, "the lob was chosen over the throw");
+        }
+
+        /// <summary>Out of reach is refused rather than answered with a wrong angle.</summary>
+        [Test]
+        public void APointBeyondTheHoseIsNotSolved()
+        {
+            Assert.IsFalse(PortalJet.TryAimAt(Vector3.zero,
+                                              new Vector3(0f, 0f, PortalJet.BallisticRange(Speed, 1f) + 20f),
+                                              Speed, 1f, out Vector3 _));
+        }
+
         // ── The aperture stays on top of what it is painted on ───────────────
 
         [Test]

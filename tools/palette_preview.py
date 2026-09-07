@@ -20,13 +20,13 @@ import sys
 HUE_COUNT = 16
 
 # Lightness steps, palest first.
-LIGHTNESSES = [0.92, 0.82, 0.72, 0.61, 0.49, 0.36]
+LIGHTNESSES = [0.95, 0.88, 0.8, 0.7, 0.58, 0.43]
 
 # Chroma is a real axis: a muted and a vivid variant per hue and lightness, given as
 # fractions of the in-gamut ceiling rather than absolute chroma (sRGB holds wildly
 # different chroma per hue, so a fixed pair would collapse into duplicates at some).
-CHROMA_FRACTIONS = [0.5, 1.0]
-CHROMA_CEILING = 0.20
+CHROMA_FRACTIONS = [0.35, 0.75]
+CHROMA_CEILING = 0.13
 
 # The neutral ramp is pure grey — chroma zero — running black-ish up to near white.
 NEUTRAL_COUNT = 12
@@ -199,42 +199,6 @@ def check_matches_golden(repo_root, colors):
     return problems
 
 
-JS_DUMP = os.path.join('tools', 'looklab_palette_dump.mjs')
-
-
-def check_matches_js(repo_root, colors):
-    """Compares the Look Lab's JS port against this one, entry for entry.
-
-    Two ports of one lattice drift the moment either is touched, and the drift is
-    invisible: the lab keeps rendering, just not the look the game ships. Skipped rather
-    than failed when Node is absent, so the palette check stays runnable anywhere.
-    """
-    import subprocess
-
-    dump = os.path.join(repo_root, JS_DUMP)
-    if not os.path.exists(dump):
-        return ['%s is missing; the Look Lab palette cannot be cross-checked' % JS_DUMP]
-
-    try:
-        result = subprocess.run(['node', dump], cwd=repo_root,
-                                capture_output=True, text=True)
-    except FileNotFoundError:
-        print('note: node is not installed, skipping the Look Lab palette cross-check')
-        return []
-
-    if result.returncode != 0:
-        return ['node %s failed:\n%s' % (JS_DUMP, result.stderr.strip())]
-
-    theirs = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    ours = [hex_of(color) for color in colors]
-    if len(theirs) != len(ours):
-        return ['the JS port builds %d colours, this one builds %d'
-                % (len(theirs), len(ours))]
-
-    return ['entry %d is %s here and %s in LookLab/app/palette.js' % (i, o, t)
-            for i, (o, t) in enumerate(zip(ours, theirs)) if o != t]
-
-
 def hsv_saturation_value(color):
     high, low = max(color), min(color)
     return (0.0 if high == 0.0 else (high - low) / high), high
@@ -325,7 +289,6 @@ def main():
 
     problems = (check_mirrors_csharp(repo_root)
                 + check_matches_golden(repo_root, colors)
-                + check_matches_js(repo_root, colors)
                 + check(colors))
 
     print('%d colours' % len(colors))

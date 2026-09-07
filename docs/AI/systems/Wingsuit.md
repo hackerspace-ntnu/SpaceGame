@@ -40,8 +40,8 @@ symptoms:
   - "a mid-air quicksave reloads standing still in the sky"
   - "the wingsuit and the wing pack cannot both be carried"
   - "gliding into a cliff at full speed costs nothing"
-reads_with: [Ornithopter, BodyEquipment, PlayerCharacter, Multiplayer, Persistence]
-updated: 2026-09-06
+reads_with: [Ornithopter, BodyEquipment, PlayerCharacter, Jetpack, Multiplayer, Persistence]
+updated: 2026-09-07
 ---
 
 # Wingsuit
@@ -55,7 +55,7 @@ the thrust set to zero, run on the player's Rigidbody.
 
 ## Model
 
-- **A back item.** `Wingsuit.asset` is `EquipKind.Back`, worn on the spine, fired by a **double tap of Space** through `BodyEquipmentController`'s back channel. There is one torso slot, so the wingsuit and the wing pack are **mutually exclusive with no rule needed**.
+- **A back item.** `Wingsuit.asset` is `EquipKind.Back`, worn on the spine, fired by a **double tap of Space** through `BodyEquipmentController`'s back channel. There is one torso slot, so the wingsuit, the wing pack and the jetpack ([Jetpack.md](Jetpack.md)) are **mutually exclusive with no rule needed**.
 - **Two models, one item.** Worn, the suit is `wingsuit_worn.fbx`: two cloth panels running from each shoulder out along the arm and down past the hip, on an over-shoulder yoke that laces back to the pack's lash rail. In the hand and on the ground it is `wingsuit.fbx`, the flight suit — a slim spar case with its wings folded away. [`WornVisual`](Assets/Game/Scripts/Items/Equipped/WornVisual.cs) swaps them (see [BodyEquipment.md](BodyEquipment.md)), and `WingsuitWings` swaps the worn wing out again for the length of a glide, because the worn wing and the flight wing are the same wing in two states and exactly one of them may be visible. The worn model is authored at true wearer scale in the **spine bone's** frame — its wing roots are the measured upper-arm joints — so `WornFit.anchorToBone` is set and it ignores the lash rail that back gear normally clips to.
 - **The worn wing is built along a 45° arm line**, the same one the gear screen holds the wearer's arms at *for this item* (`InspectStance.DefaultDroop`, asked for by `WornFit.holdsArmsOut`; see [BodyEquipment.md](BodyEquipment.md)). The two are one number and have to move together. Lowering the arm is what forced the panel's trailing edge to be **raked** rather than square: a loft's sections are perpendicular to its span, so at 45° a square chord runs 45° inboard as well as down and walks the cloth into the wearer's ribs within about 10 cm. `wingsuit_worn.py`'s `SWEEP` shears the finished panel along its own span, which puts the root's trailing corner on the flank and makes the free edge run wrist-to-hip the way a real arm wing's does.
 - **The flight is `OrnithopterFlightModel.Step`, unchanged**, run on the player's own Rigidbody by `WingsuitFlight`. Same two angles (`Gamma` where you are moving, `Pitch` where you are pointing), same stall, same energy trade. None of the physics is a copy.

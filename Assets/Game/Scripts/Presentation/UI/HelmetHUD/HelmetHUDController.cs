@@ -47,8 +47,15 @@ namespace SpaceGame.Presentation
         /// <summary>What the oxygen gauge reads. Held for <see cref="healthSource"/>'s reason.</summary>
         private readonly OxygenGaugeSource oxygenSource = new();
 
+        /// <summary>
+        /// What the jetpack gauge reads. Unlike the other two this one is often unavailable — a
+        /// player with no pack on has no heat to draw — and the gauge hides itself when it is.
+        /// </summary>
+        private readonly JetpackHeatGaugeSource jetpackSource = new();
+
         private VisorGauge integrityGauge;
         private VisorGauge oxygenGauge;
+        private VisorGauge jetpackGauge;
         private VisorReticle reticle;
 
         /// <summary>Whose health this visor is currently showing. Null until one resolves.</summary>
@@ -69,6 +76,11 @@ namespace SpaceGame.Presentation
 
             oxygenSource.Bind(player != null ? player.GetComponentInChildren<SuitOxygen>() : null);
             if (oxygenGauge != null) oxygenGauge.Bind(oxygenSource);
+
+            // The BODY rather than a component: the jetpack's flight is added and destroyed as the
+            // pack is worn and taken off, so the source re-resolves it on its own timer.
+            jetpackSource.Bind(player != null ? player.gameObject : null);
+            if (jetpackGauge != null) jetpackGauge.Bind(jetpackSource);
         }
 
         private void Awake()
@@ -91,6 +103,7 @@ namespace SpaceGame.Presentation
         {
             healthSource.Bind(null);
             oxygenSource.Bind(null);
+            jetpackSource.Bind(null);
         }
 
         private void EnsureCanvas()
@@ -146,6 +159,14 @@ namespace SpaceGame.Presentation
             {
                 integrityGauge = VisorGauge.Create(Vitals, "IntegrityGauge",
                                                    VisorGauge.Align.Right, healthSource);
+            }
+
+            // Row 1, under the oxygen gauge: it comes and goes with a piece of equipment, and a
+            // readout that is always there must never be moved by one that is not.
+            if (jetpackGauge == null)
+            {
+                jetpackGauge = VisorGauge.Create(Vitals, "JetpackGauge",
+                                                 VisorGauge.Align.Left, jetpackSource, row: 1);
             }
 
             if (dangerVignette == null)

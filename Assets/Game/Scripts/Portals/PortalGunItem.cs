@@ -256,6 +256,14 @@ namespace SpaceGame.Items
             ShudderNozzle();
         }
 
+        /// <summary>
+        /// Point the emitter along the arc the paint is actually traced along.
+        ///
+        /// After the look and the hold pose have both moved this frame, which is why it is here and
+        /// not in Update: the aim is read from the eye and the muzzle rides the fist.
+        /// </summary>
+        private void LateUpdate() => AimJet();
+
         // ── The reservoirs ─────────────────────────────────────────────────────
 
         /// <summary>How full <paramref name="barrel"/> is, 0 to 1.</summary>
@@ -669,6 +677,49 @@ namespace SpaceGame.Items
                                      0f) * nozzleShudder;
 
             nozzle.localPosition = nozzleRest + offset;
+        }
+
+        /// <summary>
+        /// Throw the droplets the way the paint goes.
+        ///
+        /// The jet is an ordinary world-space ParticleSystem sitting on the muzzle, and it emits
+        /// along its OWN forward — which, left alone, is the gun's forward. The gun is held in a
+        /// fist rotated to the grip frame, tens of degrees off the look axis (see ItemGrip), so the
+        /// stream left the horn in one direction while <see cref="PortalJet.Trace"/> painted along
+        /// another: the spray visibly missed the hole it was opening. Matching the speed, gravity
+        /// and lifetime to the C# constants — which the builder does, and a test guards — buys the
+        /// right CURVE and says nothing about which way it is thrown.
+        ///
+        /// Only while spraying. An emitter turned to the aim while the trigger is up is invisible,
+        /// and re-orienting it every frame of every equipped gun costs a transform write for nothing.
+        /// </summary>
+        private void AimJet()
+        {
+            if (jet == null || !spraying) return;
+
+            Vector3 direction = JetDirection();
+            if (direction.sqrMagnitude < 1e-6f) return;
+
+            jet.transform.rotation = Quaternion.LookRotation(direction);
+        }
+
+        /// <summary>
+        /// Which way this machine throws the stream.
+        ///
+        /// The owner has the live aim, and it is the same value the trace was made from, so its
+        /// droplets and its paint are the same parabola exactly. A peer has no aim to read — its
+        /// copy of a remote player's AimProvider falls back to the body's forward, with no pitch in
+        /// it at all — but every machine is told where each blob landed, and a launch that reaches
+        /// that point is the same stream to look at. Solved rather than pointed straight at it: a
+        /// straight line to a lobbed landing is not the curve the droplets fly.
+        /// </summary>
+        private Vector3 JetDirection()
+        {
+            if (OwnerIsLocal()) return AimDirection();
+
+            PortalJet.TryAimAt(MuzzlePosition(), lastAim, jetSpeed, jetGravity,
+                               out Vector3 launch);
+            return launch;
         }
 
         private Vector3 MuzzlePosition() =>

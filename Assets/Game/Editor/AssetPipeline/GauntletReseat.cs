@@ -60,31 +60,6 @@ namespace SpaceGame.EditorTools
 
         private enum Kind { Transform, GameObject, Renderer }
 
-        /// <summary>
-        /// A material the prefab puts on a model node, overriding the one the FBX carries.
-        ///
-        /// <para>
-        /// The model library gives every face a palette material, which is what a mesh looks like
-        /// as an object in the world. A screen is not that: it is a surface a shader draws on, and
-        /// its material is a project asset the artifact's own code writes into. Re-instantiating
-        /// the model resets it to the palette's flat green, and the only symptom is a scanner with
-        /// a blank screen.
-        /// </para>
-        /// </summary>
-        private readonly struct Paint
-        {
-            public readonly string Node;
-            public readonly int Index;
-            public readonly string Material;
-
-            public Paint(string node, int index, string material)
-            {
-                Node = node;
-                Index = index;
-                Material = material;
-            }
-        }
-
         private readonly struct Gauntlet
         {
             public readonly string Prefab;
@@ -92,7 +67,14 @@ namespace SpaceGame.EditorTools
             /// <summary>Root children to keep. Everything else under the root is replaced.</summary>
             public readonly string[] Keep;
             public readonly Wire[] Wires;
-            public readonly Paint[] Paints;
+
+            /// <summary>
+            /// The node this gauntlet's display is drawn on, or null for one with no screen.
+            /// Named here because the canvas is seated on the MODEL — see
+            /// <see cref="ItemScannerScreenBuilder"/> for why it is rebuilt with the model rather
+            /// than left standing on the prefab.
+            /// </summary>
+            public readonly string ScreenPlate;
 
             /// <summary>
             /// What this one is drawn at on the pack mat, in the metres <c>ItemGrip.packSize</c> is
@@ -122,14 +104,14 @@ namespace SpaceGame.EditorTools
             public readonly float Roll;
 
             public Gauntlet(string prefab, string model, string[] keep, Wire[] wires,
-                            Paint[] paints = null, float packSize = GauntletPrefab.PackSize,
+                            string screenPlate = null, float packSize = GauntletPrefab.PackSize,
                             float roll = 0f)
             {
                 Prefab = Gadgets + prefab;
                 Model = Models + model;
                 Keep = keep;
                 Wires = wires;
-                Paints = paints ?? Array.Empty<Paint>();
+                ScreenPlate = screenPlate;
                 PackSize = packSize;
                 Roll = roll;
             }
@@ -173,9 +155,8 @@ namespace SpaceGame.EditorTools
         /// </para>
         /// <para>
         /// <b>A roll rather than a mirror, and the display survives it</b> — the axis runs along
-        /// the arm, so the screen plate's own up (which points at the hand) does not move, and a
-        /// rotation cannot change the handedness <c>ItemScannerScreen</c> measures for
-        /// <c>_FlipX</c>. The reader still sees the plate face-on, the same way up.
+        /// the arm, so the screen plate's own up (which points at the hand) does not move. The
+        /// reader still sees the plate face-on, the same way up.
         /// </para>
         /// <para>
         /// Here rather than in the .blend because that file must not be regenerated — its
@@ -206,17 +187,11 @@ namespace SpaceGame.EditorTools
                 Array.Empty<string>(),
                 new[]
                 {
-                    new Wire("ItemScannerScreen", "screenRenderer", "Mesh_Terminal_Scanner_Screen", Kind.Renderer),
                     new Wire("ItemScannerArtifact", "dial", "Mesh_Terminal_Scanner_Dial", Kind.Transform),
                     new Wire("ItemScannerArtifact", "antenna", "Mesh_Terminal_Scanner_Antenna", Kind.Transform),
                 },
-                new[]
-                {
-                    // The radar display. Slot 0 of the plate is the CRT face in the .blend; here it
-                    // is the shader ItemScannerScreen writes its blips into.
-                    new Paint("Mesh_Terminal_Scanner_Screen", 0,
-                              "Assets/Game/Art/Materials/Items/ItemScannerScreen.mat"),
-                },
+                // The radar display, built onto the plate this names.
+                screenPlate: "Mesh_Terminal_Scanner_Screen",
                 // The one gauntlet worn turned off its model's own frame — see the constant.
                 roll: ItemScannerRollDegrees),
 
@@ -283,7 +258,8 @@ namespace SpaceGame.EditorTools
                 GauntletPrefab.MakeWorn(contents, grip.transform, instance.transform, g.PackSize, g.Roll);
 
                 foreach (Wire wire in g.Wires) Connect(contents, instance.transform, wire, g.Prefab, log);
-                foreach (Paint paint in g.Paints) Repaint(instance.transform, paint, g.Prefab, log);
+                if (g.ScreenPlate != null)
+                    ItemScannerScreenBuilder.Rebuild(contents, instance.transform, g.ScreenPlate, log);
                 MatchHookHead(contents, instance.transform, log);
 
                 PrefabUtility.SaveAsPrefabAsset(contents, g.Prefab);
@@ -394,35 +370,6 @@ namespace SpaceGame.EditorTools
             return any ? Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z)) : 0f;
         }
 
-        private static void Repaint(Transform model, Paint paint, string prefab, StringBuilder log)
-        {
-            Transform node = GauntletPrefab.FindDeep(model, paint.Node);
-            var renderer = node != null ? node.GetComponent<Renderer>() : null;
-            if (renderer == null)
-            {
-                log.AppendLine($"  {prefab}: no renderer '{paint.Node}' to paint.");
-                return;
-            }
-
-            var material = AssetDatabase.LoadAssetAtPath<Material>(paint.Material);
-            if (material == null)
-            {
-                log.AppendLine($"  {prefab}: no material at {paint.Material}.");
-                return;
-            }
-
-            Material[] slots = renderer.sharedMaterials;
-            if (paint.Index < 0 || paint.Index >= slots.Length)
-            {
-                log.AppendLine($"  {prefab}: '{paint.Node}' has {slots.Length} material slot(s), " +
-                               $"so slot {paint.Index} does not exist. The model changed underneath this table.");
-                return;
-            }
-
-            slots[paint.Index] = material;
-            renderer.sharedMaterials = slots;
-        }
-
         /// <summary>Read every prefab back off disk and check the wiring actually landed.</summary>
         private static void Verify(StringBuilder log)
         {
@@ -460,17 +407,9 @@ namespace SpaceGame.EditorTools
                     if (GauntletPrefab.FindDeep(model, wire.Node) == null)
                         log.AppendLine($"  VERIFY {g.Prefab}: '{wire.Node}' is not in the model.");
 
-                foreach (Paint paint in g.Paints)
-                {
-                    Transform node = GauntletPrefab.FindDeep(model, paint.Node);
-                    var renderer = node != null ? node.GetComponent<Renderer>() : null;
-                    Material landed = renderer != null && paint.Index < renderer.sharedMaterials.Length
-                        ? renderer.sharedMaterials[paint.Index] : null;
-
-                    if (landed == null || AssetDatabase.GetAssetPath(landed) != paint.Material)
-                        log.AppendLine($"  VERIFY {g.Prefab}: '{paint.Node}' slot {paint.Index} is " +
-                                       $"{(landed != null ? landed.name : "empty")}, not {paint.Material}.");
-                }
+                if (g.ScreenPlate != null && prefab.transform.Find("Screen") == null)
+                    log.AppendLine($"  VERIFY {g.Prefab}: no display canvas on '{g.ScreenPlate}' — " +
+                                   "the screen build did not land.");
             }
         }
     }

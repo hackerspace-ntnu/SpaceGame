@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &4722225583898836696
+--- !u!1 &1545732165632686201
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,7 +8,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8711186344880335603}
+  - component: {fileID: 962401279485943264}
   m_Layer: 0
   m_Name: GripPoint
   m_TagString: Untagged
@@ -16,13 +16,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8711186344880335603
+--- !u!4 &962401279485943264
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4722225583898836696}
+  m_GameObject: {fileID: 1545732165632686201}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -75,8 +75,8 @@ Transform:
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 6397307696190135649}
-  - {fileID: 8711186344880335603}
+  - {fileID: 8911673139889220523}
+  - {fileID: 962401279485943264}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 1}
 --- !u!54 &5247857073252023877
@@ -127,7 +127,7 @@ MonoBehaviour:
       Data3: 1245207699
       Data4: 1455594882
     Path: event:/SFX/Implosion
-  muzzle: {fileID: 4504309817206884006}
+  muzzle: {fileID: 2155490413205418092}
   coneHalfAngleDegrees: 45
   maxBeamDistance: 20
   minBeamDistance: 2
@@ -278,14 +278,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
-  gripPoint: {fileID: 8711186344880335603}
+  gripPoint: {fileID: 962401279485943264}
   hand: 0
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 0
   packSize: 0.225
-  sizeReference: {fileID: 6397307696190135649}
+  sizeReference: {fileID: 8911673139889220523}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2952209512098288765
 MonoBehaviour:
@@ -405,7 +406,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.39900002, y: 0.7855833, z: 0.43299997}
   m_Center: {x: 0.009500012, y: 0.20120832, z: -0.14350003}
---- !u!1001 &6867272592855956106
+--- !u!1001 &8945880574929783872
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -462,13 +463,13 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: edacbd7a384c248a5bac93aff2862534, type: 3}
---- !u!4 &4504309817206884006 stripped
+--- !u!4 &2155490413205418092 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -2175254150552503252, guid: edacbd7a384c248a5bac93aff2862534, type: 3}
-  m_PrefabInstance: {fileID: 6867272592855956106}
+  m_PrefabInstance: {fileID: 8945880574929783872}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &6397307696190135649 stripped
+--- !u!4 &8911673139889220523 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: edacbd7a384c248a5bac93aff2862534, type: 3}
-  m_PrefabInstance: {fileID: 6867272592855956106}
+  m_PrefabInstance: {fileID: 8945880574929783872}
   m_PrefabAsset: {fileID: 0}

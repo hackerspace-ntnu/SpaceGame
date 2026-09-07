@@ -31419,6 +31419,2171 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/gear/jetpack.blend": {
+    "collections": [
+      {
+        "name": "Coll_Jetpack_Item",
+        "objects": [
+          "ITEM_Jetpack_R",
+          "ITEM_Jetpack_L",
+          "Mesh_Jetpack_Housing_ItemR",
+          "Mesh_Jetpack_Housing_ItemL",
+          "Mesh_Jetpack_StrutUpper_ItemR",
+          "Mesh_Jetpack_StrutUpper_ItemL",
+          "Mesh_Jetpack_StrutLower_ItemR",
+          "Mesh_Jetpack_StrutLower_ItemL",
+          "Mesh_Jetpack_Fin_ItemR",
+          "Mesh_Jetpack_Fin_ItemL",
+          "Mesh_Jetpack_LampOuter_ItemR",
+          "Mesh_Jetpack_LampOuter_ItemL",
+          "Mesh_Jetpack_LampInner_ItemR",
+          "Mesh_Jetpack_LampInner_ItemL",
+          "Mesh_Jetpack_Tank_ItemR",
+          "Mesh_Jetpack_Tank_ItemL",
+          "Mesh_Jetpack_NozzleOuterCollar_ItemR",
+          "Mesh_Jetpack_NozzleOuterCollar_ItemL",
+          "Mesh_Jetpack_NozzleInnerCone_ItemR",
+          "Mesh_Jetpack_NozzleInnerCone_ItemL",
+          "Mesh_Jetpack_NozzleOuterCone_ItemR",
+          "Mesh_Jetpack_NozzleOuterCone_ItemL",
+          "Mesh_Jetpack_NozzleInnerCollar_ItemR",
+          "Mesh_Jetpack_NozzleInnerCollar_ItemL",
+          "Mesh_Jetpack_NozzleYoke_ItemR",
+          "Mesh_Jetpack_NozzleYoke_ItemL",
+          "Mesh_Jetpack_ExhaustInner_ItemR",
+          "Mesh_Jetpack_ExhaustInner_ItemL",
+          "Mesh_Jetpack_ExhaustOuter_ItemR",
+          "Mesh_Jetpack_ExhaustOuter_ItemL",
+          "Mesh_Jetpack_RingFront_ItemR",
+          "Mesh_Jetpack_RingFront_ItemL",
+          "Mesh_Jetpack_RingRear_ItemR",
+          "Mesh_Jetpack_RingRear_ItemL",
+          "Mesh_Jetpack_RingFrontTrim_ItemR",
+          "Mesh_Jetpack_RingFrontTrim_ItemL"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Jetpack_Worn",
+        "objects": [
+          "MOUNT_Jetpack_R",
+          "MOUNT_Jetpack_L",
+          "Mesh_Jetpack_Housing_R",
+          "Mesh_Jetpack_Housing_L",
+          "Mesh_Jetpack_StrutUpper_R",
+          "Mesh_Jetpack_StrutUpper_L",
+          "Mesh_Jetpack_StrutLower_R",
+          "Mesh_Jetpack_StrutLower_L",
+          "Mesh_Jetpack_Fin_R",
+          "Mesh_Jetpack_Fin_L",
+          "Mesh_Jetpack_LampOuter_R",
+          "Mesh_Jetpack_LampOuter_L",
+          "Mesh_Jetpack_LampInner_R",
+          "Mesh_Jetpack_LampInner_L",
+          "Mesh_Jetpack_Tank_R",
+          "Mesh_Jetpack_Tank_L",
+          "Mesh_Jetpack_NozzleOuterCollar_R",
+          "Mesh_Jetpack_NozzleOuterCollar_L",
+          "Mesh_Jetpack_NozzleInnerCone_R",
+          "Mesh_Jetpack_NozzleInnerCone_L",
+          "Mesh_Jetpack_NozzleOuterCone_R",
+          "Mesh_Jetpack_NozzleOuterCone_L",
+          "Mesh_Jetpack_NozzleInnerCollar_R",
+          "Mesh_Jetpack_NozzleInnerCollar_L",
+          "Mesh_Jetpack_NozzleYoke_R",
+          "Mesh_Jetpack_NozzleYoke_L",
+          "Mesh_Jetpack_ExhaustInner_R",
+          "Mesh_Jetpack_ExhaustInner_L",
+          "Mesh_Jetpack_ExhaustOuter_R",
+          "Mesh_Jetpack_ExhaustOuter_L",
+          "Mesh_Jetpack_RingFront_R",
+          "Mesh_Jetpack_RingFront_L",
+          "Mesh_Jetpack_RingRear_R",
+          "Mesh_Jetpack_RingRear_L",
+          "Mesh_Jetpack_RingFrontTrim_R",
+          "Mesh_Jetpack_RingFrontTrim_L"
+        ],
+        "children": []
+      },
+      {
+        "name": "Collection",
+        "objects": [
+          "Light"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "ITEM_Jetpack_L",
+        "type": "EMPTY",
+        "location": [
+          -0.1927,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          -0.0812,
+          0.0812,
+          0.0812
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ]
+      },
+      {
+        "name": "ITEM_Jetpack_R",
+        "type": "EMPTY",
+        "location": [
+          0.1927,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          0.0812,
+          0.0812,
+          0.0812
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ]
+      },
+      {
+        "name": "Light",
+        "type": "LIGHT",
+        "location": [
+          4.0762,
+          -0.3811,
+          5.8958
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustInner_ItemL",
+        "type": "MESH",
+        "location": [
+          -1.6135,
+          -0.0454,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          0.3721,
+          0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustInner_ItemR",
+        "type": "MESH",
+        "location": [
+          -1.6135,
+          -0.0454,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          0.3721,
+          0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustInner_L",
+        "type": "MESH",
+        "location": [
+          -1.6135,
+          -0.0454,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          0.3721,
+          0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustInner_R",
+        "type": "MESH",
+        "location": [
+          -1.6135,
+          -0.0454,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          -0.3721,
+          -0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustOuter_ItemL",
+        "type": "MESH",
+        "location": [
+          2.1058,
+          0.1006,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          0.3721,
+          0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.009"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustOuter_ItemR",
+        "type": "MESH",
+        "location": [
+          2.1058,
+          0.1006,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          0.3721,
+          0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.009"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustOuter_L",
+        "type": "MESH",
+        "location": [
+          2.1058,
+          0.1006,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          0.3721,
+          0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.009"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_ExhaustOuter_R",
+        "type": "MESH",
+        "location": [
+          2.1058,
+          0.1006,
+          -3.2442
+        ],
+        "scale": [
+          0.3164,
+          -0.3721,
+          -0.3164
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1517,
+          0.0782,
+          0.1517
+        ],
+        "vertices": 6,
+        "polygons": 2,
+        "materials": [
+          "Material.009"
+        ],
+        "modifiers": [
+          "Array"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Fin_ItemL",
+        "type": "MESH",
+        "location": [
+          0.0677,
+          0.0551,
+          0.6466
+        ],
+        "scale": [
+          1.1767,
+          1.5726,
+          0.734
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.191,
+          0.4564,
+          0.1192
+        ],
+        "vertices": 16,
+        "polygons": 14,
+        "materials": [
+          "Material.005"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Fin_ItemR",
+        "type": "MESH",
+        "location": [
+          0.0677,
+          0.0551,
+          0.6466
+        ],
+        "scale": [
+          1.1767,
+          1.5726,
+          0.734
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.191,
+          0.4564,
+          0.1192
+        ],
+        "vertices": 16,
+        "polygons": 14,
+        "materials": [
+          "Material.005"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Fin_L",
+        "type": "MESH",
+        "location": [
+          0.0677,
+          0.0551,
+          0.6466
+        ],
+        "scale": [
+          1.1767,
+          1.5726,
+          0.734
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.191,
+          0.4564,
+          0.1192
+        ],
+        "vertices": 16,
+        "polygons": 14,
+        "materials": [
+          "Material.005"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Fin_R",
+        "type": "MESH",
+        "location": [
+          0.0677,
+          0.0551,
+          0.6466
+        ],
+        "scale": [
+          1.1767,
+          1.5726,
+          0.734
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.191,
+          0.4564,
+          0.1192
+        ],
+        "vertices": 16,
+        "polygons": 14,
+        "materials": [
+          "Material.005"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Housing_ItemL",
+        "type": "MESH",
+        "location": [
+          0.0043,
+          0.3245,
+          -0.328
+        ],
+        "scale": [
+          1.4695,
+          1.102,
+          0.6288
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.2238,
+          0.1789,
+          0.0958
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Housing_ItemR",
+        "type": "MESH",
+        "location": [
+          0.0043,
+          0.3245,
+          -0.328
+        ],
+        "scale": [
+          1.4695,
+          1.102,
+          0.6288
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.2238,
+          0.1789,
+          0.0958
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Housing_L",
+        "type": "MESH",
+        "location": [
+          0.0043,
+          0.3245,
+          -0.328
+        ],
+        "scale": [
+          1.4695,
+          1.102,
+          0.6288
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.2238,
+          0.1789,
+          0.0958
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Housing_R",
+        "type": "MESH",
+        "location": [
+          0.0043,
+          0.3245,
+          -0.328
+        ],
+        "scale": [
+          1.4695,
+          1.102,
+          0.6288
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.2238,
+          0.1789,
+          0.0958
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampInner_ItemL",
+        "type": "MESH",
+        "location": [
+          -0.4408,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampInner_ItemR",
+        "type": "MESH",
+        "location": [
+          -0.4408,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampInner_L",
+        "type": "MESH",
+        "location": [
+          -0.4408,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampInner_R",
+        "type": "MESH",
+        "location": [
+          -0.4408,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampOuter_ItemL",
+        "type": "MESH",
+        "location": [
+          0.8067,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.011"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampOuter_ItemR",
+        "type": "MESH",
+        "location": [
+          0.8067,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.011"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampOuter_L",
+        "type": "MESH",
+        "location": [
+          0.8067,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.011"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_LampOuter_R",
+        "type": "MESH",
+        "location": [
+          0.8067,
+          0.0758,
+          3.1363
+        ],
+        "scale": [
+          0.7305,
+          0.5478,
+          0.3126
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1112,
+          0.0889,
+          0.0476
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.011"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCollar_ItemL",
+        "type": "MESH",
+        "location": [
+          -0.9487,
+          0.0749,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          0.9449,
+          0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCollar_ItemR",
+        "type": "MESH",
+        "location": [
+          -0.9487,
+          0.0749,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          0.9449,
+          0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCollar_L",
+        "type": "MESH",
+        "location": [
+          -0.9487,
+          0.0749,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          0.9449,
+          0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCollar_R",
+        "type": "MESH",
+        "location": [
+          -0.9487,
+          0.0749,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          -0.9449,
+          -0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCone_ItemL",
+        "type": "MESH",
+        "location": [
+          -1.0686,
+          0.0532,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCone_ItemR",
+        "type": "MESH",
+        "location": [
+          -1.0686,
+          0.0532,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCone_L",
+        "type": "MESH",
+        "location": [
+          -1.0686,
+          0.0532,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleInnerCone_R",
+        "type": "MESH",
+        "location": [
+          -1.0686,
+          0.0532,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          -1.0,
+          -0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCollar_ItemL",
+        "type": "MESH",
+        "location": [
+          1.4409,
+          -0.0198,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          0.9449,
+          0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCollar_ItemR",
+        "type": "MESH",
+        "location": [
+          1.4409,
+          -0.0198,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          0.9449,
+          0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCollar_L",
+        "type": "MESH",
+        "location": [
+          1.4409,
+          -0.0198,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          0.9449,
+          0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCollar_R",
+        "type": "MESH",
+        "location": [
+          1.4409,
+          -0.0198,
+          -1.4826
+        ],
+        "scale": [
+          0.9664,
+          -0.9449,
+          -0.5079
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1569,
+          0.1534,
+          0.0824
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCone_ItemL",
+        "type": "MESH",
+        "location": [
+          1.5609,
+          0.0019,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCone_ItemR",
+        "type": "MESH",
+        "location": [
+          1.5609,
+          0.0019,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCone_L",
+        "type": "MESH",
+        "location": [
+          1.5609,
+          0.0019,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleOuterCone_R",
+        "type": "MESH",
+        "location": [
+          1.5609,
+          0.0019,
+          -2.032
+        ],
+        "scale": [
+          1.0,
+          -1.0,
+          -0.4891
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1623,
+          0.1623,
+          0.0794
+        ],
+        "vertices": 192,
+        "polygons": 162,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleYoke_ItemL",
+        "type": "MESH",
+        "location": [
+          0.2031,
+          0.0518,
+          -0.7514
+        ],
+        "scale": [
+          1.1928,
+          2.2842,
+          0.1618
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1936,
+          0.3708,
+          0.1314
+        ],
+        "vertices": 256,
+        "polygons": 226,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleYoke_ItemR",
+        "type": "MESH",
+        "location": [
+          0.2031,
+          0.0518,
+          -0.7514
+        ],
+        "scale": [
+          1.1928,
+          2.2842,
+          0.1618
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1936,
+          0.3708,
+          0.1314
+        ],
+        "vertices": 256,
+        "polygons": 226,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleYoke_L",
+        "type": "MESH",
+        "location": [
+          0.2031,
+          0.0518,
+          -0.7514
+        ],
+        "scale": [
+          1.1928,
+          2.2842,
+          0.1618
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1936,
+          0.3708,
+          0.1314
+        ],
+        "vertices": 256,
+        "polygons": 226,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_NozzleYoke_R",
+        "type": "MESH",
+        "location": [
+          0.2031,
+          0.0518,
+          -0.7514
+        ],
+        "scale": [
+          1.1928,
+          2.2842,
+          0.1618
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1936,
+          0.3708,
+          0.1314
+        ],
+        "vertices": 256,
+        "polygons": 226,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFront_ItemL",
+        "type": "MESH",
+        "location": [
+          1.2799,
+          -0.0299,
+          0.6191
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFront_ItemR",
+        "type": "MESH",
+        "location": [
+          1.2799,
+          -0.0299,
+          0.6191
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFront_L",
+        "type": "MESH",
+        "location": [
+          1.2799,
+          -0.0299,
+          0.6191
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFront_R",
+        "type": "MESH",
+        "location": [
+          1.2799,
+          -0.0299,
+          0.6191
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFrontTrim_ItemL",
+        "type": "MESH",
+        "location": [
+          1.2469,
+          0.1077,
+          0.598
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFrontTrim_ItemR",
+        "type": "MESH",
+        "location": [
+          1.2469,
+          0.1077,
+          0.598
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFrontTrim_L",
+        "type": "MESH",
+        "location": [
+          1.2469,
+          0.1077,
+          0.598
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingFrontTrim_R",
+        "type": "MESH",
+        "location": [
+          1.2469,
+          0.1077,
+          0.598
+        ],
+        "scale": [
+          -0.2713,
+          -0.2713,
+          -0.2713
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.0551,
+          0.0551,
+          0.011
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingRear_ItemL",
+        "type": "MESH",
+        "location": [
+          -1.0911,
+          -0.0253,
+          0.5557
+        ],
+        "scale": [
+          0.4861,
+          0.4861,
+          0.4861
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.0986,
+          0.0986,
+          0.0197
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingRear_ItemR",
+        "type": "MESH",
+        "location": [
+          -1.0911,
+          -0.0253,
+          0.5557
+        ],
+        "scale": [
+          0.4861,
+          0.4861,
+          0.4861
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.0986,
+          0.0986,
+          0.0197
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingRear_L",
+        "type": "MESH",
+        "location": [
+          -1.0911,
+          -0.0253,
+          0.5557
+        ],
+        "scale": [
+          0.4861,
+          0.4861,
+          0.4861
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.0986,
+          0.0986,
+          0.0197
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_RingRear_R",
+        "type": "MESH",
+        "location": [
+          -1.0911,
+          -0.0253,
+          0.5557
+        ],
+        "scale": [
+          0.4861,
+          0.4861,
+          0.4861
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.0986,
+          0.0986,
+          0.0197
+        ],
+        "vertices": 576,
+        "polygons": 576,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_StrutLower_ItemL",
+        "type": "MESH",
+        "location": [
+          0.1139,
+          -1.0229,
+          -0.0418
+        ],
+        "scale": [
+          1.1739,
+          1.9678,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1709,
+          0.2943,
+          0.069
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutLower_ItemR",
+        "type": "MESH",
+        "location": [
+          0.1139,
+          -1.0229,
+          -0.0418
+        ],
+        "scale": [
+          1.1739,
+          1.9678,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.1709,
+          0.2943,
+          0.069
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutLower_L",
+        "type": "MESH",
+        "location": [
+          0.1139,
+          -1.0229,
+          -0.0418
+        ],
+        "scale": [
+          1.1739,
+          1.9678,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1709,
+          0.2943,
+          0.069
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutLower_R",
+        "type": "MESH",
+        "location": [
+          0.1139,
+          -1.0229,
+          -0.0418
+        ],
+        "scale": [
+          1.1739,
+          1.9678,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.1709,
+          0.2943,
+          0.069
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutUpper_ItemL",
+        "type": "MESH",
+        "location": [
+          0.0748,
+          -1.0237,
+          1.3925
+        ],
+        "scale": [
+          1.1872,
+          2.0659,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.172,
+          0.3079,
+          0.0689
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutUpper_ItemR",
+        "type": "MESH",
+        "location": [
+          0.0748,
+          -1.0237,
+          1.3925
+        ],
+        "scale": [
+          1.1872,
+          2.0659,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.172,
+          0.3079,
+          0.0689
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutUpper_L",
+        "type": "MESH",
+        "location": [
+          0.0748,
+          -1.0237,
+          1.3925
+        ],
+        "scale": [
+          1.1872,
+          2.0659,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.172,
+          0.3079,
+          0.0689
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_StrutUpper_R",
+        "type": "MESH",
+        "location": [
+          0.0748,
+          -1.0237,
+          1.3925
+        ],
+        "scale": [
+          1.1872,
+          2.0659,
+          0.4428
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.172,
+          0.3079,
+          0.0689
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Mesh_Jetpack_Tank_ItemL",
+        "type": "MESH",
+        "location": [
+          0.1802,
+          0.0669,
+          1.3654
+        ],
+        "scale": [
+          1.3792,
+          1.3792,
+          0.6177
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.2385,
+          0.2239,
+          0.3597
+        ],
+        "vertices": 296,
+        "polygons": 261,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_Tank_ItemR",
+        "type": "MESH",
+        "location": [
+          0.1802,
+          0.0669,
+          1.3654
+        ],
+        "scale": [
+          1.3792,
+          1.3792,
+          0.6177
+        ],
+        "collections": [
+          "Coll_Jetpack_Item"
+        ],
+        "dimensions": [
+          0.2385,
+          0.2239,
+          0.3597
+        ],
+        "vertices": 296,
+        "polygons": 261,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_Tank_L",
+        "type": "MESH",
+        "location": [
+          0.1802,
+          0.0669,
+          1.3654
+        ],
+        "scale": [
+          1.3792,
+          1.3792,
+          0.6177
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.2385,
+          0.2239,
+          0.3597
+        ],
+        "vertices": 296,
+        "polygons": 261,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Jetpack_Tank_R",
+        "type": "MESH",
+        "location": [
+          0.1802,
+          0.0669,
+          1.3654
+        ],
+        "scale": [
+          1.3792,
+          1.3792,
+          0.6177
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ],
+        "dimensions": [
+          0.2385,
+          0.2239,
+          0.3597
+        ],
+        "vertices": 296,
+        "polygons": 261,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "MOUNT_Jetpack_L",
+        "type": "EMPTY",
+        "location": [
+          -0.8925,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          -0.0812,
+          0.0812,
+          0.0812
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ]
+      },
+      {
+        "name": "MOUNT_Jetpack_R",
+        "type": "EMPTY",
+        "location": [
+          0.8925,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          0.0812,
+          0.0812,
+          0.0812
+        ],
+        "collections": [
+          "Coll_Jetpack_Worn"
+        ]
+      }
+    ],
+    "materials": [
+      "Material.004",
+      "Material.005",
+      "Material.006",
+      "Material.007",
+      "Material.008",
+      "Material.009",
+      "Material.010",
+      "Material.011",
+      "Material.012"
+    ],
+    "linked_libraries": [
+      "//../../../../../../../../../../../../../Applications/Blender.app/Contents/Resources/5.1/datafiles/assets/nodes/geometry_nodes_essentials.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/gear/jumping_rod.blend": {
     "collections": [
       {
@@ -32508,6 +34673,1044 @@
     "linked_libraries": [
       "//../../palette.blend"
     ],
+    "auto_suffixed_names": []
+  },
+  "models/gear/saddle.blend": {
+    "collections": [
+      {
+        "name": "Coll_Saddle_Appa",
+        "objects": [
+          "Mesh_SaddlePanel_Appa",
+          "Mesh_SaddleSeat_Appa",
+          "Mesh_SaddleEnds_Appa",
+          "Mesh_SaddleSkirt_Appa_L",
+          "Mesh_SaddleGear_Appa_L",
+          "Mesh_SaddlePannier_Appa_L",
+          "Mesh_SaddleSkirt_Appa_R",
+          "Mesh_SaddleGear_Appa_R",
+          "Mesh_SaddlePannier_Appa_R",
+          "Mesh_SaddleStirrup_Appa_L",
+          "Mesh_SaddleStirrup_Appa_R",
+          "SEAT_Rider",
+          "SURF_SaddleLeft",
+          "SURF_SaddleRight",
+          "SURF_SaddleRear"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Saddle_Loper",
+        "objects": [
+          "Mesh_SaddlePanel_Loper",
+          "Mesh_SaddleSeat_Loper",
+          "Mesh_SaddleEnds_Loper",
+          "Mesh_SaddleSkirt_Loper_L",
+          "Mesh_SaddleStirrup_Loper_L",
+          "Mesh_SaddleSkirt_Loper_R",
+          "Mesh_SaddleStirrup_Loper_R",
+          "Mesh_SaddlePannier_Loper_L",
+          "Mesh_SaddlePannier_Loper_R",
+          "SEAT_Rider_Loper",
+          "SURF_SaddleLeft_Loper",
+          "SURF_SaddleRight_Loper",
+          "SURF_SaddleRear_Loper"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Saddle_Pack",
+        "objects": [
+          "Mesh_PackPad_Body",
+          "Mesh_PackPannier_L",
+          "Mesh_PackStrap_L",
+          "Mesh_PackPannier_R",
+          "Mesh_PackStrap_R",
+          "SURF_PackLeft",
+          "SURF_PackRight"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_PackPad_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ],
+        "dimensions": [
+          0.68,
+          0.6,
+          0.1462
+        ],
+        "vertices": 442,
+        "polygons": 422,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_PackPannier_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ],
+        "dimensions": [
+          0.22,
+          0.44,
+          0.35
+        ],
+        "vertices": 68,
+        "polygons": 78,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_PackPannier_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ],
+        "dimensions": [
+          0.22,
+          0.44,
+          0.35
+        ],
+        "vertices": 68,
+        "polygons": 78,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_PackStrap_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ],
+        "dimensions": [
+          0.14,
+          0.08,
+          0.42
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_PackStrap_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ],
+        "dimensions": [
+          0.14,
+          0.08,
+          0.42
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleEnds_Appa",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.4,
+          0.915,
+          0.6203
+        ],
+        "vertices": 184,
+        "polygons": 170,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleEnds_Loper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.135,
+          0.4425,
+          0.1549
+        ],
+        "vertices": 192,
+        "polygons": 196,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleGear_Appa_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.9341,
+          0.58,
+          0.7291
+        ],
+        "vertices": 176,
+        "polygons": 170,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleGear_Appa_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.9341,
+          0.58,
+          0.7291
+        ],
+        "vertices": 176,
+        "polygons": 170,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddlePanel_Appa",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          1.1997,
+          0.88,
+          0.3654
+        ],
+        "vertices": 706,
+        "polygons": 674,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddlePanel_Loper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.23,
+          0.44,
+          0.1172
+        ],
+        "vertices": 308,
+        "polygons": 294,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddlePannier_Appa_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.26,
+          0.52,
+          0.05
+        ],
+        "vertices": 68,
+        "polygons": 78,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddlePannier_Appa_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.26,
+          0.52,
+          0.05
+        ],
+        "vertices": 68,
+        "polygons": 78,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddlePannier_Loper_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.17,
+          0.24,
+          0.04
+        ],
+        "vertices": 46,
+        "polygons": 52,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddlePannier_Loper_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.17,
+          0.24,
+          0.04
+        ],
+        "vertices": 46,
+        "polygons": 52,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleSeat_Appa",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.6,
+          0.88,
+          0.5724
+        ],
+        "vertices": 698,
+        "polygons": 674,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleSeat_Loper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.21,
+          0.44,
+          0.1764
+        ],
+        "vertices": 494,
+        "polygons": 474,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleSkirt_Appa_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.7916,
+          0.66,
+          0.5952
+        ],
+        "vertices": 111,
+        "polygons": 113,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleSkirt_Appa_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.7916,
+          0.66,
+          0.5952
+        ],
+        "vertices": 111,
+        "polygons": 113,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleSkirt_Loper_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.0922,
+          0.3667,
+          0.2463
+        ],
+        "vertices": 55,
+        "polygons": 40,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleSkirt_Loper_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.0922,
+          0.3667,
+          0.2463
+        ],
+        "vertices": 55,
+        "polygons": 40,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleStirrup_Appa_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.789,
+          0.12,
+          0.7837
+        ],
+        "vertices": 90,
+        "polygons": 89,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleStirrup_Appa_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ],
+        "dimensions": [
+          0.789,
+          0.12,
+          0.7837
+        ],
+        "vertices": 90,
+        "polygons": 89,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleStirrup_Loper_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.2526,
+          0.07,
+          0.4
+        ],
+        "vertices": 78,
+        "polygons": 77,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SaddleStirrup_Loper_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ],
+        "dimensions": [
+          0.2526,
+          0.07,
+          0.4
+        ],
+        "vertices": 78,
+        "polygons": 77,
+        "materials": [
+          "Mat_Hide_Leather_Saddle",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SEAT_Rider",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.02,
+          0.2418
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ]
+      },
+      {
+        "name": "SEAT_Rider_Loper",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.01,
+          0.1093
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ]
+      },
+      {
+        "name": "SURF_PackLeft",
+        "type": "EMPTY",
+        "location": [
+          0.31,
+          0.0,
+          -0.02
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ]
+      },
+      {
+        "name": "SURF_PackRight",
+        "type": "EMPTY",
+        "location": [
+          -0.31,
+          0.0,
+          -0.02
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Pack"
+        ]
+      },
+      {
+        "name": "SURF_SaddleLeft",
+        "type": "EMPTY",
+        "location": [
+          0.8279,
+          0.04,
+          -0.1785
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ]
+      },
+      {
+        "name": "SURF_SaddleLeft_Loper",
+        "type": "EMPTY",
+        "location": [
+          0.135,
+          0.31,
+          0.0072
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ]
+      },
+      {
+        "name": "SURF_SaddleRear",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.54,
+          -0.1033
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ]
+      },
+      {
+        "name": "SURF_SaddleRear_Loper",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.42,
+          0.0072
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ]
+      },
+      {
+        "name": "SURF_SaddleRight",
+        "type": "EMPTY",
+        "location": [
+          -0.8279,
+          0.04,
+          -0.1785
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Appa"
+        ]
+      },
+      {
+        "name": "SURF_SaddleRight_Loper",
+        "type": "EMPTY",
+        "location": [
+          -0.135,
+          0.31,
+          0.0072
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Saddle_Loper"
+        ]
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Canvas_Sand",
+      "Mat_Hide_Leather_Saddle",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Wood_Ply_Worn"
+    ],
+    "linked_libraries": [],
     "auto_suffixed_names": []
   },
   "models/gear/sucker_puncher.blend": {
@@ -44080,22 +47283,22 @@
         "name": "Mesh_OrniWorn_Bearing_L",
         "type": "MESH",
         "location": [
-          -0.885,
-          0.0,
-          0.0
+          1.0804,
+          0.2274,
+          -0.6278
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.2057,
+          1.2057
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.1932,
-          0.2198,
-          0.1586
+          0.233,
+          0.2651,
+          0.1913
         ],
         "vertices": 352,
         "polygons": 354,
@@ -44115,22 +47318,22 @@
         "name": "Mesh_OrniWorn_Bearing_R",
         "type": "MESH",
         "location": [
-          0.885,
-          0.0,
-          0.0
+          -1.0536,
+          0.2274,
+          -0.6278
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.2057,
+          1.2057
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.1932,
-          0.2198,
-          0.1586
+          0.233,
+          0.2651,
+          0.1913
         ],
         "vertices": 352,
         "polygons": 354,
@@ -44150,22 +47353,22 @@
         "name": "Mesh_OrniWorn_Clamp_L",
         "type": "MESH",
         "location": [
-          -0.83,
-          0.0,
-          0.0
+          0.8234,
+          0.4607,
+          -0.5468
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.2057,
+          1.2057
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.13,
-          0.152,
-          0.5901
+          0.1567,
+          0.1833,
+          0.7114
         ],
         "vertices": 352,
         "polygons": 316,
@@ -44179,22 +47382,22 @@
         "name": "Mesh_OrniWorn_Clamp_R",
         "type": "MESH",
         "location": [
-          0.83,
-          0.0,
-          0.0
+          -0.7294,
+          0.2274,
+          -0.6099
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.2057,
+          1.2057
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.13,
-          0.152,
-          0.5901
+          0.1567,
+          0.1833,
+          0.7114
         ],
         "vertices": 352,
         "polygons": 316,
@@ -44208,22 +47411,22 @@
         "name": "Mesh_OrniWorn_Crank_L",
         "type": "MESH",
         "location": [
-          -0.885,
-          0.0,
-          0.0
+          0.8224,
+          0.428,
+          -0.7436
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.4489,
+          1.7668
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.0983,
-          0.113,
-          0.6653
+          0.1185,
+          0.1637,
+          1.1755
         ],
         "vertices": 304,
         "polygons": 292,
@@ -44243,22 +47446,22 @@
         "name": "Mesh_OrniWorn_Crank_R",
         "type": "MESH",
         "location": [
-          0.885,
-          0.0,
-          0.0
+          -0.8955,
+          0.4607,
+          -0.7885
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2934,
+          1.3644,
+          1.5023
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.0983,
-          0.113,
-          0.6653
+          0.1272,
+          0.1541,
+          0.9995
         ],
         "vertices": 304,
         "polygons": 292,
@@ -44278,22 +47481,22 @@
         "name": "Mesh_OrniWorn_Gear_L",
         "type": "MESH",
         "location": [
-          -0.885,
-          0.0,
-          0.0
+          1.3864,
+          0.1922,
+          -0.5148
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.2057,
+          1.2057
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.5305,
-          0.1698,
-          0.5446
+          0.6396,
+          0.2047,
+          0.6566
         ],
         "vertices": 620,
         "polygons": 658,
@@ -44313,22 +47516,22 @@
         "name": "Mesh_OrniWorn_Gear_R",
         "type": "MESH",
         "location": [
-          0.885,
-          0.0,
-          0.0
+          -1.3301,
+          0.2274,
+          -0.5411
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.2057,
+          1.2057,
+          1.2057
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.5305,
-          0.1698,
-          0.5446
+          0.6396,
+          0.2047,
+          0.6566
         ],
         "vertices": 620,
         "polygons": 658,
@@ -44348,22 +47551,22 @@
         "name": "Mesh_OrniWorn_Wing_L_Frame",
         "type": "MESH",
         "location": [
-          -0.885,
-          0.0,
-          0.0
+          0.774,
+          0.5666,
+          -0.71
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.5674,
+          1.5674,
+          1.5674
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.9556,
-          0.3613,
-          1.1212
+          1.4977,
+          0.5663,
+          1.7573
         ],
         "vertices": 288,
         "polygons": 296,
@@ -44383,22 +47586,22 @@
         "name": "Mesh_OrniWorn_Wing_L_Web",
         "type": "MESH",
         "location": [
-          -0.885,
-          0.0,
-          0.0
+          0.774,
+          0.5666,
+          -0.71
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.9108,
+          1.9108,
+          1.9108
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.937,
-          0.3404,
-          1.1098
+          1.7905,
+          0.6504,
+          2.1206
         ],
         "vertices": 416,
         "polygons": 400,
@@ -44418,22 +47621,22 @@
         "name": "Mesh_OrniWorn_Wing_R_Frame",
         "type": "MESH",
         "location": [
-          0.885,
-          0.0,
-          0.0
+          -0.7195,
+          0.5659,
+          -0.6993
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.5674,
+          1.5674,
+          1.5674
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.9555,
-          0.3609,
-          1.1215
+          1.4976,
+          0.5657,
+          1.7577
         ],
         "vertices": 288,
         "polygons": 296,
@@ -44453,22 +47656,22 @@
         "name": "Mesh_OrniWorn_Wing_R_Web",
         "type": "MESH",
         "location": [
-          0.885,
-          0.0,
-          0.0
+          -0.7195,
+          0.5659,
+          -0.6993
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.7466,
+          1.7466,
+          1.7466
         ],
         "collections": [
           "Coll_OrnithopterWorn"
         ],
         "dimensions": [
-          0.9379,
-          0.3407,
-          1.1088
+          1.6381,
+          0.5951,
+          1.9366
         ],
         "vertices": 408,
         "polygons": 398,
@@ -44486,19 +47689,15 @@
       }
     ],
     "materials": [
-      "Mat_Fabric_Canvas_Faded",
       "Mat_Fabric_Seat_Ochre",
       "Mat_Fabric_Wing_Beige",
       "Mat_Fabric_Wing_Ochre",
-      "Mat_Glass_Canopy_Tinted",
       "Mat_Metal_Brass_Tarnished",
       "Mat_Metal_Chrome_Scuffed",
       "Mat_Metal_Rust_Heavy",
       "Mat_Metal_Steel_Dark",
       "Mat_Metal_Steel_Worn",
-      "Mat_Neutral_Black_Matte",
       "Mat_Paint_Hull_Bleached",
-      "Mat_Paint_Olive_Deep",
       "Mat_Paint_Warn_Red",
       "Mat_Plastic_Rubber_Black",
       "Mat_Wood_Ply_Worn"
@@ -70080,6 +73279,968 @@
     "linked_libraries": [],
     "auto_suffixed_names": []
   },
+  "models/creatures/appa.blend": {
+    "collections": [
+      {
+        "name": "Collection",
+        "objects": [
+          "Cube.002",
+          "Cube.004",
+          "Cube.011",
+          "Cube.015",
+          "Cube.016",
+          "Cube.021",
+          "Cube.020",
+          "Cube.022",
+          "Cube.019",
+          "Cube.023",
+          "Cube.024"
+        ],
+        "children": []
+      },
+      {
+        "name": "Ears",
+        "objects": [
+          "Cube.007"
+        ],
+        "children": []
+      },
+      {
+        "name": "Eyes",
+        "objects": [
+          "Cube.017"
+        ],
+        "children": []
+      },
+      {
+        "name": "Feet",
+        "objects": [
+          "Cube.021",
+          "Cube.020",
+          "Cube.022",
+          "Cube.019",
+          "Cube.023",
+          "Cube.024"
+        ],
+        "children": []
+      },
+      {
+        "name": "Fur",
+        "objects": [
+          "Cube.015"
+        ],
+        "children": []
+      },
+      {
+        "name": "Hair",
+        "objects": [
+          "Cube.026"
+        ],
+        "children": []
+      },
+      {
+        "name": "Horns",
+        "objects": [
+          "Cube.001",
+          "Cube.009"
+        ],
+        "children": []
+      },
+      {
+        "name": "jaw_lower",
+        "objects": [
+          "Cube.003",
+          "Cube.018"
+        ],
+        "children": [
+          "teeth"
+        ]
+      },
+      {
+        "name": "teeth",
+        "objects": [
+          "Cube.025",
+          "Cube.027",
+          "Cube.028",
+          "Cube.029",
+          "Cube.030",
+          "Cube.031",
+          "Cube.032",
+          "Cube.033"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Arm_Appa",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "bones": [
+          "root",
+          "spine1",
+          "spine2",
+          "spine3",
+          "neck",
+          "head",
+          "jaw",
+          "femur_F.L",
+          "tibia_F.L",
+          "hoof_F.L",
+          "femur_F.R",
+          "tibia_F.R",
+          "hoof_F.R",
+          "tail1",
+          "tail2",
+          "tail3",
+          "femur_M.L",
+          "tibia_M.L",
+          "hoof_M.L",
+          "femur_M.R",
+          "tibia_M.R",
+          "hoof_M.R",
+          "femur_B.L",
+          "tibia_B.L",
+          "hoof_B.L",
+          "femur_B.R",
+          "tibia_B.R",
+          "hoof_B.R"
+        ]
+      },
+      {
+        "name": "Cube",
+        "type": "MESH",
+        "location": [
+          1.8105,
+          0.0,
+          -0.8266
+        ],
+        "scale": [
+          -1.5834,
+          1.0,
+          0.4218
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          2.6422,
+          1.8323,
+          0.7066
+        ],
+        "vertices": 1538,
+        "polygons": 1536,
+        "materials": [
+          "Material.009"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Cube.001",
+        "type": "MESH",
+        "location": [
+          -0.6037,
+          -0.4599,
+          0.2499
+        ],
+        "scale": [
+          0.0807,
+          0.0807,
+          0.0807
+        ],
+        "collections": [
+          "Horns"
+        ],
+        "dimensions": [
+          0.148,
+          0.2328,
+          0.4705
+        ],
+        "vertices": 386,
+        "polygons": 384,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.002",
+        "type": "MESH",
+        "location": [
+          0.0568,
+          -0.1325,
+          -0.2557
+        ],
+        "scale": [
+          0.2188,
+          0.6048,
+          0.2113
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.6011,
+          1.1913,
+          0.3853
+        ],
+        "vertices": 1538,
+        "polygons": 1536,
+        "materials": [
+          "Material"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.003",
+        "type": "MESH",
+        "location": [
+          0.0885,
+          -0.2371,
+          -0.177
+        ],
+        "scale": [
+          0.2893,
+          0.3303,
+          0.1185
+        ],
+        "collections": [
+          "jaw_lower"
+        ],
+        "dimensions": [
+          0.4854,
+          0.8817,
+          0.2608
+        ],
+        "vertices": 1538,
+        "polygons": 1536,
+        "materials": [
+          "Material.011"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.004",
+        "type": "MESH",
+        "location": [
+          -0.3563,
+          0.0,
+          -0.6201
+        ],
+        "scale": [
+          0.2598,
+          0.2598,
+          0.1515
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.3521,
+          1.2164,
+          1.0108
+        ],
+        "vertices": 14212,
+        "polygons": 14210,
+        "materials": [
+          "Material.010"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Cube.007",
+        "type": "MESH",
+        "location": [
+          -0.0187,
+          -0.5382,
+          -0.3938
+        ],
+        "scale": [
+          0.0576,
+          0.184,
+          0.2178
+        ],
+        "collections": [
+          "Ears"
+        ],
+        "dimensions": [
+          1.317,
+          0.5034,
+          0.968
+        ],
+        "vertices": 196,
+        "polygons": 192,
+        "materials": [
+          "Material.003"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Cube.009",
+        "type": "MESH",
+        "location": [
+          0.4592,
+          -0.4599,
+          0.4861
+        ],
+        "scale": [
+          -0.0807,
+          -0.0807,
+          -0.0807
+        ],
+        "collections": [
+          "Horns"
+        ],
+        "dimensions": [
+          0.148,
+          0.2328,
+          0.4705
+        ],
+        "vertices": 386,
+        "polygons": 384,
+        "materials": [
+          "Material.006"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.011",
+        "type": "MESH",
+        "location": [
+          -0.4449,
+          -0.5661,
+          0.3298
+        ],
+        "scale": [
+          -0.0536,
+          -0.0746,
+          -0.2866
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.1828,
+          0.1208,
+          0.5184
+        ],
+        "vertices": 98,
+        "polygons": 96,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.015",
+        "type": "MESH",
+        "location": [
+          1.0019,
+          0.274,
+          0.4064
+        ],
+        "scale": [
+          0.0468,
+          -0.2809,
+          0.4958
+        ],
+        "collections": [
+          "Collection",
+          "Fur"
+        ],
+        "dimensions": [
+          0.7029,
+          2.0001,
+          1.4147
+        ],
+        "vertices": 7306,
+        "polygons": 7290,
+        "materials": [
+          "Material.004"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Cube.016",
+        "type": "MESH",
+        "location": [
+          1.5737,
+          0.0008,
+          -0.2789
+        ],
+        "scale": [
+          1.4008,
+          1.3528,
+          0.7035
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          4.0392,
+          2.3119,
+          1.9782
+        ],
+        "vertices": 2917,
+        "polygons": 2832,
+        "materials": [
+          "Material.005"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Cube.017",
+        "type": "MESH",
+        "location": [
+          -0.2728,
+          -0.1654,
+          -0.0817
+        ],
+        "scale": [
+          -0.0501,
+          -0.0786,
+          -0.0501
+        ],
+        "collections": [
+          "Eyes"
+        ],
+        "dimensions": [
+          0.084,
+          0.1299,
+          0.0837
+        ],
+        "vertices": 98,
+        "polygons": 96,
+        "materials": [
+          "Material.007"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.018",
+        "type": "MESH",
+        "location": [
+          0.2886,
+          -0.1654,
+          0.0431
+        ],
+        "scale": [
+          0.0501,
+          0.0786,
+          0.0501
+        ],
+        "collections": [
+          "jaw_lower"
+        ],
+        "dimensions": [
+          0.084,
+          0.1299,
+          0.0837
+        ],
+        "vertices": 98,
+        "polygons": 96,
+        "materials": [
+          "Material.002"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.019",
+        "type": "MESH",
+        "location": [
+          -0.0121,
+          -0.3953,
+          -0.2323
+        ],
+        "scale": [
+          -0.1969,
+          -0.1388,
+          -0.1276
+        ],
+        "collections": [
+          "Collection",
+          "Feet"
+        ],
+        "dimensions": [
+          0.6341,
+          0.6837,
+          0.3676
+        ],
+        "vertices": 944,
+        "polygons": 942,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.020",
+        "type": "MESH",
+        "location": [
+          0.1095,
+          -0.3965,
+          -0.1125
+        ],
+        "scale": [
+          0.1989,
+          0.1376,
+          0.1277
+        ],
+        "collections": [
+          "Collection",
+          "Feet"
+        ],
+        "dimensions": [
+          0.6403,
+          0.6779,
+          0.3678
+        ],
+        "vertices": 944,
+        "polygons": 942,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.021",
+        "type": "MESH",
+        "location": [
+          0.138,
+          -0.3968,
+          -0.0843
+        ],
+        "scale": [
+          0.1989,
+          0.1376,
+          0.1277
+        ],
+        "collections": [
+          "Collection",
+          "Feet"
+        ],
+        "dimensions": [
+          0.6403,
+          0.6779,
+          0.3678
+        ],
+        "vertices": 944,
+        "polygons": 942,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.022",
+        "type": "MESH",
+        "location": [
+          0.2247,
+          -0.3953,
+          0.0045
+        ],
+        "scale": [
+          0.1969,
+          0.1388,
+          0.1276
+        ],
+        "collections": [
+          "Collection",
+          "Feet"
+        ],
+        "dimensions": [
+          0.6341,
+          0.6837,
+          0.3676
+        ],
+        "vertices": 944,
+        "polygons": 942,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.023",
+        "type": "MESH",
+        "location": [
+          0.0767,
+          -0.3968,
+          -0.1456
+        ],
+        "scale": [
+          -0.1989,
+          -0.1376,
+          -0.1277
+        ],
+        "collections": [
+          "Collection",
+          "Feet"
+        ],
+        "dimensions": [
+          0.6403,
+          0.6779,
+          0.3678
+        ],
+        "vertices": 944,
+        "polygons": 942,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.024",
+        "type": "MESH",
+        "location": [
+          0.1049,
+          -0.3965,
+          -0.1171
+        ],
+        "scale": [
+          -0.1989,
+          -0.1376,
+          -0.1277
+        ],
+        "collections": [
+          "Collection",
+          "Feet"
+        ],
+        "dimensions": [
+          0.6403,
+          0.6779,
+          0.3678
+        ],
+        "vertices": 944,
+        "polygons": 942,
+        "materials": [
+          "Material.008"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.025",
+        "type": "MESH",
+        "location": [
+          0.0217,
+          -0.083,
+          -0.1782
+        ],
+        "scale": [
+          0.0434,
+          0.0434,
+          0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.101,
+          0.0945,
+          0.1037
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.026",
+        "type": "MESH",
+        "location": [
+          -0.2757,
+          -0.1097,
+          0.091
+        ],
+        "scale": [
+          0.0536,
+          -0.0746,
+          0.2866
+        ],
+        "collections": [
+          "Hair"
+        ],
+        "dimensions": [
+          1.196,
+          1.533,
+          1.136
+        ],
+        "vertices": 6638,
+        "polygons": 6618,
+        "materials": [
+          "Material.014"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Cube.027",
+        "type": "MESH",
+        "location": [
+          -0.0795,
+          -0.1181,
+          -0.2174
+        ],
+        "scale": [
+          0.0434,
+          0.0434,
+          0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.093,
+          0.0925,
+          0.1025
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.028",
+        "type": "MESH",
+        "location": [
+          -0.1533,
+          -0.1962,
+          -0.2267
+        ],
+        "scale": [
+          0.0434,
+          0.0434,
+          0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.0988,
+          0.099,
+          0.1107
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.029",
+        "type": "MESH",
+        "location": [
+          -0.2326,
+          -0.284,
+          -0.2194
+        ],
+        "scale": [
+          0.0434,
+          0.0434,
+          0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.1048,
+          0.1003,
+          0.1076
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.030",
+        "type": "MESH",
+        "location": [
+          0.316,
+          -0.284,
+          0.0549
+        ],
+        "scale": [
+          -0.0434,
+          -0.0434,
+          -0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.0933,
+          0.1122,
+          0.1069
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.031",
+        "type": "MESH",
+        "location": [
+          0.2743,
+          -0.1962,
+          -0.0129
+        ],
+        "scale": [
+          -0.0434,
+          -0.0434,
+          -0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.0934,
+          0.1012,
+          0.1016
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.032",
+        "type": "MESH",
+        "location": [
+          0.2226,
+          -0.1181,
+          -0.0664
+        ],
+        "scale": [
+          -0.0434,
+          -0.0434,
+          -0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.091,
+          0.0969,
+          0.0996
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.033",
+        "type": "MESH",
+        "location": [
+          0.1305,
+          -0.083,
+          -0.1238
+        ],
+        "scale": [
+          -0.0434,
+          -0.0434,
+          -0.0434
+        ],
+        "collections": [
+          "teeth"
+        ],
+        "dimensions": [
+          0.0937,
+          0.1001,
+          0.0944
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Material.012"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Dots Stroke",
+      "Material",
+      "Material.002",
+      "Material.003",
+      "Material.004",
+      "Material.005",
+      "Material.006",
+      "Material.007",
+      "Material.008",
+      "Material.009",
+      "Material.010",
+      "Material.011",
+      "Material.012",
+      "Material.014"
+    ],
+    "linked_libraries": [],
+    "auto_suffixed_names": [
+      "Cube.001",
+      "Cube.002",
+      "Cube.003",
+      "Cube.004",
+      "Cube.007",
+      "Cube.009",
+      "Cube.011",
+      "Cube.015",
+      "Cube.016",
+      "Cube.017",
+      "Cube.018",
+      "Cube.019",
+      "Cube.020",
+      "Cube.021",
+      "Cube.022",
+      "Cube.023",
+      "Cube.024",
+      "Cube.025",
+      "Cube.026",
+      "Cube.027",
+      "Cube.028",
+      "Cube.029",
+      "Cube.030",
+      "Cube.031",
+      "Cube.032",
+      "Cube.033"
+    ]
+  },
   "models/creatures/crab_walker_4.blend": {
     "collections": [
       {
@@ -81911,6 +86072,113 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/creatures/sandloper.blend": {
+    "collections": [],
+    "objects": [
+      {
+        "name": "Arm_Sandloper",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "bones": [
+          "root",
+          "spine1",
+          "femur.L",
+          "fibula.L",
+          "metarsal.L",
+          "spine2",
+          "spine3",
+          "spine4",
+          "scapula.L",
+          "humerus.L",
+          "radius.L",
+          "metacarpal.L",
+          "neck1",
+          "neck2",
+          "head",
+          "ear.L",
+          "ear.R",
+          "scapula.R",
+          "humerus.R",
+          "radius.R",
+          "metacarpal.R",
+          "tail1",
+          "tail2",
+          "tail3",
+          "tail4",
+          "femur.R",
+          "fibula.R",
+          "metarsal.R",
+          "IK_back.R",
+          "hoof_B.R",
+          "pole_back.R",
+          "IK_back.L",
+          "hoof_B.L",
+          "pole_back.L",
+          "IK_front.L",
+          "hoof_F.L",
+          "pole_fromt.L",
+          "IK_front.R",
+          "hoof_F.R",
+          "pole_fromt.R"
+        ]
+      },
+      {
+        "name": "Mesh_Sandloper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          0.8113,
+          2.5893,
+          1.2416
+        ],
+        "vertices": 7347,
+        "polygons": 7366,
+        "materials": [
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Hide_Claw_Horn",
+          "Mat_Hide_Slate_Teal"
+        ],
+        "modifiers": [
+          "Arm_DuneRat"
+        ]
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Dune_Tan",
+      "Mat_Hide_Ivory_Spine",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Slate_Teal"
+    ],
+    "linked_libraries": [],
+    "auto_suffixed_names": []
+  },
   "models/creatures/vrescal.blend": {
     "collections": [
       {
@@ -83341,6 +87609,136 @@
     "linked_libraries": [
       "//../../palette.blend"
     ],
+    "auto_suffixed_names": []
+  },
+  "components/props/camp_lantern.blend": {
+    "collections": [
+      {
+        "name": "Coll_CampLantern",
+        "objects": [
+          "Mesh_Lantern_Body",
+          "Mesh_Lantern_Glass",
+          "Mesh_Lantern_Handle",
+          "LIGHT_Flame"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "LIGHT_Flame",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          0.135
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CampLantern"
+        ]
+      },
+      {
+        "name": "Mesh_Lantern_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CampLantern"
+        ],
+        "dimensions": [
+          0.23,
+          0.23,
+          0.265
+        ],
+        "vertices": 336,
+        "polygons": 292,
+        "materials": [
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Glass_Amber_Warm"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Lantern_Glass",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CampLantern"
+        ],
+        "dimensions": [
+          0.136,
+          0.136,
+          0.158
+        ],
+        "vertices": 32,
+        "polygons": 18,
+        "materials": [
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Glass_Amber_Warm"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Lantern_Handle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CampLantern"
+        ],
+        "dimensions": [
+          0.156,
+          0.0139,
+          0.1536
+        ],
+        "vertices": 108,
+        "polygons": 108,
+        "materials": [
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Glass_Amber_Warm"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Glass_Amber_Warm",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Worn"
+    ],
+    "linked_libraries": [],
     "auto_suffixed_names": []
   },
   "components/props/console_panel.blend": {

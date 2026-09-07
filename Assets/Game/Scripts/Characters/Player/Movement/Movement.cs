@@ -286,7 +286,20 @@ namespace SpaceGame.Characters
             }
             else
             {
-                float control = grounded ? 1f : airControl;
+                // Grip is what the ground is able to do to this body, so it scales the pull toward
+                // the walk target and nothing else. At the slick film's 0.05 the player still
+                // steers and still has gravity; what they lose is the ability to accelerate or
+                // brake, which is what being on a frictionless surface IS.
+                //
+                // Asked only while grounded — a body in mid-air must not read the patch below it,
+                // or a jump clean over a slick pool skids through the air.
+                //
+                // Read HERE, on the machine that owns this body, and never written by the server:
+                // the server owns the flag (GDC-L1-MP-0004) and a server-side write to a remote
+                // player's velocity is overwritten within a tick with nothing in the console, while
+                // reading it locally puts the skid on the frame the player is looking at
+                // (GDC-L1-FEEL-0002). Wheeled and legged movers ask GroundGrip the same question.
+                float control = grounded ? GroundGrip.For(gameObject, groundPoint) : airControl;
                 newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
             }
             newHorizontal = SteerWithoutBraking(currentHorizontal, newHorizontal, grounded);
@@ -390,6 +403,15 @@ namespace SpaceGame.Characters
         public Vector3 GroundNormal => groundNormal;
 
         private Vector3 groundNormal = Vector3.up;
+
+        /// <summary>
+        /// Where the ground probe last touched down, which is where this body is standing for the
+        /// purpose of asking <see cref="GroundGrip"/> what is underfoot. Taken from the same sphere
+        /// cast <see cref="groundNormal"/> comes from, so the two can never describe different
+        /// surfaces; the body's own position would be a metre above the sand and, on a slope,
+        /// somewhere else entirely.
+        /// </summary>
+        private Vector3 groundPoint;
 
         /// <summary>
         /// True while the player is riding something sprung — today the jumping rod.
@@ -706,6 +728,7 @@ namespace SpaceGame.Characters
                                               groundCheckDistance, groundMask,
                                               QueryTriggerInteraction.Ignore);
                 groundNormal = rayHit ? flat.normal : Vector3.up;
+                groundPoint = rayHit ? flat.point : transform.position;
                 return rayHit;
             }
 
@@ -720,6 +743,7 @@ namespace SpaceGame.Characters
             // Up when nothing was found, rather than a stale normal from the last surface: a body
             // in the air is not standing on the slope it left.
             groundNormal = hit ? ground.normal : Vector3.up;
+            groundPoint = hit ? ground.point : transform.position;
             return hit;
         }
 

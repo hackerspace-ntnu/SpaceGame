@@ -23,8 +23,9 @@ symptoms:
   - "the rope is drawn in a wood texture, smeared once along its whole length"
   - "the loop on the end of the rope is a hard perfect circle and looks unrealistic"
   - "the rope stops dead in the middle of the loop instead of joining it"
-reads_with: [Artifacts, LeashSystem, Multiplayer, Persistence, AgentSystem]
-updated: 2026-09-06
+  - "a laser beam through a live lasso rope does nothing"
+reads_with: [Artifacts, LeashSystem, Multiplayer, Persistence, AgentSystem, RopeCutting]
+updated: 2026-09-07
 ---
 
 # Lasso
@@ -48,6 +49,8 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 - **The heavier end wins.** `LassoArtifact.PlayerPullShare(targetMass, playerMass = 80)` is `public static` and a pure function of two masses, because the two ends of the rope run on two different machines and must agree without a message.
 - **The rope is a contest with two opposing loops** ([`LassoTension`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoTension.cs)). Straining pays line out and tires the animal; slack winds line back within reach and lets the animal recover. Held under strain long enough the rope **wears through and parts**.
 - **A catch ends somewhere.** Pressing Use while roped and aiming at a hitchable surface within `hitchRange` builds a real [`Leash`](Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) between the creature and that anchor and drops the lasso. Aiming at nothing still means "let go" — the same shape `LeashArtifact` gives the gesture.
+
+- **A rope on a catch can be cut by somebody else.** The laser staff parts it, and the lasso hears that as `LassoVerb.Snapped` — the same verb, the same sound, the same release, so the creature gets its legs back by the path it already had. A throw still in the air is deliberately not cuttable. See [RopeCutting.md](RopeCutting.md).
 
 ## Key types
 

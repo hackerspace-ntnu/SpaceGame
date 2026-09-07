@@ -12,12 +12,13 @@ namespace SpaceGame.World.Environment
     /// perceived colour rather than RGB distance.
     ///
     /// <para>
-    /// Watercolour and pen, in that order. One thing that is not colour runs immediately
-    /// before the snap, by darkening Oklab lightness so that what it draws still lands on a
-    /// palette entry: <see cref="InkShape"/> draws lines along lightness and depth edges. It
-    /// belongs in this pass rather than in one of its own precisely because the snap is what
-    /// would otherwise erase it — anything composited after it is off-palette by
-    /// construction. The palette itself comes from
+    /// Watercolour and pen, in that order. Two things that are not colour run immediately
+    /// before the snap, both by moving the colour in Oklab so that what they draw still
+    /// lands on a palette entry: <see cref="InkShape"/> draws lines along lightness and
+    /// depth edges, and <see cref="NoiseShape"/> adds paper tooth, dither or spatter when it
+    /// is asked to. They belong in this pass rather than in passes of their own precisely
+    /// because the snap is what would otherwise erase them — anything composited after it is
+    /// off-palette by construction. The palette itself comes from
     /// <see cref="PastelPalette"/> rather than a serialized array so the PC and mobile
     /// renderers cannot drift into showing different looks.
     /// </para>
@@ -53,6 +54,10 @@ namespace SpaceGame.World.Environment
             /// <b>set them on both renderers</b>.
             /// </summary>
             public InkShape ink = InkShape.Default;
+
+            /// <summary>Optional noise before the snap. <see cref="NoiseKind.None"/> by
+            /// default: it is a dial to reach for, not part of the committed look.</summary>
+            public NoiseShape noise = NoiseShape.Default;
 
             /// <summary>
             /// The lattice the palette is built from. <see cref="System.NonSerialized"/>
@@ -104,6 +109,13 @@ namespace SpaceGame.World.Environment
             private static readonly int InkDepthThresholdId =
                 Shader.PropertyToID("_InkDepthThreshold");
             private static readonly int InkSoftnessId = Shader.PropertyToID("_InkSoftness");
+            private static readonly int InkWidthId = Shader.PropertyToID("_InkWidth");
+            private static readonly int InkTintId = Shader.PropertyToID("_InkTint");
+            private static readonly int InkColorId = Shader.PropertyToID("_InkColor");
+            private static readonly int NoiseKindId = Shader.PropertyToID("_NoiseKind");
+            private static readonly int NoiseAmountId = Shader.PropertyToID("_NoiseAmount");
+            private static readonly int NoiseScaleId = Shader.PropertyToID("_NoiseScale");
+            private static readonly int NoiseDensityId = Shader.PropertyToID("_NoiseDensity");
             private readonly Settings settings;
             private readonly Vector4[] paletteLinear = new Vector4[MaxPaletteSize];
             private readonly Vector4[] paletteOklab = new Vector4[MaxPaletteSize];
@@ -191,6 +203,16 @@ namespace SpaceGame.World.Environment
                 material.SetFloat(InkLumaThresholdId, settings.ink.lumaThreshold);
                 material.SetFloat(InkDepthThresholdId, settings.ink.depthThreshold);
                 material.SetFloat(InkSoftnessId, settings.ink.softness);
+                material.SetFloat(InkWidthId, settings.ink.width);
+                material.SetFloat(InkTintId, settings.ink.tint);
+                // Converted here rather than per pixel: the pen is one colour for the whole
+                // frame, and the shader works in Oklab throughout.
+                material.SetVector(InkColorId,
+                    PastelPalette.LinearToOklab(settings.ink.color.linear));
+                material.SetFloat(NoiseKindId, (int)settings.noise.kind);
+                material.SetFloat(NoiseAmountId, settings.noise.amount);
+                material.SetFloat(NoiseScaleId, settings.noise.scale);
+                material.SetFloat(NoiseDensityId, settings.noise.density);
                 var destDesc = renderGraph.GetTextureDesc(source);
                 destDesc.name = "_PastelQuantizeTemp";
                 destDesc.clearBuffer = false;

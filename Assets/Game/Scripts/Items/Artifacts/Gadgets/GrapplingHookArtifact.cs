@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FMODUnity;
 using Unity.Netcode;
 using UnityEngine;
@@ -59,7 +60,7 @@ namespace SpaceGame.Items
     /// player prefabs, so every remote grapple was invisible for as long as that component shipped.
     /// </para>
     /// </summary>
-    public class GrapplingHookArtifact : ToolItem, IItemDeferredRestore
+    public class GrapplingHookArtifact : ToolItem, IItemDeferredRestore, ICuttableRope
     {
         /// <summary>
         /// Owner-run: the swing IS the item. A round trip through the server would sit inside
@@ -292,10 +293,69 @@ namespace SpaceGame.Items
             }
 
             _channel = channel;
+
+            // The same seam decides whether this rope can be cut, because it asks the same question:
+            // does this machine hold a live copy of the item. See ICuttableRope.
+            CuttableRopes.Unregister(this);
+
             if (_channel == null) return;
+
+            CuttableRopes.Register(this);
 
             _channel.NetOn(NetMsg.GrappleRope, OnRopeMessage);
             if (manager != null) manager.OnClientConnectedCallback += OnPeerJoined;
+        }
+
+        // ── Being cut ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The cable from the hand to the dart, and only once the dart is set.
+        ///
+        /// <para>
+        /// A dart still flying is not a rope: the cable behind it is drawn along a lerp of the
+        /// flight, it holds nothing yet, and cutting it would be a coin toss on a thing that is out
+        /// for a fraction of a second.
+        /// </para>
+        /// <para>
+        /// Ends at <see cref="RopeEnd"/> rather than the anchor point, which is where the cable is
+        /// actually DRAWN — the dart stands proud of the surface it is set in and the cable
+        /// terminates on its eye.
+        /// </para>
+        /// </summary>
+        public void AppendSpan(List<Vector3> into)
+        {
+            if (!_isGrappling) return;
+
+            into.Add(GetRopeStart());
+            into.Add(RopeEnd(CurrentAnchor()));
+        }
+
+        /// <summary>
+        /// Cut the cable, from the server, for a swing that is not the server's to end.
+        ///
+        /// <para>
+        /// The release is normally the swinger's own — <see cref="AnnounceRelease"/> — because the
+        /// body it hands back is theirs and only their machine moves it. A cut is the one release
+        /// somebody ELSE decides, so it travels the other way down the same message: the server
+        /// broadcasts <see cref="GrappleVerb.Off"/> on the swinger's channel and every machine
+        /// including the swinger's reaches <c>StopGrapple</c> from the announcement, which is what
+        /// hands the body and the lens back. No new verb, because "this rope is off" is what the
+        /// old one already means.
+        /// </para>
+        /// </summary>
+        public void Cut()
+        {
+            if (!_isGrappling || owner == null) return;
+
+            NetMessaging.NetSendTo(owner, NetMsg.GrappleRope,
+                                   new NetArg { A = GrappleVerb.Off }, NetTo.All);
+
+            // A DEDICATED server is not among SendTo.ClientsAndHost and so never hears its own
+            // broadcast — it would go on holding a rope nobody else has, and go on offering it to
+            // the next cut. A host DOES hear it, inline, and has already run this by the time the
+            // send returns, which is what makes the call below the no-op its first line is written
+            // to be.
+            StopGrapple();
         }
 
         /// <summary>

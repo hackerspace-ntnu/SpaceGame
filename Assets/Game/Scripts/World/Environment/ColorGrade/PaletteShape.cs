@@ -19,7 +19,12 @@ namespace SpaceGame.World.Environment
         public int hueCount;
 
         /// <summary>Lightness steps, palest first. Not a ramp: the committed values are
-        /// hand-tuned and unevenly spaced.</summary>
+        /// hand-tuned and unevenly spaced, and they sit high because the look is pastel —
+        /// nothing below Oklch L ~0.69 can read as one, so the top rows are where the
+        /// character is. The bottom two rows are deliberately *not* pastel: an all-pastel
+        /// lattice was tried here and rejected, because with no dark entries every shadow
+        /// in the frame snapped to the same pale colour and the image lost its depth. The
+        /// grey ramp below carries the darks.</summary>
         public float[] lightnesses;
 
         /// <summary>Fractions of the in-gamut chroma ceiling at each hue and lightness —
@@ -38,7 +43,11 @@ namespace SpaceGame.World.Environment
 
         /// <summary>Ceiling on the vivid variant, before the per-hue gamut fit. Without
         /// it the top fraction sits on the sRGB boundary and the palette goes neon, which
-        /// is not this filter's look. Raising it past ~0.22 buys no measurable
+        /// is not this filter's look. It is the single strongest lever on whether the
+        /// result reads as pastel: at 0.20 with a 1.0 fraction the lattice held entries
+        /// like #B0005C and #FF772D, and 37% of its colours passed an HSV pastel test
+        /// (S <= 0.43, V >= 0.60); at 0.13 with a 0.75 top fraction, 61% do, and 63 of the
+        /// 64 entries in the two lit rows do. Raising it past ~0.22 buys no measurable
         /// separation.</summary>
         public float chromaCeiling;
 
@@ -57,9 +66,9 @@ namespace SpaceGame.World.Environment
         public static PaletteShape Default => new PaletteShape
         {
             hueCount = 16,
-            lightnesses = new[] { 0.92f, 0.82f, 0.72f, 0.61f, 0.49f, 0.36f },
-            chromaFractions = new[] { 0.5f, 1f },
-            chromaCeiling = 0.20f,
+            lightnesses = new[] { 0.95f, 0.88f, 0.8f, 0.7f, 0.58f, 0.43f },
+            chromaFractions = new[] { 0.35f, 0.75f },
+            chromaCeiling = 0.13f,
             neutralCount = 12,
             neutralMinL = 0.16f,
             neutralMaxL = 0.97f,

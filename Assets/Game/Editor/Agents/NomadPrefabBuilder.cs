@@ -52,6 +52,13 @@ namespace SpaceGame.EditorTools
             /// the right hand and fired when provoked. Mutually exclusive with the staff.
             /// </summary>
             public bool RandomWeapon;
+
+            /// <summary>
+            /// Multiplies every wind amplitude on this character's cloth. The amplitudes are
+            /// tuned for the Nomad's cloak; a sand nomad's long scarf is nearly twice that
+            /// length and reads as a flag at the same setting.
+            /// </summary>
+            public float ClothWindScale = 1f;
         }
 
         private const string CharacterFolder = "Assets/Game/Prefabs/Agents/Characters";
@@ -79,6 +86,9 @@ namespace SpaceGame.EditorTools
             FbxPath = $"{ModelFolder}/nomad_{name.ToLowerInvariant()}.fbx",
             PrefabPath = $"{CharacterFolder}/Nomad_{name}.prefab",
             RandomWeapon = true,
+            // A third of the cloak's motion: there is a lot of cloth on these, and at full
+            // strength the scarf flagged rather than hung.
+            ClothWindScale = 0.35f,
         };
 
         // What a sand nomad may be carrying. Ranged artifacts only: NpcItemUseModule fires the
@@ -283,7 +293,7 @@ namespace SpaceGame.EditorTools
 
                 AlignSoleToRoot(root, model);
 
-                ApplyClothMaterial(model);
+                ApplyClothMaterial(model, recipe);
                 ConfigureAnimator(model);
                 ConfigurePhysics(root);
                 AddAgentStack(root, recipe);
@@ -488,7 +498,7 @@ namespace SpaceGame.EditorTools
         /// piece rigid and blow the other inside out.
         /// </para>
         /// </summary>
-        private static Material EnsureClothMaterial(string meshName, ClothAnchor anchor)
+        private static Material EnsureClothMaterial(string meshName, ClothAnchor anchor, float windScale)
         {
             var shader = Shader.Find("SpaceGame/ClothWind");
             if (shader == null)
@@ -537,7 +547,7 @@ namespace SpaceGame.EditorTools
             // 0.5 m it was being thrown nearly three times its own length off the body, which is
             // what read in-game as a flap juddering back and forth and as loose bits floating
             // beside the character.
-            float scale = Mathf.Clamp(anchor.WorldDrop / ReferenceCapeDrop, 0.05f, 1f);
+            float scale = Mathf.Clamp(anchor.WorldDrop / ReferenceCapeDrop, 0.05f, 1f) * windScale;
 
             mat.SetFloat("_WindStrength", 0.14f * scale);
             mat.SetFloat("_Turbulence", 0.18f * scale);
@@ -644,7 +654,7 @@ namespace SpaceGame.EditorTools
         /// with -- the .blend paints the nomad across ~40 materials, and flattening them onto one
         /// body colour throws away the whole read of the character.
         /// </summary>
-        private static void ApplyClothMaterial(GameObject model)
+        private static void ApplyClothMaterial(GameObject model, NomadRecipe recipe)
         {
             int dressed = 0;
             foreach (var renderer in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -653,7 +663,7 @@ namespace SpaceGame.EditorTools
 
                 if (!TryMeasureClothAnchor(renderer, out ClothAnchor anchor)) continue;
 
-                var cloth = EnsureClothMaterial(renderer.gameObject.name, anchor);
+                var cloth = EnsureClothMaterial(renderer.gameObject.name, anchor, recipe.ClothWindScale);
                 if (cloth == null) continue;
 
                 var mats = new Material[Mathf.Max(1, renderer.sharedMaterials.Length)];
@@ -1725,6 +1735,35 @@ namespace SpaceGame.EditorTools
         /// (they walk), the start, and the two chatter lines that mention birds.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// Re-tunes the cloth wind on the built sand nomads without rebuilding them. The wind
+        /// lives in the shared material assets, which this rewrites from the recipe's
+        /// <see cref="NomadRecipe.ClothWindScale"/>; the prefabs already reference them.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Retune Sand Nomad Cloth Wind")]
+        public static void RetuneSandNomadCloth()
+        {
+            foreach (var recipe in SandNomads)
+            {
+                var contents = PrefabUtility.LoadPrefabContents(recipe.PrefabPath);
+                if (contents == null)
+                {
+                    Debug.LogWarning($"[NomadPrefabBuilder] No prefab at {recipe.PrefabPath}; build it first.");
+                    continue;
+                }
+                try
+                {
+                    var model = contents.transform.Find("Model");
+                    if (model != null) ApplyClothMaterial(model.gameObject, recipe);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>Only the caravan step, for a rerun after the prefabs already exist.</summary>
         [MenuItem("Tools/SpaceGame/Agents/Place Sand Nomad Caravan")]
         public static void PlaceSandNomadCaravan()

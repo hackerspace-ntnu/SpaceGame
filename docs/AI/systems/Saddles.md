@@ -22,11 +22,7 @@ symptoms:
   - "looking at the saddle always offers to ride, never to take it off"
   - "the saddle is the right size for the world but too small for the animal wearing it"
 reads_with: [AgentSystem, Backpack, Artifacts, Vehicles]
-<<<<<<< HEAD
-updated: 2026-09-06
-=======
 updated: 2026-09-07
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
 ---
 
 # Saddles

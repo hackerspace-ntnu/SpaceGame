@@ -9,8 +9,8 @@ using UnityEngine;
 namespace SpaceGame.Characters
 {
     /// <summary>
-    /// Pulls the player's own camera back and up while it is enabled, and puts it back exactly
-    /// where it was when it is not.
+    /// Pulls the player's own camera back, up and off the shoulder while it is enabled, and puts
+    /// it back exactly where it was when it is not.
     ///
     /// <para>
     /// <b>It moves the existing camera rather than spawning one.</b> The mount's third-person
@@ -26,6 +26,14 @@ namespace SpaceGame.Characters
     /// compounds on the last and the camera walks off into the desert. <c>PlayerLook</c> owns the
     /// lens's ROTATION and is left alone; this only writes position.
     /// </para>
+    /// <para>
+    /// <b>Moving the lens moves the AIM with it unless somebody says otherwise.</b> Here the eye
+    /// and the view are one object, which is precisely the case <see cref="AimProvider"/> treats
+    /// as "no parallax to correct" — so a displaced lens aims out of a point behind the player,
+    /// through their own back. While this is enabled the provider is handed an anchor standing at
+    /// the rest eye, and the ray goes back to being built by convergence: out of the player,
+    /// toward whatever the crosshair covers.
+    /// </para>
     /// </summary>
     [DefaultExecutionOrder(960)]
     public class JetpackThirdPerson : MonoBehaviour
@@ -37,6 +45,15 @@ namespace SpaceGame.Characters
         [Tooltip("How far above the eye, metres. A little, so the shot looks down the player's " +
                  "back rather than through the back of their helmet.")]
         [SerializeField] private float height = 0.9f;
+
+        [Tooltip("How far to the side of the eye, metres. Positive is the player's right. The " +
+                 "reason it is not zero: dead behind the helmet the player's own body sits under " +
+                 "the crosshair, so the one thing they are aiming at is the one thing they cannot " +
+                 "see. Stepping the lens off the spine puts the body to one side and gives the " +
+                 "crosshair clear air. It has to clear the PACK, not the body — the pods stand " +
+                 "well outboard of the shoulders — which is why it is wider than a third-person " +
+                 "shot usually needs.")]
+        [SerializeField] private float shoulder = 1.35f;
 
         [Tooltip("How fast the lens travels between first and third person, per second. Not " +
                  "instant: a cut on the frame the motors light reads as a camera bug rather than " +
@@ -53,9 +70,25 @@ namespace SpaceGame.Characters
         [SerializeField] private LayerMask blocking = ~0;
 
         private PlayerLook look;
+        private AimProvider aim;
         private Transform lens;
         private Vector3 restLocalPosition;
         private bool captured;
+
+        /// <summary>
+        /// A transform standing where the eye WOULD be, handed to <see cref="AimProvider"/> for as
+        /// long as the lens is stepped away from it.
+        ///
+        /// <para>
+        /// Without it the aim is taken from the displaced lens, whose forward runs through the
+        /// player's own back on its way to the target: shots leave the shoulder pointing at
+        /// nothing the crosshair is over. A child of the LENS rather than of the eye parent, so it
+        /// wears the look rotation live rather than a frame late — only its position has to be
+        /// written back each frame, and a centimetre of stale position is nothing next to a stale
+        /// look angle.
+        /// </para>
+        /// </summary>
+        private Transform eyeRest;
 
         /// <summary>
         /// How far out the view currently is, 0..1. Held across enable/disable so a flight that
@@ -66,6 +99,7 @@ namespace SpaceGame.Characters
         private void Awake()
         {
             look = GetComponentInChildren<PlayerLook>();
+            aim = GetComponentInChildren<AimProvider>();
             if (look != null) lens = look.cameraRoot;
 
             Capture();
@@ -81,6 +115,21 @@ namespace SpaceGame.Characters
 
             restLocalPosition = lens.localPosition;
             captured = true;
+
+            eyeRest = new GameObject("Jetpack Eye Rest").transform;
+            eyeRest.SetParent(lens, false);
+            SeatEyeRest();
+        }
+
+        /// <summary>Stand <see cref="eyeRest"/> back at the first-person eye, wherever the lens is now.</summary>
+        private void SeatEyeRest()
+        {
+            if (eyeRest == null) return;
+
+            Transform parent = lens.parent;
+            eyeRest.position = parent != null
+                ? parent.TransformPoint(restLocalPosition)
+                : lens.position;
         }
 
         private void OnEnable()
@@ -90,15 +139,21 @@ namespace SpaceGame.Characters
             // The player's own body and pack are hidden from their own camera in first person.
             // In third person they are the thing being looked at.
             if (look != null) look.SetFirstPersonHidden(false);
+
+            // The aim has to keep leaving the player rather than the lens, or every shot starts
+            // metres behind them and runs through their own back. See AimProvider.SetEyeAnchor.
+            if (aim != null && eyeRest != null) aim.SetEyeAnchor(eyeRest);
         }
 
         private void OnDisable()
         {
             if (look != null) look.SetFirstPersonHidden(true);
+            if (aim != null) aim.ClearEyeAnchor();
 
             // Put it back, on this frame rather than over the next few: the component is disabled
             // when the flight ends, so there is nothing left running to finish an ease.
             if (lens != null && captured) lens.localPosition = restLocalPosition;
+            SeatEyeRest();
             extent = 0f;
         }
 
@@ -114,9 +169,11 @@ namespace SpaceGame.Characters
             // only ever yaws.
             Vector3 wanted = restLocalPosition
                              + Vector3.back * (distance * extent)
-                             + Vector3.up * (height * extent);
+                             + Vector3.up * (height * extent)
+                             + Vector3.right * (shoulder * extent);
 
             lens.localPosition = PulledIn(wanted);
+            SeatEyeRest();
         }
 
         /// <summary>
@@ -124,7 +181,9 @@ namespace SpaceGame.Characters
         ///
         /// <para>
         /// A sphere cast rather than a ray, because a ray threads gaps a camera cannot fit through
-        /// and the failure is the near plane ending up inside a rock. Cast from the resting eye —
+        /// and the failure is the near plane ending up inside a rock. It is cast along the whole
+        /// offset — back, up and sideways together — so the shoulder step is pulled in by the same
+        /// wall that stops the step back, and the lens never slides through a corner. Cast from the resting eye —
         /// which is inside the player's own head, so the player's colliders have to be ignored;
         /// <c>QueryTriggerInteraction.Ignore</c> also keeps interaction volumes from shoving the
         /// shot about.

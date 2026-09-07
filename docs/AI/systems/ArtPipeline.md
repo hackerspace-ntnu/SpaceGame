@@ -35,6 +35,7 @@ symptoms:
   - "a mesh renders inside-out in Unity and looks correct in Blender"
   - "_zverify reports a clash in the assembled model that the component file it came from never showed"
   - "a bevelled bezel has a chamfer groove running across its face at every corner"
+  - "AnimationEvent 'X' has no receiver! Are you missing a component?, once per step"
 reads_with: [Vehicles, PlayerShip, AgentSystem, Backpack]
 updated: 2026-09-07
 ---
@@ -128,7 +129,7 @@ N/A for the art assets themselves. Builders that emit spawnable prefabs must sta
 
 ## Gotchas
 
-- **A borrowed rig's loose `.anim` clips bind by transform path, so the Animator must sit on the FBX instance root.** The Clanker's nine clips (`Assets/ThirdParty/RedPlanetRampage/Animation/rig.001_*.anim`) address `rig.001/root/DEF-…`; put the Animator on the prefab root above the model and every curve binds to nothing, silently. The body is also 9.65 m tall in the file, so [`ClankerBuilder`](Assets/Game/Editor/Agents/ClankerBuilder.cs) scales the model *child* to 3.2 m and keeps the collider and `NavMeshAgent` on the unscaled root; the walk clip's stride speed is measured off the clip at that scale rather than written down. RPR's materials use its own dither shader graph and are not imported — the body wears three palette copies made under `Materials/Characters/Clanker_*.mat`.
+- **A borrowed rig's loose `.anim` clips bind by transform path, so the Animator must sit on the FBX instance root.** The Clanker's nine clips (`Assets/ThirdParty/RedPlanetRampage/Animation/rig.001_*.anim`) address `rig.001/root/DEF-…`; put the Animator on the prefab root above the model and every curve binds to nothing, silently. The body is also 9.65 m tall in the file, so [`ClankerBuilder`](Assets/Game/Editor/Agents/ClankerBuilder.cs) scales the model *child* to 3.2 m and keeps the collider and `NavMeshAgent` on the unscaled root; the walk clip's stride speed is measured off the clip at that scale rather than written down. RPR's materials use its own dither shader graph and are not imported — the body wears three palette copies made under `Materials/Characters/Clanker_*.mat`. **A borrowed clip also carries the donor game's AnimationEvents.** Six of those clips called `PlayWalkSound`, a method that exists nowhere in this project, so every Clanker logged `'Body' AnimationEvent 'PlayWalkSound' ... has no receiver!` on every stride — once per event per instance, enough to bury the console. The events were stripped (`m_Events: []`); agents here pace footsteps from [`EntityAudioModule`](Assets/Game/Scripts/agents/Audio/EntityAudioModule.cs) on a timer, not from clip events, and no prefab uses that module yet. Grep a newly vendored clip for `functionName:` before wiring it into a controller.
 - **Some library `.blend` files cannot be opened by Blender 4.2**, the only Blender installed —
   `palette.blend`, `components/props/supply_crate.blend`, `models/creatures/dune_rat.blend`, all
   *"not a blend file"*, written by a newer one. Assume more. Never "fix" one by re-running its

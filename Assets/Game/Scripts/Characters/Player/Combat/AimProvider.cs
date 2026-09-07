@@ -55,6 +55,12 @@ namespace SpaceGame.Characters
         private Transform externalCarrier;
 
         /// <summary>
+        /// Where the eye is while this player's OWN lens has been stepped away from it. See
+        /// <see cref="SetEyeAnchor"/>.
+        /// </summary>
+        private Transform eyeAnchor;
+
+        /// <summary>
         /// The transform every aim in the game is measured from, or null if none is wired. Exposed
         /// so other systems can agree with the aim rather than hunting for a camera of their own —
         /// GetComponentInChildren&lt;Camera&gt; finds inactive and secondary cameras too, and a
@@ -66,7 +72,31 @@ namespace SpaceGame.Characters
         /// through. Read <see cref="GetAimRay"/> for a direction; read this for a position.
         /// </para>
         /// </summary>
-        public Transform AimTransform => playerCamera != null ? playerCamera.transform : null;
+        public Transform AimTransform =>
+            eyeAnchor != null ? eyeAnchor : playerCamera != null ? playerCamera.transform : null;
+
+        /// <summary>
+        /// Say that the player's own lens is no longer AT the eye, and where the eye actually is.
+        ///
+        /// <para>
+        /// The mount hands the view to a second camera; the jetpack instead steps the player's own
+        /// lens back over their shoulder, so <see cref="ViewCamera"/> and the eye are the same
+        /// object at two different places, and the identity case below — "the eye is the view, so
+        /// the ray is its forward" — silently stops being true. Left alone, the ray leaves a point
+        /// several metres behind the player pointing straight ahead: it passes through their own
+        /// back, and everything aimed lands where the crosshair is not.
+        /// </para>
+        /// <para>
+        /// Given an anchor, the eye is the anchor and the aim is built by the same CONVERGENCE the
+        /// mount uses — out of the player, toward what their view's crosshair covers. The anchor
+        /// carries the look rotation as well as the rest position, so the first-person answer is
+        /// still right for anything that reads <see cref="AimTransform"/> directly.
+        /// </para>
+        /// </summary>
+        public void SetEyeAnchor(Transform anchor) => eyeAnchor = anchor;
+
+        /// <summary>Give the eye back to the lens. The mirror of <see cref="SetEyeAnchor"/>.</summary>
+        public void ClearEyeAnchor() => eyeAnchor = null;
 
         /// <summary>
         /// Hand this player's view to a camera that is not their own eye, and name the machine

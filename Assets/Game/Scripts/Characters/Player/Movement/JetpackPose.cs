@@ -101,13 +101,34 @@ namespace SpaceGame.Characters
             if (hips == null) return;
             if (!Active && Mathf.Abs(pitch) < 0.05f && Mathf.Abs(roll) < 0.05f) return;
 
-            // Right and forward come off the BODY, not the bone: the hips' own axes depend on how
-            // the rig was exported and on whatever the clip has just done to them, and neither is
-            // a frame anyone wants to think in.
-            Quaternion tilt = Quaternion.AngleAxis(pitch, transform.right)
-                              * Quaternion.AngleAxis(-roll, transform.forward);
+            hips.rotation = Lean(pitch, roll, transform) * hips.rotation;
+        }
 
-            hips.rotation = tilt * hips.rotation;
+        /// <summary>
+        /// The lean, as a world rotation to lay on the body.
+        ///
+        /// <para>
+        /// Right, forward and up come off the BODY, not the bone: the hips' own axes depend on how
+        /// the rig was exported and on whatever the clip has just done to them, and neither is a
+        /// frame anyone wants to think in.
+        /// </para>
+        /// <para>
+        /// <b>A SWING, not a pitch multiplied by a roll.</b> The product of two rotations about
+        /// different horizontal axes is not a pure tilt: it carries a twist about the VERTICAL of
+        /// roughly pitch·roll/2 — 3.6° with both leans at 20, and 13.5° at full stick on both.
+        /// Nothing here asks for yaw, so it read as the pack sitting crooked across the pilot's
+        /// back, and only ever in the air. Leaning the body's up and rotating onto it by the
+        /// shortest arc has no twist by construction, and both leans still land where they were
+        /// asked to. Static so the rule can be pinned without a rig.
+        /// </para>
+        /// </summary>
+        public static Quaternion Lean(float pitchDegrees, float rollDegrees, Transform body)
+        {
+            Vector3 leanedUp = Quaternion.AngleAxis(pitchDegrees, body.right)
+                               * Quaternion.AngleAxis(-rollDegrees, body.forward)
+                               * body.up;
+
+            return Quaternion.FromToRotation(body.up, leanedUp);
         }
     }
 }

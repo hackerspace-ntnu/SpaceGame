@@ -16,11 +16,7 @@ symptoms:
   - "scenes are full of missing prefab instances a GUID grep cannot find"
   - "a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0)"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-<<<<<<< HEAD
-updated: 2026-09-06
-=======
 updated: 2026-09-07
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
 ---
 # Editor Tooling
 

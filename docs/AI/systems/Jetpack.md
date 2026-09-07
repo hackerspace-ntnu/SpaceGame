@@ -48,6 +48,8 @@ symptoms:
   - "the jetpack switches itself off in mid-air while I am working the throttle"
   - "I cannot come down without holding another key"
   - "coming down at full rake holds altitude and there is no reason to hold Space"
+  - "the pack sits crooked across my back, but only while I am flying"
+  - "my shots leave from behind me and hit my own back while the jetpack is lit"
 reads_with: [BodyEquipment, PlayerCharacter, Wingsuit, Multiplayer, Persistence, Visor]
 updated: 2026-09-07
 ---
@@ -75,7 +77,7 @@ Design: [2026-09-07-jetpack-design.md](../../superpowers/specs/2026-09-07-jetpac
 - **The descent is a servo, not a setting.** It solves for the push that cancels gravity *along the direction the nozzles happen to point*, damps the vertical speed toward `DescentSpeed` down, then caps the answer at `HoverAuthority`. So letting go is a lift-off in reverse: the pack settles onto its sink rate from a climb or a dive alike, and lands off it. Sinking at full rake needs a third more thrust than the cap allows, so it **drops faster than it asked to** — nobody wrote that rule, it falls out of solving along the real axis, and it is what stops a descent being free horizontal flight.
 - **`JetThrottle.Cut` is not a control any more; it is what an overheat does to you.** Dead motors, dark nozzles, this world's full 18 m/s² — three times the sink of letting go. The dark flames are the only thing that separates the two from inside the helmet, which is why `ThrottleFraction` is zero for a cut and 0.35 for a descent.
 - **Overheat is a LATCH, not a threshold.** Reaching 100 cuts the motors and sets `Overheated`; nothing relights until heat falls to 20. A bare threshold relights one frame's worth of cooling later and reads as a stutter rather than as a fall. The fall is the whole punishment — `OrnithopterCrash.ImpactDamage` on closing speed prices it, so no damage rule of its own was needed.
-- **It flies in third person, and that is a readability fix rather than a preference.** The machine is on the wearer's BACK: in first person the pods vectoring, the flames scaling and the tips going red are all behind the camera, and the visor gauge is the only feedback left (`GDC-L1-UX-0003`). `JetpackThirdPerson` steps the existing lens back while flying and puts it exactly where it found it afterwards. Serialized off on `JetpackFlight` for anyone who wants the first-person view back.
+- **It flies in third person, and that is a readability fix rather than a preference.** The machine is on the wearer's BACK: in first person the pods vectoring, the flames scaling and the tips going red are all behind the camera, and the visor gauge is the only feedback left (`GDC-L1-UX-0003`). `JetpackThirdPerson` steps the existing lens back, up and **off the shoulder** while flying, and puts it exactly where it found it afterwards. The sideways step is the aiming half of the same fix: dead behind the helmet the player's own body sits under the crosshair, so the target is the one thing the view hides. It has to clear the PACK and not just the body — the pods stand well outboard of the shoulders — which is why `shoulder` is 1.35 m rather than the half-metre a bare third-person shot would need. Serialized off on `JetpackFlight` for anyone who wants the first-person view back.
 - **The pilot is posed STANDING while flying, not falling.** `SetGliding` leaves `PlayerMovement`'s animator writes running — correctly, since a body with no animator updates is the bug the tether was written to stop repeating — so the animator is told, truthfully, that the player is airborne. `JetpackFlight.PoseAnimator` overwrites that at order 150. There is no flight clip yet; the idle is the honest stand-in.
 - **Heat belongs to the pack, not to the flight.** `End` deliberately does not reset it, and `JetpackFlight.Update` keeps cooling while the pack is worn but stowed, so the walk back from a hard flight *is* the cooldown.
 
@@ -160,6 +162,22 @@ Design: [2026-09-07-jetpack-design.md](../../superpowers/specs/2026-09-07-jetpac
 - **A flame rooted at the exhaust disc's CENTRE is half-buried.** The cone starts at the disc's outer face — half the mesh's thickness along the outflow — or the first few centimetres of every plume sit inside the nozzle geometry, which at these sizes is most of the visible root.
 - **The size doubling lives in Unity, not in the .blend.** `jetpack.blend` is hand-built and still being edited, so a scale baked into the model is a change that has to survive the user's next save. `WornSeat` and `ItemGrip` both size a model to a number, so `SizeScale` costs one multiply and touches nothing the artist owns.
 - **The SIZE doubling is Unity's, but the SPACING is the .blend's, and the two are not interchangeable.** `SizeScale = 2` doubles the gap between the pods as well as the pods, so a pair authored on the lash rail's tips (±0.8925) stands almost 4 m across a wearer and misses the rig. `jetpack_mirror.py` seats them at HALF the tip span instead. Fixing this in Unity is impossible by construction: `WornSeat` scales the whole model to `WornFit.size`, so a smaller number shrinks the pods along with the gap and the pack sits exactly the same way on the back.
+- **A lean is a SWING, not a pitch multiplied by a roll.** `JetpackPose` composed
+  `AngleAxis(pitch, right) * AngleAxis(-roll, forward)`, and the product of two rotations about
+  different horizontal axes carries a twist about the VERTICAL of roughly pitch·roll/2 — measured
+  at 3.6 degrees on both leans at 20, and **13.5 degrees at full stick on both**. Nothing in the
+  code asks for yaw, so the pack read as sitting crooked across the pilot's back and only ever in
+  the air, which sends anyone debugging it to the worn model and the seat. Lean the body's up and
+  rotate onto it by the shortest arc (`Quaternion.FromToRotation`) and the twist is zero by
+  construction, with both leans landing exactly where they were asked to. `WingsuitPose` still
+  composes its two the old way.
+- **Stepping the lens away from the eye moves the AIM with it.** `AimProvider` treats "the view IS
+  the eye" as the case with no parallax to correct, and that is decided by comparing transforms —
+  which stays true when the jetpack displaces the player's own lens, so the ray started metres
+  behind the player and ran through their own back on the way out. `JetpackThirdPerson` hands the
+  provider an eye anchor (`SetEyeAnchor`) standing at the captured rest pose for as long as it is
+  enabled, and the ray goes back to being built by convergence. The anchor is a child of the LENS
+  so it wears the look rotation live; only its position is written back each frame.
 - **`JetpackThirdPerson` moves the existing camera; it does not spawn one.** The mount's third-person camera is a whole subsystem — spawned unparented, tagged with `MountRuntimeCamera`, swept by an editor hook because orphans survived domain reloads and rendered over the player's own view for days. The offset is written in `LateUpdate` (after `PlayerLook`'s `Update`) and **always from the pose captured on enable**, never from the current one, or each frame compounds on the last and the lens walks off into the desert. `PlayerLook` still owns the lens's ROTATION and is left alone.
 - **`packSize` 1.8 is a design decision, not a measurement.** The model is 0.67 m; the pack costs about what the ornithopter costs (the wing pack's 1.82), because that is what was asked for. `holdSize` 0.674 and `WornFit.size` 1.105 *are* measurements, printed by `jetpack_export.py` — re-pin them after any re-export that moved a spacing.
 - **The flame's SIZE is baked into the prefab, not read at runtime.** `FlameWidthShare` and `FlameLengthPerRadius` are consumed once, by `JetpackBuilder.Place`, and end up as eight `localScale`s in `Jetpack.prefab`. Editing either constant changes nothing at all until **Build Jetpack** is re-run — no error, no warning, the old flames simply keep their old size. Measure the prefab's `JetFlame_*` scales afterwards rather than trusting the build: a builder run can execute stale code and still log success.

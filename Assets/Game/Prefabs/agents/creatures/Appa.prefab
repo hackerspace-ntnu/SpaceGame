@@ -1186,13 +1186,10 @@ GameObject:
   - component: {fileID: 793474898898371839}
   - component: {fileID: 6649306442298976506}
   - component: {fileID: -6397166421080860470}
-<<<<<<< HEAD
   - component: {fileID: 1088542894018530148}
   - component: {fileID: 7456712760989411983}
-=======
   - component: {fileID: 6410857504872933242}
   - component: {fileID: 5927883062174466355}
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
   m_Layer: 0
   m_Name: Appa
   m_TagString: Untagged
@@ -2052,11 +2049,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
-<<<<<<< HEAD
 --- !u!114 &1088542894018530148
-=======
---- !u!114 &6410857504872933242
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2065,7 +2058,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 3092591699166706021}
   m_Enabled: 1
   m_EditorHideFlags: 0
-<<<<<<< HEAD
   m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
@@ -2089,7 +2081,35 @@ MonoBehaviour:
     breakDamage: 10
   inflationTarget: {fileID: 0}
 --- !u!114 &7456712760989411983
-=======
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69eae6986bef940a180aa26bee3169a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StatusReactionModule
+  priority: 100
+  active: 1
+  reactions:
+  - Kind: 0
+    Response: 1
+  - Kind: 1
+    Response: 2
+  - Kind: 4
+    Response: 2
+--- !u!114 &6410857504872933242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
@@ -2118,7 +2138,6 @@ MonoBehaviour:
     m_Bits: 4294967295
   maxConcurrentRagdolls: 12
 --- !u!114 &5927883062174466355
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2127,27 +2146,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 3092591699166706021}
   m_Enabled: 1
   m_EditorHideFlags: 0
-<<<<<<< HEAD
-  m_Script: {fileID: 11500000, guid: 69eae6986bef940a180aa26bee3169a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StatusReactionModule
-  priority: 100
-  active: 1
-  reactions:
-  - Kind: 0
-    Response: 1
-  - Kind: 1
-    Response: 2
-  - Kind: 4
-    Response: 2
-=======
   m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
 --- !u!1 &3120901560776529387
 GameObject:
   m_ObjectHideFlags: 0

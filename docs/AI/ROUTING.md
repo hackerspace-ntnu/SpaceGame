@@ -232,6 +232,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an NPC's chatter mutes every other NPC of the same kind | [audio](systems/audio.md) |
 | an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject | [Multiplayer](systems/Multiplayer.md) |
 | an oxygen tank stands on end on the mat and eats a third of the leaf | [Oxygen](systems/Oxygen.md) |
+| AnimationEvent 'X' has no receiver! Are you missing a component?, once per step | [ArtPipeline](systems/ArtPipeline.md) |
 | another player disconnecting blacks out my long-throw lighting | [Flashlight](systems/Flashlight.md) |
 | another player gliding stands bolt upright while sliding through the air | [Wingsuit](systems/Wingsuit.md) |
 | another player's head never moves — they stare straight ahead while their view is clearly turning | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -371,6 +372,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my own backpack bounces into view in front of the first-person camera | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my player cannot move at all after loading a saved world | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my saver's key is nowhere in the save JSON | [Persistence](systems/Persistence.md) |
+| my shots leave from behind me and hit my own back while the jetpack is lit | [Jetpack](systems/Jetpack.md) |
 | my tank reads full in my hand but the server is draining it | [SupplyCharge](systems/SupplyCharge.md) |
 | Newtonsoft stack-overflows saving a storm | [Environment](systems/Environment.md) |
 | no flames at all during the descent — nothing appears, and the console is clean | [PlayerShip](systems/PlayerShip.md) |
@@ -386,11 +388,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
 | one pod vectors and the other one does not | [Jetpack](systems/Jetpack.md) |
 | one press seated the player in all four ship chairs at once | [Vehicles](systems/Vehicles.md) |
-<<<<<<< HEAD
-| one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
-=======
 | one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
+| one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
 | only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
@@ -642,6 +641,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the pack I am wearing swings into view in front of my own first-person camera | [Backpack](systems/Backpack.md) |
 | the pack looks exactly the same size in focus mode after I changed PackScale.Factor | [Backpack](systems/Backpack.md) |
 | the pack refuses to take a second oxygen tank | [SupplyCharge](systems/SupplyCharge.md) |
+| the pack sits crooked across my back, but only while I am flying | [Jetpack](systems/Jetpack.md) |
 | the pack unfolds itself flat the moment I put it down, and I wanted it to arrive shut | [Backpack](systems/Backpack.md) |
 | the pack unrolls its mat the moment it lands and I never get to see it shut | [Backpack](systems/Backpack.md) |
 | the pack's status lamp is right for me and wrong on the other player's screen | [Backpack](systems/Backpack.md) |
@@ -1131,8 +1131,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<<<<<<< HEAD
-<!-- 810 symptoms, 287 paths, 48 docs -->
-=======
-<!-- 684 symptoms, 256 paths, 44 docs -->
->>>>>>> 7c061c159cf55bdd20c61e7300dee3fcc8f71757
+<!-- 818 symptoms, 287 paths, 48 docs -->

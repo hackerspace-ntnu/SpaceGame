@@ -76,6 +76,23 @@ Sandstorms, volumetric fog, clouds and the day/night sun. Almost nothing is sent
 
 **Worth knowing:** installing a new screen effect is not just adding it to a list — the render pipeline keeps a second parallel list, and an effect added to only one of them sits in the asset and never runs.
 
+### Tuning how the game looks *(LookLab)*
+
+The game's colours come from a fixed palette — every pixel on screen snaps to the nearest of
+204 colours, which is what gives the flat, poster-like look. Deciding what those 204 colours
+should be used to mean editing code and waiting minutes to see the result, one place in the
+world at a time.
+
+The Look Lab is a photographer's contact sheet for that decision. Screenshots taken around
+the world sit side by side in a browser, and moving a slider repaints all of them at once —
+and the running game with them. Hold a key and it flickers between what you have now and the
+version you saved earlier, because the eye is far better at spotting a change than at
+comparing two things side by side.
+
+It is a workshop, not a wardrobe. You can try as many looks as you like in it, but the game
+still ships with exactly one, written into the code — which is what keeps the palette from
+quietly drifting into a dozen half-finished variants.
+
 ### Doorways, interiors and teleporting *(SceneTransitions)*
 
 Cave and building interiors load alongside the outdoor world rather than replacing it, so stepping back outside is instant and everything you left out there is still alive. A doorway is assembled from three interchangeable pieces — what triggers it, where it sends you, and what the screen does while it happens — so a new kind of door is one new file. Every instant move in the whole game funnels through a single teleport function that also tells legged rigs, riders and pathing agents to rebase their world-space state.

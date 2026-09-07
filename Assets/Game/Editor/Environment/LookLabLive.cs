@@ -1,5 +1,7 @@
 // Drives the installed pastel quantize filter from a file on disk, so a look can be
-// retuned without a recompile, an asset edit or a play-mode restart.
+// retuned without a recompile, an asset edit or a play-mode restart. Carries the blend
+// and the whole palette shape: the shape is what most tuning actually moves, and it only
+// reaches the renderer because PastelQuantizePass.EnsurePalette rebuilds on change.
 //
 // Nothing connects to the Editor. The browser lab POSTs to the local server that served
 // it, that server writes LookLab/live/look.json, and this polls the file's timestamp —
@@ -42,6 +44,7 @@ namespace SpaceGame.EditorTools.Environment
         private static bool restoreCaptured;
         private static bool restoreActive;
         private static float restoreBlend;
+        private static PaletteShape restoreShape;
 
         static LookLabLive()
         {
@@ -130,10 +133,28 @@ namespace SpaceGame.EditorTools.Environment
                 return;
             }
 
+            // Resolved once rather than per feature, so a bad shape is reported once with
+            // the file that carried it rather than once per installed renderer.
+            bool hasPalette = !state.palette.IsUnset;
+            if (hasPalette && !state.palette.Validate(
+                    PastelQuantizeRenderFeature.MaxPaletteSize, out string paletteError))
+            {
+                Debug.LogError($"[LookLab] {path} carries an unbuildable palette: {paletteError} " +
+                               "Nothing was applied.");
+                return;
+            }
+
             int touched = ForEachFeature(pastel =>
             {
                 pastel.SetActive(state.enabled);
                 pastel.settings.blend = state.blend;
+                if (hasPalette)
+                {
+                    // Both features share the one shape instance, and its arrays are
+                    // read-only downstream — the next read of look.json builds fresh
+                    // ones rather than writing into these.
+                    pastel.settings.paletteShape = state.palette;
+                }
             });
 
             if (touched == 0)
@@ -150,8 +171,11 @@ namespace SpaceGame.EditorTools.Environment
                 InternalEditorUtility.RepaintAllViews();
             }
 
+            string palette = hasPalette
+                ? $"palette={state.palette.EntryCount} colours"
+                : "palette=committed";
             Debug.Log($"[LookLab] enabled={state.enabled} blend={state.blend:0.###} " +
-                      $"on {touched} feature(s)");
+                      $"{palette} on {touched} feature(s)");
         }
 
         private static void CaptureRestoreState()
@@ -166,6 +190,7 @@ namespace SpaceGame.EditorTools.Environment
 
                 restoreActive = pastel.isActive;
                 restoreBlend = pastel.settings.blend;
+                restoreShape = pastel.settings.paletteShape;
                 restoreCaptured = true;
             });
         }
@@ -181,6 +206,7 @@ namespace SpaceGame.EditorTools.Environment
             {
                 pastel.SetActive(restoreActive);
                 pastel.settings.blend = restoreBlend;
+                pastel.settings.paletteShape = restoreShape;
             });
 
             restoreCaptured = false;
@@ -216,6 +242,14 @@ namespace SpaceGame.EditorTools.Environment
         {
             public bool enabled;
             public float blend;
+
+            /// <summary>
+            /// Omit it and the committed shape is kept. JsonUtility cannot report a
+            /// missing field, so an absent object arrives here as a zeroed struct —
+            /// <see cref="PaletteShape.IsUnset"/> is how that is told apart from a shape
+            /// somebody actually got wrong.
+            /// </summary>
+            public PaletteShape palette;
         }
     }
 }

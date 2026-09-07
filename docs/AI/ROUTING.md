@@ -29,6 +29,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a bottle sits in the plant forever and never fills | [Oxygen](systems/Oxygen.md) |
 | a builder logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
 | a captive unties themselves by walking to the far knot and clicking there | [LeashSystem](systems/LeashSystem.md) |
+| a captured still already looks posterised before the lab touches it | [LookLab](systems/LookLab.md) |
 | a caught creature can never be let out again once it has been reeled in | [Lasso](systems/Lasso.md) |
 | a cave regenerates on Start and stalls play mode for seconds | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a charge is right on the host and wrong on every client | [SupplyCharge](systems/SupplyCharge.md) |
@@ -118,6 +119,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a pack I left closed on the sand is lying open again after a save and reload | [Backpack](systems/Backpack.md) |
 | a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
 | a palette colour looks darker or duller on screen than the value it was authored at | [Environment](systems/Environment.md) |
+| a palette parameter changes in the lab and nothing on screen changes | [Environment](systems/Environment.md) |
+| a palette parameter changes in the lab and the Editor does not change at all | [LookLab](systems/LookLab.md) |
 | a parked ship, or a wreck loaded from a save, is sitting inside a ball of orange fire | [PlayerShip](systems/PlayerShip.md) |
 | a peaceful creature stands still and lets itself be shot instead of running | [AgentSystem](systems/AgentSystem.md) |
 | a pickup placed in a chunk is stacked ten deep at its authored spot | [Persistence](systems/Persistence.md) |
@@ -383,6 +386,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload | [Ornithopter](systems/Ornithopter.md) |
 | rebuilding the wing pack makes the folded craft stowable on the back panels | [Ornithopter](systems/Ornithopter.md) |
 | remote copies of the creature slide along with their feet still | [AgentSystem](systems/AgentSystem.md) |
+| Render Graph Execution error: The passed in texture handle does not have a valid descriptor | [Environment](systems/Environment.md) |
 | respawning put me on open sand at the world's starting coordinates instead of back in my ship | [GameModes](systems/GameModes.md) |
 | right mouse no longer brings the held item up to the eye | [PlayerCharacter](systems/PlayerCharacter.md) |
 | right-clicking a placed object does nothing | [Placeables](systems/Placeables.md) |
@@ -449,6 +453,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the camera freezes during a cutscene and look input does nothing | [Cutscenes](systems/Cutscenes.md) |
 | the camera shake accessibility slider has no effect | [Cutscenes](systems/Cutscenes.md) |
 | the cell can be lifted straight over the maze | [CruciblePuzzle](systems/CruciblePuzzle.md) |
+| the cell falls into the lava and nothing happens to it | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the cell sits at a different height on the host and on the client | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the character stands in the idle pose instead of the hold pose, or glides while walking | [Artifacts](systems/Artifacts.md) |
 | the collar is drawn in one place and the rope goes taut against another | [Lasso](systems/Lasso.md) |
@@ -537,6 +542,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the item loses its charges or its state when I switch slots or re-equip it | [Inventory](systems/Inventory.md) |
 | the item scanner sits on the far flank of my wrist, where I have to twist my arm to read it | [BodyEquipment](systems/BodyEquipment.md) |
 | the key strip on the terminal renders pink | [Terminal](systems/Terminal.md) |
+| the lab renders a look that no longer matches the world it was captured from | [LookLab](systems/LookLab.md) |
+| the lab's colours are close to the game's but not the same | [LookLab](systems/LookLab.md) |
 | the lamp on my pack stays green even though the tank on it is empty | [Backpack](systems/Backpack.md) |
 | the lantern needs a different button to pick up than every other loose item | [Placeables](systems/Placeables.md) |
 | the laser staff sticks straight out of the mat at 90 degrees instead of lying flat like everything else | [Backpack](systems/Backpack.md) |
@@ -597,6 +604,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the parked ship stands half a metre off its own skirts with nothing under it | [PlayerShip](systems/PlayerShip.md) |
 | the pet prompt appears everywhere on the animal instead of only on its head | [AgentSystem](systems/AgentSystem.md) |
 | the pet prompt never appears no matter where I aim at the creature | [AgentSystem](systems/AgentSystem.md) |
+| the pit is buried in the terrain and only the rim is above ground | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the placement ghost flickers between two cells while the cursor rests on a cell border | [Backpack](systems/Backpack.md) |
 | the placement ghost paints green on a face on the other side of the fold and the drop is refused anyway | [Backpack](systems/Backpack.md) |
 | the plant clunks and hisses its way through a reload | [Oxygen](systems/Oxygen.md) |
@@ -629,7 +637,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
+| the room has no cell in it at all and there is nothing to carry | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the room is solved by flinging the cell past the socket | [CruciblePuzzle](systems/CruciblePuzzle.md) |
+| the room is unsolved again after a reload even though it was beaten | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
 | the rope is drawn in a wood texture, smeared once along its whole length | [Lasso](systems/Lasso.md) |
@@ -657,6 +667,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the schematic turns but hovering a module never names it | [ShipSchematic](systems/ShipSchematic.md) |
 | the screen goes black wherever the ray misses the volume | [Environment](systems/Environment.md) |
 | the screen has a round bright middle, or gradients band into rings | [Environment](systems/Environment.md) |
+| the screen look reverts to the committed one after a script change | [Environment](systems/Environment.md) |
+| the screen look reverts to the committed one after a script change | [LookLab](systems/LookLab.md) |
 | the screen only goes black after the ship has finished crashing, so I watch the impact | [Cutscenes](systems/Cutscenes.md) |
 | the second match starts on the previous match's spawn ring | [GameModes](systems/GameModes.md) |
 | the server teleports a player and it snaps back within a frame | [Multiplayer](systems/Multiplayer.md) |
@@ -771,6 +783,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | with several players the intro takes a minute or two to load and chunks stream in far from the landing site | [PlayerShip](systems/PlayerShip.md) |
 | worn gear is invisible for good after opening and closing the gear screen | [BodyEquipment](systems/BodyEquipment.md) |
 | worn gear sits half a metre below the shoulders and behind the body | [BodyEquipment](systems/BodyEquipment.md) |
+| ZBinningJob writes to bins - you must call JobHandle.Complete | [Environment](systems/Environment.md) |
 
 ## Path → doc
 
@@ -811,6 +824,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/ScriptableObjects/Versus/VersusShipSpawnConfig.asset` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitFlight.cs` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Scripts/World/Environment/ColorGrade/PaletteShape.cs` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitPose.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/GearSaveCodec.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -868,6 +882,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
+| `Assets/Game/Editor/Environment/CruciblePlacement.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
@@ -883,6 +898,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/WingPackItem.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitItem.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal` | [Terminal](systems/Terminal.md) |
+| `Assets/Game/Editor/Environment/CrucibleBuilder.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
@@ -914,6 +930,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/WornSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Presentation/UI/HelmetHUD/` | [Visor](systems/Visor.md) |
 | `Assets/Game/Editor/Creatures/SaddleBuilder.cs` | [Saddles](systems/Saddles.md) |
+| `Assets/Game/Editor/Environment/LookLabLive.cs` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Editor/Items/OxygenGearBuilder.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Editor/Items/OxygenGearBuilder.cs` | [SupplyGauge](systems/SupplyGauge.md) |
@@ -1020,6 +1037,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Core` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Core` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Scripts/Items/Wall` | [Backpack](systems/Backpack.md) |
+| `tools/looklab_palette_dump.mjs` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Editor/Creatures/` | [AgentSystem](systems/AgentSystem.md) |
 | `Assets/Game/Scripts/Vehicles/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Scripts/Portals/` | [Portals](systems/Portals.md) |
@@ -1037,6 +1055,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Prefabs/Items` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Tests/Editor/` | [Testing](systems/Testing.md) |
+| `tools/palette_preview.py` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Art/Models` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Packages/manifest.json` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Editor/` | [EditorTooling](systems/EditorTooling.md) |
@@ -1045,7 +1064,9 @@ Longest match wins.
 | `Assets/Game/Editor` | [ArtPipeline](systems/ArtPipeline.md) |
 | `tools/typecheck.py` | [Testing](systems/Testing.md) |
 | `ProjectSettings/` | [ProjectConfig](systems/ProjectConfig.md) |
+| `tools/looklab.py` | [LookLab](systems/LookLab.md) |
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
+| `LookLab/` | [LookLab](systems/LookLab.md) |
 
-<!-- 753 symptoms, 269 paths, 46 docs -->
+<!-- 766 symptoms, 277 paths, 47 docs -->

@@ -125,3 +125,9 @@ fmod_editor.log
 # Brainstorming mockups — scratch, kept on disk only so they survive a server restart
 .superpowers/
 .agent-staging/
+
+# Look Lab. The live look is ephemeral tuning state rewritten on every slider drag —
+# tracking it would make every session a dirty working tree. tools/looklab.py writes a
+# valid default on first run. The LDR scene packs ARE committed: they are the shared
+# reference the whole team judges a look against.
+LookLab/live/

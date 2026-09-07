@@ -102,6 +102,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | --- | --- | --- |
 | [ArtPipeline](systems/ArtPipeline.md) | How a .blend in the Unity-invisible source library becomes an FBX, material, rig and generated prefab | [Vehicles](systems/Vehicles.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md) |
 | [EditorTooling](systems/EditorTooling.md) | Every custom editor window, menu command, prefab/asset builder and importer hook in the project | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Artifacts](systems/Artifacts.md), [TerrainGeneration](systems/TerrainGeneration.md) |
+| [LookLab](systems/LookLab.md) | Editor-only look-tuning instrument: captured stills repainted in a browser, driving the live Editor | [Environment](systems/Environment.md), [EditorTooling](systems/EditorTooling.md) |
 | [Testing](systems/Testing.md) | EditMode-only NUnit suite, a headless Roslyn type-check, and the two-process batch-mode multiplayer autotest | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [EditorTooling](systems/EditorTooling.md) |
 
 ## Route by path
@@ -129,4 +130,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 46 system docs, 6 redirects -->
+<!-- 47 system docs, 6 redirects -->

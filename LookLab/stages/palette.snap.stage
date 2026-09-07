@@ -1,0 +1,37 @@
+{
+  "id": "palette.snap",
+  "label": "Palette snap",
+  "params": {
+    "hueCount":        { "min": 4,    "max": 32,  "step": 1,     "default": 16, "integer": true, "rebuild": true },
+    "lightnesses":     { "min": 0.02, "max": 1,   "step": 0.01,  "default": [0.92, 0.82, 0.72, 0.61, 0.49, 0.36], "list": true, "rebuild": true },
+    "chromaFractions": { "min": 0,    "max": 1,   "step": 0.01,  "default": [0.5, 1], "list": true, "rebuild": true },
+    "chromaCeiling":   { "min": 0,    "max": 0.4, "step": 0.005, "default": 0.2,  "rebuild": true },
+    "neutralCount":    { "min": 2,    "max": 32,  "step": 1,     "default": 12, "integer": true, "rebuild": true },
+    "neutralMinL":     { "min": 0,    "max": 1,   "step": 0.01,  "default": 0.16, "rebuild": true },
+    "neutralMaxL":     { "min": 0,    "max": 1,   "step": 0.01,  "default": 0.97, "rebuild": true },
+    "blend":           { "min": 0,    "max": 1,   "step": 0.01,  "default": 1 }
+  },
+  "requires": ["palette"]
+}
+---
+// Nearest neighbour in Oklab, mirroring the frag body of
+// Assets/Game/Art/Shaders/Environment/PastelQuantize.shader. `c` arrives linear.
+//
+// "rebuild" params above do not reach this body at all: they describe the lattice, which
+// is built on the CPU and arrives as uPalette. Only `blend` is a uniform here.
+vec3 apply(vec3 c, vec2 uv) {
+  vec3 okl = linearToOklab(clamp(c, 0.0, 1.0));
+
+  int best = 0;
+  float bestDist = 1e10;
+  for (int i = 0; i < uPaletteCount; i++) {
+    vec3 d = okl - texelFetch(uPalette, ivec2(i, 1), 0).rgb;
+    float dist = dot(d, d);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+
+  return mix(c, texelFetch(uPalette, ivec2(best, 0), 0).rgb, P_blend);
+}

@@ -3,48 +3,14 @@ using UnityEngine;
 namespace SpaceGame.World.Environment
 {
     /// <summary>
-    /// The default pastel screen palette and the Oklab conversions the quantize filter
-    /// matches in. Kept apart from the render feature so the colour data and colour
-    /// math can change without touching the render graph plumbing.
+    /// Builds the pastel screen palette from a <see cref="PaletteShape"/>, and holds the
+    /// Oklab conversion the quantize filter matches in. Kept apart from the render
+    /// feature so the colour math can change without touching the render graph plumbing,
+    /// and apart from <see cref="PaletteShape"/> so the numbers can be retuned without
+    /// touching the math.
     /// </summary>
     public static class PastelPalette
     {
-        // 16 hues x 6 lightnesses x 2 chromas + 12 neutrals = 204 colours.
-        //
-        // The hard ceiling is 256 — MaxPaletteSize in PastelQuantizeRenderFeature and
-        // MAX_PALETTE in the shader. The shader walks the whole palette per pixel, so
-        // the count is also the per-pixel cost of a fullscreen pass; this is not a free
-        // dial to max out.
-        private const int HueCount = 16;
-
-        // Chroma is a real axis, not one value bolted to each lightness. That is what
-        // decides how well the filter tells similar colours apart: with a single chroma
-        // per lightness the palette is a thin shell in Oklab, so anything
-        // muted-but-coloured has no entry near it and falls back to the grey ramp.
-        // Measured over a sweep of sRGB, splitting chroma in two cuts the mean distance
-        // to the nearest entry by about a third at the *same* entry count — far better
-        // value than spending those slots on more hues.
-        private static readonly float[] Lightnesses =
-        {
-            0.92f, 0.82f, 0.72f, 0.61f, 0.49f, 0.36f,
-        };
-
-        // Fractions of the chroma ceiling below: a muted and a vivid variant per hue and
-        // lightness. Fractions rather than absolute chroma because sRGB holds very
-        // different amounts of chroma per hue and lightness (0.038 at pale yellow-green,
-        // 0.30 at mid blue) — a fixed pair would be clipped back to the same colour at
-        // some hues and collapse into duplicate entries.
-        private static readonly float[] ChromaFractions = { 0.5f, 1f };
-
-        // Ceiling on the vivid variant. Without it the top fraction sits exactly on the
-        // sRGB boundary and the palette goes neon, which is not this filter's look.
-        // Raising it past ~0.22 buys no measurable separation.
-        private const float ChromaCeiling = 0.20f;
-
-        private const int NeutralCount = 12;
-        private const float NeutralMinL = 0.16f;
-        private const float NeutralMaxL = 0.97f;
-
         // Halving 16 times resolves chroma far finer than an 8-bit channel can show.
         private const int GamutFitIterations = 16;
         private const float GamutEpsilon = 1e-4f;
@@ -53,30 +19,37 @@ namespace SpaceGame.World.Environment
         /// A lattice over Oklch — hue x lightness x chroma — so fields of similar colour
         /// snap to visibly distinct flats, plus a grey ramp so shadows keep their edges
         /// instead of collapsing into mush.
+        ///
+        /// <para>
+        /// The caller is expected to have run <see cref="PaletteShape.Validate"/> first;
+        /// this does no checking, because the two callers that exist both have somewhere
+        /// better to report the problem than a colour array.
+        /// </para>
         /// </summary>
-        public static Color[] Default()
+        public static Color[] Build(in PaletteShape shape)
         {
-            var colors = new Color[HueCount * Lightnesses.Length * ChromaFractions.Length + NeutralCount];
+            var colors = new Color[shape.EntryCount];
             int index = 0;
 
-            for (int h = 0; h < HueCount; h++)
+            for (int h = 0; h < shape.hueCount; h++)
             {
-                float hue = h * (2f * Mathf.PI / HueCount);
-                foreach (float lightness in Lightnesses)
+                float hue = h * (2f * Mathf.PI / shape.hueCount);
+                foreach (float lightness in shape.lightnesses)
                 {
                     // FitChroma of the ceiling *is* the in-gamut maximum: it returns the
                     // ceiling when that fits, and the gamut edge when it does not.
-                    float ceiling = FitChroma(lightness, ChromaCeiling, hue);
-                    foreach (float fraction in ChromaFractions)
+                    float ceiling = FitChroma(lightness, shape.chromaCeiling, hue);
+                    foreach (float fraction in shape.chromaFractions)
                     {
                         colors[index++] = OklchToSrgb(lightness, ceiling * fraction, hue);
                     }
                 }
             }
 
-            for (int n = 0; n < NeutralCount; n++)
+            for (int n = 0; n < shape.neutralCount; n++)
             {
-                float lightness = Mathf.Lerp(NeutralMinL, NeutralMaxL, n / (NeutralCount - 1f));
+                float lightness = Mathf.Lerp(
+                    shape.neutralMinL, shape.neutralMaxL, n / (shape.neutralCount - 1f));
                 colors[index++] = OklchToSrgb(lightness, 0f, 0f);
             }
 

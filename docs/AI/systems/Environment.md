@@ -22,17 +22,21 @@ symptoms:
   - "a palette colour looks darker or duller on screen than the value it was authored at"
   - "the quantizer turns a coloured sky or surface flat grey"
   - "different-coloured surfaces collapse to the same colour under the quantizer"
+  - "a palette parameter changes in the lab and nothing on screen changes"
+  - "the screen look reverts to the committed one after a script change"
   - "the ground does not appear when I look at it from far away, even though the chunks are loaded"
   - "the whole world is missing from high up and the console is clean"
   - "Newtonsoft stack-overflows saving a storm"
   - "fog and clouds do not render at all and the renderer logs that it is missing RendererFeatures"
+  - "Render Graph Execution error: The passed in texture handle does not have a valid descriptor"
+  - "ZBinningJob writes to bins - you must call JobHandle.Complete"
   - "a renderer feature is null even though its sub-asset and script both exist"
   - "the storm's fog and blowing grit are drawn inside a ship or a cave, where the sand cannot reach"
   - "the storm vanishes completely from the window of a ship I am sheltering in"
   - "an authored interior fog volume fades out as soon as I step into the room it is in"
   - "high up during the intro descent the skybox still shows ground-level mountains at eye level"
 reads_with: [Persistence, AgentSystem, ArtPipeline]
-updated: 2026-09-04
+updated: 2026-09-07
 ---
 
 # Environment
@@ -83,7 +87,7 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 | `FogRenderFeature` | [FogRenderFeature.cs](Assets/Game/Scripts/World/Environment/Fog/Rendering/FogRenderFeature.cs) | Single march over ≤8 volumes + bilateral composite. Skipped when `FogVolumes.Push` returns 0 |
 | `VolumetricCloudsRenderFeature` | [VolumetricCloudsRenderFeature.cs](Assets/Game/Scripts/World/Environment/Sky/VolumetricCloudsRenderFeature.cs) | Cloud shell march at `AfterRenderingSkybox`. Skipped when no `CloudLayer.Active` |
 | `GlassDistortionRenderFeature` | [GlassDistortionRenderFeature.cs](Assets/Game/Scripts/World/Environment/Visor/GlassDistortionRenderFeature.cs) | Visor lens warp + chromatic aberration; play-mode only, `RuntimeEnabled` gate |
-| `PastelQuantizeRenderFeature` | [PastelQuantizeRenderFeature.cs](Assets/Game/Scripts/World/Environment/ColorGrade/PastelQuantizeRenderFeature.cs) | Posterises the finished frame to the nearest of 204 colours in Oklab distance — that snap is the **whole** effect: no contours, no dither, no grain, no grade. The palette is a 3D Oklch lattice — **16 hues x 6 lightnesses x 2 chromas**, plus a 12-step **pure grey** ramp (L 0.16-0.97) — built in code by [PastelPalette.cs](Assets/Game/Scripts/World/Environment/ColorGrade/PastelPalette.cs) and **not serialized** on the renderer asset, so the PC and mobile renderers cannot drift apart. Chroma is given as *fractions* (`ChromaFractions` 0.5 / 1.0) of the in-gamut ceiling at that hue and lightness, capped by `ChromaCeiling` (0.20) so the vivid variant does not sit on the sRGB boundary and go neon. Regenerate the contact sheet `palette-preview.png` with `python3 tools/palette_preview.py`, which also fails if its Python port has drifted from the C# (each constant is mutation-tested). `AfterRenderingPostProcessing` so it sees tonemapped LDR; Game cameras only; installed **inactive** via `SpaceGame ▸ Environment ▸ Install Pastel Quantize Filter`, opt-in via the checkmarked `SpaceGame ▸ Environment ▸ Pastel Quantize Filter` menu item (works in play mode). `blend` on the renderer asset is the only knob, and 0 skips the pass entirely |
+| `PastelQuantizeRenderFeature` | [PastelQuantizeRenderFeature.cs](Assets/Game/Scripts/World/Environment/ColorGrade/PastelQuantizeRenderFeature.cs) | Posterises the finished frame to the nearest of 204 colours in Oklab distance — that snap is the **whole** effect: no contours, no dither, no grain, no grade. The palette is a 3D Oklch lattice — **16 hues x 6 lightnesses x 2 chromas**, plus a 12-step **pure grey** ramp (L 0.16-0.97) — built by `PastelPalette.Build` from a [PaletteShape](Assets/Game/Scripts/World/Environment/ColorGrade/PaletteShape.cs) and **not serialized** on the renderer asset, so the PC and mobile renderers cannot drift apart. The shape is `[NonSerialized]`, defaults to `PaletteShape.Default` and is rebuilt by `EnsurePalette` whenever it changes — which is what lets the editor-only [Look Lab](docs/AI/systems/LookLab.md) bridge retune the palette live. Chroma is given as *fractions* (`ChromaFractions` 0.5 / 1.0) of the in-gamut ceiling at that hue and lightness, capped by `ChromaCeiling` (0.20) so the vivid variant does not sit on the sRGB boundary and go neon. Regenerate the contact sheet `palette-preview.png` with `python3 tools/palette_preview.py`, which also fails if its Python port has drifted from the C# (each constant is mutation-tested). `AfterRenderingPostProcessing` so it sees tonemapped LDR; Game cameras only; installed **inactive** via `SpaceGame ▸ Environment ▸ Install Pastel Quantize Filter`, opt-in via the checkmarked `SpaceGame ▸ Environment ▸ Pastel Quantize Filter` menu item (works in play mode). `blend` on the renderer asset is the only *serialized* knob, and 0 skips the pass entirely; the palette shape is tunable at runtime only through the Look Lab bridge, in memory, and a domain reload restores the committed one |
 | `SpaceGame/Sandstorm` | [Sandstorm.shader](Assets/Game/Art/Shaders/Environment/Sandstorm.shader) | Fullscreen storm interior (pass 0 march, pass 1 composite) |
 | `SpaceGame/SandstormWall` | [SandstormWall.shader](Assets/Game/Art/Shaders/Environment/SandstormWall.shader) | Back-face shell, depth test off, march clipped by scene depth |
 | `SpaceGame/VolumetricFog` | [VolumetricFog.shader](Assets/Game/Art/Shaders/Environment/VolumetricFog.shader) | Volume march + 3×3 depth-aware upsample |
@@ -130,6 +134,16 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 
 ## Gotchas
 
+- **A fullscreen pass that reads the camera colour must set `requiresIntermediateTexture = true`.** Otherwise URP may resolve post-processing straight to the back buffer, and at `AfterRenderingPostProcessing` `UniversalResourceData.activeColorTexture` *is* the back buffer — a valid handle with **no descriptor**, so `renderGraph.GetTextureDesc(source)` throws `ArgumentException: The passed in texture handle does not have a valid descriptor` and the frame aborts. That abort is what emits the second, misleading error, `InvalidOperationException: The previously scheduled job ZBinningJob writes to ... bins` from `ForwardLights.PreSetup` on the *next* camera: **fix the descriptor error and the ZBinning one goes with it** — it is not a lighting bug. `PastelQuantizePass` sets the flag in its constructor and still returns early on `resourceData.isActiveTargetBackBuffer`.
+- **A palette parameter used to be able to change nothing, silently.** The palette was built
+  once in `PastelQuantizePass`'s constructor, so a shape set after that — which is what the
+  Look Lab bridge does — was never read again: no error, no effect. `EnsurePalette` rebuilds
+  on change; `blend` hid the problem because scalars are pushed to the material every frame.
+- **The committed look is guarded by `tools/palette_golden.txt`.**
+  `python3 tools/palette_preview.py --check` compares the built palette against it entry for
+  entry, and against the JS port in `LookLab/app/palette.js`. Retuning `PaletteShape.Default`
+  means regenerating the golden file in the same commit — deliberately, so a look never
+  changes by accident.
 - **Renderer feature install is not a list append.** URP keeps `m_RendererFeatures` *and* a parallel `m_RendererFeatureMap` of instance ids; growing one without the other yields a feature that exists in the asset and never runs. Use `SpaceGame ▸ Environment ▸ Install Volumetric Render Features` ([VolumetricSetup.cs](Assets/Game/Editor/Environment/VolumetricSetup.cs)) — idempotent, and also the repair tool. Its `FindRenderers`/`AddFeature` helpers are `internal` so other installers reuse them; [PastelQuantizeSetup.cs](Assets/Game/Editor/Environment/PastelQuantizeSetup.cs) does. **The map entry must be the sub-asset's persistent local file id** — `AddFeature` once wrote `GetInstanceID()`, a transient id, and URP's validation culled the row on the next reload, leaving the feature as a dangling sub-asset that never runs; it now saves first and writes the id from `TryGetGUIDAndLocalFileIdentifier`.
 - **`FindAssets` also returns URP's in-package renderer.** Writing there appears to work and is reverted the next time the package resolves; the installer filters to `Assets/`.
 - **The march target must have alpha.** Never inherit the camera colour format — URP's 32-bit HDR mode is `B10G11R11_UFloatPack32`; coverage writes vanish silently and the composite reads `a = 1`, painting the screen black wherever the ray missed.

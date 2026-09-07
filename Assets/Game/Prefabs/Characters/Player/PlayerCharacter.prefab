@@ -165,6 +165,7 @@ GameObject:
   - component: {fileID: 432666778331733822}
   - component: {fileID: 2466865787249058363}
   - component: {fileID: 5675741815915529215}
+  - component: {fileID: 5584379645804844159}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -966,6 +967,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ForearmBracers
   bracerPrefab: {fileID: 8788718318021149366, guid: 94ef24b33e4c1490685eb8276469cdf3, type: 3}
   resolveTimeoutSeconds: 5
+--- !u!114 &5584379645804844159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+  frozen:
+    seconds: 10
+    shatterDamage: 25
+  slick:
+    seconds: 20
+    grip: 0.05
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  inflationTarget: {fileID: 0}
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0

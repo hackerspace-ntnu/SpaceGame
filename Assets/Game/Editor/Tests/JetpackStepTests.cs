@@ -9,10 +9,11 @@ namespace SpaceGame.Tests
     /// leans on.
     ///
     /// <para>
-    /// Never break: a cut pack falls, and no sequence of inputs mints energy. Emergent: hanging at
-    /// full rake costs altitude, because the hover servo solves along the nozzle axis and is capped
-    /// — nobody wrote that rule, and a "simplification" that solved for vertical thrust directly
-    /// would delete it without failing anything else.
+    /// Never break: a cut pack falls, letting go of Space does NOT, and no sequence of inputs
+    /// mints energy. Emergent: sinking at full rake costs extra altitude, because the descent
+    /// servo solves along the nozzle axis and is capped — nobody wrote that rule, and a
+    /// "simplification" that solved for vertical thrust directly would delete it without failing
+    /// anything else.
     /// </para>
     /// </summary>
     public class JetpackStepTests
@@ -50,36 +51,57 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// A levitate holds station. Started from a climb or a dive it settles back to nearly
-        /// nothing, which is the hover damper doing its job — without it whatever vertical speed
-        /// the pilot arrived with is kept forever.
+        /// Letting go settles onto the sink rate from either side — a climb or a dive — which is
+        /// the descent servo doing its job. Without the damping term whatever vertical speed the
+        /// pilot arrived with is kept forever.
         /// </summary>
         [Test]
-        public void LevitateSettlesToAHover()
+        public void DescendSettlesOntoItsSinkRate()
         {
             JetpackConfig cfg = Config();
 
-            Vector3 fromClimb = Run(JetThrottle.Levitate, JetNozzle.Vertical, Vector3.up * 8f, 4f, cfg);
-            Vector3 fromDive = Run(JetThrottle.Levitate, JetNozzle.Vertical, Vector3.down * 8f, 4f, cfg);
+            Vector3 fromClimb = Run(JetThrottle.Descend, JetNozzle.Vertical, Vector3.up * 8f, 4f, cfg);
+            Vector3 fromDive = Run(JetThrottle.Descend, JetNozzle.Vertical, Vector3.down * 8f, 4f, cfg);
 
-            Assert.That(Mathf.Abs(fromClimb.y), Is.LessThan(1.5f));
-            Assert.That(Mathf.Abs(fromDive.y), Is.LessThan(1.5f));
+            Assert.That(fromClimb.y, Is.EqualTo(-cfg.DescentSpeed).Within(1f));
+            Assert.That(fromDive.y, Is.EqualTo(-cfg.DescentSpeed).Within(1f));
         }
 
         /// <summary>
-        /// The emergent rule. Hanging with the nozzles hard over asks for more thrust than the
-        /// servo is allowed, so the pack sinks — which is what stops a levitate being a free ride
-        /// in any direction the pilot likes.
+        /// The request in one assertion: hands off the key you come down, but nothing like a fall.
+        /// A second of free fall in this world is 18 m/s; a second of letting go is the sink rate.
+        /// If these two ever converge, releasing Space has become the punishment an overheat is
+        /// supposed to be.
         /// </summary>
         [Test]
-        public void HangingAtFullRakeCostsAltitude()
+        public void LettingGoIsASinkAndNotAFall()
+        {
+            JetpackConfig cfg = Config();
+
+            Vector3 released = Run(JetThrottle.Descend, JetNozzle.Vertical, Vector3.zero, 3f, cfg);
+            Vector3 cut = Run(JetThrottle.Cut, JetNozzle.Vertical, Vector3.zero, 3f, cfg);
+
+            Assert.That(released.y, Is.LessThan(0f), "letting go must come DOWN");
+            Assert.That(released.y, Is.GreaterThan(cut.y * 0.5f),
+                        "but at nothing like the speed of dead motors");
+        }
+
+        /// <summary>
+        /// The emergent rule. Sinking with the nozzles hard over asks for more thrust than the
+        /// servo is allowed, so the pack drops faster than its own sink rate — which is what
+        /// stops a descent being free horizontal flight in any direction the pilot likes.
+        /// </summary>
+        [Test]
+        public void SinkingAtFullRakeCostsExtraAltitude()
         {
             JetpackConfig cfg = Config();
             var raked = new JetNozzle { Pitch = cfg.MaxDeflectionDegrees };
 
-            Vector3 after = Run(JetThrottle.Levitate, raked, Vector3.zero, 3f, cfg);
+            Vector3 level = Run(JetThrottle.Descend, JetNozzle.Vertical, Vector3.zero, 3f, cfg);
+            Vector3 after = Run(JetThrottle.Descend, raked, Vector3.zero, 3f, cfg);
 
-            Assert.That(after.y, Is.LessThan(-0.5f), "a levitate at full rake must sink");
+            Assert.That(after.y, Is.LessThan(level.y),
+                        "a raked descent must fall faster than a level one");
             Assert.That(after.z, Is.GreaterThan(1f), "while still drifting the way it is pointed");
         }
 

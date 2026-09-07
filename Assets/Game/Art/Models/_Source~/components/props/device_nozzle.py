@@ -5,10 +5,17 @@ part that has to say what the device does before the device does it
 (`GDC-L1-UX-0004`). Four of them, and no two could be mistaken for each other at a
 glance:
 
-  Bell    a flared rocket bell. Thrust leaves here.
+  Bell    a flared ROCKET bell — narrow throat, bolt flange, a `t ** 1.7` flare.
+          `Coll_SprayerKit_NozzleBell` is a spray cone at 0.18 m across, nearly
+          twice a hand booster's whole body; the two are not the same fitting
+          and neither substitutes for the other.
   Brass   a slim brass-collared tip. Pressure leaves here, into something.
-  Iris    a six-leaf shutter over a wide mouth, authored OPEN. Things come IN here.
-  Bore    a wide grilled intake, built ahead. Nothing uses it yet.
+          Nothing in `sprayer_kit.blend` is a sealed inflator tip.
+  Iris    a six-leaf shutter over a wide mouth, authored OPEN. Things come IN
+          here. `Mesh_SprayerNozzle_Iris` is a single static mesh; this one is
+          six separately hinged leaves, because the vacuum canister's design
+          names the irising shutter as a moving part and a one-piece iris
+          cannot open.
 
 Orientation and origin
 ----------------------
@@ -186,24 +193,6 @@ def iris(coll, mats):
     return ring, leaves
 
 
-# -- Bore (built ahead) ------------------------------------------------------
-
-def bore(coll, mats):
-    """Wide grilled intake. Nothing uses it yet."""
-    p = TrackedPart(mats)
-    n = 12
-    hard = p.loft([(-0.052 * i / n, _ring(0.030 + 0.040 * ((i / n) ** 1.4)))
-                   for i in range(n + 1)], axis='Y', mat=GREY, cap=False)
-    hard += p.tube((0, -0.052, 0), 0.072, 0.008, 0.012, axis='Y', seg=SEG,
-                   mat=STEEL)
-    for i in range(4):
-        a = math.pi * i / 4
-        p.box((0, -0.050, 0), (0.132, 0.006, 0.008), DARK,
-              rot=Matrix.Rotation(a, 4, 'Y'))
-    p.cyl((0, -0.050, 0), 0.014, 0.010, axis='Y', seg=12, mat=DARK)
-    return _emit(p, hard, "Mesh_DeviceNozzle_Bore", coll)
-
-
 def main():
     out = parse_out()
     start(out)
@@ -211,7 +200,6 @@ def main():
     bell(collection("Coll_DeviceNozzle_Bell"), mats)
     brass(collection("Coll_DeviceNozzle_Brass"), mats)
     iris(collection("Coll_DeviceNozzle_Iris"), mats)
-    bore(collection("Coll_DeviceNozzle_Bore"), mats)
     save(out)
     report()
 

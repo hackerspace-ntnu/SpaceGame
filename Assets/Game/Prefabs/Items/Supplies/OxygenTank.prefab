@@ -21,6 +21,8 @@ GameObject:
   - component: {fileID: 3752692850920612230}
   - component: {fileID: 8872900383006417191}
   - component: {fileID: 6158014237651090219}
+  - component: {fileID: 5210719374679526998}
+  - component: {fileID: 8248821520878613246}
   m_Layer: 0
   m_Name: OxygenTank
   m_TagString: Untagged
@@ -307,10 +309,38 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+--- !u!114 &5210719374679526998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2228828423927357812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddb05a1ffb7e43b38c2218ea6241b405, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.SupplyReservoir
   kind: 0
   capacity: 1800
   startingCharge: 1
   readout: {fileID: 5901222068539788741}
+  drainPerSecond: 0
+  refillPerSecond: 0
+  refillDelay: 0
+  restartFraction: 0
+--- !u!114 &8248821520878613246
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2228828423927357812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &5791537073045283580
 GameObject:
   m_ObjectHideFlags: 0

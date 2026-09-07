@@ -12,6 +12,14 @@ namespace SpaceGame.Items
     {
         Oxygen = 0,
         Power = 1,
+
+        /// <summary>
+        /// The chemical a sprayer carries: flamethrower fuel, foam, frictionless film. One kind for
+        /// all of them because a kind's only job is to say which receptacle accepts a thing, and
+        /// nothing in the world accepts any of these — a sprayer's tank is refilled by the item
+        /// itself. Naming each one separately would be inventing distinctions no code can ask about.
+        /// </summary>
+        Reagent = 2,
     }
 
     /// <summary>
@@ -28,7 +36,7 @@ namespace SpaceGame.Items
     /// </para>
     /// <para>
     /// <b>The value is a FRACTION, never a quantity.</b> Capacity lives on the item's prefab
-    /// (<see cref="DockableSupply.Capacity"/>) and the fraction lives on the instance. That is what
+    /// (<see cref="SupplyReservoir.Capacity"/>) and the fraction lives on the instance. That is what
     /// makes a new tank type free: a fifteen-minute tank is a prefab with a different capacity, and
     /// every saved fraction in every existing world still means what it meant. Storing seconds
     /// instead would make each saved number depend on a capacity that is authored and can change,
@@ -45,6 +53,13 @@ namespace SpaceGame.Items
     {
         /// <summary>
         /// State key for the charge fraction. Written into save files — never rename.
+        ///
+        /// <para>
+        /// The ONE key a charge is ever written under, for every reservoir in the game. The hotbar
+        /// wire, the pack placement and the save codec all gate on <see cref="Carries"/>, so a
+        /// second key for "the same number on an item that also has a verb" is a number that
+        /// silently reaches none of them.
+        /// </para>
         /// </summary>
         public const string StateKey = "supply.charge";
 
@@ -55,21 +70,28 @@ namespace SpaceGame.Items
         public const float None = -1f;
 
         /// <summary>
-        /// Capacity per item prefab. Resolved once — it is a
-        /// <c>GetComponent</c> on a prefab, and the pack asks for it once per item per redraw.
+        /// Reservoir per item prefab. Resolved once — it is a hierarchy walk on a prefab, and the
+        /// pack asks for it once per item per redraw.
         /// </summary>
-        private static readonly Dictionary<InventoryItem, DockableSupply> Prefabs = new();
+        private static readonly Dictionary<InventoryItem, SupplyReservoir> Prefabs = new();
 
-        /// <summary>The supply component on an item's prefab, or null if it is not a supply.</summary>
-        public static DockableSupply Of(InventoryItem item)
+        /// <summary>
+        /// The reservoir on an item's prefab, or null if the item holds nothing.
+        ///
+        /// <para>
+        /// The RESERVOIR and not the <see cref="DockableSupply"/> that used to be one: a sprayer
+        /// carries a tank and its own trigger, so an item that holds a charge is no longer the same
+        /// thing as an item you plug into a machine. Asking the wrong one is what left the first
+        /// two tank artifacts unable to replicate their fill.
+        /// </para>
+        /// </summary>
+        public static SupplyReservoir Of(InventoryItem item)
         {
             if (item == null) return null;
 
-            if (Prefabs.TryGetValue(item, out DockableSupply cached)) return cached;
+            if (Prefabs.TryGetValue(item, out SupplyReservoir cached)) return cached;
 
-            DockableSupply found = item.itemPrefab != null
-                ? item.itemPrefab.GetComponent<DockableSupply>()
-                : null;
+            SupplyReservoir found = SupplyReservoir.On(item.itemPrefab);
 
             Prefabs[item] = found;
             return found;
@@ -84,7 +106,7 @@ namespace SpaceGame.Items
         /// </summary>
         public static bool Holds(InventoryItem item, SupplyKind kind)
         {
-            DockableSupply supply = Of(item);
+            SupplyReservoir supply = Of(item);
             return supply != null && supply.Kind == kind;
         }
 
@@ -94,7 +116,7 @@ namespace SpaceGame.Items
         /// </summary>
         public static float CapacityOf(InventoryItem item)
         {
-            DockableSupply supply = Of(item);
+            SupplyReservoir supply = Of(item);
             return supply != null ? supply.Capacity : 0f;
         }
 
@@ -104,7 +126,7 @@ namespace SpaceGame.Items
         /// </summary>
         public static float StartingChargeOf(InventoryItem item)
         {
-            DockableSupply supply = Of(item);
+            SupplyReservoir supply = Of(item);
             return supply != null ? supply.StartingCharge : None;
         }
 

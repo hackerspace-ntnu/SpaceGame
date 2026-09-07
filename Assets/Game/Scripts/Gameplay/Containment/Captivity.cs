@@ -252,7 +252,7 @@ namespace SpaceGame.Gameplay.Containment
                 return null;
             }
 
-            GameObject instance = Object.Instantiate(prefab, point, rotation);
+            GameObject instance = UnityEngine.Object.Instantiate(prefab, point, rotation);
             if (record.Entity.HasScale) instance.transform.localScale = record.Entity.Scale;
 
             // Savers before identity, identity before state. Restore hands each payload to the

@@ -27,7 +27,7 @@ namespace SpaceGame.Gear.Jetpack
         /// <summary>Sideways deflection, degrees. Positive pushes the player right.</summary>
         public float Roll;
 
-        /// <summary>Straight down, thrust straight up. Where a levitating pack settles.</summary>
+        /// <summary>Straight down, thrust straight up. Where a pack with no steering settles.</summary>
         public static JetNozzle Vertical => default;
 
         /// <summary>How far off vertical, degrees. What <c>MaxDeflectionDegrees</c> clamps.</summary>
@@ -102,8 +102,8 @@ namespace SpaceGame.Gear.Jetpack
         /// </para>
         /// <para>
         /// The look is a MULTIPLIER on a key demand rather than a term added to it, deliberately:
-        /// added, looking down would drift a hands-off levitate forwards, and a player who lets go
-        /// of everything must come to a stop or the machine cannot be parked.
+        /// added, looking down would drift a hands-off descent forwards, and a player who lets go
+        /// of everything must come down on the spot or the machine cannot be parked.
         /// </para>
         /// </summary>
         /// <param name="move">Movement input: x strafes, y is forward.</param>

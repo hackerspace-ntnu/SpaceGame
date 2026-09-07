@@ -43,7 +43,7 @@ namespace SpaceGame.Characters
         [SerializeField, Min(0f)] private float maxLean = 38f;
 
         [Tooltip("Extra degrees of nose-down lean at full throttle, on top of the nozzle lean. " +
-                 "What sells the difference between hanging and driving: a levitating pilot is " +
+                 "What sells the difference between coming down and driving: a sinking pilot is " +
                  "nearly upright, a thrusting one is pushed over by their own motors.")]
         [SerializeField, Range(0f, 30f)] private float thrustLean = 10f;
 

@@ -328,7 +328,11 @@ def grip_moulded(p, top, accent=None, length=GRIP_LEN, rake=GRIP_RAKE,
     # the core rather than stacked out of blocks. Stacked blocks were the first
     # cut: each one is straight, the rake is not, and the panel came out as a
     # visible staircase down the side of the grip.
-    panel_t = (0.10, 0.30, 0.52, 0.74, 0.92)
+    # The panel starts at t = 0, flush with `top` and therefore inside the body
+    # it hangs off. Starting it at 0.10 left 13 mm of bare dark core between the
+    # white panel and the white shell, which read as a grip floating clear of
+    # the gun — the panel is what joins the two visually, so it has to reach.
+    panel_t = (0.0, 0.26, 0.50, 0.74, 0.94)
     for sx in (-1, 1):
         sections = []
         for t in panel_t:
@@ -410,12 +414,20 @@ def trigger_collar(p, centre, radius, axis='Z', accent=None, span=0.052):
 # --------------------------------------------------------------------------
 
 def nozzle_bell(p, at, throat_r, mouth_r, depth, mat=SHELL, lip=CHROME,
-                seg=28, axis='Y'):
-    """A flared bell: throat to mouth as one loft, with a rolled lip.
+                seg=28, wall=0.006, axis='Y'):
+    """A flared bell: an OPEN horn from throat to mouth, with a rolled lip.
 
     The foam gun's read. A bell says 'this comes out wide and slow' before the
     player has fired it (GDC-L1-UX-0004), which is the opposite claim to the
     flamethrower's narrow lance.
+
+    Built as a closed loop of rings — outer surface forward to the mouth, the
+    rim, inner surface back to the throat, throat annulus, close — rather than
+    as a capped loft. A capped loft is a solid cone, and a solid cone read as a
+    white disc filling the mouth, hiding the shutter behind it. `cap=False` on
+    its own would leave a one-sided surface that shows its backfaces the moment
+    the item swings past the camera; the same loop trick as
+    `gauntlet_flashlight.reflector`.
     """
     at = Vector(at)
     ax = _vec(axis)
@@ -424,18 +436,24 @@ def nozzle_bell(p, at, throat_r, mouth_r, depth, mat=SHELL, lip=CHROME,
         return [(r * math.cos(2 * math.pi * i / seg),
                  r * math.sin(2 * math.pi * i / seg)) for i in range(seg)]
 
+    d = depth
     # Front is −axis: the mouth is `depth` ahead of the throat.
-    stations = [(0.0, throat_r), (-depth * 0.35, throat_r * 1.25),
-                (-depth * 0.72, mouth_r * 0.78), (-depth, mouth_r)]
-    faces = p.loft([(w, ring(r)) for w, r in stations], axis=axis, mat=mat,
-                   cap=True)
+    outer = [(0.0, throat_r), (-d * 0.35, throat_r * 1.25),
+             (-d * 0.72, mouth_r * 0.78), (-d, mouth_r)]
+    inner = [(-d + 0.004, mouth_r - wall),
+             (-d * 0.72 + 0.004, mouth_r * 0.78 - wall),
+             (-d * 0.35, throat_r * 1.25 - wall), (0.0, throat_r - wall)]
+    loop = outer + inner + [outer[0]]
+    faces = p.loft([(w, ring(r)) for w, r in loop], axis=axis, mat=mat,
+                   cap=False)
     _translate(p, faces, at)
-    faces += p.torus(at - ax * depth, mouth_r * 0.985, mouth_r * 0.075,
+    faces += p.torus(at - ax * d, mouth_r * 0.985, mouth_r * 0.075,
                      axis=axis, maj_seg=seg, min_seg=8, mat=lip)
     return faces
 
 
-def iris_vanes(p, at, mouth_r, count=6, mat=CHROME, open01=0.45, cant=26.0):
+def iris_vanes(p, at, mouth_r, count=6, mat=CHROME, open01=0.45, cant=26.0,
+               outer=0.90, inset=0.020):
     """The bell's shutter, as overlapping vanes set into the mouth.
 
     Bell axis is Y, like every nozzle in this family, so the vane ring lies in
@@ -450,17 +468,24 @@ def iris_vanes(p, at, mouth_r, count=6, mat=CHROME, open01=0.45, cant=26.0):
 
     Each vane is canted `cant` degrees about its own radial axis, so
     consecutive blades overlap in depth rather than meeting edge to edge.
+
+    `outer` and `inset` keep the ring **inside** the bell it sits in. A canted
+    plate's far corner is `sqrt((mid + halflen)^2 + halfwidth^2)` from the
+    axis, not `mid + halflen`, so vanes sized against the mouth radius poked
+    visibly out through the lip — measured, not guessed.
     """
     at = Vector(at)
     faces = []
     inner = mouth_r * (0.20 + 0.55 * open01)
-    mid = (mouth_r + inner) / 2.0
+    out_r = mouth_r * outer
+    mid = (out_r + inner) / 2.0
+    half = (out_r - inner) / 2.0 + 0.003
+    wide = 2 * math.pi * mid / count * 1.15
     for i in range(count):
         a = 2 * math.pi * i / count
         spin = Matrix.Rotation(a, 4, 'Y')
-        c = at + Vector((0.0, 0.008, 0.0)) + spin @ Vector((mid, 0.0, 0.0))
-        faces += p.box(c, (mouth_r - inner + 0.012, 0.005,
-                           2 * math.pi * mid / count * 1.30), mat,
+        c = at + Vector((0.0, inset, 0.0)) + spin @ Vector((mid, 0.0, 0.0))
+        faces += p.box(c, (2 * half, 0.005, wide), mat,
                        rot=spin @ Matrix.Rotation(math.radians(cant), 4, 'X'))
     return faces
 
@@ -508,8 +533,12 @@ def nozzle_fan(p, at, half_width, height, depth, mat=SHELL, lip=CHROME):
     faces = p.loft([(-depth, prof_front), (0.0, prof_back)], axis='Y', mat=mat,
                    cap=True)
     _translate(p, faces, at)
-    # The lip: two rails top and bottom of the slot, so the mouth reads as a
-    # slot rather than as a blunt end.
+    # The slot itself, sunk into the mouth face. Without it the head is a
+    # capped wedge and reads as a blunt block — the one cue that says this
+    # sprays a sheet is a mouth you can see into (GDC-L1-UX-0004).
+    p.box(at + Vector((0.0, -depth + 0.007, 0.0)),
+          (half_width * 1.55, 0.016, height * 0.34), BLACK)
+    # The lip: two rails top and bottom of the slot, framing it.
     for s in (-1, 1):
         faces += p.box(at + Vector((0.0, -depth + 0.004,
                                     s * (height * 0.5 + 0.003))),

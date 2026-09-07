@@ -10,6 +10,33 @@
 
 #include "ArtifactSubstance.hlsl"
 
+// Object space expressed in METRES.
+//
+// Both scales below are documented "per m" and neither meant it. A statue is a posed copy of
+// an imported body, and every `_exportlib` FBX leaves the centimetre file scale on its node
+// (`ls = (100, 100, 100)` — Nomad, Appa, CrabWalker6 and the vehicles all carry it), so a raw
+// `positionOS` on a 1.8 m nomad spans about 0.018. Sampled at `_FlawScale` 7 the whole statue
+// then sits inside a fraction of ONE noise cell: the ice comes out a single flat colour with
+// no fractures in it, and `FrozenRimeClip` flips the entire body on or off in one step
+// instead of creeping over it. Both failures are silent, and both look like a tuning problem
+// rather than a units problem, which is how they survive.
+//
+// The columns of unity_ObjectToWorld are the world-space images of the object-space basis
+// vectors, so their lengths are exactly how many metres one object-space unit spans on each
+// axis. That is a derivation rather than a constant, so it needs no property and no guess: it
+// is right for a centimetre FBX, for a metre one, and for a statue the game has scaled.
+//
+// Unlike StormCloud this needs no axis swap. Every consumer here is triplanar noise, which is
+// a valid pattern in any consistent frame — turning the frame only turns the pattern.
+float3 FrozenObjectMetres(float3 positionOS)
+{
+    float3 metresPerUnit = float3(
+        length(unity_ObjectToWorld._m00_m10_m20),
+        length(unity_ObjectToWorld._m01_m11_m21),
+        length(unity_ObjectToWorld._m02_m12_m22));
+    return positionOS * metresPerUnit;
+}
+
 CBUFFER_START(UnityPerMaterial)
     half4 _BandLit;
     half4 _BandUpper;
@@ -17,13 +44,14 @@ CBUFFER_START(UnityPerMaterial)
     half4 _BandDeep;
 
     float _LightWrap;
-    float _Ambient;
+    float _AmbientFloor;
     float _RimLift;
     float _RimPower;
     float _CoreDarken;
 
     float _FlawScale;
     float _FlawDepth;
+    float _FlawShading;
     float _FlawContrast;
     float _FlawSharpness;
 

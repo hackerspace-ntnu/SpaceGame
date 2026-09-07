@@ -7,10 +7,10 @@ namespace SpaceGame.Tests
     /// The heat budget — the jetpack's only resource, and the only thing that limits a flight.
     ///
     /// <para>
-    /// These are the three durations the design was specified in ("15 seconds of held thrust, 25
-    /// of levitating, and cutting out is what buys more"), so they are asserted as durations
-    /// rather than as rates. A rate that has been retuned is a tuning change; a duration that has
-    /// moved is a design change, and this is where that shows up.
+    /// These are the durations the design was specified in ("15 seconds of held thrust, and
+    /// letting go is what buys more"), so they are asserted as durations rather than as rates. A
+    /// rate that has been retuned is a tuning change; a duration that has moved is a design
+    /// change, and this is where that shows up.
     /// </para>
     /// <para>
     /// In <c>Editor/Tests</c> rather than <c>Tests/EditMode</c>: these touch types in
@@ -44,11 +44,18 @@ namespace SpaceGame.Tests
                         Is.EqualTo(15f).Within(0.1f));
         }
 
+        /// <summary>
+        /// Holding Space is the only source of heat. Nothing else the pilot can ask for adds any,
+        /// so a flight can never overheat without the key being held — which is what makes the
+        /// gauge readable as "how long I have been climbing".
+        /// </summary>
         [Test]
-        public void LevitatingLastsTwentyFiveSeconds()
+        public void OnlyThrustEverOverheats()
         {
-            Assert.That(SecondsUntilOverheat(JetThrottle.Levitate, Config()),
-                        Is.EqualTo(25f).Within(0.1f));
+            Assert.That(SecondsUntilOverheat(JetThrottle.Descend, Config()),
+                        Is.EqualTo(float.PositiveInfinity));
+            Assert.That(SecondsUntilOverheat(JetThrottle.Cut, Config()),
+                        Is.EqualTo(float.PositiveInfinity));
         }
 
         /// <summary>
@@ -72,7 +79,7 @@ namespace SpaceGame.Tests
                 phase += Step;
                 if (phase >= 1f) { phase = 0f; burning = !burning; }
 
-                JetThrottle throttle = burning ? JetThrottle.Thrust : JetThrottle.Cut;
+                JetThrottle throttle = burning ? JetThrottle.Thrust : JetThrottle.Descend;
                 heat = JetpackHeat.Step(heat, throttle, cfg, Step);
 
                 flown += Step;
@@ -80,26 +87,34 @@ namespace SpaceGame.Tests
             }
 
             // The pack never overheats on this duty cycle at all — thrust adds 6.67/s for a second
-            // and the cut takes 10/s back — so the run ends on the 120 s guard. That is the point:
-            // a pilot who cuts out has an unbounded flight and one who does not has fifteen seconds.
+            // and the descent takes 5/s back — so the run ends on the 120 s guard. That is the
+            // point: a pilot who lets go has an unbounded flight and one who never does has
+            // fifteen seconds. It holds on the DESCENT rather than on a cut, which is what makes
+            // the rhythm reachable with the one key the pilot has.
             Assert.That(flown, Is.GreaterThan(15f), "bursting must outlast a held burn");
             Assert.That(thrusting, Is.GreaterThan(15f),
                         "and must buy more THRUST than a held burn, not just more airtime");
         }
 
+        /// <summary>
+        /// Letting go has to REFUND heat, not merely stop spending it. With the crouch cut gone
+        /// this is the only recovery a flying pilot can ask for, so a descent that merely held
+        /// the gauge still would make every flight a one-way fifteen seconds.
+        /// </summary>
         [Test]
-        public void CuttingOutIsTheOnlyThingThatCools()
+        public void LettingGoIsWhatCools()
         {
             JetpackConfig cfg = Config();
 
             var hot = new JetpackHeat { Value = 50f };
 
-            Assert.That(JetpackHeat.Step(hot, JetThrottle.Cut, cfg, 1f).Value,
-                        Is.LessThan(50f), "a cut must cool");
-            Assert.That(JetpackHeat.Step(hot, JetThrottle.Levitate, cfg, 1f).Value,
-                        Is.GreaterThan(50f), "levitating must cost");
+            Assert.That(JetpackHeat.Step(hot, JetThrottle.Descend, cfg, 1f).Value,
+                        Is.LessThan(50f), "sinking must cool");
             Assert.That(JetpackHeat.Step(hot, JetThrottle.Thrust, cfg, 1f).Value,
                         Is.GreaterThan(50f), "thrusting must cost");
+            Assert.That(JetpackHeat.Step(hot, JetThrottle.Cut, cfg, 1f).Value,
+                        Is.LessThan(JetpackHeat.Step(hot, JetThrottle.Descend, cfg, 1f).Value),
+                        "dead motors cool faster than lit ones");
         }
 
         /// <summary>
@@ -113,7 +128,7 @@ namespace SpaceGame.Tests
             var heat = new JetpackHeat { Value = cfg.OverheatAt, Overheated = true };
 
             Assert.That(heat.Allows(JetThrottle.Thrust), Is.False);
-            Assert.That(heat.Allows(JetThrottle.Levitate), Is.False);
+            Assert.That(heat.Allows(JetThrottle.Descend), Is.False);
             Assert.That(heat.Allows(JetThrottle.Cut), Is.True, "a cut is always allowed");
 
             // Cool to just above the relight point: still locked out.
@@ -140,7 +155,7 @@ namespace SpaceGame.Tests
             var heat = new JetpackHeat { Value = 100f, Overheated = true };
 
             Assert.That(heat.Resolve(JetThrottle.Thrust), Is.EqualTo(JetThrottle.Cut));
-            Assert.That(heat.Resolve(JetThrottle.Levitate), Is.EqualTo(JetThrottle.Cut));
+            Assert.That(heat.Resolve(JetThrottle.Descend), Is.EqualTo(JetThrottle.Cut));
         }
 
         [Test]

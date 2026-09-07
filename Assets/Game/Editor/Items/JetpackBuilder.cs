@@ -67,18 +67,24 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The span of the worn pair across the wearer, metres — the measured longest axis of
-        /// <c>Coll_Jetpack_Worn</c> (1.997, its pods on the rail tips at ±0.8925) times
-        /// <see cref="SizeScale"/>.
+        /// <c>Coll_Jetpack_Worn</c> (1.105, its pods at ±0.4462) times <see cref="SizeScale"/>.
         ///
         /// <para>
-        /// At 2x the pods no longer sit ON the rail tips, they overhang them, which is the point:
-        /// the pack is meant to read as a machine strapped to a person rather than as two lamps
-        /// clipped to a bar. Pinned rather than left at zero so a re-export that changed the model
-        /// shows up as a number disagreeing with the exporter's printout rather than as pods that
-        /// quietly drift off the back.
+        /// The pods sit at HALF the lash rail's tip span, not on the tips (2026-09-07: the motors
+        /// missed the rig). <see cref="SizeScale"/> doubles everything, spacing included, so pods
+        /// authored on the tips stood 3.99 m across a wearer and the pack read as two lamps on a
+        /// pole either side of the body. Halving lives in <c>jetpack_mirror.py</c> because it is a
+        /// placement, not a size: <c>WornSeat</c> scales the whole model to this number, so
+        /// shrinking it here would only shrink the pods with it and change nothing about the gap.
+        /// </para>
+        ///
+        /// <para>
+        /// Pinned rather than left at zero so a re-export that changed the model shows up as a
+        /// number disagreeing with the exporter's printout rather than as pods that quietly drift
+        /// off the back.
         /// </para>
         /// </summary>
-        private const float WornSize = 1.997f * SizeScale;
+        private const float WornSize = 1.105f * SizeScale;
 
         [MenuItem("Tools/SpaceGame/Items/Build Jetpack")]
         public static void Build()
@@ -424,21 +430,27 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// How wide the flame is against the nozzle it comes out of. Under 1 so the fire sits
-        /// inside the lip - a plume exactly as wide as its nozzle reads as a cylinder stuck on the
-        /// end rather than as something coming out of it.
+        /// How wide the flame is against the nozzle it comes out of. One, so the fire fills the
+        /// nozzle mouth exactly: the cone narrows away from the base anyway, so a base at the full
+        /// bore still reads as something coming out of the lip rather than as a cylinder stuck on
+        /// the end - and a plume two and a half times as long off a pinched root reads as a
+        /// needle. Above 1 it would flare past the hardware and the root would float.
         /// </summary>
-        private const float FlameWidthShare = 0.8f;
+        private const float FlameWidthShare = 1.0f;
 
         /// <summary>
         /// How long the flame is against its own radius, at full throttle.
         ///
-        /// Three and a half against a pod that is now twice its modelled size puts the four flames
-        /// at roughly 40 cm each. The user asked for "not too big", and a plume longer than the
-        /// machine it drives reads as a rocket rather than as a jetpack — but the first cut was
-        /// invisible in play, and a flame nobody can see is not restraint.
+        /// Seven against a pod that is now twice its modelled size puts the four flames at roughly
+        /// a metre each - two and a half times the 40 cm the first cut drew, which the user asked
+        /// for by eye. The restrained version was legible but never dramatic: at 40 cm the plume
+        /// was shorter than the pack, so a full-thrust burn and a levitate looked like the same
+        /// machine from any distance. It is deliberately a rocket now.
+        ///
+        /// This is a LENGTH-PER-RADIUS, so it does not move alone: <see cref="FlameWidthShare"/>
+        /// widened the base at the same time, and the two together are the 2.5x.
         /// </summary>
-        private const float FlameLengthPerRadius = 3.5f;
+        private const float FlameLengthPerRadius = 7.0f;
 
         /// <summary>
         /// The unit cone every flame is drawn on: base at y = 0 radius 1, tip at y = 1 radius 0.

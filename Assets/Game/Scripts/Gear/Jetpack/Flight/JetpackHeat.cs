@@ -5,13 +5,21 @@ namespace SpaceGame.Gear.Jetpack
     /// <summary>What the motors are doing this step. The three ways heat can move.</summary>
     public enum JetThrottle
     {
-        /// <summary>Motors off. Free fall, and the only state that sheds heat.</summary>
+        /// <summary>
+        /// Motors off, nozzles dark. Free fall at this world's full gravity, and it cools fastest.
+        /// The pilot cannot ask for this: it is what an overheat forces and what a stowed pack
+        /// sits at.
+        /// </summary>
         Cut = 0,
 
-        /// <summary>Hanging. The hover servo cancels gravity and heat rises slowly.</summary>
-        Levitate = 1,
+        /// <summary>
+        /// Space released. The motors idle against gravity to a steady sink — the pack comes down
+        /// at <c>DescentSpeed</c> rather than falling — the nozzles still burn, and heat comes off.
+        /// This is the whole of "let go to come down".
+        /// </summary>
+        Descend = 1,
 
-        /// <summary>Space held. Full push, and heat rises fast.</summary>
+        /// <summary>Space held. Full push, and the only state that adds heat.</summary>
         Thrust = 2,
     }
 
@@ -19,12 +27,13 @@ namespace SpaceGame.Gear.Jetpack
     /// The heat budget, as a pure value type.
     ///
     /// <para>
-    /// <b>Heat is the jetpack's only resource and cutting out is its only recovery.</b> Both
-    /// flying states cost — 15 seconds of held thrust or 25 seconds of hanging, from cold — and
-    /// neither of them cools, so a long flight is a rhythm of burning and coasting rather than a
-    /// single held button. That is the whole economy, and it is one rule
-    /// (<c>GDC-L1-DESIGN-0007</c>): a second resource would have had to be taught separately and
-    /// would not have produced a new decision.
+    /// <b>Heat is the jetpack's only resource, and one button spends it or refunds it.</b>
+    /// Holding Space is the only source — 15 seconds of it from cold — and letting go is the
+    /// sink, cooling while the pack sinks with its nozzles still lit. So a long flight is a
+    /// rhythm of climbing and coming down rather than a single held button, and the rhythm is
+    /// paced by ONE key (<c>GDC-L1-UX-0005</c>, <c>GDC-L1-SYS-0008</c>: the sink has to be
+    /// somewhere the pilot actually spends time, and with the crouch cut gone the descent is the
+    /// only place left).
     /// </para>
     /// <para>
     /// Overheat is a LATCH, not a threshold. Reaching the top cuts the motors and sets
@@ -91,7 +100,7 @@ namespace SpaceGame.Gear.Jetpack
             float rate = throttle switch
             {
                 JetThrottle.Thrust => cfg.ThrustHeatPerSecond,
-                JetThrottle.Levitate => cfg.LevitateHeatPerSecond,
+                JetThrottle.Descend => -cfg.DescendCoolPerSecond,
                 _ => -cfg.CoolPerSecond,
             };
 

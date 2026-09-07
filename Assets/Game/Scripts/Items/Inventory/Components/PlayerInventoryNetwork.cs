@@ -83,7 +83,17 @@ namespace SpaceGame.Items
         public event Action<InventorySlot> OnSlotSelected;
         public event Action<int, InventorySlot> OnSlotChanged;
 
-        public event Action<InventoryItem, float> OnItemDropped;
+        public event Action<InventoryItem, ItemState> OnItemDropped;
+
+        private EquipmentController equipment;
+
+        /// <summary>
+        /// The hand this hotbar feeds. Resolved on demand rather than in Awake: this component's
+        /// OnNetworkSpawn runs before <c>EquipmentController.Start</c>, so anything cached that
+        /// early would be answering for a controller that has not wired itself up yet.
+        /// </summary>
+        private EquipmentController Equipment =>
+            equipment != null ? equipment : equipment = GetComponent<EquipmentController>();
 
         private void Awake()
         {
@@ -426,15 +436,27 @@ namespace SpaceGame.Items
 
             var item = Registry<InventoryItem>.Get(wire.ItemId.Value);
 
-            // The bag before the slot is cleared, so a dropped tank hits the ground holding what it
-            // held in the hand rather than reverting to its prefab's starting charge.
+            // The held object has been diverging from its slot since it was equipped — exactly as
+            // it has at a save — so the same write-back a save does has to run here, and BEFORE the
+            // slot is read.
+            //
+            // It cannot be left to Unequip's own write-back. Clearing the slot two lines down is
+            // WHAT unequips the item: the list write replicates inline on the server, the slot goes
+            // empty, and Unequip then finds an empty slot and throws the state on the floor. An
+            // item filled and dropped in the same breath lost everything it had become exactly
+            // there, and the one field that used to survive only survived because nothing changes a
+            // tank's charge while it is in a hand.
+            Equipment?.WriteBackHeldItemState();
+
+            // The bag before the slot is cleared, so a dropped item hits the ground holding what it
+            // held in the hand rather than reverting to its prefab's defaults.
             InventorySlot slot = inventory?.GetSlot(slotIndex);
-            float charge = SupplyCharge.Read(slot?.State);
+            ItemState state = slot?.State;
 
             networkItems[slotIndex] = default;
             networkSelectedSlot.Value = -1;
 
-            OnItemDropped?.Invoke(item, charge);
+            OnItemDropped?.Invoke(item, state);
         }
     
         public InventorySlot GetSlot(int index)

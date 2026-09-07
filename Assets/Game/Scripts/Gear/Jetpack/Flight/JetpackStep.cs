@@ -49,14 +49,18 @@ namespace SpaceGame.Gear.Jetpack
         /// How hard the motors push this step, m/s².
         ///
         /// <para>
-        /// <b>A levitate is a servo, not a setting.</b> It solves for the push that would cancel
+        /// <b>A descent is a servo, not a setting.</b> It solves for the push that would cancel
         /// gravity along the direction the nozzles happen to be pointing, plus a term that pulls
-        /// out whatever climb or sink the pilot arrived with — then caps the answer at
-        /// <c>HoverAuthority</c>. The cap is what makes hanging at full rake cost altitude: the
-        /// vertical share of a nozzle 40° over is only 77% of it, so holding a direction while
-        /// levitating needs a third more thrust than the servo is allowed, and the pack sinks.
-        /// Nobody had to write that rule; it falls out of solving along the real axis, and it is
-        /// the reason a levitate is a hover rather than a free ride.
+        /// the vertical speed toward <c>DescentSpeed</c> DOWN — then caps the answer at
+        /// <c>HoverAuthority</c>. So letting go of Space is a lift-off in reverse, not a drop: the
+        /// pack settles onto its sink rate from a climb or a dive alike, and lands from it.
+        /// </para>
+        /// <para>
+        /// The cap is what makes coming down at full rake cost extra altitude: the vertical share
+        /// of a nozzle 40° over is only 77% of it, so holding a direction while sinking needs a
+        /// third more thrust than the servo is allowed, and the pack drops faster than it asked
+        /// to. Nobody had to write that rule; it falls out of solving along the real axis, and it
+        /// is what stops a descent from being free horizontal flight.
         /// </para>
         /// </summary>
         private static float Magnitude(Vector3 velocity, JetThrottle throttle, Vector3 direction,
@@ -67,11 +71,12 @@ namespace SpaceGame.Gear.Jetpack
                 case JetThrottle.Thrust:
                     return cfg.ThrustAcceleration;
 
-                case JetThrottle.Levitate:
+                case JetThrottle.Descend:
                     // Guarded because the nozzles can in principle be handed a direction with no
                     // vertical share at all, and dividing by it would be an infinite hover.
                     float share = Mathf.Max(direction.y, 0.2f);
-                    float wanted = (cfg.Gravity - velocity.y * cfg.HoverDamping) / share;
+                    float error = velocity.y + cfg.DescentSpeed;   // zero at the wanted sink
+                    float wanted = (cfg.Gravity - error * cfg.HoverDamping) / share;
 
                     return Mathf.Clamp(wanted, 0f, cfg.HoverAuthority * cfg.Gravity);
 

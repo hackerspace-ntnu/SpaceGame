@@ -7,9 +7,8 @@ the model. So the *geometry* a gauge needs is small and exact — a dark housing
 recessed plate, and a lit strip in `Mat_Emissive_Green_CRT` — and it is the same
 geometry on nine devices. That is a component, not nine near-copies.
 
-Four variations, differing in structure rather than colour:
+Three variations, differing in structure rather than colour:
 
-  Bar     the SupplyGauge face — one lit strip in a housing. What a tank wears.
   Dial    a round needle instrument with a red arc, and the NEEDLE AS ITS OWN
           OBJECT so a device can turn it. What reads a *target's* state rather
           than the tank's.
@@ -18,6 +17,13 @@ Four variations, differing in structure rather than colour:
           which is the one encoding that survives a red-green colour deficiency
           untouched (`GDC-L1-UX-0006`).
 
+There is deliberately **no plain fill bar here**. `Coll_SprayerKit_GaugePlate`
+in `sprayer_kit.blend` already is one, built for the same kit in the same
+session, and it satisfies every constraint the `SupplyGauge` pipeline puts on
+the geometry — one emissive strip in `Mat_Emissive_Green_CRT`, symmetric about
+the gauge mesh's own middle, facing −Y. A second one here would be the "two
+subtly different greys" failure with a different subject.
+
 Orientation and origin
 ----------------------
 Every variation seats on a plane at **y = 0** and faces along **−Y**, the library's
@@ -25,9 +31,11 @@ forward. That is the same convention `Mesh_OxygenTank_Gauge` already uses, so a
 model places a gauge by putting its origin on the surface it is set into and turning
 the surface's outward normal onto −Y.
 
-The Bar is deliberately **symmetric about x = 0 and z = 0**, emissive included.
-`SupplyGauge` mirrors the measured strip about the *gauge mesh's* middle, and the
-bottle's 6 mm of asymmetry once built a bar 36% too long — see SupplyGauge.md.
+The Ladder is the one variation `SupplyGauge` may be pointed at, and its lit
+cells are deliberately **off-centre**: three of five, exactly as the project's
+battery is authored, so a built bar is mirrored up to full length the way
+SupplyGauge.md describes rather than measured as if the strip were the whole
+scale.
 
     blender --background --python device_gauge.py -- --out device_gauge.blend
 
@@ -56,40 +64,6 @@ def _emit(p, hard, name, coll, origin=(0, 0, 0)):
     p.restamp()
     p.bevel(hard, width=BEVEL_W, segments=BEVEL_SEG)
     return p.finish(name, coll, origin=origin)
-
-
-# -- Bar: the SupplyGauge face ----------------------------------------------
-
-def bar(coll, mats):
-    """A dark housing, a recessed plate, and one lit strip.
-
-    Nothing here is decoration. The HOUSING is what `SupplyGauge` draws its dark
-    track over, the PLATE gives the track something to sit proud of, and the
-    STRIP is the only thing in `Mat_Emissive_Green_CRT` on the whole part — which
-    is how `OxygenGearBuilder.MeasureGauge` finds it. Adding a second emissive
-    face anywhere on this mesh would silently enlarge every bar built from it.
-    """
-    p = TrackedPart(mats)
-
-    hard = p.box((0, -0.010, 0), (0.072, 0.020, 0.040), BLACK)
-    hard += p.box((0, -0.019, 0), (0.052, 0.008, 0.024), SLATE)
-    # Only the housing and the plate are bevelled. A 2.5 mm chamfer on a 4 mm
-    # tick swallows the tick and stamps what is left with material index 0 —
-    # the family's steel — so every accent smaller than about 10 mm is kept out
-    # of `hard` on purpose. This is the `_buildlib` trap the library warns about
-    # and it is invisible until the part is measured.
-
-    # 3 mm proud of the plate and 0.5 mm buried in it: nothing in this family
-    # may meet another surface on a plane.
-    p.box((0, -0.0255, 0), (0.040, 0.006, 0.012), CRT)
-
-    # Four ticks along the top lip, symmetric so they cannot pull the mesh's
-    # middle away from the emissive strip's.
-    for sx in (-1, 1):
-        for u in (0.010, 0.024):
-            p.box((sx * u, -0.0215, 0.0135), (0.0025, 0.005, 0.005), DARK)
-
-    return _emit(p, hard, "Mesh_DeviceGauge_Bar", coll)
 
 
 # -- Dial: a needle instrument, with the needle free to turn -----------------
@@ -186,7 +160,6 @@ def main():
     out = parse_out()
     start(out)
     mats = link_materials(MATS)
-    bar(collection("Coll_DeviceGauge_Bar"), mats)
     dial(collection("Coll_DeviceGauge_Dial"), mats)
     lamp(collection("Coll_DeviceGauge_Lamp"), mats)
     ladder(collection("Coll_DeviceGauge_Ladder"), mats)

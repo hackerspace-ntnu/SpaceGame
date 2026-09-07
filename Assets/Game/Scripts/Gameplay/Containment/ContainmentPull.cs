@@ -67,6 +67,15 @@ namespace SpaceGame.Gameplay.Containment
 
         private ContainerHold container;
         private GameObject captive;
+
+        /// <summary>
+        /// A target this pull has already refused, remembered until the beam goes off.
+        ///
+        /// Without it <see cref="Draw"/> re-asks the gate fifteen times a second for as long as the
+        /// trigger is held — which repeats the refusal's log line at the same rate, and walks every
+        /// collider on the body to measure it again for an answer that cannot have changed.
+        /// </summary>
+        private GameObject refused;
         private ContainmentSettings settings;
         private SnareStruggleMeter meter;
         private float progress;
@@ -152,6 +161,10 @@ namespace SpaceGame.Gameplay.Containment
 
             if (hold == null || target == null || hold.IsFull)
             {
+                // The beam is off whatever it was on, so a refusal it was carrying is spent: the
+                // next press gets a fresh answer, which is what lets a rider dismounting or a
+                // prefab being registered change one.
+                refused = null;
                 Stop();
                 return false;
             }
@@ -160,8 +173,15 @@ namespace SpaceGame.Gameplay.Containment
             // rather than leaving it half drawn on every machine.
             if (target != captive || hold != container)
             {
+                if (ReferenceEquals(target, refused)) return false;
+
                 Stop();
-                if (!Begin(hold, target)) return false;
+
+                if (!Begin(hold, target))
+                {
+                    refused = target;
+                    return false;
+                }
             }
 
             meter.Advance(delta);
@@ -182,6 +202,14 @@ namespace SpaceGame.Gameplay.Containment
 
         /// <summary>
         /// End whatever is being drawn, and tell everyone. Safe from anywhere and safe twice.
+        ///
+        /// <para>
+        /// Called from the authority's own <c>Hold</c> path — the release tick, the beam finding
+        /// nothing — and from <see cref="Detach"/>, which runs on every machine because putting the
+        /// container away is a local fact. On a machine that does not decide it ends the pull
+        /// locally and announces nothing, which is right: the authority's own copy is still running
+        /// and will announce the end when it happens.
+        /// </para>
         /// </summary>
         public void Stop()
         {
@@ -224,6 +252,7 @@ namespace SpaceGame.Gameplay.Containment
             container = hold;
             captive = target;
             settings = hold.Settings;
+            refused = null;
             progress = 0f;
             meter = new SnareStruggleMeter(settings.MaxUsefulStruggleRate, settings.StruggleDecaySeconds);
             idleSeconds = 0f;

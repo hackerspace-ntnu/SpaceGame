@@ -29,21 +29,27 @@ namespace SpaceGame.Gear.Jetpack
                  "about a second and a half to clear a two-storey building.")]
         [Min(0f)] public float ThrustAcceleration = 30f;
 
-        [Tooltip("How hard the hover servo is allowed to push while levitating, as a MULTIPLE of " +
-                 "gravity. It is bounded from BOTH sides and the window is narrow. Too low and a " +
-                 "relight after an overheat cannot arrest the fall it was meant to save you from, " +
-                 "which makes the whole relight point decorative. Too high — above 1/cos(max " +
-                 "deflection), about 1.31 at 40 degrees — and the servo can hold altitude with " +
-                 "the nozzles hard over, which turns a levitate into free flight in any direction " +
-                 "and deletes the reason to hold Space at all. 1.25 arrests 8 m/s in under two " +
-                 "seconds and still sinks at full rake.")]
+        [Tooltip("How hard the descent servo is allowed to push, as a MULTIPLE of gravity. It is " +
+                 "bounded from BOTH sides and the window is narrow. Too low and letting go after " +
+                 "a climb is a fall rather than a settle, and a relight after an overheat cannot " +
+                 "arrest it either. Too high — above 1/cos(max deflection), about 1.31 at 40 " +
+                 "degrees — and the servo holds its sink rate with the nozzles hard over, which " +
+                 "turns coming down into free flight in any direction. 1.25 arrests 8 m/s in " +
+                 "under two seconds and still drops faster at full rake.")]
         [Min(0f)] public float HoverAuthority = 1.25f;
 
-        [Tooltip("How hard the hover servo pulls the remaining vertical speed out, per second. " +
-                 "This is what makes a levitate settle instead of bobbing: without it the servo " +
-                 "cancels gravity exactly and whatever climb or sink the pilot arrived with is " +
-                 "kept forever.")]
+        [Tooltip("How hard the descent servo pulls the vertical speed toward the sink rate, per " +
+                 "second. This is what makes letting go settle instead of bobbing or diving: " +
+                 "without it the servo cancels gravity exactly and whatever climb the pilot " +
+                 "arrived with is kept forever.")]
         [Min(0f)] public float HoverDamping = 2.5f;
+
+        [Tooltip("How fast the pack sinks with Space released, m/s. NOT a fall: the motors stay " +
+                 "lit and hold this speed, so letting go is a controlled way down and landing " +
+                 "from it is survivable. Free fall in this world reaches three times this in a " +
+                 "second — that is what an overheat costs, and it is the difference the pilot is " +
+                 "meant to feel between letting go and being cut off.")]
+        [Min(0f)] public float DescentSpeed = 4f;
 
         [Tooltip("This world's gravity, m/s². The flight integrates its own so there is exactly " +
                  "one source of weight; leaving Unity's on as well doubles it.")]
@@ -108,12 +114,16 @@ namespace SpaceGame.Gear.Jetpack
                  "seconds of held thrust from cold.")]
         [Min(0f)] public float ThrustHeatPerSecond = 100f / 15f;
 
-        [Tooltip("Heat per second while levitating. 4 is twenty-five seconds of hanging from cold.")]
-        [Min(0f)] public float LevitateHeatPerSecond = 100f / 25f;
+        [Tooltip("Heat shed per second while sinking with Space released. This is the pilot's " +
+                 "recovery, and the only one they can ask for — so it decides the rhythm: at 5 " +
+                 "against thrust's 6.67, every second of climb is bought with about one and a " +
+                 "third of coming down. Raise it and the pack is nearly always ready; lower it " +
+                 "and a long flight is mostly descent.")]
+        [Min(0f)] public float DescendCoolPerSecond = 5f;
 
-        [Tooltip("Heat shed per second with the motors cut. The ONLY way heat comes down, which " +
-                 "is what makes cutting out and coasting a skill rather than a mistake. At 10 a " +
-                 "full pack is cold again in ten seconds of free fall.")]
+        [Tooltip("Heat shed per second with the motors dead — an overheat, or a pack stowed on " +
+                 "the back. Faster than the descent's, because nothing is burning. At 10 a full " +
+                 "pack is cold again in ten seconds.")]
         [Min(0f)] public float CoolPerSecond = 10f;
 
         [Tooltip("Heat at which the motors cut, hard. The top of the scale.")]

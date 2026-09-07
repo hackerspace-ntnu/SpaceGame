@@ -9,6 +9,16 @@
 // is shaded identically. That is not a convenience; a statue with a black patch where an
 // atlas seam used to be is the failure this avoids.
 //
+// WHAT IT DOES ASSUME, AND WHY THAT ASSUMPTION IS NOW DERIVED RATHER THAN TRUSTED: the two
+// scales below are quoted "per m", and object space is not metres on an imported body. Every
+// `_exportlib` FBX leaves the centimetre file scale on its node, so a raw object-space
+// position on a 1.8 m character spans about 0.018 and the noise never varies across the whole
+// statue. FrozenObjectMetres in FrozenStatue.hlsl reads the real conversion out of
+// unity_ObjectToWorld, so this is correct on a centimetre import, a metre one, and a statue
+// the game has scaled — with no constant to keep in step. StormCloud.shader had the same
+// class of bug and needed an axis swap as well; this one does not, because triplanar noise is
+// a valid pattern in any consistent frame.
+//
 // WHY THE SILHOUETTE SURVIVES, WHICH IS THE ONE THING THE DESIGN INSISTS ON. Two independent
 // mechanisms, because ice against a pale sky is the case where either alone is thin:
 //
@@ -58,15 +68,16 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
         _BandDeep  ("Band 4  Deep",  Color) = (0.278, 0.498, 0.694, 1)
 
         [Header(Translucency)]
-        _LightWrap  ("Light Wrap",      Range(0, 1))   = 0.85
-        _Ambient    ("Ambient Floor",   Range(0, 1))   = 0.3
-        _RimLift    ("Thin Edge Lift",  Range(0, 1))   = 0.5
-        _RimPower   ("Thin Edge Power", Range(0.5, 8)) = 2
-        _CoreDarken ("Core Darkening",  Range(0, 1))   = 0.35
+        _LightWrap    ("Light Wrap",      Range(0, 1))   = 0.85
+        _AmbientFloor ("Ambient Floor",   Range(0, 1))   = 0.3
+        _RimLift      ("Thin Edge Lift",  Range(0, 1))   = 0.5
+        _RimPower     ("Thin Edge Power", Range(0.5, 8)) = 2
+        _CoreDarken   ("Core Darkening",  Range(0, 1))   = 0.35
 
         [Header(Internal flaws)]
         _FlawScale     ("Flaw Scale (per m)",    Range(1, 40))  = 7
         _FlawDepth     ("Flaw Depth",            Range(0, 1))   = 0.4
+        _FlawShading   ("Flaw Shading",          Range(0, 1))   = 0.25
         _FlawContrast  ("Fracture vs Cloud",     Range(0, 1))   = 0.7
         _FlawSharpness ("Triplanar Sharpness",   Range(1, 16))  = 4
 
@@ -111,6 +122,10 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            // The helmet lamp, the same way StylizedTerrain, AlgaeRock and CaveTriplanar take
+            // it. A creature frozen in a cave has to be visible by the light the player is
+            // carrying, which is the only light there.
+            #include "../Effects/Flashlight.hlsl"
             #include "FrozenStatue.hlsl"
 
             struct Attributes
@@ -122,7 +137,7 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float3 positionOS : TEXCOORD0;
+                float3 positionMetres : TEXCOORD0;
                 float3 normalOS   : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
                 float3 normalWS   : TEXCOORD3;
@@ -137,10 +152,12 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
                 OUT.positionWS = positions.positionWS;
                 OUT.normalWS   = TransformObjectToWorldNormal(IN.normalOS);
                 // Object space is carried through as well as world, because the flaws are
-                // projected in object space and the lighting is done in world space. Cheaper
-                // than inverting the transform per fragment, and correct on a skinned rig
-                // where the object-space position is the posed one.
-                OUT.positionOS = IN.positionOS.xyz;
+                // projected in the statue's own frame and the lighting is done in world
+                // space. Cheaper than inverting the transform per fragment, and correct on a
+                // skinned rig, where the object-space position is the posed one. Converted
+                // to metres on the way through — see FrozenObjectMetres for why the raw
+                // value is not in the units the flaw scales claim to be in.
+                OUT.positionMetres = FrozenObjectMetres(IN.positionOS.xyz);
                 OUT.normalOS   = IN.normalOS;
                 OUT.fogFactor  = ComputeFogFactor(positions.positionCS.z);
                 return OUT;
@@ -149,12 +166,12 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
             half4 Frag(Varyings IN) : SV_Target
             {
                 float3 normalOS = normalize(IN.normalOS);
-                FrozenRimeClip(IN.positionOS, normalOS);
+                FrozenRimeClip(IN.positionMetres, normalOS);
 
                 float3 normalWS = normalize(IN.normalWS);
                 float3 viewDirWS = normalize(GetWorldSpaceViewDir(IN.positionWS));
 
-                float flaws = FrozenFlaws(IN.positionOS, normalOS);
+                float flaws = FrozenFlaws(IN.positionMetres, normalOS);
 
                 // The flaws bend the normal as well as shading it, which is what gives the
                 // surface facets for the glint to catch. Bending along the view direction
@@ -174,7 +191,14 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
                 // quantizer then scatters them across the lattice.
                 float diffuse = SubstanceWrapDiffuse(normalWS, mainLight.direction, _LightWrap);
                 float shade = diffuse * mainLight.shadowAttenuation;
-                shade = lerp(_Ambient, 1.0, shade);
+
+                // The lamp folded into the same scalar, by its brightest channel. Peak rather
+                // than a luminance weighting because this is a "how lit is this" question and
+                // not a colour conversion.
+                float3 lamp = SampleFlashlight(IN.positionWS, normalWS, _LightWrap);
+                shade += max(lamp.r, max(lamp.g, lamp.b));
+
+                shade = lerp(_AmbientFloor, 1.0, saturate(shade));
 
                 // Thick in the middle, thin at the edges: the eye reads a body that is bright
                 // at its silhouette and dark through its bulk as something light passes
@@ -184,7 +208,10 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
                 shade += _RimLift * SubstanceFresnel(normalWS, viewDirWS, _RimPower);
 
                 // Internal fracture planes, darkening the ice where a crack runs through it.
-                shade -= (1.0 - flaws) * _FlawDepth * 0.5;
+                // Its own dial rather than a fraction of _FlawDepth: how deeply a crack cuts
+                // the surface and how dark it reads are two separate looks, and tying them
+                // together means every attempt to make the ice smoother also makes it paler.
+                shade -= (1.0 - flaws) * _FlawShading;
 
                 float3 halfway = normalize(mainLight.direction + viewDirWS);
                 shade += _GlintStrength
@@ -232,14 +259,14 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
             struct ShadowVaryings
             {
                 float4 positionCS : SV_POSITION;
-                float3 positionOS : TEXCOORD0;
+                float3 positionMetres : TEXCOORD0;
                 float3 normalOS   : TEXCOORD1;
             };
 
             ShadowVaryings ShadowVert(ShadowAttributes IN)
             {
                 ShadowVaryings OUT;
-                OUT.positionOS = IN.positionOS.xyz;
+                OUT.positionMetres = FrozenObjectMetres(IN.positionOS.xyz);
                 OUT.normalOS   = IN.normalOS;
 
                 float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
@@ -257,7 +284,7 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
 
             half4 ShadowFrag(ShadowVaryings IN) : SV_Target
             {
-                FrozenRimeClip(IN.positionOS, normalize(IN.normalOS));
+                FrozenRimeClip(IN.positionMetres, normalize(IN.normalOS));
                 return 0;
             }
             ENDHLSL
@@ -293,7 +320,7 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
             struct DepthVaryings
             {
                 float4 positionCS : SV_POSITION;
-                float3 positionOS : TEXCOORD0;
+                float3 positionMetres : TEXCOORD0;
                 float3 normalOS   : TEXCOORD1;
             };
 
@@ -301,14 +328,14 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
             {
                 DepthVaryings OUT;
                 OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.positionOS = IN.positionOS.xyz;
+                OUT.positionMetres = FrozenObjectMetres(IN.positionOS.xyz);
                 OUT.normalOS   = IN.normalOS;
                 return OUT;
             }
 
             half4 DepthFrag(DepthVaryings IN) : SV_Target
             {
-                FrozenRimeClip(IN.positionOS, normalize(IN.normalOS));
+                FrozenRimeClip(IN.positionMetres, normalize(IN.normalOS));
                 return 0;
             }
             ENDHLSL

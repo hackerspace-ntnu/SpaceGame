@@ -111,8 +111,13 @@ GAUGE_SIDE = 1.0
 PLUMB_SIDE = -1.0
 
 # ── The hands ────────────────────────────────────────────────────────────────
-GRIP_TOP = (0.0, -0.060, -0.036)   # 4 mm up inside the shell's underside
-FORE_TOP = (0.0, -0.200, -0.036)   # the support hand, under the shell's front
+# Both grip tops are measured against the shell's TAPERED underside, not
+# against `SHELL_Z0`. The shell's front station is 0.86 of the back one, so its
+# bottom edge rises from −0.040 at the breech to −0.033 at the muzzle end — and
+# a grip seated on the flat number floats 2 mm clear of the gun at the front,
+# which is exactly what the first build did.
+GRIP_TOP = (0.0, -0.060, -0.032)   # 4 mm up inside the shell's underside
+FORE_TOP = (0.0, -0.226, -0.029)   # the support hand, 166 mm ahead of the other
 
 # ── Stock ────────────────────────────────────────────────────────────────────
 STOCK_Y0 = 0.120
@@ -121,11 +126,18 @@ PAD_Y = 0.352
 BEVEL_W = kit.BEVEL_W
 
 
-def _emit(p, hard, name, coll):
+def _emit(p, hard, name, coll, origin=(0.0, 0.0, 0.0)):
+    """Restamp, bevel, emit.
+
+    `origin` is the part's pivot, in the frame it was built in. Fixed parts keep
+    the model origin; a part something in Unity turns or scales gets the point
+    it turns or scales about, so the prefab needs no offset transform to make
+    the motion look right.
+    """
     p.restamp(name)
     if hard:
         p.bevel(hard, width=BEVEL_W, segments=2)
-    return p.finish(name, coll)
+    return p.finish(name, coll, origin=origin)
 
 
 # ---------------------------------------------------------------------------
@@ -146,18 +158,27 @@ def shell_body(coll, mats):
                       (0.008, 0.150, 0.044), ACCENT)
     # Ejection-free top rail: somewhere for the eye to land, and it is what the
     # stock's comb runs into rather than meeting the shell on a plane.
-    hard += p.box((0.0, 0.040, SHELL_Z1 - 0.002), (0.052, 0.180, 0.014), GREY)
+    # It stops at y 0.100, short of the stock's comb at 0.120: the rail's
+    # underside and the comb's top face otherwise sit 1.95 mm apart over a
+    # 10 mm overlap, which `_zverify` reports as a real clash.
+    hard += p.box((0.0, 0.020, SHELL_Z1 - 0.002), (0.052, 0.160, 0.014), GREY)
     return _emit(p, hard, "Mesh_Flamethrower_Shell", coll)
 
 
 def barrel(coll, mats):
-    """The lance: one dark-steel tube from inside the shell to the bore mouth."""
+    """The lance: a hollow dark-steel tube, shell to bore mouth.
+
+    Hollow rather than a capped cylinder. A solid barrel's front disc and the
+    muzzle collar's front disc land on the same plane at y = MUZZLE_Y, which is
+    the flicker the whole library warns about — and a bore you cannot see into
+    reads as a rod, not a barrel. The plug 60 mm back stops the player seeing
+    daylight through the gun.
+    """
     p = TrackedPart(mats)
     y0, y1 = MUZZLE_Y, -0.140          # rear end buried well inside the shell
-    hard = p.cyl((0.0, (y0 + y1) / 2.0, BORE_Z), BORE_R, y1 - y0, axis='Y',
-                 seg=20, mat=DARK)
-    # Bore liner, recessed into the mouth so the barrel is not a flat disc.
-    hard += p.cyl((0.0, MUZZLE_Y + 0.010, BORE_Z), BORE_R * 0.62, 0.028,
+    hard = p.tube((0.0, (y0 + y1) / 2.0, BORE_Z), BORE_R, 0.005, y1 - y0,
+                  axis='Y', seg=20, mat=DARK)
+    hard += p.cyl((0.0, MUZZLE_Y + 0.060, BORE_Z), BORE_R - 0.006, 0.010,
                   axis='Y', seg=16, mat=BLACK)
     return _emit(p, hard, "Mesh_Flamethrower_Barrel", coll)
 
@@ -186,10 +207,14 @@ def muzzle(coll, mats):
     honouring rather than reinventing (`GDC-L1-UX-0004`).
     """
     p = TrackedPart(mats)
-    hard = p.cyl((0.0, MUZZLE_Y + 0.024, BORE_Z), MUZZLE_R, 0.048, axis='Y',
-                 seg=20, mat=CHROME)
-    hard += p.cyl((0.0, MUZZLE_Y + 0.026, BORE_Z), MUZZLE_R * 1.06, 0.014,
-                  axis='Y', seg=20, mat=WARN)
+    # Both rings are TUBES: a solid disc across the bore closes the barrel, and
+    # its face lands on the barrel's own. Their walls stand 3 mm clear of the
+    # barrel's outside, which is more than `_zverify`'s 2 mm coplanarity
+    # tolerance — two concentric cylinders a hair apart read as parallel faces.
+    hard = p.tube((0.0, MUZZLE_Y + 0.026, BORE_Z), MUZZLE_R + 0.002, 0.010,
+                  0.044, axis='Y', seg=20, mat=CHROME)
+    hard += p.tube((0.0, MUZZLE_Y + 0.030, BORE_Z), MUZZLE_R + 0.004, 0.016,
+                   0.014, axis='Y', seg=20, mat=WARN)
     # Manifold where the hose lands, so the line does not simply stop in air.
     hard += p.box((PLUMB_SIDE * 0.030, MUZZLE_Y + 0.050, BORE_Z - 0.004),
                   (0.024, 0.034, 0.024), GREY)
@@ -211,7 +236,11 @@ def pilot(coll, mats):
     p = TrackedPart(mats)
     hard = p.cyl((GAUGE_SIDE * 0.024, PILOT_Y + 0.008, BORE_Z), 0.007, 0.018,
                  axis='Y', seg=10, mat=PILOT, radius_top=0.003)
-    return _emit(p, hard, "Mesh_Flamethrower_Pilot", coll)
+    # Pivot at the flame's ROOT, where it leaves the igniter arm: scaling local
+    # Y stretches it forward from there, so an idle bead and a roaring jet are
+    # the same object at two scales.
+    return _emit(p, hard, "Mesh_Flamethrower_Pilot", coll,
+                 origin=(GAUGE_SIDE * 0.024, PILOT_Y + 0.017, BORE_Z))
 
 
 def bottle(coll, mats):
@@ -293,8 +322,12 @@ def stock(coll, mats):
     only cue at distance that this one is shouldered (`GDC-L1-UX-0003`).
     """
     p = TrackedPart(mats)
-    comb = [(STOCK_Y0, 0.026), (PAD_Y - 0.010, 0.014), (PAD_Y - 0.010, 0.050),
-            (STOCK_Y0, 0.052)]
+    # The comb's crest RISES over the shell's roof rather than continuing it.
+    # Level with it, the two top surfaces sit 0.7 mm apart over 66 mm of
+    # overlap — `_zverify` calls that a clash and it is right to. A comb that
+    # steps up is also what a shoulder stock actually does.
+    comb = [(STOCK_Y0, 0.024), (PAD_Y - 0.010, 0.014), (PAD_Y - 0.010, 0.048),
+            (STOCK_Y0, 0.066)]
     hard = p.prism(comb, 0.050, axis='X', mat=SHELL)
     lower = [(STOCK_Y0 + 0.024, -0.030), (PAD_Y - 0.010, -0.034),
              (PAD_Y - 0.010, -0.008), (STOCK_Y0 + 0.048, 0.004)]
@@ -377,7 +410,7 @@ def main():
     kit.marker(coll, "Marker_GripFore",
                tuple(kit.grip_palm(FORE_TOP, length=0.096, rake=0.05)), mats)
     kit.marker(coll, "Marker_Gauge",
-               (GAUGE_SIDE * (BOTTLE_R + 0.010), BOTTLE_Y, BOTTLE_Z), mats)
+               (GAUGE_SIDE * (BOTTLE_R + 0.006), BOTTLE_Y, BOTTLE_Z), mats)
 
     report()
     save(out)

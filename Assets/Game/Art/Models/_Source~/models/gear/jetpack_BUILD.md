@@ -8,7 +8,7 @@ geometry-nodes exhausts — was modelled by hand in Blender and is not reproduci
 
 | Collection | Contents | Use |
 | --- | --- | --- |
-| `Coll_Jetpack_Worn` | Two pods, 1.785 m apart, hung under `MOUNT_Jetpack_R` / `MOUNT_Jetpack_L` | Worn model — one pod on each lash-rail tip of the expedition rig |
+| `Coll_Jetpack_Worn` | Two pods, 0.8925 m apart, hung under `MOUNT_Jetpack_R` / `MOUNT_Jetpack_L` | Worn model — a pod either side of the expedition rig's back panel |
 | `Coll_Jetpack_Item` | The same two pods, 0.03 m apart, under `ITEM_Jetpack_R` / `ITEM_Jetpack_L` | Inventory / carried item model — the two motors side by side |
 | `Collection` | The scene light | Lighting only, not part of either model |
 
@@ -16,14 +16,15 @@ geometry-nodes exhausts — was modelled by hand in Blender and is not reproduci
 
 | Value | Source |
 | --- | --- |
-| Mount X = ±0.8925 m | `components/props/expedition_rig.blend`, `Mesh_Rig_LashRail` world bounds — the rail spans x −0.8925 … 0.8925, so the tips are 1.785 m apart |
+| Mount X = ±0.44625 m | Half the lash rail's tip span (`components/props/expedition_rig.blend`, `Mesh_Rig_LashRail` spans x −0.8925 … 0.8925). Half, because `JetpackBuilder.SizeScale` wears the pack at 2x: pods on the actual tips stand 3.99 m across the wearer and miss the rig entirely |
 | Pod scale = 0.08117 | The authored pod is 8.008 m tall; 0.65 m is the worn size (the rig's back panel is 0.629 m tall, its wings 0.84 m long) |
 | Mount point | The top face of the housing block, centred on the housing in X and Y — the rail line crosses the top of the housing, tank above it, nozzles below |
 | Mount yaw = −90° about Z | The pod is authored with its struts along −Y. Yawed −90° they point along −X, i.e. inboard at the pack, so the bars run along the lash rail instead of sticking out fore-and-aft with nothing to grab |
 | Item spacing = 0.7315 m | The inboard flank's distance to the mount **measured after the yaw**, plus half of a 0.03 m gap. Two traps in one number: the struts swing into that gap, and the pod is not symmetric about its mount (the nozzle yoke overhangs one side), so neither the unrotated width nor half the pod's width works |
 
-Resulting extents: worn pair 1.998 × 0.394 × 0.650 m, item pair 0.944 × 0.394 × 0.650 m,
-measured item gap 0.0300 m.
+Resulting extents: worn pair 1.105 × 0.397 × 0.657 m, item pair 0.944 × 0.397 × 0.657 m,
+measured item gap 0.0300 m. `JetpackBuilder.WornSize` and `HoldSize` are those longest axes
+times `SizeScale`, so changing a spacing here means re-pinning the number there.
 
 ## How the arrangement is built
 
@@ -47,15 +48,19 @@ measured item gap 0.0300 m.
 
 ## Modified from the authored state
 
-Both changes are authorised by the request ("mirror it… place them apart exactly the distance so it
-is attached to the gear torso backpack parts", and the follow-up asking for an inventory model of
-the two motors side by side):
+Every change is authorised by the request ("mirror it… place them apart exactly the distance so it
+is attached to the gear torso backpack parts", the follow-up asking for an inventory model of the
+two motors side by side, and "the motors does not fit on the backpack rig thing… make the distance
+between the motors half the size"):
 
-1. The pod was scaled to 0.65 m, yawed −90° and moved onto the right-hand rail tip. It was authored
+1. The pod was scaled to 0.65 m, yawed −90° and moved onto the right-hand mount. It was authored
    at ~8 m with its struts along −Y.
 2. Objects were renamed from `Cube` / `Cylinder.003` / `Torus.001` to `Mesh_Jetpack_<Role>_R`,
    with `_L`, `_ItemR` and `_ItemL` for the other three instances. No geometry, modifier or
    material was touched.
+3. The worn spacing was halved, from the rail tips to ±0.44625 m (2026-09-07). Halved HERE and not
+   in Unity: `WornSeat` scales the whole model to `WornFit.size`, so shrinking that number shrinks
+   the pods along with the gap and changes nothing about how they sit on the rig.
 
 ## Known gaps
 
@@ -64,5 +69,5 @@ the two motors side by side):
 - The fin follows the struts round with the −90° yaw and now sweeps along X with them. Only the
   struts were the reason for the yaw; if the fin should stay fore-and-aft it needs its own
   counter-rotation on the part, not on the mount.
-- No export script yet. Add `jetpack_export.py` when the model is wired into Unity, and export the
-  two collections as separate FBXs (worn model and item model).
+- The item spacing is still measured from the pod's inboard flank and untouched by the worn
+  halving — the carried model was never the complaint.

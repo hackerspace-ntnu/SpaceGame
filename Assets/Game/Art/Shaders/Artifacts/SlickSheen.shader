@@ -123,6 +123,7 @@ Shader "SpaceGame/Artifacts/SlickSheen"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma target 3.5
+            #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -167,6 +168,7 @@ Shader "SpaceGame/Artifacts/SlickSheen"
             {
                 float4 positionCS : SV_POSITION;
                 float4 screenPos  : TEXCOORD0;
+                float  fogFactor  : TEXCOORD1;
             };
 
             Varyings Vert(Attributes IN)
@@ -178,6 +180,7 @@ Shader "SpaceGame/Artifacts/SlickSheen"
                 // fragment covers. Deriving it from SV_Position instead would need
                 // _ScreenParams and would still have to be corrected for dynamic resolution.
                 OUT.screenPos = ComputeScreenPos(OUT.positionCS);
+                OUT.fogFactor = ComputeFogFactor(OUT.positionCS.z);
                 return OUT;
             }
 
@@ -201,6 +204,12 @@ Shader "SpaceGame/Artifacts/SlickSheen"
                 // the 2x2 quad, so if a neighbouring fragment has already been killed the
                 // value here is undefined — which shows up as a rim of wrongly-lit pixels
                 // around the patch, on some drivers and not others.
+                //
+                // It is still wrong on the one pixel line where a silhouette crosses the
+                // patch, because the two halves of the quad are then on different surfaces
+                // metres apart. That is inherent to reading a normal out of depth, it is a
+                // pixel wide, and the alternative is a normals buffer this pipeline does not
+                // produce — so it is accepted rather than worked around.
                 float3 surfaceNormalWS = normalize(cross(ddy(surfaceWS), ddx(surfaceWS)));
 
                 // Inside the patch box? The vertical test is separate from the radial one:
@@ -216,6 +225,12 @@ Shader "SpaceGame/Artifacts/SlickSheen"
                 // A film sprayed downward does not cling to a vertical face. Fading by slope
                 // rather than discarding on it keeps the boundary from crawling as the camera
                 // moves, which a hard slope cutoff on a smooth dune does very visibly.
+                //
+                // It does a second job worth knowing about: a decal read out of depth paints
+                // ANYTHING whose depth falls inside the box, including the legs of whoever is
+                // standing in the puddle. Legs are near-vertical, so the slope term rejects
+                // them, and lowering _SlopeLimit toward 0 to make the film climb a dune also
+                // starts painting the people standing on it.
                 float slope = saturate((abs(surfaceNormalWS.y) - _SlopeLimit)
                                      / max(1.0 - _SlopeLimit, 1e-4));
 
@@ -265,15 +280,25 @@ Shader "SpaceGame/Artifacts/SlickSheen"
                 // degrees, so a smooth hue ramp would be snapped into bands anyway — authored
                 // bands are bands that can be tuned, emergent ones are just what is left over.
                 float hue01 = frac(grazing * _IridescenceCycles + film * _IridescenceSwirl);
-                float bandedHue = SubstanceBand(hue01, _IridescenceBands);
-                float3 iridescent = SubstanceOklchToLinear(
-                    _IridescenceLightness, _IridescenceChroma, bandedHue * TWO_PI);
+
+                // Plain floor here, NOT SubstanceBand. Hue is cyclic, and SubstanceBand's
+                // endpoint-inclusive rounding — which is right for a shading ladder, where
+                // both ends have to be reachable — would put band 0 and the last band on the
+                // same hue and quietly cost one colour at the wrap.
+                float bandedHue = floor(hue01 * _IridescenceBands) / _IridescenceBands;
+
+                // saturate, because Oklch has no gamut fit on this side (see
+                // SubstanceOklchToLinear): an out-of-range request comes back with a negative
+                // channel, and under premultiplied `Blend One` a negative channel SUBTRACTS
+                // from the frame — a black rainbow, which is a memorable way to find out.
+                float3 iridescent = saturate(SubstanceOklchToLinear(
+                    _IridescenceLightness, _IridescenceChroma, bandedHue * TWO_PI));
 
                 // The sheen's own colour: white at the bottom of the iridescence dial, the
                 // banded spectrum at the top. Mixed here, before anything is composited, so
                 // the pixel the quantizer sees is the intended colour rather than the
                 // intended colour laid over whatever the ground was.
-                float3 sheenColour = lerp(1.0.xxx, iridescent, _IridescenceStrength);
+                float3 sheenColour = lerp(float3(1.0, 1.0, 1.0), iridescent, _IridescenceStrength);
 
                 // The sun glint, and the only azimuth-dependent term in the shader. It is a
                 // bonus on a patch that is already readable without it — see the header.
@@ -291,6 +316,19 @@ Shader "SpaceGame/Artifacts/SlickSheen"
                 // vivid palette entry instead of merely nudging the sand toward one.
                 float3 added = sheenColour * sheenCoverage;
                 float removed = saturate(wetCoverage + sheenCoverage);
+
+                // Fog attenuates BOTH channels rather than mixing toward the fog colour. With
+                // premultiplied alpha, lerping rgb toward the fog colour while leaving alpha
+                // alone would keep erasing the same amount of ground while painting fog over
+                // it, so a distant patch would go pale but never actually recede. Scaling both
+                // is what fades the whole film out. The guard is required: URP's
+                // ComputeFogIntensity returns 0, not 1, when no fog keyword is set, which
+                // without it would make the patch vanish whenever fog was off.
+            #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
+                float fogIntensity = ComputeFogIntensity(IN.fogFactor);
+                added *= fogIntensity;
+                removed *= fogIntensity;
+            #endif
 
                 return half4(added, removed);
             }

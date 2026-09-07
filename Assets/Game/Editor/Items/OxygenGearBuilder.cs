@@ -10,7 +10,7 @@
 // OxygenTankEmpty were separate assets -- because ItemState does not replicate and an id does.
 // A tank the player reads to a percent cannot work that way (a hundred assets for a hundred
 // readings, and a hundred more per tank type), so the charge is a fraction on the instance and
-// SupplyCharge carries it through every container. See DockableSupply and Oxygen.md.
+// SupplyCharge carries it through every container. See SupplyReservoir and Oxygen.md.
 //
 // PowerCell was renamed to Battery in the same pass, by MoveAsset rather than by writing a new
 // file: a move PRESERVES the GUID, and an InventoryItem's ID is its GUID, so every existing save
@@ -448,13 +448,25 @@ namespace SpaceGame.EditorTools
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
             // ── The item's own behaviour ──
-            DockableSupply supplyItem = root.AddComponent<DockableSupply>();
-            var supplySo = new SerializedObject(supplyItem);
+            //
+            // Two components, because a reservoir and a verb are two things: the tank is a
+            // SupplyReservoir any item may hold, and DockableSupply is the verb-less UsableItem
+            // that gives this one its hold pose and nothing else. DockableSupply's
+            // [RequireComponent] adds the reservoir for us, so it is fetched rather than added --
+            // a second AddComponent of a [DisallowMultipleComponent] type returns null.
+            root.AddComponent<DockableSupply>();
+
+            var reservoir = root.GetComponent<SupplyReservoir>();
+            var supplySo = new SerializedObject(reservoir);
             Field.SetEnum(supplySo, "kind", (int)supply.Kind);
             Field.SetFloat(supplySo, "capacity", supply.Capacity);
             Field.SetFloat(supplySo, "startingCharge", supply.StartingCharge);
             Field.Set(supplySo, "readout", readout);
             supplySo.ApplyModifiedPropertiesWithoutUndo();
+
+            // The drain policy is left at its defaults, all zero: nothing empties a bottle or a
+            // battery by carrying it. They are drained by the machine they are fitted to and
+            // refilled by the plant, both of which write the charge directly.
 
             // Last, because it is measured off the model in the ROOT's frame and the lay-down turn
             // above is part of that frame.
@@ -1008,8 +1020,12 @@ namespace SpaceGame.EditorTools
                         problems.Add(supply.Name + " packSize reads " + grip.PackSize.ToString("F3"));
                 }
 
-                var supplyItem = prefab.GetComponent<DockableSupply>();
-                if (supplyItem == null) problems.Add(supply.Name + " has no DockableSupply");
+                if (prefab.GetComponent<DockableSupply>() == null)
+                    problems.Add(supply.Name + " has no DockableSupply, so it equips with no hold " +
+                                 "pose and carries no item state");
+
+                var supplyItem = prefab.GetComponent<SupplyReservoir>();
+                if (supplyItem == null) problems.Add(supply.Name + " has no SupplyReservoir");
                 else
                 {
                     // The three numbers that make a reservoir what it is. Checked off the saved

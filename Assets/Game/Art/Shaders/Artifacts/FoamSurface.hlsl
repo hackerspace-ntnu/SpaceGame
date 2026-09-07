@@ -28,7 +28,7 @@ CBUFFER_START(UnityPerMaterial)
     half4 _BandShadow;
 
     float _LightWrap;
-    float _Ambient;
+    float _AmbientFloor;
     float _RimLift;
     float _RimPower;
     float _Backlight;

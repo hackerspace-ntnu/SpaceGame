@@ -8,11 +8,18 @@ family kit sits beside its components and is imported, never copied.
 (`models/gear/bottled_singularity.py`, `models/gear/storm_flask.py`) do to the
 same two component files.
 
-**Shader channels** — `emit` and `write_channels` are what the three props
-(`models/props/foam_blob.py`, `frozen_statue_base.py`, `storm_cloud.py`) hand
-their shaders. Those props are shells for shaders rather than detailed meshes,
-so the per-vertex data they carry *is* most of their content, and it has to mean
-the same thing on all three or the shader author has to learn three conventions.
+**Shader channels** — `emit` and `write_channels` build the per-vertex data the
+three props (`models/props/foam_blob.py`, `frozen_statue_base.py`,
+`storm_cloud.py`) carry, to one convention rather than three.
+
+The artifact shaders that shipped alongside them read **none of it**:
+`FoamSurface`, `FrozenStatue` and `StormCloud` take POSITION and NORMAL and do
+everything else with object- or world-space triplanar noise, which is why they
+work on skinned meshes and on packed UVs. The channels are kept anyway — they
+cost a few bytes on meshes of 162 to 530 vertices, they are measured on every
+export by `channel_report`, and the next shader that wants a crease mask or a
+height ramp will not have to come back for a re-export. Do not add geometry for
+their sake; do not remove them either.
 
 Holds no geometry of its own and produces no .blend.
 """
@@ -194,3 +201,28 @@ def ramp(value, lo, hi):
     if hi - lo < 1e-9:
         return 0.0
     return min(1.0, max(0.0, (value - lo) / (hi - lo)))
+
+
+def channel_report():
+    """Print the shader channels every mesh in the open file actually carries.
+
+    Run from an export script *after* `export`, on the still-open file. A
+    builder run can execute stale code and log success, so the only trustworthy
+    check is measuring the result: this prints the UV set names in order, the
+    colour attribute, and the observed range of each channel. A prop whose
+    `Data` set is missing, or whose ramps are flat, is a prop the shader will
+    draw as a solid lump with no explanation in any log.
+    """
+    for obj in sorted((o for o in bpy.data.objects if o.type == 'MESH'),
+                      key=lambda o: o.name):
+        mesh = obj.data
+        uvs = [layer.name for layer in mesh.uv_layers]
+        cols = [c.name for c in mesh.color_attributes]
+        line = "  CHANNELS %-32s uv=%s col=%s" % (obj.name, uvs, cols)
+        if len(mesh.uv_layers) > 1:
+            data = mesh.uv_layers[1].data
+            core = [d.uv[0] for d in data]
+            up = [d.uv[1] for d in data]
+            line += ("  core %.3f..%.3f  up %.3f..%.3f"
+                     % (min(core), max(core), min(up), max(up)))
+        print(line)

@@ -81,10 +81,14 @@ namespace SpaceGame.Characters
         /// <summary>Heat as 0..1, for the visor gauge and the glow. Cold when not worn.</summary>
         public float HeatFraction => heat.Fraction(flight);
 
-        /// <summary>Throttle as 0..1, for the flames. Zero when not flying.</summary>
+        /// <summary>
+        /// Throttle as 0..1, for the flames. Zero when not flying, and zero for a CUT — the dark
+        /// nozzles are what tells a pilot that this fall is the overheat and not their own hand
+        /// off the key, which is the only way the two states can be told apart from inside.
+        /// </summary>
         public float ThrottleFraction => !flying ? 0f
             : throttle == JetThrottle.Thrust ? 1f
-            : throttle == JetThrottle.Levitate ? 0.35f
+            : throttle == JetThrottle.Descend ? 0.35f
             : 0f;
 
         /// <summary>The tuning, so the item and the gauge read the same numbers this flies on.</summary>
@@ -332,20 +336,27 @@ namespace SpaceGame.Characters
         }
 
         /// <summary>
-        /// What the pilot is asking for, before the heat has its say.
+        /// What the pilot is asking for, before the heat has its say. One key: Space up or Space
+        /// down.
         ///
         /// <para>
-        /// Crouch outranks jump, so the cut is always available — including while the player is
-        /// holding thrust, which is exactly when they need to shed heat in a hurry. A cut that
-        /// could be blocked by another key would be the one control the machine argues about.
+        /// <b>There is no key for coming down, and that is the design.</b> Releasing Space is the
+        /// descent — the motors idle to a steady sink with the nozzles still lit — so the whole
+        /// machine is one button held and let go (<c>GDC-L1-UX-0005</c>: a new action costs an
+        /// input, and this one replaces a binding rather than adding one). The crouch cut it
+        /// replaced was a second way to say "down" that also happened to be the only way to cool,
+        /// which made a hidden key mandatory for a long flight rather than optional.
+        /// </para>
+        /// <para>
+        /// A pack with no input source at all descends rather than hangs, so a flight that loses
+        /// its pilot comes down and lands instead of parking a body in the sky.
         /// </para>
         /// </summary>
         private JetThrottle Wanted()
         {
-            if (inputs == null) return JetThrottle.Levitate;
+            if (inputs == null) return JetThrottle.Descend;
 
-            if (inputs.CrouchHeld) return JetThrottle.Cut;
-            return inputs.JumpHeld ? JetThrottle.Thrust : JetThrottle.Levitate;
+            return inputs.JumpHeld ? JetThrottle.Thrust : JetThrottle.Descend;
         }
 
         /// <summary>

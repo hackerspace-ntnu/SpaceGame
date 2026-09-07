@@ -27,13 +27,17 @@ Material:
     m_Floats:
     - _Brightness: 2.4
     - _CoreEnd: 0.22
+    - _EdgeEnd: 0.74
     - _FlickerCut: 0.42
     - _FlickerScale: 11
     - _FlickerSpeed: 13
     - _FlowLength: 1
     - _FlowRadius: 0.2
+    - _Halo: 0.35
+    - _HaloWidth: 0.6
     - _Heat: 0
     - _MidEnd: 0.58
+    - _Swirl: 2.2
     - _Taper: 1.6
     - _Throttle: 0
     m_Colors:
@@ -43,5 +47,6 @@ Material:
     - _FlowOrigin: {r: 0, g: 0, b: 0, a: 0}
     - _HotColor: {r: 0.95, g: 0.09999997, b: 0.03, a: 1}
     - _MidColor: {r: 1, g: 0.62, b: 0.11999995, a: 1}
+    - _TipColor: {r: 0.6, g: 0.09999997, b: 0.03, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

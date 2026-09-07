@@ -15,7 +15,7 @@ symptoms:
   - "the bar is the wrong length or sits off-centre on its plate"
   - "the gauge flickers where it meets the model"
 reads_with: [SupplyCharge, Oxygen, Backpack, Inventory, ArtPipeline]
-updated: 2026-09-06
+updated: 2026-09-07
 ---
 
 # Supply gauge
@@ -65,7 +65,7 @@ by `BarMargin`, and laid down as track and fill a fraction of a millimetre apart
 
 | Where | Who paints it | From |
 | --- | --- | --- |
-| In the hand, or lying in the sand | `DockableSupply.SetCharge` | its own `charge01` |
+| In the hand, or lying in the sand | `SupplyReservoir.SetCharge` | its own `charge01` |
 | Docked in the oxygen plant | `OxygenGenerator.RefreshTankVisual` binds, `DrawFill` climbs | `TankCharge` |
 | Pack mat, ship gear wall | `PackContainer` on each copy it builds | `PackPlacement.Charge` |
 
@@ -85,6 +85,12 @@ which is what makes a generated icon and an unpainted display copy read correctl
 
 ## Gotchas
 
+- **`SetCharge` skips a repaint the reading cannot show.** The bar is a transform write plus a
+  property block, and a sprayer's `Tick` runs every frame on every machine — so `SupplyReservoir`
+  compares `SupplyCharge.ToByte` against the last painted byte and returns early when it matches.
+  The byte is already finer than the whole percent any readout shows, so nothing visible is lost;
+  but it does mean a caller that rebuilds the geometry under the bar without changing the charge
+  gets no repaint.
 - **A `MaterialPropertyBlock` tells nobody anything outside play.** It is not serialized and `Awake`
   never runs on a prefab in the editor, so a block-only bar is right in play and wrong in every
   generated icon, on the mat and on the gear wall. The two materials are real assets, built as copies

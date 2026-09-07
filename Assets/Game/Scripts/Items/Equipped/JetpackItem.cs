@@ -139,7 +139,7 @@ namespace SpaceGame.Items
         // ── The gesture ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// A double tap of Space lights the motors, or cuts them if they are already lit.
+        /// A double tap of Space lights the motors. It does NOT put them out again.
         ///
         /// <para>
         /// <b>Legal from standing</b>, unlike the other two back items. The wing pack and the
@@ -157,8 +157,9 @@ namespace SpaceGame.Items
             if (!base.CanUse()) return false;
             if (owner == null || flight == null) return false;
 
-            // Cutting is always legal. The player is airborne by definition while flying, and
-            // refusing to let them shut the motors down would be a trap rather than a rule.
+            // A press mid-flight is legal but does nothing (see Use): the same key is the
+            // throttle, so refusing it here would fight the pilot's own hand rather than say
+            // anything.
             if (flight.IsFlying) return true;
 
             if (flight.Heat.Overheated)
@@ -170,13 +171,24 @@ namespace SpaceGame.Items
             return true;
         }
 
-        /// <summary>Owner side, because <see cref="Authority"/> is Owner. A plain toggle.</summary>
+        /// <summary>
+        /// Owner side, because <see cref="Authority"/> is Owner. It lights the pack, and that is
+        /// all it does.
+        ///
+        /// <para>
+        /// <b>Deliberately not a toggle.</b> Space is the throttle: a flight is climb, let go,
+        /// climb, so a pilot working the pack presses Space twice inside the 0.3 s double-tap
+        /// window constantly, and a toggle here would read that as "shut the motors off" and drop
+        /// them out of the sky. The one gesture cannot mean both "fly" and "stop flying" once it
+        /// is also the throttle. Landing ends a flight; letting go of Space is how the pilot gets
+        /// there.
+        /// </para>
+        /// </summary>
         protected override void Use()
         {
-            if (flight == null) return;
+            if (flight == null || flight.IsFlying) return;
 
-            if (flight.IsFlying) flight.End();
-            else flight.Begin();
+            flight.Begin();
         }
 
         // ── The stream ─────────────────────────────────────────────────────────

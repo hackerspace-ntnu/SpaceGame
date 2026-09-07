@@ -11,9 +11,10 @@ What it does, and nothing else:
   positioned and scaled through two new parent empties, so the BEVEL widths and
   the geometry-nodes exhausts keep their authored relationship to the geometry
   (baking the scale into the vertices would not).
-* `MOUNT_Jetpack_R` / `MOUNT_Jetpack_L` sit on the lash rail tips measured from
-  `components/props/expedition_rig.blend` (`Mesh_Rig_LashRail`, x = +/-0.8925),
-  so the pods stand 1.785 m apart, centre to centre.
+* `MOUNT_Jetpack_R` / `MOUNT_Jetpack_L` sit at half the lash rail's tip span
+  measured from `components/props/expedition_rig.blend` (`Mesh_Rig_LashRail`,
+  x = +/-0.8925), so the pods stand 0.8925 m apart, centre to centre. Half,
+  because the pack is worn at 2x its modelled size.
 * The left pod is the same object set again, linked to the same mesh data, under
   an empty whose X scale is negative. Editing one side edits both.
 * `Coll_Jetpack_Item` holds a third copy of the pair, pushed together shoulder to
@@ -29,9 +30,12 @@ from mathutils import Matrix, Vector
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 SAVE = "--save" in argv
 
-# Measured from components/props/expedition_rig.blend: Mesh_Rig_LashRail spans
-# x -0.8925 .. 0.8925, so a pod hung on each tip stands 1.785 m apart.
-RAIL_TIP_X = 0.8925
+# The lash rail (components/props/expedition_rig.blend, Mesh_Rig_LashRail) spans
+# x -0.8925 .. 0.8925, but the pods do not sit on its tips: JetpackBuilder wears
+# the pack at twice its modelled size, and at 2x a pod on each tip stands nearly
+# four metres across the wearer and misses the rig entirely. Half the tip span
+# puts the pair back on the pack (2026-09-07, asked for directly).
+RAIL_TIP_X = 0.8925 / 2.0
 
 # Worn pod height. The rig's back panel is 0.629 m tall and its wings 0.84 m
 # long, so a 0.65 m pod reads as a pack-mounted unit rather than a vehicle.

@@ -176,9 +176,16 @@ namespace SpaceGame.Tests
                           "OxygenTankEmpty.prefab is back. A tank's charge is a number on the " +
                           "instance now; a second asset is a second way for a tank to exist.");
 
-            var supply = tank.GetComponent<DockableSupply>();
-            Assert.IsNotNull(supply, "The tank has no DockableSupply, so it holds nothing.");
+            var supply = tank.GetComponent<SupplyReservoir>();
+            Assert.IsNotNull(supply, "The tank has no SupplyReservoir, so it holds nothing.");
             Assert.AreEqual(SupplyKind.Oxygen, supply.Kind, "The tank does not hold oxygen.");
+
+            // The reservoir is the state; DockableSupply is the verb-less UsableItem beside it that
+            // gives the bottle its hold pose and hands the reservoir's fill to the slot's bag. An
+            // item with only the reservoir equips into the idle tree and saves nothing.
+            Assert.IsNotNull(tank.GetComponent<DockableSupply>(),
+                             "The tank has no DockableSupply, so it has no hold pose and no item " +
+                             "state carrier.");
             Assert.Greater(supply.Capacity, 0f, "The tank has no capacity, so it can never fill.");
         }
 
@@ -203,7 +210,7 @@ namespace SpaceGame.Tests
             var tank = AssetDatabase.LoadAssetAtPath<GameObject>(TankPrefab);
             Assert.IsNotNull(tank, "No prefab at " + TankPrefab);
 
-            Assert.AreEqual(30f * 60f, tank.GetComponent<DockableSupply>().Capacity, 0.5f,
+            Assert.AreEqual(30f * 60f, tank.GetComponent<SupplyReservoir>().Capacity, 0.5f,
                             "A full tank is no longer thirty minutes of air.");
 
             var player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefab);
@@ -290,8 +297,8 @@ namespace SpaceGame.Tests
 
                 // The gauge is the flank the player reads. It has to end up on the item's own +Y,
                 // because +Y is the axis every surface seats along its normal.
-                var supply = prefab.GetComponent<DockableSupply>();
-                Assert.IsNotNull(supply, path + " has no DockableSupply");
+                var supply = prefab.GetComponent<SupplyReservoir>();
+                Assert.IsNotNull(supply, path + " has no SupplyReservoir");
                 Assert.IsNotNull(supply.Readout, path + " has no gauge to point anywhere");
 
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);

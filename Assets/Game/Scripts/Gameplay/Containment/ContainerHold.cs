@@ -292,6 +292,10 @@ namespace SpaceGame.Gameplay.Containment
         ///
         /// The captive does not exist yet on a peer — it arrives as an ordinary spawn a moment
         /// later — so there is no captive channel to use, and the container's is the holder's.
+        ///
+        /// A container with no holder is one lying in the world, which nothing uncorks: it has to
+        /// be picked up first. Silence is the honest answer there rather than a warning about a
+        /// path no caller takes.
         /// </summary>
         private void AnnounceRelease(Vector3 point)
         {

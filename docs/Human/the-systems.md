@@ -279,6 +279,8 @@ Two motors on a bar across your back. Tap Space twice — standing on flat sand 
 
 **It runs on heat, not fuel.** Held at full thrust it overheats in fifteen seconds; just hanging in the air it lasts twenty-five. Nothing cools it except cutting the motors and falling — so a long flight is a rhythm of burning, cutting out, coasting and burning again, and a pilot who does that can stay up indefinitely. When it does overheat the motors cut dead and will not relight until it is most of the way cool, so overheating high up is a real fall. The nozzle tips glow red and smoke as it gets close, and because they are behind you there is a burn gauge on your visor as well — it empties toward danger, like the air and health bars beside it.
 
+**The view steps out behind you while you fly it**, because the machine is on your back — in first person every part of it, the swinging motors, the flames, the tips going red, is behind the camera. Each lit motor leaves a smoke trail, and once it starts overheating the trail thickens into something you can see from a long way off.
+
 **Worth knowing:** Hanging still with the nozzles hard over costs you altitude — the hover can only just hold your weight straight down, and pointed sideways it cannot. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so an overheat pays for itself.
 
 ## What you see and hear

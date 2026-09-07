@@ -206,7 +206,7 @@ namespace SpaceGame.Gameplay
 
         // The inert copies standing in the two docks, and what is needed to drive the tank's gauge
         // while it fills — resolved when a copy is built, because DisplayCopy.Strip takes the
-        // item's own DockableSupply off the copy along with every other script.
+        // item's own SupplyReservoir off the copy along with every other script.
         private GameObject tankCopy;
         private GameObject cellCopy;
         /// <summary>
@@ -798,7 +798,7 @@ namespace SpaceGame.Gameplay
 
             if (tankCopy == null) return;
 
-            // By NAME, off the copy itself: DisplayCopy.Strip takes the bottle's own DockableSupply
+            // By NAME, off the copy itself: DisplayCopy.Strip takes the bottle's own SupplyReservoir
             // off with every other script, so the copy cannot draw its own bar and nothing on it
             // can be asked what its charge is. The machine paints it instead.
             tankGauge = SupplyGauge.Bind(tankCopy.transform);

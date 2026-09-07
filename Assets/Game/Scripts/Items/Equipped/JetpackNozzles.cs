@@ -64,10 +64,12 @@ namespace SpaceGame.Items
         public const string FlamePrefix = "JetFlame_";
 
         [Header("Flame")]
-        [Tooltip("Flame length while levitating, as a fraction of the full one. Well above zero: " +
-                 "a hovering pack that showed nothing would read as switched off, and the player " +
-                 "has to be able to see at a glance that it is still burning heat.")]
-        [SerializeField, Range(0f, 1f)] private float idleFlame = 0.35f;
+        [Tooltip("Flame length while sinking with Space released, as a fraction of the full " +
+                 "one. Well above zero: a pack coming down under power that showed nothing would " +
+                 "read as switched off, and the flame is the one thing that separates letting go " +
+                 "(lit, a steady sink, cooling) from an overheat (dark, a real fall). Six tenths " +
+                 "rather than a third, so the difference is legible at a glance.")]
+        [SerializeField, Range(0f, 1f)] private float idleFlame = 0.6f;
 
         [Header("Heat")]
         [Tooltip("Colour the nozzle tips glow at full heat. Driven through a property block, so " +

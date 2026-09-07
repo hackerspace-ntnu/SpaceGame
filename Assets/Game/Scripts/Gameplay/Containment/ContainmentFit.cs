@@ -128,14 +128,10 @@ namespace SpaceGame.Gameplay.Containment
             Mathf.Abs(bounds.size.x * bounds.size.y * bounds.size.z);
 
         /// <summary>
-        /// Everything that is about to be taken, carrier first — so the gate measures the group
-        /// and the capture records the group.
-        ///
-        /// One list, built once, rather than each caller walking the saddle again: the rider is a
-        /// child of the mount at capture time and a sibling of it a moment later, and a second walk
-        /// taken at the wrong moment finds a different answer.
+        /// Everything that would be taken, carrier first, so the gate asks its questions of the
+        /// whole group rather than of the animal alone.
         /// </summary>
-        public static List<GameObject> Group(GameObject body)
+        private static List<GameObject> Group(GameObject body)
         {
             var group = new List<GameObject> { body };
 
@@ -173,7 +169,7 @@ namespace SpaceGame.Gameplay.Containment
                 return false;
             }
 
-            if (settings == null) settings = new ContainmentSettings();
+            ContainmentSettings rating = settings ?? new ContainmentSettings();
 
             if (HasPlayerRider(body))
             {
@@ -193,7 +189,7 @@ namespace SpaceGame.Gameplay.Containment
             if (rider != null && TryMeasure(rider, out Bounds riderBounds)) bounds.Encapsulate(riderBounds);
 
             float volume = VolumeOf(bounds);
-            if (volume > settings.RatedVolume)
+            if (volume > rating.RatedVolume)
             {
                 refusal = $"{body.name} is too big for this container.";
                 return false;

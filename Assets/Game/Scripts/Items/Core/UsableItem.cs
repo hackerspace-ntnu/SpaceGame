@@ -189,6 +189,8 @@ namespace SpaceGame.Items
             // An unlimited item has no count worth storing, and storing a zero for every artifact in
             // the game would put a bag on every slot that has nothing in it.
             if (maxUses >= 0 && currentUses > 0) state.Set(UsesKey, currentUses);
+
+            if (Reservoir != null) Reservoir.CaptureItemState(state);
         }
 
         /// <summary>
@@ -201,6 +203,40 @@ namespace SpaceGame.Items
             // true — but the reset is written out rather than assumed, because the same instance can
             // be handed a bag and then handed none.
             currentUses = state == null ? 0 : state.GetInt(UsesKey, 0);
+
+            if (Reservoir != null) Reservoir.RestoreItemState(state);
+        }
+
+        private SupplyReservoir reservoir;
+        private bool reservoirResolved;
+
+        /// <summary>
+        /// The tank on this item, if it has one, resolved once.
+        ///
+        /// <para>
+        /// The base class carries this for the same reason it carries the charge count: it belongs
+        /// to whichever items have one, and only the ONE <c>UsableItem</c> on a prefab is ever asked
+        /// for a state bag. <c>EquipmentController</c>, <c>BodyEquipmentController</c> and the savers
+        /// all reach an <see cref="IItemStateCarrier"/> through <c>GetComponent&lt;UsableItem&gt;</c>,
+        /// so a <see cref="SupplyReservoir"/> that implemented the interface and nothing more would
+        /// never be called — and every artifact that grew a tank would have to remember the two
+        /// forwarding lines above. They are written here once instead.
+        /// </para>
+        /// <para>
+        /// Lazily, not in <c>Awake</c>: an <c>AddComponent</c> outside play mode raises no Awake, and
+        /// these two methods are the only callers.
+        /// </para>
+        /// </summary>
+        private SupplyReservoir Reservoir
+        {
+            get
+            {
+                if (reservoirResolved) return reservoir;
+
+                reservoir = SupplyReservoir.On(gameObject);
+                reservoirResolved = true;
+                return reservoir;
+            }
         }
 
         /// <summary>How many uses are left, or -1 when this item is unlimited.</summary>

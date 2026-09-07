@@ -109,8 +109,8 @@ namespace SpaceGame.Tests
                 Transform track = spawned.transform.Find(SupplyGauge.TrackName);
                 Assert.IsNotNull(track, path + " has no " + SupplyGauge.TrackName);
 
-                var supply = spawned.GetComponent<DockableSupply>();
-                Assert.IsNotNull(supply, path + " has no DockableSupply");
+                var supply = spawned.GetComponent<SupplyReservoir>();
+                Assert.IsNotNull(supply, path + " has no SupplyReservoir");
                 Assert.IsNotNull(supply.Readout, path + " has no gauge mesh");
 
                 Bounds lit = LitBounds(spawned.transform, supply.Readout);
@@ -131,7 +131,7 @@ namespace SpaceGame.Tests
         /// <summary>
         /// A display copy still draws its charge. <c>DisplayCopy.Strip</c> takes every MonoBehaviour
         /// off, so the copy standing in the oxygen plant and the one lying on a pack mat have no
-        /// <see cref="DockableSupply"/> to draw their own bar — the machine and the container paint
+        /// <see cref="SupplyReservoir"/> to draw their own bar — the machine and the container paint
         /// them instead, and they can only do that by NAME. A gauge that quietly depended on its
         /// component would work perfectly in the hand and be frozen in both other places.
         /// </summary>

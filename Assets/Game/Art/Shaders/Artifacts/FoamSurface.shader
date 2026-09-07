@@ -59,11 +59,11 @@ Shader "SpaceGame/Artifacts/FoamSurface"
         _BandShadow ("Band 4  Shadow", Color) = (0.663, 0.620, 0.498, 1)
 
         [Header(Translucency)]
-        _LightWrap ("Light Wrap",      Range(0, 1))   = 0.75
-        _Ambient   ("Ambient Floor",   Range(0, 1))   = 0.22
-        _RimLift   ("Thin Edge Lift",  Range(0, 1))   = 0.35
-        _RimPower  ("Thin Edge Power", Range(0.5, 8)) = 2.5
-        _Backlight ("Backlight Bleed", Range(0, 1))   = 0.4
+        _LightWrap    ("Light Wrap",      Range(0, 1))   = 0.75
+        _AmbientFloor ("Ambient Floor",   Range(0, 1))   = 0.22
+        _RimLift      ("Thin Edge Lift",  Range(0, 1))   = 0.35
+        _RimPower     ("Thin Edge Power", Range(0.5, 8)) = 2.5
+        _Backlight    ("Backlight Bleed", Range(0, 1))   = 0.4
 
         [Header(Bubbles)]
         _BubbleScale     ("Bubble Scale (per m)", Range(1, 40)) = 11
@@ -109,6 +109,10 @@ Shader "SpaceGame/Artifacts/FoamSurface"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            // The helmet lamp, the same way StylizedTerrain, AlgaeRock and CaveTriplanar take
+            // it. Foam is built indoors and underground as often as it is on a dune, and
+            // without this a ramp in a cave is lit only by the sun that is not reaching it.
+            #include "../Effects/Flashlight.hlsl"
             #include "FoamSurface.hlsl"
 
             struct Attributes
@@ -166,7 +170,15 @@ Shader "SpaceGame/Artifacts/FoamSurface"
                 // chosen to sit in and the quantizer then scatters them across the lattice.
                 float diffuse = SubstanceWrapDiffuse(normalWS, mainLight.direction, _LightWrap);
                 float shade = diffuse * mainLight.shadowAttenuation;
-                shade = lerp(_Ambient, 1.0, shade);
+
+                // The lamp folded into the same scalar, by its brightest channel. Peak rather
+                // than a luminance weighting because this is a "how lit is this" question and
+                // not a colour conversion — the lamp's warm white undersells itself badly
+                // under luma weights.
+                float3 lamp = SampleFlashlight(IN.positionWS, normalWS, _LightWrap);
+                shade += max(lamp.r, max(lamp.g, lamp.b));
+
+                shade = lerp(_AmbientFloor, 1.0, saturate(shade));
 
                 // Light arriving through the thin parts, in two halves: the rim, where the
                 // substance is thinnest against the eye, and the backlight, which is the sun

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: VacuumCanister
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: f3905b0124cc441393faa9f4e6833ad6
+  itemName: Vacuum Canister
+  itemPrefab: {fileID: 5156777547545896287, guid: 89eddb85a57fd41028be8bb08f3dd59f, type: 3}
+  icon: {fileID: 21300000, guid: b9ceb58cb283b4f5fbe062c0042c722d, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0

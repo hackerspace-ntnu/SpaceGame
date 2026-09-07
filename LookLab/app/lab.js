@@ -55,7 +55,11 @@ async function load() {
     fetch('/api/presets').then((r) => r.json()),
   ]);
 
-  state.stages = await Promise.all(stageNames.map(parseStage));
+  // By declared order, not by filename: a stage's position in the chain is part of what
+  // it means — anything that feeds the snap has to reach the frame before it — and a
+  // rename must not be able to silently reverse that.
+  state.stages = (await Promise.all(stageNames.map(parseStage)))
+    .sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.id.localeCompare(b.id));
   state.scenes = scenes;
   state.presets = presets;
 
@@ -65,7 +69,7 @@ async function load() {
     }
   }
 
-  renderer.compile(state.stages.map((s) => s.body), scalarParamNames());
+  renderer.compile(state.stages, scalarParamNames());
 
   await Promise.all(state.scenes.map(async (scene) => {
     const image = await loadImage(`../scenes/${encodeURIComponent(scene.name)}/color_ldr.png`);

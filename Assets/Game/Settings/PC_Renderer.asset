@@ -17,6 +17,20 @@ MonoBehaviour:
     renderPassEvent: 600
     material: {fileID: 2100000, guid: 8c4d92a01b5e4f76ad3c60e9f21b7d54, type: 2}
     blend: 1
+    ink:
+      amount: 0.22
+      lumaThreshold: 0.03
+      depthThreshold: 0.02
+      softness: 0.03
+    stipple:
+      amount: 0.6
+      color: {r: 0.1, g: 0.12, b: 0.18, a: 1}
+      spacing: 0.35
+      density: 0.2
+      size: 0.07
+      sizeVariation: 0.6
+      softness: 0.25
+      fadeDistance: 40
 --- !u!114 &-4383293298973362782
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172,9 +186,9 @@ MonoBehaviour:
     AfterOpaque: 0
     Source: 1
     NormalSamples: 1
-    Intensity: 0.4
+    Intensity: 0.8
     DirectLightingStrength: 0.25
-    Radius: 0.3
+    Radius: 1.5
     Samples: 1
     BlurQuality: 0
     Falloff: 100

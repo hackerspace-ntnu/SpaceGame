@@ -400,6 +400,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             Drives = drives;
             if (!built) Build();
+            DropLostBones();
             if (bones.Count == 0) return;
 
             if (!IsLimp)
@@ -518,6 +519,41 @@ namespace SpaceGame.Gameplay.Ragdoll
                 Physics.IgnoreCollision(all[i], all[j], !selfCollision);
         }
 
+        /// <summary>
+        /// Forget bones whose transform has been destroyed since the skeleton was built.
+        ///
+        /// <para>
+        /// The rig is built over transforms this component does not own, and a body wears things
+        /// that come and go: a gauntlet is stripped, a backpack is swapped, a held item is
+        /// unequipped — each one an <c>Instantiate</c> parented onto a bone and a <c>Destroy</c>
+        /// later. <see cref="Build"/> takes any node under the root that carries geometry, so a
+        /// skeleton built while gear was on can hold bodies on transforms that are gone by the time
+        /// the body gets up.
+        /// </para>
+        ///
+        /// <para>
+        /// Reading one of those throws, and where it threw decides how bad it is: from
+        /// <see cref="Recover"/> the exception escapes through the revive event, so the rest of the
+        /// revive never runs and the player is left dead with their controls never handed back.
+        /// That is what this prevents — dropping a lost bone costs the corpse one limb it can no
+        /// longer blend, which is invisible next to a player who cannot respawn.
+        /// </para>
+        /// </summary>
+        private void DropLostBones()
+        {
+            for (int i = bones.Count - 1; i >= 0; i--)
+                if (bones[i].Transform == null || bones[i].Body == null) bones.RemoveAt(i);
+
+            // The joints on a destroyed bone died with it, and Unity leaves the list entry null.
+            for (int i = joints.Count - 1; i >= 0; i--)
+                if (joints[i] == null) joints.RemoveAt(i);
+
+            // The hips are bones[0] by construction, so losing them means the whole body is now
+            // rooted at whatever survived. Everything that reads Hips — the root follow, the
+            // watcher's pin — wants that same bone, not a null.
+            if (Hips == null) Hips = bones.Count > 0 ? bones[0].Transform : null;
+        }
+
         // ── Standing back up ──────────────────────────────────────────────────
 
         /// <summary>
@@ -536,6 +572,8 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             if (!IsLimp) return new TeleportMove(transform.position, transform.rotation,
                                                  transform.position, transform.rotation);
+
+            DropLostBones();
 
             Vector3 from = PreLimpPosition;
             Quaternion fromRotation = PreLimpRotation;

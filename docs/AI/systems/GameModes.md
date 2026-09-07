@@ -20,7 +20,7 @@ symptoms:
   - "I died in versus and respawned in the enemy team's ship"
   - "respawning put me on open sand at the world's starting coordinates instead of back in my ship"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
-updated: 2026-09-02
+updated: 2026-09-07
 ---
 
 # Game Modes
@@ -60,7 +60,7 @@ Two unrelated match families — **Versus** (team PvP in the streamed world, eve
 | `ShipSpawnLayout` | [Versus/Core/ShipSpawnLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/ShipSpawnLayout.cs) | `Ring`, `SeatRing`, `TryPointForTeam`, `TryValidateExplicit` |
 | `VersusShipSpawner` | [Versus/Runtime/VersusShipSpawner.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.cs) + [.Seats.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.Seats.cs) | One ship per team via `GameServices.World.Spawn`, team livery, `TryClaimSeat` (match start, seat marker pose) / `TryClaimRespawnPose` (respawn, the seat's standing `DismountPoint`) |
 | `ShipRespawn` | [Game/Spawning/ShipRespawn.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) | Static resolver: a dead player comes back inside their own ship — team ship in VS, the crew hull otherwise; refuses rather than pick a wrong hull |
-| `ShipGrounding` / `ShipSeat` | [Versus/Runtime/](Assets/Game/Scripts/Gameplay/Versus/Runtime) | Heightmap-first ground probe; seat markers (ordered, component not name) |
+| `ShipGrounding` / `ShipSeat` | [Versus/Runtime/](Assets/Game/Scripts/Gameplay/Versus/Runtime) | Heightmap-first ground probe, raised onto anything standing on the terrain when it is a HULL being landed (`TryResolveLandingSurface` — see [PlayerShip](PlayerShip.md)); seat markers (ordered, component not name) |
 | `RankLayout` | [Versus/Core/RankLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankLayout.cs) | Lobby rank geometry: seat spacing, 4-wide seat wrap, **4-wide team wrap on a shared half-pitch lattice**, team gap, two-axis camera fit, eye lift |
 | `RankGrounding` | [Versus/Core/RankGrounding.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankGrounding.cs) | Drops the flat seats onto the ground through an injected probe; reports the height spread the camera frames |
 | `RankOverlayScale` | [Versus/Core/RankOverlayScale.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankOverlayScale.cs) | Projected spacing to font size + label rung; the floor rung is still a word, never a bare colour |
@@ -120,7 +120,7 @@ N/A for match state, deliberately: a VS match and an arena match are single-sess
 - A dead player object stays active forever, so `MatchManager` disables `EntityFaction` to pull corpses out of `EntityTargetRegistry`; without it every survivor aims at the body and a last-standing match never ends.
 - Arena NavMesh islands silently hang a match — `SpawnReachability` drops minority-island spawn points and logs a warning telling you to rebake.
 - `HerdModule` ids are baked into the bot prefab; `RegisterEntity` overwrites them per team, or a FFA puts 16 mutual enemies in one herd.
-- Ground is probed **heightmap first, raycast second** (`ShipGrounding`, `SpawnManager.TryFindOpenGround`). A `false` means "not yet, the chunk hasn't loaded" — retry, never substitute a guessed height.
+- Ground is probed **heightmap first, raycast second** (`ShipGrounding`, `SpawnManager.TryFindOpenGround`). A `false` means "not yet, the chunk hasn't loaded" — retry, never substitute a guessed height. A **ship** landing adds a third pass on top of that: the heightmap is blind to what is built on it, and a hull rests on the highest thing it spans, so `TryResolveLandingSurface` raises the answer onto any structure standing there — the reason a team ship no longer plans its descent into a building.
 - `GameManager.WinGame` deliberately does *not* use `Network.Simulates` (a plain MonoBehaviour reads as its own authority on every client); it checks `Network.IsNetworked && !Network.Server` by hand.
 
 ## Extending: add a new arena gamemode

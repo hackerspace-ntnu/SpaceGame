@@ -147,7 +147,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a ring, band or collar on a model flickers where two parts meet and the generator's numbers look right | [ArtPipeline](systems/ArtPipeline.md) |
 | a rival team's ship falls past me stone cold while mine is on fire | [Cutscenes](systems/Cutscenes.md) |
 | a rope fills up with bends and its measured length collapses | [LeashSystem](systems/LeashSystem.md) |
-| a rope goes onto a slot and can never come off it | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | a rope goes onto a slot and can never come off it | [LeashSystem](systems/LeashSystem.md) |
 | a rope is a different shape on the host and on the client | [LeashSystem](systems/LeashSystem.md) |
 | a rope pickup appears at a tied body every time a tie ends, out of nothing | [Hogtie](systems/Hogtie.md) |
@@ -167,7 +166,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a scene I did not touch opens with a missing-prefab placeholder after I deleted an item | [Inventory](systems/Inventory.md) |
 | a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
 | a seated player's head stays turned after they stand up | [PlayerCharacter](systems/PlayerCharacter.md) |
-| a second cell appears every time the world is loaded | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
@@ -380,6 +378,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
 | pressing Play shows only the skybox through a stray Main Camera instead of the game | [Testing](systems/Testing.md) |
 | pressing Q over a placed object pockets it and fires the left gauntlet at the same time | [Placeables](systems/Placeables.md) |
+| pressing respawn does nothing and the console shows MissingReferenceException from RagdollRig.Recover | [Combat](systems/Combat.md) |
 | pulling back on the stick does not climb, or the craft drops like a brick | [Ornithopter](systems/Ornithopter.md) |
 | Q or E does nothing even though a gauntlet is worn | [BodyEquipment](systems/BodyEquipment.md) |
 | re-running a generator script destroyed hand edits that existed only in the .blend | [ArtPipeline](systems/ArtPipeline.md) |
@@ -425,6 +424,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the arms go up in the air around an invisible pistol while an item is held | [Artifacts](systems/Artifacts.md) |
 | the arrival cutscene plays for the host only | [PlayerShip](systems/PlayerShip.md) |
 | the arrival cutscene runs on a different clock on the host and the client | [PlayerShip](systems/PlayerShip.md) |
+| the arrival errors that every arrival height in this world is out by several metres | [PlayerShip](systems/PlayerShip.md) |
 | the arrival intermittently loses its blackout, look and exit hint all at once, with a clean console | [Cutscenes](systems/Cutscenes.md) |
 | the arrival log says the ship landed cleanly but it is visibly hanging in the sky | [PlayerShip](systems/PlayerShip.md) |
 | the arrival logs that the heightmap and the colliders disagree about the ground under the ship | [PlayerShip](systems/PlayerShip.md) |
@@ -452,11 +452,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the camera flies to the terminal but the screen is blank green | [Terminal](systems/Terminal.md) |
 | the camera freezes during a cutscene and look input does nothing | [Cutscenes](systems/Cutscenes.md) |
 | the camera shake accessibility slider has no effect | [Cutscenes](systems/Cutscenes.md) |
-| the cell can be lifted straight over the maze | [CruciblePuzzle](systems/CruciblePuzzle.md) |
-| the cell falls into the lava and nothing happens to it | [CruciblePuzzle](systems/CruciblePuzzle.md) |
-| the cell sits at a different height on the host and on the client | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the character stands in the idle pose instead of the hold pose, or glides while walking | [Artifacts](systems/Artifacts.md) |
 | the collar is drawn in one place and the rope goes taut against another | [Lasso](systems/Lasso.md) |
+| the colours are right but the world looks flat and detail-free, whole cliff faces one colour | [Environment](systems/Environment.md) |
 | the compiler cannot resolve Unity's Lobby type inside this folder | [Lobby](systems/Lobby.md) |
 | the console warns that a hull module measures more than any surface on the pack | [PlayerShip](systems/PlayerShip.md) |
 | the console warns that HoloProjector or RepairStation carries a SaveableEntity nested inside PlayerShip | [PlayerShip](systems/PlayerShip.md) |
@@ -534,6 +532,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the host can pick 8 teams of 12 in a 24-seat lobby | [GameModes](systems/GameModes.md) |
 | the host is the last player to spawn and misses the crew gather | [WorldStreaming](systems/WorldStreaming.md) |
 | the imported mesh arrives untextured, or a handful of faces wear a neighbouring part's colour | [ArtPipeline](systems/ArtPipeline.md) |
+| the ink outlines interior shading but draws no silhouettes | [Environment](systems/Environment.md) |
 | the interact prompt sits above the target instead of under the crosshair | [Visor](systems/Visor.md) |
 | the item fires straight down, or at the vehicle I am sitting in, while I am mounted | [Artifacts](systems/Artifacts.md) |
 | the item floats beside the hand instead of in it, or comes out comically large | [Inventory](systems/Inventory.md) |
@@ -548,8 +547,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the lantern needs a different button to pick up than every other loose item | [Placeables](systems/Placeables.md) |
 | the laser staff sticks straight out of the mat at 90 degrees instead of lying flat like everything else | [Backpack](systems/Backpack.md) |
 | the lasso makes a generic hit sound when I press the button and is silent when it catches | [Lasso](systems/Lasso.md) |
-| the lava is there in single player and the room cannot be finished | [CruciblePuzzle](systems/CruciblePuzzle.md) |
-| the lava never appears no matter how many people are in the room | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the leaderboard counts a kill twice on the host | [GameModes](systems/GameModes.md) |
 | the leash applies no force to the player at all | [LeashSystem](systems/LeashSystem.md) |
 | the leash is consumed by a tie and the rope never comes back | [Hogtie](systems/Hogtie.md) |
@@ -604,7 +601,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the parked ship stands half a metre off its own skirts with nothing under it | [PlayerShip](systems/PlayerShip.md) |
 | the pet prompt appears everywhere on the animal instead of only on its head | [AgentSystem](systems/AgentSystem.md) |
 | the pet prompt never appears no matter where I aim at the creature | [AgentSystem](systems/AgentSystem.md) |
-| the pit is buried in the terrain and only the rim is above ground | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the placement ghost flickers between two cells while the cursor rests on a cell border | [Backpack](systems/Backpack.md) |
 | the placement ghost paints green on a face on the other side of the fold and the drop is refused anyway | [Backpack](systems/Backpack.md) |
 | the plant clunks and hisses its way through a reload | [Oxygen](systems/Oxygen.md) |
@@ -637,9 +633,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
-| the room has no cell in it at all and there is nothing to carry | [CruciblePuzzle](systems/CruciblePuzzle.md) |
-| the room is solved by flinging the cell past the socket | [CruciblePuzzle](systems/CruciblePuzzle.md) |
-| the room is unsolved again after a reload even though it was beaten | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
 | the rope is drawn in a wood texture, smeared once along its whole length | [Lasso](systems/Lasso.md) |
@@ -674,6 +667,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the server teleports a player and it snaps back within a frame | [Multiplayer](systems/Multiplayer.md) |
 | the settlement or cave comes out different every time I regenerate | [TerrainGeneration](systems/TerrainGeneration.md) |
 | the ship crash-lands normally but the screen never goes black and I keep my controls | [PlayerShip](systems/PlayerShip.md) |
+| the ship crash-lands on top of a building, an outpost or a rock instead of on open ground | [PlayerShip](systems/PlayerShip.md) |
 | the ship export exits naming a mesh that used to be in the .blend, or the build aborts saying the model is missing a part | [PlayerShip](systems/PlayerShip.md) |
 | the ship falls dead straight and steady, like a hull on rails rather than a wreck | [PlayerShip](systems/PlayerShip.md) |
 | the ship falls the whole way down with no sign of atmospheric heating | [PlayerShip](systems/PlayerShip.md) |
@@ -713,7 +707,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the turret or NPC aims its weapon at the host's camera | [Combat](systems/Combat.md) |
 | the two rows of team plates land in the same band of screen and smear together | [Lobby](systems/Lobby.md) |
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
-| the vault is shut again after reloading a save | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the vehicle drives fine for the host but a client steers a body that snaps back | [Vehicles](systems/Vehicles.md) |
 | the versus lobby's player names come out too small on an ultrawide and too large on a narrow window | [Lobby](systems/Lobby.md) |
 | the visor cannot tell me which of two identical canisters on the wall I am pointing at | [Backpack](systems/Backpack.md) |
@@ -756,6 +749,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the worn wingsuit reads as a sleeve rather than as a wing | [Wingsuit](systems/Wingsuit.md) |
 | the wreck ended up resting on one wing after I added motion to the descent | [PlayerShip](systems/PlayerShip.md) |
 | the wreck is left standing on its nose, or the camera is inside the terrain at the impact | [PlayerShip](systems/PlayerShip.md) |
+| the wreck is lifted several metres by SetDown right after a clean-looking descent | [PlayerShip](systems/PlayerShip.md) |
 | the zoom camera parks inside the cabinet or looks at the ceiling | [Terminal](systems/Terminal.md) |
 | there are two bracers on my arm, one inside the other | [BodyEquipment](systems/BodyEquipment.md) |
 | there are two health bars on screen, one warm and one blue | [Visor](systems/Visor.md) |
@@ -870,7 +864,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Theme/VisorStyle.cs` | [Visor](systems/Visor.md) |
 | `Assets/Game/Editor/Environment/RepairStationBuilder.cs` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Environment/ShipSchematicBuilder.cs` | [ShipSchematic](systems/ShipSchematic.md) |
-| `Assets/Game/Scripts/Items/Artifacts/Leash/LeashRail.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Shaders/Effects/FlashlightBeam.shader` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -882,7 +875,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
-| `Assets/Game/Editor/Environment/CruciblePlacement.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
@@ -898,7 +890,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/WingPackItem.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitItem.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal` | [Terminal](systems/Terminal.md) |
-| `Assets/Game/Editor/Environment/CrucibleBuilder.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
@@ -960,7 +951,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
-| `Assets/Game/Editor/Tests/CrucibleTests.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Lasso` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash` | [LeashSystem](systems/LeashSystem.md) |
@@ -987,7 +977,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Teleporting/` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Gameplay/Arrival/` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Gameplay/Arrival/` | [PlayerShip](systems/PlayerShip.md) |
-| `Assets/Game/Scripts/Gameplay/Crucible` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/` | [NavMeshSystem](systems/NavMeshSystem.md) |
@@ -1069,4 +1058,4 @@ Longest match wins.
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 | `LookLab/` | [LookLab](systems/LookLab.md) |
 
-<!-- 766 symptoms, 277 paths, 47 docs -->
+<!-- 760 symptoms, 272 paths, 46 docs -->

@@ -12,9 +12,14 @@ namespace SpaceGame.World.Environment
     /// perceived colour rather than RGB distance.
     ///
     /// <para>
-    /// Colour is the whole effect — there are no contours, no grain and no grade. The
-    /// palette comes from <see cref="PastelPalette"/> rather than a serialized array so
-    /// the PC and mobile renderers cannot drift into showing different looks.
+    /// Watercolour and pen, in that order. One thing that is not colour runs immediately
+    /// before the snap, by darkening Oklab lightness so that what it draws still lands on a
+    /// palette entry: <see cref="InkShape"/> draws lines along lightness and depth edges. It
+    /// belongs in this pass rather than in one of its own precisely because the snap is what
+    /// would otherwise erase it — anything composited after it is off-palette by
+    /// construction. The palette itself comes from
+    /// <see cref="PastelPalette"/> rather than a serialized array so the PC and mobile
+    /// renderers cannot drift into showing different looks.
     /// </para>
     /// </summary>
     public class PastelQuantizeRenderFeature : ScriptableRendererFeature
@@ -36,8 +41,18 @@ namespace SpaceGame.World.Environment
             public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
             public Material material;
 
-            [Tooltip("0 = untouched frame, 1 = fully quantized.")]
+            [Tooltip("0 = the frame with grain but no snap, 1 = fully quantized.")]
             [Range(0f, 1f)] public float blend = 1f;
+
+            /// <summary>
+            /// The pen lines drawn along edges, before the snap. Serialized, unlike
+            /// <see cref="paletteShape"/>: the palette is kept off the renderer assets so
+            /// PC and mobile cannot drift into different colours, but an amount of an
+            /// effect has to be dragged while the game runs to be judged at all, exactly as
+            /// <c>blend</c> above it is. The cost is that these are now two values —
+            /// <b>set them on both renderers</b>.
+            /// </summary>
+            public InkShape ink = InkShape.Default;
 
             /// <summary>
             /// The lattice the palette is built from. <see cref="System.NonSerialized"/>
@@ -83,7 +98,12 @@ namespace SpaceGame.World.Environment
             private static readonly int PaletteOklabId = Shader.PropertyToID("_PaletteOklab");
             private static readonly int PaletteCountId = Shader.PropertyToID("_PaletteCount");
             private static readonly int BlendId = Shader.PropertyToID("_Blend");
-
+            private static readonly int InkAmountId = Shader.PropertyToID("_InkAmount");
+            private static readonly int InkLumaThresholdId =
+                Shader.PropertyToID("_InkLumaThreshold");
+            private static readonly int InkDepthThresholdId =
+                Shader.PropertyToID("_InkDepthThreshold");
+            private static readonly int InkSoftnessId = Shader.PropertyToID("_InkSoftness");
             private readonly Settings settings;
             private readonly Vector4[] paletteLinear = new Vector4[MaxPaletteSize];
             private readonly Vector4[] paletteOklab = new Vector4[MaxPaletteSize];
@@ -102,6 +122,14 @@ namespace SpaceGame.World.Environment
                 // intermediate colour texture alive instead of resolving post-processing
                 // straight to the back buffer.
                 requiresIntermediateTexture = true;
+
+                // Without this the depth texture is never produced for this camera and
+                // SampleSceneDepth returns 0 everywhere, so the ink's silhouettes vanish
+                // while its lightness edges keep working — silently, which reads as a
+                // tuning problem rather than as a missing input. UseAllGlobalTextures below
+                // is the other half: this asks for the texture, that grants a pass this
+                // late in the frame access to it.
+                ConfigureInput(ScriptableRenderPassInput.Depth);
             }
 
             /// <summary>
@@ -159,7 +187,10 @@ namespace SpaceGame.World.Environment
                 material.SetVectorArray(PaletteOklabId, paletteOklab);
                 material.SetInteger(PaletteCountId, paletteCount);
                 material.SetFloat(BlendId, settings.blend);
-
+                material.SetFloat(InkAmountId, settings.ink.amount);
+                material.SetFloat(InkLumaThresholdId, settings.ink.lumaThreshold);
+                material.SetFloat(InkDepthThresholdId, settings.ink.depthThreshold);
+                material.SetFloat(InkSoftnessId, settings.ink.softness);
                 var destDesc = renderGraph.GetTextureDesc(source);
                 destDesc.name = "_PastelQuantizeTemp";
                 destDesc.clearBuffer = false;
@@ -172,6 +203,11 @@ namespace SpaceGame.World.Environment
                     passData.source = source;
 
                     builder.UseTexture(source);
+                    // The ink's silhouettes sample _CameraDepthTexture, which by this late
+                    // pass event is a global rather than anything this pass declared. See
+                    // ConfigureInput above: both are needed, and missing either loses the
+                    // silhouettes with no error.
+                    builder.UseAllGlobalTextures(true);
                     builder.SetRenderAttachment(destination, 0);
                     builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
                         Blitter.BlitTexture(context.cmd, data.source, ScaleBias, data.material, 0));

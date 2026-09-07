@@ -21,6 +21,7 @@ symptoms:
   - "the ragdoll audit reports unfiltered: 0 on a body that visibly tears itself apart"
   - "loot drops or the enrage fires again every time I load the world"
   - "the corpse stays suspended in the air with its brain switched off"
+  - "pressing respawn does nothing and the console shows MissingReferenceException from RagdollRig.Recover"
   - "the turret or NPC aims its weapon at the host's camera"
   - "the gun fires at the ground, or at the vehicle, while its holder is mounted"
   - "the projectile works on the host but never appears for clients"
@@ -29,7 +30,7 @@ symptoms:
   - "the orb discharges on the host and on a client at slightly different moments"
   - "firing a gun near wildlife or a guard provokes no reaction at all"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-06
+updated: 2026-09-07
 ---
 
 # Combat
@@ -147,6 +148,7 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 - **The root bone is the heaviest BRANCH, not the heaviest bone.** `Select` orders shallowest-first (so the joint pass finds parents already built) and breaks ties on `RagdollSkeleton.SubtreeBulk`. Its own bulk is the wrong tiebreak: a thigh outweighs a chest, and PatrolRobot 1 came out rooted at its right leg with the left leg jointed to it and the whole upper body hanging off the pair. Getting this wrong is silent — the body still holds together, it just hangs from the wrong end.
 - **A held weapon's colliders are not the hand's.** A sword and a gun sit under the robots' right arm, and a bone that counts them thinks it brought a shape and skips synthesising the one it needed — four robots ended up with a 14 kg hand carrying no collision of its own. They still have to be adopted for *filtering* (PhysX attaches them to that body regardless); they just are not the bone's shape. The test is whether anything is **drawn at or below** the collider: a prop leads to a renderer, a hand-authored hull like the crab's `COL_*` draws nothing anywhere under it. On the collider's own GameObject is not enough — the sword's collider sits on a bare object whose mesh hangs one level down.
 - **Recovery restores each collider, it does not switch the body's `detectCollisions` off.** A bone that inherited an authored proxy is holding the creature's own collision — how it blocks and how it is hit — and taking that down with the ragdoll leaves a creature that stood up and can no longer be touched. Everything the rig *created* was born disabled and goes back to disabled, so a purely skinned body is left exactly as it was.
+- **A bone can be destroyed out from under the rig.** The skeleton is built over transforms `RagdollRig` does not own, and a body wears things that come and go — a gauntlet stripped, a backpack swapped, a held item unequipped, each an `Instantiate` onto a bone and a `Destroy` later. `Build` takes any node under the root that carries geometry, so gear worn at the moment of the first limp can end up holding bodies. Reading one of those transforms afterwards throws a `MissingReferenceException`, and from `Recover` that exception escapes through `HealthComponent`'s revive event: the rest of the revive never runs and the player is left dead with their controls never handed back — seen as a respawn button that does nothing on a world entered dead. `DropLostBones` forgets a bone whose transform or body is gone, at the top of `GoLimp` and `Recover`. Anything new that iterates `bones` must tolerate the same loss.
 - **Two owners of one transform.** A `NavMeshAgent` writes the transform every enabled frame and `LeggedLocomotion` rewrites it from world-space foot state every `LateUpdate`. `AgentRagdoll` resolves `ISelfDrivingMotor` lazily because caching it in `Awake` races `AgentController.Awake` — and a null motor is a body that glitches rather than falls, decided by component order on the prefab.
 - **A ragdoll frozen out from under you.** `RagdollBudget` may `Freeze` a limp rig; `AgentRagdoll.Update` watches for `!rig.IsLimp` and restores, or the creature stays suspended with its brain off forever.
 - **`Weapon.ExternallyAimed`** must be set when an NPC or turret holds a weapon, or `UpdateWeaponRotation` passes its ownership test on the server and swings every NPC's barrel to follow the host's head.

@@ -3,6 +3,10 @@
 // and the whole palette shape: the shape is what most tuning actually moves, and it only
 // reaches the renderer because PastelQuantizePass.EnsurePalette rebuilds on change.
 //
+// Not the ink or the stipple. Both need scene depth, which a captured still does not
+// carry, so the lab cannot preview them and there is nothing to bridge — they are
+// serialized on the feature and dragged in the Inspector instead.
+//
 // Nothing connects to the Editor. The browser lab POSTs to the local server that served
 // it, that server writes LookLab/live/look.json, and this polls the file's timestamp —
 // two halves that never meet, so there is no socket in the Editor to leak across a

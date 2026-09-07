@@ -55,7 +55,7 @@ void main() {
   // uSource is SRGB8_ALPHA8, so the sample is already linear — the exact inverse of the
   // sRGB encode Unity's capture render target applied.
   vec4 source = texture(uSource, vUv);
-  fragColor = vec4(linearToSrgb(apply(source.rgb, vUv)), source.a);
+  fragColor = vec4(linearToSrgb(applyStages(source.rgb, vUv)), source.a);
 }
 `;
 
@@ -76,12 +76,33 @@ export class LabRenderer {
     this.vao = this.gl.createVertexArray(); // WebGL2 refuses to draw with no VAO bound
   }
 
-  /** Compiles the stage bodies into one fragment shader. Milliseconds; a slider drag
-   *  does not come through here, it only sets a uniform. */
-  compile(stageBodies, paramNames) {
+  /** Compiles the stages into one fragment shader, applied in the order given.
+   *  Milliseconds; a slider drag does not come through here, it only sets a uniform.
+   *
+   *  Each body declares `vec3 apply(vec3, vec2)`, so every body past the first would
+   *  redefine the same symbol and the link would fail. They are renamed per stage and
+   *  called in sequence instead — which is also what makes a stage's position in the
+   *  chain meaningful: grain has to reach the frame before the snap quantises it.
+   */
+  compile(stages, paramNames) {
     const gl = this.gl;
     const declarations = paramNames.map((n) => `uniform float P_${n};`).join('\n');
-    const source = FRAGMENT_PRELUDE + declarations + '\n' + stageBodies.join('\n') + FRAGMENT_MAIN;
+
+    const bodies = stages.map((stage, index) => {
+      const renamed = stage.body.replace(/\bvec3\s+apply\s*\(/, `vec3 apply_${index}(`);
+      if (renamed === stage.body) {
+        throw new Error(`${stage.id}: no 'vec3 apply(vec3 c, vec2 uv)' in the stage body`);
+      }
+      return renamed;
+    });
+    const chain = stages
+      .map((_, index) => `  c = apply_${index}(c, uv);`)
+      .join('\n');
+    const applyStages =
+      `\nvec3 applyStages(vec3 c, vec2 uv) {\n${chain}\n  return c;\n}\n`;
+
+    const source =
+      FRAGMENT_PRELUDE + declarations + '\n' + bodies.join('\n') + applyStages + FRAGMENT_MAIN;
 
     const program = link(gl, VERTEX_SOURCE, source);
     if (this.program) gl.deleteProgram(this.program);

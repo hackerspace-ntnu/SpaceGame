@@ -36,7 +36,6 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
-| [CruciblePuzzle](systems/CruciblePuzzle.md) | Two players leash one cell and fly it over lava through rim slots; neither can steer it alone | [LeashSystem](systems/LeashSystem.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Lasso](systems/Lasso.md) |
 | [Environment](systems/Environment.md) | Sandstorms, volumetric fog and clouds, sky time-of-day, and the URP render features that draw them | [Persistence](systems/Persistence.md), [AgentSystem](systems/AgentSystem.md), [ArtPipeline](systems/ArtPipeline.md) |
 | [NavMeshSystem](systems/NavMeshSystem.md) | One author-time bake of the whole world into a single asset, added at runtime; nothing bakes at runtime | [WorldStreaming](systems/WorldStreaming.md), [AgentSystem](systems/AgentSystem.md), [Locomotion](systems/Locomotion.md) |
 | [Portals](systems/Portals.md) | Sprayable one-way-pair apertures you walk through, replicated as messages rather than networked entities | [SceneTransitions](systems/SceneTransitions.md), [Artifacts](systems/Artifacts.md), [Combat](systems/Combat.md) |
@@ -130,4 +129,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 47 system docs, 6 redirects -->
+<!-- 46 system docs, 6 redirects -->

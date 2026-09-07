@@ -1016,7 +1016,7 @@ namespace SpaceGame.Gameplay.Arrival
                 measured = false;
             }
 
-            if (measured) WarnIfHeightmapDisagrees(ship, landingYaw, bellyDrop, airGap);
+            if (measured) ReportGroundDisagreement(ship, landingYaw, bellyDrop, airGap);
 
             // The heightmap keeps the scenes physics cannot answer for: the arena and the test
             // scenes have colliders but an interior may have none under the hull at all, and a
@@ -1058,32 +1058,70 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// Says so when the terrain heightmap and the colliders disagree about where the ground is.
+        /// Says so when the world the descent was planned against and the world physics simulates
+        /// disagree about where the ground under the wreck is.
         ///
         /// <para>
-        /// Diagnostic, and deliberately permanent. The landing itself is now decided by collision,
-        /// so a disagreement no longer strands the ship — but it means the world has two answers for
+        /// Diagnostic, and deliberately permanent. The landing itself is decided by collision, so a
+        /// disagreement no longer strands the ship — but it means the world has two answers for
         /// where its own surface is, and every other consumer of
         /// <c>ShipGrounding.TryResolveGround</c> is still believing the other one: the arc this ship
         /// just flew, the versus spawner's landing pose, the spawn points. A silent correction here
         /// would fix the ship and hide that.
         /// </para>
+        /// <para>
+        /// Bracketed rather than compared, which is the difference between a fault and a fact. A
+        /// hull that came down on an outpost roof disagrees with the bare heightmap by the height
+        /// of the outpost every single time, and reporting that as "every arrival height in this
+        /// world is out by 5.90 m" sends the reader looking for a calibration bug that was never
+        /// there. The bare terrain and the surface the plan used are the two ends of what a
+        /// structure under the hull can account for; collision inside that range is named and
+        /// logged as a warning, and only collision outside it is an error, because then the
+        /// terrain and its own collider really have diverged.
+        /// </para>
         /// </summary>
-        private void WarnIfHeightmapDisagrees(GameObject ship, float landingYaw, float bellyDrop,
+        private void ReportGroundDisagreement(GameObject ship, float landingYaw, float bellyDrop,
                                               float collisionGap)
         {
-            if (!ShipGrounding.TryMeasureLanding(ship.transform.position, landingYaw, ship,
-                                                 probeHeight, bellyDrop, out float heightmapGap))
+            Vector3 at = ship.transform.position;
+
+            if (!ShipGrounding.TryMeasureLanding(at, landingYaw, ship, probeHeight, bellyDrop,
+                                                 out float heightmapGap))
                 return;
 
-            float disagreement = Mathf.Abs(collisionGap - heightmapGap);
-            if (disagreement <= landingTolerance) return;
+            if (Mathf.Abs(collisionGap - heightmapGap) <= landingTolerance) return;
+
+            if (!ShipGrounding.TryMeasureLandingAgainstSurface(at, landingYaw, ship, probeHeight,
+                                                               bellyDrop, out float plannedGap,
+                                                               out Collider standingOn))
+                return;
+
+            // The bare terrain is the shallowest the gap can be and the planning surface — terrain
+            // raised onto everything standing on it — the deepest. Collision landing between the
+            // two is a structure under the hull, which is a fact about this site and not a fault:
+            // the sweep deliberately reads wider than a ray does, so the two ends of the range
+            // never coincide even when they are measuring the same wall.
+            bool explained = collisionGap <= heightmapGap + landingTolerance &&
+                             collisionGap >= plannedGap - landingTolerance;
+
+            if (explained)
+            {
+                if (standingOn == null) return;
+
+                Debug.LogWarning($"[Arrival] '{ship.name}' came down on '{standingOn.name}' rather " +
+                                 "than on open ground, so the wreck rests on it. The landing " +
+                                 $"search found nothing clear within {landingSearchRadius:F0} m of " +
+                                 "the impact point.", ship);
+                return;
+            }
 
             Debug.LogError($"[Arrival] The heightmap and the colliders disagree by " +
-                           $"{disagreement:F2} m about the ground under '{ship.name}'. Collision " +
-                           $"says the hull is {collisionGap:F2} m off it, the heightmap says " +
-                           $"{heightmapGap:F2} m. The descent was planned against the heightmap, so " +
-                           "every arrival height in this world is out by that much.", ship);
+                           $"{Mathf.Abs(collisionGap - heightmapGap):F2} m about the ground under " +
+                           $"'{ship.name}', and nothing standing on the terrain accounts for it. " +
+                           $"Collision says the hull is {collisionGap:F2} m off the ground, the " +
+                           $"heightmap says {heightmapGap:F2} m. The descent was planned against " +
+                           "the heightmap, so every arrival height in this world is out by that " +
+                           "much.", ship);
         }
 
         /// <summary>

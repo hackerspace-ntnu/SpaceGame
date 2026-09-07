@@ -258,16 +258,6 @@ It takes the same single slot as the wing pack, so you carry one or the other. T
 
 **Worth knowing:** It uses the ornithopter's crash rule, so flying it onto sand properly costs nothing while a held dive into a rock face is still fatal — the wingsuit is a way down, not a way out of falling.
 
-### The Crucible *(CruciblePuzzle)*
-
-A pit of lava with a maze of rock standing out of it, and a power cell you have to get across. Neither of you goes in. You work the rim, and you each tie a leash to the cell and thread your rope through a slot cut in the rim wall — a long one, so the rope slides along it while you walk. Two ropes pulled tight are the only thing holding the cell up, which means two taut ropes and gravity decide exactly where it hangs, and neither of you can put it anywhere on your own.
-
-Walking along your slot swings the cell sideways. Backing away from your slot spends rope on the outside, so there is less of it on the inside and the cell climbs toward you. That is the whole control scheme, and it is all done with your legs. Walk past the end of a slot and your rope hands itself to the next one, so changing slots means one of you letting go of the steering and running, while the other holds the cell alone.
-
-The rope bends at the slot and the cell hangs below it, so the cell can never get higher than your slot. Anything built taller than that has to be threaded, not lifted over — and the odd wall built lower is a shortcut, if you are good enough to take it. Drop the cell in the lava and it is gone; another one rolls into the cradle and you start again. Get it into the socket at the far end and the vault opens.
-
-**Worth knowing:** on your own, the lava is just a floor. You can set the cell down, walk round, re-rig and pull again — so it stops being a test of nerve and becomes a test of planning. If a second person joins while you are halfway across, the lava comes back with the cell still in the air.
-
 ## What you see and hear
 
 ### Screens, menus and the HUD *(UI)*

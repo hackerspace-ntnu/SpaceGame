@@ -70,7 +70,15 @@ off for the duration of the capture and switched back on afterwards.
 A look is an ordered list of stages, each one file under `LookLab/stages/` — a JSON header,
 a line containing only `---`, then a GLSL `vec3 apply(vec3 c, vec2 uv)` body. **The lab
 builds its sliders from the headers**, so adding a stage file yields controls with no UI
-code. Phase 1 ships one stage, `palette.snap`.
+code. One ships: `palette.snap` (order 20). A `detail.grain` stage existed briefly and was
+deleted — screen-anchored noise swam over the ground, and its replacement needs depth.
+
+Each stage takes the previous one's output, in `order` — **not** in filename order, because a
+stage's position in the chain is part of what it means and a rename must not be able to
+reverse it. `LabRenderer.compile` renames each body's `apply` to `apply_<index>` and calls
+them in sequence; without that, **the second stage to declare `apply` would fail the link**,
+which is why the chaining exists before a second stage does. Stages hand each other
+**linear** colour, so a stage working in Oklab has to convert back before returning.
 
 A param marked `"rebuild": true` describes the CPU-built lattice rather than a uniform, and
 changing it rebuilds the palette texture. Everything else becomes a `P_<name>` float uniform.
@@ -126,14 +134,24 @@ Nothing enters a save file.
   git SHA, resolution, camera and active volume profiles for exactly this reason — hover a
   scene tab to see them. A pack whose provenance no longer matches is not something the lab
   can detect for you.
+- **Part of the shipped look is not in the lab, by construction.** The ink lines need scene
+  depth for their silhouettes, and a captured still carries none — see
+  [Environment](Environment.md). `InkShape` is serialized on the render feature and dragged in
+  the Inspector instead. The lab covers the palette; it is not the whole look any more.
 - **Node is optional, but without it one check goes quiet.** `--check` skips the JS
   comparison when `node` is absent and says so; it does not fail.
 
 ## Extending
 
-Adding a stage (phase 3): drop a `.stage` file in `LookLab/stages/`. Sliders appear with no
-UI code. Pure functions of `(uv, colour, depth, normal)` are inlined into the main fragment
-pass by concatenation; anything needing its own framebuffer waits for the pass graph.
+Adding a stage: drop a `.stage` file in `LookLab/stages/` with an `order`, and mirror its
+body in the shipped HLSL. Sliders appear with no UI code. Pure functions of `(colour, uv)`
+are inlined into the main fragment pass and chained; anything needing its own framebuffer, or
+depth and normals, waits for the pass graph — a still carries neither.
+
+A stage that changes what reaches the *next* stage changes what `blend` means. `_Blend` lerps
+from the painted colour rather than the raw sample for that reason: in the shader the snap
+receives whatever the ink and stipple left, and blending back to the untouched frame there
+would make it disagree with a chain that had a stage in front of it.
 
 Do not serialize `PaletteShape` on the renderer assets. One committed look, in C#, is the
 constraint that stopped the deleted ten-style `PastelStyleLibrary` being rebuilt with a nicer

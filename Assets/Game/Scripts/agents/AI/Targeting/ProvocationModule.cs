@@ -135,8 +135,16 @@ namespace SpaceGame.Agents
         /// <summary>
         /// Turn this creature on <paramref name="target"/>. Public so a herd, an ally alert or a
         /// scripted event can share the anger without having to land a hit first.
+        ///
+        /// <para>
+        /// <paramref name="announce"/> tells the <see cref="AlertBroadcaster"/> on this object, if
+        /// there is one, to pass a NEW aggressor on to allies in range. Leave it on for anger this
+        /// creature earned itself (a hit); turn it off when the anger arrived from someone else's
+        /// alert or a restore, or every receiver becomes a broadcaster and one hit cascades across
+        /// the map.
+        /// </para>
         /// </summary>
-        public void Provoke(Transform target)
+        public void Provoke(Transform target, bool announce = true)
         {
             if (!TargetResolution.IsViable(target))
                 return;
@@ -146,9 +154,13 @@ namespace SpaceGame.Agents
             if (targeting == null)
                 targeting = AgentTargeting.GetOrAdd(gameObject);
 
+            bool newAggressor = aggressor != target;
             aggressor = target;
             CalmingFor = 0f;
             targeting.ForceTarget(target);
+
+            if (announce && newAggressor && TryGetComponent(out AlertBroadcaster broadcaster))
+                broadcaster.Broadcast(target, target.position);
         }
 
         /// <summary>
@@ -167,7 +179,7 @@ namespace SpaceGame.Agents
         /// </summary>
         public void RestoreGrudge(Transform target, float calmingFor)
         {
-            Provoke(target);
+            Provoke(target, announce: false);
 
             // Not viable — dead, despawned, or retired from the registry. Nothing was restored, so
             // the latch stays down and OnEnable is free to reset as usual.

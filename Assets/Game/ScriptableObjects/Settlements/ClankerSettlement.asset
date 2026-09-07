@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4042f343574d84372b492dfa2386e5cc, type: 3}
+  m_Name: ClankerSettlement
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.RobotSettlementRecipe
+  shieldGeneratorPrefab: {fileID: 8362560355927016321, guid: e585ccab9bc324d1eaea98a3ff43c5d2, type: 3}
+  barracksPrefab: {fileID: 8131507802143255647, guid: c7765cfed3ab44c39b58d2da4fb85b6c, type: 3}
+  barracksCount: {x: 3, y: 4}
+  ecoHubPrefab: {fileID: 2006357697233310969, guid: 960ee91a136cc4d64a837e386b1b33d1, type: 3}
+  ecoHubCount: {x: 1, y: 2}
+  satelliteDishPrefab: {fileID: 8339848345226471044, guid: 14e7373eaf826450f8644616cf9cc5ae, type: 3}
+  satelliteDishCount: {x: 1, y: 1}
+  turretPrefab: {fileID: 0}
+  turretCount: {x: 0, y: 0}
+  rockPrefabs: []
+  rockCount: {x: 0, y: 0}
+  rockScaleRange: {x: 1, y: 2}
+  rockMaxTerrainVariance: 0.6
+  rockPlacementAttempts: 8
+  robotPrefabs:
+  - {fileID: 8281197775659510822, guid: 5154a34b94c64e949ab4b17679e6c330, type: 3}
+  robotGroupCount: {x: 2, y: 3}
+  robotsPerGroup: {x: 2, y: 3}
+  robotGroupSpread: 4
+  outriderPrefabs:
+  - {fileID: 9222632965478916354, guid: 9c48f1b3b7d6a9b4581c2ae1c04ce7a4, type: 3}
+  outriderTotal: 2
+  vehiclePrefabs:
+  - {fileID: 7526090167333966417, guid: 862f7067c13c7df45a8839b871d28e52, type: 3}
+  vehicleTotal: 1
+  innerRadius: 75
+  midRadius: 105
+  outerRadius: 130
+  minStructureSpacing: 12
+  buildingFootprint: 25
+  buildingPadding: 6
+  maxPlacementAttempts: 40
+  organizedLayout: 1
+  slotRadialJitter: 0.5
+  slotAngularJitter: 2
+  faceCenter: 1
+  foundationPadThreshold: 0.35
+  foundationPadOverhang: 0.5
+  foundationPadMaterial: {fileID: 2100000, guid: c3e91b7d28a54f6a9b2d5e8c1f4a7d92, type: 2}

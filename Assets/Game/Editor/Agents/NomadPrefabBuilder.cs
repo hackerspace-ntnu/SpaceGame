@@ -302,6 +302,7 @@ namespace SpaceGame.EditorTools
                 ConfigureHealth(root);
                 ConfigureFaction(root);
                 ConfigureWatch(root);
+                ConfigureAlerts(root);
                 if (recipe.CarriesStaff) AttachStaff(model);
                 ConfigureCombat(root, recipe);
                 ConfigureProvocation(root);
@@ -749,6 +750,8 @@ namespace SpaceGame.EditorTools
                 // radius", and its Neutral default is exactly what NPCFaction is toward the
                 // player. See ConfigureWatch.
                 "SpaceGame.Agents.WatchModule",
+                "SpaceGame.Agents.AlertBroadcaster",
+                "SpaceGame.Agents.AlertReceiverModule",
                 // Lets DialogInteraction stop him and turn him to face whoever is talking.
                 "SpaceGame.Agents.InteractionFocusModule",
             };
@@ -1147,6 +1150,35 @@ namespace SpaceGame.EditorTools
         /// so a provoked Nomad does not stop to politely face the person he is fighting.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// A nomad who is hit tells the caravan. The broadcaster announces his new aggressor
+        /// (ProvocationModule.Provoke, announce on) to every allied receiver within the radius; a
+        /// receiver takes it as its own grudge and does not pass it on. Sightings are NOT
+        /// announced: a Neutral faction never acquires anyone by sight, so there is nothing to
+        /// announce, and the flag is off so a future hostile row cannot turn a caravan into a
+        /// posse that hunts on first glance.
+        /// </summary>
+        private static void ConfigureAlerts(GameObject root)
+        {
+            var broadcaster = FindComponent(root, "SpaceGame.Agents.AlertBroadcaster");
+            if (broadcaster != null)
+            {
+                var so = new SerializedObject(broadcaster);
+                SetFloat(so, "alertRadius", 35f);
+                SetBool(so, "announceSightings", false);
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            var receiver = FindComponent(root, "SpaceGame.Agents.AlertReceiverModule");
+            if (receiver != null)
+            {
+                var so = new SerializedObject(receiver);
+                SetInt(so, "priority", 19);                 // ModulePriority.Reactive - 1
+                SetFloat(so, "alertDuration", 12f);
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
         private static void ConfigureWatch(GameObject root)
         {
             var watch = FindComponent(root, "SpaceGame.Agents.WatchModule");

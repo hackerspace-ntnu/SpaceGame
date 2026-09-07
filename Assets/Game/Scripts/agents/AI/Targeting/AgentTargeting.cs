@@ -49,6 +49,20 @@ namespace SpaceGame.Agents
         public Transform Target { get; private set; }
         public bool HasTarget => Target != null;
 
+        /// <summary>
+        /// Raised on the deciding machine when this agent takes a NEW target. The bool is whether
+        /// the agent found it by itself (scored and seen in <c>Reevaluate</c>) or was handed it
+        /// (<see cref="ForceTarget"/>: an ally's alert, a heard noise, a provocation).
+        ///
+        /// <para>
+        /// <see cref="AlertBroadcaster"/> is the listener that matters, and the bool is why it
+        /// exists: an alert is passed on only for a target the agent spotted itself. Re-announcing
+        /// a target that arrived by alert would make every receiver a broadcaster and one sighting
+        /// wake the whole map.
+        /// </para>
+        /// </summary>
+        public event System.Action<Transform, bool> TargetAcquired;
+
         // Distance from this agent to the target, refreshed every frame. Modules should read this
         // rather than recomputing it — five modules each calling Vector3.Distance on the same pair
         // was a measurable share of the per-frame cost with a full arena.
@@ -294,11 +308,14 @@ namespace SpaceGame.Agents
 
             EnsureSettings();
 
+            Transform previous = Target;
             Target = target;
             DistanceToTarget = Vector3.Distance(transform.position, target.position);
             LastKnownPosition = target.position;
             HasLastKnownPosition = true;
             TimeSinceSeen = 0f;
+            if (previous != target)
+                TargetAcquired?.Invoke(target, false);
 
             // Hold the forced target for a full interval before re-scoring, so an alert isn't
             // immediately overruled by whoever happens to be marginally nearer.
@@ -503,7 +520,12 @@ namespace SpaceGame.Agents
             }
 
             if (best != null)
+            {
+                Transform previous = Target;
                 Target = best;
+                if (previous != best)
+                    TargetAcquired?.Invoke(best, true);
+            }
         }
 
         private bool IsCandidateVisible(Transform candidate, float distance)

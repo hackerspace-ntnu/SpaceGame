@@ -71,7 +71,7 @@ best template for a new creature builder.
 3. **Prefab** in `Assets/Game/Prefabs/agents/creatures/` (or `.../Robots/`, `.../Characters/`,
    `.../Caravan/`, `.../Vehicles/{Ground,Aircraft,Spacecraft}/`). Existing examples:
    `DuneRat.prefab`, `Golem.prefab`, `Ostrich.prefab`, `Vrescal.prefab`, `Nomad.prefab`,
-   `PatrolRobot.prefab`, `DeathmatchBot.prefab`.
+   `PatrolRobot.prefab`, `DeathmatchBot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`).
 4. **Animator** — reuse the FBX's own `Animator`, never add a second one. Set
    `applyRootMotion = false` (the motor owns movement) and `cullingMode = AlwaysAnimate` for any
    rig built from many bone-parented renderers, or it freezes mid-stride when Unity thinks its

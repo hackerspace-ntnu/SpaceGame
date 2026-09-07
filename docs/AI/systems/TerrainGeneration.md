@@ -16,7 +16,7 @@ symptoms:
   - "NPCs cannot walk on a rock or mesa I just generated"
   - "surface detail I dialled up does not show in the meshed feature"
 reads_with: [WorldStreaming, NavMeshSystem, Environment, SceneTransitions]
-updated: 2026-09-01
+updated: 2026-09-07
 ---
 
 # Procedural World Generation
@@ -33,6 +33,7 @@ Three independent edit-time generators — marching-cubes **terrain features**, 
 - **Caves** = seeded random-walk room/corridor graph → smooth-min SDF → marching cubes → NavMesh. Baked mesh + `NavMeshData`; decoration/liquid/lights still run at spawn.
 - **Settlements** = seeded height-map of grid cells → tile placements → prefab instantiation. Edit-time only, output lives in the scene.
 - **Determinism**: every generator is a pure function of one `int` seed plus serialized settings. `System.Random(seed)` (cave graph, settlement) or hash/Perlin off the seed (terrain features). One exception — [`RobotSettlementGenerator`](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spawning/RobotSettlementGenerator.cs) uses global `UnityEngine.Random` and only calls `Random.InitState` when `useSeed` is ticked.
+- **The one placed `RobotSettlementGenerator` is the mock Clanker settlement**, put into a main-world chunk by [`ClankerSettlementBuilder`](Assets/Game/Editor/Environment/ClankerSettlementBuilder.cs) (`Tools/SpaceGame/Settlements/…`) under a root named `ClankerSettlement`, seeded (`1701`), from `ClankerSettlement.asset`. The builder picks the ground itself: the flattest 150 m disc 450–800 m from the `SpawnPoint` whose disc clears every `TerrainFeatureSpawner` footprint. Before 2026-09-07 no scene held the generator and `SettlementConfig.asset` had every building slot empty — the robot settlement had never been built anywhere. Faction-side rules for it are in the faction design (`docs/superpowers/specs/2026-09-07-faction-system-design.md` §3.10). The recipe's `outriderPrefabs`/`outriderTotal` are mounted units on their own slots (two `ClankerOutrider`s), placed *after* everything else so adding them did not move a seeded town. The generated garrison is the town's *starting* population; `SettlementPopulation` on the root ([AgentSystem.md](AgentSystem.md)) tops it up to `ClankerSettlementBuilder.PopulationCap` a wave at a time afterwards.
 - **Authored, not generated**: [`WorldSiteMarker`](Assets/Game/Scripts/World/Sites/WorldSiteMarker.cs) components are hand-placed; they publish `WorldSite` records into a static registry NPCs query.
 
 ## Key types
@@ -103,6 +104,9 @@ Three independent edit-time generators — marching-cubes **terrain features**, 
 - `TerrainSkirtBlend` uses a fixed 1.5 m `ContactBand` and deliberately ignores `overlap`; `overlap` means only the feature's own edge falloff (`TerrainNoiseHelper.OverlapWeight`).
 - Surface detail finer than ~2× `voxelSize` cannot survive meshing; `AdaptSmoothingToDetail` already relaxes smoothing, so don't hand-tune both.
 - `CaveSpawner` generates in `Awake`, not `Start`, so its entrance `InteriorAnchor` exists before `InteriorManager` places the player — moving it drops the player at the origin.
+- **A settlement placed in a chunk makes the world NavMesh stale, and nothing in the chunk says so.** The mesh is one author-time bake ([NavMeshSystem.md](NavMeshSystem.md)); new buildings are not in it until `World/Streaming/Bake World NavMesh` runs again, so the garrison stands still on ground the mesh still thinks is open, and `WorldNavMeshBuildCheck` fails the next build. `ClankerSettlementBuilder`'s `+ Bake NavMesh` variant does both in one run.
+- **A mesa is invisible to an editor raycast.** Terrain-feature meshes are spawned at bake time, not kept in the chunk scene, so `RobotSettlementGenerator.SampleGround` (a `Physics.Raycast`) and `Terrain.SampleHeight` both report the flat terrain *under* a mesa. Anything that chooses ground in the editor must read `TerrainFeatureSpawner.Area.ComputeLocalBounds()` and keep out of it, which is what the settlement builder does.
+- **`RobotSettlementGenerator` raycasts with `terrainMask = ~0`, so a later placement can land on an earlier one.** Terrain is on layer `Default` like the buildings, so the mask cannot separate them; the ring radii and `buildingPadding` are what keep buildings apart, and a parked vehicle can still end up on a roof.
 - `WorldSiteMarker` **never unregisters on disable** (a caravan may be walking to a site whose chunk unloaded); only `WorldSiteRegistry.Clear()` removes sites.
 - Feature/cave meshes feed the shared world NavMesh through their `MeshCollider` layer — they get no isolated `NavMeshData` (except a baked cave's). The layer must be one the world surface collects; see [NavMeshSystem.md](NavMeshSystem.md).
 

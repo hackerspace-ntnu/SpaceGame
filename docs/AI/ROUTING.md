@@ -328,6 +328,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one material kept its texture through export and the others silently lost theirs | [ArtPipeline](systems/ArtPipeline.md) |
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
 | one press seated the player in all four ship chairs at once | [Vehicles](systems/Vehicles.md) |
+| one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
 | only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
@@ -693,6 +694,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | typecheck.py says a type I just added to an asmdef does not exist | [Testing](systems/Testing.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
+| walking into the robot town raises no alarm and nobody comes | [AgentSystem](systems/AgentSystem.md) |
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
 | which menu item rebuilds this prefab, item, creature or vehicle | [EditorTooling](systems/EditorTooling.md) |
 | which scene is build index 0 or 1, and where does the world scene live | [Scenes](systems/Scenes.md) |
@@ -964,4 +966,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 682 symptoms, 256 paths, 44 docs -->
+<!-- 684 symptoms, 256 paths, 44 docs -->

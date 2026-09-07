@@ -80,6 +80,28 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void ASeatedRiderIsToldToSitAndAnUnseatedOneToStand()
+        {
+            // A Generic rig cannot be posed by MountedRiderPose, so the passenger raises a bool on
+            // the rider's own animator and the rider's controller plays a sitting clip. The bool
+            // is only touched when the controller actually has it -- a warning per SetBool
+            // otherwise -- so the rider here carries a controller that does.
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var animator = rider.AddComponent<Animator>();
+            var controller = new UnityEditor.Animations.AnimatorController();
+            controller.AddParameter("IsSeated", AnimatorControllerParameterType.Bool);
+            controller.AddLayer("Base");
+            animator.runtimeAnimatorController = controller;
+
+            passenger.Seat(rider);
+            Assert.IsTrue(animator.GetBool("IsSeated"), "seated riders sit");
+
+            passenger.Dismount();
+            Assert.IsFalse(animator.GetBool("IsSeated"), "dismounted riders stand back up");
+        }
+
+        [Test]
         public void SeatingRefusesASecondRider()
         {
             (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);

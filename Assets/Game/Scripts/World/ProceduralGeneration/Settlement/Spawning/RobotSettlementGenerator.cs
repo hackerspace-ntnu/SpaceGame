@@ -133,6 +133,18 @@ namespace SpaceGame.World
                 }
             }
 
+            // Outriders, last: they were added after the town shipped, and drawing their random
+            // numbers after everything else keeps an existing seed's layout exactly as it was.
+            if (recipe.outriderPrefabs != null && recipe.outriderPrefabs.Length > 0)
+            {
+                for (int i = 0; i < recipe.outriderTotal; i++)
+                {
+                    Vector2 xz = RandomPointInAnnulus(recipe.innerRadius * 0.7f, recipe.outerRadius * 0.95f);
+                    GameObject prefab = recipe.outriderPrefabs[Random.Range(0, recipe.outriderPrefabs.Length)];
+                    SpawnAtGround(prefab, xz, root, randomYaw: true, isBuilding: false);
+                }
+            }
+
             Debug.Log($"[RobotSettlementGenerator] Generated settlement under {root.name}.", root);
         }
 

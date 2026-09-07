@@ -22,7 +22,7 @@ symptoms:
   - "looking at the saddle always offers to ride, never to take it off"
   - "the saddle is the right size for the world but too small for the animal wearing it"
 reads_with: [AgentSystem, Backpack, Artifacts, Vehicles]
-updated: 2026-09-05
+updated: 2026-09-07
 ---
 
 # Saddles
@@ -38,8 +38,8 @@ Three pieces, each living where it belongs:
 
 | Piece | Lives on | Is |
 | --- | --- | --- |
-| `SaddleSocket` | the **animal** | Whether a saddle is on. The only replicated state — one bool. |
-| `AppaSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. |
+| `SaddleSocket` | the **animal** | Whether a saddle is on. The only replicated state — one bool. `startSaddled` makes an animal born wearing one (the robot horses, whose saddle is part of the chassis); only the first life reads it — a save restores what was saved, so a horse the player unsaddled stays bare. |
+| `AppaSaddle.prefab` / `SandloperSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. The robot horse wears the Sandloper's (narrow, boards behind the cantle). |
 | `SaddlePlacement` | the **item** | The saddle is a [placeable](Placeables.md); this is its rule. Criteria: an animal with a free socket. Logic: `Fit()`. |
 | `SteerModule` | the **animal** | Rider input to the motor. Always on; it self-gates on `IsMounted`. |
 | `SaddleQuickRelease` | the **animal** | `Q` while standing beside it. Same `Request(false)` as the grips. |
@@ -90,6 +90,7 @@ Two ids, both on the **animal's** relay: the saddle has no channel of its own. `
 - **Author the offset in the ANIMAL ROOT's space, not the bone's**, and apply it as a *world* position after parenting. A bone's axes are whatever the rig export left them as, and an offset expressed in them can be derived from nothing; the root-space figure is read straight off the model — Appa's `(0, 2.089, -0.18)` is `appa.blend (1.62, 0, 0.329)` through `appa_export.py`'s mapping `(x,y,z) -> (-y, z+1.76, -(x-1.44))`.
 - **A saddle with a rider on it will not come off**, from either path. The seat would vanish mid-ride and `MountModule` would be disabled while it still held a player.
 - **Spill before you clear.** `SpillAndReturn` runs while `saddled` is still true, because it reads the live container. Flipping the flag first destroys the instance and the cargo with it.
+- **A rider `MountedRiderPose` cannot bend still has to sit somehow.** The pose only works on a Humanoid avatar; a Generic rig (the Clanker) would ride standing bolt upright. `NpcPassenger.seatedAnimatorBool` (`IsSeated`) is raised on the rider's own Animator on every machine that presents the rider, and only when the controller actually has that parameter; `ClankerBuilder` gives the Clanker a `Seated` state on its crouch clip. `RobotHorseBuilder.ClankerSeatDrop` is how far that crouch's pelvis sits above the soles.
 - **`MountModule.seatOffset` is measured to the rider's FEET, but the chair convention does not survive an animal.** Vehicle seats drop the rider a whole leg (`NpcPassenger` defaults to -0.85 m) so a standing pose lines its pelvis up with the cushion — nothing is under a chair. A metre of barrel *is* under a saddle, so the same drop buries the rider in the animal to the chest. Nothing plays a straddle pose, so the choice is between a rider inside the animal and one sitting high on it: Appa uses `SeatRise - 0.10`, just under the seat's own surface (0.15 m once his 1.5x scale is applied, since the offset rides in his space).
 - **A grip on the animal's centreline can never be reached.** `Interactor` resolves the nearest
   thing the ray hits and a body collider is solid, so a ray aimed at anything inside the torso box

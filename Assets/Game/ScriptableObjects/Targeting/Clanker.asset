@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 067d9ec91424d4bdfa98d3b453c6798b, type: 3}
+  m_Name: Clanker
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.TargetingProfile
+  <ID>k__BackingField: c125b118374d3f346956d23cee9be9cc
+  relationship: 2
+  acquisitionRange: 80
+  loseRange: 100
+  reevaluateInterval: 0.5
+  memoryDuration: 10
+  requireLineOfSightToAcquire: 1
+  proximityAcquireRange: 4
+  currentTargetBias: 0.3
+  lastAttackerBias: 0.45
+  occludedPenalty: 0.75

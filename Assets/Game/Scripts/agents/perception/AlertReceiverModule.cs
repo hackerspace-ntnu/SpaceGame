@@ -54,16 +54,27 @@ namespace SpaceGame.Agents
             restoredAlert = true;
         }
 
-        // Called by AlertBroadcaster.
+        // Called by AlertBroadcaster and by SettlementAlarm.
         public void ReceiveAlert(Transform target, Vector3 lastKnownPosition)
         {
             alertPosition = lastKnownPosition;
             alertTimer = alertDuration;
 
-            // Hand the target straight to the shared targeting decision so chase and both attack
-            // modules act on it together. GetOrAdd rather than a cached Awake reference: alerts can
-            // arrive before AgentController has run its own resolve.
-            if (target)
+            if (!target)
+                return;
+
+            // Through the grudge when there is one, not a bare ForceTarget. A receiver whose
+            // faction is Neutral toward the target (any nomad) cannot re-acquire it by itself, and
+            // AgentTargeting's staleness pass drops a forced target within seconds — the documented
+            // "a gunshot target does not stick" failure. ProvocationModule re-asserts it every frame
+            // for as long as the leash holds, which is what makes the alert stick. Announce is off:
+            // a target that arrived by alert must not be re-broadcast, or one sighting cascades.
+            //
+            // GetOrAdd rather than a cached Awake reference: alerts can arrive before
+            // AgentController has run its own resolve.
+            if (TryGetComponent(out ProvocationModule provocation))
+                provocation.Provoke(target, announce: false);
+            else
                 Targeting.ForceTarget(target);
         }
 

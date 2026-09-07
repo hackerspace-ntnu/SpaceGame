@@ -1295,9 +1295,9 @@ NavMeshAgent:
   m_GameObject: {fileID: 3092591699166706021}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 2.25
-  m_Speed: 4.7250004
-  m_Acceleration: 9
+  m_Radius: 1.9
+  m_Speed: 10
+  m_Acceleration: 11.6
   avoidancePriority: 50
   m_AngularSpeed: 45
   m_StoppingDistance: 3
@@ -1322,7 +1322,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
   agent: {fileID: 7084194288932562823}
   navMeshSnapDistance: 6
-  walkSpeedMultiplier: 0.4444444
+  walkSpeedMultiplier: 0.22
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 2.6
@@ -1894,6 +1894,7 @@ MonoBehaviour:
   rootPosition: {x: 0, y: 2.089, z: -0.18}
   rootEuler: {x: 0, y: 0, z: 0}
   compensateBoneScale: 1
+  startSaddled: 0
   mount: {fileID: 4545997679955702114}
   saddleItem: {fileID: 11400000, guid: 3ca09569478b425428c436405fe3b2eb, type: 2}
   dropRadius: 2.4

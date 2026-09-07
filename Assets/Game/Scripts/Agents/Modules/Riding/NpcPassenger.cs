@@ -59,6 +59,12 @@ namespace SpaceGame.Agents
 
         [SerializeField] private bool spawnOnStart = true;
 
+        [Tooltip("Animator bool on the RIDER held true while seated, so a rig MountedRiderPose " +
+                 "cannot pose -- anything imported Generic -- can play a sitting clip instead of " +
+                 "standing to attention in the saddle. Skipped when the rider's controller has no " +
+                 "such parameter; empty to never touch the rider's animator.")]
+        [SerializeField] private string seatedAnimatorBool = "IsSeated";
+
         [Header("Dismount")]
         [Tooltip("How far to the side of the mount the rider is placed when getting off.")]
         [SerializeField] private float dismountSideOffset = 1.6f;
@@ -430,8 +436,33 @@ namespace SpaceGame.Agents
             suppressed.Add(behaviour);
         }
 
+        /// <summary>
+        /// Tell the rider's own animator it is sitting. The brain is off, so nothing else will.
+        /// Presentation, so it runs on every machine with the pose and the collision pairing.
+        /// Checked against the controller's parameter list rather than fired blind: SetBool on a
+        /// parameter the controller lacks is a warning per call, and most riders are humanoids
+        /// posed by <see cref="MountedRiderPose"/> with no such flag.
+        /// </summary>
+        private void SetSeatedFlag(GameObject rider, bool seated)
+        {
+            if (string.IsNullOrEmpty(seatedAnimatorBool) || rider == null) return;
+
+            foreach (Animator animator in rider.GetComponentsInChildren<Animator>(true))
+            {
+                if (animator.runtimeAnimatorController == null) continue;
+                foreach (AnimatorControllerParameter parameter in animator.parameters)
+                {
+                    if (parameter.type != AnimatorControllerParameterType.Bool ||
+                        parameter.name != seatedAnimatorBool) continue;
+                    animator.SetBool(seatedAnimatorBool, seated);
+                    break;
+                }
+            }
+        }
+
         private void Restore(GameObject rider)
         {
+
             // A dead rider gets nothing back. HealthReactionModule has already switched the brain
             // off and started the despawn timer by the time a death-triggered dismount reaches
             // here, and handing back a working AgentController stands the corpse up and walks it
@@ -493,8 +524,11 @@ namespace SpaceGame.Agents
         {
             if (posedRider == rider) return;
 
-            if (pose != null && posedRider != null)
-                pose.ReleaseRider(posedRider);
+            if (posedRider != null)
+            {
+                if (pose != null) pose.ReleaseRider(posedRider);
+                SetSeatedFlag(posedRider.gameObject, false);
+            }
 
             // Restoring a pair needs both colliders active, and a mount being deactivated or
             // unloaded is on its way to having none. Nothing is leaked by dropping them: the whole
@@ -512,6 +546,7 @@ namespace SpaceGame.Agents
 
             if (pose != null)
                 pose.PoseRider(posedRider);
+            SetSeatedFlag(posedRider.gameObject, true);
         }
 
         /// <summary>

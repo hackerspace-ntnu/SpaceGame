@@ -130,7 +130,7 @@ Press **B** and it comes off your back with a toss and unfolds, and a dedicated 
 
 Each item fills a **mask** of cells. Most are simple rectangles derived from the item's own measured footprint, but a mask can be drawn by hand, which is what lets two awkward L-shaped things interlock instead of each reserving a bounding box.
 
-The interaction is deliberately blunt about refusal. **There is no message and no error cursor: the red cells *are* the refusal.** You see the exact squares your item would occupy, green or red, plus the free/taken lattice of the whole face you are hovering. And clicking on red **turns the item a quarter turn** — the refusal and its most likely fix are the same click. A symmetric item with no useful rotation to offer gets a small flash instead.
+The interaction is deliberately blunt about refusal. **There is no message and no error cursor: the red cells *are* the refusal.** You see the exact squares your item would occupy, green or red, plus the free/taken lattice of the whole face you are hovering. And clicking on red **turns the item a quarter turn** — the refusal and its most likely fix are the same click. A symmetric item with no useful rotation to offer gets a small flash instead. **The ship's gear wall answers a click the same way** — it is the same inventory with the same gestures, and there the crosshair says so in words before you press.
 
 There used to be a magnet that snapped your item to the nearest legal spot. It is gone, on purpose, and tests exist specifically to keep it from creeping back. What you see judged is exactly what you clicked.
 

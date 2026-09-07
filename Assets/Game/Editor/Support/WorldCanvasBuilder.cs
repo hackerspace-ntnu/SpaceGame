@@ -12,6 +12,14 @@ namespace SpaceGame.EditorTools
         /// <summary>One canvas unit is one millimetre: a 0.38 m screen is a 380-unit canvas.</summary>
         public const float CanvasUnit = 0.001f;
 
+        // One palette for every display in the game — the terminal's glass, the scanner's plate —
+        // so a screen reads as the same make of hardware wherever it is fitted. Ink is not quite
+        // opaque on purpose: the plate's own emissive green shows through it as the tube behind.
+        public static readonly Color Phosphor = new(0.42f, 1f, 0.6f);
+        public static readonly Color Ink = new(0.02f, 0.075f, 0.045f, 0.94f);
+        public static readonly Color Dim = new(0.42f, 1f, 0.6f, 0.45f);
+        public static readonly Color Faint = new(0.42f, 1f, 0.6f, 0.12f);
+
         /// <summary>
         /// A world-space canvas of <paramref name="sizeMm"/> at <paramref name="position"/>, facing
         /// <paramref name="rotation"/>'s forward. A world-space Canvas reads correctly from the side

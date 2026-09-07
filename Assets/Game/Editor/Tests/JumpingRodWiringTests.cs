@@ -122,6 +122,34 @@ namespace SpaceGame.Tests
             Assert.AreEqual(UseAuthority.Owner, item.Authority);
         }
 
+        /// <summary>
+        /// The landing boost's tuning, read off the prefab rather than off the class.
+        ///
+        /// <para>
+        /// A `[SerializeField]` keeps whatever the asset was saved with: a number retuned in code
+        /// reaches only objects created after it, and this prefab was authored before the boost
+        /// existed. <see cref="JumpingRodBoostTests"/> pins what the arithmetic does with these
+        /// numbers; this pins that the game is running them.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void Item_CarriesTheShippedBoostTuning()
+        {
+            GameObject held = Load(ItemPrefabPath);
+            var item = held.GetComponent<JumpingRodItem>();
+
+            SerializedProperty hop = new SerializedObject(item).FindProperty("hop");
+            Assert.IsNotNull(hop, "JumpingRodItem has no serialized hop config");
+
+            var shipped = new JumpingRodConfig();
+
+            Assert.AreEqual(shipped.BoostWindowEarly, hop.FindPropertyRelative("boostWindowEarly").floatValue, 1e-4f);
+            Assert.AreEqual(shipped.BoostWindowLate, hop.FindPropertyRelative("boostWindowLate").floatValue, 1e-4f);
+            Assert.AreEqual(shipped.BoostPerLink, hop.FindPropertyRelative("boostPerLink").floatValue, 1e-4f);
+            Assert.AreEqual(shipped.MaxChainLinks, hop.FindPropertyRelative("maxChainLinks").intValue);
+            Assert.AreEqual(shipped.LinksLostOnMiss, hop.FindPropertyRelative("linksLostOnMiss").intValue);
+        }
+
         [Test]
         public void Item_AssetAndPrefabReferenceEachOther()
         {

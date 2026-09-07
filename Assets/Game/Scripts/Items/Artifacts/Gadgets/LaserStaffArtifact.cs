@@ -106,6 +106,9 @@ namespace SpaceGame.Items
         [Tooltip("How often damage is sampled, in ticks per second. Costs no bandwidth: the whole loop runs on the server only, where NetDamage lands as a direct call.")]
         [SerializeField] private float damageTicksPerSecond = 50f;
 
+        [Tooltip("How near the beam a rope must pass to be cut, in metres. Roughly the arc's own thickness plus the slack a rope is drawn with; zero disables cutting.")]
+        [SerializeField] private float ropeCutRadius = 0.15f;
+
         [Header("Impact")]
         [Tooltip("Parent of the whole impact rig. Moved to the hit point and turned to face along the surface normal, so every emitter under it sprays out of the surface instead of along some fixed axis.")]
         [SerializeField] private Transform impactRoot;
@@ -461,7 +464,11 @@ namespace SpaceGame.Items
 
             if (_lit || _ignition > 0f) Trace();
 
-            if (_lit && IsAuthority()) TickDamage();
+            if (_lit && IsAuthority())
+            {
+                TickDamage();
+                CutRopes();
+            }
 
             DrawBeam();
         }
@@ -581,6 +588,30 @@ namespace SpaceGame.Items
                 _damageCarry -= whole;
                 NetDamage.Apply(_hitObject, whole, transform);
             }
+        }
+
+        /// <summary>
+        /// Part every rope the arc is lying across.
+        ///
+        /// <para>
+        /// Not damage and not sampled like it: a rope is either in the beam or it is not, so there
+        /// is no dwell to accumulate and nothing to carry between frames. A laser that had to be
+        /// held on a rope would also be a laser that cannot cut one on a sweep, which is the only
+        /// way anybody will ever actually do it.
+        /// </para>
+        /// <para>
+        /// The segment is <see cref="MuzzlePoint"/> to <see cref="_endPoint"/> — what is DRAWN, not
+        /// the camera ray the trace begins with. Two things follow from that and both are wanted:
+        /// a rope behind the wall the beam stopped at is safe, with no line-of-sight test written
+        /// anywhere; and a rope beside the holder's head is safe from a beam that leaves the fist a
+        /// metre below it.
+        /// </para>
+        /// </summary>
+        private void CutRopes()
+        {
+            if (ropeCutRadius <= 0f) return;
+
+            CuttableRopes.CutAlong(MuzzlePoint(), _endPoint, ropeCutRadius);
         }
 
         private void DrawBeam()

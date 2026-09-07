@@ -53,8 +53,8 @@ GameObject:
   - component: {fileID: 7740714554359506724}
   - component: {fileID: 5382938925156255077}
   - component: {fileID: 4520314673410228362}
-  - component: {fileID: 4923178998326423357}
   - component: {fileID: -5579055451881375415}
+  - component: {fileID: 2895049440118192229}
   m_Layer: 0
   m_Name: PortalGun
   m_TagString: Untagged
@@ -101,11 +101,11 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  jetSpeed: 13
+  jetSpeed: 24
   jetGravity: 1
-  jetFlightTime: 1.6
+  jetFlightTime: 2
   flightBias: 1.08
-  dabRadius: 0.62
+  dabRadius: 0.85
   surfaceMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -124,7 +124,7 @@ MonoBehaviour:
   bodyRenderer: {fileID: 7645022471465218355}
   primaryMaterialName: Mat_Emissive_Portal_Orange
   secondaryMaterialName: Mat_Emissive_Portal_Blue
-  paintPerDab: 0.045
+  paintPerDab: 0.03
   rechargePerSecond: 0.3
   primaryColour: {r: 1, g: 0.54, b: 0.12, a: 1}
   secondaryColour: {r: 0.18, g: 0.72, b: 1, a: 1}
@@ -144,12 +144,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 5114670199813680403}
   hand: 0
-  holdStyle: 3
+  holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 1.25
+  holdSize: 0.73
   packSize: 0.54
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2109649208447807797
 MonoBehaviour:
@@ -347,7 +348,19 @@ MonoBehaviour:
   linearDamping: 1.5
   angularDamping: 4
   minimumGrabSize: 0.45
---- !u!65 &4923178998326423357
+--- !u!114 &-5579055451881375415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2071729107689280778}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!65 &2895049440118192229
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -368,18 +381,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.11783878, y: 0.4445287, z: 0.26590002}
   m_Center: {x: 0, y: 0.22226435, z: 0.074049965}
---- !u!114 &-5579055451881375415
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2071729107689280778}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &2158489420961441114
 GameObject:
   m_ObjectHideFlags: 0
@@ -496,7 +497,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.6
+      scalar: 2
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -549,7 +550,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 13
+      scalar: 24
       minScalar: 5
       maxCurve:
         serializedVersion: 2

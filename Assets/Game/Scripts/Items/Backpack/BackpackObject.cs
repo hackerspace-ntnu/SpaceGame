@@ -364,6 +364,69 @@ namespace SpaceGame.Items
             if (announce) RackRequested?.Invoke(false);
         }
 
+        /// <summary>
+        /// Take the rack at the one instant in the deploy when taking it costs nothing, so the rig
+        /// lands CLOSED: the panel tips up and the stakes drop while the whole front flap stays
+        /// folded against them.
+        ///
+        /// <para>
+        /// <see cref="ResolveRackForStow"/> read backwards, and free for the same reason. The pack
+        /// is at <see cref="SheetLanded"/> when the toss begins, which is already the angle the
+        /// rack holds, so claiming it here moves nothing; the unfold that follows then leaves the
+        /// leaf alone, because <see cref="LeafFromOpen"/> takes whichever of the two demands is
+        /// further from the open pose and the rack's is the whole fold. What the player sees is a
+        /// box being set down rather than a mat being rolled out, and the click that lays the
+        /// board flat is what gets them to their gear.
+        /// </para>
+        /// <para>
+        /// <b>On the ARC, not on the settled <c>Open</c> state.</b> A joiner and a save restore
+        /// both land on <c>Open</c> directly and are handed the racked flag separately — off the
+        /// wire, or out of the file — and doing it here as well would be two writes to one leaf in
+        /// an order nothing promises. This is the same trap that keeps the rack reset out of
+        /// <see cref="SetOpen"/>.
+        /// </para>
+        /// <para>
+        /// Announced as well as applied, for the mirror of the reason the stow announces: a rack
+        /// this machine took locally is state every other machine has to agree about. The
+        /// announcement is a no-op on anything but the owner, whose write comes back to all of
+        /// them — including this one, where <see cref="SetRacked"/> finds it already true.
+        /// </para>
+        /// </summary>
+        public void ResolveRackForDeploy() => AdoptRack(true);
+
+        /// <summary>
+        /// Put the flap where a save says it was, with no swing. <b>Restore-only</b>, and the one
+        /// caller is <c>BackpackController.RestoreDeployState</c>.
+        ///
+        /// <para>
+        /// Free for the same reason its two neighbours are: a restore lands on the settled pose
+        /// rather than running the unfold, so there is no motion for the flap to interrupt. A pack
+        /// left closed on the sand is closed again when the world comes back, which matters now
+        /// that closed is where every deploy lands — an open board is something the player did,
+        /// and a load that undoes it reads as the save having half worked.
+        /// </para>
+        /// </summary>
+        public void RestoreRack(bool up) => AdoptRack(up);
+
+        /// <summary>
+        /// Take or give up the rack outright: no swing, and the wire told about it.
+        ///
+        /// <para>
+        /// Announced only when it actually changed, exactly as
+        /// <see cref="ResolveRackForStow"/> does — a restore that lands flat has nothing to say,
+        /// and a re-entrant announcement of a state everybody is already in is noise on a
+        /// <c>NetworkVariable</c> whose whole job is to tell a joiner one bool.
+        /// </para>
+        /// </summary>
+        private void AdoptRack(bool up)
+        {
+            bool changed = IsRacked != up;
+
+            SnapRack(up);
+
+            if (changed) RackRequested?.Invoke(up);
+        }
+
         // ------------------------------------------------------------------ the rack
         //
         // The front leaf flipped up into a vertical rack for the biggest gear — and the WHOLE

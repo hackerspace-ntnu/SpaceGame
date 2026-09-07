@@ -76,6 +76,26 @@ Sandstorms, volumetric fog, clouds and the day/night sun. Almost nothing is sent
 
 **Worth knowing:** installing a new screen effect is not just adding it to a list — the render pipeline keeps a second parallel list, and an effect added to only one of them sits in the asset and never runs.
 
+### Tuning how the game looks *(LookLab)*
+
+The game's colours come from a fixed palette — every pixel on screen snaps to the nearest of
+204 colours, which is what gives the flat, poster-like look. Deciding what those 204 colours
+should be used to mean editing code and waiting minutes to see the result, one place in the
+world at a time.
+
+The Look Lab is a mixing desk for that decision. It is a window inside the editor: move a
+slider and the game repaints on the same frame, whether or not it is running. One button
+flips back to the palette the game currently ships with, because the eye is far better at
+spotting a change than at comparing two things side by side.
+
+It used to be a web page driven by a small server, so that screenshots taken around the world
+could be repainted side by side. That was three moving parts in service of a worse picture
+than the game itself already draws, and it is gone.
+
+It is a workshop, not a wardrobe. You can try as many looks as you like in it, but the game
+still ships with exactly one, written into the code — which is what keeps the palette from
+quietly drifting into a dozen half-finished variants.
+
 ### Doorways, interiors and teleporting *(SceneTransitions)*
 
 Cave and building interiors load alongside the outdoor world rather than replacing it, so stepping back outside is instant and everything you left out there is still alive. A doorway is assembled from three interchangeable pieces — what triggers it, where it sends you, and what the screen does while it happens — so a new kind of door is one new file. Every instant move in the whole game funnels through a single teleport function that also tells legged rigs, riders and pathing agents to rebase their world-space state.
@@ -142,9 +162,9 @@ Every gadget, spell, scanner, throwable and hand tool that occupies a hotbar slo
 
 ### The backpack you lay gear on *(Backpack)*
 
-A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear.
+A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear. It lands **shut** — a box you set down and open, not a mat that unrolls itself: click the standing board, or press R, to lay it flat and get at your gear.
 
-**Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix.
+**Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix. The ship's gear wall shares the whole placement layer, so it answers a click the same way.
 
 ### Roping an animal *(Lasso)*
 
@@ -156,7 +176,23 @@ Hold the button and a loop starts turning over your head, opening wider the long
 
 One button ties a rope between any two things in the world: creature to post, player to crate, anything to a moving vehicle. The rope is a fixed-length limit rather than a spring, so below its length it does nothing at all, and each machine draws its own copy and only ever pulls the end it owns. Rope length is set once when you tie it, and it sags and lies over the ground it crosses.
 
+Getting a rope **off** you is an act, not a matter of walking away from it: you throw yourself from side to side, and about nine of those tears an ordinary rope — a dozen if the other end is bolted to the landscape, half that if it is something small and light. Simply holding a movement key does nothing at all, which is what lets somebody drag you across the desert for as long as they like if you do not fight, and what lets you tow a loaded hull behind a ship without your own rope parting under it.
+
 **Worth knowing:** the AI is never told it has been leashed — a roped creature keeps trying to walk where it was going, and that visible straining against the rope is the whole effect.
+
+### Cutting a rope *(RopeCutting)*
+
+A rope is not only broken by whoever is fighting it — anybody with the laser staff can cut it. Sweep the arc across a rope and it parts on contact: a tied rope, a lasso somebody has a creature on, or the cable a player is swinging from. There is no burning through and no holding it there; the beam either crossed the rope or it did not.
+
+That makes the staff the answer to being roped by somebody else, and it makes a swinging player something a bystander can drop out of the air. A rope behind cover is safe, because the cut only reaches as far as the beam does, and a throw still in the air cannot be swatted down — the loop has to have caught something first.
+
+**Worth knowing:** the cut is the rope's own break, not a separate outcome. A lasso that is cut cracks and lets the animal go exactly as it does when it wears through, so nothing about it needs to be learned twice.
+
+### Tying somebody up *(Hogtie)*
+
+The same leash also hogties, but only somebody who is **already on the ground** — netted, or knocked flat by a blast. You cannot tie a person who is standing, so a tie is always the second thing you do, never the first, and whoever you are tying got a chance to answer the first one. Once the rope is on they stay down for **two minutes**, and there are only two ways out early: fight it, which takes about forty-five seconds of throwing yourself about — four times longer than struggling out of a net, because a tie is meant to feel like being properly captured rather than briefly caught — or have somebody walk over and cut you loose, empty-handed, which is instant. Being netted and tied at once is exactly what it sounds like: whichever comes off first, the other still has you.
+
+**Worth knowing:** a tie is over the moment you die, and nothing about it survives quitting and reloading — you come back untied. That is on purpose: a saved game that put you back in the world unable to move, with nothing telling you why, would be a far worse thing to ship than a rope that quietly falls off. There is also no rope drawn round the body yet, so for now a tied person and a netted person look the same.
 
 ### Looking at things and right-clicking *(InteractionSystem)*
 
@@ -195,6 +231,12 @@ Oxygen tanks and batteries are not full-or-empty — each one carries its own pe
 
 **Worth knowing:** this is why the pack can hold two of something at all. Until this existed, a container identified everything it carried by *what kind of thing it was*, so it could never hold two of one kind — a limit nobody had noticed, because the only thing anyone wanted two of was an oxygen tank, and a full one and an empty one used to count as different kinds.
 
+### Reading a tank at a glance *(SupplyGauge)*
+
+Oxygen tanks and batteries wear their charge on the outside: a bar that fills along the little window on the front, green when full, through amber, to red when it is nearly out. You get the same reading wherever the object is — held, dropped in the sand, plugged into the oxygen plant while it fills, or lying on your pack — because all three are painted from the same place.
+
+**Worth knowing:** the *bar* is the reading and the colour is only a second opinion. Roughly one man in twelve cannot reliably tell the green from the red, so a gauge that changed only colour told them nothing at all — which is exactly what the old one did. It also means the battery finally has a real gauge: the five lit segments moulded into its case were always just decoration, and could never move.
+
 ### The torch *(Flashlight)*
 
 Toggled with L, built in three layers: an ordinary short-range spot light of about 40 m that lights the world for everyone, a cheap shadowless long-throw glow reaching 120 m that only certain terrain and cave surfaces respond to, and a screen-space cone so you can see the beam hanging in the air. The split is what lets the near light be bright without blowing out a wall a metre in front of you. The beam's visible length comes from firing a handful of probe rays and taking the shortest hit.
@@ -223,21 +265,23 @@ A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; 
 
 ### The wingsuit *(Wingsuit)*
 
-A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about four metres forward for every metre down, pointing where you look — mouse to aim the nose, A and D to bank into a turn, Ctrl to pull your arms in and dive. Tap Space twice again to fold, and touching the ground folds it for you.
+A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about five metres forward for every metre down, pointing where you look — the mouse steers at exactly the sensitivity it turns your head on foot, so aiming the wing feels like aiming anything else, and the wing visibly rolls into the turn. A and D bank harder on top; Ctrl pulls your arms in and dives. Tap Space twice again to fold, and touching the ground folds it for you.
 
-It takes the same single slot as the wing pack, so you carry one or the other. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
+It takes the same single slot as the wing pack and the jetpack, so you carry one of the three. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
 
 **Worth knowing:** It uses the ornithopter's crash rule, so flying it onto sand properly costs nothing while a held dive into a rock face is still fatal — the wingsuit is a way down, not a way out of falling.
 
-### The Crucible *(CruciblePuzzle)*
+### The jetpack *(Jetpack)*
 
-A pit of lava with a maze of rock standing out of it, and a power cell you have to get across. Neither of you goes in. You work the rim, and you each tie a leash to the cell and thread your rope through a slot cut in the rim wall — a long one, so the rope slides along it while you walk. Two ropes pulled tight are the only thing holding the cell up, which means two taut ropes and gravity decide exactly where it hangs, and neither of you can put it anywhere on your own.
+Two motors on a bar across your back. Tap Space twice — standing on flat sand is fine, unlike the other two — and they light, kick you off the ground and fly your own body. Hold Space for full thrust, let go and you hang there, hold Ctrl and the motors cut out and you fall.
 
-Walking along your slot swings the cell sideways. Backing away from your slot spends rope on the outside, so there is less of it on the inside and the cell climbs toward you. That is the whole control scheme, and it is all done with your legs. Walk past the end of a slot and your rope hands itself to the next one, so changing slots means one of you letting go of the steering and running, while the other holds the cell alone.
+**The motors swing, and they are what you are actually steering.** W, A, S and D do not push you; they tell the nozzles where to point, and the nozzles take about half a second to get there. Where you look changes how far over they swing — look down while holding W and you go flat and fast, look up and the same key climbs. Turning your body with the mouse swings the thrust with it. The result is that you fly arcs rather than corners: you have to set a turn up before you need it, and stopping is something you plan. That is the whole difficulty of the thing, and it is one rule rather than a list of them.
 
-The rope bends at the slot and the cell hangs below it, so the cell can never get higher than your slot. Anything built taller than that has to be threaded, not lifted over — and the odd wall built lower is a shortcut, if you are good enough to take it. Drop the cell in the lava and it is gone; another one rolls into the cradle and you start again. Get it into the socket at the far end and the vault opens.
+**It runs on heat, not fuel.** Held at full thrust it overheats in fifteen seconds; just hanging in the air it lasts twenty-five. Nothing cools it except cutting the motors and falling — so a long flight is a rhythm of burning, cutting out, coasting and burning again, and a pilot who does that can stay up indefinitely. When it does overheat the motors cut dead and will not relight until it is most of the way cool, so overheating high up is a real fall. The nozzle tips glow red and smoke as it gets close, and because they are behind you there is a burn gauge on your visor as well — it empties toward danger, like the air and health bars beside it.
 
-**Worth knowing:** on your own, the lava is just a floor. You can set the cell down, walk round, re-rig and pull again — so it stops being a test of nerve and becomes a test of planning. If a second person joins while you are halfway across, the lava comes back with the cell still in the air.
+**The view steps out behind you while you fly it**, because the machine is on your back — in first person every part of it, the swinging motors, the flames, the tips going red, is behind the camera. Each lit motor leaves a smoke trail, and once it starts overheating the trail thickens into something you can see from a long way off.
+
+**Worth knowing:** Hanging still with the nozzles hard over costs you altitude — the hover can only just hold your weight straight down, and pointed sideways it cannot. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so an overheat pays for itself.
 
 ## What you see and hear
 

@@ -209,6 +209,192 @@ namespace SpaceGame.EditorTools
     }
 
     /// <summary>
+    /// What the descent is planned against, once the world has things standing on it.
+    ///
+    /// <para>
+    /// The heightmap knows the desert and nothing else. An outpost, a settlement wall or a rock is
+    /// invisible to it, so the landing search called an occupied shelf the flattest ground for
+    /// miles and the arc was planned straight into a building — then the touchdown measured the
+    /// same site against collision, disagreed by the height of the structure, and either lifted the
+    /// hull onto a roof or reported a fault nobody could find. Measured in a fresh world: 5.90 m.
+    /// </para>
+    /// </summary>
+    public class LandingSurfaceTests
+    {
+        /// <summary>Where the desert is, and how big. Flat at y=0, which makes every reading below a difference from the terrain.</summary>
+        private const float TerrainSize = 200f;
+
+        private GameObject terrain;
+        private TerrainData terrainData;
+        private GameObject outpost;
+        private GameObject hull;
+
+        [SetUp]
+        public void SetUp()
+        {
+            terrainData = new TerrainData
+            {
+                heightmapResolution = 33,
+                size = new Vector3(TerrainSize, 50f, TerrainSize),
+            };
+
+            terrain = Terrain.CreateTerrainGameObject(terrainData);
+            terrain.transform.position = new Vector3(-TerrainSize * 0.5f, 0f, -TerrainSize * 0.5f);
+
+            // A structure standing on the desert, 6 m to its roof — the height the shipped world
+            // actually put under an arrival.
+            outpost = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            outpost.name = "relay_outpost";
+            outpost.transform.position = new Vector3(0f, 3f, 0f);
+            outpost.transform.localScale = new Vector3(16f, 6f, 16f);
+
+            // Parked off the terrain so it is never the thing a probe finds; it is here for its
+            // SHAPE, which is what the landing search measures a footprint from.
+            hull = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            hull.name = "PlayerShip (Arrival)";
+            hull.transform.position = new Vector3(500f, 40f, 500f);
+            hull.transform.localScale = new Vector3(20f, 4f, 28f);
+
+            Physics.SyncTransforms();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            Object.DestroyImmediate(hull);
+            Object.DestroyImmediate(outpost);
+            Object.DestroyImmediate(terrain);
+            Object.DestroyImmediate(terrainData);
+        }
+
+        [Test]
+        public void RaisesTheGroundOntoWhateverStandsOnTheTerrain()
+        {
+            Assert.IsTrue(ShipGrounding.TryResolveLandingSurface(Vector2.zero, 600f, 4f, null,
+                                                                 out float onOutpost));
+
+            Assert.AreEqual(6f, onOutpost, 0.05f,
+                            "The heightmap answers 0 here whatever is built on it. A plan that " +
+                            "believed that flies the hull into the outpost and the wreck is " +
+                            "persisted inside it.");
+        }
+
+        [Test]
+        public void LeavesOpenTerrainExactlyWhereTheHeightmapPutsIt()
+        {
+            Assert.IsTrue(ShipGrounding.TryResolveLandingSurface(new Vector2(60f, 60f), 600f, 4f,
+                                                                 null, out float clear));
+
+            Assert.AreEqual(0f, clear, 0.05f,
+                            "Terrain is the floor, never an obstacle standing on itself — a sweep " +
+                            "that read the hillside inside its own radius would reject every slope " +
+                            "in the world.");
+        }
+
+        [Test]
+        public void DoesNotTakeTheHullItselfForSomethingStandingOnTheGround()
+        {
+            hull.transform.position = new Vector3(60f, 20f, 60f);
+            Physics.SyncTransforms();
+
+            Assert.IsTrue(ShipGrounding.TryResolveLandingSurface(new Vector2(60f, 60f), 600f, 4f,
+                                                                 hull, out float underHull));
+
+            Assert.AreEqual(0f, underHull, 0.05f,
+                            "A hull partway down its own arc is the tallest thing over its own " +
+                            "landing site, and grounding it against itself puts it wherever it " +
+                            "already is.");
+        }
+
+        [Test]
+        public void MovesTheLandingOffAStructureAndOntoOpenGround()
+        {
+            var tolerance = new LandingTolerance(maxGroundSpread: 1f, searchRadius: 60f,
+                                                 ringStep: 12f, bellyClearance: 0.05f);
+
+            Assert.IsTrue(ShipGrounding.TryResolveHullLanding(Vector2.zero, 0f, hull, 600f,
+                                                              tolerance, out Vector3 position));
+
+            Assert.Greater(new Vector2(position.x, position.z).magnitude, 12f,
+                           "The authored impact point has an outpost on it. Landing there is what " +
+                           "leaves a 60-tonne wreck parked on a roof for the life of the world.");
+
+            Assert.AreEqual(ShipHull.BellyDrop(hull) + 0.05f, position.y, 0.1f,
+                            "Once it is clear of the structure the hull sits on the desert, at its " +
+                            "own belly depth plus the authored gap.");
+        }
+
+        [Test]
+        public void NamesTheStructureAWreckIsLeftStandingOn()
+        {
+            // Resting on the outpost roof: belly on 6 m, which the bare heightmap calls 6 m of air.
+            float bellyDrop = ShipHull.BellyDrop(hull);
+            hull.transform.position = new Vector3(0f, 6f + bellyDrop, 0f);
+            Physics.SyncTransforms();
+
+            Assert.IsTrue(ShipGrounding.TryMeasureLandingAgainstSurface(
+                              hull.transform.position, 0f, hull, 600f, bellyDrop,
+                              out float plannedGap, out Collider standingOn));
+
+            Assert.AreEqual(0f, plannedGap, 0.05f,
+                            "The hull is on the ground the plan measures. Only the heightmap, " +
+                            "which cannot see the outpost, thinks it is six metres up.");
+
+            Assert.IsNotNull(standingOn,
+                             "Naming it is the whole difference between 'the wreck is on the " +
+                             "outpost' and 'every arrival height in this world is out by 5.90 m'.");
+            Assert.AreEqual("relay_outpost", standingOn.name);
+        }
+
+        [Test]
+        public void NamesNothingWhenTheWreckIsOnOpenDesert()
+        {
+            float bellyDrop = ShipHull.BellyDrop(hull);
+            hull.transform.position = new Vector3(60f, bellyDrop, 60f);
+            Physics.SyncTransforms();
+
+            Assert.IsTrue(ShipGrounding.TryMeasureLandingAgainstSurface(
+                              hull.transform.position, 0f, hull, 600f, bellyDrop,
+                              out float plannedGap, out Collider standingOn));
+
+            Assert.AreEqual(0f, plannedGap, 0.05f);
+            Assert.IsNull(standingOn,
+                          "The sweep reads wider than the hull, so it finds structures the wreck " +
+                          "is merely NEAR. Only the one that decided the surface it rests on is " +
+                          "the answer.");
+        }
+
+        [Test]
+        public void SeesAStructureNarrowerThanTheGapBetweenFootprintSamples()
+        {
+            // The nine samples are ten metres apart on a hull this size. A mast, a pillar or a
+            // chimney fits between two of them, and a plain downward ray at each point is blind to
+            // exactly the thing the hull would come to rest on.
+            Object.DestroyImmediate(outpost);
+
+            var mast = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            mast.name = "antenna_mast";
+            mast.transform.position = new Vector3(5f, 4f, 0f);
+            mast.transform.localScale = new Vector3(1f, 8f, 1f);
+            Physics.SyncTransforms();
+
+            try
+            {
+                Assert.IsTrue(ShipGrounding.TryResolveLandingSurface(Vector2.zero, 600f, 5f, null,
+                                                                     out float surfaceY));
+
+                Assert.AreEqual(8f, surfaceY, 0.05f,
+                                "The sweep is a sphere for this reason. A ray at the sample point " +
+                                "passes five metres clear of the mast and reports open desert.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(mast);
+            }
+        }
+    }
+
+    /// <summary>
     /// The landing check, measured against the world physics simulates.
     ///
     /// <para>

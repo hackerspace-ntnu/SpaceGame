@@ -209,6 +209,13 @@ namespace SpaceGame.Items
                 accumulator -= simulationStep;
             }
 
+            // Again, outside the substep loop. The substep is fixed at 90 Hz and a frame drawn
+            // faster than that runs none at all, which leaves the ends where the last one left
+            // them — and the far end is the honda on a loop turning at several hundred degrees a
+            // second, so "one tick behind" is a visible gap between the rope and the loop it is
+            // tied to. Idempotent on the frames a step did run: Step pins both ends last, and
+            // neither Unkink nor Straighten touches them.
+            Pin(start, end);
             Redraw();
         }
 
@@ -272,13 +279,7 @@ namespace SpaceGame.Items
                 pos[i] += velocity + fall;
             }
 
-            // Both ends are pinned, and prev is pinned with them: a node whose prev lags behind
-            // carries velocity, so an end left with a stale prev would inject the hand's own
-            // motion into the rope every single substep and the cable would never stop thrashing.
-            pos[0] = start;
-            prev[0] = start;
-            pos[pos.Length - 1] = end;
-            prev[pos.Length - 1] = end;
+            Pin(start, end);
 
             // Alternating direction, because this is Gauss-Seidel: a pass carries tension from the
             // end it starts at all the way to the other, so running every pass the same way makes
@@ -401,6 +402,23 @@ namespace SpaceGame.Items
                     pos[i + 1] -= correction * 0.5f;
                 }
             }
+        }
+
+        /// <summary>
+        /// Put the two ends where the caller says they are.
+        ///
+        /// <para>
+        /// <c>prev</c> is pinned with them, and that is not a detail: a node whose <c>prev</c> lags
+        /// behind carries velocity, so an end left with a stale one would inject the hand's own
+        /// motion into the rope every substep and the cable would never stop thrashing.
+        /// </para>
+        /// </summary>
+        private void Pin(Vector3 start, Vector3 end)
+        {
+            pos[0] = start;
+            prev[0] = start;
+            pos[pos.Length - 1] = end;
+            prev[pos.Length - 1] = end;
         }
 
         private void Redraw()

@@ -42,7 +42,7 @@ namespace SpaceGame.EditorTests
                 remove => inner.OnSlotChanged -= value;
             }
 
-            public event Action<InventoryItem, float> OnItemDropped
+            public event Action<InventoryItem, ItemState> OnItemDropped
             {
                 add => inner.OnItemDropped += value;
                 remove => inner.OnItemDropped -= value;

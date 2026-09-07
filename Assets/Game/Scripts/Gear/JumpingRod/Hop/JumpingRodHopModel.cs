@@ -88,14 +88,47 @@ namespace SpaceGame.Gear.JumpingRod
         /// Between them, <c>EnergyReturn</c> below 1 means a big arrival is handed back slightly
         /// smaller each bounce and settles back to the cruise height instead of ringing forever.
         /// </para>
+        /// <para>
+        /// <paramref name="chainLinks"/> is how many landings in a row the holder has hit Jump on
+        /// the beat for — the one thing here the player is actually playing, and the only way past
+        /// the ceiling. See <see cref="BoostFactor"/> and <see cref="JumpingRodChain"/>.
+        /// </para>
         /// </summary>
-        public static float TakeoffSpeed(float arrivalSpeed, JumpingRodConfig cfg)
+        public static float TakeoffSpeed(float arrivalSpeed, JumpingRodConfig cfg, int chainLinks)
         {
             if (cfg == null) return 0f;
 
             float returned = Mathf.Abs(arrivalSpeed) * cfg.EnergyReturn;
 
-            return Mathf.Clamp(returned, cfg.MinHopSpeed, cfg.MaxHopSpeed);
+            return Mathf.Clamp(returned, cfg.MinHopSpeed, cfg.MaxHopSpeed) * BoostFactor(chainLinks, cfg);
+        }
+
+        /// <summary>
+        /// What a chain of <paramref name="chainLinks"/> well-timed landings multiplies the take-off
+        /// speed by. 1 when the chain is empty, so an unboosted hop is the arithmetic above and
+        /// nothing else.
+        ///
+        /// <para>
+        /// Compounding, and applied to the CLAMPED speed rather than inside the clamp, so the chain
+        /// lifts the ceiling with it. That is deliberate: <c>MaxHopSpeed</c> exists to stop a fall
+        /// off a cliff compounding without limit, and a boost that could not pass it would be a
+        /// mechanic the player cannot see above about two links. What bounds the whole thing
+        /// instead is <c>MaxChainLinks</c> — a product of a fixed number of fixed factors, so the
+        /// worst case is one multiplication and not a runaway.
+        /// </para>
+        /// <para>
+        /// Speed, not height: this project's gravity makes height <c>v² / 36</c>, so the height the
+        /// player feels grows as the SQUARE of this number. Read a factor of 1.76 as three times
+        /// the air.
+        /// </para>
+        /// </summary>
+        public static float BoostFactor(int chainLinks, JumpingRodConfig cfg)
+        {
+            if (cfg == null) return 1f;
+
+            int links = Mathf.Clamp(chainLinks, 0, cfg.MaxChainLinks);
+
+            return links <= 0 ? 1f : Mathf.Pow(cfg.BoostPerLink, links);
         }
 
         /// <summary>

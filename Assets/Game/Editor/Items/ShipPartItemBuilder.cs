@@ -3,19 +3,13 @@
 //   Assets/Game/Prefabs/Items/ShipParts/<Name>.prefab      the module, in the hand and in the sand
 //   Assets/Game/Resources/Items/ShipParts/<Name>.asset     the InventoryItem
 //
-// plus each prefab's entry in the network prefab list the NetworkManager actually reads, and a
-// nine-by-nine row per module in PackShapes.asset.
+// plus each prefab's entry in the network prefab list the NetworkManager actually reads.
 //
-// These are ordinary items with two deliberate departures from every other artifact:
+// These are ordinary items with one deliberate departure from every other artifact:
 //
 //   * ItemWorldSizing.Authored. Every other item is drawn in the world at the size the gear wall
 //     draws it (ItemWorldScale); a hull module is not, because its real size IS the point — see
 //     the note on true ship scale below.
-//
-//   * A drawn 9x9 pack shape. The rack is the only face on the expedition rig that is nine cells
-//     square, so a module authored at nine-by-nine fits the rack, fits it only when it is clear,
-//     and fits nowhere else — the "one whole face per module" rule falls out of the mask system
-//     with nothing added to PackLayout. Hauling an engine costs you your gear.
 //
 // True ship scale is kept: the eleven-metre motor lying in the sand is the same mesh, at the same
 // size, as the one that ends up bolted to the roof. ItemGrip.holdSize shrinks it for the hand and
@@ -61,22 +55,44 @@ namespace SpaceGame.EditorTools
         private const int MaxUses = 1;
 
         /// <summary>
-        /// Metres along the module's longest axis once it is lying on the pack mat — in the HAND's
-        /// frame, like every other <c>ItemGrip</c> size. <c>ItemFootprint</c> multiplies
-        /// <c>PackScale.Factor</c> in, so on the mat a module is 1.20 m.
+        /// The haul ladder: metres along the module's longest axis once it is lying on the pack
+        /// mat or strapped to the ship's gear wall — in the HAND's frame, like every other
+        /// <c>ItemGrip</c> size, so <c>ItemFootprint</c> multiplies <c>PackScale.Factor</c> in.
         ///
         /// <para>
-        /// Sized just inside the rack's face, because that is the face it is going on and no other:
-        /// nine cells is 0.810 m in this frame, and 0.80 leaves the strapped module a hair inside
-        /// the rectangle it fills. The 9x9 shape below reserves the whole face regardless; this is
-        /// only what the player sees strapped there. Both halves of that comparison scale together,
-        /// so the fit is the same at any <c>PackScale.Factor</c>.
+        /// <b>Brackets, never a multiple of the module's real size</b> — the same rule
+        /// <see cref="ItemScaleLadder"/> states for the hand, for a related reason. The family
+        /// spans 6.2 to 1 in true length (1.80 m belly turbine to 11.14 m nuclear motor), and no
+        /// single ratio survives both ends of that: pin the motor inside the wall's 30 cells and
+        /// the two small modules come out smaller than the 0.80 m every module used to share,
+        /// which is the complaint this ladder answers. Four rungs compress the range to 2.2 to 1
+        /// while keeping the ORDER — a module still reads bigger than every module genuinely
+        /// smaller than it, and every one of them reads bigger than it did.
+        /// </para>
+        /// <para>
+        /// <b>0.95 is load-bearing, not a rounded 1.00.</b> The belly turbine is the one module
+        /// that is nearly as fat as it is long (1.46 x 1.80 x 1.80), so its cross axis is what
+        /// binds: at 1.00 that axis measures 0.852 m and crosses into a TENTH cell, and a shape
+        /// ten cells across fits the nine-cell rack at no yaw — the rack allows overhang along u
+        /// only (<c>PackOverhang</c>), so the other axis is clamped by nothing. 0.95 keeps it at
+        /// nine and keeps every module carryable on the pack. Both halves of that comparison ride
+        /// <c>PackScale.Factor</c>, so the fit holds at any value of it.
         /// </para>
         /// </summary>
-        private const float PackSize = 0.80f;
+        private static class Haul
+        {
+            /// <summary>The nuclear motor alone: 11 m, and the longest thing a player can carry.</summary>
+            public const float Spar = 2.10f;
 
-        /// <summary>The rack is 9 x 9 cells at <c>PackGrid.Cell</c>. A module fills it exactly.</summary>
-        private const int RackCells = 9;
+            /// <summary>The 7 m spine and flank turbine.</summary>
+            public const float Long = 1.70f;
+
+            /// <summary>The 5 m gun barrel and reactor core.</summary>
+            public const float Medium = 1.40f;
+
+            /// <summary>The intake plate and the belly turbine — see the note on 0.95 above.</summary>
+            public const float Compact = 0.95f;
+        }
 
         /// <summary>
         /// One carryable module.
@@ -87,19 +103,27 @@ namespace SpaceGame.EditorTools
         /// the two-handed haul above it. Scaling an 11 m motor proportionally would put it through
         /// the far wall of every room the player carried it into.
         /// </para>
+        /// <para>
+        /// <c>packSize</c> is a rung of <see cref="Haul"/> and is a SEPARATE decision from
+        /// <c>holdSize</c>: the hand is sized for feel, the mat for telling one module from
+        /// another. Nothing here reaches the module in the world — the family is
+        /// <c>ItemWorldSizing.Authored</c>, so <c>ItemWorldScale</c> never resizes it.
+        /// </para>
         /// </summary>
         private readonly struct Module
         {
             public readonly ShipPartKind Kind;
             public readonly string Name;
             public readonly float HoldSize;
+            public readonly float PackSize;
             public readonly float Mass;
 
-            public Module(ShipPartKind kind, string name, float holdSize, float mass)
+            public Module(ShipPartKind kind, string name, float holdSize, float packSize, float mass)
             {
                 Kind = kind;
                 Name = name;
                 HoldSize = holdSize;
+                PackSize = packSize;
                 Mass = mass;
             }
 
@@ -112,13 +136,13 @@ namespace SpaceGame.EditorTools
 
         private static readonly Module[] Modules =
         {
-            new(ShipPartKind.AntiGravity,  "Anti-Gravity Spine", 1.40f, 600f),
-            new(ShipPartKind.NuclearMotor, "Nuclear Motor",      1.40f, 900f),
-            new(ShipPartKind.ReactorCore,  "Reactor Core",       1.25f, 700f),
-            new(ShipPartKind.SmallMotor,   "Belly Motor",        1.00f, 300f),
-            new(ShipPartKind.AirIntake,    "Air Intake",         1.00f, 200f),
-            new(ShipPartKind.LongTurbine,  "Flank Turbine",      1.40f, 800f),
-            new(ShipPartKind.Gun,          "Hull Gun",           1.25f, 500f),
+            new(ShipPartKind.AntiGravity,  "Anti-Gravity Spine", 1.40f, Haul.Long,    600f),
+            new(ShipPartKind.NuclearMotor, "Nuclear Motor",      1.40f, Haul.Spar,    900f),
+            new(ShipPartKind.ReactorCore,  "Reactor Core",       1.25f, Haul.Medium,  700f),
+            new(ShipPartKind.SmallMotor,   "Belly Motor",        1.00f, Haul.Compact, 300f),
+            new(ShipPartKind.AirIntake,    "Air Intake",         1.00f, Haul.Compact, 200f),
+            new(ShipPartKind.LongTurbine,  "Flank Turbine",      1.40f, Haul.Long,    800f),
+            new(ShipPartKind.Gun,          "Hull Gun",           1.25f, Haul.Medium,  500f),
         };
 
         [MenuItem("Tools/Items/Build Ship Parts")]
@@ -170,8 +194,9 @@ namespace SpaceGame.EditorTools
             AssetDatabase.ForceReserializeAssets(paths);
             AssetDatabase.Refresh();
 
-            // After the reserialize, so the rows point at the assets as they finally exist on disk.
-            WirePackShapes(built.Select(b => b.item).ToList());
+            // After the reserialize, so the rows named here are the assets as they finally exist
+            // on disk.
+            ClearPackShapes(built.Select(b => b.item).ToList());
 
             // Checked: this pass refuses in Play mode, and a builder that ignores the refusal saves
             // prefabs with no prefabId and none of their savers — silently. That is what cost
@@ -235,7 +260,7 @@ namespace SpaceGame.EditorTools
             var gripSo = new SerializedObject(itemGrip);
             SetObject(gripSo, "gripPoint", grip.transform);
             SetFloat(gripSo, "holdSize", module.HoldSize);
-            SetFloat(gripSo, "packSize", PackSize);
+            SetFloat(gripSo, "packSize", module.PackSize);
             SetObject(gripSo, "sizeReference", modelInstance.transform);
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -321,50 +346,40 @@ namespace SpaceGame.EditorTools
         // ─────────────────────────── The pack shape ───────────────────────────
 
         /// <summary>
-        /// Give every module a solid <see cref="RackCells"/>-square row in the shape library.
+        /// Make sure NO module has a row in the shape library, so every one of them is shaped by
+        /// its own silhouette.
         ///
         /// <para>
-        /// This is the rule "a module can only go on an empty rack", expressed in the one place the
-        /// pack already asks about shape. Nine by nine is the rack exactly, so the module fits it
-        /// and nothing else fits beside it; every other face on the rig is smaller on at least one
-        /// axis, so it fits none of them at any yaw. No new concept reaches PackLayout.
+        /// An authored row wins over the derived footprint outright (<c>PackShapes.For</c>), so
+        /// while it existed a spar, a plate and a stubby turbine were the same object to the
+        /// layout. Each module used to be stamped as a solid nine-by-nine — the rack exactly —
+        /// to express "a module can only go on an empty rack". It bought that rule at the price
+        /// of the module being unreadable on the mat and on the ship's gear wall: seven identical
+        /// squares, all drawn at one size, telling the player nothing about which is which.
+        /// </para>
+        /// <para>
+        /// Deleted rather than resized, because the cost of hauling survives without it. A
+        /// module's derived rectangle is now genuinely large (the nuclear motor is 4 x 24 cells,
+        /// the belly turbine 9 x 11 against a 9 x 9 rack), and the rack's own overhang rule —
+        /// which applies to RECTANGLES ONLY, and so was unreachable while the mask was there —
+        /// is what lashes a long one across the pack, occupying every cell of every column it
+        /// crosses. Hauling an engine still costs most of your gear; a gun barrel now costs what
+        /// a gun barrel takes up, which is the honest answer and the readable one.
+        /// </para>
+        /// <para>
+        /// A REMOVAL and not merely a no-op: this builder is re-runnable, the rows are on disk
+        /// from earlier runs, and a build that simply stopped writing them would leave every one
+        /// of them in place and change nothing.
         /// </para>
         /// </summary>
-        private static void WirePackShapes(List<InventoryItem> items)
+        private static void ClearPackShapes(List<InventoryItem> items)
         {
             var library = AssetDatabase.LoadAssetAtPath<PackShapeLibrary>(PackShapesPath);
-            if (library == null)
-            {
-                Debug.LogError($"[ShipParts] No pack shape library at {PackShapesPath} — run " +
-                               "Tools/SpaceGame/Items/Create Pack Shape Library first. The modules " +
-                               "will otherwise take only the few cells their thin silhouette needs.");
-                return;
-            }
+            if (library == null) return;
 
-            var cells = new bool[RackCells * RackCells];
-            for (int i = 0; i < cells.Length; i++) cells[i] = true;
-
-            foreach (InventoryItem item in items)
-            {
-                if (item == null) continue;
-
-                PackShapeLibrary.Entry row = library.Entries.FirstOrDefault(e => e != null && e.item == item);
-                if (row == null)
-                {
-                    row = new PackShapeLibrary.Entry();
-                    library.Entries.Add(row);
-                }
-
-                row.item = item;
-                row.width = RackCells;
-                row.height = RackCells;
-                row.cells = (bool[])cells.Clone();
-
-                // A square turned a quarter turn is the same square, so rotation is neither
-                // forbidden nor useful here — left on so the module behaves like everything else
-                // in the hand.
-                row.allowRotation = true;
-            }
+            int removed = library.Entries.RemoveAll(
+                e => e != null && e.item != null && items.Contains(e.item));
+            if (removed == 0) return;
 
             library.Invalidate();
             EditorUtility.SetDirty(library);
@@ -513,14 +528,23 @@ namespace SpaceGame.EditorTools
 
                 if (string.IsNullOrEmpty(item.ID))
                     problems.Add($"{module.Name}: the item asset has no ID, so it can never be " +
-                                 "registered, saved, or given a pack shape");
+                                 "registered or saved");
 
                 if (list == null || !list.Contains(prefab))
                     problems.Add($"{module.Name}: not registered in {NetworkPrefabsPath}");
 
-                PackShapeLibrary.Entry row = library != null ? library.Find(item.ID) : null;
-                if (row == null || row.width != RackCells || row.height != RackCells)
-                    problems.Add($"{module.Name}: no {RackCells}x{RackCells} pack shape row");
+                var grip = prefab.GetComponent<ItemGrip>();
+                if (grip == null) problems.Add($"{module.Name}: no ItemGrip");
+                else if (!Mathf.Approximately(grip.PackSize, module.PackSize))
+                    problems.Add($"{module.Name}: packSize reads {grip.PackSize}, expected " +
+                                 $"{module.PackSize} — the module is drawn at the wrong size on " +
+                                 "the mat and on the ship's gear wall");
+
+                // An authored row would override the derived silhouette and make this module the
+                // same rectangle as every other one. See ClearPackShapes.
+                if (library != null && library.Find(item.ID) != null)
+                    problems.Add($"{module.Name}: still has a row in {PackShapesPath}, so its " +
+                                 "shape is that row rather than its own outline");
             }
 
             if (problems.Count == 0) return true;

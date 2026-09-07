@@ -308,21 +308,33 @@ namespace SpaceGame.EditorTools
 
                     report.AppendLine("    " + Describe(b.transform).PadRight(34)
                                       + " mass=" + b.mass.ToString("F2").PadLeft(6) + "  "
-                                      + Shape(b.GetComponent<Collider>()).PadRight(36)
+                                      + Shapes(CollidersOf(b)).PadRight(36)
                                       + " parent=" + parent);
                 }
+
+                // Every collider each body OWNS, not one per body. Adding a Rigidbody makes PhysX
+                // adopt everything beneath it, so a model with a hand-authored collision proxy hands
+                // its whole hull to the ragdoll — and this asked each body for its own component and
+                // saw none of it. The crab reported "unfiltered: 0" with twenty-two adopted boxes
+                // grinding against each other, which is the number this report exists to catch.
+                var shapes = new List<Collider>();
+                var owner = new Dictionary<Collider, Rigidbody>();
+                foreach (Rigidbody b in bodies)
+                    foreach (Collider c in CollidersOf(b))
+                    {
+                        shapes.Add(c);
+                        owner[c] = b;
+                    }
 
                 report.AppendLine("\n  interpenetrating pairs with NO joint between them:");
                 int overlaps = 0;
                 int unfiltered = 0;
-                for (int i = 0; i < bodies.Count; i++)
-                for (int j = i + 1; j < bodies.Count; j++)
+                for (int i = 0; i < shapes.Count; i++)
+                for (int j = i + 1; j < shapes.Count; j++)
                 {
-                    if (Jointed(bodies[i], bodies[j])) continue;
-
-                    Collider a = bodies[i].GetComponent<Collider>();
-                    Collider c = bodies[j].GetComponent<Collider>();
-                    if (a == null || c == null || !a.enabled || !c.enabled) continue;
+                    Collider a = shapes[i];
+                    Collider c = shapes[j];
+                    if (owner[a] == owner[c] || Jointed(owner[a], owner[c])) continue;
 
                     if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
                                                     c, c.transform.position, c.transform.rotation,
@@ -375,6 +387,31 @@ namespace SpaceGame.EditorTools
         }
 
         private static string Describe(Transform t) => t == null ? "<null>" : t.name;
+
+        /// <summary>
+        /// The colliders one body actually simulates: everything under it, stopping where the next
+        /// body takes over — which is exactly where PhysX stops when it decides what belongs to what.
+        /// </summary>
+        private static List<Collider> CollidersOf(Rigidbody body)
+        {
+            var owned = new List<Collider>();
+
+            foreach (Collider collider in body.GetComponentsInChildren<Collider>(true))
+            {
+                if (collider.isTrigger || !collider.enabled) continue;
+                if (collider.attachedRigidbody == body) owned.Add(collider);
+            }
+
+            return owned;
+        }
+
+        private static string Shapes(List<Collider> colliders)
+        {
+            if (colliders.Count == 0) return "NO COLLIDER";
+            if (colliders.Count == 1) return Shape(colliders[0]);
+
+            return colliders.Count + " shapes: " + Shape(colliders[0]) + ", …";
+        }
 
         private static string Shape(Collider collider)
         {

@@ -98,24 +98,38 @@ namespace SpaceGame.Core.Persistence
                 InventorySlot slot = slots[i];
                 if (slot == null) continue;
 
-                if (states == null || i >= states.Count || states[i] is not JObject bag)
-                {
-                    slot.State = null;
-                    continue;
-                }
-
-                var raw = new Dictionary<string, string>();
-
-                foreach (KeyValuePair<string, JToken> entry in bag)
-                {
-                    // Read defensively: a bag written by a newer build may hold a value shape this
-                    // one has never seen, and one bad key must not cost the slot its other five.
-                    if (entry.Value == null || entry.Value.Type == JTokenType.Null) continue;
-                    raw[entry.Key] = entry.Value.ToString();
-                }
-
-                slot.State = raw.Count == 0 ? null : new ItemState(raw);
+                slot.State = states == null || i >= states.Count
+                    ? null
+                    : ReadBag(states[i] as JObject);
             }
+        }
+
+        /// <summary>
+        /// One state bag out of JSON, or null when there is nothing in it.
+        ///
+        /// <para>
+        /// Shared with the world side of the same bag — a dropped item carries its slot's state on
+        /// its <c>PickupableItem</c> and reads it back through here — so a bag written by one and
+        /// read by the other cannot drift into two spellings of the same format.
+        /// </para>
+        /// <para>
+        /// Read defensively: a bag written by a newer build may hold a value shape this one has
+        /// never seen, and one bad key must not cost the slot its other five.
+        /// </para>
+        /// </summary>
+        public static ItemState ReadBag(JObject bag)
+        {
+            if (bag == null) return null;
+
+            var raw = new Dictionary<string, string>();
+
+            foreach (KeyValuePair<string, JToken> entry in bag)
+            {
+                if (entry.Value == null || entry.Value.Type == JTokenType.Null) continue;
+                raw[entry.Key] = entry.Value.ToString();
+            }
+
+            return raw.Count == 0 ? null : new ItemState(raw);
         }
     }
 }

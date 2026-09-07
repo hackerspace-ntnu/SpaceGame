@@ -60,6 +60,24 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Would turning this item a quarter from <paramref name="yaw"/> put it on different cells?
+        ///
+        /// <para>
+        /// The question a container asks when a press lands on red cells, because a turn is the
+        /// usual fix and an offer it cannot honour is worse than no offer. Two ways to have no
+        /// answer, and this is the one place that knows about both: a row that forbids rotation —
+        /// the SERVER straightens such an item through <see cref="SnapYaw(InventoryItem,
+        /// PackShapeLibrary, float)"/>, so turning it on the asking machine would only ever draw a
+        /// preview the placement then contradicts — and a shape SYMMETRIC under a quarter turn,
+        /// which lands on the very cells it was refused on.
+        /// </para>
+        /// </summary>
+        public static bool QuarterTurnChangesCells(InventoryItem item, PackShapeLibrary library,
+                                                   float yaw) =>
+            AllowsRotation(item, library)
+            && For(item, library).QuarterTurnChangesCells(PackGrid.QuarterTurns(yaw));
+
+        /// <summary>
         /// The yaw a placement of this item may actually use: a quarter turn, and zero for an item
         /// whose row forbids rotation.
         /// </summary>

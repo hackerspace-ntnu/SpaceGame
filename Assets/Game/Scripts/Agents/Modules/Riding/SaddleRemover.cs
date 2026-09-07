@@ -32,9 +32,10 @@ namespace SpaceGame.Agents
 
         public void Interact(Interactor interactor) => TakeOff(interactor);
 
-        // Q as well as E, and the same Q that picks up every other placeable. A saddle IS placed
-        // into the world -- onto an animal rather than onto the ground -- so the verb that undoes
-        // that should not be a different key here than it is on a lantern.
+        // The same click that picks up every other placeable. A saddle IS placed into the world --
+        // onto an animal rather than onto the ground -- so the verb that undoes that should not be
+        // a different button here than it is on a lantern. Both meanings of the press land on
+        // TakeOff, so it does not matter which one Interactor.PressPicksUp settles on.
         public bool CanRetrieve() => CanInteract();
 
         public void Retrieve(Interactor interactor) => TakeOff(interactor);
@@ -52,7 +53,7 @@ namespace SpaceGame.Agents
         }
 
         public string Label => label;
-        public string Prompt => "E or Q: take saddle off";
+        public string Prompt => "RMB: take saddle off";
         public float? Value01 => null;
         public string ValueText => "";
     }

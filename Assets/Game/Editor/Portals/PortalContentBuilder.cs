@@ -59,14 +59,32 @@ namespace SpaceGame.EditorTools.Portals
         private const float SplatLife = 0.5f;
 
         /// <summary>
+        /// How big the gun is IN THE HAND, metres along its longest axis — <c>ItemGrip.holdSize</c>,
+        /// and the <see cref="ItemScaleLadder"/>'s BigTool bracket rather than its Gun bracket.
+        ///
+        /// <para>
+        /// It sat on the Gun bracket's 1.25 m until 2026-09-06 (backlog GEAR-02) and that was a
+        /// defect: a bracket number is a <b>reach</b>, <c>holdSize</c> is a <b>longest axis</b>, and
+        /// on every other gun those are the same edge only because a gun is longest along its
+        /// barrel. This one is a fire extinguisher gripped by the handle on top of it, so the
+        /// number landed on its HEIGHT — 1.25 m of bottle hanging out of the fist to below the knee,
+        /// through the thigh and out of the first-person view. 0.73 is the BigTool bracket's own
+        /// 1.65x inflation (0.90 over a 0.54 m pressure bottle) on this vessel's true 0.4445 m.
+        /// <c>ItemScaleLadder.VesselWhy</c> carries the full reasoning and owns the number; changing
+        /// it means changing it there too.
+        /// </para>
+        /// </summary>
+        private const float HoldSize = 0.73f;
+
+        /// <summary>
         /// How long the gun is drawn LYING ON THE BACKPACK, metres along its longest axis. This is
-        /// <c>ItemGrip.packSize</c>, and it is a different question from <c>holdSize</c>, which
-        /// stays on the ladder's Gun bracket at 1.25 and is not touched by this number.
+        /// <c>ItemGrip.packSize</c>, and it is a different question from <see cref="HoldSize"/>,
+        /// which is not touched by this number.
         ///
         /// <para>
         /// <b>The mat is in true-world metres; the hand is not.</b> The astronaut's hand is about
         /// 1.7x a human's, so <c>ItemScaleLadder</c> inflates gripped items for the feel of holding
-        /// them — this gun is a 0.4445 m fire extinguisher carried at 1.25 m, 2.8x life size. The
+        /// them — this gun is a 0.4445 m fire extinguisher carried at <see cref="HoldSize"/>. The
         /// pack is read from above at a fixed standoff, where that inflation buys nothing and is
         /// paid for in cells out of a finite 255. Every item on the roster that has ever been
         /// re-sized FOR the mat says the same thing, and says it in whole cells of the rig's
@@ -98,9 +116,31 @@ namespace SpaceGame.EditorTools.Portals
         /// where the paint lands. Same start speed, same gravity modifier, same lifetime means the
         /// stream you watch and the stream that paints are the one curve. Drift them apart and the
         /// paint lands somewhere the player never saw the water go.</summary>
-        private const float JetSpeed = 13f;
+        private const float JetSpeed = 24f;
         private const float JetGravity = 1f;
-        private const float JetFlightTime = 1.6f;
+        private const float JetFlightTime = 2f;
+
+        /// <summary>
+        /// How far the aperture's edge crawls off its own outline, in metres.
+        ///
+        /// Written to the surface AND the halo material, because the two draw one edge:
+        /// <c>PortalStencilCrawl</c> in PortalStencil.hlsl is the shared definition and both
+        /// shaders call it with their own <c>_Crawl</c>. Left to the shader defaults they happen
+        /// to agree today and silently stop agreeing the day one of them is tuned — and a halo
+        /// drawn around an outline the hole does not have is exactly the defect this replaced.
+        /// </summary>
+        private const float EdgeCrawl = 0.06f;
+
+        /// <summary>
+        /// The halo's ring: how far outside the edge it sits, and how wide it is, both as shares
+        /// of the stroke radius the aperture was sprayed at.
+        ///
+        /// Stated here rather than left to the shader defaults because <see cref="Portal.RimReach"/>
+        /// sizes the quad from them — the sheet has to be big enough to hold the ring at every
+        /// aperture size, and it can only be sized against numbers somebody wrote down.
+        /// </summary>
+        private const float RimRingOffset = 0.06f;
+        private const float RimRingThickness = 0.22f;
 
         // Both apertures are YELLOW. An earlier pass had one orange and one blue,
         // and two saturated complementary colours across the same screen read as
@@ -172,6 +212,7 @@ namespace SpaceGame.EditorTools.Portals
             material.SetColor("_HotColour", Hot);
             material.SetFloat("_EdgeGlow", 3.2f);
             material.SetFloat("_EdgeWidth", 0.22f);
+            material.SetFloat("_Crawl", EdgeCrawl);
             material.SetFloat("_Throat", 0.45f);
             material.SetFloat("_Swirl", 2.1f);
             EditorUtility.SetDirty(material);
@@ -224,6 +265,9 @@ namespace SpaceGame.EditorTools.Portals
             material.SetColor("_Colour", colour);
             material.SetColor("_HotColour", Hot);
             material.SetFloat("_Intensity", 3.2f);
+            material.SetFloat("_Radius", RimRingOffset);
+            material.SetFloat("_Thickness", RimRingThickness);
+            material.SetFloat("_Crawl", EdgeCrawl);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -666,9 +710,18 @@ namespace SpaceGame.EditorTools.Portals
             {
                 var serializedGrip = new SerializedObject(itemGrip);
                 serializedGrip.FindProperty("gripPoint").objectReferenceValue = grip;
-                // The Gun bracket of ItemScaleLadder. Only written for a grip this builder just
-                // added, so the ladder's value on the shipped prefab stands either way.
-                serializedGrip.FindProperty("holdSize").floatValue = 1.25f;
+                // The BigTool bracket of ItemScaleLadder, NOT the Gun bracket it sat on until
+                // 2026-09-06: a bracket number is a reach, holdSize is a longest axis, and on a
+                // bottle gripped by its top handle those are not the same edge. See
+                // ItemScaleLadder.VesselWhy. Only written for a grip this builder just added, so
+                // the ladder's value on the shipped prefab stands either way.
+                serializedGrip.FindProperty("holdSize").floatValue = HoldSize;
+
+                // One hand. There is no second handle on this model to put the off hand on, and
+                // the two-handed pose reaches for one anyway — the left arm folds across the
+                // chest holding air and half-hides the gun behind its own forearm.
+                serializedGrip.FindProperty("holdStyle").enumValueIndex =
+                    (int)ItemGrip.HoldStyle.OneHanded;
                 serializedGrip.ApplyModifiedPropertiesWithoutUndo();
             }
 

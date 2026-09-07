@@ -536,5 +536,102 @@ namespace SpaceGame.Core
         /// and the despawn is what every other machine sees.
         /// </summary>
         public const ushort RetrieveRequest = 102;
+
+        // ── Hogtie ──
+        // The leash's tie, which is a net's hold with a four-times-longer pool and no net. The
+        // pair mirrors the net's SnareStruggled/SnareFreed exactly, and for the same two reasons:
+        // only the tied player's own machine knows which keys they are pressing, and only the
+        // server may decide when a hold ends.
+        //
+        // There is deliberately NO "a tie happened" id. The tie is applied by the leash's
+        // Present() on every machine, the way SnareCatch is built by the net gun's — the target
+        // travels in the ordinary UseItem/ItemUsed pair, and every machine re-checks Hogtie.CanTie
+        // against ragdoll state that has already replicated. An extra announcement would carry
+        // nothing the item's own message did not, and could not fix the one case it looks like it
+        // would (a machine whose copy of the body is not down yet), because that machine has to
+        // refuse either way.
+        //
+        // Both ride the TIED BODY's own relay, not the tier's: the tier's leash is consumed and
+        // its item instance destroyed the moment the tie lands, so nothing is left there to
+        // listen. No payload — which body it is, is the channel it arrived on.
+
+        /// <summary>
+        /// Tied body's owner -> server, on the BODY's relay: "I fought the ropes, once".
+        ///
+        /// The fact of the input only, never a level: a level computed on the client is the escape
+        /// the client chose (GDC-L1-MP-0004). The server keeps its own meter under the same
+        /// authored cap and works the load out from a run of these. Not idempotent, and must not
+        /// be — the whole content is that one more input happened.
+        /// </summary>
+        public const ushort HogtieStruggled = 104;
+
+        /// <summary>
+        /// Server -> everyone, on the BODY's relay: "the ropes are off".
+        ///
+        /// Every route out of a tie ends here — the two-minute ceiling, struggling out, dying, and
+        /// a third party cutting somebody loose — so exactly one place gives the claim back and
+        /// exactly one place puts the rope on the ground. Idempotent: a machine that already untied
+        /// locally does nothing on hearing this.
+        /// </summary>
+        public const ushort HogtieUntied = 105;
+
+        // ── Status effects ──
+        // A timed condition on a body — burning, frozen, slick, inflated, foamed. The server owns
+        // the flag and every machine rebuilds the look from it, so nothing visual is on the wire.
+        //
+        // One id covers add, refresh and clear, because a body carrying a kind and a body that has
+        // stopped carrying it are the same fact seen at two times, and splitting them is how a
+        // machine that missed the clear keeps drawing flames forever.
+        //
+        // A = the StatusKind. B = milliseconds remaining, 0 meaning "cleared".
+        // Rides the AFFECTED BODY's relay: which body it is, is the channel it arrived on.
+        //
+        // There is deliberately no separate late-joiner id. The server replays one of these per
+        // active kind when a body's state is first sent to a machine, so the joining client walks
+        // exactly the code path every other machine already walked.
+        public const ushort StatusSet = 110; // server -> everyone, on the AFFECTED BODY's relay
+
+        // ── Surface coats ──
+        // The world-facing twin of a status: a timed friction and material override painted onto a
+        // patch of ground. A patch is not a NetworkObject — position, radius, kind and expiry is
+        // the whole of it, so it fits in one message and then every machine runs its own clock.
+        //
+        // A = the server-minted patch id, which is what a later break refers to. The kind, the
+        // radius and the lifetime travel in the remaining fields; P is the sprayed point.
+        public const ushort CoatSprayed = 111; // server -> everyone
+
+        // Server -> everyone: a patch is gone before its clock said so — Ice smashed, or the chunk
+        // under it unloaded. Ordinary expiry does NOT send this: every machine already knows when
+        // the patch runs out, and a message per expiring patch is traffic for a fact nobody is
+        // missing. A = the patch id. Idempotent: a machine that already dropped the patch does
+        // nothing.
+        public const ushort CoatBroken = 112;
+
+        // ── Containment ──
+        // An entity folded into a carried item and let back out. The capture itself is contested,
+        // and that contest is the net gun's meter reused unchanged — Snared / SnareStruggled /
+        // SnareFreed above — so nothing new is needed for the struggle.
+        //
+        // What is new is the moment the fight ends and the body stops existing as a body. The
+        // server serialises the entity to the same record the world save writes, despawns it, and
+        // puts the record in the container item's ItemState.
+
+        /// <summary>
+        /// Server -> everyone, on the CAPTIVE's relay: "the fight is over, you are going in".
+        ///
+        /// Sent before the despawn so every machine can play the fold-in on a body it can still
+        /// see. Target on the message is the CONTAINER, so a peer knows what to play it into.
+        /// </summary>
+        public const ushort Contained = 115;
+
+        /// <summary>
+        /// Server -> everyone: a captive has been let out. Target is the container.
+        ///
+        /// The entity's own arrival replicates as an ordinary spawn; this carries only the
+        /// presentation and the fact that the container is empty again, so a peer does not have to
+        /// infer an uncorking from a spawn that could have come from anywhere. P is the point the
+        /// captor aimed at.
+        /// </summary>
+        public const ushort Released = 116;
     }
 }

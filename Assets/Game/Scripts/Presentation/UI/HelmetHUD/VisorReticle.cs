@@ -9,14 +9,16 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// The visor's answer to "what am I pointing at": four corner marks that snap around whatever
-    /// the player is looking at, sized to the thing's own bounds, plus a look-at info box that
-    /// unfolds beside the bracket with its name, its prompt and, where it has one, a live value.
+    /// the player is looking at, sized to the thing's own bounds, plus a look-at info box pinned
+    /// under the crosshair with its name, its prompt and, where it has one, a live value.
     ///
     /// <para>
-    /// <c>InteractionPromptUI</c> used to draw the info box as an unrelated widget pinned to a
-    /// fixed spot on screen. It is folded in here instead because both halves read the same
-    /// hovered target through the same projection — drawing them as two components would have
-    /// meant resolving the hover and projecting its screen position twice, once per class.
+    /// The two halves answer two different questions and are drawn accordingly. The bracket says
+    /// WHERE, so it moves — it is the only thing on the layer that tracks the world. The box says
+    /// WHAT, so it does not: it holds one spot on the screen, which is where the deleted
+    /// <c>InteractionPromptUI</c> drew it and where it was put back on 2026-09-06 after a spell
+    /// riding above the bracket. It is still built here rather than as its own component, because
+    /// both halves read the same hovered target and splitting them meant resolving the hover twice.
     /// <see cref="InteractionPromptResolver"/> still owns every decision about what the words say;
     /// this only draws what it returns.
     /// </para>
@@ -79,14 +81,16 @@ namespace SpaceGame.Presentation
         [SerializeField, Min(0.01f)] private float snapSeconds = 0.12f;
 
         [Header("Info box")]
+        [Tooltip("Where the box sits, as a fraction of the canvas from the bottom-left. It is " +
+                 "PINNED there and does not follow the bracket — below the crosshair, close enough " +
+                 "to be read without leaving the target, far enough not to cover it.")]
+        [SerializeField] private Vector2 infoAnchor = new Vector2(0.5f, 0.34f);
+
         [Tooltip("Width of the info box, in reference pixels.")]
-        [SerializeField, Min(120f)] private float infoWidth = 300f;
+        [SerializeField, Min(120f)] private float infoWidth = 340f;
 
         [Tooltip("Height of the info box, in reference pixels.")]
         [SerializeField, Min(48f)] private float infoHeight = 76f;
-
-        [Tooltip("Gap between the bracket's edge and the info box above it.")]
-        [SerializeField] private float infoGap = 14f;
 
         [Tooltip("Seconds for the info box to fade in and out. A hard cut as the target changes " +
                  "under a moving value reads as a flicker rather than a new readout.")]
@@ -182,7 +186,7 @@ namespace SpaceGame.Presentation
 
             if (aim.HasDisplay)
             {
-                infoPanel.anchoredPosition = InfoBoxAt(centre, placedSize);
+                // Nothing places the panel: it is anchored once, in Build, and stays there.
                 UpdateInfoBox(aim.Display);
                 FadeInfoBox(shown: true);
             }
@@ -412,25 +416,6 @@ namespace SpaceGame.Presentation
             return true;
         }
 
-        /// <summary>
-        /// Where the info box sits: above the bracket, or below it when there is no room above.
-        /// Kept inside the canvas on both axes — a name pushed off the top edge by a target near
-        /// the ceiling is a name the player cannot read, which is the same failure as putting it in
-        /// the wrong place.
-        /// </summary>
-        private Vector2 InfoBoxAt(Vector2 centre, float bracketSize)
-        {
-            float half = (bracketSize * 0.5f) + infoGap + (infoHeight * 0.5f);
-            Vector2 canvasSize = root.rect.size;
-
-            float y = centre.y + half;
-            if (y + (infoHeight * 0.5f) > canvasSize.y) y = centre.y - half;
-
-            return new Vector2(
-                Mathf.Clamp(centre.x, infoWidth * 0.5f, Mathf.Max(infoWidth * 0.5f, canvasSize.x - (infoWidth * 0.5f))),
-                Mathf.Clamp(y, infoHeight * 0.5f, Mathf.Max(infoHeight * 0.5f, canvasSize.y - (infoHeight * 0.5f))));
-        }
-
         private void Place(Vector2 centreInCanvasPixels, float size)
         {
             // The canvas is anchored bottom-left in the same space TryToCanvas reports, so the
@@ -505,11 +490,31 @@ namespace SpaceGame.Presentation
             BuildInfoBox();
         }
 
+        /// <summary>
+        /// The look-at box, pinned to one spot under the crosshair for the whole session.
+        ///
+        /// <para>
+        /// It used to be placed every frame, above the bracket and so above whatever the player
+        /// was pointing at — which meant the one element on the visor that is pure TEXT moved
+        /// around the screen while being read, jumped from above a target to below it near the
+        /// ceiling, and slid sideways as the head turned. A player reading a name and a prompt is
+        /// doing the one thing on this layer that takes more than a glance, and text you have to
+        /// find before you can read it is text you read late (<c>GDC-L1-UX-0003</c>). The bracket
+        /// is what says WHERE; the box only has to say WHAT, so it stays put and the eye learns
+        /// one place to look.
+        /// </para>
+        /// <para>
+        /// Anchored by fraction rather than positioned in pixels, so it holds its place on any
+        /// aspect ratio, and set once here rather than written every frame in
+        /// <see cref="LateUpdate"/>.
+        /// </para>
+        /// </summary>
         private void BuildInfoBox()
         {
             infoPanel = UIBuilder.Rect("InfoBox", root);
-            infoPanel.anchorMin = infoPanel.anchorMax = Vector2.zero;
-            infoPanel.pivot = new Vector2(0.5f, 0.5f);
+            infoPanel.anchorMin = infoPanel.anchorMax = infoAnchor;
+            infoPanel.pivot = new Vector2(0.5f, 1f);
+            infoPanel.anchoredPosition = Vector2.zero;
             infoPanel.sizeDelta = new Vector2(infoWidth, infoHeight);
 
             infoGroup = infoPanel.gameObject.AddComponent<CanvasGroup>();

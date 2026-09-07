@@ -46,6 +46,33 @@ namespace SpaceGame.Gameplay
         private const float ProbeStartClearance = 2f;
 
         /// <summary>
+        /// How far above the terrain a landing plan looks for something standing on it.
+        ///
+        /// <para>
+        /// A ceiling, not a reach: anything higher over the touchdown point is a cliff face, an
+        /// arch or a canyon roof rather than a thing the hull could come down on top of, and a plan
+        /// that grounded itself against those would refuse whole valleys. Sixty metres covers every
+        /// structure the settlement generator, the outposts and the rock scatter put on the desert.
+        /// </para>
+        /// </summary>
+        private const float ObstacleReach = 60f;
+
+        /// <summary>
+        /// The narrowest thing the obstacle sweep is guaranteed to see, as the radius of the sphere
+        /// each footprint point is probed with. The nine points are metres apart on a hull this
+        /// size, so a plain ray between two of them is blind to a mast, a pillar or a chimney — the
+        /// spheres overlap instead, and the whole footprint is covered.
+        /// </summary>
+        private const float MinObstacleRadius = 0.5f;
+
+        /// <summary>
+        /// Scratch for the obstacle sweep. The landing search runs it hundreds of times per attempt
+        /// and retries every frame while the chunks stream in, so the allocating overload would be
+        /// garbage on a loop. Main thread only, like every other physics query here.
+        /// </summary>
+        private static readonly RaycastHit[] s_obstacleHits = new RaycastHit[32];
+
+        /// <summary>
         /// The height of the ground at <paramref name="groundXZ"/>, or false when nothing here can
         /// vouch for one.
         ///
@@ -114,6 +141,16 @@ namespace SpaceGame.Gameplay
         /// </para>
         ///
         /// <para>
+        /// The fourth, and the reason <see cref="TryResolveLandingSurface"/> exists: the heightmap
+        /// has no idea what is STANDING on it. An outpost, a rock or a settlement wall is invisible
+        /// to it, so the search happily called an occupied shelf the flattest ground for miles and
+        /// the descent was planned straight into a building. The touchdown then measures the same
+        /// site against collision, disagrees with the plan by the height of whatever is there, and
+        /// either lifts a 60-tonne hull onto a roof or reports a landing nobody can explain — and
+        /// the wreck is persisted exactly there. Measured in a fresh world: 5.90 m.
+        /// </para>
+        ///
+        /// <para>
         /// False means "not yet", as everywhere else here: in a streamed world the chunks under the
         /// footprint have not loaded, and the caller is expected to wait a frame and ask again.
         /// </para>
@@ -125,8 +162,10 @@ namespace SpaceGame.Gameplay
             position = Vector3.zero;
 
             Vector2 extents = ShipHull.Footprint(hullPrefab);
+            float radius = ObstacleRadiusFor(extents);
 
-            bool Sample(Vector2 at, out float y) => TryResolveGround(at, probeHeight, out y);
+            bool Sample(Vector2 at, out float y) =>
+                TryResolveLandingSurface(at, probeHeight, radius, hullPrefab, out y);
 
             if (!LevelGroundSearch.TryFind(preferredXZ, yaw, extents, tolerance.MaxGroundSpread,
                                            tolerance.SearchRadius, tolerance.RingStep,
@@ -141,6 +180,119 @@ namespace SpaceGame.Gameplay
                                    groundXZ.y);
             return true;
         }
+
+        /// <summary>
+        /// The surface a landing is PLANNED against: the terrain height at <paramref name="at"/>,
+        /// raised onto anything standing on it.
+        ///
+        /// <para>
+        /// <see cref="TryResolveGround"/> answers "how high is the terrain", and for a spawn point
+        /// that is the right question — a person standing beside a crate stands on the desert, not
+        /// on the crate. A 23 x 29 m hull is not a person. It rests on the highest thing it spans,
+        /// so a plan blind to the outpost under its port quarter is a plan that ends with the hull
+        /// buried in a wall, and the wreck is persisted there for the life of the world.
+        /// </para>
+        ///
+        /// <para>
+        /// The terrain stays the floor and is never subtracted from: an obstacle can only raise the
+        /// answer. So a chunk that has not loaded still fails the way it always did, and nothing
+        /// here can put a hull BELOW the ground.
+        /// </para>
+        /// </summary>
+        public static bool TryResolveLandingSurface(Vector2 at, float probeHeight, float radius,
+                                                    GameObject ignoring, out float surfaceY)
+        {
+            if (!TryResolveGround(at, probeHeight, out surfaceY))
+                return false;
+
+            if (TryResolveStandingObstacle(at, surfaceY, radius, ignoring, out float topY, out Collider _))
+                surfaceY = Mathf.Max(surfaceY, topY);
+
+            return true;
+        }
+
+        /// <summary>
+        /// The highest thing STANDING on the ground at <paramref name="at"/> — a wall, a rock, an
+        /// outpost roof — within <see cref="ObstacleReach"/> of <paramref name="aboveY"/>, and the
+        /// collider it belongs to so a caller can name it.
+        ///
+        /// <para>
+        /// Swept rather than cast as a ray, because the nine footprint points are ten metres apart
+        /// and a mast between two of them is exactly the thing that is missed. The sphere covers
+        /// the gap, and its radius doubles as the standoff a hull this size wants from a structure
+        /// it is not landing on.
+        /// </para>
+        ///
+        /// <para>
+        /// Terrain is excluded because terrain IS <paramref name="aboveY"/>: a sphere over a slope
+        /// touches the hillside metres away and uphill, which would read every gradient in the
+        /// world as an obstacle standing on itself. Rigidbodies are excluded for the reason
+        /// <see cref="IsWorldSurface"/> gives — a nomad, a mount or the crew is cargo, not a
+        /// structure — and the hull itself is excluded because a ship 20 m up its own arc is
+        /// otherwise the tallest thing over its own landing site.
+        /// </para>
+        /// </summary>
+        public static bool TryResolveStandingObstacle(Vector2 at, float aboveY, float radius,
+                                                      GameObject ignoring, out float topY,
+                                                      out Collider on)
+        {
+            topY = aboveY;
+            on = null;
+
+            radius = Mathf.Max(MinObstacleRadius, radius);
+
+            // Started a sphere-radius clear of the ceiling so nothing is already overlapping the
+            // sweep on frame one, which is the case a spherecast reports with a zero distance and a
+            // meaningless contact point.
+            Vector3 origin = new(at.x, aboveY + ObstacleReach + radius, at.y);
+
+            int count = Physics.SphereCastNonAlloc(origin, radius, Vector3.down, s_obstacleHits,
+                                                   ObstacleReach, ~0, QueryTriggerInteraction.Ignore);
+
+            // A full buffer means hits were dropped, and the one dropped may be the tallest. Only
+            // then is the allocating overload worth it.
+            RaycastHit[] hits = s_obstacleHits;
+            if (count >= s_obstacleHits.Length)
+            {
+                hits = Physics.SphereCastAll(origin, radius, Vector3.down, ObstacleReach, ~0,
+                                             QueryTriggerInteraction.Ignore);
+                count = hits.Length;
+            }
+
+            bool found = false;
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider collider = hits[i].collider;
+
+                if (collider == null) continue;
+                if (collider is TerrainCollider) continue;
+                if (!IsWorldSurface(collider)) continue;
+                if (ignoring != null && collider.transform.IsChildOf(ignoring.transform)) continue;
+
+                // A sweep that starts inside a collider reports distance zero and a contact point
+                // that means nothing; the ceiling is above every obstacle this looks for, so such a
+                // hit is geometry the probe is standing in rather than a surface under it.
+                if (hits[i].distance <= 0f) continue;
+
+                float surfaceY = hits[i].point.y;
+                if (surfaceY <= topY) continue;
+
+                topY = surfaceY;
+                on = collider;
+                found = true;
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// The sphere radius the obstacle sweep uses for a hull of these extents: half the spacing
+        /// between the footprint samples, so the nine spheres overlap and no gap between them can
+        /// hide a structure.
+        /// </summary>
+        public static float ObstacleRadiusFor(Vector2 extents) =>
+            Mathf.Max(MinObstacleRadius, Mathf.Min(Mathf.Abs(extents.x), Mathf.Abs(extents.y)) * 0.5f);
 
         /// <summary>
         /// The surface a hull's own collision would come to rest on at <paramref name="at"/>, read
@@ -300,6 +452,66 @@ namespace SpaceGame.Gameplay
             // Positive: the belly is above the highest ground under the hull and it is hanging.
             // Negative: the hull is into the ground and physics will shove it out.
             airGap = position.y - bellyDrop - ground.Highest;
+            return true;
+        }
+
+        /// <summary>
+        /// The same measurement again, against the surface the landing was PLANNED on — the
+        /// heightmap raised onto whatever stands on it — and the tallest such thing under the
+        /// footprint, or null over open desert.
+        ///
+        /// <para>
+        /// This is what makes the arrival's disagreement report mean something. Comparing collision
+        /// against the bare heightmap says only "these two differ", which they do every time a hull
+        /// comes down beside a wall, and phrases a local obstacle as a world-wide calibration
+        /// fault. Comparing it against the surface the plan actually used separates the two: a
+        /// difference the obstacle explains is a hull parked on a roof, and a difference it does
+        /// not is the terrain and its own collider disagreeing.
+        /// </para>
+        /// </summary>
+        public static bool TryMeasureLandingAgainstSurface(Vector3 position, float yaw,
+                                                           GameObject hull, float probeHeight,
+                                                           float bellyDrop, out float airGap,
+                                                           out Collider standingOn)
+        {
+            airGap = 0f;
+            standingOn = null;
+
+            Vector2 extents = ShipHull.Footprint(hull);
+            float radius = ObstacleRadiusFor(extents);
+
+            var points = new Vector2[HullFootprint.SampleCount];
+            HullFootprint.Samples(new Vector2(position.x, position.z), yaw, extents, points);
+
+            bool found = false;
+            float highest = float.NegativeInfinity;
+            float highestObstacle = float.NegativeInfinity;
+
+            for (int i = 0; i < HullFootprint.SampleCount; i++)
+            {
+                if (!TryResolveGround(points[i], probeHeight, out float groundY)) continue;
+
+                found = true;
+
+                if (TryResolveStandingObstacle(points[i], groundY, radius, hull,
+                                               out float topY, out Collider on)
+                    && topY > highestObstacle)
+                {
+                    highestObstacle = topY;
+                    standingOn = on;
+                }
+
+                if (groundY > highest) highest = groundY;
+            }
+
+            if (!found) return false;
+
+            // Only the thing that actually DECIDED the surface is worth naming. An obstacle lower
+            // than the ground under the high corner did not hold the hull up and is not the answer.
+            if (highestObstacle > highest) highest = highestObstacle;
+            else standingOn = null;
+
+            airGap = position.y - bellyDrop - highest;
             return true;
         }
     }

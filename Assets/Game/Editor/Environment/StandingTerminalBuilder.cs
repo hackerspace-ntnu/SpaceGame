@@ -53,13 +53,6 @@ namespace SpaceGame.EditorTools
         // The canvas stands this far off the glass so it never z-fights the plate under it.
         private const float CanvasStandoff = 0.002f;
 
-        // Phosphor on a dark tube — the ItemScannerScreen shader's own two colours, so every
-        // display in the game glows the same green.
-        private static readonly Color Phosphor = new(0.42f, 1f, 0.6f);
-        private static readonly Color Ink = new(0.02f, 0.075f, 0.045f, 0.94f);
-        private static readonly Color Dim = new(0.42f, 1f, 0.6f, 0.45f);
-        private static readonly Color Faint = new(0.42f, 1f, 0.6f, 0.12f);
-
         private const float Margin = 14f;
         private const float HeaderHeight = 44f;
         private const float FooterHeight = 30f;
@@ -343,22 +336,22 @@ namespace SpaceGame.EditorTools
             float w = canvas.sizeDelta.x, h = canvas.sizeDelta.y;
             float top = h * 0.5f, bottom = -h * 0.5f, left = -w * 0.5f, right = w * 0.5f;
 
-            WorldCanvasBuilder.Fill(canvas, "Tube", Ink);
+            WorldCanvasBuilder.Fill(canvas, "Tube", WorldCanvasBuilder.Ink);
 
             // Header
             TextMeshProUGUI title = WorldCanvasBuilder.Label(canvas, "Title", 18f,
                 new Vector2(left + Margin + 60f, top - HeaderHeight * 0.5f), new Vector2(120f, HeaderHeight),
                 TextAlignmentOptions.Left);
             title.text = "LANDER OS";
-            title.color = Phosphor;
+            title.color = WorldCanvasBuilder.Phosphor;
 
             TextMeshProUGUI clock = WorldCanvasBuilder.Label(canvas, "Clock", 18f,
                 new Vector2(right - Margin - 40f, top - HeaderHeight * 0.5f), new Vector2(80f, HeaderHeight),
                 TextAlignmentOptions.Right);
             clock.text = "00:00";
-            clock.color = Phosphor;
+            clock.color = WorldCanvasBuilder.Phosphor;
 
-            Image rule = WorldCanvasBuilder.Panel(canvas, "HeaderRule", Dim);
+            Image rule = WorldCanvasBuilder.Panel(canvas, "HeaderRule", WorldCanvasBuilder.Dim);
             rule.rectTransform.anchoredPosition = new Vector2(0f, top - HeaderHeight);
             rule.rectTransform.sizeDelta = new Vector2(w - Margin * 2f, 1.5f);
 
@@ -377,14 +370,14 @@ namespace SpaceGame.EditorTools
                 // The one thing on the glass a click may land on.
                 background.raycastTarget = true;
 
-                Image underline = WorldCanvasBuilder.Panel(background.rectTransform, "Underline", Dim);
+                Image underline = WorldCanvasBuilder.Panel(background.rectTransform, "Underline", WorldCanvasBuilder.Dim);
                 underline.rectTransform.anchoredPosition = new Vector2(0f, -TabHeight * 0.5f - 2f);
                 underline.rectTransform.sizeDelta = new Vector2(TabWidth, 1.5f);
 
                 TextMeshProUGUI label = WorldCanvasBuilder.Label(background.rectTransform, "Label", 16f,
                     Vector2.zero, new Vector2(TabWidth, TabHeight));
                 label.text = (i + 1) + " " + TerminalConsole.PageNames[i];
-                label.color = Phosphor;
+                label.color = WorldCanvasBuilder.Phosphor;
 
                 var button = background.gameObject.AddComponent<Button>();
                 button.targetGraphic = background;
@@ -419,12 +412,12 @@ namespace SpaceGame.EditorTools
                 new Vector2(left + Margin + 120f, bottom + FooterHeight * 0.5f), new Vector2(240f, FooterHeight),
                 TextAlignmentOptions.Left, FontStyles.Normal);
             hint.text = "1-3  PAGES     RMB / ESC  LEAVE";
-            hint.color = Dim;
+            hint.color = WorldCanvasBuilder.Dim;
 
             TextMeshProUGUI cursor = WorldCanvasBuilder.Label(canvas, "Cursor", 16f,
                 new Vector2(right - Margin - 10f, bottom + FooterHeight * 0.5f), new Vector2(20f, FooterHeight));
             cursor.text = "▌";
-            cursor.color = Phosphor;
+            cursor.color = WorldCanvasBuilder.Phosphor;
 
             var ui = canvas.gameObject.AddComponent<TerminalScreen>();
             var so = new SerializedObject(ui);
@@ -492,7 +485,7 @@ namespace SpaceGame.EditorTools
             float panelWidth = area.width - PageGap - viewportWidth;
 
             // The frame first, so the hole is drawn over it rather than under it.
-            Image frame = WorldCanvasBuilder.Panel(page, "ViewportFrame", Faint);
+            Image frame = WorldCanvasBuilder.Panel(page, "ViewportFrame", WorldCanvasBuilder.Faint);
             frame.rectTransform.anchoredPosition = new Vector2(-area.width * 0.5f + viewportWidth * 0.5f, contentY);
             frame.rectTransform.sizeDelta = new Vector2(viewportWidth + 4f, contentHeight + 4f);
 
@@ -505,17 +498,17 @@ namespace SpaceGame.EditorTools
 
             TextMeshProUGUI title = WorldCanvasBuilder.Label(page, "PanelTitle", 17f,
                 new Vector2(panelX, top - 13f), new Vector2(panelWidth, 24f), TextAlignmentOptions.Left);
-            title.color = Phosphor;
+            title.color = WorldCanvasBuilder.Phosphor;
             title.text = "";
 
-            Image rule = WorldCanvasBuilder.Panel(page, "PanelRule", Dim);
+            Image rule = WorldCanvasBuilder.Panel(page, "PanelRule", WorldCanvasBuilder.Dim);
             rule.rectTransform.anchoredPosition = new Vector2(panelX, top - 28f);
             rule.rectTransform.sizeDelta = new Vector2(panelWidth, 1.5f);
 
             TextMeshProUGUI detail = WorldCanvasBuilder.Label(page, "PanelDetail", 14f,
                 new Vector2(panelX, top - 62f), new Vector2(panelWidth, 58f),
                 TextAlignmentOptions.TopLeft, FontStyles.Normal);
-            detail.color = Phosphor;
+            detail.color = WorldCanvasBuilder.Phosphor;
             detail.lineSpacing = 10f;
             detail.text = "";
 
@@ -523,7 +516,7 @@ namespace SpaceGame.EditorTools
             TextMeshProUGUI body = WorldCanvasBuilder.Label(page, "PanelBody", 13f,
                 new Vector2(panelX, top - 100f - bodyHeight * 0.5f), new Vector2(panelWidth, bodyHeight),
                 TextAlignmentOptions.TopLeft, FontStyles.Normal);
-            body.color = Dim;
+            body.color = WorldCanvasBuilder.Dim;
             body.lineSpacing = 8f;
             body.text = "";
 
@@ -534,13 +527,13 @@ namespace SpaceGame.EditorTools
                 new Vector2(-area.width * 0.5f + HintWidth * 0.5f, stripY), new Vector2(HintWidth, StripHeight),
                 TextAlignmentOptions.Left, FontStyles.Normal);
             hint.text = "DRAG TURN · WHEEL ZOOM · CLICK MODULE";
-            hint.color = Dim;
+            hint.color = WorldCanvasBuilder.Dim;
 
             float summaryWidth = area.width - HintWidth;
             TextMeshProUGUI summary = WorldCanvasBuilder.Label(page, "Summary", 14f,
                 new Vector2(area.width * 0.5f - summaryWidth * 0.5f, stripY),
                 new Vector2(summaryWidth, StripHeight), TextAlignmentOptions.Right);
-            summary.color = Phosphor;
+            summary.color = WorldCanvasBuilder.Phosphor;
             summary.text = "";
 
             var view = viewport.gameObject.AddComponent<ShipSchematicView>();
@@ -582,7 +575,7 @@ namespace SpaceGame.EditorTools
         {
             TextMeshProUGUI text = WorldCanvasBuilder.Label(page, "Lines", 18f, Vector2.zero,
                 new Vector2(area.width - 20f, area.height - 20f), TextAlignmentOptions.TopLeft, FontStyles.Normal);
-            text.color = Phosphor;
+            text.color = WorldCanvasBuilder.Phosphor;
             text.lineSpacing = 14f;
             text.text = "";
             return text;
@@ -597,26 +590,26 @@ namespace SpaceGame.EditorTools
                 new Vector2(-area.width * 0.5f + (area.width - radarSize - 30f) * 0.5f + 10f, 0f),
                 new Vector2(area.width - radarSize - 30f, area.height - 20f),
                 TextAlignmentOptions.TopLeft, FontStyles.Normal);
-            text.color = Phosphor;
+            text.color = WorldCanvasBuilder.Phosphor;
             text.lineSpacing = 14f;
             text.text = "";
 
-            Image radar = WorldCanvasBuilder.Panel(page, "Radar", Faint);
+            Image radar = WorldCanvasBuilder.Panel(page, "Radar", WorldCanvasBuilder.Faint);
             radar.rectTransform.anchoredPosition = new Vector2(area.width * 0.5f - radarSize * 0.5f - 10f, 0f);
             radar.rectTransform.sizeDelta = new Vector2(radarSize, radarSize);
 
-            Image across = WorldCanvasBuilder.Panel(radar.rectTransform, "CrossX", Dim);
+            Image across = WorldCanvasBuilder.Panel(radar.rectTransform, "CrossX", WorldCanvasBuilder.Dim);
             across.rectTransform.sizeDelta = new Vector2(radarSize, 1f);
-            Image along = WorldCanvasBuilder.Panel(radar.rectTransform, "CrossY", Dim);
+            Image along = WorldCanvasBuilder.Panel(radar.rectTransform, "CrossY", WorldCanvasBuilder.Dim);
             along.rectTransform.sizeDelta = new Vector2(1f, radarSize);
 
-            Image ship = WorldCanvasBuilder.Panel(radar.rectTransform, "Ship", Phosphor);
+            Image ship = WorldCanvasBuilder.Panel(radar.rectTransform, "Ship", WorldCanvasBuilder.Phosphor);
             ship.rectTransform.sizeDelta = new Vector2(10f, 10f);
 
             TextMeshProUGUI north = WorldCanvasBuilder.Label(radar.rectTransform, "Fwd", 11f,
                 new Vector2(0f, radarSize * 0.5f - 9f), new Vector2(60f, 14f));
             north.text = "FWD";
-            north.color = Dim;
+            north.color = WorldCanvasBuilder.Dim;
 
             return (text, radar.rectTransform);
         }

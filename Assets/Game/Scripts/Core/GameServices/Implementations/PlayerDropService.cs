@@ -27,7 +27,7 @@ namespace SpaceGame.Core
         private const float TossForward = 1.5f;
         private const float TossUp = 1f;
 
-        public void DropItem(Transform origin, InventoryItem item, float charge = SupplyCharge.None)
+        public void DropItem(Transform origin, InventoryItem item, ItemState state = null)
         {
             if (origin == null || item == null || item.itemPrefab == null) return;
 
@@ -35,10 +35,20 @@ namespace SpaceGame.Core
                                                      Quaternion.identity);
             if (obj == null) return;
 
-            // A dropped reservoir keeps what it held. The spawn is a fresh instantiate of the item
-            // prefab, so without this a tank emptied to 3% hits the sand at its authored starting
-            // charge -- an infinite supply of air for anyone who noticed.
-            if (charge >= 0f && obj.TryGetComponent(out DockableSupply supply)) supply.SetCharge(charge);
+            // Everything the slot remembered about this instance rides the object it becomes, and
+            // goes back into whichever slot picks it up. Uninterpreted while it lies there — see
+            // PickupableItem, which is the custodian and explains why applying a bag to an item
+            // nobody is holding would be wrong.
+            if (obj.TryGetComponent(out PickupableItem pickup)) pickup.Remember(state);
+
+            // The one key that is also RENDERED on the ground. A dropped reservoir paints a gauge
+            // the player reads off the sand, so the instance has to be told its fill or a tank
+            // emptied to 3% lies there reading full -- an infinite supply of air for anyone who
+            // noticed. Not a second channel for the charge: the value still comes out of the one
+            // bag above, and this is a component being handed the one key it draws.
+            float charge = SupplyCharge.Read(state);
+            SupplyReservoir supply = charge >= 0f ? SupplyReservoir.On(obj) : null;
+            if (supply != null) supply.SetCharge(charge);
 
             // Stamped with the ITEM's registry id rather than the prefab's own, because that is the
             // key SaveablePrefabRegistry derives from the item table — so a dropped item persists

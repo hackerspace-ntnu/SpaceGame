@@ -31,6 +31,7 @@ namespace SpaceGame.EditorTools
         {
             "Assets/Game/Prefabs/Items/Equipment/WingPack.prefab",
             "Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab",
+            "Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab",
         };
 
         /// <summary>

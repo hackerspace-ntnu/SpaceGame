@@ -778,6 +778,40 @@ namespace SpaceGame.Portals
         }
 
         /// <summary>
+        /// How many metres of wall the aperture's own quad carries beyond the shape, per side.
+        ///
+        /// The picture does not stop at the outline: <c>PortalSurface</c>'s crawling edge moves
+        /// the visible boundary outward by up to its <c>_Crawl</c>, and a quad that stopped at the
+        /// shape's own box would cut that crawl off along a dead straight line. A sprayed shape's
+        /// box has the smooth union's own padding to spare, but a hand-placed ellipse's box is the
+        /// ellipse exactly — so without this every scene portal is drawn with its edge shaved flat.
+        /// </summary>
+        private const float SurfaceMargin = 0.14f;
+
+        /// <summary>
+        /// How far past the opening the halo reaches, as a share of the stroke radius.
+        ///
+        /// <c>PortalRim</c> puts its ring <c>_Radius</c> outside the edge and <c>_Thickness</c>
+        /// wide, both in units of <c>_Depth</c> — which is <see cref="PortalStencil.ReferenceScale"/>
+        /// — and its spark term reaches 2.2 bands further still. 0.06 + 2.2 x 0.22 is 0.54, and
+        /// this is that with a little room.
+        ///
+        /// It is a LENGTH, not a ratio of the box, and that is the fix: the halo's quad used to be
+        /// a flat 1.5x the aperture's bounds, which is metres of wasted sheet on a swept portal
+        /// and barely a hand's width on a small one — so how much room the ring had depended on
+        /// how big the portal happened to be, and the quad's corner fade ate the halo wherever the
+        /// paint ran diagonally into a corner of its own box.
+        /// </summary>
+        public const float RimReach = 0.62f;
+
+        /// <summary>The quad one of these shaders wants for a shape of <paramref name="box"/>.</summary>
+        private static Vector2 QuadSize(Rect box, float margin) =>
+            new Vector2(box.width + margin * 2f, box.height + margin * 2f);
+
+        /// <summary>Metres of wall the halo's quad carries beyond the shape, per side.</summary>
+        private float RimMargin => SurfaceMargin + stencil.ReferenceScale * RimReach;
+
+        /// <summary>
         /// Push the shape onto the quads, the swept volume and the materials.
         ///
         /// The quads are MOVED as well as scaled now. A sprayed shape does not straddle the
@@ -791,23 +825,16 @@ namespace SpaceGame.Portals
 
             var centre = new Vector3(box.center.x, box.center.y, 0f);
 
+            Vector2 surfaceQuad = QuadSize(box, SurfaceMargin);
+            Vector2 rimQuad = QuadSize(box, RimMargin);
+
             // Only the child quads carry the size. The portal root must stay at
             // unit scale, because TransferFrom composes its localToWorldMatrix
             // with another portal's worldToLocalMatrix — any scale there would
             // be applied to the traveller as well, and a player would come out
             // of a wide portal wider than they went in.
-            if (surfaceRenderer != null)
-            {
-                surfaceRenderer.transform.localPosition = centre;
-                surfaceRenderer.transform.localScale = new Vector3(box.width, box.height, 1f);
-            }
-
-            if (rimRenderer != null)
-            {
-                rimRenderer.transform.localPosition = centre;
-                rimRenderer.transform.localScale =
-                    new Vector3(box.width * 1.5f, box.height * 1.35f, 1f);
-            }
+            FitQuad(surfaceRenderer, centre, surfaceQuad);
+            FitQuad(rimRenderer, centre, rimQuad);
 
             if (travellerVolume != null)
             {
@@ -823,30 +850,45 @@ namespace SpaceGame.Portals
                 if (Application.isPlaying) travellerVolume.enabled = false;
             }
 
-            PushStencil();
+            PushStencil(surfaceQuad, rimQuad);
+        }
+
+        /// <summary>
+        /// Centre and size one quad, keeping the standoff it was authored with along its normal.
+        ///
+        /// The z of the local position is deliberately left alone. The halo's quad is built a
+        /// centimetre in front of the aperture's, so the additive sheet is never coplanar with the
+        /// opaque one it spills over — and this used to flatten that to zero on the first frame
+        /// the shape changed.
+        /// </summary>
+        private static void FitQuad(Renderer renderer, Vector3 centre, Vector2 span)
+        {
+            if (renderer == null) return;
+
+            Transform quad = renderer.transform;
+            quad.localPosition = new Vector3(centre.x, centre.y, quad.localPosition.z);
+            quad.localScale = new Vector3(span.x, span.y, 1f);
         }
 
         /// <summary>
         /// Hand the shape to both materials.
         ///
-        /// _Extents differs between them because the rim's quad is deliberately larger than the
-        /// aperture — the halo spills onto the wall — while both shaders read the dabs in metres
-        /// relative to the SHARED bounds centre. So each has to be told how many metres its own
-        /// quad covers, or the rim would draw the outline at two thirds size.
+        /// _Extents is HALF THE QUAD the material is drawn on, and it has to be exactly that:
+        /// both shaders rebuild a metric position from their own uv, so a material told a
+        /// different span than its mesh covers draws the whole outline at the wrong scale. The
+        /// two differ because the halo's quad is the larger, and both are taken from the same
+        /// vectors that were just written to the transforms so the pair cannot drift.
         /// </summary>
-        private void PushStencil()
+        private void PushStencil(Vector2 surfaceQuad, Vector2 rimQuad)
         {
             int count = stencil.WriteShaderData(DabBuffer);
-            Rect box = stencil.Bounds;
-            Vector2 centroid = stencil.Centroid - box.center;
+            Vector2 centroid = stencil.Centroid - stencil.Bounds.center;
 
             if (surfaceMaterial != null)
-                PushStencil(surfaceMaterial, count, centroid,
-                            new Vector2(box.width * 0.5f, box.height * 0.5f));
+                PushStencil(surfaceMaterial, count, centroid, surfaceQuad * 0.5f);
 
             if (rimMaterial != null)
-                PushStencil(rimMaterial, count, centroid,
-                            new Vector2(box.width * 0.75f, box.height * 0.675f));
+                PushStencil(rimMaterial, count, centroid, rimQuad * 0.5f);
         }
 
         private void PushStencil(Material material, int count, Vector2 centroid, Vector2 extents)

@@ -99,6 +99,16 @@ namespace SpaceGame.Gameplay.Ragdoll
         public bool IsHeld => holders.Count > 0;
 
         /// <summary>
+        /// Is this creature on the ground right now, by any route — a net, a tie, or a blast?
+        ///
+        /// The creature counterpart of <c>PlayerRagdoll.IsHeldOrDown</c>, and deliberately broader
+        /// than <see cref="IsHeld"/> for the reason stated there: an animal knocked flat by a
+        /// repulsor blast is just as tieable as a netted one, and the two systems would feel
+        /// unrelated if one refused what the other allowed.
+        /// </summary>
+        public bool IsHeldOrDown => IsHeld || (rig != null && rig.IsLimp);
+
+        /// <summary>
         /// The motor, asked for at the moment it is needed rather than cached in Awake.
         ///
         /// <para>

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -70,7 +71,7 @@ namespace SpaceGame.Items
     /// </para>
     /// </summary>
     [DefaultExecutionOrder(200)]
-    public class LassoArtifact : ToolItem, IItemDeferredRestore
+    public class LassoArtifact : ToolItem, IItemDeferredRestore, ICuttableRope
     {
         /// <summary>
         /// Owner-run, and nearly moot: <see cref="Use"/> does nothing, because the throw is built
@@ -556,11 +557,15 @@ namespace SpaceGame.Items
             _twirlCharge = Mathf.Clamp01(_twirlCharge + deltaTime / Mathf.Max(twirlChargeTime, 0.01f));
 
             Vector3 centre = TwirlCentre();
-            loop.Twirl(centre, Vector3.up, _twirlCharge, deltaTime);
+
+            // To the HONDA, not to the loop's centre. The knot is the one point on a lasso where
+            // the rope stops and the loop starts, and drawing the cable to the middle of the hole
+            // instead left it ending in mid-air with the loop hovering unattached around it.
+            Vector3 honda = loop.Twirl(centre, Vector3.up, _twirlCharge, deltaTime);
 
             // Rope length tracks the gap exactly, so the coil between hand and loop hangs with a
             // little slack and no more — a wound rope is held, not dangled.
-            rope.Simulate(GetRopeStart(), centre, Vector3.Distance(GetRopeStart(), centre) * TwirlSlack, deltaTime);
+            rope.Simulate(GetRopeStart(), honda, Vector3.Distance(GetRopeStart(), honda) * TwirlSlack, deltaTime);
 
             DrawAimGuide();
         }
@@ -729,11 +734,13 @@ namespace SpaceGame.Items
         /// <summary>The rope paying out behind a flying loop.</summary>
         private void DrawFlight(Vector3 headPos, Vector3 travelDir, Vector3 start)
         {
-            loop.Fly(headPos, travelDir, _twirlCharge, Time.deltaTime);
+            Vector3 honda = loop.Fly(headPos, travelDir, _twirlCharge, Time.deltaTime);
 
             // Slightly more rope than the gap, which is what makes the cable trail and crack rather
-            // than being a straight line that happens to be getting longer.
-            rope.Simulate(GetRopeStart(), headPos, Vector3.Distance(start, headPos) * FlightSlack, Time.deltaTime);
+            // than being a straight line that happens to be getting longer. Measured to the head —
+            // how far the throw has actually gone — while the cable is drawn to the knot on the
+            // loop's rim, which is a loop radius nearer.
+            rope.Simulate(GetRopeStart(), honda, Vector3.Distance(start, headPos) * FlightSlack, Time.deltaTime);
         }
 
         /// <summary>
@@ -759,8 +766,9 @@ namespace SpaceGame.Items
                 if (landed) headPos = groundHit.point;
 
                 _ropeEndPoint = headPos;
-                loop.Fly(headPos, stepDirNorm, _twirlCharge, Time.deltaTime);
-                rope.Simulate(GetRopeStart(), headPos, Vector3.Distance(start, headPos) * FlightSlack, Time.deltaTime);
+
+                Vector3 falling = loop.Fly(headPos, stepDirNorm, _twirlCharge, Time.deltaTime);
+                rope.Simulate(GetRopeStart(), falling, Vector3.Distance(start, headPos) * FlightSlack, Time.deltaTime);
 
                 if (landed) break;
                 if (headPos.y < start.y - maxRange) break;
@@ -780,8 +788,8 @@ namespace SpaceGame.Items
 
                 _ropeEndPoint = Vector3.Lerp(coilFrom, GetRopeStart(), t);
 
-                loop.Ride(_ropeEndPoint, GetRopeStart() - _ropeEndPoint, Time.deltaTime);
-                rope.Simulate(GetRopeStart(), _ropeEndPoint, coilDist * (1f - t) * CoilSlack, Time.deltaTime);
+                Vector3 coiling = loop.Ride(_ropeEndPoint, GetRopeStart() - _ropeEndPoint, Time.deltaTime);
+                rope.Simulate(GetRopeStart(), coiling, coilDist * (1f - t) * CoilSlack, Time.deltaTime);
 
                 yield return null;
             }
@@ -1050,11 +1058,55 @@ namespace SpaceGame.Items
             }
 
             _channel = channel;
+
+            // The same seam decides whether this rope can be cut, because it asks the same question:
+            // does this machine hold a live copy of the item. Registering on the catch instead would
+            // be a state edge in the middle of a throw, and one missed edge is a rope that cannot be
+            // cut or a destroyed component left in a static list.
+            CuttableRopes.Unregister(this);
+
             if (_channel == null) return;
+
+            CuttableRopes.Register(this);
 
             _channel.NetOn(NetMsg.LassoRope, OnRopeRequested);
             _channel.NetOn(NetMsg.LassoRoped, OnRopeAnnounced);
             if (manager != null) manager.OnClientConnectedCallback += OnPeerJoined;
+        }
+
+        // ── Being cut ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The rope from the hand to whatever it caught, and only while it has caught something.
+        ///
+        /// <para>
+        /// A throw still in the air is deliberately not a rope here. The loop is a projectile for
+        /// the few tenths of a second it is out, and a beam that swatted one down would be a reflex
+        /// nobody can aim and nobody can read.
+        /// </para>
+        /// <para>
+        /// The straight chord rather than the Verlet cable's own nodes: the sag is presentation,
+        /// simulated per machine and never sent, so cutting against it would be a verdict off a
+        /// shape the server and the thrower do not agree on to the centimetre.
+        /// </para>
+        /// </summary>
+        public void AppendSpan(List<Vector3> into)
+        {
+            if (!_isLassoed) return;
+
+            into.Add(GetRopeStart());
+            into.Add(_ropeEndPoint);
+        }
+
+        /// <summary>
+        /// Cut. Identical to the rope tearing under strain, which already has a sound, a release on
+        /// every machine and a creature that gets its legs back — see <see cref="JudgeTension"/>.
+        /// </summary>
+        public void Cut()
+        {
+            if (!_isLassoed) return;
+
+            SendRope(LassoVerb.Snapped, null);
         }
 
         /// <summary>Owner-side: tell the session what the rope just did.</summary>
@@ -1207,8 +1259,16 @@ namespace SpaceGame.Items
 
                 Vector3 start = GetRopeStart();
 
-                loop.Ride(attachWorldPos, attachWorldPos - start, Time.deltaTime);
-                rope.Simulate(start, attachWorldPos, _currentRopeLength, Time.deltaTime);
+                Vector3 honda = loop.Ride(attachWorldPos, attachWorldPos - start, Time.deltaTime);
+
+                // The collar is made of rope, so the standing part is shorter than the whole line
+                // by however much of it is going round the animal's neck. Handing the drawn cable
+                // the full length while ending it a collar radius nearer would buy it that much
+                // free slack — which on a short rope is the difference between a line the player
+                // can see is bar-tight and one that hangs while the creature is dragging them.
+                float standing = Mathf.Max(_currentRopeLength - Vector3.Distance(attachWorldPos, honda), 0.05f);
+
+                rope.Simulate(start, honda, standing, Time.deltaTime);
 
                 yield return null;
             }

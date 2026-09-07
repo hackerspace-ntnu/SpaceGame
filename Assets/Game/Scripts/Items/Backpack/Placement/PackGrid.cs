@@ -78,6 +78,27 @@ namespace SpaceGame.Items
         public const float Cell = 0.0945f;
 
         /// <summary>
+        /// The longest run of cells any face in the game offers, on its longer axis: the ship's
+        /// gear wall, 30 across (<see cref="PackSurfaceId.WallGrid"/> and
+        /// <c>InventoryWallBuilder.SurfaceCellsAcross</c>). The rig's own longest is the lash
+        /// line's 18.
+        ///
+        /// <para>
+        /// A count and not a length, so it rides <see cref="Cell"/> like everything else here.
+        /// It exists for one caller — <c>ItemFootprint</c>'s implausible-measurement warning,
+        /// which has to know how long an item is allowed to legitimately be before it starts
+        /// accusing prefabs of being unsized. Stating it against the widest face IN THE GAME is
+        /// the point: while it was stated against the rig alone, the wall was already half again
+        /// as wide, and the first item deliberately sized for the wall tripped a warning telling
+        /// its author to go and size it.
+        /// <c>WallInventoryTests.TheWidestFaceConstantMatchesTheShippedContainers</c> measures
+        /// both containers' faces off disk, so a re-cut of the wall that leaves this behind fails
+        /// rather than quietly changing which items warn.
+        /// </para>
+        /// </summary>
+        public const int WidestFaceCells = 30;
+
+        /// <summary>
         /// Slack when counting whole cells, so a surface authored at an exact multiple of
         /// <see cref="Cell"/> is not robbed of its last column by a float that landed at 4.999998.
         /// </summary>

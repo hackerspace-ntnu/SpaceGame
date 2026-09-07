@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
@@ -243,6 +245,217 @@ namespace SpaceGame.EditorTests
             Assert.Less(layout.Placements[0].Charge, 0f,
                         "A rifle was placed reading 0% full, which is a real reading about a " +
                         "reservoir it does not have.");
+        }
+
+        // ── The reservoir, extracted from the verb ───────────────────────────
+
+        /// <summary>A tool with a tank. The shape every sprayer in the game is built to.</summary>
+        private sealed class TankedTool : ToolItem { }
+
+        /// <summary>
+        /// <b>The bug the extraction exists to fix.</b> A charge only reaches the owning client if
+        /// <see cref="SupplyCharge.Carries"/> says the item holds one, and that question used to
+        /// resolve a <c>DockableSupply</c> — which is itself a <c>UsableItem</c>, so an artifact
+        /// with its own verb could not have one. A sprayer therefore held its fill in a component
+        /// nothing on the wire, the pack or the save codec would look at, and a client's copy read
+        /// the authored starting charge for ever while the server drained it.
+        /// </summary>
+        [Test]
+        public void AToolWithATankCarriesACharge()
+        {
+            InventoryItem item = TankedItem(startingCharge: 0.5f, out GameObject prefab);
+            try
+            {
+                Assert.IsNull(prefab.GetComponent<DockableSupply>(),
+                              "precondition: this item must NOT be a dockable supply, or the test " +
+                              "proves only the case that already worked");
+
+                Assert.IsTrue(SupplyCharge.Carries(item),
+                              "A tool with a reservoir does not carry a charge, so its fill reaches " +
+                              "no client, no pack placement and no save record.");
+
+                Assert.AreEqual(0.5f, SupplyCharge.StartingChargeOf(item), 0.001f,
+                                "The item's authored starting charge is not what a container that " +
+                                "has never seen it reads.");
+            }
+            finally
+            {
+                Cleanup(item, prefab);
+            }
+        }
+
+        /// <summary>
+        /// The fill goes into the slot's bag under the ONE key, through the item's own
+        /// <c>UsableItem</c> — which is the only component anything ever asks for a state bag.
+        /// </summary>
+        [Test]
+        public void ATanksFillRidesTheSlotsBagUnderTheOneKey()
+        {
+            InventoryItem item = TankedItem(startingCharge: 1f, out GameObject prefab);
+            try
+            {
+                prefab.GetComponent<SupplyReservoir>().SetCharge(0.43f);
+
+                var state = new ItemState();
+                prefab.GetComponent<UsableItem>().CaptureItemState(state);
+
+                Assert.AreEqual(0.43f, SupplyCharge.Read(state), 0.005f,
+                                "A tool's fill did not reach the slot's bag under SupplyCharge's " +
+                                "key, so nothing downstream of the bag will carry it.");
+
+                // A second instance, as an equip is: a fresh Instantiate handed the same bag.
+                var second = new GameObject("Second");
+                try
+                {
+                    second.AddComponent<SupplyReservoir>();
+                    var tool = second.AddComponent<TankedTool>();
+
+                    tool.RestoreItemState(state);
+
+                    Assert.AreEqual(0.43f, second.GetComponent<SupplyReservoir>().Charge, 0.005f,
+                                    "A restored tool did not come back at the fill its bag said.");
+
+                    tool.RestoreItemState(null);
+
+                    Assert.AreEqual(1f, second.GetComponent<SupplyReservoir>().Charge, 0.001f,
+                                    "A bag with no charge in it read as empty rather than as the " +
+                                    "authored starting charge, which would drain every tank in " +
+                                    "every existing save on its first load.");
+                }
+                finally
+                {
+                    Object.DestroyImmediate(second);
+                }
+            }
+            finally
+            {
+                Cleanup(item, prefab);
+            }
+        }
+
+        /// <summary>
+        /// The restart threshold, which is the whole reason running dry reads as an interruption
+        /// rather than a strobe (<c>GDC-L1-ECON-0002</c>): a tank below it refuses a NEW draw even
+        /// though it is no longer empty.
+        /// </summary>
+        [Test]
+        public void ATankThatRanDryRefusesANewDrawUntilItIsWorthStarting()
+        {
+            var go = new GameObject("Tank");
+            try
+            {
+                var tank = go.AddComponent<SupplyReservoir>();
+                var so = new SerializedObject(tank);
+                so.FindProperty("drainPerSecond").floatValue = 1f;
+                so.FindProperty("refillPerSecond").floatValue = 1f;
+                so.FindProperty("restartFraction").floatValue = 0.15f;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                tank.SetCharge(0.05f);
+                Assert.IsFalse(tank.CanStart,
+                               "A tank below its restart threshold agreed to a new draw, which is " +
+                               "one frame of effect followed by silence, sixty times a second.");
+
+                Assert.IsFalse(tank.Tick(1f, drawing: false),
+                               "A refill tick reported that it delivered something.");
+                Assert.IsTrue(tank.CanStart, "A refilled tank still refuses to start.");
+
+                tank.SetCharge(0f);
+                Assert.IsFalse(tank.Tick(1f, drawing: true),
+                               "An empty tank claimed to deliver.");
+                Assert.AreEqual(0f, tank.Charge, 0.001f,
+                                "A trigger held on an empty tank refilled it, so it sputters for " +
+                                "ever instead of running out.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        /// <summary>
+        /// <b>Read off the assets, never off the class.</b> Every one of these numbers exists twice
+        /// — once as a C# initialiser and once serialised on a prefab — and only the second one
+        /// ships. A field whose NAME survived the move off <c>ArtifactTank</c> and
+        /// <c>DockableSupply</c> would keep whatever it was authored with; a field whose name did
+        /// not would silently fall back to a default. This is what tells those two apart.
+        /// </summary>
+        [Test]
+        public void EveryShippedReservoirIsAuthoredOnItsOwnPrefab()
+        {
+            var expected = new Dictionary<string, (SupplyKind Kind, float Capacity, float Start,
+                                                   float Drain, float Refill)>
+            {
+                ["Assets/Game/Prefabs/Items/Supplies/OxygenTank.prefab"] =
+                    (SupplyKind.Oxygen, 30f * 60f, 1f, 0f, 0f),
+                ["Assets/Game/Prefabs/Items/Supplies/Battery.prefab"] =
+                    (SupplyKind.Power, 1000f, 1f, 0f, 0f),
+                ["Assets/Game/Prefabs/Items/Artifacts/Gadgets/Flamethrower.prefab"] =
+                    (SupplyKind.Reagent, 6.67f, 1f, 0.15f, 0.06f),
+                ["Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab"] =
+                    (SupplyKind.Reagent, 10f, 1f, 0.1f, 0.05f),
+                ["Assets/Game/Prefabs/Items/Artifacts/Gadgets/SlickCan.prefab"] =
+                    (SupplyKind.Reagent, 8.33f, 1f, 0.12f, 0.06f),
+            };
+
+            foreach (var pair in expected)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(pair.Key);
+                Assert.IsNotNull(prefab, "No prefab at " + pair.Key);
+
+                var tank = prefab.GetComponent<SupplyReservoir>();
+                Assert.IsNotNull(tank, pair.Key + " has no SupplyReservoir on its root");
+
+                Assert.AreEqual(pair.Value.Kind, tank.Kind, pair.Key + " holds the wrong kind");
+                Assert.AreEqual(pair.Value.Capacity, tank.Capacity, 0.01f,
+                                pair.Key + " capacity");
+                Assert.AreEqual(pair.Value.Start, tank.StartingCharge, 0.001f,
+                                pair.Key + " startingCharge");
+
+                var so = new SerializedObject(tank);
+                Assert.AreEqual(pair.Value.Drain, so.FindProperty("drainPerSecond").floatValue,
+                                0.001f, pair.Key + " drainPerSecond");
+                Assert.AreEqual(pair.Value.Refill, so.FindProperty("refillPerSecond").floatValue,
+                                0.001f, pair.Key + " refillPerSecond");
+            }
+        }
+
+        /// <summary>
+        /// <see cref="SupplyKind"/> is persisted and sent as a byte, so an existing value that
+        /// moved would rewrite every save on disk and every message in flight without a word.
+        /// </summary>
+        [Test]
+        public void SupplyKindIsAppendOnly()
+        {
+            Assert.AreEqual(0, (byte)SupplyKind.Oxygen);
+            Assert.AreEqual(1, (byte)SupplyKind.Power);
+            Assert.AreEqual(2, (byte)SupplyKind.Reagent);
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+
+        /// <summary>An item whose prefab is a tool with a tank, and nothing else.</summary>
+        private static InventoryItem TankedItem(float startingCharge, out GameObject prefab)
+        {
+            prefab = new GameObject("TankedTool");
+            prefab.AddComponent<TankedTool>();
+
+            var tank = prefab.AddComponent<SupplyReservoir>();
+            var so = new SerializedObject(tank);
+            so.FindProperty("startingCharge").floatValue = startingCharge;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var item = ScriptableObject.CreateInstance<InventoryItem>();
+            item.name = "TankedTool";
+            item.ID = "test-tanked-tool";
+            item.itemPrefab = prefab;
+            return item;
+        }
+
+        private static void Cleanup(InventoryItem item, GameObject prefab)
+        {
+            Object.DestroyImmediate(prefab);
+            Object.DestroyImmediate(item);
         }
     }
 }

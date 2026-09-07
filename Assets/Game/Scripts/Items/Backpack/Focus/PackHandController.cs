@@ -1118,7 +1118,8 @@ namespace SpaceGame.Items
         /// </summary>
         private void Turn(BackpackObject pack, bool flashIfUnchanged)
         {
-            if (flashIfUnchanged && !TurningWouldChangeAnything(pack))
+            if (flashIfUnchanged &&
+                !pack.ShapeFor(heldItem).QuarterTurnChangesCells(PackGrid.QuarterTurns(yaw)))
             {
                 deniedUntil = Time.unscaledTime + DeniedFlashSeconds;
                 visuals.SetCarryDenied(true);
@@ -1129,33 +1130,6 @@ namespace SpaceGame.Items
 
             // The shown cell was for the old turn; a turned shape re-snaps fresh from the cursor.
             snapHeld = false;
-        }
-
-        /// <summary>
-        /// Would a quarter turn land the held item on a different set of cells?
-        ///
-        /// <para>
-        /// <see cref="PackShape"/> has no equality operator, and adding one for this would be a
-        /// public API for a private question — so the two orientations are compared cell by cell
-        /// here. Cheap: this runs once per refused click, not per frame.
-        /// </para>
-        /// </summary>
-        private bool TurningWouldChangeAnything(BackpackObject pack)
-        {
-            PackShape shape = pack.ShapeFor(heldItem);
-
-            int turns = PackGrid.QuarterTurns(yaw);
-
-            PackShape now = shape.Rotated(turns);
-            PackShape next = shape.Rotated(turns + 1);
-
-            if (now.Width != next.Width || now.Height != next.Height) return true;
-
-            for (int y = 0; y < now.Height; y++)
-                for (int x = 0; x < now.Width; x++)
-                    if (now[x, y] != next[x, y]) return true;
-
-            return false;
         }
 
         /// <summary>

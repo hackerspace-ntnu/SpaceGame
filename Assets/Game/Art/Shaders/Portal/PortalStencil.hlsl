@@ -19,6 +19,10 @@
 #ifndef PORTAL_STENCIL_INCLUDED
 #define PORTAL_STENCIL_INCLUDED
 
+// For the crawling edge below, which is the one part of the outline both the aperture and its
+// halo have to agree on. Guarded, so including it here costs nothing where it is already in.
+#include "PortalNoise.hlsl"
+
 #define PORTAL_MAX_DABS 24
 
 // Deliberately outside UnityPerMaterial. An array in that cbuffer is not something the SRP batcher
@@ -67,6 +71,18 @@ float PortalStencilField(float2 q)
         field = PortalSmoothMin(field, length(q - _Dabs[i].xy) - _Dabs[i].z, PORTAL_SMOOTH);
 
     return field;
+}
+
+// How far the crawling edge has pushed the outline out at this angle, in metres.
+//
+// SHARED, and that is the whole point of it being here. The surface wobbles its boundary with
+// this; the halo used to roll its OWN noise, at its own frequency and its own amplitude, so the
+// ring was drawn around an edge the aperture did not have — the outline and the hole visibly
+// disagreed by a tenth of a metre and shimmered out of phase with each other. One edge, one
+// definition, both shaders.
+float PortalStencilCrawl(float angle, float crawl)
+{
+    return (PortalFbm(float2(angle * 2.2, _Time.y * 0.6), 3) - 0.5) * 2.0 * crawl;
 }
 
 // The aperture in one call: the metric distance at this fragment, plus the angle around the middle

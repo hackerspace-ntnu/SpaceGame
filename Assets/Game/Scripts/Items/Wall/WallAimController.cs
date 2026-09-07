@@ -58,6 +58,13 @@ namespace SpaceGame.Items
         /// </summary>
         public static WallAimController Aiming { get; private set; }
 
+        /// <summary>
+        /// Degrees of yaw per wheel notch, and per refused press. A quarter turn, because the grid
+        /// has four orientations and no others — <c>PackHandController.YawPerNotch</c> is the same
+        /// number for the same reason.
+        /// </summary>
+        private const float YawPerNotch = 90f;
+
         [Tooltip("How far the player can reach into a wall. Zero — the default — takes the " +
                  "Interactor's own cast distance, so the preview and the E key always agree " +
                  "about what is in range. Set it only to make the wall shorter-ranged than " +
@@ -95,6 +102,19 @@ namespace SpaceGame.Items
 
         /// <summary>Would a stow at the current aim land? Drives the cell colour and the E key.</summary>
         private bool placementLegal;
+
+        /// <summary>
+        /// Has a press here got a turn to offer? False while the aim is legal — there the press is
+        /// the stow — and false for an item with no turn that would change anything.
+        ///
+        /// <para>
+        /// Cached by <see cref="ShowPlacement"/> rather than asked again on the press, so the
+        /// prompt the player read and the thing the press does are the same answer. It is one
+        /// frame old on the frame the aim moves, exactly as <see cref="placementLegal"/> is, and
+        /// for the same reason: component order inside a frame is not something Unity promises.
+        /// </para>
+        /// </summary>
+        private bool canTurn;
 
         /// <summary>The placed item under the crosshair, if the aim is on one rather than on canvas.</summary>
         private GameObject hovered;
@@ -371,6 +391,10 @@ namespace SpaceGame.Items
                 && surface.AcceptsItem(held)
                 && wall.Layout.CanPlace(surface.Id, surface.Size, shape, uv, turn, null);
 
+            // Asked only on a refusal, and only here: the shape work behind it allocates for a
+            // masked item, and on the green path there is no press that would use the answer.
+            canTurn = !placementLegal && PackShapes.QuarterTurnChangesCells(held, wall.Shapes, yaw);
+
             if (proxyTried != held)
             {
                 proxyTried = held;
@@ -414,6 +438,7 @@ namespace SpaceGame.Items
             EndPreview();
 
             placementLegal = false;
+            canTurn = false;
 
             cells.Hide();
             visuals.SetHovered(hovered);
@@ -434,6 +459,7 @@ namespace SpaceGame.Items
             hovered = null;
             hasHovered = false;
             placementLegal = false;
+            canTurn = false;
             hasReadout = false;
 
             cells?.Hide();
@@ -454,9 +480,11 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// Three answers, and they are the three the player is actually asking. With something in
-        /// hand it names what would land and whether it fits, because that is the whole decision.
-        /// Over gear on the wall it names the gear, which is the only way to tell two canisters
-        /// apart at arm's length. On bare canvas it names the wall and says what it is for.
+        /// hand it names what would land and whether it fits, because that is the whole decision —
+        /// and on a refusal it names the press's other verb, since a turn nobody is told about is a
+        /// turn nobody finds. Over gear on the wall it names the gear, which is the only way to
+        /// tell two canisters apart at arm's length. On bare canvas it names the wall and says what
+        /// it is for.
         /// </para>
         /// </summary>
         private void PublishReadout(InventoryItem held)
@@ -467,7 +495,9 @@ namespace SpaceGame.Items
             if (held != null)
             {
                 Publish(held.itemName,
-                        placementLegal ? "RMB / LMB: stow" : "Will not fit here",
+                        placementLegal ? "RMB / LMB: stow"
+                                       : canTurn ? "Will not fit — RMB / LMB: turn"
+                                                 : "Will not fit here",
                         string.Empty,
                         subject: null,
                         point: surface.ToWorld(uv, 0f),
@@ -552,11 +582,21 @@ namespace SpaceGame.Items
         /// optimistic transfer here would hand it to both and then take it back from one.
         /// </para>
         /// <para>
-        /// A press on red is a miss, not a refusal that needs explaining: the cells have been red
-        /// under the crosshair the whole time the player was aiming. It flashes the held copy and
-        /// sends nothing, rather than turning the item the way the backpack's click does — the
-        /// wheel is already the turn here, and a key that sometimes places and sometimes rotates is
-        /// two verbs on one button.
+        /// <b>A press on red turns the item a quarter instead of sending anything</b> — the same
+        /// answer the backpack's click gives, and it is here because the wall and the pack are one
+        /// inventory with one set of gestures. The commonest reason a spot is refused is that the
+        /// item is lying the wrong way for it, so the refusal and its usual fix are the same press,
+        /// and a player who learned that on the mat does not have to learn a second rule at the
+        /// wall. It costs no binding: the cells under the crosshair have already said which of the
+        /// two things the press will do, so the button is never ambiguous at the moment it is
+        /// pressed. The wheel still turns the item without a refusal, for a player who can see the
+        /// item is the wrong way round before they try.
+        /// </para>
+        /// <para>
+        /// An item with no turn to offer — a row that forbids rotation, or a shape symmetric under
+        /// a quarter turn — sends nothing and stays as it is. The pack flashes its carried copy
+        /// there; the wall's ghost is already painted denied for as long as the aim is on red, so
+        /// there is nothing left to say and a flash on top of a flash would say it worse.
         /// </para>
         /// </summary>
         private void OnPressed()
@@ -569,7 +609,7 @@ namespace SpaceGame.Items
             {
                 if (!placementLegal)
                 {
-                    visuals.SetCarryDenied(true);
+                    Turn();
                     return;
                 }
 
@@ -587,7 +627,26 @@ namespace SpaceGame.Items
 
         /// <summary>A wheel notch is a quarter turn, while the wheel is ours — see
         /// <see cref="TakeWheel"/> for when that is.</summary>
-        private void OnYawScrolled(int notches) => yaw = PackGrid.SnapYaw(yaw + notches * 90f);
+        private void OnYawScrolled(int notches) => yaw = PackGrid.SnapYaw(yaw + notches * YawPerNotch);
+
+        /// <summary>
+        /// A quarter turn, in answer to a press the wall refused.
+        ///
+        /// <para>
+        /// Only when the turn is one the player would see — see <see cref="canTurn"/>, which is
+        /// also what the crosshair promised before the press.
+        /// </para>
+        /// <para>
+        /// The next frame's <see cref="ShowPlacement"/> re-snaps and re-judges from the new turn;
+        /// nothing is cached across it.
+        /// </para>
+        /// </summary>
+        private void Turn()
+        {
+            if (!canTurn) return;
+
+            yaw = PackGrid.SnapYaw(yaw + YawPerNotch);
+        }
 
         /// <summary>
         /// Point the wheel at the item's turn instead of at the hotbar, and only while there is

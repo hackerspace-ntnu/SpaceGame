@@ -595,6 +595,24 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Let go of the cinch without stopping the solver.
+        ///
+        /// <para>
+        /// For the net that closed around something and then could not be bound to it — a rig that
+        /// kept no bones, a capture that never arrived. Such a net has to come back down, and it
+        /// cannot while the ring is still pulling: <see cref="BeginCinch"/>'s axis is sampled ONCE
+        /// and never tracked, so past the window the cord is held at the target radius about a line
+        /// through wherever the body was standing, indefinitely. A net left like that hangs in the
+        /// air over an animal that has walked out of it.
+        /// </para>
+        /// <para>
+        /// <see cref="Freeze"/> also clears the axis, and until this existed it was the only thing
+        /// that did — which is why the fallback used to have no choice but to freeze in mid-air.
+        /// </para>
+        /// </summary>
+        public void EndCinch() => cinchAxis = null;
+
+        /// <summary>
         /// Distance of the FURTHEST node from a line, for sizing the cinch that follows.
         ///
         /// <para>

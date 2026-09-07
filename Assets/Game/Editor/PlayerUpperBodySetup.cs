@@ -32,9 +32,29 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const string HoldStyleParameter = "HoldStyle";
 
+        /// <summary>
+        /// Bool selecting the mirrored twin of whichever hold state <see cref="HoldStyleParameter"/>
+        /// names. Written by <c>PlayerAimRig</c> when the LEFT arm is what asked for the pose — a
+        /// lit Flashlight Gauntlet on that wrist. The clips are all right-handed, so without it a
+        /// left-arm lamp raises the right arm and lights nothing.
+        /// </summary>
+        private const string HoldMirrorParameter = "HoldMirror";
+
         private const string RelaxedClip = "Assets/ThirdParty/Kevin Iglesias/Human Animations/Animations/Male/Combat/Gun/HumanM@Gun_Aim02.fbx";
         private const string OneHandedClip = "Assets/ThirdParty/Kevin Iglesias/Human Animations/Animations/Male/Combat/Gun/HumanM@Gun_Aim01.fbx";
         private const string TwoHandedClip = "Assets/ThirdParty/Kevin Iglesias/Human Animations/Animations/Male/Combat/AssaultRifle/AssultRifleIdle.fbx";
+
+        /// <summary>
+        /// The three poses, and the value of <see cref="HoldStyleParameter"/> each answers to.
+        /// One table because the mirrored twins below are built from the same rows — a fourth
+        /// style added here gets its mirror for nothing.
+        /// </summary>
+        private static readonly (string Name, string Clip, int Style)[] HoldStyles =
+        {
+            ("Hold Relaxed", RelaxedClip, 1),
+            ("Hold OneHanded", OneHandedClip, 2),
+            ("Hold TwoHanded", TwoHandedClip, 3),
+        };
 
         [MenuItem("Tools/SpaceGame/Player/Build Upper Body Layer")]
         public static void Build()
@@ -49,6 +69,7 @@ namespace SpaceGame.EditorTools
             }
 
             EnsureIntParameter(controller, HoldStyleParameter);
+            EnsureBoolParameter(controller, HoldMirrorParameter);
             EnsureIntParameter(controller, ArmRaiseParameter);
             EnsureFloatParameter(controller, AimPitchParameter);
 
@@ -60,17 +81,20 @@ namespace SpaceGame.EditorTools
                 controller.layers = layers;
 
                 EnsureRaiseStates(controller, layers[index].stateMachine);
+                EnsureMirroredHoldStates(layers[index].stateMachine);
 
                 EditorUtility.SetDirty(controller);
                 AssetDatabase.SaveAssets();
 
                 Debug.Log($"PlayerUpperBodySetup: layer '{LayerName}' already exists at index " +
-                          $"{index}. Mask refreshed; hold states left alone; raise states ensured.");
+                          $"{index}. Mask refreshed; hold states left alone; raise and mirrored " +
+                          "states ensured.");
                 return;
             }
 
             BuildLayer(controller, mask);
             EnsureRaiseStates(controller, controller.layers[controller.layers.Length - 1].stateMachine);
+            EnsureMirroredHoldStates(controller.layers[controller.layers.Length - 1].stateMachine);
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
@@ -148,9 +172,8 @@ namespace SpaceGame.EditorTools
             AnimatorState empty = stateMachine.AddState("Empty");
             stateMachine.defaultState = empty;
 
-            AddStyleState(stateMachine, "Hold Relaxed", RelaxedClip, 1);
-            AddStyleState(stateMachine, "Hold OneHanded", OneHandedClip, 2);
-            AddStyleState(stateMachine, "Hold TwoHanded", TwoHandedClip, 3);
+            foreach ((string name, string clip, int style) in HoldStyles)
+                AddStyleState(stateMachine, name, clip, style);
 
             // Back to Empty when the hands are. Authored explicitly alongside the others so all
             // four values of HoldStyle are handled by the same mechanism.
@@ -189,7 +212,7 @@ namespace SpaceGame.EditorTools
             AnyStateTo(sm, state, style);
         }
 
-        private static void AnyStateTo(AnimatorStateMachine sm, AnimatorState state, int style)
+        private static AnimatorStateTransition AnyStateTo(AnimatorStateMachine sm, AnimatorState state, int style)
         {
             AnimatorStateTransition t = sm.AddAnyStateTransition(state);
             t.AddCondition(AnimatorConditionMode.Equals, style, HoldStyleParameter);
@@ -200,6 +223,8 @@ namespace SpaceGame.EditorTools
             // Without this the state re-enters itself every frame the condition holds, which
             // restarts the clip continuously and looks like the pose is frozen on frame one.
             t.canTransitionToSelf = false;
+
+            return t;
         }
 
         /// <summary>
@@ -295,6 +320,69 @@ namespace SpaceGame.EditorTools
             t.canTransitionToSelf = false;
         }
 
+        // ── The mirrored hold poses ───────────────────────────────────────────
+        //
+        // Every hold clip is right-handed. Gun_Aim01, the one-handed pose almost everything uses,
+        // puts the right hand 0.19 up and 0.19 forward of the body centre and leaves the left one
+        // down at the hip. That is right for a held item, whichever hand grips it — the pose is how
+        // the body stands around the thing, and mirroring it would swap the shoulder every
+        // two-handed item is braced against. It is wrong for the other thing that asks for this
+        // pose: a lit Flashlight Gauntlet, which can be worn on either forearm and whose beam
+        // leaves along the arm it is on. Unmirrored, a left-arm lamp raises the EMPTY arm.
+        //
+        // So each hold state gets a twin that plays the same clip mirrored, and HoldMirror picks
+        // between them. A bool rather than more values of HoldStyle: mirroring is a fact about the
+        // ARM asking, not about the pose, and folding it into the style enum would double it.
+
+        private static string MirroredName(string holdState) => holdState + " Mirrored";
+
+        /// <summary>Idempotent, like the raise states: builds the twins once and never again.</summary>
+        private static void EnsureMirroredHoldStates(AnimatorStateMachine sm)
+        {
+            if (FindState(sm, MirroredName(HoldStyles[0].Name)) != null) return;
+
+            // The existing hold states are the UNmirrored half now, and have to say so, or both
+            // twins are live on every frame a left-arm lamp is on and the arms flicker between
+            // them. Empty (style 0) is left alone: it is where the layer goes when nothing is
+            // posing, and it must be reachable whatever the mirror says.
+            foreach (AnimatorStateTransition t in sm.anyStateTransitions)
+            {
+                if (StyleOf(t) <= 0 || Mentions(t, HoldMirrorParameter)) continue;
+                t.AddCondition(AnimatorConditionMode.IfNot, 0f, HoldMirrorParameter);
+            }
+
+            foreach ((string name, string clip, int style) in HoldStyles)
+                AddMirroredStyleState(sm, name, clip, style);
+        }
+
+        private static void AddMirroredStyleState(AnimatorStateMachine sm, string holdState,
+                                                  string clipPath, int style)
+        {
+            AnimatorState state = sm.AddState(MirroredName(holdState));
+            state.motion = LoadClip(clipPath);
+            state.mirror = true;
+            state.writeDefaultValues = true;
+
+            AnimatorStateTransition t = AnyStateTo(sm, state, style);
+            t.AddCondition(AnimatorConditionMode.If, 0f, HoldMirrorParameter);
+
+            // Spelled out rather than inherited from EnsureRaiseStates, which only ever runs its
+            // patch pass once and will not see these: a raise still outranks a hold, mirrored or
+            // not, so both arms do not try to point at once.
+            t.AddCondition(AnimatorConditionMode.Equals, 0, ArmRaiseParameter);
+        }
+
+        /// <summary>
+        /// The <see cref="HoldStyleParameter"/> value this Any State transition fires on, or -1
+        /// where it does not name one at all (a raise transition).
+        /// </summary>
+        private static int StyleOf(AnimatorStateTransition t)
+        {
+            foreach (AnimatorCondition c in t.conditions)
+                if (c.parameter == HoldStyleParameter) return Mathf.RoundToInt(c.threshold);
+            return -1;
+        }
+
         private static bool Mentions(AnimatorStateTransition t, string parameter)
         {
             foreach (AnimatorCondition c in t.conditions)
@@ -315,6 +403,14 @@ namespace SpaceGame.EditorTools
             for (int i = 0; i < ps.Length; i++)
                 if (ps[i].name == name) return;
             controller.AddParameter(name, AnimatorControllerParameterType.Float);
+        }
+
+        private static void EnsureBoolParameter(AnimatorController controller, string name)
+        {
+            AnimatorControllerParameter[] ps = controller.parameters;
+            for (int i = 0; i < ps.Length; i++)
+                if (ps[i].name == name) return;
+            controller.AddParameter(name, AnimatorControllerParameterType.Bool);
         }
 
         private static void EnsureIntParameter(AnimatorController controller, string name)

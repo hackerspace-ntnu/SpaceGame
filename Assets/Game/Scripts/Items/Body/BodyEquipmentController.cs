@@ -275,8 +275,10 @@ namespace SpaceGame.Items
             var usable = entry.Instance.GetComponent<UsableItem>();
             if (usable == null) return;
 
-            // BEFORE OnEquipped: it is the switch that keeps a worn item from posing the arm.
+            // BEFORE OnEquipped: it is the switch that keeps a worn item from posing the arm, and
+            // the arm it names is the one a gauntlet that DOES pose — a lit torch — poses.
             usable.Worn = true;
+            usable.WornOn = entry.Slot == BodySlot.LeftGauntlet ? ItemGrip.Hand.Left : ItemGrip.Hand.Right;
             usable.OnItemDepleted += OnWornDepleted;
             usable.OnEquipped(gameObject);
 

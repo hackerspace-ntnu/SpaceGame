@@ -336,6 +336,68 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
+        /// The stow's handover read backwards: the rig <b>lands shut</b>, and taking the rack that
+        /// makes it shut costs exactly zero degrees.
+        ///
+        /// <para>
+        /// A pack about to be thrown is folded, which is already the angle the rack holds, so
+        /// <c>ResolveRackForDeploy</c> on the first frame of the toss moves nothing — and the
+        /// unfold that follows then leaves the whole front flap alone, because
+        /// <c>LeafFromOpen</c> takes whichever of the sheet and the rack is further from the open
+        /// pose. What has to move is the kickstand panel: that is the difference between a pack
+        /// that landed shut and a pack that never opened at all, and asserting only on the flap
+        /// would pass just as happily on a deploy that did nothing.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void DeployingTakesTheRackForFreeAndLandsTheRigShut()
+        {
+            Rig rig = BuildRig();
+
+            // The authored pose is the DEPLOYED one — expedition_rig is modelled open — so this is
+            // where the panel has to come back to at the end.
+            Quaternion[] rest = Pose(rig);
+
+            // Where a pack about to be tossed is: on a back, folded. Snapped rather than assumed,
+            // so the test starts from the pose the controller actually deploys out of.
+            rig.Pack.SnapStowed();
+            Quaternion[] stowed = Pose(rig);
+
+            Assert.Greater(Quaternion.Angle(rest[Leaf], stowed[Leaf]), 45f,
+                           "the fixture has to actually fold, or every 'nothing moved' below is " +
+                           "true of a rig whose hinges never turn");
+
+            rig.Pack.SetWorn(false);
+            rig.Pack.ResolveRackForDeploy();
+
+            Assert.IsTrue(rig.Pack.IsRacked,
+                          "the deploy has to take the rack, or the rig lands as a flat mat");
+
+            foreach (int i in new[] { Leaf, WingL, WingR })
+                Assert.Less(Quaternion.Angle(stowed[i], rig.Pivots[i].localRotation), 0.01f,
+                            $"pivot {rig.Pivots[i].name} moved while a folded pack took the rack — " +
+                            "racked and stowed are supposed to be the same place for it, so the " +
+                            "handover should have cost it exactly zero degrees");
+
+            rig.Pack.SetOpen(true);
+
+            foreach (int i in new[] { Leaf, WingL, WingR })
+                Assert.Less(Quaternion.Angle(stowed[i], rig.Pivots[i].localRotation), 0.01f,
+                            $"pivot {rig.Pivots[i].name} was dropped flat by the unfold — the whole " +
+                            "front flap is supposed to stay folded on a pack that deploys shut");
+
+            Assert.Less(Mathf.Abs(TurnAbout(rig.Pivots[Panel], rest[Panel], Axes[Panel])), 0.01f,
+                        "the kickstand panel does have to come up: a rig that lands shut is still " +
+                        "a rig that deployed");
+
+            Assert.IsTrue(rig.Pack.Reaches(PackSurfaceId.Rack),
+                          "the face a shut pack offers is the standing board's underside");
+            Assert.IsFalse(rig.Pack.Reaches(PackSurfaceId.Leaf),
+                           "and not the mat, which is face-down against the pack until the board " +
+                           "is laid flat");
+        }
+
+        /// <summary>
         /// A worn pack is not seven faces, it is a folded sandwich with six of them inside it. What
         /// a world pickup overflows onto has to be the face the fold leaves pointing out, or the
         /// gear goes where nobody can see it and where the leaf closes through it.

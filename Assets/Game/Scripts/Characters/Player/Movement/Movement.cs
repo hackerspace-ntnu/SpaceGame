@@ -286,7 +286,20 @@ namespace SpaceGame.Characters
             }
             else
             {
-                float control = grounded ? 1f : airControl;
+                // Grip is what the ground is able to do to this body, so it scales the pull toward
+                // the walk target and nothing else. At the slick film's 0.05 the player still
+                // steers and still has gravity; what they lose is the ability to accelerate or
+                // brake, which is what being on a frictionless surface IS.
+                //
+                // Asked only while grounded — a body in mid-air must not read the patch below it,
+                // or a jump clean over a slick pool skids through the air.
+                //
+                // Read HERE, on the machine that owns this body, and never written by the server:
+                // the server owns the flag (GDC-L1-MP-0004) and a server-side write to a remote
+                // player's velocity is overwritten within a tick with nothing in the console, while
+                // reading it locally puts the skid on the frame the player is looking at
+                // (GDC-L1-FEEL-0002). Wheeled and legged movers ask GroundGrip the same question.
+                float control = grounded ? GroundGrip.For(gameObject, groundPoint) : airControl;
                 newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
             }
             newHorizontal = SteerWithoutBraking(currentHorizontal, newHorizontal, grounded);
@@ -392,15 +405,32 @@ namespace SpaceGame.Characters
         private Vector3 groundNormal = Vector3.up;
 
         /// <summary>
+        /// Where the ground probe last touched down, which is where this body is standing for the
+        /// purpose of asking <see cref="GroundGrip"/> what is underfoot. Taken from the same sphere
+        /// cast <see cref="groundNormal"/> comes from, so the two can never describe different
+        /// surfaces; the body's own position would be a metre above the sand and, on a slope,
+        /// somewhere else entirely.
+        /// </summary>
+        private Vector3 groundPoint;
+
+        /// <summary>
         /// True while the player is riding something sprung — today the jumping rod.
         ///
         /// <para>
         /// Deliberately much narrower than <see cref="tethered"/>, and the narrowness is the point.
         /// A tether takes over horizontal motion; this changes nothing about how the player moves.
-        /// It suppresses <b>fall damage only</b>, because the whole business of a pogo stick is
-        /// arriving hard and leaving harder: at this project's -18 gravity a three-metre hop lands
-        /// at about -11 m/s, which the fall table prices at a fifth of the player's health — so a
-        /// rod that bounced you well would kill you in five bounces.
+        /// It does two things and no more.
+        /// </para>
+        /// <para>
+        /// It suppresses <b>fall damage</b>, because the whole business of a pogo stick is arriving
+        /// hard and leaving harder: at this project's -18 gravity a three-metre hop lands at about
+        /// -11 m/s, which the fall table prices at a fifth of the player's health — so a rod that
+        /// bounced you well would kill you in five bounces.
+        /// </para>
+        /// <para>
+        /// And it hands over the <b>Jump button</b>: <see cref="OnJump"/> steps aside, leaving the
+        /// press to whatever is doing the bouncing. On the rod a press means the landing boost, and
+        /// a 7 m/s leg jump firing underneath it would overwrite an 11 m/s hop.
         /// </para>
         /// <para>
         /// The rod is left to write <c>linearVelocity.y</c> directly rather than being given a
@@ -632,6 +662,15 @@ namespace SpaceGame.Characters
                 return;
             }
 
+            // Something sprung owns Jump while it is carrying this player — see SetBouncing. Not
+            // merely tidiness: the leg jump is 7 m/s and it SETS the vertical axis, so pressing it
+            // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
+            // a smaller number and the player would go lower for having timed it well.
+            if (bouncing)
+            {
+                return;
+            }
+
             if (IsGrounded() && !jumpOnCooldown)
             {
                 Vector3 v = rb.linearVelocity;
@@ -689,6 +728,7 @@ namespace SpaceGame.Characters
                                               groundCheckDistance, groundMask,
                                               QueryTriggerInteraction.Ignore);
                 groundNormal = rayHit ? flat.normal : Vector3.up;
+                groundPoint = rayHit ? flat.point : transform.position;
                 return rayHit;
             }
 
@@ -703,6 +743,7 @@ namespace SpaceGame.Characters
             // Up when nothing was found, rather than a stale normal from the last surface: a body
             // in the air is not standing on the slope it left.
             groundNormal = hit ? ground.normal : Vector3.up;
+            groundPoint = hit ? ground.point : transform.position;
             return hit;
         }
 

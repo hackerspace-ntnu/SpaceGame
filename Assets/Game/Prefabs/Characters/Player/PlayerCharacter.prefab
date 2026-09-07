@@ -304,7 +304,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 6
-  sprintSpeed: 9
+  sprintSpeed: 20
   crouchSpeed: 2.6
   airControl: 0.3
   momentumRiseThreshold: 0.5
@@ -795,6 +795,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAimRig
   animator: {fileID: 5496312837281773235}
   holdBlendTime: 0.18
+  defaultGestureSeconds: 2.5
   raiseBlendTime: 0.12
   raisePitchRange: 45
 --- !u!114 &6558388417224476658

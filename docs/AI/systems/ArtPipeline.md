@@ -9,6 +9,8 @@ paths:
   - Assets/Game/Art/Animations
   - Assets/Game/Editor
 symptoms:
+  - "a sand nomad walks across the ground but its legs and arms barely move, avatar valid and Humanoid"
+  - "a pouch, ring or band on a nomad renders inside out in Unity but looks fine in Blender"
   - "the imported mesh arrives untextured, or a handful of faces wear a neighbouring part's colour"
   - "the model comes out 100x too big when parented to a socket"
   - "a re-exported character stops animating and the console is clean"
@@ -34,7 +36,7 @@ symptoms:
   - "_zverify reports a clash in the assembled model that the component file it came from never showed"
   - "a bevelled bezel has a chamfer groove running across its face at every corner"
 reads_with: [Vehicles, PlayerShip, AgentSystem, Backpack]
-updated: 2026-09-05
+updated: 2026-09-06
 ---
 
 # Art Pipeline
@@ -84,7 +86,7 @@ How a 3D asset gets from a hand-authored/scripted `.blend` in the Unity-invisibl
 | [Creatures](Assets/Game/Art/Models/Creatures) | `Organic/DuneRat/dune_rat.fbx`, `Organic/Appa/appa.fbx`, `Constructs/Golem/golem.fbx`, `Organic/OrkhenRhot/*`, `Robotic/*` | 15 |
 | [Weapons](Assets/Game/Art/Models/Weapons) | `GravelBlaster/gravel_blaster.fbx`, `LaserStaff/*`, `CixinGun/*` | 7 |
 | [Props](Assets/Game/Art/Models/Props) | `expedition_rig.fbx`, `holo_base_puck.fbx`, `holo_base_table.fbx`, `repair_station.fbx`, `standing_terminal.fbx` | 15 |
-| [Characters](Assets/Game/Art/Models/Characters) | `Astronaut/astronaut.fbx`, `Astronaut/AstronautArmature.fbx`, `Nomad/nomad.fbx` | 4 |
+| [Characters](Assets/Game/Art/Models/Characters) | `Astronaut/astronaut.fbx`, `Astronaut/AstronautArmature.fbx`, `Nomad/nomad.fbx`, `Nomad/nomad_{umber,tan,maroon,strawhat}.fbx` | 8 |
 
 ## Materials
 
@@ -130,6 +132,7 @@ N/A for the art assets themselves. Builders that emit spawnable prefabs must sta
   `palette.blend`, `components/props/supply_crate.blend`, `models/creatures/dune_rat.blend`, all
   *"not a blend file"*, written by a newer one. Assume more. Never "fix" one by re-running its
   generator; build a new file under a new name (`sandloper.py` reads the shipped FBX instead).
+- **The four sand nomads are authored OUTSIDE the repo**, in `~/Documents/Blender/sand_nogs.blend`, by the user's choice. Their pipeline scripts live beside `nomad_export.py`: [sand_nogs_fix_rig.py](Assets/Game/Art/Models/_Source~/models/characters/nomad/sand_nogs_fix_rig.py) (writes the .blend, keeps a timestamped `sand_nogs_pre_rigfix_*.blend` copy) and [sand_nogs_export.py](Assets/Game/Art/Models/_Source~/models/characters/nomad/sand_nogs_export.py) (one FBX per character, never writes). All default to that path and take another as their first `--` argument. The pipeline is three scripts in order, then the export: `sand_nogs_fix_rig.py` (fits a skeleton to each body as modelled, bone by bone from the reference suit's vertices, rebinds and names every part, straps the pole to the back), [sand_nogs_fix_normals.py](Assets/Game/Art/Models/_Source~/models/characters/nomad/sand_nogs_fix_normals.py) (bakes the negative scale out of the ~10 point-mirrored parts per character), and [sand_nogs_reference_rig.py](Assets/Game/Art/Models/_Source~/models/characters/nomad/sand_nogs_reference_rig.py) (swaps the fitted rig for a copy of the REFERENCE skeleton, stretched by the body's per-axis scale and moved onto it, and rebinds — every vertex stays where the artist put it, and the script asserts so). **Never bake a pose into these meshes.** A retired step posed each body onto the reference skeleton and wrote the deformed vertices back; it moved every carefully placed face on all four characters and had to be reverted from the pre-step backup. The bodies are within a few centimetres of the reference pose already, so the reference rig fits them unbaked (16.7 cm mean vertex-to-bone distance against 15.5 cm on the original). Three more things cost real time: **an affine map about the world origin must also move the armature's own origin** — stretching the bones alone put every joint scale×7 m to one side, because the reference rig stands at x≈7; **the prefab builder must force a synchronous import before instantiating a re-exported FBX**, or it freezes the previous skeleton's rest transforms against the new bind poses and ships a garbled statue the Animator cannot move; and **a mirrored object (negative scale) renders correctly in Blender and inside out in Unity** — `Recalculate Outside` reports nothing, because in mesh space the normals are fine; the FBX carries the negative node scale and the skinned path never flips the winding back.
 - **Never re-run a generator over an existing `.blend`.** The `.blend` is the source of truth and carries hand edits that exist nowhere else; `_buildlib.start()` hard-fails on this, but a script that bypasses it will destroy the file. Compare object *scales*, not names, to detect a hand-edited file. Notably hand-built: `models/vehicles/ship_lander_blockout.blend` (the user's interior), the `nomad.blend` family (which is why `nomad_before_*.blend` snapshots exist), `models/creatures/vrescal.blend`.
 - **Blender FBX import at `lossyScale = 100`** on every transform (FBX centimetre convention): mesh data 100× small under transforms 100× large. It cancels for the model, but anything sized *against* a socket must divide by `socket.lossyScale` or it comes out 100× too big. `globalScale: 1` / `useFileScale: 1` on every model FBX meta; export uses `FBX_SCALE_NONE`, 1 Blender unit = 1 m.
 - **Axis conversion is fixed at `-Z` forward / `Y` up.** Blender's −Y forward lands on Unity's +Z. Changing it silently rotates new assets relative to every existing one.

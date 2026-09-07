@@ -42,7 +42,7 @@ The cursor is re-locked to the centre of the screen **every single frame** while
 
 Crouch lowers the capsule and drops your eye height by **0.6 m**. It also refuses to let you stand back up if there is a ceiling in the way — the game checks for headroom before allowing the stand, so crawl spaces work correctly and you cannot clip yourself into a floor above.
 
-Sprint is a **double-tap** rather than a held modifier, and it draws from a charge tank rather than running forever.
+Sprint is **Shift** held while moving forward, or a **double-tap** of forward for a gamepad, and it draws from a charge tank rather than running forever. Crouch is **C**.
 
 Both of these live in a part of the player that runs on **every machine in the session**, not just yours. That is the whole reason they were built the way they were: if crouching only existed on your own computer, other players would watch you glide around at full height while you crawled through a duct. Anything about the player that other people must see has to live outside the components that get switched off on remote copies.
 

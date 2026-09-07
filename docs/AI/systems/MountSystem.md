@@ -11,7 +11,7 @@ symptoms:
   - "what does seatOffset, followMountPitch or leapHoldTime do"
 reads_with: [Vehicles, Ornithopter, PlayerShip]
 redirect_to: Vehicles
-updated: 2026-09-05
+updated: 2026-09-07
 ---
 
 # Mount system
@@ -45,6 +45,7 @@ is off the ground, and a triggered one-shot finishes on its own schedule instead
 | `seatOffset` | `MountModule` | Player origin is at the FEET. On a **seat** push down ~a leg length (the pelvis then meets the cushion); on an **animal** do not — there is a body under the saddle and a leg's drop buries the rider in it. See [Saddles.md](Saddles.md). |
 | `IsAirborne` | `IMountJumpMotor` | What the animator learns a jump from. `AgentAnimatorDriver` feeds it to `IsGrounded`; a jump never shows up in the velocity the driver is handed. |
 | `mountedJumpHeight` | `NavMeshAgentMotor` | World metres, so it does **not** follow a scaled-up mount. Scale it in the creature's builder. |
+| `riderLookaheadSeconds` | `NavMeshAgentMotor` | Seconds of travel the rider's destination sits ahead (0.5). Too short and a fast mount "arrives" inside one long frame and stops dead; see the Vehicles gotcha. |
 | `mountableByDirectInteraction` | `MountModule` | `false` + a `MountStation` = cockpit-only boarding. |
 | `allowAISelfMovementWhenMounted` | `MountModule` | `false` also suppresses root motion and `ForceStop`s the motor. |
 | `followMountPitch` | `MountModule` | On for anything that pitches in flight; the camera never follows roll either way. |

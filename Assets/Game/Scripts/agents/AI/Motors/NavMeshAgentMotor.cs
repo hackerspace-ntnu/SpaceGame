@@ -59,8 +59,15 @@ namespace SpaceGame.Agents
         [Header("Rider Steering")]
         [Tooltip("Tank-steer yaw rate in degrees/sec while the rider is driving.")]
         [SerializeField] private float riderTurnSpeed = 120f;
-        [Tooltip("How far ahead of self the NavMesh destination is placed while rider drives.")]
+        [Tooltip("How far ahead of self the NavMesh destination is placed while rider drives, at the " +
+                 "least. The distance actually used is the larger of this and speed x riderLookaheadSeconds.")]
         [SerializeField] private float riderForwardTargetDistance = 2f;
+        [Tooltip("Seconds of travel the rider's destination is placed ahead. A destination a fixed 2 m " +
+                 "ahead is reached inside any frame longer than 2 m / speed -- 0.14 s at a 14 m/s " +
+                 "gallop -- and an agent that reaches its destination zeroes its velocity and starts " +
+                 "again from rest, which reads as a mount that keeps stopping. Half a second of travel " +
+                 "survives a chunk-load hitch and gives the path a bend to follow.")]
+        [SerializeField] private float riderLookaheadSeconds = 0.5f;
         [SerializeField] private float riderStopDistance = 0.15f;
         [SerializeField] private float riderNavMeshSampleDistance = 4f;
 
@@ -488,14 +495,30 @@ namespace SpaceGame.Agents
                 forward = Vector3.forward;
             forward.Normalize();
 
-            Vector3 desired = transform.position + forward * (riderForwardTargetDistance * Mathf.Sign(throttle));
-            Vector3 target = desired;
-            if (NavMesh.SamplePosition(desired, out NavMeshHit hit, riderNavMeshSampleDistance, NavMesh.AllAreas))
+            // Furthest first, halving back toward the minimum: the far point is what keeps a fast
+            // mount moving, and a nearer one is only taken when the far one is off the mesh (a
+            // cliff edge, a wall) so the rider still gets as far as the ground allows.
+            float lookahead = RiderLookahead(agent.speed, riderForwardTargetDistance, riderLookaheadSeconds);
+            Vector3 target = transform.position + forward * (riderForwardTargetDistance * Mathf.Sign(throttle));
+            for (float distance = lookahead; distance >= riderForwardTargetDistance * 0.999f; distance *= 0.5f)
+            {
+                Vector3 desired = transform.position + forward * (distance * Mathf.Sign(throttle));
+                if (!NavMesh.SamplePosition(desired, out NavMeshHit hit, riderNavMeshSampleDistance, NavMesh.AllAreas))
+                    continue;
                 target = hit.position;
+                break;
+            }
 
             agent.isStopped = false;
             agent.SetDestination(target);
         }
+
+        /// <summary>
+        /// How far ahead a rider's destination is placed: at least <paramref name="minimum"/>,
+        /// and further the faster the mount goes. Pure, for the tests.
+        /// </summary>
+        public static float RiderLookahead(float speed, float minimum, float seconds) =>
+            Mathf.Max(minimum, Mathf.Max(0f, speed) * Mathf.Max(0f, seconds));
 
         public void RequestJump()
         {

@@ -82,6 +82,13 @@ namespace SpaceGame.Core
         /// </summary>
         public bool CrouchHeld { get; private set; }
 
+        /// <summary>
+        /// Is sprint (Shift) down right now? Latched the way <see cref="CrouchHeld"/> is and
+        /// cleared with it, for the same reason. The action existed and was read only by the
+        /// mounts' <c>SteerModule</c>; the body's own sprint was a double tap of forward.
+        /// </summary>
+        public bool SprintHeld { get; private set; }
+
         public event Action OnJumpPressed;
 
         /// <summary>
@@ -381,6 +388,8 @@ namespace SpaceGame.Core
             inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
             inputs.Player.Crouch.performed += _ => { CrouchHeld = true;  OnCrouchPressed?.Invoke(); };
             inputs.Player.Crouch.canceled  += _ => { CrouchHeld = false; OnCrouchReleased?.Invoke(); };
+            inputs.Player.Sprint.performed += _ => SprintHeld = true;
+            inputs.Player.Sprint.canceled  += _ => SprintHeld = false;
 
             // Bound here with the rest, and exactly once, for the same reason
             // they are: the callback is a lambda that nothing can unsubscribe,
@@ -424,6 +433,7 @@ namespace SpaceGame.Core
             MoveInput = Vector2.zero;
             LookInput = Vector2.zero;
             CrouchHeld = false;
+            SprintHeld = false;
         }
 
         private void OnDestroy()

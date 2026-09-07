@@ -180,14 +180,15 @@ namespace SpaceGame.Characters
         }
 
         /// <summary>
-        /// Sprint is a double tap of forward, held: tap, then tap and keep holding, and you run
-        /// until you let go.
+        /// Sprint is Shift held while moving forward, or a double tap of forward, held: tap, then
+        /// tap and keep holding, and you run until you let go.
         ///
         /// <para>
-        /// Read off <see cref="PlayerInputManager.MoveInput"/> rather than given a binding of its
-        /// own, because "forward" is a composite of four keys on the keyboard and a stick
-        /// elsewhere, and the gesture is about that resolved axis — not about W. It also means the
-        /// same two taps work on a gamepad with nothing extra to bind.
+        /// Both gestures end the same way — letting go of forward — so the held key is a way IN,
+        /// not a separate mode. Forward is read off <see cref="PlayerInputManager.MoveInput"/>
+        /// rather than a binding of its own, because it is a composite of four keys on the
+        /// keyboard and a stick elsewhere, and the gesture is about that resolved axis — not
+        /// about W. The double tap is what a gamepad uses, with nothing extra to bind.
         /// </para>
         /// </summary>
         private void UpdateSprint(bool driving)
@@ -211,6 +212,8 @@ namespace SpaceGame.Characters
                 if (Time.time - lastForwardPressTime <= doubleTapWindow) isSprinting = true;
                 lastForwardPressTime = Time.time;
             }
+
+            if (forwardHeld && inputs.SprintHeld) isSprinting = true;
 
             forwardWasHeld = forwardHeld;
 

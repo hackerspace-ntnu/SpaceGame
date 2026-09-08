@@ -1,4 +1,4 @@
-// Stand still, hold the staff up for four seconds while the turbine spins and the
+﻿// Stand still, hold the staff up for four seconds while the turbine spins and the
 // charge climbs into the sky, then bring lightning down out of the clouds onto the
 // target.
 //
@@ -55,16 +55,72 @@
 //
 // ---- shape -------------------------------------------------------------------
 //
-//   idle        target inside CastRange and off cooldown  -> begin
+//   idle        target inside CastRange and off cooldown  -> settle
+//   settling    holds station, and holds the walk at its cadence, until the body has
+//               come to rest, the stride has played out to the end of its cycle, and
+//               the walk has blended down into the standing pose -> begin
 //   casting     holds position for CastSeconds, body tracking the target, the
 //               ground mark following it until CastSeconds - AimLockSeconds
 //   commit      strike, then CooldownSeconds from the cast's START before it can
 //               begin again -- long enough that the clip finishes its recoil first
 //
-// Claims movement only while casting. Out of range it returns null and passes, so
-// ChaseModule (priority 20, below this one's 22) closes the gap on its own. That is
-// the same division AgentRangedCombatModule uses and it is why this module does no
-// walking.
+// Claims movement only while settling and casting. Out of range it returns null and
+// passes, so ChaseModule (priority 20, below this one's 22) closes the gap on its
+// own. That is the same division AgentRangedCombatModule uses and it is why this
+// module does no walking.
+//
+// ---- why there is a SETTLE phase at all --------------------------------------
+//
+// Because a NavMeshAgent does not stop when you tell it to. Idle drops the path and
+// sets isStopped, and the agent then coasts down at its own `acceleration` -- from
+// this creature's 9 m/s that is a couple of seconds and the better part of ten
+// metres of travel. Fire the cast trigger on the same frame and the conjurer plants
+// its feet in the attack pose and SKATES that distance, which is the one thing that
+// reads as a bug rather than as weight.
+//
+// So the decision to cast and the START of the cast are two different moments. The
+// settle phase sits between them: it claims the frame (so Chase cannot re-issue a
+// destination and start it moving again), holds an Idle intent so the agent brakes,
+// and holds the WALK while it does.
+//
+// ---- and why stopping the BODY is only half of it ----------------------------
+//
+// The legs and the body run down on different clocks, and left to themselves they
+// disagree twice over.
+//
+// First the CADENCE. The walk's blend tree maps forward speed onto playback rate, so
+// a conjurer coasting down from 9 m/s plays its walk slower and slower over the four
+// or five metres it takes to stop -- the legs winding down while the body slides on,
+// which reads as the animation having frozen with a foot in the air rather than as
+// the creature braking. AgentAnimatorDriver.HoldStride is the answer: for the length
+// of the stop the cadence stops following the body down and stays where it was, so
+// the walk carries on at walking pace while the body runs out underneath it.
+//
+// Then the CYCLE. The body reaches rest a good quarter of a second before the
+// animator does, wherever in the stride it happens to be. Drop the cadence there and
+// Walk starts its 0.35 s crossfade into the standing pose from mid-swing; fire the
+// Cast trigger into that crossfade and it does not queue behind it, it INTERRUPTS it
+// -- and an interrupted transition in Unity does not carry on from where it was, it
+// snapshots the pose it had reached and blends that frozen picture into the
+// destination. Whatever the walk had in the air stays in the air for the whole
+// four-second wind-up.
+//
+// So the hold does not let go the moment the body stops either. It takes one more
+// step: it releases on the next FOOTFALL -- the driver is given the frames anim.py
+// plants a foot on -- and only then does the walk blend down into the standing pose.
+// The stop lands on a step instead of on whatever frame the brake happened to end
+// on, and it costs at worst half a cycle of striding on the spot.
+//
+// LegsHaveSettled is what waits that out here -- it wants the animator STANDING in
+// the settled state rather than on its way to it, so both feet are down and gathered
+// under the body before the attack asks for them.
+//
+// The wait is bounded (SettleTimeout, and MaxStrideHoldSeconds inside the driver).
+// An agent wedged against geometry, shoved by a vehicle or knocked off the NavMesh
+// must not stand there declining to attack forever, so the timeout casts anyway -- a
+// rare skate beats a creature that never fights back. It has to cover the run-down,
+// a whole walk cycle behind it and the crossfade on the end, which is why it is
+// several seconds rather than the one the brake alone needs.
 //
 // ---- what runs where ---------------------------------------------------------
 //
@@ -141,6 +197,50 @@ namespace SpaceGame.Agents
                  "as a real duel.")]
         [SerializeField] private CastAim aim = CastAim.TracksThenCommits;
 
+        [Header("Settle")]
+        [Tooltip("How slowly the body must be moving before the staff goes up, in m/s. " +
+                 "This is what stops the conjurer skating into its own attack: the cast " +
+                 "is decided on one frame and STARTED on a later one, once the " +
+                 "NavMeshAgent has finished coasting down. Raise it and the wind-up " +
+                 "begins while the creature is still drifting; drop it to zero and it " +
+                 "waits for the timeout instead, because a NavMeshAgent's velocity does " +
+                 "not reach exactly zero.")]
+        [SerializeField] private float settleSpeed = 0.2f;
+
+        [Tooltip("Animator state the body must be STANDING in before the staff goes up - " +
+                 "not blending toward, standing in. Leave empty to skip the check and " +
+                 "cast as soon as the body has stopped.\n\n" +
+                 "This is what keeps a leg from freezing in mid-air. Firing the Cast " +
+                 "trigger while Walk is still crossfading into Idle interrupts that " +
+                 "crossfade, and an interrupted transition in Unity does not carry on - " +
+                 "it SNAPSHOTS the pose it was in and blends the frozen picture into the " +
+                 "attack. Whatever the walk cycle happened to have in the air stays in " +
+                 "the air. Waiting for the crossfade to finish means the legs have " +
+                 "already come down and gathered under the body before the attack asks " +
+                 "for them.")]
+        [SerializeField] private string settledAnimState = "Idle";
+
+        [Tooltip("Longest the conjurer will wait to come to rest before casting anyway. " +
+                 "Has to cover the whole settle, which is the run-down (about a second at " +
+                 "the prefab's NavMeshAgent acceleration), then the REST of the walk cycle " +
+                 "the body stopped in the middle of - up to about 1.7 s, because the " +
+                 "settle holds the stride at its cadence rather than letting it decay " +
+                 "as the body slows - and then the walk's crossfade into " +
+                 "SettledAnimState.\n\n" +
+                 "A creature wedged against a rock, riding a moving platform or shoved by " +
+                 "a vehicle may never get under SettleSpeed, and one that answers that by " +
+                 "never attacking is a worse bug than the skate this phase exists to " +
+                 "remove. Set to zero to cast immediately, i.e. to restore the old " +
+                 "behaviour.")]
+        [SerializeField] private float settleTimeout = 5f;
+
+        [Tooltip("Once a cast has been DECIDED, how much further the target may drift " +
+                 "before the conjurer gives up on it and goes back to chasing. A " +
+                 "multiplier on CastRange, and it exists only for the settle phase: " +
+                 "without it a target hovering on the range boundary flips this module " +
+                 "and Chase every frame and the creature stutters instead of stopping.")]
+        [SerializeField] [Range(1f, 2f)] private float settleRangeExitFactor = 1.2f;
+
         [Header("Timing")]
         [Tooltip("Wind-up before the bolt lands. This is the clip's FIRE FRAME, not its " +
                  "length: _Source~/anim.py authors 135 frames at 30 fps and strikes on " +
@@ -163,6 +263,11 @@ namespace SpaceGame.Agents
         [Tooltip("Trigger fired on the Animator when a cast begins. Leave empty to disable.")]
         [SerializeField] private string castAnimTrigger = "Cast";
         [SerializeField] private Animator animator;
+
+        [Tooltip("Drives the locomotion parameters, and the thing the settle phase asks to " +
+                 "hold the walk cadence through the stop. Found on this object or a child " +
+                 "when left empty; leave it empty unless the rig is somewhere unusual.")]
+        [SerializeField] private AgentAnimatorDriver animatorDriver;
 
         [Header("Strike")]
         [SerializeField] private GameObject lightningVFXPrefab;
@@ -229,6 +334,34 @@ namespace SpaceGame.Agents
         private float cooldownRemaining;
         private bool aimLocked;
 
+        /// The gap between deciding to cast and starting one, while the body coasts to a
+        /// stop. Purely local and purely about locomotion -- nothing has been committed,
+        /// broadcast or aimed yet, so a settle that is abandoned costs nothing and is not
+        /// worth a message to the peers.
+        private bool settling;
+        private float settleElapsed;
+
+        /// Whether THIS settle has already asked for its stride hold.
+        ///
+        /// The ask has to be once, and the reason is the whole point of the hold. It
+        /// releases itself at the footfall, and a settle is still running when it does --
+        /// LegsHaveSettled is waiting out the crossfade the release just started. Ask again
+        /// on the next frame and the driver latches a fresh hold, drives the cadence back up
+        /// to walking pace, and the walk plays on at full speed through the entire blend
+        /// down into the standing pose. The stop it was supposed to land is undone one frame
+        /// after it lands.
+        private bool strideHoldAsked;
+
+        /// A Cast trigger that has been decided but not yet handed to the Animator, because
+        /// the Animator was mid-crossfade when it was decided. Presentation state, so it
+        /// lives on every machine: the peers are exactly where the ungated path runs.
+        private bool castTriggerPending;
+
+        /// settledAnimState, hashed once. Compared against the layer's shortNameHash rather
+        /// than run through IsName every frame -- IsName hashes the string on each call and
+        /// this is asked once a frame for the length of every settle.
+        private int settledStateHash;
+
         // ---- the presentation half. Every machine writes these, including the server.
         private bool presenting;
         private float presentElapsed;
@@ -260,11 +393,16 @@ namespace SpaceGame.Agents
             return target != null ? target.position : committedPoint;
         }
 
+        /// Which of the three phases this module is in, for the stop probe. Read-only.
+        public string Phase => casting ? "casting" : settling ? "settling" : "idle";
+
+        public float SettleElapsed => settleElapsed;
+
         public override string ModuleDescription =>
-            "Holds the staff up for castSeconds, then calls a lightning strike down on " +
-            "the target - tracking it, striking where it committed, or tracking and then " +
-            "locking a second out, per Aim. Holds station while casting; passes otherwise " +
-            "so Chase can close.";
+            "Comes to a full stop, then holds the staff up for castSeconds and calls a " +
+            "lightning strike down on the target - tracking it, striking where it " +
+            "committed, or tracking and then locking a second out, per Aim. Holds station " +
+            "while settling and casting; passes otherwise so Chase can close.";
 
         // Facing outranks Chase's so the conjurer keeps its eye on its target through the
         // whole wind-up rather than turning to look where it last walked.
@@ -279,6 +417,10 @@ namespace SpaceGame.Agents
         {
             targeting = GetComponent<AgentTargeting>();
             if (!animator) animator = GetComponentInChildren<Animator>(true);
+            if (!animatorDriver) animatorDriver = GetComponentInChildren<AgentAnimatorDriver>(true);
+            settledStateHash = string.IsNullOrEmpty(settledAnimState)
+                ? 0
+                : Animator.StringToHash(settledAnimState);
             ResolveBones();
         }
 
@@ -297,7 +439,11 @@ namespace SpaceGame.Agents
             this.NetOff(NetMsg.ConjurerStruck, OnStruckElsewhere);
 
             casting = false;
+            settling = false;
             presenting = false;
+            castTriggerPending = false;
+            strideHoldAsked = false;
+            animatorDriver?.ReleaseStride();
             ClearCharge();
             ClearTelegraph();
         }
@@ -359,10 +505,121 @@ namespace SpaceGame.Agents
             if (casting)
                 return TickCast(deltaTime);
 
+            if (settling)
+                return TickSettle(in context, deltaTime);
+
             if (!CanBegin(in context)) return null;
 
+            // Decided, not started. The staff does not go up until the feet have stopped --
+            // see the header. Idle is returned rather than null so that this frame is
+            // CLAIMED: hand it down to Chase and Chase immediately sets a destination
+            // again, and the body never gets the chance to brake.
+            settling = true;
+            settleElapsed = 0f;
+            strideHoldAsked = false;
+            return TickSettle(in context, deltaTime);
+        }
+
+        /// Brake, let the walk finish, then cast.
+        ///
+        /// TWO gates, and the second one is the whole reason this method is not just a
+        /// speed check. The body stopping and the LEGS stopping are different events: the
+        /// motor is at rest a good quarter of a second before the animator has finished
+        /// crossfading Walk into its standing pose, and a Cast trigger fired inside that
+        /// window interrupts the crossfade rather than following it -- Unity snapshots the
+        /// half-blended pose and drags the frozen picture into the attack, so a foot caught
+        /// in mid-swing simply stays there for the whole four-second wind-up.
+        ///
+        /// Velocity is read out of the context rather than measured off the transform
+        /// because it is the same number AgentAnimatorDriver feeds the walk blend, so the
+        /// two halves cannot disagree about what "stopped" means.
+        private MoveIntent? TickSettle(in AgentContext context, float deltaTime)
+        {
+            // The target left while we were stopping. Nothing was committed, so drop it and
+            // pass; Chase takes the frame back and closes the gap again. The exit factor is
+            // deliberately looser than CastRange -- a target sitting exactly on the boundary
+            // would otherwise flip this module and Chase every frame.
+            if (!CanContinueSettle(in context))
+            {
+                settling = false;
+                strideHoldAsked = false;
+                animatorDriver?.ReleaseStride();
+                return null;
+            }
+
+            // Once per settle. See strideHoldAsked -- asking every frame re-latches the hold
+            // the frame after it lets go, and the walk runs on at full cadence through the
+            // blend it was supposed to hand over to.
+            if (!strideHoldAsked)
+            {
+                animatorDriver?.HoldStride();
+                strideHoldAsked = true;
+            }
+
+            settleElapsed += deltaTime;
+
+            // The timeout answers both gates at once, and it has to: an agent that never
+            // gets under settleSpeed never reaches the second gate either, so a ceiling on
+            // only the first one would not be a ceiling at all.
+            bool waitedLongEnough = settleElapsed >= settleTimeout;
+
+            if (!waitedLongEnough)
+            {
+                bool atRest = context.Velocity.sqrMagnitude <= settleSpeed * settleSpeed;
+                if (!atRest || !LegsHaveSettled())
+                    return MoveIntent.Idle();
+            }
+
+            settling = false;
             Begin(in context);
             return MoveIntent.Idle();
+        }
+
+        /// Whether the animator is STANDING in settledAnimState rather than on its way
+        /// there.
+        ///
+        /// IsInTransition is the half that matters. Being in the state is not enough --
+        /// Unity reports the destination state as current from the first frame of a
+        /// crossfade, so a check for the state alone passes while Walk is still visibly
+        /// mixed in, and firing the trigger then is exactly the interruption this is here
+        /// to avoid.
+        ///
+        /// Layer 0: this creature's controller is a single Base Layer, and the locomotion
+        /// states and the attack all live on it. True when there is no animator or no state
+        /// configured, so the gate cannot be what stops an otherwise-working creature from
+        /// ever attacking.
+        private bool LegsHaveSettled()
+        {
+            if (animator == null || settledStateHash == 0) return true;
+            if (animator.runtimeAnimatorController == null) return true;
+
+            if (animator.IsInTransition(0)) return false;
+
+            return animator.GetCurrentAnimatorStateInfo(0).shortNameHash == settledStateHash;
+        }
+
+        /// Whether a settle that has already started is still worth finishing.
+        ///
+        /// Deliberately WEAKER than CanBegin, on both of the conditions it drops:
+        ///
+        /// Line of sight is not re-checked. It is a raycast, it flickers -- a target
+        /// stepping behind a thin post, a ray clipping the creature's own geometry for a
+        /// frame -- and an abandoned settle does not merely pause, it hands the frame back
+        /// to Chase, which sets a destination and puts the body back up to speed. Flicker
+        /// that a few times and the creature never comes to rest at all, the settle runs
+        /// out its timeout, and the cast starts mid-stride: the original bug, arriving
+        /// intermittently instead of every time. This matches what the cast itself already
+        /// does -- requireLineOfSight gates BEGINNING, and once begun, cover is an escape
+        /// rather than a cancel.
+        ///
+        /// Range is re-checked but loosened by settleRangeExitFactor, for the same reason
+        /// in slower motion: a target sitting exactly on the boundary would otherwise flip
+        /// this module and Chase every frame.
+        private bool CanContinueSettle(in AgentContext context)
+        {
+            if (targeting == null || !targeting.HasTarget) return false;
+
+            return targeting.DistanceToTarget <= castRange * settleRangeExitFactor;
         }
 
         /// The presentation clock, on EVERY machine.
@@ -372,12 +629,56 @@ namespace SpaceGame.Agents
         /// halves advance on the server; only this one advances anywhere else.
         private void Update()
         {
+            DrainCastTrigger();
+
             if (!presenting) return;
 
             presentElapsed += Time.deltaTime;
 
             if (liveTelegraph != null && presentElapsed >= LockAt)
                 liveTelegraph.Freeze();
+        }
+
+        /// Hand a decided cast to the Animator, but never in the middle of a crossfade.
+        ///
+        /// This is the last line of defence against the stuck leg, and it is here rather
+        /// than in the settle phase because the settle phase is not the only way in. Three
+        /// callers reach PresentCast, and only one of them has waited for anything:
+        ///
+        ///   Begin, after a completed settle       the legs are already down
+        ///   Begin, after settleTimeout expired    no gate at all -- that is what the
+        ///                                         timeout IS, an override
+        ///   OnCastElsewhere, on a peer            no gate possible: AgentController is
+        ///                                         switched off there, so no settle ever
+        ///                                         runs and the replicated body is still
+        ///                                         sliding when the message lands
+        ///
+        /// A trigger arriving mid-crossfade does not queue behind it, it interrupts it, and
+        /// an interrupted transition in Unity snapshots the pose it had reached and blends
+        /// that frozen picture onward. Whatever the walk had in the air stays there for the
+        /// whole wind-up.
+        ///
+        /// Waiting cannot deadlock: a transition always ends within its own duration -- the
+        /// longest here is the walk's 0.35 s stop blend -- so the worst this costs is a
+        /// third of a second of lead on a four-second cast, and only on the two paths that
+        /// were already the broken ones.
+        private void DrainCastTrigger()
+        {
+            if (!castTriggerPending) return;
+
+            if (animator == null || string.IsNullOrEmpty(castAnimTrigger) ||
+                animator.runtimeAnimatorController == null)
+            {
+                castTriggerPending = false;
+                return;
+            }
+
+            // Layer 0: single Base Layer, and both the locomotion states and the attack
+            // live on it.
+            if (animator.IsInTransition(0)) return;
+
+            animator.SetTrigger(castAnimTrigger);
+            castTriggerPending = false;
         }
 
         private bool CanBegin(in AgentContext context)
@@ -391,6 +692,13 @@ namespace SpaceGame.Agents
 
         private void Begin(in AgentContext context)
         {
+            // Ordinarily already released -- the walk finished its cycle and blended out,
+            // which is what LegsHaveSettled was waiting for. Not so on the timeout path,
+            // which begins whether the legs got there or not, and a cast that starts under a
+            // held cadence would spend its wind-up being told the creature is still walking.
+            animatorDriver?.ReleaseStride();
+            strideHoldAsked = false;
+
             casting = true;
             castElapsed = 0f;
             cooldownRemaining = cooldownSeconds;
@@ -439,8 +747,12 @@ namespace SpaceGame.Agents
             presenting = true;
             presentElapsed = 0f;
 
-            if (animator && !string.IsNullOrEmpty(castAnimTrigger))
-                animator.SetTrigger(castAnimTrigger);
+            // Latched rather than set, and drained in Update once the animator can take
+            // it. See DrainCastTrigger -- this method is reached by paths that have NOT
+            // waited for the legs, and setting the trigger from one of those is what
+            // leaves a foot hanging in the air.
+            castTriggerPending = true;
+            DrainCastTrigger();
 
             if (chargeVFXPrefab != null && liveCharge == null)
             {
@@ -588,6 +900,22 @@ namespace SpaceGame.Agents
                 return true;
             }
 
+            // Squaring up while it brakes. CurrentAimPoint is no good here -- committedPoint
+            // is still whatever the LAST cast aimed at and this one has not committed yet --
+            // so the live target is read directly. Claiming facing this early is what turns
+            // the settle into "it saw you and stopped" rather than "it stopped, then noticed
+            // it was pointing the wrong way": at 45 deg/s the body needs the braking distance
+            // to come round, and it has nothing else to do with it.
+            if (settling)
+            {
+                Transform target = targeting != null ? targeting.Target : null;
+                if (target != null)
+                {
+                    facePosition = target.position;
+                    return true;
+                }
+            }
+
             facePosition = default;
             return false;
         }
@@ -596,6 +924,13 @@ namespace SpaceGame.Agents
         {
             base.OnValidate();
             castRange = Mathf.Max(0f, castRange);
+            settleSpeed = Mathf.Max(0f, settleSpeed);
+            // Rehashed here as well as in Awake so that retyping the state name on a live
+            // creature takes effect without a domain reload.
+            settledStateHash = string.IsNullOrEmpty(settledAnimState)
+                ? 0
+                : Animator.StringToHash(settledAnimState);
+            settleTimeout = Mathf.Max(0f, settleTimeout);
             castSeconds = Mathf.Max(0f, castSeconds);
             aimLockSeconds = Mathf.Clamp(aimLockSeconds, 0f, castSeconds);
             cooldownSeconds = Mathf.Max(castSeconds, cooldownSeconds);

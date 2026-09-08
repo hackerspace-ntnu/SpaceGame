@@ -356,10 +356,25 @@ namespace SpaceGame.EditorTools
         private const float MoveEnterSpeed = 0.5f;
         private const float MoveExitSpeed = 0.25f;
 
-        /// Crossfade between Idle and Walk. Long enough not to snap, short enough that the
+        /// Crossfade from Idle into Walk. Long enough not to snap, short enough that the
         /// idle hover is not visibly mixed into the first stride -- which is the whole
         /// reason those are two states rather than two children of one blend tree.
         private const float LocomotionBlend = 0.25f;
+
+        /// Crossfade the other way, from Walk down into Idle. Longer than LocomotionBlend
+        /// on purpose, and the asymmetry is about the LEGS rather than about symmetry.
+        ///
+        /// Idle does not key the knees or the ankles at all -- it is the ambient hover, and
+        /// with write defaults on, the legs land on the rest pose, which is the creature
+        /// standing at full extension with both soles on the floor. So this crossfade is
+        /// the only thing that brings a foot down out of mid-swing and gathers the stride
+        /// back under the hips, and at 0.25 s it did that fast enough to read as a snap.
+        ///
+        /// It is also the window ConjurerCastModule waits out before it will start a cast
+        /// (see its settle phase), so lengthening it lengthens the pause before the staff
+        /// goes up. Both numbers are visible; this is the one that decides whether the stop
+        /// looks like a stop.
+        private const float WalkStopBlend = 0.35f;
 
         private readonly struct Clip
         {
@@ -473,6 +488,45 @@ namespace SpaceGame.EditorTools
         /// about two seconds of standing before the creature can throw again.
         private const float CastCooldown = 6.5f;
 
+        /// Forward speed, in m/s, below which the body counts as stopped and the staff may
+        /// go up.
+        ///
+        /// The creature decides to cast at CastRange while it is still running, and a
+        /// NavMeshAgent does not stop on the frame you ask it to -- it coasts down at
+        /// `acceleration`. Firing the trigger on the decision frame plants the feet in the
+        /// attack pose and skates the whole braking distance. So the module settles first,
+        /// and this is the threshold it settles TO.
+        ///
+        /// Not zero, deliberately: a NavMeshAgent's velocity converges on zero without ever
+        /// arriving, so a zero threshold would always fall through to the timeout instead.
+        /// Below MoveExitSpeed, so the animator has already dropped out of Walk into Idle by
+        /// the time the cast starts -- the picture and the decision agree about "stopped".
+        private const float CastSettleSpeed = 0.2f;
+
+        /// Longest the creature will stand there braking before casting anyway, in seconds.
+        ///
+        /// A ceiling, not a target. Three things have to fit under it: the run-down (about
+        /// a second at WireMotor's acceleration), then the rest of the stride the body
+        /// stopped in the middle of -- the settle holds the cadence and releases on a
+        /// FootPlantFrame, so at worst half a cycle, and at the stroll's half rate that half
+        /// cycle is 0.87 s -- and then WalkStopBlend's 0.35 s on the end. In the ordinary
+        /// case the settle finishes well inside this.
+        ///
+        /// It is here for the cases that never converge -- wedged against geometry, shoved
+        /// by a vehicle, standing on something that is itself moving -- because a conjurer
+        /// that answers those by never attacking again is a far worse bug than the
+        /// occasional short skate.
+        private const float CastSettleTimeout = 5f;
+
+        /// The animator state the creature has to be STANDING in before the staff goes up.
+        ///
+        /// Named here rather than left to the module's own default because it has to match
+        /// the state this builder creates, and the two files are edited apart. Rename the
+        /// Idle state below and this is what has to move with it -- the symptom otherwise
+        /// is a creature that pauses for the full CastSettleTimeout before every cast and
+        /// says nothing about why.
+        private const string CastSettledState = "Idle";
+
         /// Thickness of the fired bolt's sweep, in metres.
         ///
         /// Between the strike ribbon's own 0.6 m top and 1.4 m tail, so the volume that
@@ -526,11 +580,27 @@ namespace SpaceGame.EditorTools
         /// shake was driven off the gait's own swing-to-stance edge instead. A baked walk
         /// has a fixed cadence by definition, so the clip is once more the only thing that
         /// knows when a foot lands.
+        /// The two footfalls, as fractions of the cycle.
+        ///
+        /// NORMALIZED, 0-1, not seconds. ModelImporterClipAnimation.events is the one place
+        /// in this file that measures time that way, and getting it wrong does far more than
+        /// misplace a camera shake: an event past 1 EXTENDS THE CLIP to reach it, and the
+        /// clip pads the gap by holding its last keyframe.
+        ///
+        /// This was `(f - 1) / Fps`, seconds, and the second plant landed at 1.3. The walk
+        /// imported 2.25 s long against 1.70 s of actual keys, so the last quarter of every
+        /// cycle was one frozen frame -- with a foot off the ground, because frame 52 is the
+        /// passing pose. The creature glided through a fifth of a second with a leg hanging
+        /// in the air, every stride, and it read as the animation pausing whenever the body
+        /// slowed down enough to see it.
+        ///
+        /// Divided by WalkFrames because that is Last - First for this clip: frame f sits
+        /// (f - 1) frames into a cycle WalkFrames long.
         private static AnimationEvent[] FootPlantEvents()
         {
             return FootPlantFrames.Select(f => new AnimationEvent
             {
-                time = (f - 1) / Fps,
+                time = (f - 1) / (float)WalkFrames,
                 functionName = "OnFootPlant",
                 floatParameter = 1f,
             }).ToArray();
@@ -562,6 +632,15 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
+        }
+
+        private static void SetFloatArray(SerializedObject so, string field, float[] values)
+        {
+            SerializedProperty prop = so.FindProperty(field);
+            prop.arraySize = values.Length;
+
+            for (int i = 0; i < values.Length; i++)
+                prop.GetArrayElementAtIndex(i).floatValue = values[i];
         }
 
         private static void SetField(Object target, string field, Object value)
@@ -1291,9 +1370,9 @@ namespace SpaceGame.EditorTools
         /// breathing, arms drifting, halo turning -- and the legs do not move in it at all.
         /// Blending it against Walk therefore does not produce a slower walk, it produces a
         /// HALF-AMPLITUDE one: legs barely lifting while the body slides along. With Idle at
-        /// 0 and the stroll at WalkSpeed, every departure spent the ~1.1 s the NavMeshAgent
-        /// takes to accelerate somewhere inside that mixture, which is the "it plays idle
-        /// and walk at the same time" this replaces.
+        /// 0 and the stroll at WalkSpeed, every departure spent the half-second or so the
+        /// NavMeshAgent takes to accelerate somewhere inside that mixture, which is the "it
+        /// plays idle and walk at the same time" this replaces.
         ///
         /// So standing versus walking is a TRANSITION, not a blend:
         ///
@@ -1420,6 +1499,14 @@ namespace SpaceGame.EditorTools
 
             // hasExitTime false on both: these follow the motor, and exit time would make
             // the creature finish the cycle it is in before admitting it had stopped.
+            //
+            // That is a real temptation on the stop edge in particular -- ending on a
+            // touchdown would put both soles flat before the blend even starts -- and it is
+            // still the wrong trade here. The Cadence tree clamps to half playback rate
+            // below its lower threshold, so a walk held open waiting for frame 14 or 40
+            // keeps stepping for up to 1.7 s with the body already stationary. That is
+            // marching on the spot, which is the same foot-skate as the glide with the sign
+            // flipped. WalkStopBlend brings the legs down instead.
             AnimatorStateTransition start = idle.AddTransition(walking);
             start.hasExitTime = false;
             start.hasFixedDuration = true;
@@ -1430,7 +1517,7 @@ namespace SpaceGame.EditorTools
             AnimatorStateTransition stop = walking.AddTransition(idle);
             stop.hasExitTime = false;
             stop.hasFixedDuration = true;
-            stop.duration = LocomotionBlend;
+            stop.duration = WalkStopBlend;
             stop.AddCondition(
                 AnimatorConditionMode.Less, MoveExitSpeed, ForwardSpeedParameter);
 
@@ -1754,10 +1841,20 @@ namespace SpaceGame.EditorTools
             var agent = root.AddComponent<NavMeshAgent>();
             agent.speed = RunSpeed;
             agent.angularSpeed = 45f;
-            // A time constant in disguise: the agent sheds speed at this rate, so 4 is
-            // roughly a quarter-second run-down and about a metre of coast at the stroll.
-            // Lower reads as mass and overshoots every destination by half a stride.
-            agent.acceleration = 4f;
+            // A time constant in disguise: the agent sheds speed at this rate, so at
+            // RunSpeed this is a one-second run-down and about 4.5 m of coast -- and at the
+            // stroll, half a second and roughly a metre. Lower reads as more mass and
+            // overshoots every destination by half a stride.
+            //
+            // It was 4, which is 2.25 s and TEN METRES to stop from a run, and that number
+            // was the visible half of a bug rather than a style: ConjurerCastModule decides
+            // to cast at 25 m, and a ten-metre coast meant the staff went up while the body
+            // was still travelling. The module now waits for the body to come to rest before
+            // it starts (see its settle phase), so this figure is what sets how long that
+            // wait IS -- keep it in step with ConjurerCastModule.settleTimeout, which is the
+            // ceiling on how long the creature will stand there braking before casting
+            // anyway.
+            agent.acceleration = 9f;
             agent.radius = BlenderBodyWidth * Scale * 0.5f;   // tracks the model
             agent.height = TargetHeight;
             // Overwritten per intent by the motor; this is only what a parked agent falls
@@ -1800,7 +1897,17 @@ namespace SpaceGame.EditorTools
             // Only used on a machine that is watching rather than driving this creature,
             // which has no way to know whether the intent was a run. Halfway between the
             // two speeds is the least-wrong place to put the line.
-            SetFloat(adso, "measuredRunSpeed", (WalkSpeed + RunSpeed) * 0.5f);
+            // Where a stop is allowed to put the walk down. ConjurerCastModule's settle
+            // holds the cadence through the run-down rather than letting the blend tree wind
+            // it toward zero, and this is the list of places the hold may let go of it.
+            //
+            // FootPlantFrames, not the loop point. Frame 1 of this cycle is the PASSING
+            // pose -- anim.py's first contact is a quarter cycle in -- so releasing at the
+            // cycle boundary would start the blend into Idle from a foot in mid-air, which
+            // is the whole thing the hold is there to stop. The clip's last frame duplicates
+            // its first, so the cycle is WalkFrames long and frame f sits at (f - 1) / that.
+            SetFloatArray(adso, "strideEndPhases",
+                          FootPlantFrames.Select(f => (f - 1) / (float)WalkFrames).ToArray());
             adso.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -1953,6 +2060,17 @@ namespace SpaceGame.EditorTools
             // which would put the attack BELOW the wander and it would never fire.
             SetInt(kso, "priority", ModulePriority.RangedAttack);
             SetFloat(kso, "castRange", CastRange);
+            // Come to a stop BEFORE the staff goes up. Without these the creature decides to
+            // cast at CastRange at a dead run and skates its whole braking distance in the
+            // attack pose. See CastSettleSpeed and WireMotor's acceleration -- the two are a
+            // pair, and changing the acceleration changes how long this wait takes.
+            SetFloat(kso, "settleSpeed", CastSettleSpeed);
+            // The second gate, and the one that keeps a leg from hanging in mid-air: the
+            // body stops before the ANIMATOR does, and a Cast trigger fired inside the
+            // WalkStopBlend crossfade interrupts it rather than following it. See the
+            // module's header.
+            SetString(kso, "settledAnimState", CastSettledState);
+            SetFloat(kso, "settleTimeout", CastSettleTimeout);
             SetFloat(kso, "castSeconds", CastSeconds);
             SetFloat(kso, "cooldownSeconds", CastCooldown);
             SetFloat(kso, "damageRadius", CastBlastRadius);

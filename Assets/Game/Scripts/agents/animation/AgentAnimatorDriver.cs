@@ -51,6 +51,86 @@ namespace SpaceGame.Agents
         // feeding the jump in as a velocity would flash a full-speed run for a frame every time.
         private const float TeleportSpeed = 60f;
 
+        // ---- finishing the stride ----------------------------------------------------
+        //
+        // A body stops faster than a walk cycle ends, and the two together read as a bug
+        // rather than as a stop. A locomotion blend tree maps speed onto PLAYBACK RATE, so a
+        // creature coasting to a halt plays its walk slower and slower as it slides, and
+        // then crossfades out of it from wherever the cycle happened to have got to -- a leg
+        // left hanging in the air while the body glides on underneath it, and the animation
+        // apparently finishing only once everything has already come to rest.
+        //
+        // A hold breaks the link between body and cadence for the length of one stop. The
+        // walk keeps playing at the rate it was already playing while the body brakes
+        // underneath it, and the hold lets go only once the body is at rest AND the walk has
+        // taken one more step onto a footfall. The blend down into the standing pose then
+        // leaves from a planted pose instead of from mid-swing.
+        //
+        // Which frames those footfalls are is authored, not guessed -- see strideEndPhases.
+        //
+        // A hold is latched from the ORDER to stop, not from the velocity. Watching the
+        // velocity would be guesswork -- every slowdown that is not a stop, a run easing into
+        // a walk, a corner taken wide, would guess wrong and stride on at the old cadence --
+        // and by the time a body is measurably stopping, the cadence worth keeping has
+        // already decayed. The motor's immobile flag goes up on the frame the stop is
+        // decided, which is a frame or two before the body has shed anything, so that is
+        // what Tick latches on.
+        //
+        // Callers may also ask directly (HoldStride), and ConjurerCastModule does, because a
+        // module that has decided to stop knows it one frame earlier than the motor does.
+
+        // Below this the body has stopped, in m/s. The same order as the walk's exit
+        // threshold in a locomotion controller: above it there is still a stride being
+        // travelled, and holding one would only fight the real motion.
+        private const float StrideRestSpeed = 0.25f;
+
+        // Longest a hold may run before it releases itself. A creature knocked out of its
+        // walk by a hurt reaction, or stopped by something that never gets round to
+        // releasing, must not stride on the spot forever.
+        private const float MaxStrideHoldSeconds = 4f;
+
+        // Smoothing on SpeedX/SpeedY. Long enough to absorb a corner taken at speed, and
+        // bypassed entirely on the frame a stride hold releases -- see snapLocomotion.
+        private const float LocomotionDamping = 0.1f;
+
+        [Tooltip("Where in the locomotion cycle a held stride is allowed to END, as " +
+                 "normalized time in 0-1. These are the frames where a foot is on the " +
+                 "floor: clip frame / frame count.\n\n" +
+                 "Leave it empty and a hold runs to the end of the cycle, which is only " +
+                 "the right place to stop if the clip was authored starting with a foot " +
+                 "down. Most walk cycles are authored from the PASSING pose instead, so " +
+                 "the cycle boundary is mid-swing - release there and the blend into the " +
+                 "standing pose starts from a foot in the air, which is the exact thing " +
+                 "the hold exists to avoid.")]
+        [SerializeField] private float[] strideEndPhases;
+
+        private bool strideHeld;
+        private bool hasHeldCadence;
+
+        // Last frame's immobile flag, so a stop can be spotted the frame it is ORDERED
+        // rather than the frame it finishes. See the latch in Tick.
+        private bool wasImmobile;
+
+        // Animator space, and already scaled -- it is stored on its way to SpeedX/SpeedY, so
+        // replaying it reproduces exactly the parameters the walk was playing at. World
+        // space would be wrong twice over: a settling creature turns to face what it is
+        // about to attack, and a held world vector would swing across the body as it did,
+        // dragging the cadence -- and the sign of it -- around with the yaw.
+        private Vector3 heldLocalVelocity;
+
+        private float strideHoldElapsed;
+
+        // Set on the frame a hold lets go, and worth its own field. SpeedX is written
+        // through a 0.1 s damp, and damping the release would spend a third of a second
+        // walking the parameter down from a full-speed stride -- ten more frames of clip
+        // past the footfall the hold just spent half a cycle waiting for. The step lands
+        // where it was aimed only if the parameter arrives with it.
+        private bool snapLocomotion;
+
+        private bool strideEndKnown;
+        private float strideEndTime;
+        private int strideStateHash;
+
         private void Awake()
         {
             if (!animator)
@@ -75,7 +155,12 @@ namespace SpaceGame.Agents
                 animator.speed = animatorSpeedScale;
         }
 
-        private void OnEnable() => hasPreviousPosition = false;
+        private void OnEnable()
+        {
+            hasPreviousPosition = false;
+            wasImmobile = false;
+            ReleaseStride();
+        }
 
         // A reparent moves the frame the sample is taken in, so the delta across that one frame is
         // the distance between two different origins rather than any motion. Mounting a creature
@@ -159,6 +244,26 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // A stop was just ordered. The motor raises this on the frame it is told to stop
+            // -- MoveIntent.Idle, or every module passing and the controller falling back to
+            // one -- which is a frame or two before the body has shed any speed at all, so
+            // the cadence the hold latches is still the one it was travelling at.
+            //
+            // This is the half the callers cannot cover. ConjurerCastModule asks for a hold
+            // because it knows a cast is coming, but that is only ONE of the ways this
+            // creature stops: a roam leg ends with WanderModule simply passing, and nothing
+            // in that path has an opinion about legs at all. Every stop that goes through
+            // the motor comes past here.
+            //
+            // Gated on the clip having said where its feet land, so this stays off for every
+            // creature nobody has measured -- there, a hold could only guess at the end of
+            // the cycle, and the loop point of an unmeasured walk is as likely to be a foot
+            // in the air as not.
+            if (isImmobile && !wasImmobile && strideEndPhases != null && strideEndPhases.Length > 0)
+                HoldStride();
+
+            wasImmobile = isImmobile;
+
             float speedScale = animationSpeedMultiplier * (isRunning ? 1f : walkAnimBoost);
 
             // Convert velocity into the animator rig's local space (important when the rig is on a
@@ -173,11 +278,149 @@ namespace SpaceGame.Agents
             // is not part of it.
             Vector3 localVelocity = animator.transform.InverseTransformDirection(worldVelocity) * speedScale;
 
-            animator.SetFloat("SpeedX", localVelocity.x, 0.1f, Time.deltaTime);
-            animator.SetFloat("SpeedY", localVelocity.z, 0.1f, Time.deltaTime);
+            // Only the locomotion pair goes through the hold. FallSpeed and the two flags
+            // below describe what is happening to the body RIGHT NOW, and a stop is exactly
+            // when they stop agreeing with the legs -- freezing them too would tell the
+            // controller the creature is still walking somewhere.
+            localVelocity = ApplyStrideHold(localVelocity, worldVelocity.sqrMagnitude);
+
+            float damp = snapLocomotion ? 0f : LocomotionDamping;
+            snapLocomotion = false;
+
+            animator.SetFloat("SpeedX", localVelocity.x, damp, Time.deltaTime);
+            animator.SetFloat("SpeedY", localVelocity.z, damp, Time.deltaTime);
             animator.SetFloat("FallSpeed", worldVelocity.y, 0.1f, Time.deltaTime);
             animator.SetBool("IsGrounded", true);
             animator.SetBool("IsImmobalized", isImmobile);
+        }
+
+        /// <summary>
+        /// Keep the walk playing at the cadence it has right now, all the way through a stop.
+        ///
+        /// <para>
+        /// Call it every frame while the body is braking; it latches on the first call that
+        /// has a stride to hold and then releases ITSELF, once the body is at rest and the
+        /// cycle that was in flight has finished. Calling it from a standstill does nothing,
+        /// because there is no stride to finish.
+        /// </para>
+        ///
+        /// <para>
+        /// What it buys is a stop that reads as a stop: the legs carry on at the cadence
+        /// they had while the body runs down, take one more step onto a
+        /// <see cref="strideEndPhases"/> footfall, and only then blend into the standing
+        /// pose. See the note above the fields.</para>
+        ///
+        /// <para>
+        /// "The cycle that was in flight" is <see cref="NextStrideEnd"/>'s answer, not the
+        /// loop point -- most walks are authored from the passing pose, where the loop point
+        /// is the worst frame in the clip to stand up out of.
+        /// </para>
+        /// </summary>
+        public void HoldStride()
+        {
+            if (strideHeld || !hasHeldCadence) return;
+            if (!animator || animator.runtimeAnimatorController == null) return;
+
+            strideHeld = true;
+            strideHoldElapsed = 0f;
+            strideEndKnown = false;
+        }
+
+        /// Drop a hold without waiting for the stride to finish.
+        ///
+        /// For the caller that changes its mind -- a settle abandoned because the target
+        /// walked away -- and for anything that is about to take the animator over. Safe to
+        /// call when nothing is held.
+        public void ReleaseStride()
+        {
+            if (strideHeld) snapLocomotion = true;
+
+            strideHeld = false;
+            strideEndKnown = false;
+        }
+
+        public bool IsHoldingStride => strideHeld;
+
+        // ---- read-only, for the stop probe ----
+        //
+        // A stride hold is a decision spread over three or four seconds and two components,
+        // and none of it leaves a trace in the pose until it is already too late to see what
+        // went wrong. These let a diagnostic watch it happen.
+        public bool StrideEndKnown => strideEndKnown;
+        public float StrideEndTime => strideEndTime;
+        public float StrideHoldElapsed => strideHoldElapsed;
+        public Vector3 HeldCadence => heldLocalVelocity;
+        public bool HasHeldCadence => hasHeldCadence;
+        public float[] StrideEndPhases => strideEndPhases;
+
+        /// <summary>
+        /// Substitute the held cadence for the real one while a stop is in progress, and
+        /// keep the cadence a later stop will hold the rest of the time.
+        /// </summary>
+        private Vector3 ApplyStrideHold(Vector3 localVelocity, float worldSpeedSqr)
+        {
+            bool bodyAtRest = worldSpeedSqr < StrideRestSpeed * StrideRestSpeed;
+
+            if (!strideHeld)
+            {
+                // Sampled only while the creature is actually travelling, so what a stop
+                // finds waiting for it is a stride rather than the tail end of the last one.
+                if (!bodyAtRest)
+                {
+                    heldLocalVelocity = localVelocity;
+                    hasHeldCadence = true;
+                }
+
+                return localVelocity;
+            }
+
+            strideHoldElapsed += Time.deltaTime;
+
+            if (strideHoldElapsed >= MaxStrideHoldSeconds)
+            {
+                ReleaseStride();
+                return localVelocity;
+            }
+
+            // Still running down. The cycle the hold finishes is whichever one is in flight
+            // when the body finally comes to rest, so the mark is not taken until then.
+            if (!bodyAtRest)
+            {
+                strideEndKnown = false;
+                return heldLocalVelocity;
+            }
+
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+
+            if (!strideEndKnown)
+            {
+                // Mid-crossfade the current state is already the DESTINATION, so a mark taken
+                // here would be an offset into the wrong clip. Wait a frame; the held cadence
+                // is what keeps the walk running while we do.
+                if (animator.IsInTransition(0)) return heldLocalVelocity;
+
+                strideEndTime = NextStrideEnd(state.normalizedTime, strideEndPhases);
+                strideStateHash = state.fullPathHash;
+                strideEndKnown = true;
+                return heldLocalVelocity;
+            }
+
+            // Something else took the animator -- a hurt reaction, a death, a trigger from
+            // another module. There is no walk cycle left to finish, and holding a cadence
+            // into someone else's clip would only fight it.
+            if (state.fullPathHash != strideStateHash)
+            {
+                ReleaseStride();
+                return localVelocity;
+            }
+
+            if (state.normalizedTime >= strideEndTime)
+            {
+                ReleaseStride();
+                return localVelocity;
+            }
+
+            return heldLocalVelocity;
         }
 
         public void TriggerHurt() => SetTriggerSafe("Hurt");
@@ -201,6 +444,40 @@ namespace SpaceGame.Agents
         {
             if (animator && animator.runtimeAnimatorController != null)
                 animator.SetTrigger(triggerName);
+        }
+
+        /// <summary>
+        /// The next point at or after <paramref name="normalizedTime"/> where the stride may
+        /// be put down, in the same units the animator reports.
+        ///
+        /// <para>
+        /// Static and free of the animator so the rule can be checked without a rig.
+        /// normalizedTime on a looping state counts UP without resetting -- 3.4 is the
+        /// fourth pass, 40% through -- so the answer is the whole cycle it is in plus the
+        /// first phase it has not reached yet, and the end of the cycle when there is none.
+        /// With no phases given at all it is the end of the cycle, which is the honest
+        /// answer for a clip nobody has told us anything about.
+        /// </para>
+        /// </summary>
+        public static float NextStrideEnd(float normalizedTime, float[] phases)
+        {
+            float cycle = Mathf.Floor(normalizedTime);
+
+            if (phases == null || phases.Length == 0) return cycle + 1f;
+
+            // Not seeded with the cycle boundary: a stride caught PAST its last phase has to
+            // wait for the first phase of the next cycle, and a boundary sitting between the
+            // two would win that race and put the foot down in mid-air.
+            float best = float.PositiveInfinity;
+
+            foreach (float p in phases)
+            {
+                float at = cycle + Mathf.Repeat(p, 1f);
+                if (at <= normalizedTime) at += 1f;
+                if (at < best) best = at;
+            }
+
+            return best;
         }
 
         private void OnValidate()

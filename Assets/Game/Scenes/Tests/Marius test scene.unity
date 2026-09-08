@@ -1231,6 +1231,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_DirtyAABB
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Center.x
+      value: 0.0000000018626451
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Center.z
+      value: 0.0000000016298145
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Extent.x
+      value: 0.00521521
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Extent.y
+      value: 0.005215213
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Extent.z
+      value: 0.005215212
+      objectReference: {fileID: 0}
     - target: {fileID: 721406942356391028, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 177516996

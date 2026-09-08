@@ -123,7 +123,7 @@ NavMeshAgent:
   m_AgentTypeID: 0
   m_Radius: 2.4250743
   m_Speed: 8.99
-  m_Acceleration: 4
+  m_Acceleration: 9
   avoidancePriority: 50
   m_AngularSpeed: 45
   m_StoppingDistance: 12
@@ -180,6 +180,9 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 6.7425
+  strideEndPhases:
+  - 0.25
+  - 0.75
 --- !u!114 &2824060873319808111
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -270,11 +273,16 @@ MonoBehaviour:
   castRange: 25
   requireLineOfSight: 1
   aim: 2
+  settleSpeed: 0.2
+  settledAnimState: Idle
+  settleTimeout: 5
+  settleRangeExitFactor: 1.2
   castSeconds: 4
   aimLockSeconds: 1
   cooldownSeconds: 6.5
   castAnimTrigger: Cast
   animator: {fileID: 6649228884045001422}
+  animatorDriver: {fileID: 1462009887744320514}
   lightningVFXPrefab: {fileID: 4155238812004112330, guid: b7e3c1a49d2f4e8ab05c6f1d3a7e9c24, type: 3}
   skyStrike: 1
   beamRadius: 0.6

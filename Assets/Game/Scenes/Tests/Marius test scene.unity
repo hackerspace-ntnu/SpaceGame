@@ -183,6 +183,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7994380351574021915, guid: 9142366e8e60c3043a13648db41eef32, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7994380351574021915, guid: 9142366e8e60c3043a13648db41eef32, type: 3}
+      propertyPath: instanceId
+      value: 3f5308fc165e43efae3b8b97232b57d2
+      objectReference: {fileID: 0}
     - target: {fileID: 8861937888077706661, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
       propertyPath: _castDistance
       value: 5
@@ -580,6 +588,7 @@ MonoBehaviour:
   walkAnimBoost: 2
   animatorSpeedScale: 1
   measuredRunSpeed: 3.5
+  strideEndPhases: []
 --- !u!114 &301530256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -939,6 +948,14 @@ PrefabInstance:
     - target: {fileID: -8930194485630248208, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: InScenePlacedSourceGlobalObjectIdHash
       value: 4236559143
+      objectReference: {fileID: 0}
+    - target: {fileID: 1378113935866583304, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1378113935866583304, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: instanceId
+      value: 5d1937080be94e2cac718e312788851b
       objectReference: {fileID: 0}
     - target: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_Name
@@ -1771,6 +1788,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Cube
       objectReference: {fileID: 0}
+    - target: {fileID: 7302748830243711293, guid: f628af38eb78b944b881e44a9928949a, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7302748830243711293, guid: f628af38eb78b944b881e44a9928949a, type: 3}
+      propertyPath: instanceId
+      value: 6949ee5b235846bf9d62ea498ea16a45
+      objectReference: {fileID: 0}
     - target: {fileID: 8479862940107374900, guid: f628af38eb78b944b881e44a9928949a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 6.604
@@ -2040,6 +2065,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -2685421018689599780, guid: 663a29fa0adead4419a6ebe5ee87bb60, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -2685421018689599780, guid: 663a29fa0adead4419a6ebe5ee87bb60, type: 3}
+      propertyPath: instanceId
+      value: e417e24065fa4683b6190e6e980bb19d
+      objectReference: {fileID: 0}
     - target: {fileID: 2539326445472032332, guid: 663a29fa0adead4419a6ebe5ee87bb60, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2724986810
@@ -2322,6 +2355,14 @@ PrefabInstance:
     - target: {fileID: 7289613265384824265, guid: 3c65772f4d7cc5640b3917e56fbe37fa, type: 3}
       propertyPath: m_Name
       value: LightningSpell
+      objectReference: {fileID: 0}
+    - target: {fileID: 9096575621809224852, guid: 3c65772f4d7cc5640b3917e56fbe37fa, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9096575621809224852, guid: 3c65772f4d7cc5640b3917e56fbe37fa, type: 3}
+      propertyPath: instanceId
+      value: f0ea2c4966f14fffa1b726c499e14cee
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

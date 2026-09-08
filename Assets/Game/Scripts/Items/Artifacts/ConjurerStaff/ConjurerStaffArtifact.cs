@@ -125,6 +125,11 @@ namespace SpaceGame.Items
         private float _castElapsed;
         private Vector3 _castPoint;
 
+        /// Set when Present accepts a press, cleared when the authority half of that same press has
+        /// been let through. It exists only to bridge those two calls on a host, where Present runs
+        /// first — see CanUse.
+        private bool _presentedPress;
+
         /// Runs on the authority only, and is what actually bills the damage. Separate from
         /// `_casting` because the two clocks belong to different machines and a host runs both.
         private bool _billing;
@@ -207,9 +212,25 @@ namespace SpaceGame.Items
         /// Authority-side gate. Charges are spent in <see cref="UsableItem.TryUse"/> whether or not
         /// the item does anything, so a staff whose button was mashed through its own wind-up would
         /// burn charges without ever firing.
+        ///
+        /// <para>
+        /// The <c>_presentedPress</c> escape is load-bearing rather than a nicety. On a host,
+        /// <see cref="EquipmentController.OnUse"/> calls <see cref="Present"/> FIRST and only then
+        /// routes the same press to the server half — so by the time this is asked, Present has
+        /// already started the cast and the cooldown, and a gate that just re-read them would
+        /// refuse every press the host ever made. The staff would deal no damage at all in
+        /// single-player while looking perfectly correct on screen, which is the exact shape of
+        /// bug <c>LaserStaffArtifact._pressLitTheArc</c> exists to prevent.
+        /// </para>
+        /// <para>
+        /// It is not a hole for a mashed button, because <see cref="Present"/> sets it only when it
+        /// ACCEPTS a press — a second press during the wind-up is turned away there, so the flag
+        /// stays false and the full gate below applies.
+        /// </para>
         /// </summary>
         protected override bool CanUse() =>
-            base.CanUse() && !_billing && !_casting && Time.time >= _cooldownEndsAt;
+            base.CanUse() &&
+            (_presentedPress || (!_billing && !_casting && Time.time >= _cooldownEndsAt));
 
         /// <summary>
         /// Authority-side: start the clock. Nothing is billed here — the bolt has not landed yet,
@@ -225,6 +246,19 @@ namespace SpaceGame.Items
             _billing = true;
             _billElapsed = 0f;
             _billPoint = UseArg.P;
+
+            // Spent. The next press has to earn its way through the full gate.
+            _presentedPress = false;
+
+            // Started HERE as well as in Present, and that is not belt-and-braces.
+            //
+            // A dedicated server never receives Present, so a cooldown set only there is a cooldown
+            // the deciding machine does not have. CanUse would then gate on `_billing` alone, which
+            // goes false the instant the bolt lands — and the recharge on a dedicated server would
+            // be the wind-up, with the whole cooldown missing.
+            //
+            // The host runs both halves and writes the same number twice, a frame apart at most.
+            BeginCooldown();
         }
 
         /// <summary>
@@ -235,10 +269,24 @@ namespace SpaceGame.Items
         {
             if (UseArg.P == Vector3.zero) return;
 
+            // PlayUse is deliberately NOT gated on CanUse — the authority already decided the use
+            // happened, and re-deciding from a peer's copy of the charge count is how one machine
+            // silently skips an effect everyone else saw. But a PRESS is not that: it arrives here
+            // before anyone has decided anything, so a mashed button during the wind-up would
+            // restart the cast and, through _presentedPress, wave the second one past the gate too.
+            if (_casting || Time.time < _cooldownEndsAt) return;
+
             _casting = true;
             _castElapsed = 0f;
             _castPoint = UseArg.P;
-            _cooldownEndsAt = Time.time + castSeconds + cooldownSeconds;
+
+            // This press is accepted, so the authority half of it may skip a gate that this line
+            // has just closed behind it. See CanUse.
+            _presentedPress = true;
+
+            // Also on this side, because a CLIENT has no Use() — without it a peer's ring would
+            // come back the moment the bolt landed, saying the staff was ready when it was not.
+            BeginCooldown();
 
             if (chargePrefab != null && _charge == null)
             {
@@ -353,6 +401,9 @@ namespace SpaceGame.Items
             _casting = false;
             _billing = false;
 
+            // Or an accepted-but-unspent press would wave the NEXT one straight past the cooldown.
+            _presentedPress = false;
+
             ClearCharge();
 
             if (_ring != null)
@@ -368,6 +419,14 @@ namespace SpaceGame.Items
                 _remoteRing = null;
             }
         }
+
+        /// <summary>
+        /// The staff is spent until the wind-up has run and the recharge after it. Counted from the
+        /// press rather than from the landing, so the two machines that start a cast reach the same
+        /// deadline without either of them being told.
+        /// </summary>
+        private void BeginCooldown() =>
+            _cooldownEndsAt = Time.time + castSeconds + cooldownSeconds;
 
         private void ClearCharge()
         {

@@ -15,11 +15,14 @@
 // In Editor/ rather than beside the asmdef'd EditMode tests because these touch Assembly-CSharp
 // types, and an asmdef cannot reference Assembly-CSharp.
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
 
@@ -219,6 +222,12 @@ namespace SpaceGame.EditorTools
             GameObject low = Slab(new Vector3(-6f, 0f, 0f), new Vector3(10f, 1f, 20f));
             GameObject high = Slab(new Vector3(6f, 2f, 0f), new Vector3(10f, 1f, 20f));
 
+            // A collider that has been MOVED is not where the physics scene thinks it is until this
+            // is called — autoSyncTransforms is off, and nothing steps physics in an edit-mode test.
+            // Without it every ray misses, the ring falls back to the centre height, and the test
+            // fails claiming the ring is flat when the ground is what was missing.
+            Physics.SyncTransforms();
+
             try
             {
                 ring.Show(new Vector3(0f, 0.5f, 0f), 4f);
@@ -246,6 +255,208 @@ namespace SpaceGame.EditorTools
                 Object.DestroyImmediate(low);
                 Object.DestroyImmediate(high);
             }
+        }
+
+        // ── The wind-up ────────────────────────────────────────────────────────
+        //
+        // The one thing that separates this staff from LightningSpell: the bolt is not instant. The
+        // ground it covers is meant to be walkable-out-of, which is only true if the damage really
+        // is deferred — and "deferred" is the kind of claim that stays true in the inspector while
+        // being false in the build.
+
+        [Test]
+        public void ThePress_DoesNotStrikeYet_AndTheStrikeLandsWhenTheWindUpRunsOut()
+        {
+            var rig = new CastRig();
+
+            try
+            {
+                int before = rig.TargetHealth;
+
+                rig.Fire();
+                Assert.AreEqual(before, rig.TargetHealth,
+                    "The bolt billed on the press. There is then no wind-up to dodge and the ring " +
+                    "is decoration.");
+
+                // Most of the way through, and still nothing.
+                rig.AdvanceBilling(rig.CastSeconds * 0.9f);
+                Assert.AreEqual(before, rig.TargetHealth, "Billed early.");
+
+                rig.AdvanceBilling(rig.CastSeconds * 0.2f);
+                Assert.Less(rig.TargetHealth, before, "The bolt never landed.");
+            }
+            finally { rig.Dispose(); }
+        }
+
+        [Test]
+        public void DroppingTheStaffMidCast_CancelsTheBolt()
+        {
+            var rig = new CastRig();
+
+            try
+            {
+                int before = rig.TargetHealth;
+
+                rig.Fire();
+                rig.AdvanceBilling(rig.CastSeconds * 0.5f);
+
+                // Scrolling to the next hotbar slot destroys the held instance, and this is the hook
+                // that runs first. A staff that has left the hand must not finish its cast.
+                rig.Artifact.OnUnequipped(rig.Player);
+                rig.AdvanceBilling(rig.CastSeconds * 2f);
+
+                Assert.AreEqual(before, rig.TargetHealth,
+                    "The bolt landed after the staff was put away.");
+            }
+            finally { rig.Dispose(); }
+        }
+
+        [Test]
+        public void MashingTheButton_DoesNotRestartTheWindUpOrDoubleTheBolt()
+        {
+            var rig = new CastRig();
+
+            try
+            {
+                int before = rig.TargetHealth;
+
+                rig.Fire();
+                rig.AdvanceBilling(rig.CastSeconds * 0.5f);
+
+                // Half way through, hit it again. PlayUse is not gated on CanUse, so this reaches
+                // Present regardless — and Present accepting it would both restart the cast and,
+                // through the flag it sets, wave the second press past the authority gate.
+                rig.Fire();
+
+                rig.AdvanceBilling(rig.CastSeconds * 0.6f);
+                Assert.AreEqual(before - rig.Damage, rig.TargetHealth,
+                    "The second press moved the goalposts: one press should bill exactly once, on " +
+                    "the clock the first one started.");
+
+                // And the cast really is over rather than restarted.
+                rig.AdvanceBilling(rig.CastSeconds * 2f);
+                Assert.AreEqual(before - rig.Damage, rig.TargetHealth, "It billed twice.");
+            }
+            finally { rig.Dispose(); }
+        }
+
+        [Test]
+        public void AimedAtOpenSky_CastsNothing()
+        {
+            var rig = new CastRig();
+
+            try
+            {
+                rig.ClearTarget();      // nothing under the crosshair, so the aim ray hits nothing
+
+                var arg = new NetArg();
+                rig.Artifact.OnRequestUse(ref arg);
+
+                Assert.AreEqual(Vector3.zero, arg.P,
+                    "A miss has to travel as the zero sentinel. Read as a position it is the world " +
+                    "origin, and the bolt lands there.");
+
+                rig.Artifact.TryUse(rig.Player, arg);
+                Assert.IsFalse(rig.IsBilling, "A miss started a cast anyway.");
+            }
+            finally { rig.Dispose(); }
+        }
+
+        /// <summary>
+        /// A staff in a hand, aimed at something with health, with the clock under our control.
+        ///
+        /// The wind-up is driven by pumping the private billing tick rather than by waiting, because
+        /// an edit-mode test has no frames — and Time.deltaTime is not writable, so the elapsed
+        /// counter is advanced directly and the tick is asked what it makes of it.
+        /// </summary>
+        private class CastRig
+        {
+            public readonly GameObject Player;
+            public readonly ConjurerStaffArtifact Artifact;
+
+            private readonly GameObject _staff;
+            private GameObject _target;
+
+            public CastRig()
+            {
+                Player = new GameObject("player", typeof(AimProvider));
+
+                var cam = new GameObject("cam", typeof(Camera));
+                cam.transform.SetParent(Player.transform, false);
+                cam.transform.SetPositionAndRotation(Vector3.zero,
+                                                     Quaternion.LookRotation(Vector3.forward));
+
+                typeof(AimProvider)
+                    .GetField("playerCamera", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(Player.GetComponent<AimProvider>(), cam.GetComponent<Camera>());
+
+                _target = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                _target.transform.position = new Vector3(0f, 0f, 12f);
+                _target.transform.localScale = Vector3.one * 4f;
+                // Set directly rather than healed up to it: the strike hits for 90 and the default
+                // pool is 100, so a target left at its default would be one point from dying and
+                // any retune of the damage would turn these tests into death tests.
+                var health = _target.AddComponent<HealthComponent>();
+                foreach (string field in new[] { "maxHealth", "currentHealth" })
+                    typeof(HealthComponent)
+                        .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.SetValue(health, 500);
+
+                _staff = new GameObject("conjurer staff");
+                Artifact = _staff.AddComponent<ConjurerStaffArtifact>();
+
+                // No ring prefab is wired, which is deliberate: these tests are about the damage
+                // clock, and a null ring is the same code path a staff lying in the sand takes.
+                Artifact.OnEquipped(Player);
+
+                Physics.SyncTransforms();
+            }
+
+            public float CastSeconds => Get<float>("castSeconds");
+            public int Damage => Get<int>("damage");
+            public bool IsBilling => Get<bool>("_billing");
+            public int TargetHealth => _target != null ? _target.GetComponent<HealthComponent>().GetHealth : 0;
+
+            /// <summary>The press, as EquipmentController sends it.</summary>
+            public void Fire()
+            {
+                var arg = new NetArg();
+                Artifact.OnRequestUse(ref arg);
+                Assert.AreNotEqual(Vector3.zero, arg.P, "The rig failed to aim at its own target.");
+
+                Artifact.PlayUse(Player, arg);
+                Artifact.TryUse(Player, arg);
+            }
+
+            /// <summary>Push the authority's wind-up clock forward and let it decide.</summary>
+            public void AdvanceBilling(float seconds)
+            {
+                typeof(ConjurerStaffArtifact)
+                    .GetField("_billElapsed", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(Artifact, Get<float>("_billElapsed") + seconds);
+
+                typeof(ConjurerStaffArtifact)
+                    .GetMethod("TickBilling", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(Artifact, null);
+            }
+
+            public void ClearTarget()
+            {
+                if (_target != null) Object.DestroyImmediate(_target);
+                _target = null;
+                Physics.SyncTransforms();
+            }
+
+            public void Dispose()
+            {
+                if (_target != null) Object.DestroyImmediate(_target);
+                if (_staff != null) Object.DestroyImmediate(_staff);
+                if (Player != null) Object.DestroyImmediate(Player);
+            }
+
+            private T Get<T>(string field) => (T)typeof(ConjurerStaffArtifact)
+                .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)
+                .GetValue(Artifact);
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────

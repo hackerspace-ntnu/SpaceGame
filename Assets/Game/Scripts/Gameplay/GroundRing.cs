@@ -394,7 +394,14 @@ namespace SpaceGame.Gameplay
         private void OnDestroy()
         {
             // Built with `new Mesh()` per instance, so nothing else will collect it.
-            if (_mesh != null) Destroy(_mesh);
+            //
+            // DestroyImmediate outside play mode because Destroy is illegal there, and this
+            // component is instantiated and thrown away by the editor builder that saves its
+            // prefab — an error logged from an asset build is an error nobody reads.
+            if (_mesh == null) return;
+
+            if (Application.isPlaying) Destroy(_mesh);
+            else DestroyImmediate(_mesh);
         }
 
         private void OnValidate()

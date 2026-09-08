@@ -182,7 +182,15 @@ namespace SpaceGame.EditorTools
                 float scale = HandheldHeight / height;
 
                 // The butt of the staff, which becomes the prefab's origin.
-                Vector3 butt = staffBounds.center - axis * (height * 0.5f);
+                //
+                // Taken from the SHAFT's own origin sideways and from the bounds only downwards.
+                // Using the bounds centre for all three axes is the obvious version and it is wrong
+                // by five centimetres: the fan's three swept blades are not symmetrical about the
+                // column, so the bounds centre sits beside the staff rather than on it — and the
+                // whole model would then hang that far off the axis its grip is on.
+                Transform shaft = parts[Array.IndexOf(StaffParts, "Staff_Shaft")];
+                float gripRise = Vector3.Dot(shaft.position - staffBounds.center, axis) + height * 0.5f;
+                Vector3 butt = shaft.position - axis * gripRise;
 
                 var root = new GameObject("ConjurerStaff");
 
@@ -195,9 +203,23 @@ namespace SpaceGame.EditorTools
                 // ── Grip and tip ──
                 // Both in the scaled staff's own frame, so they follow HandheldHeight without
                 // anybody having to remember to move them.
+                //
+                // The grip height is MEASURED, not the constant below — staff.py puts Staff_Shaft's
+                // origin on the point it measured the closed fist at, so the model is already
+                // carrying the answer. (It comes out at 0.366 of the height, against the 0.36 the
+                // constant guesses, which is the check that this is reading the right thing.) The
+                // constant is the fallback for a re-export that moves that origin somewhere daft.
+                float gripFraction = gripRise / height;
+                if (gripFraction < 0.1f || gripFraction > 0.7f)
+                {
+                    Debug.LogWarning($"[ConjurerStaff] Staff_Shaft's origin is {gripFraction:0.00} " +
+                                     $"of the way up, which is not a grip. Using {GripFraction}.");
+                    gripFraction = GripFraction;
+                }
+
                 var grip = new GameObject("Grip");
                 grip.transform.SetParent(root.transform, false);
-                grip.transform.localPosition = Vector3.up * (HandheldHeight * GripFraction);
+                grip.transform.localPosition = Vector3.up * (HandheldHeight * gripFraction);
 
                 var tip = new GameObject("Tip");
                 tip.transform.SetParent(root.transform, false);
@@ -432,7 +454,8 @@ namespace SpaceGame.EditorTools
             }
 
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
-            PrefabUtility.UnpackPrefabInstanceCompletely(instance, InteractionMode.AutomatedAction);
+            PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely,
+                                               InteractionMode.AutomatedAction);
             instance.name = "ConjurerStaffChargeHandheld";
 
             var charge = instance.GetComponent<ConjurerStaffCharge>();

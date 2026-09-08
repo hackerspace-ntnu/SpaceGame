@@ -52,6 +52,7 @@ using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 
 namespace SpaceGame.EditorTools
 {
@@ -1834,6 +1835,59 @@ namespace SpaceGame.EditorTools
             rso.ApplyModifiedPropertiesWithoutUndo();
 
             root.AddComponent<NetworkedHealthComponent>();
+
+            WireLoot(root);
+        }
+
+        /// What the machine leaves behind: its staff, every time.
+        ///
+        /// A guaranteed drop rather than a roll. This is a four-and-a-half-second telegraphed cast
+        /// on a hundred-hit-point machine that hits for ten in a 3.5 m radius from anywhere within
+        /// twenty-five metres -- a fight the player has to learn rather than survive, and the staff
+        /// is what learning it is FOR. A coin flip on a creature this rare reads as the drop being
+        /// broken, not as luck.
+        ///
+        /// Note the ordering this depends on: ConjurerStaffBuilder mints the item asset, so it has
+        /// to have been run at least once. The table is still added when the asset is missing --
+        /// empty, and loudly -- because a silently absent loot table is exactly the kind of thing
+        /// that is noticed six sessions later.
+        private static void WireLoot(GameObject root)
+        {
+            var loot = root.AddComponent<EntityLootTable>();
+            var lso = new SerializedObject(loot);
+
+            var staff = AssetDatabase.LoadAssetAtPath<InventoryItem>(ConjurerStaffBuilder.ItemPath);
+
+            if (staff == null)
+            {
+                Debug.LogWarning(
+                    "[LightningConjurer] No staff item at " + ConjurerStaffBuilder.ItemPath +
+                    ". The creature will drop nothing -- run Tools/Build Conjurer Staff Artifact " +
+                    "first, then build this again.");
+            }
+            else
+            {
+                SerializedProperty entries = lso.FindProperty("lootEntries");
+                entries.arraySize = 1;
+
+                SerializedProperty entry = entries.GetArrayElementAtIndex(0);
+                entry.FindPropertyRelative("item").objectReferenceValue = staff;
+                entry.FindPropertyRelative("dropChance").floatValue = 1f;
+                entry.FindPropertyRelative("quantity").intValue = 1;
+            }
+
+            lso.ApplyModifiedPropertiesWithoutUndo();
+
+            // And take the staff off the corpse as the real one hits the ground. Without this the
+            // reward for the fight is two staffs for the twelve seconds the body takes to fade,
+            // one of which cannot be picked up.
+            var shed = root.AddComponent<HidePartsOnDeath>();
+            var sso = new SerializedObject(shed);
+            SerializedProperty parts = sso.FindProperty("partNames");
+            parts.arraySize = ConjurerStaffBuilder.StaffParts.Length;
+            for (int i = 0; i < ConjurerStaffBuilder.StaffParts.Length; i++)
+                parts.GetArrayElementAtIndex(i).stringValue = ConjurerStaffBuilder.StaffParts[i];
+            sso.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void WireMotor(GameObject root, Animator animator)

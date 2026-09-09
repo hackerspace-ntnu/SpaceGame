@@ -8,6 +8,7 @@
 //     tells everyone. This keeps two players from mounting the same animal on the same frame.
 //   • Ownership of the mount transfers to the rider so their SteerModule can drive it and have the
 //     resulting motion replicate through the mount's NetworkTransform. On dismount it goes back.
+//     A mount with no SteerModule — a passenger seat — keeps its owner: see MountModule.RiderDrives.
 //   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat.
 //     Cameras, look input and steering are the local rider's alone — MountModule.RiderIsLocal.
 //
@@ -296,10 +297,17 @@ namespace SpaceGame.Agents
             // Hand the mount to the rider so their local SteerModule input moves it and the motion
             // replicates outward from them. Without this the rider steers a body they don't own and
             // the server's NetworkTransform overwrites it every tick.
+            //
+            // Only when there is steering to do. A PASSENGER seat — MountModule.RiderDrives false,
+            // no SteerModule anywhere on the mount — has no input path to the motor, so the transfer
+            // buys nothing and costs a great deal: AgentAuthority gates the whole module stack on
+            // ownership, so handing a client an AI creature moves its targeting, its combat and its
+            // transform onto the machine of the person sitting on it. The passenger's PC would then
+            // be deciding who the robot fires lightning at.
             NetworkObject mountObject = GetComponentInParent<NetworkObject>();
             NetworkObject riderNet = riderObject != null ? riderObject.GetComponent<NetworkObject>() : null;
 
-            if (Network.IsNetworked && mountObject != null && riderNet != null
+            if (mount.RiderDrives && Network.IsNetworked && mountObject != null && riderNet != null
                 && mountObject.IsSpawned && mountObject.OwnerClientId != riderNet.OwnerClientId)
             {
                 mountObject.ChangeOwnership(riderNet.OwnerClientId);

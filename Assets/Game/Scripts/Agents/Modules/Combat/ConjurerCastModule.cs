@@ -323,6 +323,10 @@ namespace SpaceGame.Agents
         [SerializeField] private string muzzleBone = "StaffTip";
 
         private AgentTargeting targeting;
+
+        /// Only ever asked one question: whether this creature is still alive. See
+        /// DrainCastTrigger, which is the one thing here that outlives the AgentController.
+        private HealthComponent health;
         private Transform chargeSocket;
         private Transform muzzle;
         private GameObject liveCharge;
@@ -416,6 +420,7 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             targeting = GetComponent<AgentTargeting>();
+            health = GetComponentInParent<HealthComponent>();
             if (!animator) animator = GetComponentInChildren<Animator>(true);
             if (!animatorDriver) animatorDriver = GetComponentInChildren<AgentAnimatorDriver>(true);
             settledStateHash = string.IsNullOrEmpty(settledAnimState)
@@ -665,6 +670,27 @@ namespace SpaceGame.Agents
         private void DrainCastTrigger()
         {
             if (!castTriggerPending) return;
+
+            // Dead creatures do not cast, and this is the only place that has to say so.
+            //
+            // Everything else about a cast stops on its own when the creature dies:
+            // HealthReactionModule switches off the AgentController, and Tick -- which is
+            // what decides to cast -- goes with it. This method does not. It runs from
+            // Update, on every machine, precisely so that a PEER whose AgentController was
+            // never on can still present a cast the server told it about.
+            //
+            // So the reachable case is a trigger already pending at the moment of death: a
+            // cast decided on the last frame the creature was alive, or a network message
+            // that lands as it dies. Without this the trigger fires a fraction of a second
+            // later, the controller's Attack hangs off Any State, and the corpse gets up
+            // mid-collapse and casts. Dropping it rather than holding it, because there is
+            // no state this creature can come back to in which the cast would still be
+            // wanted -- Death has no way out.
+            if (health != null && !health.Alive)
+            {
+                castTriggerPending = false;
+                return;
+            }
 
             if (animator == null || string.IsNullOrEmpty(castAnimTrigger) ||
                 animator.runtimeAnimatorController == null)

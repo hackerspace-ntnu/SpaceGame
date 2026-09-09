@@ -1,4 +1,4 @@
-// The conjurer staff: that it exists as a complete artifact, that the creature drops it, and that
+﻿// The conjurer staff: that it exists as a complete artifact, that the creature drops it, and that
 // its ring actually follows the ground.
 //
 // The first two are asset-wiring tests, which is worth saying plainly because asset wiring is
@@ -141,6 +141,29 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void Conjurer_HoldsItsDropUntilTheBodyGoes()
+        {
+            var conjurer = AssetDatabase.LoadAssetAtPath<GameObject>(ConjurerPath);
+            Assert.IsNotNull(conjurer, $"No conjurer prefab at {ConjurerPath}.");
+
+            var loot = conjurer.GetComponent<EntityLootTable>();
+            Assert.IsNotNull(loot, "The conjurer has no EntityLootTable.");
+            Assert.IsTrue(new SerializedObject(loot).FindProperty("dropOnDespawn").boolValue,
+                "The conjurer's staff drops the instant its health hits zero, which now lands " +
+                "the pickup on the floor while the creature is still three seconds into falling " +
+                "over on top of it. The drop is meant to be what REPLACES the body.");
+
+            // And the half of that arrangement the loot table cannot check for itself: with no
+            // despawn there is nothing to wait for, and EntityLootTable falls back to dropping on
+            // death rather than never dropping at all — correct, but not what is wanted here.
+            var reaction = conjurer.GetComponent<HealthReactionModule>();
+            Assert.IsNotNull(reaction, "The conjurer has no HealthReactionModule to despawn it.");
+            Assert.IsTrue(reaction.Despawns,
+                "The conjurer's despawn delay is zero, so the body never goes away and the drop " +
+                "it is waiting on would never come.");
+        }
+
+        [Test]
         public void Conjurer_TakesTheStaffOffItsCorpse()
         {
             var conjurer = AssetDatabase.LoadAssetAtPath<GameObject>(ConjurerPath);
@@ -148,8 +171,9 @@ namespace SpaceGame.EditorTools
 
             var shed = conjurer.GetComponent<HidePartsOnDeath>();
             Assert.IsNotNull(shed,
-                "Without HidePartsOnDeath the corpse keeps its staff for the twelve seconds it " +
-                "takes to fade, so the kill pays out two staffs and one of them is a lie.");
+                "Without HidePartsOnDeath the corpse keeps its staff through the whole collapse " +
+                "— and the collapse drops the hand holding it by five metres onto a knee, which " +
+                "puts a third of a fourteen-metre staff through the floor.");
 
             var so = new SerializedObject(shed);
             SerializedProperty parts = so.FindProperty("partNames");

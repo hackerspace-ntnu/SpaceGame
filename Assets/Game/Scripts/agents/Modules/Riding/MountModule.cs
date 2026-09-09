@@ -35,6 +35,12 @@ namespace SpaceGame.Agents
 
         [Header("Mount Points")]
         [SerializeField] private Transform seatPoint;
+        [Tooltip("Optional. Name of a bone under this entity to seat the rider on, resolved at " +
+                 "Awake and written into seatPoint. Use it when the seat is a place on the RIG — a " +
+                 "shoulder, a back, a howdah strapped to an animated spine — because a serialized " +
+                 "Transform cannot point inside an imported model's own hierarchy. Leave empty and " +
+                 "seatPoint is used as authored.")]
+        [SerializeField] private string seatBone;
         [Tooltip("How deep the rider sits into the seat point, in the seat point's local space. " +
                  "A player's transform origin is at their FEET, so with the default zero the feet " +
                  "land on the seat and the body stands above it — fine for a deck, wrong for a " +
@@ -193,6 +199,12 @@ namespace SpaceGame.Agents
 
         private MonoBehaviour[] suppressibleModules;
 
+        /// Exactly the modules THIS mount switched off, so a dismount can switch exactly those back
+        /// on and nothing else. See <see cref="RestoreModuleSuppression"/> for why that distinction
+        /// is not pedantry.
+        private readonly List<MonoBehaviour> suppressedModules = new List<MonoBehaviour>();
+        private bool riderDrives;
+
         // Animator state captured at mount time so root-motion-driven drift is suppressed while
         // ridden and restored on dismount.
         private Animator[] suppressibleAnimators;
@@ -234,6 +246,22 @@ namespace SpaceGame.Agents
         /// </para>
         /// </summary>
         public bool RiderIsLocal => mountedPlayer != null && Network.Owns(mountedPlayer);
+        /// <summary>
+        /// Does taking this seat put the rider in control, or only along for the ride?
+        ///
+        /// <para>
+        /// Answered by whether a <see cref="SteerModule"/> is present, because that module IS the
+        /// rider's controls — without one there is no input path from the seat to the motor at all.
+        /// </para>
+        /// <para>
+        /// What reads it is the netcode. Mounting normally hands the mount's NetworkObject to the
+        /// rider's client so their steering replicates outward from them; for a passenger that
+        /// transfer hands a client an AI it has no business running, and the machine's own decisions
+        /// — who it chases, who it fires on — start being made on the passenger's PC. So a seat with
+        /// no controls attached to it leaves ownership where it was. See MountNetworkSync.
+        /// </para>
+        /// </summary>
+        public bool RiderDrives => riderDrives;
         public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
         public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
         public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
@@ -269,10 +297,39 @@ namespace SpaceGame.Agents
         // ─────────── Lifecycle ───────────
         private void Awake()
         {
+            ResolveSeatBone();
             if (!seatPoint)
                 seatPoint = transform;
             activeSeatPoint = seatPoint;
             CacheSuppressibleModules();
+
+            // Asked once, here, rather than per query: nothing adds a SteerModule to a live mount,
+            // and MountNetworkSync reads this on every seating.
+            riderDrives = GetComponent<SteerModule>() != null;
+        }
+
+        /// <summary>
+        /// Point <see cref="seatPoint"/> at the bone named by <see cref="seatBone"/>.
+        ///
+        /// By name, for the same reason <c>ConjurerCastModule</c> resolves its muzzle that way: the
+        /// model is a nested prefab instance, and a serialized Transform cannot reach into one.
+        /// </summary>
+        private void ResolveSeatBone()
+        {
+            if (string.IsNullOrEmpty(seatBone))
+                return;
+
+            foreach (Transform t in GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name != seatBone)
+                    continue;
+                seatPoint = t;
+                return;
+            }
+
+            Debug.LogWarning($"{name}: MountModule found no bone '{seatBone}'. The rider will be " +
+                             "seated on whatever seatPoint holds instead — on this entity's own " +
+                             "origin if that is empty, which puts them at its feet.", this);
         }
 
         private void OnEnable()
@@ -359,7 +416,15 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            TryMount(interactor, transform);
+            // null, not `transform`. The override exists for a MountStation seating a rider at a
+            // cockpit control somewhere else on the hull; passing this entity's own root through it
+            // means "the seat is my origin", which overwrites the authored seatPoint with the
+            // mount's feet in ActiveSeatPoint. Everything that reads that — the camera pivot
+            // fallback, PassengerSeat holding a rider on a bone — then works off the wrong place,
+            // while ParentRiderToMount goes on using seatPoint and the two disagree. The networked
+            // path (MountNetworkSync.ApplyMount) already passes null, so this is also what makes
+            // the offline and session paths seat a rider identically.
+            TryMount(interactor, null);
         }
 
         // ─────────── Suppressor ───────────
@@ -389,18 +454,53 @@ namespace SpaceGame.Agents
 
         private void ApplyModuleSuppression()
         {
+            suppressedModules.Clear();
+
             if (allowAISelfMovementWhenMounted || suppressibleModules == null)
                 return;
+
             foreach (MonoBehaviour mb in suppressibleModules)
-                if (mb) mb.enabled = false;
+            {
+                // Already off, for reasons of its own. Not ours to take, and so not ours to give
+                // back — recording it here is what stops the dismount from switching it on.
+                if (!mb || !mb.enabled)
+                    continue;
+
+                mb.enabled = false;
+                suppressedModules.Add(mb);
+            }
         }
 
+        /// <summary>
+        /// Give back what the mount took, and only that.
+        ///
+        /// <para>
+        /// This used to switch every behaviour module ON, which is a far stronger claim than a
+        /// dismount is entitled to make: that the mount knows every module on the creature ought to
+        /// be running. It does not. A module is allowed to switch ITSELF off, and
+        /// <c>DormantModule</c> does exactly that the instant its wake animation finishes — that is
+        /// how it hands the ladder down to chase and wander for good.
+        /// </para>
+        /// <para>
+        /// Switching it back on put a module whose phase was already Done at the top of the ladder
+        /// (Scripted, 100) returning <c>MoveIntent.Idle()</c> every frame, which starves everything
+        /// beneath it. The conjurer stood frozen the moment its passenger stepped off, ignoring the
+        /// player it had just been carrying — indistinguishable, from outside, from the rider's
+        /// concealment having stuck, which is exactly how it was reported.
+        /// </para>
+        /// <para>
+        /// The rider's own components have always worked this way — see
+        /// <c>riderMovementWasEnabled</c> and the note beside it. The mount's side simply never got
+        /// the same treatment, and the rule is the same on both: "what was it before" is the only
+        /// question a restore may ask.
+        /// </para>
+        /// </summary>
         private void RestoreModuleSuppression()
         {
-            if (suppressibleModules == null)
-                return;
-            foreach (MonoBehaviour mb in suppressibleModules)
+            foreach (MonoBehaviour mb in suppressedModules)
                 if (mb) mb.enabled = true;
+
+            suppressedModules.Clear();
         }
     }
 }

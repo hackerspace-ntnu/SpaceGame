@@ -1,4 +1,4 @@
-// Reacts to HealthComponent events by enabling/disabling modules at configurable thresholds.
+﻿// Reacts to HealthComponent events by enabling/disabling modules at configurable thresholds.
 // Handles death cleanup: ragdoll trigger, despawn timer, and noise emission.
 // Drag onto any entity with a HealthComponent.
 using System;
@@ -51,6 +51,23 @@ namespace SpaceGame.Agents
         [Tooltip("Destroy or disable the GameObject after this delay. 0 = never.")]
         [SerializeField] private float despawnDelay = 8f;
         [SerializeField] private bool disableAgentOnDeath = true;
+
+        /// <summary>
+        /// Raised on the frame the body is taken away, immediately before it is switched off.
+        ///
+        /// Exists for <see cref="EntityLootTable"/>, which can be told to hold its drop until
+        /// then. A corpse that pays out the moment it dies puts the pickup on the floor beside a
+        /// creature the player is still watching fall over, which reads as the loot belonging to
+        /// something else; waiting for the body to go makes the drop the thing that replaces it.
+        ///
+        /// Fires wherever the despawn does, which is every machine -- the timer is local. Anything
+        /// that must happen once for the world, loot included, still has to say so itself.
+        /// </summary>
+        public event Action Despawning;
+
+        /// <summary>Whether this body ever goes away on its own. False means the despawn timer is
+        /// switched off, so <see cref="Despawning"/> will never fire and nothing may wait on it.</summary>
+        public bool Despawns => despawnDelay > 0f;
 
         private HealthComponent health;
         private NoiseEmitter noiseEmitter;
@@ -278,6 +295,12 @@ namespace SpaceGame.Agents
             if (announce) reaction.onThresholdReached?.Invoke();
         }
 
-        private void Despawn() => gameObject.SetActive(false);
+        private void Despawn()
+        {
+            // Before the deactivation, not after: a listener on a disabled object is a listener
+            // that has already been unsubscribed by its own OnDisable.
+            Despawning?.Invoke();
+            gameObject.SetActive(false);
+        }
     }
 }

@@ -66,10 +66,11 @@ namespace SpaceGame.EditorTools
         private const string PrefabDir = "Assets/Game/Prefabs/Agents/creatures";
         private const string PrefabPath = PrefabDir + "/LightningConjurer.prefab";
 
-        /// The two generated clips, kept beside the controller that is the only thing
+        /// The three generated clips, kept beside the controller that is the only thing
         /// referencing them. Regenerated wholesale on every build, like everything else here.
         private const string SleepClipPath = ControllerDir + "/LightningConjurer_Sleep.anim";
         private const string AwakenClipPath = ControllerDir + "/LightningConjurer_Awakening.anim";
+        private const string DeathClipPath = ControllerDir + "/LightningConjurer_Death.anim";
         private const string ScenePath = "Assets/Game/Scenes/Tests/Marius test scene.unity";
         private const string InstanceName = "LightningConjurer";
         private const string MaterialDir = "Assets/Game/Art/Materials/Palette";
@@ -290,6 +291,67 @@ namespace SpaceGame.EditorTools
         /// scaling the armature: see ConfigureImporter.
         private static float Scale => TargetHeight / (BlenderTop - BlenderFloor);
 
+        // ---- the passenger seat ------------------------------------------------
+        //
+        /// The bone a player rides on.
+        ///
+        /// This creature has no shoulder to sit astride. Its arms FLOAT: rig.py puts ArmRoot
+        /// out at |y| 6.3-6.4, past the 4.65-unit radius of the head/body sphere, so there is
+        /// clear air between the body and the arm and no neck to straddle. What there is, is the
+        /// top of the arm assembly -- and anim.py pins ArmRoot outright ("the shoulder does not
+        /// move, and the arm is posed by ANGLE"), so it is the one place on a moving arm that
+        /// does not swing out from under a passenger when the staff comes up.
+        ///
+        /// Swap to "ArmRoot.R" for the other shoulder, or to "Spine" to ride the back.
+        private const string SeatBone = "ArmRoot.L";
+
+        /// Where the rider sits, relative to the shoulder bone, in the CARRIER's own frame.
+        ///
+        /// Measured off the built prefab rather than guessed, and the two measurements pull in
+        /// opposite directions:
+        ///
+        ///   * The seat surface IS the bone. The shoulder cap (Cylinder.004, 1.49 m across) tops
+        ///     out at exactly ArmRoot.L's own height -- the bone head sits on the crown of the
+        ///     cap -- so nothing needs lifting clear of it.
+        ///   * The player's transform origin is at their MIDDLE, not their feet. On
+        ///     PlayerCharacter.prefab the hips sit 0.29 m above the origin and the soles 0.90 m
+        ///     below it, so seating them at the surface would bury the pelvis in the shoulder.
+        ///
+        /// Net: drop them 0.15 m, which rests a SEATED pelvis just clear of the cap with the
+        /// shins hanging a metre down its side, and nudge them forward so those shins swing past
+        /// the front edge of the arm rather than through it.
+        private static readonly Vector3 SeatOffset = new Vector3(0f, -0.15f, 0.35f);
+
+        // ---- the arms are solid ------------------------------------------------
+        //
+        /// One collider per arm segment, and what each one must NOT swallow.
+        ///
+        /// The exclusions are the whole difficulty. Every segment is the PARENT of the next in
+        /// the chain, so a naive sweep of everything under UpperArm.L collects the forearm and
+        /// the hand as well and boxes the entire arm as one slab; and Hand.R additionally
+        /// parents the Staff, whose tip is up at 20.45 m -- eleven metres above the hand -- so
+        /// swallowing it wraps the fist in a box taller than the creature.
+        ///
+        /// Fingers are deliberately NOT excluded. They are small, they belong to the hand, and
+        /// six colliders on this creature is already the interesting end of what an animated
+        /// compound body should carry.
+        private static readonly (string bone, string[] excluding)[] ArmColliders =
+        {
+            ("UpperArm.L", new[] { "Forearm.L" }),
+            ("Forearm.L",  new[] { "Hand.L" }),
+            ("Hand.L",     new string[0]),
+            ("UpperArm.R", new[] { "Forearm.R" }),
+            ("Forearm.R",  new[] { "Hand.R" }),
+            ("Hand.R",     new[] { "Staff" }),
+        };
+
+        /// Where a dismounting rider is put down: beside the machine, on the ground.
+        ///
+        /// Load-bearing on something this size. MountModule's fallback is one body-width to the
+        /// side of the mount's own origin -- which for a seat fifteen metres up is a fifteen
+        /// metre drop. Clear of the 2.4 m capsule and of both feet.
+        private static readonly Vector3 DismountOffset = new Vector3(4.5f, 0.2f, 0f);
+
         /// Ground speed the Walk clip is authored at, in m/s. Load-bearing.
         ///
         /// AUTHORED, and then verified. anim.py builds the walk out of a foot trajectory
@@ -413,10 +475,11 @@ namespace SpaceGame.EditorTools
             new Clip("Idle", "ConjurerRig|Idle", 1, 120, true),
             new Clip("Walk", "ConjurerRig|Walk", 1, WalkFrames + 1, true),
             new Clip("Attack", "ConjurerRig|Attack", 1, AttackFrames, false),
-            // Sleep and Awakening are NOT here. They are generated -- see BuildEyeClips --
-            // because the only thing that moves in either is the eyelid's blend shapes, and
-            // Blender exports shape-key animation as its own FBX take that Unity's clip
-            // slicer cannot reach. anim.py's header says the same from the other side.
+            // Sleep, Awakening and Death are NOT here. They are generated -- see
+            // BuildAuthoredClips -- because the eyelid's blend shapes are the whole of the
+            // first two and the point of the third, and Blender exports shape-key animation
+            // as its own FBX take that Unity's clip slicer cannot reach. anim.py's header
+            // says the same from the other side.
         };
 
         /// The Eyelid mesh's two shape keys, spelled exactly as the .blend spells them --
@@ -437,6 +500,162 @@ namespace SpaceGame.EditorTools
         /// not one frame: a zero-length clip is a division by zero in the animator's normalised
         /// time and Unity logs about it every frame.
         private const float SleepSeconds = 1f;
+
+        // ---- the collapse ------------------------------------------------------------------
+        //
+        // Death is authored in this file for the same reason Sleep and Awakening are: the half
+        // of it that matters is the EYE, the eye is two blend shapes, and Blender exports
+        // shape-key animation as its own FBX take that Unity's clip slicer never looks at. Once
+        // the clip has to be written by hand anyway, the body may as well fall in it -- see
+        // WriteDeathClip, which poses the rig off the same Idle first frame the other two hold.
+        //
+        // It goes down in stages rather than over in one piece, and that is the whole point of
+        // the timings below. A machine that simply pivots on its heels reads as a felled tree,
+        // which is a thing happening TO it; a machine that loses one leg, then the other, then
+        // its balance reads as something failing inside it, and it gives the player three
+        // separate moments to watch instead of one:
+        //
+        //     0.00  power fails    the shutter judders shut, the head drops, the arms sag
+        //     0.30  left knee      the leg gives out and the body drops onto it
+        //     0.85  right knee     the other follows; it is kneeling, still upright
+        //     1.20  teeter         a beat, held, doing nothing
+        //     1.35  it goes over   backwards about the knees, accelerating
+        //     1.95  impact         one damped rock; head and arms whip forward
+        //     2.45  still          held, so the state has a corpse pose to sit on
+
+        /// How long the eye takes to fail. Half of AwakenSeconds: waking up is a deliberate act
+        /// and this is a power cut.
+        private const float DeathShutterSeconds = 0.45f;
+
+        /// When the first leg gives, and how long each of the two takes to fold. The first is
+        /// slower because it is also the whole body's drop -- five metres of hip -- and the
+        /// second is only the free leg swinging in beside it.
+        private const float DeathFirstKneeDelay = 0.30f;
+        private const float DeathFirstKneeSeconds = 0.55f;
+        private const float DeathSecondKneeSeconds = 0.35f;
+
+        /// The beat between kneeling and falling. It is doing nothing at all here, and that is
+        /// what makes the fall land: without a pause the collapse is one continuous slump and
+        /// the player never sees the kneeling silhouette that the two knee drops just built.
+        private const float DeathTeeterSeconds = 0.15f;
+
+        /// The fall itself, knees to floor, and the ring-down after it lands.
+        private const float DeathFallSeconds = 0.60f;
+        private const float DeathSettleSeconds = 0.50f;
+
+        /// Corpse, held on the last frame. The Death state has no exit, so the animator sits on
+        /// that pose until the despawn timer takes the body -- but the clip still has to BE this
+        /// long, because the head and the arms are still whipping through the settle and a clip
+        /// that ends on the impact cuts them off mid-swing.
+        private const float DeathHoldSeconds = 0.50f;
+
+        /// The phase boundaries, and the clip's length. Derived rather than typed, because three
+        /// camera-shake events have to land exactly on the two knees and the body, and a second
+        /// set of numbers saying when those are would drift away from the first in silence.
+        private static float DeathFirstKneeDown => DeathFirstKneeDelay + DeathFirstKneeSeconds;
+        private static float DeathSecondKneeDown => DeathFirstKneeDown + DeathSecondKneeSeconds;
+        private static float DeathFallStart => DeathSecondKneeDown + DeathTeeterSeconds;
+        private static float DeathImpactSeconds => DeathFallStart + DeathFallSeconds;
+        private static float DeathSeconds =>
+            DeathImpactSeconds + DeathSettleSeconds + DeathHoldSeconds;
+
+        /// How far the thigh leans off vertical when the knee is down. This one number decides
+        /// the whole kneeling pose and, through it, most of the collapse: the hips end exactly a
+        /// thigh's length above the knee times its cosine, so a bigger tilt is a lower, more
+        /// folded kneel and a smaller one barely bends. WriteDeathClip derives the hip drop, the
+        /// support leg's fold and the topple's pivot from it rather than from any typed height.
+        private const float DeathKneelTiltDegrees = 25f;
+
+        /// How far over it goes once it is kneeling, in degrees about the model's +Z. That axis
+        /// is the creature's own right-to-left line -- the model faces its own +X, see ModelYaw
+        /// -- so a positive angle pitches it onto its BACK, which is the direction worth
+        /// choosing: the eye has just shut, and this is what leaves it facing the sky.
+        ///
+        /// DERIVED from the tilt, and it has to be. The body turns about the KNEES, which are on
+        /// the ground, so this angle is the one that swings the thigh from its kneeling tilt
+        /// down to flat -- ninety degrees minus the tilt, exactly. Type a bigger number and the
+        /// thigh keeps going past horizontal and drives the hips through the floor.
+        private static float DeathToppleDegrees => 90f - DeathKneelTiltDegrees;
+
+        /// The last of the lie-back, taken out of the spine rather than the hips.
+        ///
+        /// The topple can only rotate the body as far as the thigh can lie down, which leaves the
+        /// torso propped a good twenty degrees off the ground. A back that arches over the folded
+        /// legs is both what actually happens and the cheapest way to get the head, which is the
+        /// part the player is looking at, all the way down.
+        private const float DeathSpineArchDegrees = 20f;
+
+        /// How far the far end rocks back UP off the impact. A machine this size does not
+        /// bounce, but it does not stop dead either -- and the hump is SUBTRACTED from the
+        /// topple, never added, because adding it drives the body through the floor.
+        private const float DeathBounceDegrees = 4.5f;
+
+        /// The shock each knee landing sends through the head and the arms, and how long it
+        /// takes to die away. It is spent on those rather than on the hips deliberately: the
+        /// hips are what the legs are solved against, and a body that overshoots its own
+        /// kneeling height is a body whose knee goes through the floor. Nothing hangs off the
+        /// head, so it can be thrown about freely -- and a head snapping down twice is what
+        /// tells the player those were two separate impacts rather than one long slump.
+        private const float DeathKneeShockDegrees = 9f;
+        private const float DeathShockSeconds = 0.22f;
+
+        /// Strength handed to FootstepCameraShake.OnFootPlant at each landing. Above one for the
+        /// body because the shake asset is sized to a footfall and this is the whole machine at
+        /// once; the knees are half of that, because a knee is about a footfall's worth of mass
+        /// arriving rather harder.
+        private const float DeathImpactShake = 2.2f;
+        private const float DeathKneeShake = 1.1f;
+
+        /// Head droop as the power goes, and the arms' matching flop. Body-relative and
+        /// permanent: this is the pose the corpse keeps.
+        private const float DeathHeadDropDegrees = 14f;
+        private const float DeathArmDropDegrees = 22f;
+
+        /// The hands are held out beside the body by nothing visible -- ArmRoot.L/R hang off the
+        /// spine with no arm in between, which is the rig record's "free-floating arms" -- so
+        /// whatever holds them up failing is the most legible thing that can happen to this
+        /// silhouette. They sag by this fraction of their own height above the hips, and they
+        /// sag straight down in MODEL space rather than in the body's, so they visibly come away
+        /// from the chest as it goes over.
+        private const float DeathArmSagFraction = 0.45f;
+
+        /// Half the body's depth, as a fraction of its height -- both figures straight off the
+        /// two Blender measurements at the top of this file, so this is a RATIO and carries no
+        /// units to get wrong.
+        ///
+        /// It is most of what the machine has to rise by on the way down. A body lying on its
+        /// back rests on its back, and the bone chain this clip rotates runs up the MIDDLE of it,
+        /// so a topple that leaves the spine on the ground plane leaves half the creature under
+        /// it -- most visibly the head, which is the widest part and the one the player is
+        /// looking at.
+        ///
+        /// The lift comes in with the sine of the pitch, so it is nothing at all while the machine
+        /// is kneeling -- the knees really are on the floor for that whole beat -- and all of it
+        /// once the body is flat. The folded legs come up with it, which is what legs do when you
+        /// go over backwards.
+        ///
+        /// It is tempting to discount the height of the knee the body turns about, on the grounds
+        /// that the pivot is already a limb's thickness up. That is wrong, and measurably so: the
+        /// head ends at the far end of the body from the pivot, and where it lands is set by the
+        /// rotation rather than by how high the rotation started. Discounting it puts the eye
+        /// nearly a metre into the ground.
+        private const float DeathClearanceFraction =
+            BlenderBodyWidth * 0.5f / (BlenderTop - BlenderFloor);
+
+        /// What everything hung off the body does while the body is turning: it trails.
+        ///
+        /// Done by differencing the topple against ITSELF a moment earlier, weighted per part.
+        /// That costs one curve evaluation, it is exactly zero whenever the body is still -- so
+        /// it disturbs neither the standing pose at the top of the clip nor the corpse at the
+        /// bottom -- and it whips the right way round on the impact for nothing, because a body
+        /// decelerating is the same difference with the sign flipped.
+        private const float DeathLagSeconds = 0.10f;
+        private const float DeathHeadLag = 0.55f;
+
+        /// Lower than it wants to be. The arms trail furthest at the moment the body stops, which
+        /// is the moment they are swinging at a floor that is now right underneath them -- at 1.15
+        /// the hands went two and a half metres through it on the landing frame.
+        private const float DeathArmLag = 0.7f;
 
         /// How close a hostile gets before the eye opens.
         ///
@@ -669,7 +888,7 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            BuildEyeClips();
+            BuildAuthoredClips();
             BuildPrefab(BuildController());
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -698,7 +917,7 @@ namespace SpaceGame.EditorTools
             // After the importer, before the controller: it samples the imported Idle clip for
             // its held pose, so it needs the FBX's clips to exist and the controller needs its
             // output to exist.
-            BuildEyeClips();
+            BuildAuthoredClips();
             AnimatorController controller = BuildController();
             GameObject prefab = BuildPrefab(controller);
             AddToTestScene(prefab);
@@ -717,6 +936,7 @@ namespace SpaceGame.EditorTools
             AnimatorState attackState = states.FirstOrDefault(s => s.name == "Attack");
             AnimatorState sleepState = states.FirstOrDefault(s => s.name == "Sleep");
             AnimatorState awakenState = states.FirstOrDefault(s => s.name == "Awakening");
+            AnimatorState deathState = states.FirstOrDefault(s => s.name == "Death");
             var tree = walkState?.motion as BlendTree;
             if (idleState == null || idleState.motion == null ||
                 attackState == null || attackState.motion == null || tree == null ||
@@ -736,9 +956,20 @@ namespace SpaceGame.EditorTools
                 awakenState == null || awakenState.motion == null)
             {
                 Debug.LogError("[LightningConjurer] Controller has no populated Sleep or " +
-                               "Awakening state - not reporting success. BuildEyeClips failed " +
-                               "to write them, so the creature would spawn into an empty entry " +
-                               "state and never move again.");
+                               "Awakening state - not reporting success. BuildAuthoredClips " +
+                               "failed to write them, so the creature would spawn into an " +
+                               "empty entry state and never move again.");
+                return;
+            }
+
+            // And the same check on Death, which fails differently again: the creature dies
+            // correctly in every respect -- the sound, the loot, the despawn -- and simply never
+            // falls over, which reads as the trigger not being sent rather than as a missing clip.
+            if (deathState == null || deathState.motion == null)
+            {
+                Debug.LogError("[LightningConjurer] Controller has no populated Death state - " +
+                               "not reporting success. WriteDeathClip failed to write the clip, " +
+                               "so a killed conjurer would stand where it died until it faded.");
                 return;
             }
 
@@ -1195,11 +1426,11 @@ namespace SpaceGame.EditorTools
                 Fbx, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
         }
 
-        /// Authors the Sleep and Awakening clips, which the FBX cannot carry.
+        /// Authors the Sleep, Awakening and Death clips, which the FBX cannot carry.
         ///
         /// WHY THESE ARE GENERATED AND THE OTHER THREE ARE NOT. The only thing that animates in
-        /// either is the Eyelid's two blend shapes, and Blender exports shape-key animation as
-        /// its OWN FBX take -- "Key|ConjurerRig|Idle" and friends -- one per (object, action)
+        /// the first two is the Eyelid's two blend shapes, and Blender exports shape-key animation
+        /// as its OWN FBX take -- "Key|ConjurerRig|Idle" and friends -- one per (object, action)
         /// pair. Unity's clip slicer reads takes by name and never looks at those, which is why
         /// every clip in this creature's FBX carries a frozen copy of the lid and none of them
         /// can move it. Authoring the two clips here sidesteps the whole problem, and it buys
@@ -1210,7 +1441,7 @@ namespace SpaceGame.EditorTools
         /// is not a clip that holds the bone still -- the states here run with write-defaults
         /// OFF (see BuildController), so an unwritten bone keeps whatever the last state left
         /// on it, and a creature that fell asleep would sleep in its last walk pose.
-        private static void BuildEyeClips()
+        private static void BuildAuthoredClips()
         {
             AnimationClip idle = FindClip("Idle");
 
@@ -1279,6 +1510,7 @@ namespace SpaceGame.EditorTools
             EnsureFolder(ControllerDir);
             WriteEyeClip(SleepClipPath, idle, eyelidPath, SleepSeconds, 0f, 0f, loop: true);
             WriteEyeClip(AwakenClipPath, idle, eyelidPath, AwakenSeconds, 0f, 1f, loop: false);
+            WriteDeathClip(DeathClipPath, idle, eyelidPath);
         }
 
         /// One held-pose clip, with the lid driven from `from` to `to` across its length.
@@ -1340,6 +1572,629 @@ namespace SpaceGame.EditorTools
                 curve);
         }
 
+
+        /// How far one knee has folded at `t`, 0 to 1.
+        ///
+        /// Ease IN and nothing else. A leg that gives out does not lower the body -- it holds,
+        /// and then it does not, and the fastest part of the motion is the frame before the knee
+        /// hits the ground. Any ease at the bottom reads as the machine kneeling on purpose.
+        private static float DeathKnee(float t, float begin, float seconds)
+        {
+            float u = Mathf.Clamp01((t - begin) / seconds);
+            return 1f - Mathf.Cos(u * Mathf.PI * 0.5f);
+        }
+
+        /// The body's pitch, in degrees, at `t` seconds into the collapse. Zero until both knees
+        /// are down and the teeter is over: this creature falls FROM a kneel, not from standing.
+        private static float DeathTopple(float t)
+        {
+            if (t <= DeathFallStart) return 0f;
+
+            if (t < DeathImpactSeconds)
+            {
+                float u = (t - DeathFallStart) / DeathFallSeconds;
+                // Ease in, again, and for the same reason: this is gravity rather than a move.
+                return DeathToppleDegrees * (1f - Mathf.Cos(u * Mathf.PI * 0.5f));
+            }
+
+            float s = (t - DeathImpactSeconds) / DeathSettleSeconds;
+            if (s >= 1f) return DeathToppleDegrees;
+
+            // Two decaying humps rather than a sine: |sin| never goes negative, so the far end
+            // lifts off the floor and comes back down twice, and at no point in the ring-down
+            // does the body rock past flat and into the ground.
+            return DeathToppleDegrees
+                 - DeathBounceDegrees * Mathf.Abs(Mathf.Sin(s * Mathf.PI * 2f)) * (1f - s);
+        }
+
+        /// The kick the head and arms take when something lands, at `t`. One hump per knee, both
+        /// gone by the time the body itself goes over.
+        private static float DeathShock(float t)
+        {
+            return Hump(t - DeathFirstKneeDown) + Hump(t - DeathSecondKneeDown);
+
+            static float Hump(float since)
+            {
+                float s = since / DeathShockSeconds;
+                if (s <= 0f || s >= 1f) return 0f;
+                return Mathf.Sin(s * Mathf.PI) * (1f - s);
+            }
+        }
+
+        /// The shutter's travel while the power fails, as fractions of DeathShutterSeconds
+        /// against fractions of open -- 1 is wide open, the weight Awakening leaves behind, and
+        /// 0 is shut.
+        ///
+        /// It judders rather than sweeping. A clean sweep is the motion this creature makes
+        /// going to SLEEP, and the two moments have to be told apart at a glance: one is a
+        /// machine deciding to close its eye, and this one is the eye closing on it.
+        private static readonly float[] DeathLidTimes = { 0f, 0.14f, 0.24f, 0.45f, 0.56f, 0.80f };
+        private static readonly float[] DeathLidOpen = { 1f, 0.52f, 0.66f, 0.20f, 0.31f, 0f };
+
+        /// One leg, measured off the standing pose and posed in the model's sagittal plane.
+        ///
+        /// Everything about this rig's legs is planar: the model faces its own +X with +Y up,
+        /// the two legs are separated along +Z, and every joint the collapse touches turns about
+        /// +Z. So a leg is two lengths and three angles, and posing one is trigonometry rather
+        /// than a solver -- which is why there is no IK package anywhere near this file.
+        private struct DeathLeg
+        {
+            public string Hip, Knee, Ankle;      // the three bones that turn
+            public Vector2 HipRest, AnkleRest;   // model XY, standing
+            public Vector2 AnkleKneel;           // model XY, once the knee is down
+            public float Thigh, Shin;            // segment lengths
+            public float ThighRest, ShinRest;    // model-space segment directions, degrees
+        }
+
+        /// Where the thigh and the shin have to point for the ankle to land on `target`.
+        ///
+        /// The two-link planar case, which has a closed form. The only judgement in it is which
+        /// way the knee bends, and that is not a guess: sampling the Walk clip puts the knee on
+        /// the +X side of the hip-to-ankle line on every frame of the cycle, so `+ spread` is
+        /// this creature's knee and `- spread` is that knee inverted.
+        private static void DeathReach(in DeathLeg leg, Vector2 hip, Vector2 target,
+                                       out float thigh, out float shin)
+        {
+            Vector2 span = target - hip;
+
+            // Clamped just inside both limits. Dead on the outer one the spread is an acos of
+            // exactly 1, which is fine, but a hair past it is an acos of 1.0000001, which is NaN
+            // -- and a NaN in a rotation curve poisons every frame after it.
+            float reach = Mathf.Clamp(span.magnitude,
+                                      Mathf.Abs(leg.Thigh - leg.Shin) + 1e-6f,
+                                      leg.Thigh + leg.Shin - 1e-6f);
+
+            float toTarget = Mathf.Atan2(span.y, span.x) * Mathf.Rad2Deg;
+            float spread = Mathf.Acos(Mathf.Clamp(
+                (leg.Thigh * leg.Thigh + reach * reach - leg.Shin * leg.Shin)
+                / (2f * leg.Thigh * reach), -1f, 1f)) * Mathf.Rad2Deg;
+
+            thigh = toTarget + spread;
+
+            Vector2 knee = hip + leg.Thigh * new Vector2(
+                Mathf.Cos(thigh * Mathf.Deg2Rad), Mathf.Sin(thigh * Mathf.Deg2Rad));
+            shin = Mathf.Atan2(target.y - knee.y, target.x - knee.x) * Mathf.Rad2Deg;
+        }
+
+        /// Authors the Death clip: the eye fails, the legs go one at a time, and the machine
+        /// falls backwards off its own knees.
+        ///
+        /// Everything the collapse needs is read back out of `pose` -- the imported Idle clip's
+        /// first frame -- rather than out of the hierarchy or out of numbers measured off the
+        /// .blend. Forward kinematics over the clip's own curves gives the model-space position
+        /// and orientation of every bone in the standing pose, and the leg segments' lengths
+        /// fall out of that. So the kneel is as deep as this creature's thigh says it is, the
+        /// support leg folds as far as it has to, and the topple turns about wherever the knees
+        /// actually end up. Re-export the model with longer legs and the clip follows it;
+        /// nothing here holds a copy of anything.
+        ///
+        /// Bones are found by LEAF NAME, the way HidePartsOnDeath finds the staff, so a rig
+        /// re-parented in Blender does not quietly produce a clip that animates nothing.
+        private static void WriteDeathClip(string path, AnimationClip pose, string eyelidPath)
+        {
+            // ---- the standing pose, as local position and rotation per bone -----------------
+            var localPos = new System.Collections.Generic.Dictionary<string, Vector3>();
+            var localRot = new System.Collections.Generic.Dictionary<string, Quaternion>();
+
+            foreach (EditorCurveBinding b in AnimationUtility.GetCurveBindings(pose))
+            {
+                if (b.type != typeof(Transform)) continue;
+
+                int axis = "xyzw".IndexOf(b.propertyName[b.propertyName.Length - 1]);
+                if (axis < 0) continue;
+
+                float v = AnimationUtility.GetEditorCurve(pose, b).Evaluate(0f);
+
+                if (b.propertyName.StartsWith("m_LocalPosition", System.StringComparison.Ordinal))
+                {
+                    localPos.TryGetValue(b.path, out Vector3 p);
+                    p[axis] = v;
+                    localPos[b.path] = p;
+                }
+                else if (b.propertyName.StartsWith("m_LocalRotation", System.StringComparison.Ordinal))
+                {
+                    localRot.TryGetValue(b.path, out Quaternion q);
+                    q[axis] = v;
+                    localRot[b.path] = q;
+                }
+            }
+
+            // Model space, by walking the path one segment at a time. Scale is left out because
+            // this rig has none -- every bone imports at 1, and a scaled bone would need the
+            // whole matrix rather than a position and a quaternion.
+            (Vector3 pos, Quaternion rot) Fk(string bone)
+            {
+                var pos = Vector3.zero;
+                var rot = Quaternion.identity;
+                int from = 0;
+                while (true)
+                {
+                    int slash = bone.IndexOf('/', from);
+                    string prefix = slash < 0 ? bone : bone.Substring(0, slash);
+                    if (localPos.TryGetValue(prefix, out Vector3 lp)) pos += rot * lp;
+                    if (localRot.TryGetValue(prefix, out Quaternion lr)) rot *= lr;
+                    if (slash < 0) return (pos, rot);
+                    from = slash + 1;
+                }
+            }
+
+            string Bone(string leaf)
+            {
+                foreach (string p in localRot.Keys)
+                    if (p == leaf || p.EndsWith("/" + leaf, System.StringComparison.Ordinal))
+                        return p;
+                return null;
+            }
+
+            string Parent(string bone)
+            {
+                int slash = bone.LastIndexOf('/');
+                return slash < 0 ? string.Empty : bone.Substring(0, slash);
+            }
+
+            Vector2 Flat(string bone) { Vector3 p = Fk(bone).pos; return new Vector2(p.x, p.y); }
+            float Aim(Vector2 from, Vector2 to) =>
+                Mathf.Atan2(to.y - from.y, to.x - from.x) * Mathf.Rad2Deg;
+
+            string rootBone = Bone("Root");
+            string footL = Bone("Foot_L");
+            string footR = Bone("Foot_R");
+
+            // Fatal rather than loud. The flourishes further down degrade to nothing when their
+            // bone is missing, but without the root and the two feet there is no ground to
+            // measure from and no collapse at all -- and a Death state holding a clip that
+            // stands still is the failure that reads as "the trigger is not firing" and costs an
+            // afternoon.
+            if (rootBone == null || footL == null || footR == null)
+                throw new System.InvalidOperationException(
+                    "[LightningConjurer] The Death clip is built around the leg chain, and the " +
+                    "imported Idle clip animates Root=" + (rootBone ?? "<missing>") +
+                    ", Foot_L=" + (footL ?? "<missing>") + ", Foot_R=" + (footR ?? "<missing>") +
+                    ". Those names come from _Source~/walkerize.py; re-run it and re-export.");
+
+            string headBone = Bone("Head");
+            string hipsBone = Bone("Hips");
+            string spineBone = Bone("Spine");
+            string armLBone = Bone("ArmRoot.L");
+            string armRBone = Bone("ArmRoot.R");
+
+            // The floor, taken from the foot bones, which import sitting exactly on it.
+            float groundY = (Fk(footL).pos.y + Fk(footR).pos.y) * 0.5f;
+
+            // ---- the two legs, and the kneeling pose they imply ------------------------------
+            var legs = new System.Collections.Generic.List<DeathLeg>();
+            foreach (string side in new[] { "L", "R" })
+            {
+                string hip = Bone("Hip_" + side);
+                string knee = Bone("Knee_" + side);
+                string ankle = Bone("Ankle_" + side);
+                string foot = Bone("Foot_" + side);
+                if (hip == null || knee == null || ankle == null || foot == null) continue;
+
+                var leg = new DeathLeg
+                {
+                    Hip = hip,
+                    Knee = knee,
+                    Ankle = ankle,
+                    HipRest = Flat(hip),
+                    AnkleRest = Flat(ankle),
+                    Thigh = (Flat(knee) - Flat(hip)).magnitude,
+                    Shin = (Flat(ankle) - Flat(knee)).magnitude,
+                    ThighRest = Aim(Flat(hip), Flat(knee)),
+                    ShinRest = Aim(Flat(knee), Flat(ankle)),
+                };
+
+                // How high a joint sits when its limb is lying on the floor, measured rather
+                // than guessed: standing, the ankle is exactly that far above the sole. It is
+                // what stops the kneeling pose from burying the knee and the shin in the ground.
+                float limb = leg.AnkleRest.y - groundY;
+
+                // The kneel, in one line of trigonometry. Knee on the floor, a tilt's worth
+                // forward of the hip; shin lying straight back from it; ankle wherever that puts
+                // it. Everything else about the pose -- how far the hips drop, how hard the
+                // other leg has to fold -- is a consequence of this and of the thigh's length.
+                var knees = new Vector2(
+                    leg.HipRest.x + leg.Thigh * Mathf.Sin(DeathKneelTiltDegrees * Mathf.Deg2Rad),
+                    groundY + limb);
+                leg.AnkleKneel = knees - new Vector2(leg.Shin, 0f);
+
+                legs.Add(leg);
+            }
+
+            if (legs.Count == 0)
+                throw new System.InvalidOperationException(
+                    "[LightningConjurer] The Death clip needs Hip_/Knee_/Ankle_/Foot_ bones on " +
+                    "at least one side to kneel with, and the rig has none under those names.");
+
+            // How far the hips fall, and where the knees end up: both straight off the pose
+            // above. The hips sit a thigh's length above the knee, foreshortened by the tilt.
+            DeathLeg first = legs[0];
+            float limbRest = first.AnkleRest.y - groundY;
+            float kneelHipY = groundY + limbRest
+                            + first.Thigh * Mathf.Cos(DeathKneelTiltDegrees * Mathf.Deg2Rad);
+            float sink = first.HipRest.y - kneelHipY;
+
+            // The topple turns about the knees, because by then the knees are what the machine
+            // is standing on. That has a consequence worth spelling out, because it is what
+            // makes the last phase almost free: the knee is a FIXED point, so counter-turning
+            // the knee joint by the same angle leaves the whole shin and foot exactly where they
+            // were lying, and the fall becomes the thigh swinging down flat while the torso goes
+            // over the top of it. Which is what falling backwards out of a kneel looks like.
+            var pivot = new Vector3(
+                first.HipRest.x + first.Thigh * Mathf.Sin(DeathKneelTiltDegrees * Mathf.Deg2Rad),
+                groundY + limbRest, 0f);
+
+            localPos.TryGetValue(rootBone, out Vector3 rootRest);
+            localRot.TryGetValue(rootBone, out Quaternion rootRestRot);
+
+            // In the model's own units, derived from the rig rather than converted from metres:
+            // how far the body still has to rise as it lies down, and how far the hands drop.
+            float clearance = 0f;
+            if (headBone != null)
+                clearance = (Fk(headBone).pos.y - groundY) * DeathClearanceFraction;
+
+            float armSag = 0f;
+            if (armLBone != null && hipsBone != null)
+                armSag = (Fk(armLBone).pos.y - Fk(hipsBone).pos.y) * DeathArmSagFraction;
+
+            // A model-space delta on a bone, expressed in that bone's parent's frame.
+            //
+            // The parent is TURNING while this plays, and this deliberately ignores that: it
+            // conjugates by the parent's STANDING orientation, so the delta rides with the body
+            // rather than being pinned to the world. That is plainly right for the droops, which
+            // are poses the corpse keeps. It is also right for the trailing, which wants the
+            // opposite -- and gets it anyway, because every delta here turns about the same
+            // model +Z the topple does, and rotations about a shared axis commute, so the body's
+            // own rotation cancels out of the conjugation either way.
+            Quaternion Local(string bone, float degrees)
+            {
+                Quaternion parent = Fk(Parent(bone)).rot;
+                localRot.TryGetValue(bone, out Quaternion rest);
+                return Quaternion.Inverse(parent)
+                     * Quaternion.AngleAxis(degrees, Vector3.forward)
+                     * parent * rest;
+            }
+
+            // ---- bake -----------------------------------------------------------------------
+            //
+            // Ceil, and the last sample clamped to the end. DeathSeconds is a sum of phase
+            // lengths and lands on a whole frame only by luck; round it down and the baked
+            // curves stop short of the held ones, leaving a sliver of clip in which the body
+            // holds its last baked frame while everything else is still being written.
+            int frames = Mathf.CeilToInt(DeathSeconds * Fps) + 1;
+            var times = new float[frames];
+            var rootRot = new Quaternion[frames];
+            var rootPos = new Vector3[frames];
+            var headRot = new Quaternion[frames];
+            var spineRot = new Quaternion[frames];
+            var armRotL = new Quaternion[frames];
+            var armRotR = new Quaternion[frames];
+            var armPosL = new Vector3[frames];
+            var armPosR = new Vector3[frames];
+            var jointRot = new Quaternion[legs.Count * 3][];
+            for (int i = 0; i < jointRot.Length; i++) jointRot[i] = new Quaternion[frames];
+
+            // One orientation for both arms: they hang off the same spine, and taking it from
+            // whichever of them the rig actually has keeps the sag correct if one is missing.
+            string armAnchor = armLBone ?? armRBone;
+            Quaternion armParent =
+                armAnchor != null ? Fk(Parent(armAnchor)).rot : Quaternion.identity;
+            localPos.TryGetValue(armLBone ?? string.Empty, out Vector3 armRestL);
+            localPos.TryGetValue(armRBone ?? string.Empty, out Vector3 armRestR);
+
+            for (int f = 0; f < frames; f++)
+            {
+                float t = Mathf.Min(f / Fps, DeathSeconds);
+                times[f] = t;
+
+                // ---- the legs ------------------------------------------------------------
+                //
+                // The first leg's fold IS the body's drop -- the hips ride it down -- so both
+                // are the same curve. The second only has to swing in beside it.
+                float foldA = DeathKnee(t, DeathFirstKneeDelay, DeathFirstKneeSeconds);
+                float foldB = DeathKnee(t, DeathFirstKneeDown, DeathSecondKneeSeconds);
+                float topple = DeathTopple(t);
+                Quaternion body = Quaternion.AngleAxis(topple, Vector3.forward);
+
+                for (int i = 0; i < legs.Count; i++)
+                {
+                    DeathLeg leg = legs[i];
+                    float fold = i == 0 ? foldA : foldB;
+
+                    // Both legs are solved to a target rather than posed by angle, and the only
+                    // difference between them is where that target is. The folding one's ankle
+                    // slides back along the floor to where the kneel wants it; the standing
+                    // one's stays nailed to the spot until its own turn comes. Interpolating the
+                    // TARGET rather than the joint angles is what keeps the foot at a sensible
+                    // height the whole way down -- both ends of that slide are at the same
+                    // height, so the middle is too, and the toe never scythes through the floor.
+                    Vector2 hip = leg.HipRest - new Vector2(0f, sink * foldA);
+                    Vector2 target = Vector2.Lerp(leg.AnkleRest, leg.AnkleKneel, fold);
+
+                    DeathReach(in leg, hip, target, out float thigh, out float shin);
+
+                    float hipTurn = thigh - leg.ThighRest;
+                    float shinTurn = shin - leg.ShinRest;
+
+                    // The counter-turn that leaves the shin lying exactly where it fell. The
+                    // knee is the pivot the body is going over, so subtracting the topple here
+                    // pins everything below it: shin, ankle, foot, all still on the floor while
+                    // the thigh swings down and the torso goes over.
+                    shinTurn -= topple;
+
+                    jointRot[i * 3 + 0][f] = Local(leg.Hip, hipTurn);
+                    jointRot[i * 3 + 1][f] = Local(leg.Knee, shinTurn - hipTurn);
+                    // The foot keeps the orientation it stands in, all the way through, which is
+                    // one subtraction and is why there is no curve for it. Standing, that is a
+                    // sole flat on the floor. Kneeling, the ankle has come to rest at exactly the
+                    // height it stands at -- the kneel is built off that measurement -- so the
+                    // same orientation puts the toe back on the ground and the machine ends up
+                    // kneeling on the ball of its foot, which is where a kneeling leg puts it.
+                    // Turning the foot down flat with the shin instead buries half of it.
+                    jointRot[i * 3 + 2][f] = Local(leg.Ankle, -shinTurn);
+                }
+
+                // ---- the body ------------------------------------------------------------
+                //
+                // Sink first, then turn about the knees, then rise onto its own back. Order
+                // matters: the pivot is a point in the SUNK pose, which is where the knees are.
+                Vector3 sunk = rootRest - new Vector3(0f, sink * foldA, 0f);
+                rootRot[f] = body * rootRestRot;
+                rootPos[f] = pivot + body * (sunk - pivot)
+                           + Vector3.up * (clearance * Mathf.Sin(topple * Mathf.Deg2Rad));
+
+                // Negative degrees pitch a part FORWARD, against the way the body is going.
+                float lag = topple - DeathTopple(t - DeathLagSeconds);
+                float shock = DeathShock(t) * DeathKneeShockDegrees;
+
+                // The droop comes in with the power failing, not with the fall -- the head is
+                // already down before the first knee goes.
+                float limp = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / DeathShutterSeconds));
+
+                // The droops fade out as the body goes horizontal, and they fade by the cosine
+                // of its pitch because that is the share of gravity still pulling ACROSS the
+                // part rather than along it. Standing, all of it. Lying down, none of it -- and
+                // a corpse whose arms stayed bent at the angle they took while it was upright is
+                // a corpse with its hands driven three metres into the floor.
+                float hang = Mathf.Cos(topple * Mathf.Deg2Rad);
+
+                if (spineBone != null)
+                    spineRot[f] = Local(spineBone,
+                                        DeathSpineArchDegrees * Mathf.Clamp01(topple / DeathToppleDegrees));
+
+                if (headBone != null)
+                    headRot[f] = Local(headBone, -(DeathHeadDropDegrees * limp * hang
+                                                   + DeathHeadLag * lag + shock));
+
+                float armTurn = -(DeathArmDropDegrees * limp * hang + DeathArmLag * lag + shock);
+
+                // Down in the BODY's frame, not the world's. Tracking world-down past the point
+                // where the chest goes horizontal buries the hands: the arms are then hanging
+                // off an attachment two metres above the floor and still being pushed two metres
+                // straight down through it.
+                Vector3 sag =
+                    Quaternion.Inverse(armParent) * (Vector3.down * (armSag * limp * hang));
+
+                if (armLBone != null)
+                {
+                    armRotL[f] = Local(armLBone, armTurn);
+                    armPosL[f] = armRestL + sag;
+                }
+
+                if (armRBone != null)
+                {
+                    armRotR[f] = Local(armRBone, armTurn);
+                    armPosR[f] = armRestR + sag;
+                }
+            }
+
+            // ---- write ----------------------------------------------------------------------
+            var clip = new AnimationClip { frameRate = Fps };
+
+            var driven = new System.Collections.Generic.HashSet<string> { rootBone };
+            if (headBone != null) driven.Add(headBone);
+            if (spineBone != null) driven.Add(spineBone);
+            if (armLBone != null) driven.Add(armLBone);
+            if (armRBone != null) driven.Add(armRBone);
+            foreach (DeathLeg leg in legs) { driven.Add(leg.Hip); driven.Add(leg.Knee); driven.Add(leg.Ankle); }
+
+            // Every bone held at the standing pose first, exactly as the Sleep and Awakening
+            // clips do it and for the same reason: a bone with no curve is not a bone held
+            // still. The driven ones are overwritten below.
+            //
+            // Their EULER curves are dropped rather than overwritten. An imported clip carries
+            // both m_LocalRotation and the editor-side localEulerAngles for every bone; the
+            // euler pair wins where both are present, so a driven bone left holding a flat euler
+            // curve is a bone that does not move at all -- on a clip whose quaternion curves
+            // look perfectly correct in the inspector.
+            foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(pose))
+            {
+                if (driven.Contains(binding.path) && binding.propertyName.StartsWith(
+                        "localEulerAngles", System.StringComparison.Ordinal))
+                    continue;
+
+                float held = AnimationUtility.GetEditorCurve(pose, binding).Evaluate(0f);
+                AnimationUtility.SetEditorCurve(
+                    clip, binding,
+                    new AnimationCurve(new Keyframe(0f, held), new Keyframe(DeathSeconds, held)));
+            }
+
+            BakeRotation(clip, rootBone, times, rootRot);
+            BakePosition(clip, rootBone, times, rootPos);
+            if (headBone != null) BakeRotation(clip, headBone, times, headRot);
+            if (spineBone != null) BakeRotation(clip, spineBone, times, spineRot);
+
+            for (int i = 0; i < legs.Count; i++)
+            {
+                BakeRotation(clip, legs[i].Hip, times, jointRot[i * 3 + 0]);
+                BakeRotation(clip, legs[i].Knee, times, jointRot[i * 3 + 1]);
+                BakeRotation(clip, legs[i].Ankle, times, jointRot[i * 3 + 2]);
+            }
+
+            if (armLBone != null)
+            {
+                BakeRotation(clip, armLBone, times, armRotL);
+                BakePosition(clip, armLBone, times, armPosL);
+            }
+
+            if (armRBone != null)
+            {
+                BakeRotation(clip, armRBone, times, armRotR);
+                BakePosition(clip, armRBone, times, armPosR);
+            }
+
+            if (eyelidPath != null)
+            {
+                DeathLid(clip, eyelidPath, EyeTopShape, 0f);
+                // The bottom half trails the top by a frame and a half, for the same reason the
+                // wake-up staggers them: a shutter whose halves move in lockstep reads as one
+                // object splitting rather than as an eye.
+                DeathLid(clip, eyelidPath, EyeBottomShape, DeathShutterSeconds * 0.08f);
+            }
+
+            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopTime = false;
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+
+            // Three landings, felt rather than seen: a knee, the other knee, and the whole
+            // machine. FootstepCameraShake sits on the model child -- the same object the
+            // Animator is on, which is the only object an animation event can reach -- and its
+            // OnFootPlant takes a strength precisely so that a landing can weigh more than a
+            // step. Its own minInterval is 0.2 s, comfortably under the gaps here.
+            //
+            // SECONDS, unlike the walk's two foot plants. Those go through
+            // ModelImporterClipAnimation, whose events are normalised 0-1 and whose overrun
+            // EXTENDS the clip; this is AnimationClip's own API, which reads the time literally.
+            AnimationUtility.SetAnimationEvents(clip, new[]
+            {
+                Land(DeathFirstKneeDown, DeathKneeShake),
+                Land(DeathSecondKneeDown, DeathKneeShake),
+                Land(DeathImpactSeconds, DeathImpactShake),
+            });
+
+            AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(clip, path);
+
+            static AnimationEvent Land(float at, float strength) => new AnimationEvent
+            {
+                time = at,
+                functionName = "OnFootPlant",
+                floatParameter = strength,
+            };
+        }
+
+        /// One shutter half failing shut, then held there for the rest of the clip.
+        private static void DeathLid(AnimationClip clip, string eyelidPath, string shape,
+                                     float delay)
+        {
+            var curve = new AnimationCurve();
+            for (int i = 0; i < DeathLidTimes.Length; i++)
+                curve.AddKey(new Keyframe(DeathLidTimes[i] * DeathShutterSeconds + delay,
+                                          DeathLidOpen[i] * 100f));
+
+            // Without this last key the final tangent carries the weight somewhere across two
+            // seconds of corpse, and the eye drifts back open on the floor.
+            curve.AddKey(new Keyframe(DeathSeconds, 0f));
+            Linearize(curve);
+
+            AnimationUtility.SetEditorCurve(
+                clip,
+                EditorCurveBinding.FloatCurve(eyelidPath, typeof(SkinnedMeshRenderer),
+                                              $"blendShape.{shape}"),
+                curve);
+        }
+
+        /// One bone's rotation, four curves, baked at the clip's frame rate.
+        private static void BakeRotation(AnimationClip clip, string path, float[] times,
+                                         Quaternion[] values)
+        {
+            // q and -q are the same orientation, and a curve that steps between them interpolates
+            // the long way round -- a bone spinning through most of a turn in one frame. Nothing
+            // here produces that, because every value is a continuous turn off the same rest
+            // pose; this is one line to make sure nothing here ever starts to.
+            for (int i = 1; i < values.Length; i++)
+                if (Quaternion.Dot(values[i - 1], values[i]) < 0f)
+                    values[i] = new Quaternion(-values[i].x, -values[i].y,
+                                               -values[i].z, -values[i].w);
+
+            for (int axis = 0; axis < 4; axis++)
+            {
+                var curve = new AnimationCurve();
+                for (int i = 0; i < times.Length; i++)
+                    curve.AddKey(new Keyframe(times[i], values[i][axis]));
+                Linearize(curve);
+
+                AnimationUtility.SetEditorCurve(
+                    clip,
+                    EditorCurveBinding.FloatCurve(path, typeof(Transform),
+                                                  "m_LocalRotation." + "xyzw"[axis]),
+                    curve);
+            }
+        }
+
+        /// One bone's local position, three curves, baked the same way.
+        private static void BakePosition(AnimationClip clip, string path, float[] times,
+                                         Vector3[] values)
+        {
+            for (int axis = 0; axis < 3; axis++)
+            {
+                var curve = new AnimationCurve();
+                for (int i = 0; i < times.Length; i++)
+                    curve.AddKey(new Keyframe(times[i], values[i][axis]));
+                Linearize(curve);
+
+                AnimationUtility.SetEditorCurve(
+                    clip,
+                    EditorCurveBinding.FloatCurve(path, typeof(Transform),
+                                                  "m_LocalPosition." + "xyz"[axis]),
+                    curve);
+            }
+        }
+
+        /// Straight lines between keys.
+        ///
+        /// A Keyframe built from a time and a value alone gets FLAT tangents, and a curve of
+        /// those is a staircase: every frame eases into and out of a hold, which at thirty of
+        /// them a second is a visible stutter down the whole fall. Smoothing fixes that and
+        /// brings its own problem -- smoothed tangents overshoot, and an overshoot on a
+        /// blend-shape weight carries the eyelid past shut and back open again. The bone curves
+        /// are baked at the clip's own frame rate, so there is nothing between two keys to be
+        /// smooth about in the first place.
+        private static void Linearize(AnimationCurve curve)
+        {
+            for (int i = 0; i < curve.length; i++)
+            {
+                Keyframe key = curve[i];
+                if (i > 0)
+                    key.inTangent = (key.value - curve[i - 1].value) /
+                                    Mathf.Max(1e-6f, key.time - curve[i - 1].time);
+                if (i < curve.length - 1)
+                    key.outTangent = (curve[i + 1].value - key.value) /
+                                     Mathf.Max(1e-6f, curve[i + 1].time - key.time);
+                curve.MoveKey(i, key);
+            }
+        }
+
         private static AnimationClip FindClip(string name)
         {
             AnimationClip clip = AssetDatabase.LoadAllAssetsAtPath(Fbx)
@@ -1398,14 +2253,16 @@ namespace SpaceGame.EditorTools
         /// SpeedX rather than the SpeedY every other creature here uses. Not a typo; see
         /// the constant.
         ///
-        /// The graph is five states and it is deliberately not symmetric:
+        /// The graph is six states and it is deliberately not symmetric:
         ///
         ///     [entry] -> Sleep -> Awakening -> Idle <-> Walk
         ///                                       ^        ^
         ///                                       +- Attack +      (from Any State, gated Awake)
+        ///                                          Death        (from Any State, gated on nothing)
         ///
         /// Sleep and Awakening are entered once, in that order, and never again -- see the
-        /// one-way note where they are built. Everything after them is the usual locomotion
+        /// one-way note where they are built. Death is the mirror of that: entered from
+        /// anywhere, at any time, and never left. Everything in between is the usual locomotion
         /// pair plus an Attack hung off Any State.
         private static AnimatorController BuildController()
         {
@@ -1425,6 +2282,11 @@ namespace SpaceGame.EditorTools
             controller.AddParameter("IsAiming", AnimatorControllerParameterType.Bool);
             // ConjurerCastModule.castAnimTrigger names this one.
             controller.AddParameter("Cast", AnimatorControllerParameterType.Trigger);
+            // Two names for one event, as on the golem, the dune rat and the vrescal:
+            // HealthReactionModule.dieAnimTrigger sends "Death" and AgentAnimatorDriver.TriggerDie
+            // sends "Die", and which of the two reaches this creature depends on what killed it.
+            controller.AddParameter("Death", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Die", AnimatorControllerParameterType.Trigger);
             // DormantModule names these two. Wake is the edge out of the entry state; Awake is a
             // LATCH, set once when the eye finishes opening and never cleared, which is what
             // makes "you can never go back to sleep" a property of the graph rather than of the
@@ -1554,6 +2416,32 @@ namespace SpaceGame.EditorTools
             recover.hasFixedDuration = true;
             recover.duration = 0.25f;
 
+            // Death, off Any State like the cast and for the same reason -- this creature can be
+            // killed while asleep, while walking, or three frames into a wind-up -- but with none
+            // of the cast's gating. In particular NOT gated on Awake: a conjurer that never got
+            // the chance to open its eye can still be shot, and the clip closes a shut eye over
+            // itself harmlessly.
+            //
+            // No way back out. The clip ends on the corpse pose and holds it, so there is no exit
+            // transition and no separate corpse state; HealthReactionModule's despawn timer is
+            // what eventually takes the body.
+            AnimatorState death = root.AddState("Death");
+            death.motion = AssetDatabase.LoadAssetAtPath<AnimationClip>(DeathClipPath);
+
+            foreach (string trigger in new[] { "Death", "Die" })
+            {
+                AnimatorStateTransition dies = root.AddAnyStateTransition(death);
+                dies.hasExitTime = false;
+                dies.hasFixedDuration = true;
+                // Short, but not zero. The clip's first frame IS the standing pose, so there is
+                // nothing to cross-fade FROM if the creature was idle -- and if it was mid-stride
+                // or mid-cast there very much is, and snapping the legs together to start the
+                // fall is the one thing that would give the trick away.
+                dies.duration = 0.12f;
+                dies.canTransitionToSelf = false;
+                dies.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+            }
+
             // Write defaults are left ON, which is Unity's default and is deliberately NOT
             // load-bearing here. The eyelid is the property that would care -- it is animated by
             // some states and not others, which is exactly the case write defaults exist for --
@@ -1632,10 +2520,17 @@ namespace SpaceGame.EditorTools
             // it freezes mid-stride whenever it thinks it is off screen.
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
+            // The BODY only. This capsule is sized to the head/body sphere and stands on the
+            // creature's centreline, and the arms do not live anywhere near that centreline --
+            // rig.py hangs them off ArmRoot at |x| 3.3 m, a clear metre outside a 2.4 m radius.
+            // So the capsule is right for what it covers and simply does not reach the arms;
+            // WireLimbColliders below is what makes them solid.
             var capsule = root.AddComponent<CapsuleCollider>();
             capsule.height = TargetHeight;
             capsule.radius = BlenderBodyWidth * Scale * 0.5f;   // tracks the model, not a magic number
             capsule.center = new Vector3(0f, TargetHeight * 0.5f, 0f);
+
+            WireLimbColliders(root);
 
             // Kinematic, gravity off. The NavMeshAgent owns the transform, so a dynamic
             // body would fight it every frame and win. The Rigidbody is here anyway because
@@ -1654,6 +2549,11 @@ namespace SpaceGame.EditorTools
             // NetworkObject to already be on the object. Before SaveablePolicy.Ensure below,
             // which decides on HealthSaveable by looking for a HealthComponent.
             WireHealth(root);
+            // After WireNetworking (MountNetworkSync wants the NetworkObject) and WireBrain (the
+            // seat hides the rider from the EntityFaction and AgentTargeting that method adds).
+            // Before SaveablePolicy.Ensure below, which decides on MountSaveable by looking for a
+            // MountModule -- without that a player riding at save time comes back on the ground.
+            WireShoulderSeat(root);
 
             // Footstep camera shake, driven by the two OnFootPlant events baked onto the
             // Walk clip in ConfigureImporter.
@@ -1809,19 +2709,19 @@ namespace SpaceGame.EditorTools
 
             var reaction = root.AddComponent<HealthReactionModule>();
             var rso = new SerializedObject(reaction);
-            // BOTH trigger names cleared, which is not the golem's setup and is correct here.
-            // The module's defaults are "Hurt" and "Death"; this controller has neither
-            // parameter -- BuildController declares SpeedX, SpeedY, FallSpeed, IsGrounded,
-            // IsImmobalized, IsAiming, Cast, Wake and Awake, and nothing else. SetTrigger on a
-            // name the controller does not have is a warning per call, so a creature being shot
-            // would fill the console. Empty strings are skipped outright by the module.
+            // "Hurt" CLEARED and "Death" kept, which is a split the module supports and the
+            // controller demands. SetTrigger on a name the controller does not declare is a
+            // warning per call, so a creature being shot would fill the console -- and there is
+            // no Hurt state here, because a machine this size flinching at a rifle round reads as
+            // a bug rather than as a reaction. Empty strings are skipped outright by the module.
             //
-            // The consequence is that death is not animated: the machine stops mid-pose and
-            // fades out on the despawn timer. Giving it a real collapse means authoring the clip
-            // in _Source~/anim.py first, then declaring the parameter here -- not naming a
-            // trigger that does not exist and hoping.
+            // "Death" is declared (see BuildController) and does have a state and a clip behind
+            // it, which is what changed: the collapse used to be a thing this file explained the
+            // absence of. WriteDeathClip authors it -- in C# rather than in _Source~/anim.py,
+            // because the eye shutting is half the animation and the eye is blend shapes, which
+            // is exactly the export route that does not survive the trip through the FBX.
             SetString(rso, "hurtAnimTrigger", string.Empty);
-            SetString(rso, "dieAnimTrigger", string.Empty);
+            SetString(rso, "dieAnimTrigger", "Death");
             // It is a large machine and it dies loudly. Both radii are above the module's own
             // defaults for the same reason ActivationRange is 28 m: everything about this
             // creature is scaled to a body six times the player's height.
@@ -1829,8 +2729,8 @@ namespace SpaceGame.EditorTools
             SetFloat(rso, "deathNoiseRadius", 40f);
             // Switches off AgentController on death, which is what stops the corpse casting.
             SetBool(rso, "disableAgentOnDeath", true);
-            // Long enough to walk up to the thing you just killed. It falls where it stood and
-            // there is no death animation to watch, so the body IS the feedback.
+            // Long enough to walk up to the thing you just killed, and comfortably longer than
+            // the collapse: the body has been lying still for nine seconds by the time it fades.
             SetFloat(rso, "despawnDelay", 12f);
             rso.ApplyModifiedPropertiesWithoutUndo();
 
@@ -1876,11 +2776,28 @@ namespace SpaceGame.EditorTools
                 entry.FindPropertyRelative("quantity").intValue = 1;
             }
 
+            // Held until the body goes, rather than paid out the instant the health hits zero.
+            //
+            // The drop used to land while the creature was still standing over it -- and now that
+            // there is a three-second collapse to watch, it would land while the thing was still
+            // on its way to its knees, which reads as the staff belonging to something else
+            // entirely. Waiting for the despawn makes the pickup the thing that REPLACES the
+            // corpse: the body fades, the staff is lying where it fell.
+            //
+            // The cost is the wait, and the wait is HealthReactionModule's despawnDelay -- twelve
+            // seconds below. That is the dial if it ever feels long; it is not a number this
+            // component knows anything about.
+            SetBool(lso, "dropOnDespawn", true);
             lso.ApplyModifiedPropertiesWithoutUndo();
 
-            // And take the staff off the corpse as the real one hits the ground. Without this the
-            // reward for the fight is two staffs for the twelve seconds the body takes to fade,
-            // one of which cannot be picked up.
+            // And take the staff out of the corpse's fist as it dies.
+            //
+            // It no longer overlaps with the real one -- that arrives twelve seconds later, when
+            // the body goes -- so this is not about two staffs any more. It is about the staff
+            // being fourteen metres long and held upright: the collapse drops the hand that holds
+            // it by five metres onto a knee, which puts three metres of it through the floor and
+            // leaves it lying across the corpse afterwards. A machine that lets go of its weapon
+            // as it dies is also simply the better read.
             var shed = root.AddComponent<HidePartsOnDeath>();
             var sso = new SerializedObject(shed);
             SerializedProperty parts = sso.FindProperty("partNames");
@@ -2253,6 +3170,205 @@ namespace SpaceGame.EditorTools
             aso.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// Makes the arms exist, as far as anything that casts a ray is concerned.
+        ///
+        /// Before this the creature carried exactly one collider -- a capsule on its centreline,
+        /// sized to the head/body sphere. Everything you can SEE outside that radius was empty
+        /// air to physics: the shoulders, the upper arms, the forearms and the fists. A grapple
+        /// aimed at the shoulder passed straight through and only the eye, which is on the body
+        /// column, could be hit. That also made the passenger seat unreachable by the one tool
+        /// that could plausibly get a player fifteen metres up.
+        ///
+        /// Widening the capsule is not the fix. The arms hang a metre clear of the body with
+        /// daylight between, so a radius that reached them would be a 4 m cylinder of solid
+        /// nothing -- you would grapple to the gap, the melee and chase distances that are all
+        /// reasoned off "the capsule is 2.4 m" would silently change, and the machine would
+        /// shoulder the player aside from a metre further out. One collider per segment is what
+        /// the shape actually is.
+        ///
+        /// Sized from the MESHES rather than typed. Every other measurement in this file is
+        /// derived so that re-exporting the model at a different size corrects it instead of
+        /// leaving it quietly wrong, and a hand-typed hitbox is exactly the thing that goes
+        /// stale the first time staff.py or hands.py moves a part.
+        ///
+        /// The colliders go ON the bones, so they follow the animation for free -- no per-frame
+        /// component, no second hierarchy to keep in step. They join the root's kinematic
+        /// Rigidbody as a compound body, which is also what makes them cheap to move.
+        private static void WireLimbColliders(GameObject root)
+        {
+            Transform[] all = root.GetComponentsInChildren<Transform>(true);
+
+            foreach ((string boneName, string[] excluding) in ArmColliders)
+            {
+                Transform bone = all.FirstOrDefault(t => t.name == boneName);
+                if (bone == null)
+                {
+                    Debug.LogWarning($"[LightningConjurer] No bone '{boneName}' to hang a collider " +
+                                     "on; that limb stays untouchable. Did rig.py rename it?");
+                    continue;
+                }
+
+                Transform[] excluded = excluding
+                    .Select(name => all.FirstOrDefault(t => t.name == name))
+                    .Where(t => t != null)
+                    .ToArray();
+
+                if (!TryMeasureInBoneSpace(bone, excluded, out Vector3 centre, out Vector3 size))
+                {
+                    Debug.LogWarning($"[LightningConjurer] Bone '{boneName}' has no mesh of its " +
+                                     "own to size a collider from; skipped.");
+                    continue;
+                }
+
+                var box = bone.gameObject.AddComponent<BoxCollider>();
+                box.center = centre;
+                box.size = size;
+            }
+        }
+
+        /// The snug box around everything drawn by <paramref name="bone"/> itself, in the bone's
+        /// OWN space.
+        ///
+        /// Bone space, not world, and that is the point: an arm bone is rotated to lie along the
+        /// arm, so a world-axis-aligned box round a raised forearm is a loose diagonal slab that
+        /// gets looser the further the arm swings. Measured against the bone it is snug in every
+        /// pose, and because a BoxCollider's centre and size are read in that same space, it
+        /// simply follows the animation.
+        ///
+        /// Mesh bounds rather than <c>Renderer.bounds</c>, for the same reason -- the latter is
+        /// already world-axis-aligned and has thrown the orientation away before we see it.
+        ///
+        /// The rig's bones carry a scale of 100 (the import bakes the model's scale into the
+        /// hierarchy), and everything here stays in bone-local units, so that factor cancels
+        /// out on both sides and never has to appear as a magic number.
+        private static bool TryMeasureInBoneSpace(Transform bone, Transform[] excluded,
+                                                  out Vector3 centre, out Vector3 size)
+        {
+            centre = Vector3.zero;
+            size = Vector3.zero;
+
+            Vector3 min = Vector3.positiveInfinity;
+            Vector3 max = Vector3.negativeInfinity;
+            bool any = false;
+
+            foreach (MeshFilter filter in bone.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.sharedMesh == null)
+                    continue;
+                if (excluded.Any(e => filter.transform.IsChildOf(e)))
+                    continue;
+
+                Bounds local = filter.sharedMesh.bounds;
+                Matrix4x4 toBone = bone.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+
+                // All eight corners. Transforming the centre and extents alone is only correct
+                // when the two spaces are axis-aligned, which is exactly what they are not here.
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    var point = new Vector3(
+                        (corner & 1) == 0 ? local.min.x : local.max.x,
+                        (corner & 2) == 0 ? local.min.y : local.max.y,
+                        (corner & 4) == 0 ? local.min.z : local.max.z);
+
+                    Vector3 inBone = toBone.MultiplyPoint3x4(point);
+                    min = Vector3.Min(min, inBone);
+                    max = Vector3.Max(max, inBone);
+                    any = true;
+                }
+            }
+
+            if (!any)
+                return false;
+
+            centre = (min + max) * 0.5f;
+            size = max - min;
+            return true;
+        }
+
+        /// Lets a player ride on the machine's shoulder without becoming its problem.
+        ///
+        /// Composed from the stock mount stack, with one thing deliberately ABSENT:
+        ///
+        ///   MountModule       the seat, the camera, the rider's component handoff, the dismount.
+        ///                     seatBone points it at the rig, which a serialized Transform cannot
+        ///                     reach into, and allowAISelfMovementWhenMounted leaves the brain
+        ///                     running -- the creature wanders, hunts and casts with a passenger
+        ///                     aboard exactly as it does without one.
+        ///   MountNetworkSync  replicates the seating, and -- seeing no SteerModule -- leaves the
+        ///                     creature owned by the server rather than handing an AI to the
+        ///                     passenger's PC. See MountModule.RiderDrives.
+        ///   PassengerSeat     hides the rider from this creature's own targeting for as long as
+        ///                     they are aboard, holds them on the animated bone, and gives them
+        ///                     Escape to get down with.
+        ///   MountedRiderPose  sits them, instead of standing them to attention on the shoulder.
+        ///
+        ///   NO SteerModule    which is the whole point. There is no input path from this seat to
+        ///                     the motor, so the passenger is cargo and the machine is still an
+        ///                     agent rather than a vehicle.
+        ///
+        /// Consequence worth knowing before it reads as a bug: a conjurer will not wake for, look
+        /// at, chase or strike the player sitting on it, and it will not retaliate if that player
+        /// shoots it. The exemption is total and it is scoped to THIS creature -- every other
+        /// robot in the world still sees the passenger perfectly well, and will happily fire on a
+        /// shoulder this one is carrying.
+        private static void WireShoulderSeat(GameObject root)
+        {
+            // A real child of the prefab root, not a bone: the rider is put down here, so it has to
+            // stay at ground level whatever the legs are doing.
+            var dismount = new GameObject("DismountPoint");
+            dismount.transform.SetParent(root.transform, false);
+            dismount.transform.localPosition = DismountOffset;
+
+            var mount = root.AddComponent<MountModule>();
+            var mso = new SerializedObject(mount);
+
+            // Resolved by NAME. The rig is a nested prefab instance and a serialized Transform
+            // cannot point inside one -- the same reason ConjurerCastModule finds StaffTip this way.
+            SetString(mso, "seatBone", SeatBone);
+            SetProp(mso, "dismountPoint", dismount.transform);
+
+            // The one flag that makes this a passenger seat rather than a saddle. Off -- the
+            // default -- MountModule disables every other behaviour module for the duration, and
+            // an 18 m robot with a rider aboard would stand rooted to the spot.
+            SetBool(mso, "allowAISelfMovementWhenMounted", true);
+
+            // Third person, and not merely as a preference. Mounted FIRST person gives the rider
+            // pitch only -- yaw is the mount's heading, because on a steered mount yaw IS the
+            // steering -- so a passenger in first person could look up and down and nowhere else.
+            // The orbit camera is the only one that lets them look around.
+            SetEnum(mso, "defaultPerspective", (int)MountModule.CameraPerspective.ThirdPerson);
+            // Sized to the machine. The boom hangs off the RIDER, so the stock 4.5 m frames a
+            // player sitting in mid-air with the thing they are riding out of shot behind them.
+            SetFloat(mso, "thirdPersonDistance", 11f);
+            SetFloat(mso, "thirdPersonLookAhead", 5f);
+            // Yaw-only orbit: this creature walks upright and never pitches, so the horizon should
+            // stay level whatever the stride does to the body.
+            SetBool(mso, "followMountPitch", false);
+            mso.ApplyModifiedPropertiesWithoutUndo();
+
+            root.AddComponent<MountNetworkSync>();
+
+            var seat = root.AddComponent<PassengerSeat>();
+            var pso = new SerializedObject(seat);
+            SetProp(pso, "mountModule", mount);
+            // In the CARRIER's frame, not the bone's. The bone already puts the rider over the
+            // correct shoulder; what is left is a nudge along the machine's own up and forward
+            // axes, which mean the same thing whichever way the arm happens to be swung.
+            SetVector3(pso, "seatOffset", SeatOffset);
+            pso.ApplyModifiedPropertiesWithoutUndo();
+
+            // Sits the rider down. Without it a player rides the shoulder standing bolt upright,
+            // which is the pose PlayerMovement.ForceIdleAnimation leaves them in. The stock values
+            // are solved against the ostrich's barrel, so the legs are re-angled here to hang off
+            // an edge rather than grip round one.
+            var pose = root.AddComponent<MountedRiderPose>();
+            var rso = new SerializedObject(pose);
+            SetProp(rso, "mountModule", mount);
+            SetVector3(rso, "upperLegRotation", new Vector3(-72f, 0f, -7f));
+            SetVector3(rso, "lowerLegRotation", new Vector3(-72f, 0f, 0f));
+            rso.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         // Private [SerializeField] fields are not reachable from an editor script any other
         // way, and making them public purely so this could set them would widen the runtime API
         // for a build-time convenience. A missing name warns loudly rather than silently doing
@@ -2300,6 +3416,12 @@ namespace SpaceGame.EditorTools
         {
             SerializedProperty p = Find(so, field);
             if (p != null) p.enumValueIndex = value;
+        }
+
+        private static void SetVector3(SerializedObject so, string field, Vector3 value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.vector3Value = value;
         }
 
         private static void AddToTestScene(GameObject prefab)

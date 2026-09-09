@@ -111,6 +111,13 @@ namespace SpaceGame.Agents
 
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
+            // Done means the ladder has already been handed over. Finish() switches this module
+            // off, so reaching here at all means something switched it back ON — and the Idle
+            // below, returned from the highest priority on the creature, would freeze it where it
+            // stands for the rest of the session. Pass instead of claiming the frame.
+            if (phase == Phase.Done)
+                return null;
+
             switch (phase)
             {
                 case Phase.Asleep:

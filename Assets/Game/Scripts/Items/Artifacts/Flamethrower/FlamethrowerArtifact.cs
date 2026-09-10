@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Core;
@@ -63,23 +64,67 @@ namespace SpaceGame.Items
                  "range; the full spread is twice this.")]
         [SerializeField] private float coneHalfAngle = 25f;
 
-        [Tooltip("What the cone may catch. Bodies without a StatusReceiver are ignored whatever " +
-                 "this says, so it is a cost filter rather than a rule.")]
+        [Tooltip("What the cone may catch. Everything on these layers burns — a receiver is put " +
+                 "on whatever does not already have one — so this mask is the only thing deciding " +
+                 "what the flame can and cannot set alight.")]
         [SerializeField] private LayerMask coneMask = ~0;
 
         [Tooltip("What stops the flame reaching a body. Set to nothing to let fire pass through " +
                  "walls, which is almost never what is wanted at six metres.")]
         [SerializeField] private LayerMask sightBlockers = ~0;
 
-        [Tooltip("How often the cone is swept, in sweeps per second. Costs no bandwidth: the loop " +
-                 "runs on the deciding machine only. Fifteen matches the hold stream, which is the " +
-                 "rate the fire was tuned against.")]
+        [Tooltip("How often the cone is swept, in sweeps per second. Costs no bandwidth: every " +
+                 "machine runs the loop over its own colliders and none of it goes on the wire. " +
+                 "Fifteen matches the hold stream, which is the rate the fire was tuned against.")]
         [SerializeField] private float sweepsPerSecond = 15f;
 
         [Header("Tank")]
         [Tooltip("The fuel bottle. Its drain and refill are the item's only cost — see " +
                  "SupplyReservoir. Found on this prefab when unset.")]
         [SerializeField] private SupplyReservoir tank;
+
+        [Header("Ground fire")]
+        [Tooltip("The patch of fire left where the jet lands. NOT a network prefab and must not " +
+                 "become one: every machine lays its own from the same aim, and only the deciding " +
+                 "machine's copies set anything alight. See GroundFire.")]
+        [SerializeField] private GameObject groundFirePrefab;
+
+        [Tooltip("How often fire is laid on the ground, in patches per second. Merged onto a world " +
+                 "grid by GroundFireField, so this is how quickly a swept trail fills in rather " +
+                 "than how many patches a burst produces.")]
+        [SerializeField] private float firesPerSecond = 10f;
+
+        [Tooltip("What the flame can set alight underfoot. Terrain and scenery; a body is caught " +
+                 "by the cone instead, and is skipped here whatever this says.")]
+        [SerializeField] private LayerMask groundMask = ~0;
+
+        [Tooltip("How level a surface has to be to hold fire, as the upward part of its normal. " +
+                 "At 0 the patches stand out of walls at right angles to the ground, which is the " +
+                 "one place a flat disc of flame reads as a decal rather than as fire.")]
+        [SerializeField, Range(0f, 1f)] private float minGroundSlope = 0.45f;
+
+        [Tooltip("How far off the surface a patch is placed, in metres. Enough to keep the flames " +
+                 "out of the ground they are standing on and no more.")]
+        [SerializeField] private float groundOffset = 0.04f;
+
+        [Tooltip("Seconds between the trigger going down and the first patch being laid — roughly " +
+                 "how long the flame takes to cross the range.")]
+        [SerializeField] private float groundFireDelay = 0.2f;
+
+        [Tooltip("How far below the flame the ground still catches, in metres. This is what lets a " +
+                 "jet fired ACROSS open sand set it alight rather than only the wall it is pointed " +
+                 "at. Roughly the height of the burning cloud the jet leaves behind it.")]
+        [SerializeField] private float groundReach = 1.6f;
+
+        [Tooltip("Metres between the points along the jet that look for ground under them. Just " +
+                 "under GroundFireField's cell size, so a swept trail has no cold gaps in it and " +
+                 "no two samples in one lay ever land in the same cell.")]
+        [SerializeField] private float groundSampleStep = 1f;
+
+        [Tooltip("How far down the jet the sampling starts, in metres. The flame at the muzzle is " +
+                 "at the holder's own feet, and fire laid there sets the player who fired it " +
+                 "alight the instant they pull the trigger.")]
+        [SerializeField] private float groundSampleStart = 2f;
 
         [Header("Jet")]
         [Tooltip("The flame's presentation. Optional: the item works with none, silently and " +
@@ -114,6 +159,7 @@ namespace SpaceGame.Items
 
         private float lastHoldTime;
         private float sweepTimer;
+        private float layTimer;
 
         /// <summary>0 with the trigger up, 1 at full jet. Drives the presentation and nothing else.</summary>
         private float throttle;
@@ -126,14 +172,19 @@ namespace SpaceGame.Items
         private Vector3 smoothedDirection = Vector3.forward;
 
         /// <summary>
-        /// The bodies already set alight by the sweep in progress.
-        ///
-        /// A body is a handful of colliders and every one of them can be in the cone, so without
-        /// this the same creature is announced several times per sweep — harmless, since a refresh
-        /// is idempotent, and several times the traffic for nothing. Reused between sweeps: this
-        /// runs fifteen times a second for as long as the trigger is down.
+        /// The bodies the cone is on this sweep, one entry each — <see cref="ConeSweep"/> is what
+        /// keeps a creature that puts a handful of colliders in the cone from being announced
+        /// several times. Reused between sweeps: this runs fifteen times a second for as long as
+        /// the trigger is down.
         /// </summary>
-        private readonly HashSet<StatusReceiver> alight = new HashSet<StatusReceiver>();
+        private readonly List<ConeBody> alight = new List<ConeBody>();
+
+        /// <summary>
+        /// What the flame counts as a body, handed to <see cref="ConeSweep"/>. Cached because a
+        /// method group becomes a fresh delegate at every call site it is written at, and this one
+        /// is written at fifteen a second.
+        /// </summary>
+        private static readonly Func<GameObject, StatusReceiver> Catches = Ignition.Receiver;
 
         // ── The press ──────────────────────────────────────────────────────────
 
@@ -253,6 +304,12 @@ namespace SpaceGame.Items
             smoothedDirection = rayDirection;
             lastHoldTime = Time.time;
             sweepTimer = 0f;
+
+            // Negative, so the first patch is laid a beat AFTER the trigger rather than on the
+            // frame it goes down. The jet needs that long to actually reach the ground, and fire
+            // appearing six metres away before the flame gets there is the tell that the patch is
+            // being placed rather than landing.
+            layTimer = -groundFireDelay;
         }
 
         /// <summary>Put the jet out. Safe on an already-dark lance, and reached that way constantly.</summary>
@@ -288,7 +345,19 @@ namespace SpaceGame.Items
                 firing ? 1f : 0f,
                 deltaTime / Mathf.Max(0.001f, firing ? igniteTime : fadeTime));
 
-            if (firing && IsAuthority()) Sweep(deltaTime);
+            // On EVERY machine, not only the authority — which is the price of the line above
+            // creating receivers. A status arrives as a message on the body's own relay, and a
+            // relay with nothing subscribed drops it without a word, so a receiver the server
+            // invented alone is a body that burns for the server and for nobody else. Running the
+            // sweep everywhere puts the same component on the same bodies everywhere; only the
+            // deciding machine bills anything, because StatusReceiver.Apply returns early when it
+            // is not the one that decides.
+            if (firing) Sweep(deltaTime);
+
+            // Every machine, unlike the sweep: the patches are what the fire LOOKS like, and a peer
+            // watching a teammate torch a dune has to see the dune burning. Only the deciding
+            // machine's patches set anything alight, which is the flag Lay passes down.
+            if (firing) Lay(deltaTime);
 
             DrawJet();
         }
@@ -367,79 +436,113 @@ namespace SpaceGame.Items
         {
             if (owner == null) return;
 
+            // The lance itself needs no exclusion of its own: while equipped it is parented into the
+            // holder, so its root IS the owner's root. The root also covers the machine they are
+            // riding, which mounting parents them under.
+            //
+            // Anything the flame touches burns — a creature, another player, a crate, a prefab
+            // nobody thought to author a receiver on. Asking only for receivers that already existed
+            // is what made the weapon do nothing to most of the world; Ignition draws the line at
+            // bodies, so a dune does not become one burning object.
+            ConeSweep.Bodies(rayOrigin, Direction(), range, coneHalfAngle, coneMask, sightBlockers,
+                             owner.transform.root, StatusReceiver.Of(owner), Catches, alight);
+
+            foreach (ConeBody caught in alight)
+                Ignition.Light(caught.Collider.gameObject, owner.transform);
+        }
+
+        // ── Every machine: the fire left behind ────────────────────────────────
+
+        /// <summary>
+        /// Lay fire under the jet, all the way along it.
+        ///
+        /// <para>
+        /// This is what makes the item a flamethrower rather than a torch: the flame keeps burning
+        /// after the jet has moved on, so sweeping a line across the sand leaves a line of fire
+        /// standing in it and the player is choosing where the ground is dangerous, not only what
+        /// is in front of the barrel right now (GDC-L1-FEEL-0004 — the same action, answered in a
+        /// second channel that outlasts it).
+        /// </para>
+        /// <para>
+        /// <b>The whole path is sampled, not just the impact point.</b> A single ray down the aim
+        /// only ever lights what the player is POINTING AT, so a jet fired across open sand — the
+        /// ordinary way this weapon is used — set nothing alight at all and the ground only caught
+        /// when someone happened to aim into it. Instead the jet's path is walked in
+        /// <see cref="groundSampleStep"/> strides and a short ray dropped from each one: wherever
+        /// the flame passes within <see cref="groundReach"/> of the ground, the ground catches.
+        /// </para>
+        /// <para>
+        /// Traced down the SMOOTHED direction — the one the jet is drawn along — rather than down
+        /// the raw aim the authority sweeps with. The two differ by at most a tick's worth of
+        /// smoothing on a peer, and of the two mismatches available, fire that is not quite where
+        /// the server thinks it is beats fire that is not where the flame visibly went.
+        /// </para>
+        /// </summary>
+        private void Lay(float deltaTime)
+        {
+            if (groundFirePrefab == null || firesPerSecond <= 0f) return;
+
+            layTimer += deltaTime;
+
+            float step = 1f / firesPerSecond;
+            if (layTimer < step) return;
+
+            layTimer = 0f;
+
             Vector3 direction = Direction();
-            Transform ownerRoot = owner.transform.root;
-            StatusReceiver holder = StatusReceiver.Of(owner);
 
-            alight.Clear();
+            // How far the flame actually gets. Sampling past whatever stopped it would lay fire on
+            // the far side of the rock the player is standing behind, which is the same mistake the
+            // cone's own line-of-sight check exists to avoid.
+            float carry = range;
 
-            foreach (Collider hit in Physics.OverlapSphere(rayOrigin, range, coneMask,
-                                                           QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(rayOrigin, direction, out RaycastHit blocked, range, groundMask,
+                                QueryTriggerInteraction.Ignore))
             {
-                // The lance itself needs no exclusion of its own: while equipped it is parented into
-                // the holder, so its root IS ownerRoot. The root also covers the machine they are
-                // riding, which mounting parents them under.
-                if (hit.transform.IsChildOf(ownerRoot)) continue;
+                // A BODY does not stop the flame. Shortening the walk at a creature would mean that
+                // pointing at one put out the fire on the sand behind it, which is the opposite of
+                // what aiming at something should do. Only scenery ends the jet.
+                if (StatusReceiver.Of(blocked.collider.gameObject) == null)
+                {
+                    carry = blocked.distance;
+                    Scorch(blocked.point, blocked.normal, blocked.collider);
+                }
+            }
 
-                Vector3 point = hit.bounds.center;
-                if (!RepulsorBlast.InCone(rayOrigin, direction, point, range, coneHalfAngle)) continue;
+            // Floored here and not only in OnValidate: that runs in the editor, and a prefab
+            // authored with a stride of zero would walk this loop forever on a player's machine.
+            float stride = Mathf.Max(0.25f, groundSampleStep);
 
-                StatusReceiver body = StatusReceiver.Of(hit.gameObject);
-                if (body == null || body == holder) continue;
+            for (float along = groundSampleStart; along <= carry; along += stride)
+            {
+                Vector3 overhead = rayOrigin + direction * along;
 
-                // Tested, not claimed, until the body has actually caught: a creature is several
-                // colliders and the first of them the overlap happens to return may be the one
-                // outside the cone or the one behind the rock. Marking it burnt on that collider
-                // would cost it the fire the collider beside it earned.
-                if (alight.Contains(body)) continue;
-
-                if (!Reaches(point, body, ownerRoot)) continue;
-
-                alight.Add(body);
-
-                // No duration and no magnitude: five seconds is what the fire says it is worth, and
-                // a flamethrower does not get to decide how long it burns. The source is the HOLDER,
-                // which is what ProvocationModule reads to work out who a creature is now afraid of.
-                body.Apply(StatusKind.Burning, source: owner.transform);
+                if (Physics.Raycast(overhead, Vector3.down, out RaycastHit under, groundReach,
+                                    groundMask, QueryTriggerInteraction.Ignore))
+                    Scorch(under.point, under.normal, under.collider);
             }
         }
 
         /// <summary>
-        /// Is there a clear line from the cone's apex to <paramref name="point"/>?
+        /// Set fire to one piece of ground, if it is ground at all.
         ///
         /// <para>
-        /// The cone alone is a volume and knows nothing about what is standing in it, so without
-        /// this a six-metre jet sets fire to whatever is on the far side of the rock the player is
-        /// hiding behind. The body itself is what the ray meets whenever nothing else is in the way,
-        /// and the holder's own body is what it meets first when the eye sits inside their head —
-        /// neither of those is an obstruction.
+        /// A body catches fire as a body, through the cone and its own <see cref="StatusReceiver"/>.
+        /// A patch standing on one would be a disc of flame welded to a creature's hip that stays
+        /// behind in the air the moment it walks off.
         /// </para>
         /// </summary>
-        private bool Reaches(Vector3 point, StatusReceiver body, Transform ownerRoot)
+        private void Scorch(Vector3 point, Vector3 normal, Collider surface)
         {
-            if (sightBlockers.value == 0) return true;
+            if (StatusReceiver.Of(surface.gameObject) != null) return;
 
-            Vector3 to = point - rayOrigin;
-            float distance = to.magnitude;
-            if (distance < 1e-3f) return true;
+            if (normal.y < minGroundSlope) return;
+            if (owner != null && surface.transform.IsChildOf(owner.transform.root)) return;
 
-            if (!Physics.Raycast(rayOrigin, to / distance, out RaycastHit blocker, distance,
-                                 sightBlockers, QueryTriggerInteraction.Ignore))
-                return true;
-
-            Transform obstruction = blocker.collider.transform;
-            return obstruction.IsChildOf(body.transform) || obstruction.IsChildOf(ownerRoot);
+            GroundFireField.Kindle(groundFirePrefab,
+                                   point + normal * groundOffset,
+                                   owner != null ? owner.transform : transform);
         }
-
-        /// <summary>
-        /// Is this the machine that decides what the flame sets alight? Offline, or the server.
-        ///
-        /// Asked of the OWNER rather than of this item. An equipped artifact is instantiated into a
-        /// hand and never spawned, so its own NetworkObject is dormant and
-        /// <see cref="Network.Simulates"/> would answer "yes, you simulate it" on every machine in
-        /// the session — and every player watching would announce the same fire.
-        /// </summary>
-        private bool IsAuthority() => owner != null && Network.Simulates(owner.transform);
 
         // ── Every machine: the jet ─────────────────────────────────────────────
 
@@ -525,6 +628,16 @@ namespace SpaceGame.Items
             range = Mathf.Max(0.5f, range);
             coneHalfAngle = Mathf.Clamp(coneHalfAngle, 1f, 90f);
             sweepsPerSecond = Mathf.Clamp(sweepsPerSecond, 1f, 60f);
+            firesPerSecond = Mathf.Clamp(firesPerSecond, 0f, 60f);
+            groundOffset = Mathf.Clamp(groundOffset, 0f, 0.5f);
+            groundFireDelay = Mathf.Clamp(groundFireDelay, 0f, 1f);
+
+            groundReach = Mathf.Clamp(groundReach, 0f, 20f);
+            groundSampleStart = Mathf.Clamp(groundSampleStart, 0f, range);
+
+            // Floored well above zero rather than merely above it: Lay walks the jet in strides of
+            // this, so a stride of nothing is a loop that never advances and hangs the frame.
+            groundSampleStep = Mathf.Clamp(groundSampleStep, 0.25f, range);
 
             igniteTime = Mathf.Max(0.001f, igniteTime);
             fadeTime = Mathf.Max(0.001f, fadeTime);

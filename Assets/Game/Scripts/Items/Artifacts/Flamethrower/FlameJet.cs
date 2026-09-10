@@ -53,6 +53,19 @@ namespace SpaceGame.Items
         [Tooltip("Light intensity of the pilot flame alone, with the trigger up.")]
         [SerializeField] private float pilotIntensity = 0.7f;
 
+        [Tooltip("How far the light reaches at full throttle, in metres. A jet that lights the " +
+                 "muzzle and nothing else is a torch; this is the range at which the flame lights " +
+                 "what it is about to burn.")]
+        [SerializeField] private float jetRange = 14f;
+
+        [Tooltip("How far the pilot flame alone reaches, in metres.")]
+        [SerializeField] private float pilotRange = 1.6f;
+
+        [Tooltip("How far down the jet the light sits at full throttle, in metres. At the muzzle " +
+                 "the plume lights the holder and nothing in front of them; out here it lights " +
+                 "what the flame is actually touching.")]
+        [SerializeField] private float lightReach = 2.6f;
+
         [Tooltip("How hard the light flickers, 0 for a steady lamp.")]
         [SerializeField, Range(0f, 1f)] private float flicker = 0.3f;
 
@@ -73,6 +86,18 @@ namespace SpaceGame.Items
 
         private bool piloted;
         private bool audible;
+
+        /// <summary>
+        /// Each emitter and everything hung under it. The jet is layered — a core, the billows
+        /// rolling off it, the wisps between them — and those layers are CHILDREN of the system
+        /// this component holds, so a layer added in the builder needs no new serialized field
+        /// here. See <see cref="FlameLayers"/> for why the throttle cannot simply be written into
+        /// the emission multiplier.
+        /// </summary>
+        private FlameLayers flameLayers;
+        private FlameLayers emberLayers;
+        private FlameLayers smokeLayers;
+        private FlameLayers pilotLayers;
 
         /// <summary>
         /// Point the jet: it leaves <paramref name="origin"/> and travels along
@@ -99,7 +124,7 @@ namespace SpaceGame.Items
             if (piloted == on) return;
 
             piloted = on;
-            SetEmitting(pilot, on);
+            pilotLayers?.SetEmitting(on);
 
             if (!on) Douse();
         }
@@ -120,9 +145,9 @@ namespace SpaceGame.Items
                 // Started and stopped on the edge, never per frame: calling Play on a system that is
                 // already playing restarts it, which would clear everything already in the air sixty
                 // times a second and leave a permanent stub of a jet.
-                SetEmitting(flame, running);
-                SetEmitting(embers, running);
-                SetEmitting(smoke, running);
+                flameLayers?.SetEmitting(running);
+                emberLayers?.SetEmitting(running);
+                smokeLayers?.SetEmitting(running);
 
                 if (running)
                 {
@@ -141,13 +166,26 @@ namespace SpaceGame.Items
 
             if (running)
             {
-                Scale(flame, throttle);
-                Scale(embers, throttle);
-                Scale(smoke, throttle);
+                flameLayers?.SetRate(throttle);
+                emberLayers?.SetRate(throttle);
+                smokeLayers?.SetRate(throttle);
                 jetLoop.SetVolume(throttle);
             }
 
             DrawLight();
+        }
+
+        /// <summary>
+        /// Resolve the layers once. In Awake rather than lazily, because the first
+        /// <see cref="SetThrottle"/> arrives on the frame the trigger goes down and a search there
+        /// would be a hitch at exactly the moment the item is meant to feel immediate.
+        /// </summary>
+        private void Awake()
+        {
+            flameLayers = new FlameLayers(flame);
+            emberLayers = new FlameLayers(embers);
+            smokeLayers = new FlameLayers(smoke);
+            pilotLayers = new FlameLayers(pilot);
         }
 
         private void DrawLight()
@@ -159,6 +197,16 @@ namespace SpaceGame.Items
 
             if (flameLight.enabled != lit) flameLight.enabled = lit;
             if (!lit) return;
+
+            flameLight.range = Mathf.Lerp(pilotRange, jetRange, throttle);
+
+            // The light travels out along the plume as the jet comes up. Parked at the muzzle it
+            // lights the holder's own arms and leaves what they are burning in the dark; six metres
+            // of fire that illuminates nothing is the thing this fixes.
+            Transform lightPoint = flameLight.transform;
+            Vector3 local = lightPoint.localPosition;
+            local.z = Mathf.Lerp(0.12f, lightReach, throttle);
+            lightPoint.localPosition = local;
 
             // Two incommensurable frequencies rather than one, so the flicker never settles into a
             // rhythm the eye can predict and start reading as a pulse.
@@ -174,9 +222,9 @@ namespace SpaceGame.Items
         {
             throttle = 0f;
 
-            SetEmitting(flame, false);
-            SetEmitting(embers, false);
-            SetEmitting(smoke, false);
+            flameLayers?.SetEmitting(false);
+            emberLayers?.SetEmitting(false);
+            smokeLayers?.SetEmitting(false);
 
             jetLoop.Stop();
             audible = false;
@@ -187,7 +235,7 @@ namespace SpaceGame.Items
         private void OnDisable()
         {
             piloted = false;
-            SetEmitting(pilot, false);
+            pilotLayers?.SetEmitting(false);
             Douse();
 
             // Immediate rather than faded: a disable is a teardown, and a fade would hold a voice
@@ -196,29 +244,5 @@ namespace SpaceGame.Items
         }
 
         private void OnDestroy() => jetLoop.Stop(false);
-
-        private static void Scale(ParticleSystem system, float throttle)
-        {
-            if (system == null) return;
-
-            ParticleSystem.EmissionModule emission = system.emission;
-            emission.rateOverTimeMultiplier = throttle;
-        }
-
-        private static void SetEmitting(ParticleSystem system, bool on)
-        {
-            if (system == null) return;
-
-            if (on)
-            {
-                system.Play(withChildren: true);
-                return;
-            }
-
-            // Stop emitting but let what is already in the air burn out. StopEmittingAndClear would
-            // make the whole jet vanish the instant the trigger came up, which reads as a rendering
-            // glitch rather than as the flame dying back.
-            system.Stop(withChildren: true, ParticleSystemStopBehavior.StopEmitting);
-        }
     }
 }

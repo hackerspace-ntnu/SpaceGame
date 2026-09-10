@@ -84,21 +84,59 @@ namespace SpaceGame.Items
                 if (longest > 0f) t.localScale = Vector3.one * (target / (longest * boneScale));
             }
 
+            Pose(t, fit, mount);
+        }
+
+        /// <summary>
+        /// Put a already-seated item at the pose the fit and the mount currently call for.
+        ///
+        /// <para>
+        /// Split out of <see cref="Apply"/> because it is the only part of seating that has to be
+        /// able to run EVERY FRAME. The rest of <c>Apply</c> — the form swap, the bounds
+        /// measurement, the scale — answers questions whose answers do not change while the item is
+        /// worn, and <c>ItemBounds.Measure</c> walks every mesh in the prefab, so running it per
+        /// frame would be paying for a fixed answer over and over.
+        /// </para>
+        /// <para>
+        /// <b>The mount is a live transform, not a remembered one, and that is the point.</b> The
+        /// pack's rail comes and goes — <c>BackpackController.GearMount</c> answers null while the
+        /// pack is on the sand and a real transform again once it is shouldered — and this used to
+        /// be read exactly once, at wear. So the pose was a snapshot of a relationship that then
+        /// changed underneath it: gear put on with the pack off the back seated at the fit's
+        /// fallback and stayed 0.65 m off the rail forever after the pack came home, and gear worn
+        /// with the pack on stayed where the rail had been once it was deployed. Nothing re-seated
+        /// on either transition, and nothing said so. <see cref="WornAnchor"/> now calls this every
+        /// LateUpdate, so the answer is re-derived rather than remembered and both transitions look
+        /// after themselves.
+        /// </para>
+        /// <para>
+        /// Position off the rail is measured off the rig, not typed: the rail's transform sits at
+        /// the middle of the lash line, so gear centres on it and its ends reach out along the two
+        /// protruding bars. A hand-authored offset from the spine would mean the same thing only
+        /// until somebody moved the pack's worn pose or rescaled the rig, and the failure then is
+        /// silent.
+        /// </para>
+        /// <para>
+        /// <b>Only the position comes off the rail.</b> The rail's own rotation is the pack's leaf
+        /// angle — the rig is mounted turned about Y — and says nothing about which way up a wing
+        /// pack goes, so the orientation stays the fit's, in the BONE's frame. That is not a
+        /// mismatch now that the position is live: the rail is a rigid child of the pack and the
+        /// pack is parented to the same trunk bone, so the two frames turn together and the item is
+        /// rigid to the rig. It was only ever a mismatch while one half was stale.
+        /// </para>
+        /// <para>
+        /// <see cref="WornFit.AnchorToBone"/> opts out of the rail entirely, for gear shaped around
+        /// the WEARER rather than clipped to the pack. Asking the fit rather than guessing from the
+        /// item is what keeps this one seam honest: both places that seat worn gear, the real thing
+        /// and the gear screen's ghost of it, come through here.
+        /// </para>
+        /// </summary>
+        public static void Pose(Transform t, WornFit fit, Transform mount)
+        {
+            if (t == null) return;
+
             t.localRotation = fit != null ? fit.LocalRotation : Quaternion.identity;
 
-            // Measured off the rig, not typed: the rail's transform sits at the middle of the lash
-            // line, so gear centres on it and its ends reach out along the two protruding bars. A
-            // hand-authored offset from the spine would mean the same thing only until somebody
-            // moved the pack's worn pose or rescaled the rig, and the failure then is silent — the
-            // screen's ghost would keep promising the rail while the gear drifted off it.
-            //
-            // Only the position. The rail's own rotation is the pack's leaf angle and says nothing
-            // about which way up a wing pack goes, so the orientation stays the fit's.
-            //
-            // AnchorToBone opts out of the rail entirely, for gear shaped around the WEARER rather
-            // than clipped to the pack — see WornFit.AnchorToBone. Asking the fit rather than
-            // guessing from the item is what keeps this one seam honest: both places that seat
-            // worn gear, the real thing and the gear screen's ghost of it, come through here.
             bool useMount = mount != null && (fit == null || !fit.AnchorToBone);
             if (useMount) t.position = mount.position;
             else t.localPosition = fit != null ? fit.LocalPosition : Vector3.zero;

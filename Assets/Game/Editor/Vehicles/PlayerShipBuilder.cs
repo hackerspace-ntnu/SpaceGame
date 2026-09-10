@@ -2601,7 +2601,36 @@ namespace SpaceGame.EditorTools
             SandstormShelter shelter = root.AddComponent<SandstormShelter>();
             Apply(shelter, so => SetBounds(so, "localVolume", volume));
 
-            BuildBreathableAir(root, volume);
+            BuildDeckCarry(root, BuildBreathableAir(root, volume));
+        }
+
+        /// <summary>
+        /// Take the crew with the ship.
+        ///
+        /// <para>
+        /// A hull moved by transform writes imparts no friction and no momentum to a body resting
+        /// on it, so anybody standing in the cabin is simply left behind as the deck slides out
+        /// from under them. That is every machine but the one driving: <c>NetAuthority</c> makes the
+        /// hull kinematic on a client and <c>ClientNetworkTransform</c> then writes its pose. The
+        /// pilot never noticed, because a pilot is parented into their seat.
+        /// </para>
+        /// <para>
+        /// It rides the breathable-air trigger rather than a volume of its own. That box is already
+        /// the walkable interior, measured off the two deck slabs, and it is already the answer to
+        /// "is this body inside the ship" — a second box drawn from the same decks would drift from
+        /// it the first time either was tuned. It is also the reason no new collider is added here:
+        /// a live trigger on a drivable 30 m hull enters every <c>SceneTransition</c> and
+        /// <c>VolumeTrigger</c> the ship drives through, and joins the shape <c>ShipHull</c>
+        /// measures the hull from. The carrier only reads the box's pose and extents; it does not
+        /// need trigger messages, which is exactly why it polls with an overlap query.
+        /// </para>
+        /// </summary>
+        private static void BuildDeckCarry(GameObject root, Collider carryVolume)
+        {
+            WalkerPlatformCarrier carrier = root.GetComponent<WalkerPlatformCarrier>();
+            if (carrier == null) carrier = root.AddComponent<WalkerPlatformCarrier>();
+
+            Apply(carrier, so => so.FindProperty("carryVolume").objectReferenceValue = carryVolume);
         }
 
         /// <summary>
@@ -2625,7 +2654,7 @@ namespace SpaceGame.EditorTools
         /// connect to a ship rebuild.
         /// </para>
         /// </summary>
-        private static void BuildBreathableAir(GameObject root, Bounds volume)
+        private static BoxCollider BuildBreathableAir(GameObject root, Bounds volume)
         {
             Transform existing = root.transform.Find("BreathableAir");
             if (existing != null) Object.DestroyImmediate(existing.gameObject);
@@ -2639,6 +2668,7 @@ namespace SpaceGame.EditorTools
             box.size = volume.size;
 
             air.AddComponent<SpaceGame.Gameplay.BreathableVolume>();
+            return box;
         }
 
         // ─────────── Cabin alert ───────────
@@ -3378,6 +3408,14 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetFloat(so, "turnSmoothTime", 0.3f);
             });
 
+            // The conditions the hull is under — burning after an entry that went badly, foamed by
+            // an extinguisher. Authored here rather than left to a hand edit for the reason
+            // StatusReceiver's own file gives: a status arrives as a message on this body's relay,
+            // and a body whose receiver exists only on the host is a body that burns for the host
+            // and for nobody else. It was on the prefab by hand and this builder, which rewrites the
+            // prefab wholesale, quietly dropped it on the next run.
+            root.AddComponent<SpaceGame.Gameplay.Status.StatusReceiver>();
+
             // Netcode: the doors' ArticulatedPartInteraction and the mount sync both ride the
             // messaging channel through this relay; NetAuthority stops remote copies simulating.
             root.AddComponent<NetRelay>();
@@ -3843,6 +3881,31 @@ namespace SpaceGame.EditorTools
                 if (!volume.Contains(shelter.transform.InverseTransformPoint(standing)))
                     problems.Add("the interior safe zone does not contain a body standing on the "
                                  + "main deck, so the crew take storm damage inside their own ship");
+            }
+
+            // Statuses reach a body through its own relay, and a message whose entity has nothing
+            // subscribed is dropped without a word — so a hull whose receiver went missing burns
+            // for the host and for nobody else. It went missing exactly once, to a rebuild.
+            if (prefab.GetComponent<SpaceGame.Gameplay.Status.StatusReceiver>() == null)
+                problems.Add("no StatusReceiver on the hull, so a status applied to the ship reaches "
+                             + "the machine that applied it and no other");
+
+            // The deck carry. Silent both ways: unbound, the carrier builds its own box round the
+            // whole hull and carries the sand beside it; missing, the crew are left standing where
+            // the ship used to be, and only on the machines that are not driving it.
+            WalkerPlatformCarrier carrier = prefab.GetComponent<WalkerPlatformCarrier>();
+            if (carrier == null)
+            {
+                problems.Add("no WalkerPlatformCarrier on the hull, so the deck sails out from "
+                             + "under anybody standing on it on every machine but the pilot's");
+            }
+            else
+            {
+                var bound = new SerializedObject(carrier).FindProperty("carryVolume")
+                    .objectReferenceValue as Collider;
+                if (bound == null || bound.transform.root != prefab.transform)
+                    problems.Add("the WalkerPlatformCarrier names no carry volume on this hull, so "
+                                 + "it falls back to a box round the whole ship");
             }
 
             // Both boarding ramps, and the one thing about them that cannot be seen: the foot has

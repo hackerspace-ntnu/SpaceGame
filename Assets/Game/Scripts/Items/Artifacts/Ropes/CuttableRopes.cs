@@ -92,6 +92,40 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Part every rope attached to <paramref name="body"/>, and say how many that was.
+        ///
+        /// <para>
+        /// What a respawn uses. A rope is tied to a body, not to a life: nothing in this system
+        /// notices a death, so without this a player who stands back up in their ship arrives still
+        /// knotted to whoever roped them, on a rope now stretched across the world. Cutting is the
+        /// right verb rather than a silent detach — every one of these ropes already has a parting
+        /// that announces itself, and reusing it is what keeps the news travelling the way it
+        /// travels when a beam does the cutting.
+        /// </para>
+        /// <para>
+        /// Server only, like <see cref="CutAlong"/>, and gathered before any of it is cut for the
+        /// same reason: <see cref="ICuttableRope.Cut"/> unregisters ropes from inside the loop that
+        /// found them.
+        /// </para>
+        /// </summary>
+        public static int CutEveryRopeOn(GameObject body)
+        {
+            if (body == null || Live.Count == 0) return 0;
+
+            Victims.Clear();
+
+            for (int i = 0; i < Live.Count; i++)
+            {
+                ICuttableRope rope = Live[i];
+                if (rope != null && rope.Binds(body)) Victims.Add(rope);
+            }
+
+            for (int i = 0; i < Victims.Count; i++) Victims[i].Cut();
+
+            return Victims.Count;
+        }
+
+        /// <summary>
         /// Squared distance between segment <paramref name="p1"/>→<paramref name="q1"/> and segment
         /// <paramref name="p2"/>→<paramref name="q2"/>.
         ///

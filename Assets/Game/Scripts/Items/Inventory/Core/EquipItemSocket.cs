@@ -238,10 +238,10 @@ namespace SpaceGame.Items
         /// </para>
         /// </summary>
         /// <summary>
-        /// Turn a fresh instance into something that can hang off a bone: every collider off,
-        /// every body kinematic and not detecting collisions. Public because a worn item is seated
-        /// by its own socket and needs exactly this, and a second copy of the rule would be the one
-        /// that forgets a component.
+        /// Turn a fresh instance into something that can hang off a bone: not a world entity, every
+        /// collider off, every body kinematic and not detecting collisions. Public because a worn
+        /// item is seated by its own socket and needs exactly this, and a second copy of the rule
+        /// would be the one that forgets a component.
         /// </summary>
         public static void Sanitize(GameObject item)
         {
@@ -250,6 +250,11 @@ namespace SpaceGame.Items
             // way. WorldItem.Awake has already run — Instantiate is synchronous — and its scale is
             // the one thing below does not undo.
             WorldItem.Suppress(item);
+            Disinherit(item);
+
+            // Every equip path comes through here, so this is the one place that can promise the
+            // mark is on. RagdollRig reads it to keep the thing in your hand out of your skeleton.
+            BodyAttachment.Mark(item);
 
             var grip = item.GetComponent<ItemGrip>();
             if (grip != null && grip.KeepColliders) return;
@@ -270,6 +275,56 @@ namespace SpaceGame.Items
                 rb.isKinematic = true;
                 rb.useGravity = false;
                 rb.interpolation = RigidbodyInterpolation.None;
+            }
+        }
+
+        /// <summary>
+        /// Take the world's RECORD off an instance that is not in the world after all.
+        ///
+        /// <para>
+        /// An item prefab ships a <see cref="SpaceGame.Core.Persistence.SaveableEntity"/> because a copy lying in
+        /// the sand is a world object that has to survive a reload. A copy in a hand or on a bone
+        /// is not: its identity is the inventory slot that holds it, and that slot is saved by
+        /// <c>BodyEquipmentSaveable</c> and <c>InventorySaveable</c>, which also carry its
+        /// <c>ItemState</c>. So the equipped copy has no record of its own to keep — and keeping
+        /// one is not merely redundant, it duplicates the item.
+        /// </para>
+        /// <para>
+        /// <b>This is what made worn gear walk off the body.</b> <c>WorldSaveStore.CaptureScene</c>
+        /// finds saveables with <c>GetComponentsInChildren</c> from every scene root, so it reaches
+        /// down INSIDE the wearer and writes the gauntlet strapped to their forearm into the save
+        /// as a world entity — at its world pose, with the mirrored scale <see cref="ForearmSeat"/>
+        /// gave it. On the next hydrate <c>WorldSaveStore.SpawnEntities</c> builds that record back
+        /// as a loose root object with its Rigidbody live, so a second gauntlet appears at the
+        /// player and falls. Nothing warns, and the copy is captured again on the next save: one
+        /// more per load, each sinking further than the last. Six generations of Jetpack,
+        /// GrapplingHook and RepulsorGauntlet were found stacked from y=110 down to y=-8153 in a
+        /// single save file.
+        /// </para>
+        /// <para>
+        /// Destroyed rather than scoped to <c>SaveScope.External</c>, which would also stop the
+        /// capture: External means another system owns this object's record, and no system owns
+        /// this one — there is no record. Destroying says that, drops the entity out of
+        /// <c>SaveableEntity.LiveEntities</c> through its own <c>OnDestroy</c>, and stops
+        /// <c>SaveRefBinder</c> resolving a saved reference to something in a pocket. The savers
+        /// beside it are left alone: nothing collects an <c>ISaveable</c> without an entity to
+        /// hang it on, and a dropped item is built from the prefab again.
+        /// </para>
+        /// <para>
+        /// Children too, not just the root. A prefab that nests one — a fixture on a hull module —
+        /// is captured by exactly the same walk.
+        /// </para>
+        /// </summary>
+        private static void Disinherit(GameObject item)
+        {
+            var entities = item.GetComponentsInChildren<SpaceGame.Core.Persistence.SaveableEntity>(true);
+            for (int i = 0; i < entities.Length; i++)
+            {
+                // DestroyImmediate, not Destroy: a deferred destroy leaves the entity registered
+                // and capturable for the rest of the frame, and an autosave landing in that window
+                // is the very record this exists to prevent. DisplayCopy strips its copies the same
+                // way and for the same reason.
+                if (entities[i] != null) Object.DestroyImmediate(entities[i]);
             }
         }
     }

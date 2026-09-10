@@ -50,11 +50,21 @@ def editor_version() -> str:
 
 
 def newest_rsp(name: str = "Assembly-CSharp.rsp") -> pathlib.Path:
-    """The most recently written Assembly-CSharp.rsp from this project's own Bee cache.
+    """The most recently written EDITOR Assembly-CSharp.rsp from this project's own Bee cache.
 
     The MPPM clone directories under Library/VP are excluded deliberately: a clone
     can be running a stale domain, and type-checking against its snapshot reports
     errors that do not exist (and misses ones that do).
+
+    Editor rather than merely newest, and that distinction is not cosmetic. A player
+    build writes its own snapshot beside the Editor's, and a player rsp defines no
+    UNITY_EDITOR - so an Assembly-CSharp compiled from it is missing every member
+    behind an `#if UNITY_EDITOR`, and the --editor pass then reports the builders that
+    call them as errors in files nobody has touched. That is a false RED that looks
+    exactly like a real one: on 2026-09-08 it named StructureAmbientMotion.SetHandles
+    and TerrainFeatureSpawnerVisuals.LoadPresetMaterial, both of which exist. This
+    check compiles code as the EDITOR sees it, so it wants the Editor's snapshot; a
+    tie between two Editor snapshots is still broken by mtime.
     """
     candidates = [
         p for p in (ROOT / "Library/Bee/artifacts").glob("*/" + name)
@@ -64,7 +74,9 @@ def newest_rsp(name: str = "Assembly-CSharp.rsp") -> pathlib.Path:
             f"No {name} under Library/Bee/artifacts. Open the project in "
             "the Unity Editor once so Bee generates one, then re-run."
         )
-    return max(candidates, key=lambda p: p.stat().st_mtime)
+
+    editor = [p for p in candidates if "define:UNITY_EDITOR" in p.read_text(errors="ignore")]
+    return max(editor or candidates, key=lambda p: p.stat().st_mtime)
 
 
 def source_files(editor: bool = False) -> list[str]:

@@ -772,6 +772,14 @@ namespace SpaceGame.World
 
             foreach (var entity in s_trackedEntities)
             {
+                // A body that walked into an interior is not in the exterior world at all, and its
+                // scene belongs to InteriorManager for the length of the visit. Without this the
+                // two passes fight each other every tick: Pin drags a mount straight back out of
+                // the cave it just carried its rider into, and Migrate hands it to whichever chunk
+                // happens to sit under the interior's world-origin coordinates.
+                if (InteriorManager.Instance != null && InteriorManager.Instance.IsInsideInterior(entity.gameObject))
+                    continue;
+
                 Scene desired = ResolveDesiredScene(entity);
                 if (!desired.IsValid() || !desired.isLoaded) continue;
 

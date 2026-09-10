@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay;
 using SpaceGame.Presentation;
 
@@ -228,7 +229,12 @@ namespace SpaceGame.Items
                 // Exited while the pack was still flying down. Asking now would be refused — the
                 // server only stows an OPEN pack — so the ask waits for the landing.
                 case BackpackController.State.Deploying:
-                    pendingStow = StartCoroutine(ReshoulderOnceLanded());
+                    // Guarded with Exit as the teardown: this runs on the way out of focus, and a
+                    // routine that dies mid-wait must not leave the session holding anything it
+                    // still had. Exit is safe to call twice by contract, so on the ordinary path
+                    // where it has already run this costs nothing.
+                    pendingStow = StartCoroutine(Fault.Coroutine(
+                        this, "PackFocus.Reshoulder", ReshoulderOnceLanded(), Exit));
                     break;
             }
         }

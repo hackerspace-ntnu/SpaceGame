@@ -1,11 +1,18 @@
 // Where a booster may go, and how it sits when it gets there.
 //
+// A booster clamps to ANY surface. Whether the thing it lands on then moves is a separate
+// question with a separate answer: a crate slides, a rock face does not, and the flame is the
+// same either way. Those two questions used to be one, and the item refused to clamp to
+// everything the player could actually see — the desert, the settlement walls, the parked hulls,
+// every creature on a NavMeshAgent — which read as the item being broken. The rule is authored
+// and the outcome is the player's (GDC-L1-SYS-0002): stick it where you like and find out.
+//
 // Pure functions, deliberately: the SAME question is asked twice, on two machines that do not
 // trust each other. The holder asks it before the request leaves, so a hopeless aim costs no round
-// trip and — more importantly — no booster. The server asks it again when the request arrives,
-// because the first answer came from a machine that decides nothing (GDC-L1-MP-0004). Two copies of
-// that rule would be two rules the day one of them is edited, which is the shape of bug that only
-// shows up as "the item vanishes and nothing happens".
+// trip. The server asks it again when the request arrives, because the first answer came from a
+// machine that decides nothing (GDC-L1-MP-0004). Two copies of that rule would be two rules the
+// day one of them is edited, which is the shape of bug that only shows up as "the item vanishes
+// and nothing happens".
 using UnityEngine;
 using UnityEngine.AI;
 using Unity.Netcode;
@@ -34,6 +41,11 @@ namespace SpaceGame.Items
         /// scene opened straight from the editor — which is the same fallback the authority facade
         /// makes for unnetworked objects.
         /// </para>
+        /// <para>
+        /// <b>Null is an answer, not a failure.</b> Terrain, a settlement wall and a chunk rock are
+        /// neither networked nor rigid, and a booster stuck to one of them rides the WORLD: it is
+        /// clamped at a fixed world pose and burns there. See <c>BoosterMount.Clamp</c>.
+        /// </para>
         /// </summary>
         public static Transform BodyFor(GameObject hit)
         {
@@ -50,12 +62,12 @@ namespace SpaceGame.Items
         /// Would a booster strapped to <paramref name="body"/> actually move it?
         ///
         /// <para>
-        /// This is the one question the item refuses on, and it exists because the alternative is
-        /// the design's own worst case: a booster clamped to a parked vehicle, a mounted rider or a
-        /// legged rig that fires, burns for two seconds and moves nothing at all, with a clean
-        /// console. Force written to a kinematic Rigidbody is discarded in silence, and a body
-        /// whose transform is authored by a locomotion solver overwrites anything the solver was
-        /// not asked for.
+        /// <b>Not a permission — a prediction.</b> The clamp itself never refuses; this is what
+        /// decides where the push is spent and what the crosshair is allowed to promise. Force
+        /// written to a kinematic Rigidbody is discarded in silence, and a body whose transform is
+        /// authored by a locomotion solver overwrites anything the solver was not asked for, so a
+        /// booster on one of those burns and moves nothing. That is a visible outcome — the flame
+        /// is right there — rather than the silent one the old refusal was guarding against.
         /// </para>
         /// <para>
         /// So the two answers, in this order:
@@ -65,19 +77,15 @@ namespace SpaceGame.Items
         /// as state has to be ASKED — it owns what a push costs and what its airframe will take.
         /// This branch is also what catches a mounted rider: their body is kinematic and parented
         /// into the seat, so the thing above them in the hierarchy is what is actually moving.</item>
-        /// <item><b>A live <see cref="NavMeshAgent"/> is a refusal, not a body.</b> An agent writes
-        /// the transform every frame it is enabled, so a force put into the Rigidbody underneath it
-        /// is gone before anyone sees it — the same failure as a kinematic body, wearing a Rigidbody
+        /// <item><b>A live <see cref="NavMeshAgent"/> is a no, not a body.</b> An agent writes the
+        /// transform every frame it is enabled, so a force put into the Rigidbody underneath it is
+        /// gone before anyone sees it — the same outcome as a kinematic body, wearing a Rigidbody
         /// that says otherwise. The fix is one interface, not a special case here: a motor that
         /// wants to be shoved implements <see cref="ITowable"/> and is caught by the branch above,
         /// the way <c>LeggedDriver</c> and <c>OrnithopterFlightMotor</c> already are.</item>
         /// <item><b>A dynamic Rigidbody otherwise.</b> A crate, a dropped item, a player on their
         /// own feet.</item>
         /// </list>
-        /// <para>
-        /// Anything else is refused, and the booster stays in the hotbar. A press that quietly does
-        /// nothing and eats the item is worse than a press that does nothing and keeps it.
-        /// </para>
         /// </summary>
         public static bool CanPush(Transform body)
         {

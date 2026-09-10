@@ -5,6 +5,10 @@
 // measured between those two points, so a re-export that moves them moves the item with them and
 // nothing in the code holds a number that has to be kept in step.
 //
+// The exhaust is the jetpack's, deliberately: the same JetFlame cone and the same JetSmoke puffs
+// the pack burns. Two different stylized fires on two rockets in the same desert read as two
+// different games, and this one has no throttle to justify a look of its own — see Ignite.
+//
 // The second is the readout. This booster has ONE charge, not a tank, so there is no fraction to
 // draw and no SupplyGauge on it — a fill bar would be showing a number that does not exist. What it
 // has instead is an arming lamp, and the lamp is GEOMETRY: the armed model carries a lit one, the
@@ -58,11 +62,20 @@ namespace SpaceGame.Items
         [SerializeField] private float jawClosedDegrees = 35f;
 
         [Header("Exhaust")]
-        [Tooltip("Flame and smoke, played for the length of the burn on every machine. Author the " +
-                 "smoke in WORLD simulation space so a puff hangs where it was made while the " +
-                 "booster flies out from under it; a local-space trail follows the booster instead " +
-                 "and reads as a stuck decal. Cosmetic, so these are plain children of this prefab " +
-                 "and never network objects of their own.")]
+        [Tooltip("The plume: the JetFlameCone mesh wearing SpaceGame/Effects/JetFlame, the same " +
+                 "flame the jetpack burns. That shader reads its own OBJECT SPACE as the plume's " +
+                 "frame — base at y = 0 radius 1, tip at y = 1 radius 0 — so the cone's transform " +
+                 "is what carries the real size and the +Y axis MUST point the way the exhaust " +
+                 "leaves. A billboard cannot wear this shader.\n\n" +
+                 "Author it disabled: it is switched on for the length of the burn and off again " +
+                 "at burnout.")]
+        [SerializeField] private Renderer plume;
+
+        [Tooltip("Smoke, played for the length of the burn on every machine. Author it in WORLD " +
+                 "simulation space so a puff hangs where it was made while the booster flies out " +
+                 "from under it; a local-space trail follows the booster instead and reads as a " +
+                 "stuck decal. Cosmetic, so these are plain children of this prefab and never " +
+                 "network objects of their own.")]
         [SerializeField] private ParticleSystem[] exhaust;
 
         /// <summary>
@@ -118,6 +131,10 @@ namespace SpaceGame.Items
 
         private Quaternion jawRest = Quaternion.identity;
 
+        private MaterialPropertyBlock block;
+
+        private static readonly int ThrottleId = Shader.PropertyToID("_Throttle");
+
         private void Awake()
         {
             // Captured, never assumed. `_exportlib` bakes no transforms, so an imported node carries
@@ -150,6 +167,7 @@ namespace SpaceGame.Items
         {
             if (armedModel != null) armedModel.SetActive(false);
             if (spentModel != null) spentModel.SetActive(false);
+            if (plume != null) plume.enabled = false;
         }
 
         /// <summary>Armed or spent — one lamp, two pieces of geometry. See the note at the top.</summary>
@@ -159,9 +177,29 @@ namespace SpaceGame.Items
             if (spentModel != null) spentModel.SetActive(spent);
         }
 
-        /// <summary>Light the exhaust. Every machine, because everybody watches this thing burn.</summary>
+        /// <summary>
+        /// Light the exhaust. Every machine, because everybody watches this thing burn.
+        ///
+        /// <para>
+        /// The plume is lit at full throttle and stays there: a booster has no throttle to speak
+        /// of — it is one committed shove — so the only two values it ever has are burning and
+        /// spent, and the flicker in the shader is what keeps a constant number from reading as a
+        /// still image. Written through a <see cref="MaterialPropertyBlock"/> so the JetFlame
+        /// material stays shared with the jetpack's own four cones.
+        /// </para>
+        /// </summary>
         public void Ignite()
         {
+            if (plume != null)
+            {
+                plume.enabled = true;
+
+                block ??= new MaterialPropertyBlock();
+                plume.GetPropertyBlock(block);
+                block.SetFloat(ThrottleId, 1f);
+                plume.SetPropertyBlock(block);
+            }
+
             if (exhaust == null) return;
 
             foreach (ParticleSystem stream in exhaust)
@@ -179,6 +217,10 @@ namespace SpaceGame.Items
         /// </summary>
         public void Cut()
         {
+            // The plume is geometry and not a particle, so it has nothing left in the air to
+            // finish: it goes out on the frame the burn ends.
+            if (plume != null) plume.enabled = false;
+
             if (exhaust == null) return;
 
             foreach (ParticleSystem stream in exhaust)

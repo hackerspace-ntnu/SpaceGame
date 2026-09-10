@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 
 namespace SpaceGame.Presentation
 {
@@ -87,7 +88,8 @@ namespace SpaceGame.Presentation
         /// <summary>Slide letterbox bars in. Returns when fully shown, or when a newer bars call supersedes this one.</summary>
         public Coroutine ShowBarsAsync(float duration = 0.4f)
         {
-            barsRoutine = StartCoroutine(AnimateBars(true, duration, ++barsGeneration));
+            barsRoutine = StartCoroutine(Fault.Coroutine(
+                this, "Letterbox.Bars", AnimateBars(true, duration, ++barsGeneration), SnapClear));
             BarsVisible = true;
             return barsRoutine;
         }
@@ -95,7 +97,8 @@ namespace SpaceGame.Presentation
         /// <summary>Slide letterbox bars out. Returns when fully hidden, or when a newer bars call supersedes this one.</summary>
         public Coroutine HideBarsAsync(float duration = 0.4f)
         {
-            barsRoutine = StartCoroutine(AnimateBars(false, duration, ++barsGeneration));
+            barsRoutine = StartCoroutine(Fault.Coroutine(
+                this, "Letterbox.Bars", AnimateBars(false, duration, ++barsGeneration), SnapClear));
             BarsVisible = false;
             return barsRoutine;
         }
@@ -103,7 +106,8 @@ namespace SpaceGame.Presentation
         /// <summary>Fade screen to opaque black. Returns when fully black, or when a newer fade call supersedes this one.</summary>
         public Coroutine FadeToBlackAsync(float duration = 0.3f)
         {
-            fadeRoutine = StartCoroutine(AnimateFade(1f, duration, ++fadeGeneration));
+            fadeRoutine = StartCoroutine(Fault.Coroutine(
+                this, "Letterbox.Fade", AnimateFade(1f, duration, ++fadeGeneration), SnapClear));
             FadeOpaque = true;
             return fadeRoutine;
         }
@@ -111,7 +115,8 @@ namespace SpaceGame.Presentation
         /// <summary>Fade screen back from black. Returns when fully transparent, or when a newer fade call supersedes this one.</summary>
         public Coroutine FadeFromBlackAsync(float duration = 0.3f)
         {
-            fadeRoutine = StartCoroutine(AnimateFade(0f, duration, ++fadeGeneration));
+            fadeRoutine = StartCoroutine(Fault.Coroutine(
+                this, "Letterbox.Fade", AnimateFade(0f, duration, ++fadeGeneration), SnapClear));
             FadeOpaque = false;
             return fadeRoutine;
         }
@@ -127,7 +132,9 @@ namespace SpaceGame.Presentation
                                          float holdDur = 0.4f,
                                          float fadeInDur = 0.35f)
         {
-            return StartCoroutine(FadeOutInRoutine(duringBlack, fadeOutDur, holdDur, fadeInDur));
+            return StartCoroutine(Fault.Coroutine(
+                this, "Letterbox.FadeOutIn",
+                FadeOutInRoutine(duringBlack, fadeOutDur, holdDur, fadeInDur), SnapClear));
         }
 
         private IEnumerator FadeOutInRoutine(System.Action duringBlack, float outDur, float hold, float inDur)
@@ -141,7 +148,16 @@ namespace SpaceGame.Presentation
             FadeOpaque = false;
         }
 
-        /// <summary>Snap bars + fade to a known clean state. Use on hard reset (e.g. respawn).</summary>
+        /// <summary>
+        /// Snap bars + fade to a known clean state. Use on hard reset (e.g. respawn).
+        ///
+        /// <para>
+        /// Also the teardown every routine in this file is guarded with. A bar animation that dies
+        /// half-open leaves the player looking at the game through a letterbox nothing will ever
+        /// close, and a fade that dies leaves a black screen — both indistinguishable from a hung
+        /// game. Bumping the generations here is what releases anyone awaiting the dead routine.
+        /// </para>
+        /// </summary>
         public void SnapClear()
         {
             // Bumping the generations retires any running animation without StopCoroutine, so a

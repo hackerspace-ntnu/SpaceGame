@@ -94,12 +94,21 @@ namespace SpaceGame.Items
         /// the gear screen's 5.5 m wings are not squeezed into the stowed model's 1.97 m.
         /// </para>
         /// <para>
-        /// Only children that actually draw something are switched: a child holding a collider, a
+        /// Only children that hold MODEL GEOMETRY are switched: a child holding a collider, a
         /// grip point or a muzzle marker is left alone, because hiding a model is not the same as
         /// taking an item apart. The two variant children are switched whether or not they draw,
         /// so an empty one cannot be left on to be measured. Nothing recurses — the swap is
         /// between top-level models, and a deeper walk would reach the parts each of them
         /// switches for its own reasons (the wingsuit hides its membranes while folded).
+        /// </para>
+        /// <para>
+        /// <b>An effect is not a form of the item, and asking for any <c>Renderer</c> could not
+        /// tell the difference.</b> A <c>ParticleSystemRenderer</c> is a Renderer, so the
+        /// jetpack's one shared smoke system — a top-level child, because both of its models emit
+        /// through it — was read as a third model and switched OFF the moment the pack was worn,
+        /// which is the only time it flies. No error, no warning: the pack simply never smoked.
+        /// Model geometry means a <see cref="MeshRenderer"/> or a
+        /// <see cref="SkinnedMeshRenderer"/>; anything else is left exactly as it was found.
         /// </para>
         /// </summary>
         public static void SetForm(GameObject item, Form form)
@@ -125,10 +134,19 @@ namespace SpaceGame.Items
             {
                 Transform child = root.GetChild(i);
                 bool variant = child == worn || child == inspect;
-                if (!variant && child.GetComponentInChildren<Renderer>(true) == null) continue;
+                if (!variant && !DrawsModel(child)) continue;
 
                 child.gameObject.SetActive(variant ? child == shown : shown == null);
             }
         }
+
+        /// <summary>
+        /// Whether this child is a piece of the item's MODEL, rather than an effect or a marker
+        /// hanging off the root. See the note in <see cref="SetForm"/>: a particle system draws,
+        /// but it is not a form of the item and must survive the swap.
+        /// </summary>
+        private static bool DrawsModel(Transform child) =>
+            child.GetComponentInChildren<MeshRenderer>(true) != null ||
+            child.GetComponentInChildren<SkinnedMeshRenderer>(true) != null;
     }
 }

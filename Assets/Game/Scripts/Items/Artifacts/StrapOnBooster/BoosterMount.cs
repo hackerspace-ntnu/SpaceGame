@@ -43,9 +43,13 @@ namespace SpaceGame.Items
                  "depend on what it happens to be strapped to — a crate and a player leave at the " +
                  "same rate. Converted to a force against the target's own mass where a force is " +
                  "what the body takes, which is also what makes an off-centre clamp spin it.\n\n" +
-                 "Against this world's 18 m/s² of gravity, 26.5 leaves 8.5 of climb: two seconds " +
-                 "of burn and the coast that follows put a player about 25 m up.")]
-        [SerializeField, Min(0f)] private float thrustAcceleration = 26.5f;
+                 "Against this world's 18 m/s² of gravity, 40 leaves 22 of climb: two seconds of " +
+                 "burn and the coast that follows put a player about 95 m up, leaving the ground " +
+                 "at 44 m/s. That is well past the 34 m/s the crash curve calls lethal, so a rider " +
+                 "who does not arrange a landing — a jetpack, a wingsuit, deep sand — dies on the " +
+                 "way down. It was 26.5 while the item was tuned to stay just under that; it is a " +
+                 "launcher now, and the fall is the price.")]
+        [SerializeField, Min(0f)] private float thrustAcceleration = 40f;
 
         [Header("Towing")]
         [Tooltip("How far ahead of a towed machine the booster hangs its anchor, metres. A tow is " +
@@ -87,16 +91,38 @@ namespace SpaceGame.Items
         /// </summary>
         private struct Strap : INetworkSerializable, IEquatable<Strap>
         {
-            /// <summary>NetworkObjectId of the body this is clamped to. 0 means "not clamped yet".</summary>
+            /// <summary>
+            /// Is this booster clamped at all? The one flag that says the rest of this value is
+            /// worth reading.
+            ///
+            /// <para>
+            /// It cannot be inferred from <see cref="Target"/>, because a booster stuck to the
+            /// world — terrain, a wall, a chunk rock — has no target and is clamped all the same.
+            /// A zero Target used to mean "not clamped yet", and reusing it would make every
+            /// world clamp invisible to every other machine.
+            /// </para>
+            /// </summary>
+            public bool Attached;
+
+            /// <summary>
+            /// NetworkObjectId of the body this is clamped to, or 0 for a clamp on the world
+            /// itself. Only meaningful once <see cref="Attached"/> is set.
+            /// </summary>
             public ulong Target;
 
             /// <summary>NetworkObjectId of whoever lit it, for damage attribution. 0 for nobody.</summary>
             public ulong Igniter;
 
-            /// <summary>The booster's origin in the target's LOCAL space — never world.</summary>
+            /// <summary>
+            /// The booster's origin in the target's LOCAL space — never world. For a clamp on the
+            /// world there is no local space to be in, so this is the world position itself.
+            /// </summary>
             public Vector3 LocalPosition;
 
-            /// <summary>The booster's rotation relative to the target's.</summary>
+            /// <summary>
+            /// The booster's rotation relative to the target's, or its world rotation for a clamp
+            /// on the world.
+            /// </summary>
             public Quaternion LocalRotation;
 
             /// <summary>When the burn ends, on the SERVER's clock.</summary>
@@ -104,6 +130,7 @@ namespace SpaceGame.Items
 
             public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
             {
+                serializer.SerializeValue(ref Attached);
                 serializer.SerializeValue(ref Target);
                 serializer.SerializeValue(ref Igniter);
                 serializer.SerializeValue(ref LocalPosition);
@@ -112,7 +139,8 @@ namespace SpaceGame.Items
             }
 
             public bool Equals(Strap other) =>
-                Target == other.Target
+                Attached == other.Attached
+                && Target == other.Target
                 && Igniter == other.Igniter
                 && LocalPosition.Equals(other.LocalPosition)
                 && LocalRotation.Equals(other.LocalRotation)
@@ -160,9 +188,16 @@ namespace SpaceGame.Items
         /// <summary>
         /// Where the push is applied, in world space — the clamp itself, taken live off the target's
         /// current pose rather than off this transform, which is only written once a frame.
+        ///
+        /// <para>
+        /// A booster clamped to the world has no target to be measured against, so the pose it was
+        /// given IS the world pose. Before any clamp lands, wherever the prefab was spawned.
+        /// </para>
         /// </summary>
         public Vector3 AttachPoint =>
-            target != null ? target.TransformPoint(strap.LocalPosition) : transform.position;
+            target != null ? target.TransformPoint(strap.LocalPosition)
+                           : clamped ? strap.LocalPosition
+                                     : transform.position;
 
         /// <summary>
         /// Which way it pushes: back down its own axis, into the surface it is clamped to. The
@@ -179,7 +214,9 @@ namespace SpaceGame.Items
         }
 
         private Quaternion ClampRotation =>
-            target != null ? target.rotation * strap.LocalRotation : transform.rotation;
+            target != null ? target.rotation * strap.LocalRotation
+                           : clamped ? strap.LocalRotation
+                                     : transform.rotation;
 
         /// <summary>
         /// The clock every machine agrees on. Server time while there is a session — which there is
@@ -211,28 +248,39 @@ namespace SpaceGame.Items
         /// <summary>
         /// Strap it on. The deciding machine's call, once, immediately after the booster is spawned.
         /// </summary>
-        /// <param name="strapTo">What it rides — see <see cref="BoosterClamp.BodyFor"/>.</param>
+        /// <param name="strapTo">
+        /// What it rides — see <see cref="BoosterClamp.BodyFor"/>. <b>Null clamps it to the
+        /// world</b>: terrain, a settlement wall, a chunk rock. It burns where it was stuck and
+        /// pushes nothing, which is the honest outcome of aiming at something that does not move.
+        /// </param>
         /// <param name="worldPosition">Where the booster's origin ended up.</param>
         /// <param name="worldRotation">How it is seated — see <see cref="BoosterClamp.Seat"/>.</param>
         /// <param name="ignitedBy">Who lit it, for attribution when the ride kills somebody.</param>
         public void Clamp(Transform strapTo, Vector3 worldPosition, Quaternion worldRotation,
                           GameObject ignitedBy)
         {
-            if (strapTo == null || clamped) return;
+            if (clamped) return;
 
             target = strapTo;
             igniter = ignitedBy != null ? ignitedBy.transform : null;
 
             strap = new Strap
             {
-                Target = NetArg.IdOf(strapTo.gameObject),
+                Attached = true,
+                Target = strapTo != null ? NetArg.IdOf(strapTo.gameObject) : 0ul,
                 Igniter = NetArg.IdOf(ignitedBy),
 
-                // LOCAL, never world. A target that turns has to carry the booster round with it,
-                // and a world pose recorded once would leave the booster hanging in the air pushing
-                // at a direction the target stopped facing a second ago.
-                LocalPosition = strapTo.InverseTransformPoint(worldPosition),
-                LocalRotation = Quaternion.Inverse(strapTo.rotation) * worldRotation,
+                // LOCAL, never world, whenever there is a local space to be in. A target that turns
+                // has to carry the booster round with it, and a world pose recorded once would
+                // leave the booster hanging in the air pushing at a direction the target stopped
+                // facing a second ago. The world itself does not turn, so a world clamp stores the
+                // world pose in the same two fields.
+                LocalPosition = strapTo != null
+                    ? strapTo.InverseTransformPoint(worldPosition)
+                    : worldPosition,
+                LocalRotation = strapTo != null
+                    ? Quaternion.Inverse(strapTo.rotation) * worldRotation
+                    : worldRotation,
                 BurnEndsAt = Now + burnSeconds,
             };
 
@@ -240,9 +288,30 @@ namespace SpaceGame.Items
 
             // Skipped entirely when there is no session to publish into, which is the offline case
             // the fields above already cover on their own.
-            if (IsSpawned && IsServer) netStrap.Value = strap;
+            if (IsSpawned && IsServer) netStrap.Value = Publishable(worldPosition, worldRotation);
 
             Begin();
+        }
+
+        /// <summary>
+        /// The clamp as the rest of the session can read it.
+        ///
+        /// <para>
+        /// A body with no spawned <see cref="NetworkObject"/> — a crate authored into a chunk
+        /// scene, an interior prop — cannot be NAMED on the wire, so no peer could follow it even
+        /// though this machine can. The pose is republished in WORLD space in that case, so every
+        /// other machine at least draws the booster and its flame where it actually is rather than
+        /// treating a body-local offset as a world position and hanging it near the origin.
+        /// </para>
+        /// </summary>
+        private Strap Publishable(Vector3 worldPosition, Quaternion worldRotation)
+        {
+            if (strap.Target != 0 || target == null) return strap;
+
+            Strap wire = strap;
+            wire.LocalPosition = worldPosition;
+            wire.LocalRotation = worldRotation;
+            return wire;
         }
 
         public override void OnNetworkSpawn()
@@ -276,10 +345,11 @@ namespace SpaceGame.Items
                 return;
             }
 
-            if (target == null)
+            if (target == null && strap.Target != 0)
             {
                 // Whatever it was strapped to has gone — despawned, destroyed, streamed out. There
-                // is nothing left to ride.
+                // is nothing left to ride. A clamp on the WORLD has no target and never had one, so
+                // it is not caught here: it stays where it was stuck and burns out on its clock.
                 Extinguish();
             }
             else if (!spent)
@@ -303,13 +373,15 @@ namespace SpaceGame.Items
             if (clamped) return;
 
             Strap wire = netStrap.Value;
-            if (wire.Target == 0) return;
+            if (!wire.Attached) return;
 
-            GameObject named = new NetArg(wire.Target).Resolve();
-            if (named == null) return;
+            // A named target has to have ARRIVED before the clamp can be adopted; a world clamp
+            // names nobody and is adopted the moment it is published.
+            GameObject named = wire.Target != 0 ? new NetArg(wire.Target).Resolve() : null;
+            if (wire.Target != 0 && named == null) return;
 
             strap = wire;
-            target = named.transform;
+            target = named != null ? named.transform : null;
 
             GameObject lighter = new NetArg(wire.Igniter).Resolve();
             igniter = lighter != null ? lighter.transform : null;
@@ -334,8 +406,13 @@ namespace SpaceGame.Items
             SetCollidersEnabled(false);
             if (body != null) body.isKinematic = true;
 
-            boosted = BoostedBody.Ensure(target.gameObject);
-            if (boosted != null) boosted.Attach(this);
+            // Only a body can be pushed. A booster on the world burns against something that is
+            // never going anywhere, so there is nothing to attach it to.
+            if (target != null)
+            {
+                boosted = BoostedBody.Ensure(target.gameObject);
+                if (boosted != null) boosted.Attach(this);
+            }
 
             if (shell != null)
             {

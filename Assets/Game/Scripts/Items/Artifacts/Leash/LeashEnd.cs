@@ -325,7 +325,16 @@ namespace SpaceGame.Items
             {
                 // Ask, do not push. RequestTow returning false means the tow is over -- arrived,
                 // out of energy, or no longer under way -- and the rope should stop asking.
-                if (!Towable.RequestTow(Position + step)) Towable = null;
+                //
+                // Asked against the machine's OWN attach point rather than against this rope's
+                // knot, and the difference is not cosmetic. A towable declares one attach point;
+                // a rope is tied wherever it was thrown. Handing over `knot + step` therefore asks
+                // the machine to move by the step AND by the constant offset between the two --
+                // half a metre on a rat's back, a metre on an animal roped at the neck -- fifty
+                // times a second, for as long as the rope is taut. It read as a leashed animal
+                // creeping steadily into its own collar at full walking speed, and it is free
+                // motion the constraint never granted (GDC-L1-SYS-0007).
+                if (!Towable.RequestTow(Towable.TowAttachPoint + step)) Towable = null;
                 return;
             }
 

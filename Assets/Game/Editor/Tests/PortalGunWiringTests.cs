@@ -116,7 +116,7 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// The droplets fly the arc the paint is traced along.
         ///
-        /// The one drift a code default cannot catch. PortalJet integrates a parabola in C# from
+        /// The one drift a code default cannot catch. SprayArc integrates a parabola in C# from
         /// the serialized numbers below; the stream the player watches is an ordinary
         /// ParticleSystem under Unity's own gravity, and it traces the same curve only while its
         /// start speed, gravity modifier and lifetime are the same three numbers. They have

@@ -227,6 +227,15 @@ namespace SpaceGame.Items
 
             equippedSlotIndex = slot?.Index ?? -1;
 
+            // Pinned here rather than inside EquipItemSocket, because the socket is shared with
+            // EntityEquipmentController and an NPC's weapon is AIMED by writing its rotation — it
+            // writes, then calls ReseatGrip to slide the grip back into the palm. Pinning there
+            // would hold the weapon still and the NPC would never aim. A player's held item is not
+            // aimed that way: Weapon.UpdateWeaponRotation returns early for any holder carrying a
+            // PlayerAimRig, because the arm does the aiming. So on this side nothing may move the
+            // item, and anything that does is a bug worth catching rather than living with.
+            if (activeSocket?.Socket != null) WornAnchor.Pin(equippedItemObject, activeSocket.Socket);
+
             var usableItem = equippedItemObject.GetComponent<UsableItem>();
             if (usableItem)
             {

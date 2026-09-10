@@ -7,7 +7,7 @@ namespace SpaceGame.Tests
     /// The heat budget — the jetpack's only resource, and the only thing that limits a flight.
     ///
     /// <para>
-    /// These are the durations the design was specified in ("15 seconds of held thrust, and
+    /// These are the durations the design was specified in ("six seconds of held thrust, and
     /// letting go is what buys more"), so they are asserted as durations rather than as rates. A
     /// rate that has been retuned is a tuning change; a duration that has moved is a design
     /// change, and this is where that shows up.
@@ -24,13 +24,14 @@ namespace SpaceGame.Tests
         private static JetpackConfig Config() => new JetpackConfig();
 
         /// <summary>Run at one throttle until the motors cut, and report how long that took.</summary>
-        private static float SecondsUntilOverheat(JetThrottle throttle, JetpackConfig cfg)
+        private static float SecondsUntilOverheat(JetThrottle throttle, JetpackConfig cfg,
+                                                  float liftFactor = 1f)
         {
             var heat = JetpackHeat.Cold;
 
             for (int i = 0; i < 10000; i++)
             {
-                heat = JetpackHeat.Step(heat, throttle, cfg, Step);
+                heat = JetpackHeat.Step(heat, throttle, cfg, Step, liftFactor);
                 if (heat.Overheated) return (i + 1) * Step;
             }
 
@@ -38,10 +39,10 @@ namespace SpaceGame.Tests
         }
 
         [Test]
-        public void HeldThrustLastsFifteenSeconds()
+        public void HeldThrustLastsSixSeconds()
         {
             Assert.That(SecondsUntilOverheat(JetThrottle.Thrust, Config()),
-                        Is.EqualTo(15f).Within(0.1f));
+                        Is.EqualTo(6f).Within(0.1f));
         }
 
         /// <summary>
@@ -59,8 +60,15 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The economy in one assertion: burning and coasting outlasts holding the button. If this
+        /// The economy in one assertion: burning and falling outlasts holding the button. If this
         /// ever fails there is no reason to cut out and the jetpack is a single held key.
+        ///
+        /// <para>
+        /// The duty cycle is a second of thrust to four of falling, because thrust costs 16.67/s
+        /// and a fall refunds 5/s — anything richer than about one in three-and-a-third fills the
+        /// gauge in the end however it is spread (<c>GDC-L1-SYS-0008</c>: the flight is a source
+        /// and a sink, and only their RATES decide whether it is sustainable).
+        /// </para>
         /// </summary>
         [Test]
         public void BurstingOutlastsHoldingThrust()
@@ -75,9 +83,10 @@ namespace SpaceGame.Tests
 
             while (!heat.Overheated && flown < 120f)
             {
-                // One second on, one second off.
+                // One second on, four seconds off.
                 phase += Step;
-                if (phase >= 1f) { phase = 0f; burning = !burning; }
+                float span = burning ? 1f : 4f;
+                if (phase >= span) { phase = 0f; burning = !burning; }
 
                 JetThrottle throttle = burning ? JetThrottle.Thrust : JetThrottle.Descend;
                 heat = JetpackHeat.Step(heat, throttle, cfg, Step);
@@ -86,20 +95,20 @@ namespace SpaceGame.Tests
                 if (burning) thrusting += Step;
             }
 
-            // The pack never overheats on this duty cycle at all — thrust adds 6.67/s for a second
-            // and the descent takes 5/s back — so the run ends on the 120 s guard. That is the
-            // point: a pilot who lets go has an unbounded flight and one who never does has
-            // fifteen seconds. It holds on the DESCENT rather than on a cut, which is what makes
-            // the rhythm reachable with the one key the pilot has.
-            Assert.That(flown, Is.GreaterThan(15f), "bursting must outlast a held burn");
-            Assert.That(thrusting, Is.GreaterThan(15f),
+            // The pack never overheats on this duty cycle at all — a second of thrust adds 16.67
+            // and four seconds of falling take 20 back — so the run ends on the 120 s guard. That
+            // is the point: a pilot who lets go has an unbounded flight and one who never does has
+            // six seconds. It holds on the FALL rather than on a cut, which is what makes the
+            // rhythm reachable with the one key the pilot has.
+            Assert.That(flown, Is.GreaterThan(6f), "bursting must outlast a held burn");
+            Assert.That(thrusting, Is.GreaterThan(6f),
                         "and must buy more THRUST than a held burn, not just more airtime");
         }
 
         /// <summary>
         /// Letting go has to REFUND heat, not merely stop spending it. With the crouch cut gone
-        /// this is the only recovery a flying pilot can ask for, so a descent that merely held
-        /// the gauge still would make every flight a one-way fifteen seconds.
+        /// this is the only recovery a flying pilot can ask for, so a fall that merely held the
+        /// gauge still would make every flight a one-way six seconds.
         /// </summary>
         [Test]
         public void LettingGoIsWhatCools()
@@ -109,7 +118,7 @@ namespace SpaceGame.Tests
             var hot = new JetpackHeat { Value = 50f };
 
             Assert.That(JetpackHeat.Step(hot, JetThrottle.Descend, cfg, 1f).Value,
-                        Is.LessThan(50f), "sinking must cool");
+                        Is.LessThan(50f), "falling must cool");
             Assert.That(JetpackHeat.Step(hot, JetThrottle.Thrust, cfg, 1f).Value,
                         Is.GreaterThan(50f), "thrusting must cost");
             Assert.That(JetpackHeat.Step(hot, JetThrottle.Cut, cfg, 1f).Value,
@@ -175,6 +184,41 @@ namespace SpaceGame.Tests
                 heat = JetpackHeat.Step(heat, JetThrottle.Cut, cfg, Step);
                 Assert.That(heat.Value, Is.InRange(0f, cfg.OverheatAt));
             }
+        }
+
+        /// <summary>
+        /// <b>A lift is paid for in burn time.</b> The extra thrust a passenger buys is billed
+        /// through the same factor that granted it, so hauling somebody shortens the flight in
+        /// exact proportion. Split the two and the lift is free, which is the one way this feature
+        /// could quietly become the best reason to carry a rope.
+        /// </summary>
+        [Test]
+        public void ALiftIsBilledInProportionToTheThrustItBuys()
+        {
+            JetpackConfig cfg = Config();
+            const float Lift = 1.4f;
+
+            float alone = SecondsUntilOverheat(JetThrottle.Thrust, cfg);
+            float loaded = SecondsUntilOverheat(JetThrottle.Thrust, cfg, Lift);
+
+            Assert.That(loaded, Is.EqualTo(alone / Lift).Within(2f * Step));
+        }
+
+        /// <summary>
+        /// Cooling is the pack shedding heat, and a rope hanging off the pilot does not change how
+        /// fast it does that. Scaling the cool rates too would make a heavy load cool faster than
+        /// a light one, which is the opposite of the rule.
+        /// </summary>
+        [Test]
+        public void ALoadDoesNotChangeCooling()
+        {
+            JetpackConfig cfg = Config();
+            var hot = new JetpackHeat { Value = 50f, Overheated = false };
+
+            JetpackHeat loaded = JetpackHeat.Step(hot, JetThrottle.Descend, cfg, Step, 1.4f);
+            JetpackHeat alone = JetpackHeat.Step(hot, JetThrottle.Descend, cfg, Step);
+
+            Assert.That(loaded.Value, Is.EqualTo(alone.Value).Within(0.0001f));
         }
     }
 }

@@ -71,20 +71,18 @@ namespace SpaceGame.Characters
             // world's free-standing spawn point cannot. Only when no ship can take this player —
             // a scene with no hull, a versus team that never resolved — does the old spawn-point
             // and open-ground resolution below run, so a shipless world still stands people up.
-            if (ShipRespawn.TryGetPose(gameObject, out Vector3 position, out Quaternion rotation))
+            Quaternion rotation;
+
+            if (ShipRespawn.TryGetPose(gameObject, out Vector3 position, out Quaternion pose))
             {
-                // Placement first, healing second, and the order is load-bearing. Healing raises
-                // OnRevive, which is what hands the player their controls back; doing that before
-                // the move would give them a frame or two of live control standing on their own
-                // corpse.
-                NetworkedTeleport.Move(gameObject, position, rotation);
+                rotation = pose;
             }
             else if (SpawnManager.Instance != null &&
                      SpawnManager.Instance.TryGetRespawnPosition(transform.position, out position))
             {
                 Debug.LogWarning("[Respawn] No ship could take this player — falling back to the " +
                                  "spawn point / open ground resolution.", this);
-                NetworkedTeleport.Move(gameObject, position, transform.rotation);
+                rotation = transform.rotation;
             }
             else
             {
@@ -93,6 +91,16 @@ namespace SpaceGame.Characters
                                "player stays down. Is any of the world around them loaded?", this);
                 return;
             }
+
+            // Everything holding them, dropped before they move and only once there is somewhere to
+            // move to — a player who stays down because no ship could take them stays roped as well.
+            // See RespawnRelease for why the release belongs here rather than at the death.
+            RespawnRelease.Everything(gameObject);
+
+            // Placement first, healing second, and the order is load-bearing. Healing raises
+            // OnRevive, which is what hands the player their controls back; doing that before the
+            // move would give them a frame or two of live control standing on their own corpse.
+            NetworkedTeleport.Move(gameObject, position, rotation);
 
             // ResetToFull rather than Heal(maxHealth): overkill drives currentHealth below zero and
             // Heal caps the restore at the amount passed, so a heavily overkilled player would come

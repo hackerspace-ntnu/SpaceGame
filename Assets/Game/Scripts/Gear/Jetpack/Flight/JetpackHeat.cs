@@ -13,8 +13,9 @@ namespace SpaceGame.Gear.Jetpack
         Cut = 0,
 
         /// <summary>
-        /// Space released. The motors idle against gravity to a steady sink — the pack comes down
-        /// at <c>DescentSpeed</c> rather than falling — the nozzles still burn, and heat comes off.
+        /// Space released. The motors idle, the nozzles go dark and the pilot falls at this
+        /// world's full gravity — the same physics an overheat gets. Heat comes off while they
+        /// do, and the next press relights instantly, which is the whole difference from a cut.
         /// This is the whole of "let go to come down".
         /// </summary>
         Descend = 1,
@@ -28,12 +29,11 @@ namespace SpaceGame.Gear.Jetpack
     ///
     /// <para>
     /// <b>Heat is the jetpack's only resource, and one button spends it or refunds it.</b>
-    /// Holding Space is the only source — 15 seconds of it from cold — and letting go is the
-    /// sink, cooling while the pack sinks with its nozzles still lit. So a long flight is a
-    /// rhythm of climbing and coming down rather than a single held button, and the rhythm is
-    /// paced by ONE key (<c>GDC-L1-UX-0005</c>, <c>GDC-L1-SYS-0008</c>: the sink has to be
-    /// somewhere the pilot actually spends time, and with the crouch cut gone the descent is the
-    /// only place left).
+    /// Holding Space is the only source — 6 seconds of it from cold — and letting go is the
+    /// sink, cooling while the pilot falls under dead nozzles. So a long flight is a rhythm of
+    /// climbing and falling rather than a single held button, and the rhythm is paced by ONE key
+    /// (<c>GDC-L1-UX-0005</c>, <c>GDC-L1-SYS-0008</c>: the sink has to be somewhere the pilot
+    /// actually spends time, and falling is the only place left once the crouch is gone).
     /// </para>
     /// <para>
     /// Overheat is a LATCH, not a threshold. Reaching the top cuts the motors and sets
@@ -91,15 +91,22 @@ namespace SpaceGame.Gear.Jetpack
         /// frame of thrust past the limit, which is small but is exactly the kind of edge a
         /// player finds and then relies on.
         /// </para>
+        /// <para>
+        /// <paramref name="liftFactor"/> bills a load: it is the same figure
+        /// <see cref="JetpackStep"/> multiplies the push by, so the extra thrust a passenger buys
+        /// is paid for in burn time and never in nothing. It touches the THRUST rate alone —
+        /// cooling is the pack shedding heat and a rope hanging off the pilot does not change how
+        /// fast it does that.
+        /// </para>
         /// </summary>
         public static JetpackHeat Step(JetpackHeat heat, JetThrottle throttle, JetpackConfig cfg,
-                                       float dt)
+                                       float dt, float liftFactor = 1f)
         {
             if (cfg == null || dt <= 0f) return heat;
 
             float rate = throttle switch
             {
-                JetThrottle.Thrust => cfg.ThrustHeatPerSecond,
+                JetThrottle.Thrust => cfg.ThrustHeatPerSecond * Mathf.Max(1f, liftFactor),
                 JetThrottle.Descend => -cfg.DescendCoolPerSecond,
                 _ => -cfg.CoolPerSecond,
             };

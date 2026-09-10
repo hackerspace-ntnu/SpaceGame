@@ -218,7 +218,7 @@ namespace SpaceGame.Items
         {
             if (aimRig == null) return;
 
-            aimRig.SetTorchStyle(WornOn, lit ? litPose : ItemGrip.HoldStyle.None);
+            aimRig.SetWornStyle(WornOn, lit ? litPose : ItemGrip.HoldStyle.None);
         }
 
         private void PaintBulb(bool lit)

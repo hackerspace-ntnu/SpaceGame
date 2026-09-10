@@ -64,12 +64,12 @@ namespace SpaceGame.Items
         public const string FlamePrefix = "JetFlame_";
 
         [Header("Flame")]
-        [Tooltip("Flame length while sinking with Space released, as a fraction of the full " +
-                 "one. Well above zero: a pack coming down under power that showed nothing would " +
-                 "read as switched off, and the flame is the one thing that separates letting go " +
-                 "(lit, a steady sink, cooling) from an overheat (dark, a real fall). Six tenths " +
-                 "rather than a third, so the difference is legible at a glance.")]
-        [SerializeField, Range(0f, 1f)] private float idleFlame = 0.6f;
+        [Tooltip("Throttle below which the flames are switched off outright rather than drawn " +
+                 "small. It is a threshold and not a taste: the shown throttle is smoothed toward " +
+                 "its target, so it approaches zero without ever arriving, and a plume with no " +
+                 "floor under it would hang on a landed pack for ever at whatever the last frame " +
+                 "left.")]
+        [SerializeField, Range(0f, 0.2f)] private float flameCutoff = 0.02f;
 
         [Header("Heat")]
         [Tooltip("Colour the nozzle tips glow at full heat. Driven through a property block, so " +
@@ -87,8 +87,11 @@ namespace SpaceGame.Items
 
         [Tooltip("Puffs per second per nozzle at full throttle, cold. The trail — every lit motor " +
                  "leaves one, because a jet that burned clean would read as switched off from " +
-                 "behind, which is the only angle anyone else ever sees it from.")]
-        [SerializeField, Min(0f)] private float smokePerSecond = 10f;
+                 "behind, which is the only angle anyone else ever sees it from. It has to carry " +
+                 "the whole trail on its own now that a released key kills the flames: a burn is " +
+                 "the only thing that smokes, and burns are short. Four nozzles emit at this rate " +
+                 "each, so the plume is four overlapping columns rather than one.")]
+        [SerializeField, Min(0f)] private float smokePerSecond = 28f;
 
         [Tooltip("Extra puffs per second per nozzle once the pack is past its warning fraction, " +
                  "on top of the trail. This is the part that is a WARNING rather than exhaust, so " +
@@ -107,7 +110,12 @@ namespace SpaceGame.Items
 
         [Tooltip("Random scatter on where a puff is born, metres. Without it four nozzles produce " +
                  "four dead-straight strings of beads.")]
-        [SerializeField, Min(0f)] private float smokeScatter = 0.09f;
+        [SerializeField, Min(0f)] private float smokeScatter = 0.18f;
+
+        [Tooltip("Sideways scatter on how a puff is thrown, m/s. The columns billow apart into " +
+                 "one body of smoke instead of staying four parallel lines; without it the " +
+                 "position scatter alone leaves the trail flat.")]
+        [SerializeField, Min(0f)] private float smokeSpread = 1.2f;
 
         /// <summary>One pod: which side it is, what swings, and what it swings about.</summary>
         private class Pod
@@ -375,7 +383,21 @@ namespace SpaceGame.Items
                 "against jetpack_export.py, then re-run Tools/SpaceGame/Items/Build Jetpack.", this);
         }
 
-        private void LateUpdate()
+        private void LateUpdate() => Tick(Time.deltaTime);
+
+        /// <summary>
+        /// One frame of everything this component shows: the pods aimed, the flames drawn, the
+        /// tips glowing and the smoke thrown.
+        ///
+        /// <para>
+        /// <b>Public and taking its own <paramref name="dt"/>, for the reason <see cref="Resolve"/>
+        /// is public.</b> The editor never calls <c>LateUpdate</c> and <c>Time.deltaTime</c> is
+        /// zero there, so nothing outside play mode could exercise the emit path — and the smoke
+        /// was switched off by <c>WornVisual</c> for the whole of the pack's life without one
+        /// error anywhere. <c>JetpackBuilder</c> drives this and asserts that puffs come out.
+        /// </para>
+        /// </summary>
+        public void Tick(float dt)
         {
             Quaternion frame = FrameRotation();
 
@@ -386,7 +408,7 @@ namespace SpaceGame.Items
                 DrawGlow(pod);
             }
 
-            Smoke(Time.deltaTime);
+            Smoke(dt);
         }
 
         /// <summary>
@@ -453,10 +475,18 @@ namespace SpaceGame.Items
         /// <summary>
         /// The four flames. The cone is stretched along its own axis by the throttle and the
         /// shader is told the same number, so the silhouette and the shading can never disagree.
+        ///
+        /// <para>
+        /// <b>No flame without thrust.</b> The throttle is one or zero at the source — the motors
+        /// are lit or the pilot is falling — and there is no idle floor under it here, because a
+        /// floor applied to a SMOOTHED throttle never switches off: the value decays toward zero
+        /// asymptotically, stays a hair above it for ever, and the pack stands about on the sand
+        /// wearing two thirds of a plume.
+        /// </para>
         /// </summary>
         private void DrawFlames(Pod pod)
         {
-            float lit = Throttle <= 0f ? 0f : Mathf.Max(Throttle, idleFlame);
+            float lit = Throttle <= flameCutoff ? 0f : Throttle;
 
             for (int i = 0; i < pod.Flames.Count; i++)
             {
@@ -464,7 +494,7 @@ namespace SpaceGame.Items
                 Renderer renderer = pod.FlameRenderers[i];
                 if (flame == null || renderer == null) continue;
 
-                bool on = lit > 0.001f;
+                bool on = lit > 0f;
                 if (renderer.enabled != on) renderer.enabled = on;
                 if (!on) continue;
 
@@ -572,7 +602,11 @@ namespace SpaceGame.Items
                 // Thrown out the back with the exhaust, then left behind — the system simulates in
                 // WORLD space, so a puff keeps the velocity it was born with while the player flies
                 // out from under it. That is what makes it a trail rather than a cloud that follows.
-                emit.velocity = outflow * (smokeSpeed * Mathf.Max(Throttle, 0.35f));
+                //
+                // The sideways part is what gives the trail a body: four nozzles throwing along
+                // exactly parallel lines stay four lines however many puffs are in them.
+                emit.velocity = outflow * (smokeSpeed * Mathf.Max(Throttle, 0.35f))
+                                + Random.insideUnitSphere * smokeSpread;
 
                 smoke.Emit(emit, 1);
             }

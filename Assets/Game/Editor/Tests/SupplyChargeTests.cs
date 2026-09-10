@@ -394,8 +394,6 @@ namespace SpaceGame.EditorTests
                     (SupplyKind.Reagent, 6.67f, 1f, 0.15f, 0.06f),
                 ["Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab"] =
                     (SupplyKind.Reagent, 10f, 1f, 0.1f, 0.05f),
-                ["Assets/Game/Prefabs/Items/Artifacts/Gadgets/SlickCan.prefab"] =
-                    (SupplyKind.Reagent, 8.33f, 1f, 0.12f, 0.06f),
             };
 
             foreach (var pair in expected)

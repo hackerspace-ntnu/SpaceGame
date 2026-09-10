@@ -38,6 +38,23 @@ namespace SpaceGame.Items
         void AppendSpan(List<Vector3> into);
 
         /// <summary>
+        /// Is this rope attached to <paramref name="body"/> — at either end?
+        ///
+        /// <para>
+        /// Both ends, and the holder's hand counts as one of them: a player who respawns holding a
+        /// lasso whose loop is round a creature is as attached to that rope as the creature is, and
+        /// leaving them the far half of a rope whose near half has just teleported across the world
+        /// is the same failure either way round.
+        /// </para>
+        /// <para>
+        /// False when this rope is not out — the same answer <see cref="AppendSpan"/> gives by
+        /// appending nothing. A coiled rope binds nobody, and a loop still in flight is a
+        /// projectile rather than a rope, which is the line this whole seam already draws.
+        /// </para>
+        /// </summary>
+        bool Binds(GameObject body);
+
+        /// <summary>
         /// Part the rope, and tell whoever else needs to know by whatever means this rope already
         /// uses.
         ///

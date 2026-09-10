@@ -32,8 +32,8 @@ namespace SpaceGame.Gameplay.Surface
 
         /// <summary>
         /// Damp, not frictionless. Enough that a run across it overshoots and a braking turn washes
-        /// out, and far enough from the Slick film's 0.05 that a player can tell the two apart by
-        /// how the ground behaves as well as by how it looks (GDC-L1-SYS-0006).
+        /// out, and far enough from the frozen coats' 0.03 that a player can tell rain from frost
+        /// by how the ground behaves as well as by how it looks (GDC-L1-SYS-0006).
         /// </summary>
         private const float DefaultGrip = 0.55f;
 

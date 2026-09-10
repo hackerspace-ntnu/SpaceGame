@@ -33,9 +33,10 @@ namespace SpaceGame.Gameplay.Surface
         private const float DefaultPatchRadius = 1.5f;
 
         /// <summary>
-        /// Slipperier than the sprayed film, and deliberately so: ice is the coat you can also
-        /// stand on, so the trade for being allowed to cross it is having almost no purchase while
-        /// you do. Still not zero — see the base class on why nothing here ever is.
+        /// Almost no purchase at all, and the same figure <see cref="SlickCoat"/> reports: both are
+        /// what the cryo sprayer's cold does to ground, and the difference between them is what is
+        /// THERE rather than how much of it a foot can use. Still not zero — see the base class on
+        /// why nothing here ever is.
         /// </summary>
         private const float DefaultGrip = 0.03f;
 

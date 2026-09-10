@@ -4,8 +4,9 @@ using UnityEngine;
 namespace SpaceGame.Gameplay.Status
 {
     /// <summary>
-    /// A frictionless film on the body itself: it cannot get purchase on anything, and nothing
-    /// anyone throws will get purchase on it.
+    /// A film of frost on the body itself: it cannot get purchase on anything, and nothing anyone
+    /// throws will get purchase on it. What the cryo sprayer leaves on a body from the first touch
+    /// of the plume, ten seconds longer than the freeze that follows it.
     ///
     /// <para>
     /// This is the body half of a pair. The ground half is a surface coat, and both answer
@@ -30,11 +31,12 @@ namespace SpaceGame.Gameplay.Status
 
         public SlickStatus() : base(DefaultDuration) { }
 
-        [Tooltip("Grip left while slicked, as a share of normal. At 0.05 a body can still steer " +
-                 "but can barely accelerate or brake, which is what being covered in a " +
-                 "frictionless film IS — 0 would be a body that can do nothing at all about where " +
-                 "it is going.")]
-        [SerializeField, Range(0f, 1f)] private float grip = 0.05f;
+        [Tooltip("Grip left while slicked, as a share of normal. The same figure SlickCoat leaves " +
+                 "on the ground, so a body wearing the film and a body standing on it slide " +
+                 "alike. At 0.03 it can still steer but can barely accelerate or brake, which is " +
+                 "what being covered in frost IS — 0 would be a body that can do nothing at all " +
+                 "about where it is going.")]
+        [SerializeField, Range(0f, 1f)] private float grip = 0.03f;
 
         /// <summary>
         /// The body this film is on, held only while the condition runs. Registration is what makes

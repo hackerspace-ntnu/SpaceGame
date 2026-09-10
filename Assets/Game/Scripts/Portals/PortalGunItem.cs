@@ -47,6 +47,7 @@ using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Items
 {
@@ -323,7 +324,7 @@ namespace SpaceGame.Items
             // Along the ARC, not the crosshair. Asking where the player is pointing would top up a
             // portal across the room that the stream cannot actually reach.
             if (pair != null &&
-                PortalJet.Trace(MuzzlePosition(), AimDirection(), jetSpeed, jetGravity,
+                SprayArc.Trace(MuzzlePosition(), AimDirection(), jetSpeed, jetGravity,
                                 jetFlightTime, ~0, out RaycastHit look, out float _))
                 barrel = pair.ChooseSprayBarrel(look.point, growMargin, out grow);
 
@@ -382,9 +383,9 @@ namespace SpaceGame.Items
 
             // Where the stream ends up if it hits nothing: the end of the arc, not a point along
             // the crosshair. A miss still has to look like paint falling somewhere real.
-            arg.P = PortalJet.Sample(origin, direction, jetSpeed, jetGravity, jetFlightTime);
+            arg.P = SprayArc.Sample(origin, direction, jetSpeed, jetGravity, jetFlightTime);
 
-            if (!PortalJet.Trace(origin, direction, jetSpeed, jetGravity, jetFlightTime, ~0,
+            if (!SprayArc.Trace(origin, direction, jetSpeed, jetGravity, jetFlightTime, ~0,
                                  out RaycastHit hit, out float _))
                 return;
 
@@ -685,7 +686,7 @@ namespace SpaceGame.Items
         /// The jet is an ordinary world-space ParticleSystem sitting on the muzzle, and it emits
         /// along its OWN forward — which, left alone, is the gun's forward. The gun is held in a
         /// fist rotated to the grip frame, tens of degrees off the look axis (see ItemGrip), so the
-        /// stream left the horn in one direction while <see cref="PortalJet.Trace"/> painted along
+        /// stream left the horn in one direction while <see cref="SprayArc.Trace"/> painted along
         /// another: the spray visibly missed the hole it was opening. Matching the speed, gravity
         /// and lifetime to the C# constants — which the builder does, and a test guards — buys the
         /// right CURVE and says nothing about which way it is thrown.
@@ -717,7 +718,7 @@ namespace SpaceGame.Items
         {
             if (OwnerIsLocal()) return AimDirection();
 
-            PortalJet.TryAimAt(MuzzlePosition(), lastAim, jetSpeed, jetGravity,
+            SprayArc.TryAimAt(MuzzlePosition(), lastAim, jetSpeed, jetGravity,
                                out Vector3 launch);
             return launch;
         }

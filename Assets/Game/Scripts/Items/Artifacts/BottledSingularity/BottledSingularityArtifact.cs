@@ -34,9 +34,12 @@ namespace SpaceGame.Items
     {
         [Header("Throw")]
         [Tooltip("Speed the bottle leaves the hand at, in metres per second. Read against this " +
-                 "project's 18 m/s² gravity rather than 9.81 — at this figure a level throw " +
-                 "carries about eighteen metres, which is comfortably outside the eight-metre " +
-                 "radius and therefore a throw you can make without joining the pile.")]
+                 "project's 18 m/s² gravity rather than 9.81, and against the well's eight-metre " +
+                 "radius: from a standing player's hand a LEVEL throw carries about seven metres, " +
+                 "so it lands inside its own reach and takes the thrower with it. Clearing the " +
+                 "radius means lobbing it — about 12 m at twenty degrees up, 18 m at forty-five. " +
+                 "That is the item working as designed and not a mis-tune: the decision the player " +
+                 "makes is how far to commit, and there are no exemptions for whoever threw it.")]
         [SerializeField, Min(1f)] private float throwSpeed = 18f;
 
         [Tooltip("Where the bottle leaves from — the Marker_ThrowPivot empty on the model, which " +

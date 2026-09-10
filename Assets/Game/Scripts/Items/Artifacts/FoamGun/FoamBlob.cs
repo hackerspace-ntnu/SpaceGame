@@ -37,16 +37,40 @@ namespace SpaceGame.Items
                  "the transform scale and nothing else — the collider grows with it because it is " +
                  "the same number, which is the only reason the shape you see and the shape you " +
                  "stand on cannot drift apart.")]
-        [SerializeField, Min(0.01f)] private float radius = 0.45f;
+        [SerializeField, Min(0.01f)] private float radius = 1.05f;
 
-        [Tooltip("Seconds the blob takes to swell to full size. It grows rather than appearing, " +
-                 "so foam sprayed at your own feet pushes you out gently instead of launching you.")]
-        [SerializeField, Min(0f)] private float growSeconds = 0.4f;
+        [Tooltip("How much a blob may fall short of its full radius, as a share of it. DOWNWARD " +
+                 "ONLY, and that is not a style choice: the gun measures its catch sweep off the " +
+                 "FULL radius, so a blob allowed to grow past it would encase bodies the sweep " +
+                 "never looked at. Without this a mass reads as a row of identical balls no " +
+                 "matter how well the surface welds.")]
+        [SerializeField, Range(0f, 0.5f)] private float radiusVariance = 0.36f;
 
-        [Tooltip("How big a blob is at the instant it lands, as a share of its full radius. Not " +
-                 "zero: a SphereCollider at zero scale is degenerate, and a blob that spent a " +
-                 "frame as one would be a lump nothing could stand on.")]
-        [SerializeField, Range(0.01f, 0.5f)] private float birthRadiusShare = 0.15f;
+        [Tooltip("How far this blob may sit off the shading ladder its lighting alone would put " +
+                 "it on, pushed into the material as _ShadeBias. This is the colour variation: " +
+                 "the four bands are one column of the palette, so a nudged blob lands on a " +
+                 "different one of those four entries and cannot walk off the column the way a " +
+                 "tint would.")]
+        [SerializeField, Range(0f, 0.5f)] private float shadeVariance = 0.22f;
+
+        [Tooltip("How far a lump may be squashed on its two shorter axes, as a share of its " +
+                 "radius. This is what stops the mass reading as a pile of balls: every lump is a " +
+                 "differently proportioned, differently tumbled ellipsoid, and the shader bends " +
+                 "the silhouette further on top of it. The LONGEST axis always stays at the full " +
+                 "radius — see AxisScale for why that cap is load-bearing rather than tidy.")]
+        [SerializeField, Range(0f, 0.5f)] private float shapeSquash = 0.38f;
+
+        [Tooltip("Seconds the blob takes to swell to full size after it lands. It grows rather " +
+                 "than appearing, so foam sprayed at your own feet pushes you out gently instead " +
+                 "of launching you — and at three seconds the swell is the effect rather than a " +
+                 "way of hiding a pop, so a mass visibly rises after the jet has moved on.")]
+        [SerializeField, Min(0f)] private float growSeconds = 3f;
+
+        [Tooltip("How big a blob is before its foam has arrived, as a share of its full radius. " +
+                 "Not zero: a SphereCollider at zero scale is degenerate, and a blob that spent a " +
+                 "frame as one would be a lump nothing could stand on. Kept small, because the " +
+                 "blob sits at this size for the whole of the spray's flight time — see Begin.")]
+        [SerializeField, Range(0.01f, 0.5f)] private float birthRadiusShare = 0.06f;
 
         [Header("Expiry")]
         [Tooltip("Seconds of dissolve at the end of the blob's life. The shader eats it away from " +
@@ -68,6 +92,7 @@ namespace SpaceGame.Items
         private static readonly Collider[] Touching = new Collider[16];
 
         private static readonly int DissolveId = Shader.PropertyToID("_Dissolve");
+        private static readonly int ShadeBiasId = Shader.PropertyToID("_ShadeBias");
 
         /// <summary>
         /// When this blob was laid, on the shared server clock, and how long it has. Replicated
@@ -82,6 +107,10 @@ namespace SpaceGame.Items
 
         private MaterialPropertyBlock dissolveBlock;
         private float drawnDissolve = -1f;
+        private float drawnBias = float.NaN;
+
+        /// <summary>Has this lump been given its one permanent pose? See <see cref="Tumble"/>.</summary>
+        private bool tumbled;
 
         /// <summary>
         /// Who sprayed this, on the machine that decided to. Deliberately not replicated: the only
@@ -93,14 +122,125 @@ namespace SpaceGame.Items
         /// <summary>The sphere's centre in world space — the dab's placement point.</summary>
         public Vector3 Centre => transform.position;
 
-        /// <summary>How big this blob is right now, in metres. What the shader field is told.</summary>
+        /// <summary>The lump's longest half-extent right now, in metres.</summary>
         public float Radius { get; private set; }
+
+        /// <summary>
+        /// The radius the analytic weld field should union this lump as.
+        ///
+        /// <para>
+        /// The MEAN of its three half-extents, not the longest. FoamSurface welds neighbours by
+        /// unioning spheres of the radius it is given, and a squashed lump is not that sphere —
+        /// handing it the longest extent would inflate the field past the geometry on two axes out
+        /// of three and grow a fillet welded onto empty air. The mean is the sphere that best fits
+        /// the lump, and the residual mismatch is exactly the price of a silhouette that is not a
+        /// ball (see the Gotchas in FoamGun.md).
+        /// </para>
+        /// </summary>
+        public float FieldRadius
+        {
+            get
+            {
+                Vector3 axes = AxisScale;
+                return Radius * (axes.x + axes.y + axes.z) / 3f;
+            }
+        }
 
         /// <summary>
         /// How big one of these ends up. Read off the prefab by the gun, so the sweep that decides
         /// who a dab encases and the lump that dab becomes are the same number.
         /// </summary>
         public float FullRadius => radius;
+
+        /// <summary>
+        /// The longest half-extent this lump ends up at — its own draw of
+        /// <see cref="FullRadius"/>, not the prefab's figure.
+        ///
+        /// <para>
+        /// This is the reach a spray arc has to be tested against rather than
+        /// <see cref="Radius"/>, which is a twentieth of it for the whole of the lump's flight
+        /// and under half of it for the first second and a half of the swell. See
+        /// <see cref="TryHitCommitted"/>.
+        /// </para>
+        /// </summary>
+        public float CommittedRadius => radius * Variance;
+
+        /// <summary>
+        /// Where a straight chord first meets the volume this lump has COMMITTED to fill, as
+        /// opposed to the volume its collider occupies right now.
+        ///
+        /// <para>
+        /// The two are the same only at the end of the swell. A dab is spawned at
+        /// <see cref="birthRadiusShare"/> of its size and stays there until its foam has flown,
+        /// then takes <see cref="growSeconds"/> to reach full — so at the design's fifteen dabs a
+        /// second, the first twenty of a held spray are all laid while every lump before them is
+        /// still a pebble. Traced against the colliders, every one of those passes through the
+        /// mass and lands on the ground: the gun spreads a carpet where the player was building a
+        /// pile. Tested against the committed volume it stacks from the first dab, which is what
+        /// the foam is for (<c>GDC-L1-FEEL-0007</c> — the sensation is the target, and the
+        /// collider's honest current size is the physical accuracy that fights it).
+        /// </para>
+        /// <para>
+        /// The test is against the ELLIPSOID, not a sphere of <see cref="CommittedRadius"/>. A
+        /// lump is squashed on two axes by up to 38 %, so the sphere would stand up to a third of
+        /// a metre proud of the geometry on those axes and leave a dab hanging in the air beside
+        /// the mass it was meant to land on.
+        /// </para>
+        /// <para>
+        /// A chord that STARTS inside the volume reports nothing, which is what
+        /// <c>Physics.Raycast</c> does with a collider it starts inside. Without it a player who
+        /// has buried their own muzzle in foam could not spray back out of it.
+        /// </para>
+        /// </summary>
+        /// <param name="distance">How far along the chord from <paramref name="from"/>, in metres.</param>
+        public bool TryHitCommitted(Vector3 from, Vector3 to, out Vector3 point, out Vector3 normal,
+                                    out float distance)
+        {
+            point = default;
+            normal = Vector3.up;
+            distance = 0f;
+
+            Vector3 extents = AxisScale * CommittedRadius;
+            if (extents.x <= 1e-4f || extents.y <= 1e-4f || extents.z <= 1e-4f) return false;
+
+            // Into the lump's own frame and then onto the unit sphere, where a ray/ellipsoid
+            // intersection is an ordinary quadratic. The pose is Tumble rather than
+            // transform.rotation because a lump that has not been stamped yet has not been turned
+            // to it — and the arc has to agree with the shape the lump is going to hold.
+            Quaternion inverse = Quaternion.Inverse(Tumble);
+            Vector3 origin = inverse * (from - Centre);
+            Vector3 leg = inverse * (to - from);
+
+            Vector3 o = new Vector3(origin.x / extents.x, origin.y / extents.y, origin.z / extents.z);
+            Vector3 d = new Vector3(leg.x / extents.x, leg.y / extents.y, leg.z / extents.z);
+
+            float a = Vector3.Dot(d, d);
+            if (a < 1e-12f) return false;
+
+            float c = Vector3.Dot(o, o) - 1f;
+            if (c <= 0f) return false;
+
+            float b = 2f * Vector3.Dot(o, d);
+            float discriminant = b * b - 4f * a * c;
+            if (discriminant < 0f) return false;
+
+            // The near root. The chord is parameterised 0..1 over its own length, so anything
+            // outside that is the ellipsoid sitting off the end of this chord rather than on it.
+            float t = (-b - Mathf.Sqrt(discriminant)) / (2f * a);
+            if (t < 0f || t > 1f) return false;
+
+            // The outward normal is the ellipsoid's gradient, which is the unit-sphere point
+            // divided by the extents again — the same squash applied a second time, not undone.
+            Vector3 surfacePoint = o + d * t;
+            Vector3 gradient = new Vector3(surfacePoint.x / extents.x, surfacePoint.y / extents.y,
+                                           surfacePoint.z / extents.z);
+            if (gradient.sqrMagnitude < 1e-12f) return false;
+
+            point = from + (to - from) * t;
+            normal = (Tumble * gradient).normalized;
+            distance = Vector3.Distance(from, to) * t;
+            return true;
+        }
 
         /// <summary>Seconds since this blob was laid, on whatever clock both machines share.</summary>
         private float Age => Mathf.Max(0f, (float)(Now - bornAt.Value));
@@ -124,11 +264,27 @@ namespace SpaceGame.Items
         /// than a sentence for whoever is inside it, while a ramp is still there when they climb
         /// back down (GDC-L1-BAL-0004).
         /// </param>
-        public void Begin(GameObject sprayer, float seconds)
+        /// <param name="travelSeconds">
+        /// How long the sprayed foam takes to FLY from the muzzle to this landing point.
+        ///
+        /// <para>
+        /// The lump is spawned the instant the trigger tick is authorised, but the foam the player
+        /// can see is still crossing the room — so without this a mass swells up at the far wall
+        /// before any spray has reached it, and the jet reads as decoration painted over an effect
+        /// that had already happened. Stamping the clock in the FUTURE holds the blob at its birth
+        /// size until the foam arrives, because <see cref="Age"/> clamps at zero. It then grows
+        /// from there, which is what makes the mass look like it was deposited by the jet.
+        /// </para>
+        /// <para>
+        /// The delay costs no extra replication: <see cref="bornAt"/> already crosses the wire, so
+        /// a late joiner picks up a blob still in flight exactly where everyone else has it.
+        /// </para>
+        /// </param>
+        public void Begin(GameObject sprayer, float seconds, float travelSeconds = 0f)
         {
             Sprayer = sprayer;
 
-            bornAt.Value = Now;
+            bornAt.Value = Now + Mathf.Max(0f, travelSeconds);
             lifetime.Value = Mathf.Max(dissolveSeconds, seconds);
 
             // The pose is already right, but the size is not: without this the blob spends its
@@ -207,14 +363,105 @@ namespace SpaceGame.Items
                 return;
             }
 
+
             float age = Age;
+            float full = radius * Variance;
 
             float grown = growSeconds <= 0f ? 1f : Mathf.SmoothStep(0f, 1f, age / growSeconds);
-            Radius = Mathf.Lerp(radius * birthRadiusShare, radius, grown);
-            transform.localScale = Vector3.one * Radius;
+            Radius = Mathf.Lerp(full * birthRadiusShare, full, grown);
+
+            // Non-uniform, and tumbled. Radius stays the LONGEST half-extent, so everything that
+            // reasons about this lump from the outside — the catch sweep, the budget's sort, the
+            // weld field — keeps working off one honest number.
+            transform.localScale = AxisScale * Radius;
+
+            // The pose is fixed for the blob's life, so it is written once the stamp that seeds it
+            // has arrived rather than every frame.
+            if (!tumbled && lifetime.Value > 0f)
+            {
+                transform.rotation = Tumble;
+                tumbled = true;
+            }
 
             PaintDissolve(Mathf.Clamp01((age - (total - dissolveSeconds)) / dissolveSeconds));
         }
+
+
+
+
+
+        /// <summary>
+        /// One deterministic 0..1 draw for this blob, <paramref name="salt"/> picking which.
+        ///
+        /// <para>
+        /// Seeded from <see cref="bornAt"/> and the object id rather than from the spawn position
+        /// or from <c>Random</c>, because every machine has to derive the SAME lump. The position
+        /// is not trustworthy when a client's copy first enables — it holds the prefab's pose until
+        /// the spawn payload is unpacked, and a blob that changed shape a frame later would pop.
+        /// The stamp arrives with that payload, and until it does <see cref="ApplyShape"/> is on
+        /// its unstamped branch anyway.
+        /// </para>
+        /// <para>
+        /// The id is asked only of a SPAWNED object: <c>NetworkBehaviour.NetworkObjectId</c>
+        /// reaches through a NetworkObject that logs an error of its own when there is not one yet.
+        /// It is the tie-break for the several dabs that share one server tick at this dab rate.
+        /// </para>
+        /// </summary>
+        private float Draw(int salt)
+        {
+            ulong id = IsSpawned ? NetworkObjectId : 0UL;
+
+            long bits = System.BitConverter.DoubleToInt64Bits(bornAt.Value)
+                        ^ (long)(id * 2654435761UL)
+                        ^ ((long)salt * 40503L);
+
+            return ((bits ^ (bits >> 17)) & 0xFFFF) / 65535f;
+        }
+
+        /// <summary>How far short of its full radius this blob falls, as a share of it.</summary>
+        private float Variance => radiusVariance <= 0f ? 1f : 1f - radiusVariance * Draw(11);
+
+        /// <summary>How far this blob sits off the shading ladder its lighting alone would give it.</summary>
+        private float ShadeBias =>
+            shadeVariance <= 0f ? 0f : (Draw(5) - 0.5f) * 2f * shadeVariance;
+
+        /// <summary>
+        /// The lump's proportions: how far it is squashed per axis, LONGEST AXIS EXACTLY 1.
+        ///
+        /// <para>
+        /// That cap is not cosmetic. The gun sweeps <c>FullRadius + catchMargin</c> for bodies to
+        /// encase, and <see cref="FullRadius"/> is read off the prefab and cannot know a per-blob
+        /// shape — so a lump allowed to stretch past its radius on any axis would reach further
+        /// than the sweep that decided who was inside it. Squashing only keeps every existing
+        /// guarantee true. It costs volume, which is bought back on the radius instead.
+        /// </para>
+        /// <para>
+        /// WHICH axis stays long is drawn too. A hundred ellipsoids all flattened the same way
+        /// reads as a rendering artefact rather than as foam.
+        /// </para>
+        /// </summary>
+        private Vector3 AxisScale
+        {
+            get
+            {
+                if (shapeSquash <= 0f) return Vector3.one;
+
+                float a = 1f - shapeSquash * Draw(23);
+                float b = 1f - shapeSquash * Draw(37);
+                float pick = Draw(53);
+
+                if (pick < 0.334f) return new Vector3(1f, a, b);
+                return pick < 0.667f ? new Vector3(a, 1f, b) : new Vector3(a, b, 1f);
+            }
+        }
+
+        /// <summary>
+        /// The pose a squashed lump is laid at. Random, because the surface normal a dab landed on
+        /// is of no use to a shape that is not a sphere — and because lumps all leaning one way is
+        /// the most obvious tell there is.
+        /// </summary>
+        private Quaternion Tumble =>
+            Quaternion.Euler(Draw(71) * 360f, Draw(89) * 360f, Draw(97) * 360f);
 
         /// <summary>
         /// Push the blob's own place in its life into the material.
@@ -226,13 +473,29 @@ namespace SpaceGame.Items
         /// </summary>
         private void PaintDissolve(float dissolve)
         {
-            if (surface == null || Mathf.Approximately(dissolve, drawnDissolve)) return;
+            if (surface == null) return;
+
+            // The bias is part of the test, not just part of the write. It is derived from a
+            // REPLICATED stamp, so on a client it is one value before the spawn payload arrives
+            // and another after — and a guard on the dissolve alone would latch the first, leaving
+            // every blob on a peer biased identically while the host's were varied.
+            float bias = ShadeBias;
+            if (Mathf.Approximately(dissolve, drawnDissolve) &&
+                Mathf.Approximately(bias, drawnBias)) return;
 
             drawnDissolve = dissolve;
+            drawnBias = bias;
 
             dissolveBlock ??= new MaterialPropertyBlock();
             surface.GetPropertyBlock(dissolveBlock);
             dissolveBlock.SetFloat(DissolveId, dissolve);
+
+            // Written in the same block as the dissolve rather than once at birth, because a
+            // property block is replaced wholesale by SetPropertyBlock: a bias set on its own
+            // earlier would be dropped by the first dissolve write and the mass would go flat
+            // exactly when it started expiring.
+            dissolveBlock.SetFloat(ShadeBiasId, bias);
+
             surface.SetPropertyBlock(dissolveBlock);
         }
 

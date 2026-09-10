@@ -1,128 +1,130 @@
-// The cloud a Storm Flask uncorks, and the rain hanging under it (Artifacts/StormFlask.md).
+// The cloud a Storm Flask uncorks: a small, flat, ANGRY disc of vapour, drawn as a raymarched
+// volume inside the body mesh (Artifacts/StormFlask.md).
 //
-// THE MESH IS A UNIT CLOUD, AND THAT IS WHY THIS SHADER HAS NO MEASUREMENTS IN IT — the same
-// convention JetFlame.shader's unit cone uses. In the frame this shader shades in:
+// Everything about the frame, the ray/volume intersections, the turbulence and the two Cull Front
+// guards is in StormCloudVolume.hlsl — read that first. This file is the cloud's own shape, its
+// lighting and its palette, and nothing else.
 //
-//   * centred on the origin, radius 1 in XZ, +Y up;
-//   * geometry at y >= 0 is the CLOUD BODY — a flat lens, per the design's "small, flat,
-//     angry disc";
-//   * geometry at y < 0 is the RAIN VEIL, hanging to y = -1.
+// ── WHAT MAKES IT READ AS VIOLENT, AND WHY EACH PART IS HERE ────────────────────────────────
 //
-// The transform carries the real size (12 m radius, 15 m up, per the design). A mesh with no
-// geometry below y = 0 simply gets no rain and nothing breaks, so the cloud and the veil can
-// arrive as one mesh or as two objects sharing this material.
+// The first version of this shader painted the lens as a SURFACE: one churn sample per pixel,
+// one depth per pixel. That can only ever simmer. A thing that reads as violent has to have
+// interior parallax — near billows crossing far ones as you walk — and that is a property of a
+// volume, not of a texture. Four terms do the work, in the order they matter:
 //
-// BUT THE MESH DOES NOT ARRIVE IN THAT FRAME, AND ASSUMING IT DID WAS A BUG. JetFlame's cone
-// is generated in C#, so its object space IS its own frame. An `_exportlib` FBX is not: the
-// Blender-to-Unity turn and the centimetre file scale are left on the NODE
-// (`lr = (270.02, 0, 0)`, `ls = (100, 100, 100)`), not baked into the vertices. So `positionOS`
-// arrives Z-up at 1/100 — `Mesh_StormCloud_RainVolume.bounds` measures
-// `size (0.0184, 0.0184, 0.01)` against the 1.84 x 1.84 x 1.0 that storm_cloud.py authors.
-// Read raw, `positionOS.y` is a HORIZONTAL axis and `length(positionOS.xz)` comes out near
-// 0.009 instead of near 0.92: every radial and vertical term reads the wrong axis at 1/100
-// magnitude, and the cloud renders as a solid dark cylinder with no churn, taper or streaks.
-// `MeshToCloudFrame` below undoes exactly the node transform, so the shader gets the frame
-// storm_cloud.py's header promises it.
+//   1. DIFFERENTIAL ROTATION (_Spin, _SpinCore). The core turns faster than the rim, so the
+//      field is continuously sheared into spirals. Uniform rotation on a field with no landmark
+//      in it is invisible; this is not, and it is what says "mesocyclone" rather than "smoke".
+//   2. DOMAIN WARP (_Warp). Three noise taps that curl every straight feature downstream of
+//      them. Without it the billows are round and the cloud simmers.
+//   3. UPDRAFT (_Updraft). The sample point scrolls DOWN, so the cloud boils upward through its
+//      own shape — the shape stays put, the vapour does not.
+//   4. COVERAGE EROSION (_Coverage). The noise cuts the volume away rather than shading it, so
+//      the silhouette itself is ragged and moving. The mesh's own authored rim is deliberately
+//      OUTSIDE the analytic bound this marches, because a mesh rim cannot move and this can.
 //
-// WHY THE FIX IS HERE AND NOT IN THE IMPORTER. Over a hundred models share this convention,
-// and no importer setting reaches it — `bakeAxisConversion` mirrors the mesh in Z and flips
-// the node to compensate, and `globalScale` scales vertices while leaving the node rotation.
+// ── THE COVERAGE MASK IS NOT THE DENSITY ────────────────────────────────────────────────────
 //
-// WHY THE FRAME IS NORMALISED RATHER THAN METRIC, which is the part that is easy to get wrong
-// twice: the prefab scales the body uniformly by 12 and the veil by 12 wide and 15 tall, the
-// extra 1.25 living in the veil node's `localScale.z`. Node scale never touches `positionOS`,
-// so both objects still hand this shader the same normalised mesh and BOTH come out right —
-// the veil's `fall` runs 0..1 across its full length whether it is stretched or not, which is
-// what keeps `_RainSpeed` meaningful in veil lengths per second. Converting to metres instead
-// would make the stretched veil run 0..1.25 and fade out three metres above its own foot.
+// The shape term is remapped AGAINST the noise (`density = remap(billow, 1 - cover, 1)`), never
+// multiplied into it. Used as a density the shape saturates inside its own feather and the cloud
+// renders as its bounding solid with a fuzzy rim — the sandstorm shipped that exact picture and
+// Environment.md records it. Remapped, the feather is where the cloud goes to WISPS.
 //
-// IT READS POSITION AND NOTHING ELSE: no UV, no normal, no vertex colour. Every coordinate it
-// shades from is derived from that one position, so there is no UV convention to get
-// wrong, and no chance of a black cloud because a lathe wrote its V the other way up.
+// ── THE BAND LADDER IS FIVE NOW, AND THAT IS MEASURED ───────────────────────────────────────
 //
-// WHY THIS ONE IS TRANSPARENT WHEN THE OTHER THREE ARE OPAQUE. The foam, the ice and the
-// slick film all buy their legibility from PastelQuantize's ink pass, which needs them in
-// _CameraDepthTexture and therefore opaque. The cloud does not need to buy it: it is a very
-// dark thing hanging in front of a very bright sky, and the palette entries confirm the gap
-// is enormous — the three cloud bands land on entries 152, 154 and 194 while the pale desert
-// sky lands on 135, which is four lightness rows away. Raw contrast does here what the
-// outline does elsewhere, so the cloud can afford to be vapour. It must be: an opaque disc
-// with rain behind it would occlude its own rain.
+// The surface version used three bands, because it only ever drew the dark end: below Oklab
+// L 0.43 the palette's cold-blue column runs out and a fourth dark step collapses onto the third.
+// A lit volume is not in that situation. Its sunlit crown is four lightness rows ABOVE its belly,
+// and the column at hue 270 / chroma 0.046 holds exactly five entries across that span —
+// #D2D7E5, #B5BDD5, #939EBC, #707996, #464F69 at L 0.88, 0.80, 0.70, 0.58, 0.43 — plus the grey
+// ramp's #303030 where the column ends. The defaults below are five of those six, so the
+// quantizer's snap is a no-op on every band and the ladder stays as authored (GDC-L1-TECH-0004).
+// A bright top over a near-black base is the single strongest cue that a cloud is deep, and the
+// three-band version could not have it.
 //
-// READABLE FROM ANY BEARING. Nothing in this shader depends on where the camera is standing
-// horizontally. The churn, the streaks and the ragged edge are all functions of the cloud
-// frame's own position, and Cull is Off so the far wall of the veil draws as well as the
-// near one. The only view-dependent term at all is the extra density a lens picks up when
-// seen edge-on, which is symmetric about the cloud's axis. That is how the "invisible from
-// one half of the compass" failure was ruled out here.
+// ── AND IT IS STILL A HAZARD TELEGRAPH FIRST ────────────────────────────────────────────────
 //
-// WHY THREE BANDS AND NOT FOUR. Measured, not chosen: below Oklab L 0.43 the palette's blue
-// column runs out and only the grey ramp is left, so a four-step dark ladder collapses — the
-// top two steps snapped to the same entry at every chroma tried between 0.055 and 0.10. Three
-// bands, spaced on the rows the lattice actually holds, stay three (GDC-L1-TECH-0004).
+// The bolt falls inside the mesh's rim, and the mesh's rim is what the player is being warned by
+// (GDC-L1-UX-0003). So the volume is marched against a bound INSIDE that rim and the wisps erode
+// inward from it: what the storm draws is never wider than what the storm bills. A cloud drawn
+// generously past its own trigger volume kills people standing outside it, which reads as the
+// game cheating.
 Shader "SpaceGame/Artifacts/StormCloud"
 {
     Properties
     {
-        // Authored ON palette entries (#707996 #464F69 #303030 — the cold-blue column at
-        // Oklab L 0.58 and 0.43, and the grey ramp below where that column ends), so the
-        // quantizer's snap is a no-op on them and the three stay three.
-        [Header(Cloud bands)]
-        _BandRim  ("Band 1  Rim",  Color) = (0.439, 0.475, 0.588, 1)
-        _BandMid  ("Band 2  Mid",  Color) = (0.275, 0.310, 0.412, 1)
-        _BandCore ("Band 3  Core", Color) = (0.188, 0.188, 0.188, 1)
-
-        // Multiplies the raw mesh position to reach the unit-radius frame above. 100 undoes
-        // the centimetre file scale every `_exportlib` FBX carries on its node; 1 is right for
-        // geometry generated in C#, which needs no undoing.
-        //
-        // It is ONE shared number rather than a per-mesh radius on purpose. The body is
-        // authored at radius 1.00 and the veil at 0.92, deliberately, so that the rain falls
-        // inside the silhouette that warns you about it. Normalising each mesh by its own
-        // bounds would push the veil out to 1.00 and destroy that relationship — so the two
-        // objects share one material and one scale, and keep their authored proportions.
+        // Multiplies the raw mesh position to reach the unit-radius cloud frame. 100 undoes the
+        // centimetre file scale every `_exportlib` FBX carries on its node.
         [Header(Mesh frame)]
         _MeshToUnit ("Mesh Units To Unit Radius", Float) = 100
 
+        // One lattice column, darkest first. See the header: five measured entries, not a ramp
+        // between two ends — a lerp is even in linear RGB and the palette's rows are even in
+        // Oklab L, so an interpolated ladder bunches its middle bands onto one entry.
+        [Header(Cloud bands  darkest first)]
+        _BandCore  ("Band 1  Belly",  Color) = (0.188, 0.188, 0.188, 1)
+        _BandDeep  ("Band 2  Deep",   Color) = (0.275, 0.310, 0.412, 1)
+        _BandMid   ("Band 3  Mid",    Color) = (0.439, 0.475, 0.588, 1)
+        _BandLit   ("Band 4  Lit",    Color) = (0.576, 0.620, 0.737, 1)
+        _BandCrown ("Band 5  Crown",  Color) = (0.710, 0.741, 0.835, 1)
+
+        // Where the marched radiance is cut into those five bands. The one dial to reach for when
+        // the cloud is too dark or washes out; every other lighting number changes the SHAPE of
+        // the shading, this one only slides it up and down the ladder.
+        _Exposure ("Band Exposure", Range(0.2, 8)) = 0.8
+
         [Header(Cloud shape)]
-        _Density      ("Density",              Range(0, 1))    = 0.92
-        _ChurnScale   ("Churn Scale",          Range(0.5, 12)) = 3.2
-        _ChurnSpeed   ("Churn Speed",          Range(0, 2))    = 0.25
-        _EdgeRagged   ("Edge Raggedness",      Range(0, 0.5))  = 0.18
-        _EdgeSoftness ("Edge Softness",        Range(0.01, 0.6)) = 0.12
-        _CoreBias     ("Core Bias",            Range(0, 1))    = 0.55
+        // Inside the mesh's rim, which wanders between 0.72 and 1.00 of the radius. See header.
+        _BodyRadius  ("Body Radius",        Range(0.4, 1))    = 0.90
+        _BodyTop     ("Body Top",           Range(0.1, 0.8))  = 0.28
+        _Density     ("Density",            Range(0.1, 6))    = 2.2
+        _Coverage    ("Coverage",           Range(0.1, 1))    = 0.62
+        _RimStart    ("Rim Falloff Start",  Range(0, 0.95))   = 0.45
+        _CrownStart  ("Crown Taper Start",  Range(0, 0.95))   = 0.35
+        _BellyWeight ("Belly Weight",       Range(0, 2))      = 0.75
+        _ChurnScale  ("Churn Scale",        Range(0.5, 12))   = 3.4
+
+        [Header(Violence)]
+        _Spin      ("Spin (rad per s)",   Range(0, 2))   = 0.35
+        _SpinCore  ("Spin Core Boost",    Range(0, 4))   = 1.8
+        _Warp      ("Domain Warp",        Range(0, 1))   = 0.34
+        _WarpScale ("Domain Warp Scale",  Range(0.2, 6)) = 1.5
+        _WarpDrift ("Domain Warp Drift",  Range(0, 2))   = 0.16
+        _Updraft   ("Updraft (units per s)", Range(0, 1)) = 0.13
+
+        [Header(Light)]
+        // Pushed as a property rather than read from SampleSH. The sandstorm found SH returning
+        // zero in both of its paths — a procedural blit has no per-draw SH constants, and its
+        // shell renderer had light probes off — and the storm rendered black with a clean
+        // console. A number that is visible in the inspector cannot fail that quietly.
+        _SkyColor    ("Sky Light",           Color)          = (0.741, 0.816, 0.898, 1)
+        _SkyGain     ("Sky Gain",            Range(0, 4))    = 0.70
+        _SunGain     ("Sun Gain",            Range(0, 20))   = 4.0
+        _Anisotropy  ("Forward Scatter",     Range(-0.9, 0.9)) = 0.42
+        // How much of the sun still reaches the cloud's UNDERSIDE. The three-tap sun march
+        // cannot answer this on its own: the body is only about three and a half metres thick,
+        // so a march long enough to leave it accumulates almost no depth and the belly comes out
+        // as bright as the crown — which is the one thing a storm cloud must never look like.
+        // A flat cloud's base is in the shadow of the whole cloud above it, and this is that.
+        _BellyShadow ("Belly Shadow",        Range(0, 1))    = 0.10
+        _Extinction  ("Extinction (per m)",  Range(0.01, 2)) = 0.55
 
         [Header(Lightning)]
-        _Flash      ("Flash",        Range(0, 1))   = 0
-        _FlashColor ("Flash Colour", Color)         = (0.898, 0.941, 0.984, 1)
-        _FlashSpread("Flash Spread", Range(0.05, 1)) = 0.45
+        _Flash      ("Flash",                Range(0, 1))    = 0
+        _FlashColor ("Flash Colour",         Color)          = (0.898, 0.941, 0.984, 1)
+        // Where the bolt left, in WORLD space, pushed by StormCloudLook from the replicated
+        // strike. w is unused; it is a Vector so one SetVector carries the point.
+        _BoltPoint  ("Bolt Point (world)",   Vector)         = (0, 0, 0, 0)
+        _BoltReach  ("Bolt Reach (m)",       Range(1, 40))   = 9
 
-        // Unlike the cloud bands, these are NOT authored on palette entries, and that is the
-        // right call for a transparent material: what the quantizer snaps is the COMPOSITED
-        // pixel, so the colour that has to land on an entry is the blend, not the source.
-        // They were chosen by compositing them at their real alpha and snapping that.
-        //
-        // Rain is DARKER than what it hangs in front of, which is both what a curtain of it
-        // really does and the only version that survives: the first pass at these values
-        // composited onto entry 136 against a sky on 135 — one lightness step, visible but not
-        // the "readable at 50 m" the design asks for. The streak core now lands on 138, two
-        // steps off the sky, and stays distinct over sand, pale sand, rock and dune as well.
-        // Opacity carries most of that: the veil wall sits at radius 0.92, inside the edge
-        // falloff, so it is permanently multiplied by about 0.74 and never reaches the alpha
-        // its own number suggests.
-        [Header(Rain)]
-        _RainLight   ("Rain Light",           Color)           = (0.451, 0.549, 0.643, 1)
-        _RainDark    ("Rain Dark",            Color)           = (0.322, 0.400, 0.475, 1)
-        _RainOpacity ("Rain Opacity",         Range(0, 1))     = 0.85
-        _RainDensity ("Rain Density",         Range(1, 60))    = 16
-        _RainColumns ("Rain Columns",         Range(4, 120))   = 34
-        _RainWidth   ("Rain Streak Width",    Range(0.02, 1))  = 0.22
-        // At this world's gravity of 18 m/s^2, a drop released 15 m up arrives at about
-        // 23 m/s, which over a 15 m veil is roughly 1.5 veil lengths a second. That is where
-        // the default comes from; it is deliberately not 9.81's answer, which looks like
-        // drizzle here.
-        _RainSpeed   ("Rain Speed (veils/s)", Range(0.1, 6))   = 1.5
-        _RainTaper   ("Rain Taper",           Range(0, 1))     = 0.35
+        [Header(March)]
+        _Steps      ("Steps",                Range(8, 64))   = 28
+        _LightSteps ("Sun Steps",            Range(1, 6))    = 3
+        _SunStep    ("Sun Step (m)",         Range(0.2, 8))  = 0.8
+        // BOUNDED, never integrated to opacity. A Beer march always reaches alpha 1 given enough
+        // distance, so without a cap the middle of the disc is a flat silhouette with no
+        // structure in it — the same reason the sandstorm's interior carries a maxFogOpacity.
+        _MaxOpacity ("Max Opacity",          Range(0.1, 1))  = 0.97
 
         [Header(Life)]
         _Form ("Form", Range(0, 1)) = 1
@@ -142,13 +144,16 @@ Shader "SpaceGame/Artifacts/StormCloud"
         {
             Name "StormCloud"
 
-            // Straight alpha, not additive: a storm cloud takes light away. Additive is what
-            // makes a dark cloud impossible, because the brightest thing behind it — the sky —
-            // is exactly what it has to be darker than.
+            // Straight alpha, not additive: a storm cloud takes light away, and additive is what
+            // makes a dark cloud impossible — the brightest thing behind it is the sky, which is
+            // exactly what it has to be darker than.
             Blend SrcAlpha OneMinusSrcAlpha
             ZWrite Off
-            ZTest LEqual
-            Cull Off
+            // The fragment is the volume's FAR side, so the march always has the whole volume in
+            // front of it whether the camera is outside the cloud or inside it. Depth is settled
+            // by the depth TEXTURE instead — see StormCloudVolume.hlsl.
+            ZTest Always
+            Cull Front
 
             HLSLPROGRAM
             #pragma vertex Vert
@@ -156,35 +161,50 @@ Shader "SpaceGame/Artifacts/StormCloud"
             #pragma target 3.5
             #pragma multi_compile_fog
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "ArtifactSubstance.hlsl"
+            #include "StormCloudVolume.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float _MeshToUnit;
 
-                half4 _BandRim;
-                half4 _BandMid;
                 half4 _BandCore;
+                half4 _BandDeep;
+                half4 _BandMid;
+                half4 _BandLit;
+                half4 _BandCrown;
+                float _Exposure;
 
+                float _BodyRadius;
+                float _BodyTop;
                 float _Density;
+                float _Coverage;
+                float _RimStart;
+                float _CrownStart;
+                float _BellyWeight;
                 float _ChurnScale;
-                float _ChurnSpeed;
-                float _EdgeRagged;
-                float _EdgeSoftness;
-                float _CoreBias;
+
+                float _Spin;
+                float _SpinCore;
+                float _Warp;
+                float _WarpScale;
+                float _WarpDrift;
+                float _Updraft;
+
+                half4 _SkyColor;
+                float _SkyGain;
+                float _SunGain;
+                float _Anisotropy;
+                float _BellyShadow;
+                float _Extinction;
 
                 float _Flash;
                 half4 _FlashColor;
-                float _FlashSpread;
+                float4 _BoltPoint;
+                float _BoltReach;
 
-                half4 _RainLight;
-                half4 _RainDark;
-                float _RainOpacity;
-                float _RainDensity;
-                float _RainColumns;
-                float _RainWidth;
-                float _RainSpeed;
-                float _RainTaper;
+                float _Steps;
+                float _LightSteps;
+                float _SunStep;
+                float _MaxOpacity;
 
                 float _Form;
             CBUFFER_END
@@ -197,121 +217,154 @@ Shader "SpaceGame/Artifacts/StormCloud"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float3 positionCloud : TEXCOORD0;
-                float  fogFactor  : TEXCOORD1;
+                float3 positionWS : TEXCOORD0;
+                float4 screenPos  : TEXCOORD1;
+                float  fogFactor  : TEXCOORD2;
             };
-
-            // Undo the import node, so the rest of the shader works in the frame
-            // storm_cloud.py authors: XZ radius 1, +Y up, veil hanging to y = -1.
-            //
-            // The node's rotation is Unity Euler (270.02, 0, 0), i.e. R_x(-90), which maps
-            // (x, y, z) to (x, z, -y): mesh Z becomes up and mesh Y becomes the negated
-            // horizontal. The negation is written out rather than folded into a bare `.xzy`
-            // swizzle. It costs one instruction and it is genuinely free to be exact — the
-            // only consumers of that component are `length`, a `floor` cell index and the
-            // noise, all of which would survive a mirrored axis, but leaving a deliberate
-            // mirror in the code means the next person has to re-derive that it is harmless.
-            float3 MeshToCloudFrame(float3 positionOS)
-            {
-                return float3(positionOS.x, positionOS.z, -positionOS.y) * _MeshToUnit;
-            }
 
             Varyings Vert(Attributes IN)
             {
                 Varyings OUT;
-                VertexPositionInputs positions = GetVertexPositionInputs(IN.positionCloud.xyz);
+
+                VertexPositionInputs positions = GetVertexPositionInputs(IN.positionOS.xyz);
                 OUT.positionCS = positions.positionCS;
-                OUT.positionCloud = MeshToCloudFrame(IN.positionCloud.xyz);
-                OUT.fogFactor  = ComputeFogFactor(positions.positionCS.z);
+                OUT.positionWS = positions.positionWS;
+                OUT.fogFactor = ComputeFogFactor(positions.positionCS.z);
+
+                StormCloudPinFarPlane(OUT.positionCS);
+                OUT.screenPos = ComputeScreenPos(OUT.positionCS);
                 return OUT;
             }
 
-            // The cloud body: a flat lens of churning vapour, dark in the middle and lighter
-            // at the ragged rim.
-            void ShadeCloud(float3 position, float radius, out float3 colour, out float alpha)
+            /// How much cloud is at one point of the cloud frame, and how high up the body it is.
+            float CloudDensity(float3 position, float time, out float heightFraction)
             {
-                // Object space with a slow vertical scroll. The cloud does not travel, so a
-                // world-space field would only mean two storms in the same place share a
-                // pattern; its own frame keeps each one its own weather.
-                float3 churnSample = position * _ChurnScale
-                                   + float3(0.0, _Time.y * _ChurnSpeed, _Time.y * _ChurnSpeed * 0.4);
-                float churn = SubstanceTurbulence(churnSample);
+                heightFraction = saturate(position.y / max(_BodyTop, 1e-3));
+                float radial = length(position.xz) / max(_BodyRadius, 1e-3);
 
-                // The rim is eaten into by the churn, so the disc is not a circle. A perfect
-                // circle in the sky is the thing that reads as a decal rather than as weather,
-                // and it is also what the quantizer's ink would outline most cleanly — the one
-                // place a crisp outline is the wrong answer.
-                float raggedRadius = radius + (churn - 0.5) * _EdgeRagged;
-                alpha = _Density * _Form
-                      * (1.0 - smoothstep(1.0 - _EdgeSoftness, 1.0, raggedRadius));
+                // Hard at the base, tapering to the crown, feathered at the rim. The flat dark
+                // underside is the design's own read — it is the face a bolt comes out of, and
+                // the face the player is standing under when it matters.
+                // NO FEATHER AT THE BASE, deliberately. A cumulonimbus has a flat dark
+                // underside, the design calls for one, and a feather there opens a bright gap
+                // of sky between the cloud's belly and the top of the rain veil — the two
+                // meshes meet at exactly y = 0 and the veil has no geometry above it to close
+                // the seam from its side.
+                float shape = (1.0 - smoothstep(_RimStart, 1.0, radial))
+                            * (1.0 - smoothstep(_CrownStart, 1.0, heightFraction));
+                if (shape <= 0.0) return 0.0;
 
-                // Darkest through the middle, where a real cloud is thickest, biased so most
-                // of the disc sits in the two dark bands and only the edge lifts. An evenly
-                // lit cloud reads as a grey plate.
-                float depth = saturate((1.0 - raggedRadius) * (1.0 + _CoreBias) - _CoreBias * churn);
-                colour = SubstanceLadder3(1.0 - depth, _BandCore.rgb, _BandMid.rgb, _BandRim.rgb);
+                float3 sample = StormCloudSpin(position, _Spin, _SpinCore, time);
+                sample = StormCloudWarp(sample, _WarpScale, _Warp, time * _WarpDrift);
+                sample.y -= time * _Updraft;
 
-                // A bolt lights the cloud from inside, brightest at the middle and reaching
-                // out as far as the spread allows. Mixed into the colour BEFORE it leaves this
-                // function, never composited over the finished frame, so the lit cloud still
-                // lands on a palette entry — the same rule PastelQuantize's ink follows.
-                float lit = _Flash * saturate(1.0 - raggedRadius / max(_FlashSpread, 1e-3));
-                colour = lerp(colour, _FlashColor.rgb, saturate(lit));
-            }
+                float billow = StormCloudBillow(sample * _ChurnScale);
 
-            // The rain veil: thin streaks falling out of the cloud, thinning as they go.
-            void ShadeRain(float3 position, float radius, out float3 colour, out float alpha)
-            {
-                // 0 at the cloud, 1 at the bottom of the veil. The mesh defines the veil as
-                // one object unit tall, which is what makes _RainSpeed meaningful in veil
-                // lengths a second rather than in a unit nobody can picture.
-                float fall = saturate(-position.y);
+                // Coverage, not density. See the file header.
+                float cover = saturate(shape * _Coverage * _Form);
+                float density = saturate((billow - (1.0 - cover)) / max(cover, 1e-3));
 
-                // One phase per column, so neighbouring streaks are not in lockstep. Quantized
-                // into columns rather than driven continuously, because a continuous phase
-                // shears the streaks into a spiral as they wrap.
-                float2 column = floor(position.xz * _RainColumns);
-                float phase = SubstanceHash(float3(column, 0.0));
-
-                float streakCoord = fall * _RainDensity - _Time.y * _RainSpeed * _RainDensity + phase;
-                float streak = frac(streakCoord);
-
-                // A hard-ended streak, not a soft blob: rain at this distance is a line, and a
-                // soft one is fog. Two flats rather than a gradient along the streak, for the
-                // same reason every other ladder here has flats — the quantizer would band it
-                // anyway and authored bands can be tuned.
-                float body = 1.0 - smoothstep(0.0, _RainWidth, streak);
-                colour = lerp(_RainDark.rgb, _RainLight.rgb, SubstanceBand(body, 2.0));
-
-                // Thinner at the bottom, where drops have spread apart, and gone before the
-                // veil's own geometry ends so the mesh has no visible bottom edge. Also thins
-                // toward the outside of the disc, so the curtain has a shape rather than
-                // stopping at a cylinder wall.
-                float taper = (1.0 - smoothstep(1.0 - _RainTaper, 1.0, fall))
-                            * (1.0 - smoothstep(1.0 - _EdgeSoftness, 1.0, radius));
-
-                alpha = body * _RainOpacity * taper * _Form;
+                return density * _Density * (1.0 + _BellyWeight * (1.0 - heightFraction));
             }
 
             half4 Frag(Varyings IN) : SV_Target
             {
-                float radius = length(IN.positionCloud.xz);
+                float2 screenUv = IN.screenPos.xy / max(1e-4, IN.screenPos.w);
 
-                float3 colour;
-                float alpha;
-                if (IN.positionCloud.y >= 0.0)
-                {
-                    ShadeCloud(IN.positionCloud, radius, colour, alpha);
-                }
-                else
-                {
-                    ShadeRain(IN.positionCloud, radius, colour, alpha);
-                }
+                float3 eye = _WorldSpaceCameraPos;
+                float3 rayWS = normalize(IN.positionWS - eye);
 
-                if (alpha <= 0.003)
-                {
+                // Into the cloud frame. The direction was normalised in WORLD space first, so
+                // every `t` below is still a distance in metres — see StormCloudVolume.hlsl.
+                float3 origin = StormCloudToFrame(eye, _MeshToUnit);
+                float3 ray = StormCloudDirectionToFrame(rayWS, _MeshToUnit);
+
+                float tNear, tFar;
+                if (!StormCloudRayCylinder(origin, ray, _BodyRadius, 0.0, _BodyTop, tNear, tFar))
                     discard;
+
+                tNear = max(tNear, 0.0);
+                tFar = StormCloudSceneClamp(screenUv, rayWS, tFar);
+                if (tFar <= tNear) discard;
+
+                float3 sunDirectionWS = normalize(_MainLightPosition.xyz);
+                float3 sunDirection = StormCloudDirectionToFrame(sunDirectionWS, _MeshToUnit);
+                float3 sunColor = _MainLightColor.rgb;
+
+                // The sun's own elevation, not a fudge factor. It is how much of the sun falls on
+                // the top of the storm, and it is what gives the cloud a day-night response for
+                // free; the sandstorm's hand-picked 0.35 gave noon exactly the light of sunset.
+                float sunElevation = saturate(sunDirectionWS.y);
+                float phase = StormCloudPhase(dot(rayWS, sunDirectionWS), _Anisotropy);
+
+                int steps = (int)_Steps;
+                int lightSteps = (int)_LightSteps;
+                float dt = (tFar - tNear) / steps;
+
+                // Jittered start, so the march's own step lands on a different depth per pixel.
+                // Unjittered, a volume this shallow bands into visible shells.
+                float t = tNear + dt * InterleavedGradientNoise(IN.positionCS.xy, 0);
+                float time = _Time.y;
+
+                float transmittance = 1.0;
+                float3 scatter = 0.0;
+                float boltPeak = 0.0;
+
+                for (int i = 0; i < steps; i++)
+                {
+                    float3 position = origin + ray * t;
+                    float heightFraction;
+                    float density = CloudDensity(position, time, heightFraction);
+
+                    if (density > 0.001)
+                    {
+                        // Toward the sun, in metres: sunDirection is the cloud-frame image of a
+                        // unit world vector, so a step of _SunStep along it is _SunStep metres.
+                        float sunDepth = 0.0;
+                        for (int j = 0; j < lightSteps; j++)
+                        {
+                            float3 lightSample = position + sunDirection * _SunStep * (j + 0.5);
+                            float ignored;
+                            sunDepth += CloudDensity(lightSample, time, ignored) * _SunStep;
+                        }
+
+                        float3 positionWS = eye + rayWS * t;
+                        float bolt = StormCloudBoltGlow(positionWS, _BoltPoint.xyz, _Flash, _BoltReach);
+                        boltPeak = max(boltPeak, bolt);
+
+                        float3 light =
+                            sunColor * _SunGain * sunElevation * phase
+                                     * StormCloudSunTransmittance(sunDepth, _Extinction)
+                                     * lerp(_BellyShadow, 1.0, heightFraction)
+                          + _SkyColor.rgb * _SkyGain * (0.30 + 0.70 * heightFraction)
+                          + _FlashColor.rgb * bolt;
+
+                        // Analytic integration over the step rather than a Riemann sum, so the
+                        // result does not change brightness when _Steps is changed.
+                        float sigma = max(density * _Extinction, 1e-5);
+                        float stepTransmittance = exp(-sigma * dt);
+                        scatter += transmittance * light * (1.0 - stepTransmittance);
+                        transmittance *= stepTransmittance;
+
+                        if (transmittance < 0.01) break;
+                    }
+
+                    t += dt;
                 }
+
+                float alpha = (1.0 - transmittance) * _MaxOpacity * _Form;
+                if (alpha <= 0.003) discard;
+
+                // Banded, not ramped: the quantizer would band it anyway, and an authored ladder
+                // is one that can be tuned. Luminance weights are Rec. 709 on linear values.
+                float tone = saturate(dot(scatter, float3(0.2126, 0.7152, 0.0722)) * _Exposure);
+                float3 colour = SubstanceLadder5(tone, _BandCore.rgb, _BandDeep.rgb, _BandMid.rgb,
+                                                 _BandLit.rgb, _BandCrown.rgb);
+
+                // The bolt's own whiteout goes on AFTER the ladder and only at its peak, so a
+                // strike is allowed off the palette for the fraction of a second it lasts. Every
+                // other frame of the cloud's life is on it.
+                colour = lerp(colour, _FlashColor.rgb, saturate(boltPeak));
 
                 colour = MixFog(colour, IN.fogFactor);
                 return half4(colour, saturate(alpha));

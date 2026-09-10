@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.Diagnostics;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Core
@@ -50,7 +51,14 @@ namespace SpaceGame.Core
 
             public void StartOut()
             {
-                outRoutine = LetterboxOverlay.Instance.StartCoroutine(RunOut());
+                // The owner is the overlay, not this: a FadeHandle is a plain object and the
+                // routine borrows the (DontDestroyOnLoad) overlay's coroutines.
+                //
+                // FinishOut is the teardown because AwaitOutPhase spins on that one flag. An
+                // out-phase that dies without setting it hangs the whole transition on a black
+                // screen with the destination never loading and nothing in the console.
+                outRoutine = LetterboxOverlay.Instance.StartCoroutine(Fault.Coroutine(
+                    LetterboxOverlay.Instance, "FadeToBlack.Out", RunOut(), FinishOut));
             }
 
             public override IEnumerator AwaitOutPhase()
@@ -62,7 +70,11 @@ namespace SpaceGame.Core
             {
                 if (ended) return;
                 ended = true;
-                inRoutine = LetterboxOverlay.Instance.StartCoroutine(RunIn());
+                // AbortIn rather than FinishIn: a fade-in that dies leaves the black it was
+                // fading out of, which is a permanently black screen, AND leaves AwaitCompletion
+                // spinning on a routine that is not coming back.
+                inRoutine = LetterboxOverlay.Instance.StartCoroutine(Fault.Coroutine(
+                    LetterboxOverlay.Instance, "FadeToBlack.In", RunIn(), AbortIn));
             }
 
             public override IEnumerator AwaitCompletion()
@@ -76,8 +88,7 @@ namespace SpaceGame.Core
                 // before kicking off the (potentially main-thread-stalling) destination load.
                 // Without this gate the load freeze can swallow the entire fade.
                 yield return LetterboxOverlay.Instance.FadeToBlackAsync(outDur);
-                outDone = true;
-                outRoutine = null;
+                FinishOut();
             }
 
             private IEnumerator RunIn()
@@ -100,8 +111,31 @@ namespace SpaceGame.Core
                     yield return null;
                 }
 
+                FinishIn();
+            }
+
+            /// <summary>Releases anyone in <see cref="AwaitOutPhase"/>. The tail of RunOut, and its teardown.</summary>
+            private void FinishOut()
+            {
+                outDone = true;
+                outRoutine = null;
+            }
+
+            /// <summary>Releases anyone in <see cref="AwaitCompletion"/>. The tail of RunIn.</summary>
+            private void FinishIn()
+            {
                 inDone = true;
                 inRoutine = null;
+            }
+
+            /// <summary>
+            /// The ending the spacebar skip already takes: clear the screen, then release the
+            /// waiters. RunIn's teardown, because a dead fade-in has to give back the black.
+            /// </summary>
+            private void AbortIn()
+            {
+                LetterboxOverlay.Instance.SnapClear();
+                FinishIn();
             }
         }
     }

@@ -386,7 +386,7 @@ def grip_palm(top, length=GRIP_LEN, rake=GRIP_RAKE):
 def trigger_collar(p, centre, radius, axis='Z', accent=None, span=0.052):
     """The can's answer to a grip: a thumb trigger on a collar, with a guard.
 
-    The slick can has no pistol grip — the hand wraps the can body — so the
+    An aerosol-style can has no pistol grip — the hand wraps the can body — so the
     trigger has to sit where a thumb lands and the guard has to keep a
     hand-full of can off it. Same parts as `grip_moulded`, different mounting.
     """
@@ -518,7 +518,7 @@ def nozzle_finned(p, y_front, y_back, r, at=(0.0, 0.0), fins=6, fin_r=None,
 def nozzle_fan(p, at, half_width, height, depth, mat=SHELL, lip=CHROME):
     """A flat fan head: a wide, shallow slot that sprays a sheet, not a jet.
 
-    The slick can's read, and the one nozzle in the set that is not round —
+    The fan read, and the one nozzle in the set that is not round —
     which is what makes the can identifiable in the hand at a glance even
     though it is the smallest item (GDC-L1-UX-0003).
     """

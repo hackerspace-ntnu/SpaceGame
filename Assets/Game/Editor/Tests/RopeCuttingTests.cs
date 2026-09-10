@@ -27,6 +27,9 @@ namespace SpaceGame.EditorTools
         {
             private readonly Vector3[] points;
 
+            /// <summary>Who this rope is tied to, if the test cares. See <see cref="Binds"/>.</summary>
+            private readonly GameObject boundTo;
+
             /// <summary>
             /// Take itself out of the registry as it is cut, the way a leash does: Snap destroys
             /// its GameObject and the OnDisable that follows unregisters it, inside the very call
@@ -34,17 +37,26 @@ namespace SpaceGame.EditorTools
             /// </summary>
             private readonly bool unregistersOnCut;
 
-            public FakeRope(params Vector3[] points) : this(false, points) { }
+            public FakeRope(params Vector3[] points) : this(false, null, points) { }
 
             public FakeRope(bool unregistersOnCut, params Vector3[] points)
+                : this(unregistersOnCut, null, points) { }
+
+            public FakeRope(GameObject boundTo, params Vector3[] points)
+                : this(false, boundTo, points) { }
+
+            public FakeRope(bool unregistersOnCut, GameObject boundTo, params Vector3[] points)
             {
                 this.unregistersOnCut = unregistersOnCut;
+                this.boundTo = boundTo;
                 this.points = points;
             }
 
             public int Cuts { get; private set; }
 
             public void AppendSpan(List<Vector3> into) => into.AddRange(points);
+
+            public bool Binds(GameObject body) => boundTo != null && boundTo == body;
 
             public void Cut()
             {
@@ -182,6 +194,65 @@ namespace SpaceGame.EditorTools
             Assert.That(cut, Is.EqualTo(2));
             Assert.That(first.Cuts, Is.EqualTo(1));
             Assert.That(second.Cuts, Is.EqualTo(1));
+        }
+
+        // ── Cutting everything on one body ─────────────────────────────────────
+
+        [Test]
+        public void OnlyRopesTiedToThatBodyAreCut()
+        {
+            var respawning = new GameObject("respawning");
+            var somebodyElse = new GameObject("somebody else");
+
+            // Both ropes are in the same place, so nothing geometric can tell them apart: this
+            // query asks who a rope is ON, never where it is.
+            var theirs = new FakeRope(respawning, Vector3.zero, Vector3.forward);
+            var unrelated = new FakeRope(somebodyElse, Vector3.zero, Vector3.forward);
+
+            CuttableRopes.Register(theirs);
+            CuttableRopes.Register(unrelated);
+
+            int cut = CuttableRopes.CutEveryRopeOn(respawning);
+
+            Assert.That(cut, Is.EqualTo(1));
+            Assert.That(theirs.Cuts, Is.EqualTo(1));
+            Assert.That(unrelated.Cuts, Is.Zero);
+
+            Object.DestroyImmediate(respawning);
+            Object.DestroyImmediate(somebodyElse);
+        }
+
+        [Test]
+        public void EveryRopeOnOneBodyIsCutEvenAsTheyUnregisterThemselves()
+        {
+            // A player can be roped by two people at once, and a leash unregisters itself from
+            // inside the call that cuts it — the same enumeration trap CutAlong is pinned against.
+            var caught = new GameObject("caught");
+
+            var first = new FakeRope(true, caught, Vector3.zero, Vector3.forward);
+            var second = new FakeRope(true, caught, Vector3.zero, Vector3.right);
+
+            CuttableRopes.Register(first);
+            CuttableRopes.Register(second);
+
+            int cut = CuttableRopes.CutEveryRopeOn(caught);
+
+            Assert.That(cut, Is.EqualTo(2));
+            Assert.That(first.Cuts, Is.EqualTo(1));
+            Assert.That(second.Cuts, Is.EqualTo(1));
+
+            Object.DestroyImmediate(caught);
+        }
+
+        [Test]
+        public void CuttingEveryRopeOnNobodyCutsNothing()
+        {
+            var rope = new FakeRope(Vector3.zero, Vector3.forward);
+
+            CuttableRopes.Register(rope);
+
+            Assert.That(CuttableRopes.CutEveryRopeOn(null), Is.Zero);
+            Assert.That(rope.Cuts, Is.Zero);
         }
 
         [Test]

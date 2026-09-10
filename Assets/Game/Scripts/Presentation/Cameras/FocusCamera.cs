@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using SpaceGame.Diagnostics;
 using SpaceGame.Items;
 
 namespace SpaceGame.Presentation
@@ -189,7 +190,11 @@ namespace SpaceGame.Presentation
 
             BuildDepthOfField();
 
-            flight = StartCoroutine(FlyIn());
+            // The teardown is Dismiss rather than the public FlyOut: a fly-in that dies halfway
+            // has already taken the player's camera and has no route home, and Dismiss is the one
+            // method that gives it straight back. FlyOut takes a duration and would only fall
+            // through to the same call.
+            flight = StartCoroutine(Fault.Coroutine(this, "FocusCamera.FlyIn", FlyIn(), Dismiss));
         }
 
         /// <summary>Puts the player's camera and ears back and destroys this. Safe to call twice.</summary>
@@ -232,7 +237,11 @@ namespace SpaceGame.Presentation
             outElapsed = 0f;
             phase = Phase.FlyingOut;
 
-            flight = StartCoroutine(FlyOutRoutine());
+            // Dismiss again, and it is not a retry of the flight that just threw: the routine's
+            // only job is to wait out the seconds and then Dismiss, so a throw in the wait leaves
+            // the player looking through a camera that is never coming down. Dismiss is safe to
+            // call twice.
+            flight = StartCoroutine(Fault.Coroutine(this, "FocusCamera.FlyOut", FlyOutRoutine(), Dismiss));
         }
 
         private void OnDestroy()

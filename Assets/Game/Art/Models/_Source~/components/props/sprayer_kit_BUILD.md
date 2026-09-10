@@ -2,7 +2,7 @@
 
 The shared parts of the nine-item **clean issued equipment** set. Built
 2026-09-07 alongside the first four items that use it: the flamethrower, the
-foam gun, the cryo sprayer and the slick can.
+foam gun and the cryo sprayer.
 
 | File | |
 |---|---|
@@ -66,7 +66,6 @@ Function colours in use so far:
 | Flamethrower | `Mat_Paint_Safety_Orange` (+ `Mat_Paint_Warn_Red` muzzle band, `Mat_Emissive_Amber` pilot) | fire |
 | Foam gun | `Mat_Plastic_Safety_Yellow` | the only bright moulded plastic in the palette |
 | Cryo sprayer | `Mat_Paint_Blue_Station` | the palette's cold enamel |
-| Slick can | `Mat_Metal_Copper_Oxide` | the only cool metallic teal — reads as an oil sheen; see `slick_can_BUILD.md` |
 
 The remaining five items should take an unused hue rather than a fifth shade of
 one already here.
@@ -95,7 +94,7 @@ Two things are load-bearing and neither is aesthetic:
   the one under it.
 
 `gauge_plate` takes the bar direction as a **vector**, not an axis letter, which
-is why the slick can's gauge can run vertically up a can flank with no other
+is why a gauge can run vertically up a can flank with no other
 change.
 
 ## Variations in `sprayer_kit.blend`

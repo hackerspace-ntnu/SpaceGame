@@ -54,16 +54,12 @@ namespace SpaceGame.Items
         private float irisAngle;
         private bool spraying;
 
-        /// <summary>Where the stream is being thrown, so a peer's jet points at the same lump.</summary>
-        private Vector3 aimPoint;
-
         /// <summary>Where a dab leaves the gun.</summary>
         public Vector3 MuzzlePosition => muzzle != null ? muzzle.position : transform.position;
 
         private void Awake()
         {
             if (iris != null) irisRest = iris.localRotation;
-            aimPoint = MuzzlePosition + transform.forward;
         }
 
         private void OnEnable() => ApplyIris();
@@ -102,31 +98,32 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Where this tick's foam is going. Every machine is told the landing point in the use
-        /// message, so a peer — whose copy of a remote player has an AimProvider with no camera
-        /// behind it — still throws the stream the right way.
+        /// Which way to throw the stream, in world space.
+        ///
+        /// <para>
+        /// A LAUNCH direction, not a point to aim at: the droplets fall, so the line to where the
+        /// foam lands is not the line it was thrown along. <see cref="FoamGunArtifact"/> solves
+        /// that direction — off the live aim on the holder's own machine, off the landing point in
+        /// the message on every other — and calls this once a frame while the trigger is down.
+        /// </para>
+        /// <para>
+        /// Applied here rather than stored for a LateUpdate of this component's own: the caller
+        /// already runs after the look and the hold pose have moved, and two LateUpdates racing
+        /// over one rotation is a frame of lag nobody can see the cause of.
+        /// </para>
         /// </summary>
-        public void AimAt(Vector3 point) => aimPoint = point;
+        public void AimAlong(Vector3 direction)
+        {
+            if (jet == null || direction.sqrMagnitude < 1e-6f) return;
+
+            jet.transform.rotation = Quaternion.LookRotation(direction);
+        }
 
         private void Update()
         {
             irisAngle = Mathf.MoveTowards(irisAngle, spraying ? irisOpenDegrees : 0f,
                                           irisSpeed * Time.deltaTime);
             ApplyIris();
-        }
-
-        /// <summary>
-        /// Point the emitter after the look and the hold pose have both moved this frame — the
-        /// muzzle rides the fist, so aiming it in Update would trail one frame behind the gun.
-        /// </summary>
-        private void LateUpdate()
-        {
-            if (jet == null || !spraying) return;
-
-            Vector3 direction = aimPoint - MuzzlePosition;
-            if (direction.sqrMagnitude < 1e-6f) return;
-
-            jet.transform.rotation = Quaternion.LookRotation(direction);
         }
 
         private void ApplyIris()

@@ -173,6 +173,14 @@ namespace SpaceGame.EditorTools
         /// what the game will load — the difference that catches anything <c>SaveAsPrefabAsset</c>
         /// drops on the way out.
         /// </para>
+        /// <para>
+        /// It also flies the pack for a moment <b>in the form it is actually used in</b> — worn,
+        /// throttle open — and asserts that smoke comes out. The pack shipped without a single
+        /// puff because <c>WornVisual</c> read the smoke system as a third model and switched it
+        /// off the instant the pack went on a back; the flames were fine, nothing logged, and the
+        /// only way to see it was to fly one. A resolved binding is not the same as a working
+        /// effect, so both are checked.
+        /// </para>
         /// </summary>
         private static void VerifyPods(GameObject saved)
         {
@@ -190,21 +198,80 @@ namespace SpaceGame.EditorTools
                 nozzles.Resolve();
 
                 // Two models on the item, two pods each, two flames a pod.
-                if (nozzles.PodCount == 4 && nozzles.FlameCount == 8)
+                if (nozzles.PodCount != 4 || nozzles.FlameCount != 8)
                 {
-                    Debug.Log("[Jetpack] Verified: 4 pods, 8 flames resolved off the saved prefab.");
+                    Debug.LogError($"[Jetpack] The saved prefab resolves {nozzles.PodCount} pod(s) " +
+                                   $"and {nozzles.FlameCount} flame(s); expected 4 and 8. The part " +
+                                   "names in the model and the role names in JetpackNozzles have " +
+                                   "diverged.");
                     return;
                 }
 
-                Debug.LogError($"[Jetpack] The saved prefab resolves {nozzles.PodCount} pod(s) and " +
-                               $"{nozzles.FlameCount} flame(s); expected 4 and 8. The part names in " +
-                               "the model and the role names in JetpackNozzles have diverged.");
+                Debug.Log("[Jetpack] Verified: 4 pods, 8 flames resolved off the saved prefab.");
+                VerifySmoke(instance, nozzles);
             }
             finally
             {
                 Object.DestroyImmediate(instance);
             }
         }
+
+        /// <summary>
+        /// Fly the saved pack for a few frames, worn and at full throttle, and assert that the
+        /// nozzles actually throw smoke.
+        ///
+        /// <para>
+        /// Worn rather than carried, because worn is the only form that ever flies and it is the
+        /// form the smoke was missing from — a check run on the carried pack would have passed
+        /// throughout. The frames are driven by hand through <c>JetpackNozzles.Tick</c>: the
+        /// editor never calls <c>LateUpdate</c>, and <c>Time.deltaTime</c> is zero here, so the
+        /// component has to be handed a step it can spend.
+        /// </para>
+        /// </summary>
+        private static void VerifySmoke(GameObject instance, JetpackNozzles nozzles)
+        {
+            WornVisual.SetForm(instance, WornVisual.Form.Worn);
+
+            var smoke = instance.GetComponentInChildren<ParticleSystem>(true);
+            if (smoke == null)
+            {
+                Debug.LogError("[Jetpack] The saved prefab has no smoke system at all.");
+                return;
+            }
+
+            if (!smoke.gameObject.activeInHierarchy)
+            {
+                Debug.LogError("[Jetpack] The smoke system is switched OFF on a worn pack, so the " +
+                               "pack flies without a trail however hot it gets. WornVisual hides " +
+                               "every top-level child that is not the shown model — see its note " +
+                               "on effects.");
+                return;
+            }
+
+            smoke.Clear();
+            nozzles.SetWearer(instance.transform);
+            nozzles.Throttle = 1f;
+            nozzles.Heat = 0f;
+
+            for (int i = 0; i < SmokeVerifyFrames; i++) nozzles.Tick(SmokeVerifyStep);
+
+            if (smoke.particleCount > 0)
+            {
+                Debug.Log($"[Jetpack] Verified: {smoke.particleCount} puff(s) off a worn pack at " +
+                          "full throttle.");
+                return;
+            }
+
+            Debug.LogError("[Jetpack] A worn pack at full throttle emits NO smoke. The system is " +
+                           "active, so the emit path itself is broken — check the flame cones the " +
+                           "puffs are thrown off and JetpackNozzles.smokePerSecond.");
+        }
+
+        /// <summary>How many frames <see cref="VerifySmoke"/> flies the pack for, and how long each
+        /// one is. A tenth of a second is plenty at any sane rate, and short enough that the debt
+        /// carried between frames is exercised rather than stepped over.</summary>
+        private const int SmokeVerifyFrames = 6;
+        private const float SmokeVerifyStep = 1f / 60f;
 
         /// <summary>
         /// The worn pair, as the <c>WornVisual</c> child the swap looks for by name.
@@ -590,13 +657,20 @@ namespace SpaceGame.EditorTools
             main.duration = 5f;
             main.loop = true;
             main.playOnAwake = true;
-            main.startLifetime = 2.2f;
+
+            // A range rather than a number on both of these, and that is what makes a stack of
+            // flat quads read as one body of smoke: puffs born together must not grow and die
+            // together, or the trail pulses.
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.4f, 3.4f);
 
             // Zero, because JetpackNozzles hands every puff its own velocity down the nozzle it
             // came out of. A start speed here would add a second, undirected push on top.
             main.startSpeed = 0f;
-            main.startSize = 0.30f;
-            main.startColor = new Color(0.34f, 0.33f, 0.31f, 0.55f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.45f, 0.70f);
+
+            // Thin on its own and thick where several overlap. A puff opaque enough to read alone
+            // stacks into a flat grey slab, which is the opposite of the depth being asked for.
+            main.startColor = new Color(0.34f, 0.33f, 0.31f, 0.42f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.gravityModifier = -0.04f;   // smoke rises, slightly
             main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -607,10 +681,10 @@ namespace SpaceGame.EditorTools
             main.scalingMode = ParticleSystemScalingMode.Local;
             main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
 
-            // Four nozzles at up to ~32 puffs a second each, living 2.2 s, is about 280 in the air
-            // at an overheat. A cap below that silently thins the trail exactly when it is trying
-            // to warn you.
-            main.maxParticles = 400;
+            // Four nozzles at up to ~50 puffs a second each, living up to 3.4 s, is about 680 in
+            // the air at an overheat. A cap below that silently thins the trail exactly when it is
+            // trying to warn you.
+            main.maxParticles = 900;
 
             ParticleSystem.EmissionModule emission = smoke.emission;
             emission.enabled = false;
@@ -629,8 +703,11 @@ namespace SpaceGame.EditorTools
 
             ParticleSystem.SizeOverLifetimeModule size = smoke.sizeOverLifetime;
             size.enabled = true;
+            // Born small and ending near two metres across. The growth is most of the volume:
+            // four columns of expanding puffs overlapping each other is what stands in for a
+            // volumetric plume here, since nothing in this project renders one for real.
             size.size = new ParticleSystem.MinMaxCurve(
-                1f, AnimationCurve.EaseInOut(0f, 0.35f, 1f, 3.2f));
+                1f, AnimationCurve.EaseInOut(0f, 0.30f, 1f, 3.4f));
 
             ParticleSystem.ColorOverLifetimeModule fade = smoke.colorOverLifetime;
             fade.enabled = true;

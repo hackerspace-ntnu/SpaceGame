@@ -126,9 +126,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.FoamBlob
   ShowTopMostFoldoutHeaderGroup: 1
-  radius: 0.45
-  growSeconds: 0.4
-  birthRadiusShare: 0.15
+  radius: 1.05
+  growSeconds: 3
+  birthRadiusShare: 0.06
   dissolveSeconds: 0.8
   bodyMask:
     serializedVersion: 2

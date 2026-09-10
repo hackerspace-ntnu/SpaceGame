@@ -480,6 +480,81 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// The deck takes the crew with it.
+        /// </summary>
+        /// <remarks>
+        /// A hull moved by transform writes imparts no friction and no momentum to a body resting on
+        /// it, so anybody standing in the cabin is left behind as the deck slides out from under
+        /// them. That is every machine except the one driving — <c>NetAuthority</c> makes the hull
+        /// kinematic on a client and <c>ClientNetworkTransform</c> then writes its pose — and it was
+        /// invisible for as long as the only person aboard was the pilot, who is parented into their
+        /// seat. Unbound, the carrier builds its own box round the whole ship instead and carries
+        /// the sand beside it.
+        /// </remarks>
+        [Test]
+        public void PlayerShip_TheDeckCarriesWhoeverIsStandingOnIt()
+        {
+            InstantiateShip();
+
+            WalkerPlatformCarrier carrier = ship.GetComponent<WalkerPlatformCarrier>();
+            Assert.IsNotNull(carrier, "No WalkerPlatformCarrier on the hull — the deck sails out "
+                                      + "from under anybody standing on it on every machine but the pilot's.");
+
+            var volume = new SerializedObject(carrier).FindProperty("carryVolume")
+                .objectReferenceValue as Collider;
+            Assert.IsNotNull(volume, "The carrier names no carry volume, so it falls back to a box "
+                                     + "round the whole ship.");
+            Assert.AreSame(ship.transform, volume.transform.root, "The carry volume is not on this hull.");
+
+            // The same box the breathable air and the sandstorm shelter are cut from: it is already
+            // the answer to "is this body inside the ship", and a second one drawn from the same
+            // decks would drift from it the first time either was tuned.
+            Assert.IsInstanceOf<BoxCollider>(volume, "The carry volume is the breathable-air box.");
+            var box = (BoxCollider)volume;
+            Vector3 centre = ship.transform.InverseTransformPoint(box.transform.TransformPoint(box.center));
+
+            Bounds shelter = new SerializedObject(ship.GetComponent<SandstormShelter>())
+                .FindProperty("localVolume").boundsValue;
+            Assert.Less(Vector3.Distance(shelter.center, centre), 0.01f,
+                "The carry volume has drifted off the interior the rest of the ship measures.");
+        }
+
+        /// <summary>
+        /// Only the helm may take the hull.
+        /// </summary>
+        /// <remarks>
+        /// Ownership is per-NetworkObject and all four seats ride on one, so "the last person to sit
+        /// down owns the ship" is not a rule about driving. A passenger dropping into a chair took
+        /// the hull off the pilot; <c>NetAuthority</c> on the pilot's machine then did exactly what
+        /// it is for — disabled the drivers, made the body kinematic — and the ship stopped moving
+        /// the moment a second player sat down, for everybody, with nothing in the console.
+        /// <para>
+        /// <c>MountNetworkSync</c> now asks whether its own seat steers, and a seat steers if it has
+        /// a <c>SteerModule</c>. That answer is only as good as the prefab: a second SteerModule on
+        /// a chair would put the hull back in the hands of whoever sat in it last. This is the guard
+        /// on that, and it is the reason PlayerShip is the only prefab in the project carrying more
+        /// than one <c>MountNetworkSync</c>.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public void PlayerShip_OnlyTheHelmSeatTakesOwnershipOfTheHull()
+        {
+            InstantiateShip();
+
+            MountNetworkSync[] syncs = ship.GetComponentsInChildren<MountNetworkSync>(true);
+            Assert.AreEqual(4, syncs.Length, "One seat channel per chair: the helm and three chairs.");
+
+            MountNetworkSync[] steering = syncs.Where(s => s.GetComponent<SteerModule>() != null).ToArray();
+            Assert.AreEqual(1, steering.Length,
+                "Exactly one seat may hand the hull over on mount, but these would: "
+                + string.Join(", ", steering.Select(s => s.name)));
+
+            Assert.AreSame(ship.GetComponent<MountModule>(), steering[0].GetComponent<MountModule>(),
+                "The seat that takes the hull is not the module SteerModule drives, so the owner "
+                + "would be somebody with no controls.");
+        }
+
+        /// <summary>
         /// Nothing on the hull may board the helm — only the pilot's chair may.
         /// </summary>
         /// <remarks>

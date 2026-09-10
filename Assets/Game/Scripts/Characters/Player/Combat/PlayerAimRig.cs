@@ -73,10 +73,10 @@ namespace SpaceGame.Characters
 
         private ItemGrip.HoldStyle heldStyle = ItemGrip.HoldStyle.None;
 
-        // One per arm, because the pose is not symmetric: a lamp on the left forearm needs the
-        // mirror of the pose a lamp on the right one needs, and a player may wear both.
-        private ItemGrip.HoldStyle torchRight = ItemGrip.HoldStyle.None;
-        private ItemGrip.HoldStyle torchLeft = ItemGrip.HoldStyle.None;
+        // One per arm, because the pose is not symmetric: a device on the left forearm needs the
+        // mirror of the pose one on the right needs, and a player may wear both.
+        private ItemGrip.HoldStyle wornRight = ItemGrip.HoldStyle.None;
+        private ItemGrip.HoldStyle wornLeft = ItemGrip.HoldStyle.None;
         private float holdT;
 
         // One raise per arm: the decision, and its blend.
@@ -100,18 +100,18 @@ namespace SpaceGame.Characters
 
         /// <summary>
         /// The pose the body is actually in: what is in the hand, or — with empty hands — whatever
-        /// a lit torch asked for.
+        /// a switched-on worn gauntlet asked for.
         ///
         /// <para>
         /// A held item wins, and it wins for free rather than through a rule: something in the
-        /// hand is a better answer to "what are the arms doing" than a lamp on the wrist, and both
-        /// hands are on it anyway. Between two lit torches the right one wins, which is arbitrary
-        /// and has to be: there is one pose and it faces one way.
+        /// hand is a better answer to "what are the arms doing" than a device on the wrist, and
+        /// both hands are on it anyway. Between two working gauntlets the right one wins, which is
+        /// arbitrary and has to be: there is one pose and it faces one way.
         /// </para>
         /// </summary>
         public ItemGrip.HoldStyle PoseStyle =>
             heldStyle != ItemGrip.HoldStyle.None ? heldStyle :
-            torchRight != ItemGrip.HoldStyle.None ? torchRight : torchLeft;
+            wornRight != ItemGrip.HoldStyle.None ? wornRight : wornLeft;
 
         /// <summary>
         /// Whether that pose is played mirrored — true only when the LEFT arm is the one that
@@ -120,9 +120,9 @@ namespace SpaceGame.Characters
         /// <para>
         /// Every hold clip is right-handed. Measured off the assets: the one-handed pose
         /// (<c>HumanM@Gun_Aim01</c>) puts the right hand 0.19 up and 0.19 forward of the body
-        /// centre and leaves the left one at the hip, so a torch on the left forearm played
-        /// unmirrored lights the ground beside the player — the pose comes on, and it comes on for
-        /// the wrong arm, which is worse than no pose because it looks deliberate.
+        /// centre and leaves the left one at the hip, so a gauntlet on the left forearm played
+        /// unmirrored raises the empty arm — the pose comes on, and it comes on for the wrong arm,
+        /// which is worse than no pose because it looks deliberate.
         /// </para>
         /// <para>
         /// A held item is never mirrored. The off hand grips an item without the body turning
@@ -132,8 +132,8 @@ namespace SpaceGame.Characters
         /// </summary>
         public bool PoseMirrored =>
             heldStyle == ItemGrip.HoldStyle.None &&
-            torchRight == ItemGrip.HoldStyle.None &&
-            torchLeft != ItemGrip.HoldStyle.None;
+            wornRight == ItemGrip.HoldStyle.None &&
+            wornLeft != ItemGrip.HoldStyle.None;
 
         /// <summary>
         /// Whether the masked layer should be carrying a pose at all this frame — the thing the
@@ -219,30 +219,36 @@ namespace SpaceGame.Characters
         }
 
         /// <summary>
-        /// Bring the body into a hold pose because a lit torch on <paramref name="arm"/> wants
-        /// that arm up, or let it drop.
+        /// Bring the body into a hold pose because a working gauntlet on <paramref name="arm"/>
+        /// wants that arm up, or let it drop.
         ///
         /// <para>
         /// <see cref="ItemGrip.HoldStyle.None"/> releases it, for that arm alone — a player with a
-        /// lamp on each wrist switches them off one at a time. Which arm is asking decides whether
-        /// the pose plays mirrored; see <see cref="PoseMirrored"/>. Called by
-        /// <see cref="SpaceGame.Items.FlashlightGauntletArtifact"/> off <c>Flashlight.Switched</c>,
-        /// so it follows the lamp on every machine — the wearer switching it, a peer being told by
-        /// <c>netTorch</c>, or a save restore — and a peer sees the same posture with nothing extra
-        /// on the wire.
+        /// device on each wrist switches them off one at a time. Which arm is asking decides
+        /// whether the pose plays mirrored; see <see cref="PoseMirrored"/>.
+        /// </para>
+        /// <para>
+        /// Two artifacts ask for it today and both for the same reason: a forearm device is only
+        /// usable with the forearm up. <see cref="SpaceGame.Items.FlashlightGauntletArtifact"/>
+        /// calls it off <c>Flashlight.Switched</c> so the beam leaves along a raised arm, and
+        /// <see cref="SpaceGame.Items.ItemScannerArtifact"/> calls it while the set is powered so
+        /// the wearer can read the screen. Both call on EVERY machine — the flashlight through the
+        /// lamp's own event, the scanner through <c>Present</c> — so a peer sees the same posture
+        /// with nothing extra on the wire, and the raised arm reads the device's on/off state from
+        /// across a room (GDC-L1-ANIM-0003).
         /// </para>
         /// <para>
         /// This reuses the pose the body already takes for a HELD item rather than a pose of its
-        /// own. The gauntlet is on the forearm and the beam leaves along it, so what the torch
-        /// needs is exactly what holding something needs: the forearm up and forward, pitching
-        /// with the look. A bespoke set of clips was built for it first and thrown away — this is
-        /// the same shape for none of the assets.
+        /// own. The gauntlet is on the forearm, so what it needs is exactly what holding something
+        /// needs: the forearm up and forward, pitching with the look. A bespoke set of clips was
+        /// built for the torch first and thrown away — this is the same shape for none of the
+        /// assets.
         /// </para>
         /// </summary>
-        public void SetTorchStyle(ItemGrip.Hand arm, ItemGrip.HoldStyle style)
+        public void SetWornStyle(ItemGrip.Hand arm, ItemGrip.HoldStyle style)
         {
-            if (arm == ItemGrip.Hand.Left) torchLeft = style;
-            else torchRight = style;
+            if (arm == ItemGrip.Hand.Left) wornLeft = style;
+            else wornRight = style;
         }
 
         private void Update()
@@ -293,7 +299,7 @@ namespace SpaceGame.Characters
             // A raised arm needs the layer up even when nothing is held and the hold pose is off.
             animator.SetLayerWeight(upperBodyLayerIndex, Mathf.Max(holdT, Mathf.Max(raiseLeftT, raiseRightT)));
 
-            // The lit torch's style is written into the same parameter the hand uses, so a torch
+            // A worn gauntlet's style is written into the same parameter the hand uses, so a worn
             // pose and a held item cannot both be on: there is one pose and one state machine.
             // The mirror is a second parameter rather than more values of the first, so every hold
             // style gets a left-armed twin without the enum growing a mirrored half.
@@ -333,8 +339,8 @@ namespace SpaceGame.Characters
             raiseRight = false;
             raiseLeftT = 0f;
             raiseRightT = 0f;
-            torchLeft = ItemGrip.HoldStyle.None;
-            torchRight = ItemGrip.HoldStyle.None;
+            wornLeft = ItemGrip.HoldStyle.None;
+            wornRight = ItemGrip.HoldStyle.None;
             heldStyle = ItemGrip.HoldStyle.None;
             WriteAnimator();
         }

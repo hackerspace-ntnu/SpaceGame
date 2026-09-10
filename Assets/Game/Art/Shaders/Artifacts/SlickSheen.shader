@@ -1,5 +1,5 @@
-// The frictionless film the Slick Can sprays, and the `Slick` SurfaceCoat patch generally
-// (Artifacts/SlickCan.md, Artifacts/SurfaceCoat.md).
+// The film of frost the cryo sprayer leaves, and the `Slick` SurfaceCoat patch generally
+// (Artifacts/CryoSprayer.md, Artifacts/SurfaceCoat.md).
 //
 // THE MESH IS A UNIT CUBE IN OBJECT SPACE, spanning -0.5..+0.5 on every axis — Unity's own
 // Cube primitive, unaltered. It reads POSITION and nothing else: NO UV, NO NORMAL, NO VERTEX

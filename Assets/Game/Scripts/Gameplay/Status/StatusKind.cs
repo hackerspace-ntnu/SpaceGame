@@ -16,7 +16,7 @@ namespace SpaceGame.Gameplay.Status
         /// <summary>Damage over time on its own clock. Creatures panic and flee. Put out by water.</summary>
         Burning = 0,
 
-        /// <summary>Helpless — no movement, no attacks. A hard hit shatters and kills.</summary>
+        /// <summary>Helpless — no movement, no attacks, no damage of its own.</summary>
         Frozen = 1,
 
         /// <summary>No ground grip, and nothing thrown will stick to the body either.</summary>
@@ -27,6 +27,13 @@ namespace SpaceGame.Gameplay.Status
 
         /// <summary>Held in place. Broken early by damage.</summary>
         Foamed = 4,
+
+        /// <summary>
+        /// Swallowed whole: hidden, out of every physics query, and unable to act until whatever
+        /// ate it gives it back. Unlike the other five this is not a change to what a body can do,
+        /// it is the body not being in the world — see <see cref="SwallowedStatus"/>.
+        /// </summary>
+        Swallowed = 5,
     }
 
     /// <summary>
@@ -42,6 +49,6 @@ namespace SpaceGame.Gameplay.Status
         /// hole in the numbering, this is the count that has to keep covering it, and a reflection
         /// call would quietly return the wrong one.
         /// </summary>
-        public const int Count = 5;
+        public const int Count = 6;
     }
 }

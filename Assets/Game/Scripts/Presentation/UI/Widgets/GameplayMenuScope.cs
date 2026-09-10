@@ -48,6 +48,16 @@ namespace SpaceGame.Presentation
 
         public static bool IsActive => owners.Count > 0;
 
+        /// <summary>
+        /// Everything currently holding this scope open.
+        ///
+        /// Exposed for <c>StuckScopeGuard</c>, which is the only reader: an owner that was destroyed
+        /// or disabled without calling <see cref="Exit"/> leaves the player with a free cursor, no
+        /// gameplay input and — solo — a stopped clock, with no way out but quitting. Read-only, and
+        /// a caller that acts on it must copy first: <see cref="Exit"/> mutates this set.
+        /// </summary>
+        public static IReadOnlyCollection<object> Owners => owners;
+
         /// <summary>True while the game clock is stopped, which only happens in a solo session.</summary>
         public static bool TimeFrozen => frozeTime;
 

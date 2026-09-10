@@ -41,7 +41,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ALitTorchWithEmptyHands_PosesTheBody()
         {
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
 
             Assert.AreEqual(ItemGrip.HoldStyle.OneHanded, rig.PoseStyle,
                 "the torch's style is the pose when nothing is held");
@@ -52,8 +52,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void SwitchingTheTorchOff_DropsThePose()
         {
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.None);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.None);
 
             Assert.IsFalse(rig.Posing, "the arm reads the lamp's state, so off must put it down");
         }
@@ -61,7 +61,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ATorchOnTheLeftArm_MirrorsThePose()
         {
-            rig.SetTorchStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
 
             Assert.IsTrue(rig.Posing);
             Assert.IsTrue(rig.PoseMirrored,
@@ -71,7 +71,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ATorchOnTheRightArm_DoesNot()
         {
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
 
             Assert.IsFalse(rig.PoseMirrored);
         }
@@ -81,10 +81,10 @@ namespace SpaceGame.EditorTools
         {
             // A player can wear a lamp on each wrist and switch them off one at a time. A single
             // torch field made the second switch-off drop a pose the first one still wanted.
-            rig.SetTorchStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
 
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.None);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.None);
 
             Assert.IsTrue(rig.Posing, "the left lamp is still lit");
             Assert.IsTrue(rig.PoseMirrored, "and it is the left arm that now has to come up");
@@ -95,7 +95,7 @@ namespace SpaceGame.EditorTools
         {
             // The off hand grips items without the body turning round; mirroring for a held item
             // would swap which shoulder every two-handed thing is braced against.
-            rig.SetTorchStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
             rig.SetHeldStyle(ItemGrip.HoldStyle.TwoHanded);
 
             Assert.AreEqual(ItemGrip.HoldStyle.TwoHanded, rig.PoseStyle);
@@ -107,7 +107,7 @@ namespace SpaceGame.EditorTools
         {
             // Relaxed is set while the gear screen is open: the astronaut is the stand the gear
             // sits on. A lit torch must not be the one thing that keeps posing through it.
-            rig.SetTorchStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
             rig.Relaxed = true;
 
             Assert.IsFalse(rig.Posing);

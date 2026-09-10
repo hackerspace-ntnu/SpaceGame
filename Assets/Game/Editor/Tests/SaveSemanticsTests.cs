@@ -341,6 +341,56 @@ namespace SpaceGame.EditorTools
         }
 
         // ─────────────────────────────────────────────
+        //  Network spawn comes before state
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Every site that rebuilds a saved object network-spawns it BEFORE restoring its state.
+        ///
+        /// Restore is what nests a NetworkObject: <c>EntityEquipmentSaveable</c> puts the NPC's
+        /// weapon back in its hand, and every item prefab carries a NetworkObject because a copy
+        /// lying in the sand is a world object. NGO refuses to spawn a root that already has one
+        /// below it — and it LOGS that refusal rather than throwing, so no test of the spawn call
+        /// itself can catch the mistake and the entity is simply host-only from then on.
+        ///
+        /// Pinned at the source because the two orderings are one line apart and both read
+        /// perfectly well.
+        /// </summary>
+        [Test]
+        public void EveryRestoreSiteNetworkSpawnsBeforeRestoringState()
+        {
+            string[] sites =
+            {
+                "Assets/Game/Scripts/Core/Persistence/Runtime/WorldSaveStore.cs",
+            };
+
+            foreach (string path in sites)
+            {
+                Assert.That(File.Exists(path), path + " moved — update this test.");
+
+                string source = File.ReadAllText(path);
+
+                // `saveable.Restore` is the rebuild path specifically. WorldSaveStore also restores
+                // authored objects further down through `entity.Restore`, and those are already
+                // spawned by the scene — matching on the bare `.Restore(` would read that one.
+                int spawn = source.IndexOf("SaveNetworking.SpawnIfNetworked(", StringComparison.Ordinal);
+                int restore = source.IndexOf("saveable.Restore(", StringComparison.Ordinal);
+
+                Assert.That(spawn, Is.GreaterThanOrEqualTo(0),
+                    Path.GetFileName(path) + " no longer network-spawns what it rebuilds, so no " +
+                    "client will ever have it.");
+                Assert.That(restore, Is.GreaterThanOrEqualTo(0),
+                    Path.GetFileName(path) + " no longer restores state — update this test.");
+
+                Assert.That(spawn, Is.LessThan(restore),
+                    Path.GetFileName(path) + " restores state before it network-spawns. A saver " +
+                    "that puts a child back nests a NetworkObject under an unspawned root, and NGO " +
+                    "refuses the spawn with a log line nothing reads. See " +
+                    "SaveNetworking.SpawnIfNetworked.");
+            }
+        }
+
+        // ─────────────────────────────────────────────
         //  Fixtures
         // ─────────────────────────────────────────────
 

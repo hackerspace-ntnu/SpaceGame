@@ -12,6 +12,7 @@ symptoms:
   - "a chunk never loads and the player falls through the world"
   - "client join fails with Scene Hash N does not exist in the HashToBuildIndex table"
   - "an NPC vanishes for clients when its old chunk unloads but the host still has it"
+  - "a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes"
   - "streaming stops dead — no chunk ever loads or unloads again after one error"
   - "a NavMesh or map bake silently skips chunks"
   - "chunks never unload, or a caravan drags loaded chunks around with it"
@@ -19,9 +20,10 @@ symptoms:
   - "after the crash-landing intro the player walks and steers but never falls"
   - "loading takes a minute or two with several players when it takes seconds alone"
   - "the loading screen says still waiting on player spawn after 30s while chunks keep loading"
+  - "a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing"
   - "the host is the last player to spawn and misses the crew gather"
 reads_with: [TerrainGeneration, Persistence, SceneTransitions, NavMeshSystem]
-updated: 2026-09-02
+updated: 2026-09-08
 ---
 
 # World Streaming
@@ -85,7 +87,7 @@ Config vs disk: **48 declared / 48 on disk** (main), **8 / 8** (Ferdinand). All 
 3. `UnloadEventCompleted` → drop terrain cache, state `NotLoaded`, refresh neighbours, `OnChunkUnloaded`.
 
 **Entity crosses a chunk boundary**
-1. `UpdateSceneMembership` (same 0.5 s tick) walks the static `SceneTracked` registry and computes `ResolveDesiredScene`: `Pin` → the streamer's own persistent scene; `Migrate` → the loaded scene at `WorldToChunkCoord(pos)`, else stay put; `Despawn` → stay put.
+1. `UpdateSceneMembership` (same 0.5 s tick) walks the static `SceneTracked` registry and computes `ResolveDesiredScene`: `Pin` → the streamer's own persistent scene; `Migrate` → the loaded scene at `WorldToChunkCoord(pos)`, else stay put; `Despawn` → stay put. An entity `InteriorManager.IsInsideInterior` reports as inside is **skipped entirely** — its scene belongs to the interior for the length of the visit, and both policies would otherwise drag it back out ([SceneTransitions](SceneTransitions.md)).
 2. Non-root objects are skipped — Unity rejects `MoveGameObjectToScene` on a child, and a rider parented to a mount follows it anyway.
 3. `MoveTracked` moves the server copy, then announces it: dynamically-spawned NetworkObjects are handled by NGO's `SceneMigrationSynchronization`; **in-scene-placed** ones are explicitly excluded by NGO, so `MigrateObjectRpc(networkObjectId, sceneName)` is sent to non-servers. No NetworkObject at all → one-shot `WarnUnreplicatedOnce`.
 4. Clients apply by `NetworkObjectId` + scene **name** (handles are per-process). Unresolvable announcements park in `pendingMigrations` and retry every client `Update`; `ReplayMigrationsTo` replays the session's whole migration set to each late joiner.
@@ -95,7 +97,7 @@ Config vs disk: **48 declared / 48 on disk** (main), **8 / 8** (Ferdinand). All 
 - Only the server runs streaming. A client's `Update` does exactly one thing: `DrainPendingMigrations`. Chunk state dictionaries are empty on clients forever — never ask `IsChunkLoadedAt` there; ask `IsInsideWorldGrid` (which also honours `hasTerrain`).
 - Chunk loads are NGO scene events, so client scenes arrive asynchronously and *after* the server's. `UnderTerrainGuard.IsAwaitingGround` exists for exactly this window.
 - NGO matches scenes by a hash of the **build-settings path**, case-sensitively. Folder-casing drift between machines produces `Scene Hash N does not exist in the HashToBuildIndex table` on client join. Chunk scenes must stay in build settings and keep the on-disk casing.
-- [NetworkGameManager](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs) waits for `IsReady`, calls `PreloadChunksAroundPositions(spawnPositions)`, and only spawns players in the callback; [LoadingScreenUI](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) waits on `InitialChunksLoaded`.
+- [NetworkGameManager](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs) waits for `IsReady`, calls `PreloadChunksAroundPositions(spawnPositions)`, and only spawns players in the callback; [LoadingScreenUI](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) waits on `InitialChunksLoaded` **on the server only**. `initialChunksLoaded` is set by the load bookkeeping, so like the chunk state dictionaries above it is false on a client forever — a client's overlay waits on `TerrainProbe` under its own player instead, gated by `IsInsideWorldGrid` so a terrainless place reads as ready and not as still loading.
 - **Every chunk load is a scene event every client must finish before the next can start**, so with N players the cost of a load is the slowest client's, serialised. The count of loads is therefore the lever: anything that pulls chunks in that nobody will stand on (a body two kilometres up) is a join delay for everyone. `SuspendAnchor` exists for exactly that.
 
 ## Persistence
@@ -123,6 +125,7 @@ Detail lives in [Persistence.md](Persistence.md); the streaming contract is:
 - **Pre-opened chunk scenes are adopted, not ignored.** `InitializeChunkStates` calls `AdoptLoadedChunk` for anything already open (common when editing chunks additively), which also fires `OnChunkLoaded` so persistence still hydrates them.
 - **A preload's callback waits for its own content, not for the world to go quiet.** `FlushContentCallbacks` used to also require `operationQueue` empty and no operation in progress — and in a six-player arrival that queue never emptied: five crew already seated were pulling chunks in around themselves, every load refilled the activation queue, and the host's spawn callback (first in, its four chunks long since built) sat behind twenty of somebody else's loads. Seen as `[LoadingScreen] Still waiting on player spawn after 30s` on a world that was ready, and the host seated last, after the crew-gather timeout. The flush now runs **before** `ProcessNextOperation` in `Update` and is gated on `ChunkActivationQueue.PendingCount == 0` alone.
 - **A second preload of the same area used to skip the wait.** `PreloadChunksAroundPositions` only counted `NotLoaded` chunks, so every caller after the first found them `Loading`, was told there was nothing to load, and went looking for ground that was not there yet. Now anything not `Loaded` is waited for, through `loadListeners`.
+- **NGO's own migration path is patched, and the package is embedded because of it.** Dynamically-spawned NetworkObjects are migrated by NGO, not by `MigrateObjectRpc` (step 3 above). Upstream `NetworkSceneManager.MigrateNetworkObjectsIntoScenes` dereferenced `networkObject.gameObject` with no null check: the client captures that reference when the `ObjectSceneChanged` message is read, and the object can be destroyed later in the same frame — a chunk unload, or a despawn — before the migration runs in `PostLateUpdate`. The throw is caught, but the `try` wraps the whole loop, so the rest of that frame's migrations are dropped and cleared, and *those* objects stay in their old scene on that client and die when it unloads while the server keeps them. Upstream's prune runs after the migration and only covers `LocalClientId` entries, so it never catches migrations announced by another peer. Netcode now lives in `Packages/com.unity.netcode.gameobjects` with a `SPACEGAME PATCH` guard — see [Packages/PATCHES.md](Packages/PATCHES.md) before upgrading it.
 - **`SceneEventInProgress` is not an error.** NGO's busy flag is global; the retry path is load-bearing. Never "fix" it by dequeuing the next op.
 - **Domain-reload-off leaks the activation queue.** `ChunkActivationQueue` clears itself via `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]`; anything else static in this subsystem must do the same.
 - **`SnapAgentsToNavMesh` re-enables agents.** `NavMeshAgentMotor.Awake` disables its own agent when no mesh is under it and relies on this to switch it back on. Nothing else keeps that promise.

@@ -446,9 +446,12 @@ namespace SpaceGame.Core.Persistence
 
                 SaveableEntity saveable = SaveableEntity.EnsureRuntime(instance, record.PrefabId);
                 saveable.AdoptIdentity(record.PrefabId, record.InstanceId);
-                saveable.Restore(record.State);
 
+                // Network-spawn BEFORE the state goes back on, never after — see
+                // SaveNetworking.SpawnIfNetworked for what restoring first cost.
                 SaveNetworking.SpawnIfNetworked(instance);
+
+                saveable.Restore(record.State);
             }
         }
 

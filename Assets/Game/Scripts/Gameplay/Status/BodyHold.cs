@@ -50,6 +50,28 @@ namespace SpaceGame.Gameplay.Status
             held = ragdoll;
         }
 
+        /// <summary>
+        /// Put <paramref name="body"/> down without putting it on the ground: control is taken,
+        /// the body stops where it stands, and the skeleton is left exactly as it was.
+        ///
+        /// <para>
+        /// This is what a freeze wants and what a net does not. A body frozen solid holds the pose
+        /// it was caught in — that is the whole read of the condition, and it is thrown away by a
+        /// ragdoll, which replaces the pose with a heap on the sand and hands the player a
+        /// third-person camera they did not ask for. Being tied up is the opposite case: there the
+        /// point IS that you are on the floor.
+        /// </para>
+        /// </summary>
+        public void TakeStanding(StatusReceiver body)
+        {
+            if (held != null || body == null) return;
+
+            PlayerRagdoll ragdoll = body.GetComponentInParent<PlayerRagdoll>();
+            if (ragdoll == null || !ragdoll.HoldStanding(this)) return;
+
+            held = ragdoll;
+        }
+
         /// <summary>Give the claim back. Safe to call when nothing was ever held.</summary>
         public void Release()
         {

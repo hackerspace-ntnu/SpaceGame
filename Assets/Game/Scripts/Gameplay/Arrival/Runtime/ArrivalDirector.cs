@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 using SpaceGame.Presentation;
 using SpaceGame.World;
 
@@ -384,7 +385,13 @@ namespace SpaceGame.Gameplay.Arrival
             if (!launching && !HasArrived)
             {
                 launching = true;
-                StartCoroutine(FlyFormation());
+
+                // CompleteArrival is the teardown because it is this routine's own ending: a
+                // formation that dies before reaching it leaves the crew sealed in their chairs
+                // with the world still holding their chunks loaded and still counting itself
+                // un-arrived, which is a session nobody can get out of.
+                StartCoroutine(Fault.Coroutine(
+                    this, "Arrival.FlyFormation", FlyFormation(), CompleteArrival));
             }
         }
 
@@ -608,7 +615,11 @@ namespace SpaceGame.Gameplay.Arrival
                 // well as for the host.
                 flight.Seating.AnnounceLaunch();
 
-                StartCoroutine(FlyDescent(flight));
+                // No teardown, deliberately. The books are balanced by `descending`, and the
+                // landing watchdog below is already the bounded recovery for a descent that stops
+                // producing frames — decrementing it here instead would satisfy that watchdog and
+                // leave the hull standing on its nose with nothing left to ground it.
+                StartCoroutine(Fault.Coroutine(this, "Arrival.FlyDescent", FlyDescent(flight)));
             }
 
             // Bounded, because the settle is the ONLY thing that levels the ship: a descent
@@ -632,6 +643,20 @@ namespace SpaceGame.Gameplay.Arrival
             // to somebody still looking at a black screen.
             yield return new WaitForSeconds(releaseDelay);
 
+            CompleteArrival();
+
+            // No teardown: this one takes nothing and holds nothing. It is itself the backstop for
+            // a crew that never stood up, and there is no backstop for a backstop.
+            StartCoroutine(Fault.Coroutine(
+                this, "Arrival.EmptySeats", EmptySeatsEventually()));
+        }
+
+        /// <summary>
+        /// Ends the arrival: the crew may stand, the ground is theirs to load again, and the world
+        /// counts as arrived. The tail of <see cref="FlyFormation"/>, and its teardown.
+        /// </summary>
+        private void CompleteArrival()
+        {
             // Unlocked rather than emptied. The crew stay in their chairs and get up when they
             // press the key — landing in a wreck and then being teleported out of your own seat
             // reads as the game taking the controls back at the exact moment it hands them over.
@@ -646,8 +671,6 @@ namespace SpaceGame.Gameplay.Arrival
 
             HasArrived = true;
             IsRunning = false;
-
-            StartCoroutine(EmptySeatsEventually());
         }
 
         /// <summary>

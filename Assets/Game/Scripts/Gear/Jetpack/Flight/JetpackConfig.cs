@@ -8,12 +8,20 @@ namespace SpaceGame.Gear.Jetpack
     /// Inspector without a recompile.
     ///
     /// <para>
-    /// Split into the three things that are actually separate decisions: how hard it pushes
+    /// Split into the four things that are actually separate decisions: how hard it pushes
     /// (<see cref="ThrustAcceleration"/> and the drags), how fast it can re-aim
-    /// (<see cref="VectorRateDegreesPerSecond"/> and <see cref="MaxDeflectionDegrees"/>), and how
-    /// long it lasts (the heat rates). Tuning one should not silently move the others, which is
-    /// why the thrust is expressed as an ACCELERATION rather than a force: a force would couple
-    /// the feel to the player prefab's mass, and that mass exists to make walking work.
+    /// (<see cref="VectorRateDegreesPerSecond"/> and <see cref="MaxDeflectionDegrees"/>), how much
+    /// it will carry (<see cref="LiftAssist"/> and <see cref="MaxLiftRatio"/>) and how long it
+    /// lasts (the heat rates). Tuning one should not silently move the others, which is why the
+    /// thrust is expressed as an ACCELERATION rather than a force: a force would couple the feel
+    /// to the player prefab's mass, and that mass exists to make walking work.
+    /// </para>
+    /// <para>
+    /// The lift pair is the one exception, and it is deliberate. An acceleration ignores what is
+    /// roped to the pilot, so a passenger would otherwise be free of charge or impossible to lift
+    /// depending on nothing but where <see cref="ThrustAcceleration"/> happened to sit — see
+    /// <see cref="JetpackLift"/>, which is where the load re-enters the model, once, as a factor
+    /// on both the push and the heat.
     /// </para>
     /// <para>
     /// Gravity here is 18 m/s², not 9.81 — this world's own value. The jetpack integrates its own
@@ -29,31 +37,25 @@ namespace SpaceGame.Gear.Jetpack
                  "about a second and a half to clear a two-storey building.")]
         [Min(0f)] public float ThrustAcceleration = 30f;
 
-        [Tooltip("How hard the descent servo is allowed to push, as a MULTIPLE of gravity. It is " +
-                 "bounded from BOTH sides and the window is narrow. Too low and letting go after " +
-                 "a climb is a fall rather than a settle, and a relight after an overheat cannot " +
-                 "arrest it either. Too high — above 1/cos(max deflection), about 1.31 at 40 " +
-                 "degrees — and the servo holds its sink rate with the nozzles hard over, which " +
-                 "turns coming down into free flight in any direction. 1.25 arrests 8 m/s in " +
-                 "under two seconds and still drops faster at full rake.")]
-        [Min(0f)] public float HoverAuthority = 1.25f;
-
-        [Tooltip("How hard the descent servo pulls the vertical speed toward the sink rate, per " +
-                 "second. This is what makes letting go settle instead of bobbing or diving: " +
-                 "without it the servo cancels gravity exactly and whatever climb the pilot " +
-                 "arrived with is kept forever.")]
-        [Min(0f)] public float HoverDamping = 2.5f;
-
-        [Tooltip("How fast the pack sinks with Space released, m/s. NOT a fall: the motors stay " +
-                 "lit and hold this speed, so letting go is a controlled way down and landing " +
-                 "from it is survivable. Free fall in this world reaches three times this in a " +
-                 "second — that is what an overheat costs, and it is the difference the pilot is " +
-                 "meant to feel between letting go and being cut off.")]
-        [Min(0f)] public float DescentSpeed = 4f;
-
         [Tooltip("This world's gravity, m/s². The flight integrates its own so there is exactly " +
                  "one source of weight; leaving Unity's on as well doubles it.")]
         [Min(0f)] public float Gravity = 18f;
+
+        [Header("Lift")]
+        [Tooltip("How much of a towed body's weight the pack compensates for, 0..1. A rope shares " +
+                 "one acceleration out between two masses, so with no assist at all a passenger " +
+                 "of the pilot's own weight turns a 12 m/s² climb into a 3 m/s² SINK and the pack " +
+                 "cannot lift anybody at all. At 1 a passenger is free and the pair climbs as " +
+                 "fast as a lone pilot. At 0.4 an equal-weight passenger rises at about 3 m/s² — " +
+                 "a visibly loaded ascent that is still an ascent.")]
+        [Range(0f, 1f)] public float LiftAssist = 0.4f;
+
+        [Tooltip("Ceiling on how much load the assist will answer for, as a multiple of the " +
+                 "pilot's own mass. This is what keeps the pack a way to lift a PERSON and not a " +
+                 "crane: the load's real weight is always in the physics, but past this the pack " +
+                 "stops adding thrust for it, so a crate or a hull simply stays on the ground. " +
+                 "At 1.5 one heavy passenger still leaves the ground and nothing much else does.")]
+        [Min(0f)] public float MaxLiftRatio = 1.5f;
 
         [Header("Drag")]
         [Tooltip("Horizontal drag, per second. This is what gives the jetpack a terminal speed " +
@@ -110,15 +112,17 @@ namespace SpaceGame.Gear.Jetpack
         [Range(0f, 1f)] public float SpeedCarry = 1f;
 
         [Header("Heat")]
-        [Tooltip("Heat per second at full throttle. Against a 100-point scale, 6.667 is fifteen " +
-                 "seconds of held thrust from cold.")]
-        [Min(0f)] public float ThrustHeatPerSecond = 100f / 15f;
+        [Tooltip("Heat per second at full throttle. Against a 100-point scale, 16.667 is six " +
+                 "seconds of held thrust from cold. A lift is billed through this figure by the " +
+                 "same factor it adds to the thrust, so hauling a passenger buys the climb with " +
+                 "burn time rather than with nothing.")]
+        [Min(0f)] public float ThrustHeatPerSecond = 100f / 6f;
 
-        [Tooltip("Heat shed per second while sinking with Space released. This is the pilot's " +
+        [Tooltip("Heat shed per second while falling with Space released. This is the pilot's " +
                  "recovery, and the only one they can ask for — so it decides the rhythm: at 5 " +
-                 "against thrust's 6.67, every second of climb is bought with about one and a " +
-                 "third of coming down. Raise it and the pack is nearly always ready; lower it " +
-                 "and a long flight is mostly descent.")]
+                 "against thrust's 16.67, every second of climb is bought with over three of " +
+                 "falling. Raise it and the pack is nearly always ready; lower it and a flight " +
+                 "is mostly fall.")]
         [Min(0f)] public float DescendCoolPerSecond = 5f;
 
         [Tooltip("Heat shed per second with the motors dead — an overheat, or a pack stowed on " +

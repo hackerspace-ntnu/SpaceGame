@@ -17,6 +17,8 @@ symptoms:
   - "my arrow or spinner glyph renders as nothing"
   - "a row silently inflates and blows out the layout"
   - "the death screen does not appear for a player who died before loading"
+  - "everyone except the host drops straight into a half-built world with no loading screen"
+  - "a client sits on the loading screen forever and the console repeats still waiting on terrain streaming"
   - "a menu choice drops me back on the main menu instead of opening the page it names"
   - "the world list only shows two saves before it has to be scrolled"
   - "a menu list is far shorter on an ultrawide monitor than on a 16:9 one"
@@ -24,8 +26,8 @@ symptoms:
   - "text or a panel is tiny on a 4K monitor and normal at 1080p"
   - "damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled"
   - "the map hologram in the ship shows the world with me off in a corner of it"
-reads_with: [Lobby, Inventory, Persistence, audio]
-updated: 2026-09-05
+reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics]
+updated: 2026-09-09
 ---
 
 # UI
@@ -88,7 +90,8 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | `ChatUI` | [Pages/ChatUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/ChatUI.cs) | Fading log bottom-left + input box on **T**; enters the scope without freezing time. Renders through `<noparse>` on top of `ChatText.Sanitize`. |
 | `DevInventoryUI` | [Pages/DevInventoryUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/DevInventoryUI.cs) | Artifact browser on **O** while `GameSettings.DevMode`; hotbar edits go through `IPlayerInventory`, so they replicate. |
 | `TradeUI` | [Pages/TradeUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/TradeUI.cs) | Trader offers vs. your bag, one click per swap; opened by `TraderInteraction`. |
-| `LoadingScreenUI` | [Pages/LoadingScreenUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) | Covers scene load **and** streamer readiness/NavMesh/warmup; carries a fallback camera; logs (never lifts) after a 30 s stall. |
+| `LoadingScreenUI` | [Pages/LoadingScreenUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) | Covers scene load **and** streamer readiness/NavMesh/warmup; carries a fallback camera; logs (never lifts) after a 30 s stall. Step 3 splits by role: the server waits on `WorldStreamer.InitialChunksLoaded`, a client on terrain under its own player (`TerrainProbe`), because that flag is server-side bookkeeping. |
+| `NetworkLoadingScreen` | [Pages/NetworkLoadingScreen.cs](Assets/Game/Scripts/Presentation/UI/Pages/NetworkLoadingScreen.cs) | Raises the overlay on **every** peer the server pulls into a world: a `DontDestroyOnLoad` singleton listening for `SceneEventType.Load` + `LoadSceneMode.Single` through [SceneEventHook.cs](Assets/Game/Scripts/Core/Multiplayer/Session/SceneEventHook.cs). No-ops when `LoadingScreenUI.IsShowing`, so whoever started the load keeps its own wait. |
 | `MatchResultUI` / `MatchLeaderboardUI` | [Pages/MatchResultUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MatchResultUI.cs), [Pages/MatchLeaderboardUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MatchLeaderboardUI.cs) | Win/loss screen and Tab-held scoreboard; `MatchManager.Ensure()`s both on every peer. |
 | `PlayerListView` | [Widgets/PlayerListView.cs](Assets/Game/Scripts/Presentation/UI/Widgets/PlayerListView.cs) | Pause menu's Players tab: name, you/host tags, RTT; rows pooled, ping refreshed once a second. |
 | `CrosshairUI` | [HUD/CrosshairUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/CrosshairUI.cs) | Crosshair + aim hint. **Its hover half has never run** — `playerInteractor` is unassigned on the prefab and `Update` returns on line 1. |
@@ -134,6 +137,8 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 - **A closed page is still findable for the rest of the frame.** `Close()` hands the GameObject to `Destroy`, which Unity does not act on until end of frame, so `FindFirstObjectByType` keeps returning it — non-null — until then. `MenuChoiceUI.Pick` closes and routes onward in one breath, so Story ▸ Multiplayer (a `MenuChoiceUI` opened from a `MenuChoiceUI`) found the page it had just closed, took it for "already open", built nothing, and left the player on the main menu. Every `Open` guard goes through `MenuScreen.Existing<T>()`, which also asks whether the page it found is closing; [LobbyMenuWiringTests](Assets/Game/Editor/Tests/LobbyMenuWiringTests.cs) fails any page that reaches for the raw find instead.
 - **`Present()`, not `Awake()`.** `AddComponent` runs `Awake` before the caller's next statement, so a `MenuScreen` that built itself there would build before its arguments were assigned. `WorldOverlay.Create()` calls `Build()` explicitly for the mirror-image reason: `AddComponent` raises no `Awake` outside play mode.
 - **Bind in `OnEnable`, and read current state — not only the event.** A player HUD is deactivated by `PlayerController.Awake` and only returns in `EnablePlayer`; a save-restored death is announced inside that window, so a `Start`-based subscriber misses the only announcement there ever was.
+- **Only the machine that pressed the button ever raised the loading screen.** `LoadingScreenUI.ShowUntilReady` is called by whoever *starts* a load — `MainMenuUI`, `LobbyUI.StartGame`, `LobbyUI.OnJoined`. Everyone else in the lobby is moved by Netcode's own scene synchronisation, which no menu code was watching, so a client's lobby vanished and it watched the world assemble around it while the host saw a clean load. [NetworkLoadingScreen.cs](Assets/Game/Scripts/Presentation/UI/Pages/NetworkLoadingScreen.cs) closes that: the load is already announced to every peer as a scene event. Filter it to `LoadSceneMode.Single` — the streamed chunks and the interiors arrive through the same event additively, and covering the screen for those blanks the world the player is standing in.
+- **`WorldStreamer.InitialChunksLoaded` is false on a client for the whole session** — its `OnNetworkSpawn` returns before `isReady` is set, because the server issues every chunk load. Waiting on it from a client held the overlay up until the process was killed, with `[LoadingScreen] Still waiting on terrain streaming` repeating. A client measures the outcome instead: `TerrainProbe.TryGetTerrainHeight` under its own player, plus `IsInsideStreamedWorld` so the arena, the interiors and the grid's unauthored western padding — which never grow terrain — read as ready rather than as still loading.
 - **`FindLocalPlayer()` returns null legitimately** for a frame or more: NGO publishes the local player object *after* `OnNetworkSpawn`. Never cache a miss. Never tag-search for `"Player"` — every player carries the tag.
 - **The key that opens a menu cannot live on the player's `InputControls`** — the scope disables that asset. Give the screen its own instance with only the `UI` map enabled, and `Dispose()` it in `OnDestroy`.
 - **`OnDestroy` must `GameplayMenuScope.Exit(this)`**, or a screen destroyed while paused leaves the game frozen with nothing able to thaw it.
@@ -147,6 +152,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 - **Menu colour rules:** entries are dark navy and only read against ground, so everything clickable belongs below `MenuEntry.Horizon`. `Horizon` is conservative and is *not* "above this is sky" — anything drawn higher must carry its own contrast (white, or the nameplates' white-over-navy shadow trick).
 - **No glyph spinners**: `◀`/`▶`/braille/box-drawing are absent from LiberationSans and render as nothing. Use `MenuBusy`.
 - **`MenuStepper` and `MenuStatusLine` invert the obvious:** a stepper does not move until a caller calls `SetValue`, and a `Polled` status write is refused while a `Warn` stands (a 2 Hz redraw would otherwise erase the failure before it could be read).
+- **`GameplayMenuScope.Owners` is public for [`StuckScopeGuard`](Assets/Game/Scripts/Core/Safety/Guards/StuckScopeGuard.cs)**, which releases a claim whose owner has been destroyed or disabled for 2 s — the failure it repairs is a screen that died between its `Enter` and its `Exit`, leaving the game frozen behind a free cursor with nothing on screen to close. Anything acting on that collection must copy it first: `Exit` mutates it. The guard logs an **error** when it fires, because the leak is a real bug somewhere else. See [Diagnostics](Diagnostics.md).
 - **`CrosshairUI`'s hover dimming is a dead code path, deliberately** — do not "fix" it by wiring `playerInteractor` without owning the look change. The visor work is where that look change gets owned: the reticle moves into `VisorReticle` (see [Visor.md](Visor.md)) and `CrosshairUI` goes with it.
 
 ## Extending

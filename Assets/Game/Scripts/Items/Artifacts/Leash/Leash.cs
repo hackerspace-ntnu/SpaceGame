@@ -901,6 +901,12 @@ namespace SpaceGame.Items
             into.AddRange(path.PointsBetween(A.Position, B.Position));
         }
 
+        /// <summary>
+        /// Whether this rope is on <paramref name="body"/>, which for a leash is exactly the
+        /// question <see cref="Restrains"/> already answers — either end, and any part of them.
+        /// </summary>
+        public bool Binds(GameObject body) => !disposed && Restrains(body);
+
         /// <summary>Cut. A rope that is cut is a rope that broke, and it already knows how to do that.</summary>
         public void Cut() => Snap();
 

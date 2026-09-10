@@ -172,8 +172,10 @@ namespace SpaceGame.Agents
 
             // A leap runs with updatePosition off and the body driven along an arc by hand. The
             // ground under a body mid-arc is not the ground it is standing on, and conforming to it
-            // would flatten the leap.
-            if (motor != null && motor.IsLeaping) grounded = false;
+            // would flatten the leap. A rope carry is the same case with no end time: an animal
+            // hanging off a jetpack is not standing on the dune underneath it, and leaning it into
+            // that slope reads as a creature pasted onto ground it is nowhere near.
+            if (motor != null && (motor.IsLeaping || motor.IsCarried)) grounded = false;
 
             // NetAuthority disables the motor and the NavMeshAgent on every remote copy. There the
             // height already arrived inside the replicated transform, and correcting it again here

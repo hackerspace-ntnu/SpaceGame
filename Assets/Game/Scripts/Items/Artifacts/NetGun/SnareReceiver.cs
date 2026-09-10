@@ -252,10 +252,34 @@ namespace SpaceGame.Items
                 tracked.Net.Capture(arg.Resolve());
         }
 
+        /// <summary>
+        /// A net has given out, or one body has been let out of it.
+        ///
+        /// <para>
+        /// The target says which: a named body leaves alone and the net goes on holding whoever
+        /// else is under it — what a respawn sends — and no target at all tears the whole net, the
+        /// protocol <c>NetMsg.SnareFreed</c> already documents. A named body this net never held
+        /// answers false and is ignored, so a message about somebody else's net costs a lookup.
+        /// </para>
+        /// <para>
+        /// Whether a body was NAMED is read off <c>Target</c> rather than off what it resolves to,
+        /// and the difference shows on a machine that cannot find the body — a captive whose
+        /// NetworkObject has already gone. Read the other way round, that machine would take a
+        /// message about one captive as the order to tear the whole net, and the net would fall
+        /// apart on that screen alone. It lets go of nothing instead, and its own pruning drops the
+        /// destroyed captive on the next pass.
+        /// </para>
+        /// </summary>
         private void OnSnareFreed(in NetArg arg, ulong sender)
         {
-            if (live.TryGetValue(arg.A, out Tracked tracked) && tracked.Net != null)
-                tracked.Net.Tear();
+            if (!live.TryGetValue(arg.A, out Tracked tracked) || tracked.Net == null) return;
+
+            GameObject captive = arg.Resolve();
+
+            // Offline nothing is networked, so Target is 0 for every message and the subject rides
+            // in the struct itself — which is why a resolved captive is checked first.
+            if (captive != null) tracked.Net.Release(captive);
+            else if (arg.Target == 0) tracked.Net.Tear();
         }
 
         /// <summary>

@@ -130,9 +130,18 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// A seam rather than two lookups, so the place gear <em>lands</em> and the place the screen
-        /// <em>promises</em> are read off one object. Resolved on demand and not cached: the pack
-        /// instance is rebuilt on a respawn and comes and goes with every deploy, and a cached
-        /// transform would outlive it as a null the callers would have to re-check anyway.
+        /// <em>promises</em> are read off one object.
+        /// </para>
+        /// <para>
+        /// <b>Asked every frame now, so the search behind it is cached.</b> It used to be resolved
+        /// on demand and deliberately not cached, which was right while the only callers were the
+        /// wear path and the gear screen. <see cref="WornAnchor"/> re-derives a worn item's pose
+        /// from this every LateUpdate — that is what stops the pose being a stale snapshot of a
+        /// pack that has since been deployed — and the old body walked every transform in the pack
+        /// and allocated an array to do it. The cache is keyed on the pack INSTANCE and re-resolves
+        /// whenever that changes or the remembered transform has died, so it cannot outlive a pack
+        /// rebuilt on respawn; the <c>IsWorn</c> gate in front of it still answers null the moment
+        /// the pack leaves the back, without touching the cache at all.
         /// </para>
         /// </summary>
         public Transform GearMount
@@ -140,13 +149,21 @@ namespace SpaceGame.Items
             get
             {
                 if (Pack == null || !Pack.IsWorn) return null;
+                if (cachedMountOwner == Pack && cachedMount != null) return cachedMount;
+
+                cachedMountOwner = Pack;
+                cachedMount = null;
 
                 foreach (Transform t in Pack.GetComponentsInChildren<Transform>(true))
-                    if (t.name == gearMountPartName) return t;
+                    if (t.name == gearMountPartName) { cachedMount = t; break; }
 
-                return null;
+                return cachedMount;
             }
         }
+
+        /// <summary>The pack <see cref="cachedMount"/> was found under, so a rebuilt pack re-resolves.</summary>
+        private BackpackObject cachedMountOwner;
+        private Transform cachedMount;
 
         private PlayerInputManager input;
         private Transform backSocket;
@@ -203,6 +220,10 @@ namespace SpaceGame.Items
             // It is the same shape as a door: ArticulatedPart is a plain MonoBehaviour on a hinge
             // nobody spawned, driven by announcements on the vehicle's channel.
             GameObject instance = Instantiate(backpackPrefab, backSocket);
+
+            // The pack rides the spine, so without this the ragdoll takes its flap hinges
+            // (PIVOT_Leaf, PIVOT_Lid, PIVOT_Wing_L/R) for bones and simulates them as limbs.
+            BodyAttachment.Mark(instance);
             Pack = instance.GetComponent<BackpackObject>();
 
             if (Pack == null)

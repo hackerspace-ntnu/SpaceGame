@@ -14,10 +14,12 @@ symptoms:
   - "a provoked NPC walks toward me instead of running"
   - "every NPC swings its barrel to follow the host's head"
   - "the agent just stands there doing nothing and the console is clean"
+  - "the cryo sprayer freezes some creatures and does nothing at all to others"
   - "loot drops all over again every time I load the world"
   - "remote copies of the creature slide along with their feet still"
   - "my hand-added component disappeared after someone rebuilt the prefab"
   - "every creature and NPC hovers a hand's width above the sand"
+  - "[WorldService] Spawn('Clanker') called on a client while playing"
   - "an NPC stands bolt upright on a dune instead of leaning into it"
   - "a peaceful creature stands still and lets itself be shot instead of running"
   - "firing a gun near wildlife does nothing at all"
@@ -34,21 +36,20 @@ symptoms:
   - "a creature keeps taking damage and there is no attacker anywhere"
   - "one robot spots me and the rest of its camp keeps patrolling"
   - "walking into the robot town raises no alarm and nobody comes"
-reads_with: [EntitySystem, Vehicles, Combat, NavMeshSystem]
-updated: 2026-09-07
+reads_with: [EntitySystem, Vehicles, Combat, NavMeshSystem, Diagnostics, CarriedAgent]
+updated: 2026-09-09
 ---
 
 # Agent / AI System
 
 Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourModule` components; one [AgentController.cs](Assets/Game/Scripts/agents/Controller/AgentController.cs) ticks them and arbitrates by priority — never a behaviour tree, never an `AgentController` subclass.
 
-**Scope:** `Assets/Game/Scripts/agents/` (namespace `SpaceGame.Agents`, Assembly-CSharp, no asmdef).
-**Related:** [EntitySystem.md](EntitySystem.md) (older overview — profile/module tables there are stale, prefer this file), [MountSystem.md](MountSystem.md), [Persistence.md](Persistence.md), [WeaponSystem.md](WeaponSystem.md), [NavMeshSystem.md](NavMeshSystem.md), skill [.claude/skills/spacegame-agent/SKILL.md](.claude/skills/spacegame-agent/SKILL.md) + its `reference.md`.
+**Scope:** `Assets/Game/Scripts/agents/` (namespace `SpaceGame.Agents`, Assembly-CSharp, no asmdef). **Related:** [EntitySystem.md](EntitySystem.md) (older overview — profile/module tables there are stale, prefer this file), [MountSystem.md](MountSystem.md), [Persistence.md](Persistence.md), [WeaponSystem.md](WeaponSystem.md), [NavMeshSystem.md](NavMeshSystem.md), skill [.claude/skills/spacegame-agent/SKILL.md](.claude/skills/spacegame-agent/SKILL.md) + its `reference.md`.
 
 ## Model
 
 - Three decisions, one owner each: **who to fight** = [AgentTargeting.cs](Assets/Game/Scripts/agents/AI/Targeting/AgentTargeting.cs); **where to go** = [AgentGoal.cs](Assets/Game/Scripts/agents/AI/Goals/AgentGoal.cs); **how to move** = [IMovementMotor.cs](Assets/Game/Scripts/agents/AI/Motors/IMovementMotor.cs). A module duplicating any of the three is the bug this design prevents.
-- Modules return `MoveIntent?`. `null` = pass to the next module. `MoveIntent.Idle()` **claims the frame** and starves everything below.
+- Modules return `MoveIntent?`. `null` = pass to the next module. `MoveIntent.Idle()` **claims the frame** and starves everything below — and a suppressing condition (`Frozen`, `Foamed`) starves the whole stack before it is reached: `AgentController.Awake` ensures a `StatusReceiver` on its own GameObject and `Update` idles the motor while `StatusReceiver.Suppressed` holds, side-effect modules included, so a frozen creature cannot bite either. The receiver is ensured here because a prefab without a `StatusReactionModule` had none at all — Clanker, ClankerOutrider, CrabWalker6, HumanoidRobot and RobotHorse simply ignored the cryo sprayer — and on its OWN object, never through `StatusReceiver.Ensure`, which resolves to the networked root and would give a mounted rider its mount's conditions. See [StatusEffects](Artifacts/StatusEffects.md).
 - `ClaimsMovement == false` modules are side effects: ticked unconditionally, must return `null`.
 - Facing is a **second channel**: `IFacingModule` overwrites the winning intent's face target after arbitration.
 - `AgentTargeting` + `AgentGoal` are auto-added in `AgentController.Awake`. Modules are discovered via `GetComponentsInChildren<MonoBehaviour>(true)`; runtime additions need `RefreshModules()`.
@@ -69,7 +70,7 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 | `NpcSpawn` | [Core/NpcSpawn.cs](Assets/Game/Scripts/agents/Core/NpcSpawn.cs) | Spawns NPCs network-visible but **save-invisible** (never `GameServices.World.Spawn`) |
 | `EntityTargetRegistry` | [Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) | Static registry; `Query`/`ResolveNearest` by relationship. Fed by `EntityFaction.OnEnable` |
 | **Motors** ([AI/Motors/](Assets/Game/Scripts/agents/AI/Motors/)) | | |
-| `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) | Everything that walks the baked NavMesh. Also `IMountJumpMotor`, `IRiderControllable`, `ISelfDrivingMotor` |
+| `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) | Everything that walks the baked NavMesh. Also `IMountJumpMotor`, `IRiderControllable`, `ISelfDrivingMotor`, and `ITowable` through the carried state in `NavMeshAgentMotor.Carry.cs` ([CarriedAgent.md](CarriedAgent.md)) |
 | `RigidbodyMotor` · `HoverRigidbodyMotor`+`HoverGroundSensor` · `FlyingRigidbodyMotor` · `OrnithopterFlightMotor` | [Motors/](Assets/Game/Scripts/agents/AI/Motors/RigidbodyMotor.cs) | Physics ground vehicles · hovercraft · free 3D flight (pair `AirWanderModule`) · energy flight ([Ornithopter.md](Ornithopter.md)) |
 | `LeggedDriver` (abstract) | [LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Procedural legged rigs; subclasses in `Assets/Game/Scripts/Creatures/Drivers/`. No NavMeshAgent, no `AgentAnimatorDriver` |
 | `AgentTargeting` | [AI/Targeting/AgentTargeting.cs](Assets/Game/Scripts/agents/AI/Targeting/AgentTargeting.cs) | Order −50. Acquisition range auto-widened to longest weapon range + 5 m. Scores by "effective distance" (`currentTargetBias`, `lastAttackerBias`, `occludedPenalty`); sight × `Sandstorms.SightFactorAt` |
@@ -123,7 +124,7 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 - The **owner** machine runs the whole stack; every other machine runs only `IPresentationModule`s. Ownership, not server-ness — [AgentAuthority.cs](Assets/Game/Scripts/agents/Core/AgentAuthority.cs). Modules must contain **no** authority check; the controller already gated the tick.
 - Body transform + animator replicate through `NetworkObject` / [NetAuthority.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs), which disables listed simulation drivers on remotes.
 - Attacks replicate as `NetMsg.AgentActed` (69) via `AgentActionRelay`; damage stays on the deciding machine.
-- `NpcWorldSim` is server-only. `NpcSpawn.Create` must be called behind `Network.Simulates`.
+- `NpcWorldSim`, `SettlementPopulation` and `SettlementAlarm`'s rally are **server-or-offline** (`!Network.IsNetworked || Network.Server`), not `Network.Simulates(this)`. `NpcSpawn.Create` makes the same check itself.
 - An `InventoryItem` an NPC carries needs its `itemPrefab` registered as a network prefab; projectiles and equipped visuals must **not** be. See [spacegame-multiplayer](.claude/skills/spacegame-multiplayer/SKILL.md).
 
 ## Persistence
@@ -137,6 +138,7 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 - **`baseOffset` has three authors now** — the prefab's own value, the ground correction and the mounted-jump arc — summed in `NavMeshAgentMotor.ApplyBaseOffset`. Assign `agent.baseOffset` directly from anywhere else and whichever writer runs later in the frame silently erases the rest.
 - **Nine of the ten agents are bipeds, so the slope lean defaults low** — `slopeFollow` 0.35 (`AgentGroundConformWiring.BipedSlopeFollow`); a biped spends the slope in its legs and leaning it like a many-legged body reads as falling over. The Golem is a biped (`Bone_Thigh/Shin/Foot_L/R`, nothing else), and so is the DuneRat despite quadruped bone names — 0.29 m forelimbs clear of the ground against a 0.99 m hind chain. Only the Vrescal hexapod gets `ManyLeggedSlopeFollow` (0.8). Applied **only when the component is added**, so tuning survives.
 - **The node the slope lean is written to is animated on the Golem and the DuneRat and on nothing else.** `AgentGrounding.Baseline` works out which case it is by reading the transform back rather than from a per-prefab flag. Replace it with a flag and you get one of two silent failures: the lean erases the root-bone animation, or it multiplies into itself every frame and the body spins.
+- **`Network.Simulates(this)` on a settlement root says yes on every client.** It answers about the object it is handed, and a settlement is scenery streamed in from a chunk scene with no `NetworkObject`, so its "unnetworked things have no remote truth" fallback applies and every machine believes it is the authority. `SettlementPopulation` spawned a wave per client until `WorldService` refused it — `[WorldService] Spawn('Clanker') called on a client` — and `SettlementAlarm` rallied defenders twice. Use `Simulates` only where the object being decided about is the one holding the component; when the decision creates or moves something else, gate on server-or-offline like [VolumeTrigger.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/VolumeTrigger.cs).
 - **No `EntityFaction` → invisible to every targeting module, silently.** Needs both a `FactionDefinition` and `GlobalRelationships.asset`. `EntityFaction.Ensure(go, faction, table)` on spawn paths.
 - **Peaceful = zero relationship rows** + `ProvocationModule` (`leashRange` ≤ `AgentTargeting.loseRange`). Adding a row "for completeness" makes the whole faction attack on sight. `FaunaFaction.asset` appears in zero rows; `WildlifeFaction` is already Hostile to the player.
 - **A module returning `MoveIntent.Idle()` while merely waiting starves everything below it.** Return `null`.
@@ -157,8 +159,8 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 - **`*Builder` scripts in `Assets/Game/Editor/` overwrite prefabs wholesale** with no warning; hand-added components vanish on rebuild. `GolemBuilder` lost the Golem's `SaveableEntity` this way.
 - **Feet skate** when only `animationSpeedMultiplier` / `walkAnimBoost` were tuned — those pick the *clip*. `animatorSpeedScale = groundSpeed / strideSpeed` sets the *rate*, applied once in `Awake`, and is global (attacks slow with it).
 - **Trigger names disagree by default:** driver fires `"Die"`, `HealthReactionModule.dieAnimTrigger` = `"Death"`, `CloseCombatModule` = `"Meele"`, `AgentRangedCombatModule` = `"AssualtShoot"` — the misspellings are real. `Golem.controller` carries both `Die` and `Death`.
-- **`PerceptionModule.occlusionLayers` left at `Nothing`** falls back with a warning and the agent shoots through walls intermittently.
-- **A `LeggedLocomotion` left in `NetAuthority.simulationDrivers`** makes remote copies slide with still feet.
+- **`PerceptionModule.occlusionLayers` left at `Nothing`** falls back with a warning and the agent shoots through walls intermittently. A **`LeggedLocomotion` left in `NetAuthority.simulationDrivers`** makes remote copies slide with still feet.
+- **A module that throws is switched off, not the creature.** Every module tick and every `TryGetFacing` runs through `AgentController.RunModule` inside `Fault.Run`; a throw is read as `null` — "I pass" — so the frame falls through to the next module instead of starving every module below the broken one. After 5 faults in 10 s that component's `enabled` goes false, so `IsActive` goes false and the controller stops ticking it for good; the creature keeps its other behaviours. `RunModule` returns `null` for a module that is not a `Component`, which every real module is. See [Diagnostics](Diagnostics.md).
 - **Provoked NPC walks instead of running:** `NavMeshAgent.speed` must be the **run**; scale `walkSpeedMultiplier` down from it, because `ChaseModule` asks for `isRunning`.
 - **Loot duplicates on load** — a death reaction ran during a restore. Check `HealthComponent.IsRestoring`.
 - **A spawner-owned group duplicates on load** unless members call `SaveableEntity.DisownToExternal()`; this is why `NpcSpawn` deliberately avoids `GameServices.World.Spawn`.

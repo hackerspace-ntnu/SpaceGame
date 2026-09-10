@@ -34,7 +34,6 @@ Designs live in `docs/AI/systems/Artifacts/`:
 | Inflator nozzle | `InflatorNozzle.md` |
 | Cryo sprayer | `CryoSprayer.md` |
 | Storm flask | `StormFlask.md` |
-| Slick can | `SlickCan.md` |
 
 Governing reference for all of it: `docs/AI/systems/Artifacts.md`, plus the `spacegame-artifact`,
 `spacegame-multiplayer`, `spacegame-persistence` and `blender-model` skills.
@@ -134,11 +133,11 @@ Modelling agents follow the `blender-model` skill. Family: clean issued equipmen
 colour coded, a `SupplyGauge` on every tank. Sizes bracketed against the Dragon Bazooka's 1.25 m:
 sprayers ~0.5 m one-handed, Flamethrower ~0.9 m two-handed, thrown bottles ~0.2 m.
 
-- `model-sprayers`: Flamethrower, Foam gun, Cryo sprayer, Slick can
+- `model-sprayers`: Flamethrower, Foam gun, Cryo sprayer
 - `model-devices`: Vacuum canister, Inflator nozzle, Strap-on booster
 - `model-bottles-and-props`: Bottled singularity, Storm flask, plus the world props — foam blob,
   frozen statue base, storm cloud
-- `shaders`: four shader graphs — foam surface (translucent, rough, merges as one substance), slick
+- `shaders`: four shader graphs — foam surface (translucent, rough, merges as one substance), frost
   sheen (grazing-angle gloss with a faint rainbow so a patch is *visible*), frozen statue (pale blue
   translucent, silhouette intact), storm cloud. Check each against `PastelQuantize.shader` so they
   survive the post pass. Owns `Assets/Game/Art/Shaders/` only.
@@ -150,7 +149,7 @@ re-dump names immediately before writing.
 
 Ordered so each wave only depends on what is already green.
 
-- **2a**: Flamethrower, Slick can, Foam gun
+- **2a**: Flamethrower, Foam gun
 - **2b**: Cryo sprayer, Inflator nozzle, Storm flask
 - **2c**: Vacuum canister, Bottled singularity, Strap-on booster
 
@@ -203,7 +202,8 @@ These are recorded in the design docs and must be *decided and written down*, no
 - Bottled singularity: what a pull does to a mounted rider — ignore, or route through `ITowable`.
 - Inflator nozzle: whether a skinned rig scales fully (colliders, NavMesh agent radius, stride) or
   visual-plus-proxy only.
-- Slick can: whether the body duration should be shorter than the ground duration.
+- Cryo sprayer: whether the film's body duration should be shorter than its ground duration. Both
+  are twenty seconds today, and there is still no playtest evidence for two numbers.
 
 Anything touching game feel, balance or player-facing behaviour consults
 `docs/game-development-constitution/` — pick 1–5 principles, read them in full, cite the IDs.

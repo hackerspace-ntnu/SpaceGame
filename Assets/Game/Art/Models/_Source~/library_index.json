@@ -25651,8 +25651,8 @@
           2.0,
           2.0
         ],
-        "vertices": 162,
-        "polygons": 320,
+        "vertices": 642,
+        "polygons": 1280,
         "materials": [
           "Mat_Paint_White_Arctic"
         ],
@@ -28098,20 +28098,20 @@
         "location": [
           0.0,
           0.0,
-          0.0
+          -0.0112
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.067,
+          1.067,
+          1.067
         ],
         "collections": [
           "Coll_BottledSingularity"
         ],
         "dimensions": [
-          0.121,
-          0.121,
-          0.041
+          0.1291,
+          0.1291,
+          0.0437
         ],
         "vertices": 112,
         "polygons": 112,
@@ -28119,7 +28119,7 @@
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
           "Mat_Paint_White_Arctic",
-          "Mat_Glass_Canopy_Tinted",
+          "Mat_Plastic_Rubber_Black",
           "Mat_Plastic_Rubber_Black",
           "Mat_Metal_Chrome_Scuffed",
           "Mat_Neutral_Black_Matte",
@@ -28136,17 +28136,17 @@
           0.1807
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.0182,
+          1.0182,
+          1.0182
         ],
         "collections": [
           "Coll_BottledSingularity"
         ],
         "dimensions": [
-          0.0335,
-          0.0408,
-          0.0035
+          0.0341,
+          0.0415,
+          0.0036
         ],
         "vertices": 36,
         "polygons": 22,
@@ -28166,9 +28166,9 @@
         "name": "Mesh_FlaskCollar_Iris_Leaf_2",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0305,
-          0.1811
+          -0.0002,
+          0.0302,
+          0.1803
         ],
         "scale": [
           1.0,
@@ -28203,7 +28203,7 @@
         "location": [
           -0.0264,
           0.0153,
-          0.1814
+          0.1805
         ],
         "scale": [
           1.0,
@@ -28238,7 +28238,7 @@
         "location": [
           -0.0264,
           -0.0153,
-          0.1818
+          0.1805
         ],
         "scale": [
           1.0,
@@ -28273,7 +28273,7 @@
         "location": [
           -0.0,
           -0.0305,
-          0.1821
+          0.1808
         ],
         "scale": [
           1.0,
@@ -28308,7 +28308,7 @@
         "location": [
           0.0264,
           -0.0153,
-          0.1825
+          0.1807
         ],
         "scale": [
           1.0,
@@ -29296,7 +29296,6 @@
           "Mesh_Flamethrower_Clamps",
           "Mesh_Flamethrower_Hose",
           "Mesh_Flamethrower_Grip",
-          "Mesh_Flamethrower_Foregrip",
           "Mesh_Flamethrower_Stock",
           "Mesh_Flamethrower_Gauge",
           "Marker_Muzzle",
@@ -29313,38 +29312,26 @@
         "name": "Marker_Gauge",
         "type": "MESH",
         "location": [
-          0.044,
-          -0.36,
-          -0.062
+          -0.0914,
+          0.0791,
+          -0.1225
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          2.4027,
+          2.4027,
+          2.4027
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.004,
-          0.004,
-          0.004
+          0.0096,
+          0.0096,
+          0.0096
         ],
         "vertices": 8,
         "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
-        ],
+        "materials": [],
         "modifiers": []
       },
       {
@@ -29352,37 +29339,51 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.0403,
-          -0.0901
+          0.3852,
+          -0.1068
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.1861,
+          1.1861,
+          1.1861
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.004,
-          0.004,
-          0.004
+          0.0047,
+          0.0047,
+          0.0047
         ],
         "vertices": 8,
         "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+        "materials": [],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Grip.001",
+        "type": "MESH",
+        "location": [
+          -0.0094,
+          0.4638,
+          0.0818
         ],
+        "scale": [
+          0.5521,
+          0.5521,
+          0.5521
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          0.0022,
+          0.0022,
+          0.0022
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [],
         "modifiers": []
       },
       {
@@ -29390,8 +29391,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.2239,
-          -0.0712
+          -0.224,
+          -0.0713
         ],
         "scale": [
           1.0,
@@ -29408,132 +29409,112 @@
         ],
         "vertices": 8,
         "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+        "materials": [],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_GripFore.001",
+        "type": "MESH",
+        "location": [
+          -0.0403,
+          0.3624,
+          0.0713
         ],
+        "scale": [
+          0.5521,
+          0.5521,
+          0.5521
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          0.0022,
+          0.0022,
+          0.0022
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [],
         "modifiers": []
       },
       {
         "name": "Marker_Muzzle",
         "type": "MESH",
         "location": [
-          0.0,
-          -0.52,
-          0.012
+          0.0002,
+          -0.7636,
+          0.0136
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.4444,
+          1.9857,
+          1.4444
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.004,
-          0.004,
-          0.004
+          0.0058,
+          0.0079,
+          0.0058
         ],
         "vertices": 8,
         "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
-        ],
+        "materials": [],
         "modifiers": []
       },
       {
         "name": "Marker_Pilot",
         "type": "MESH",
         "location": [
-          0.024,
-          -0.534,
-          0.012
+          0.0241,
+          -0.8011,
+          0.0134
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.4341,
+          1.9715,
+          1.4341
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.004,
-          0.004,
-          0.004
+          0.0057,
+          0.0079,
+          0.0057
         ],
         "vertices": 8,
         "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
-        ],
+        "materials": [],
         "modifiers": []
       },
       {
         "name": "Mesh_Flamethrower_Barrel",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.0,
+          0.0286,
+          0.0004
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.089,
+          1.4972,
+          1.089
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.038,
-          0.38,
-          0.038
+          0.0414,
+          0.5689,
+          0.0414
         ],
         "vertices": 336,
         "polygons": 322,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.002"
         ],
         "modifiers": []
       },
@@ -29541,37 +29522,55 @@
         "name": "Mesh_Flamethrower_Bottle",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          0.0048,
+          0.0577,
+          -0.0991
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          2.0143,
+          2.0143,
+          2.0143
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.077,
-          0.2047,
-          0.076
+          0.1551,
+          0.4124,
+          0.1531
         ],
         "vertices": 416,
         "polygons": 360,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Flamethrower_Bottle.001",
+        "type": "MESH",
+        "location": [
+          -0.0398,
+          0.3492,
+          -0.0001
+        ],
+        "scale": [
+          1.112,
+          1.112,
+          1.112
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          0.0856,
+          0.2276,
+          0.0845
+        ],
+        "vertices": 416,
+        "polygons": 360,
+        "materials": [
+          "Material.003"
         ],
         "modifiers": []
       },
@@ -29579,37 +29578,27 @@
         "name": "Mesh_Flamethrower_Cage",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.0,
+          -0.5298,
+          0.0134
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.4166,
+          1.9475,
+          1.4166
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.0658,
-          0.146,
-          0.072
+          0.0931,
+          0.2843,
+          0.102
         ],
         "vertices": 576,
         "polygons": 528,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.002"
         ],
         "modifiers": []
       },
@@ -29617,75 +29606,55 @@
         "name": "Mesh_Flamethrower_Clamps",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.0245,
+          0.0817,
+          -0.0858
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          2.0143,
+          2.0143,
+          2.0143
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.087,
-          0.136,
-          0.0993
+          0.1753,
+          0.274,
+          0.2
         ],
         "vertices": 464,
         "polygons": 420,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
         ],
         "modifiers": []
       },
       {
-        "name": "Mesh_Flamethrower_Foregrip",
+        "name": "Mesh_Flamethrower_Clamps.001",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.028,
+          0.3622,
+          0.0134
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.112,
+          1.112,
+          1.112
         ],
         "collections": [
-          "Coll_Flamethrower"
+          "Scene Collection"
         ],
         "dimensions": [
-          0.053,
-          0.066,
-          0.096
+          0.0968,
+          0.172,
+          0.1106
         ],
-        "vertices": 404,
-        "polygons": 386,
+        "vertices": 464,
+        "polygons": 420,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
         ],
         "modifiers": []
       },
@@ -29693,37 +29662,55 @@
         "name": "Mesh_Flamethrower_Gauge",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.0855,
+          0.0791,
+          -0.1212
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          2.4027,
+          2.4027,
+          2.4027
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.0125,
-          0.09,
-          0.03
+          0.03,
+          0.2162,
+          0.0721
         ],
         "vertices": 232,
         "polygons": 222,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Flamethrower_Gauge.001",
+        "type": "MESH",
+        "location": [
+          -0.0371,
+          0.3606,
+          0.0512
+        ],
+        "scale": [
+          1.3264,
+          1.3264,
+          1.3264
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          0.0166,
+          0.1194,
+          0.0398
+        ],
+        "vertices": 232,
+        "polygons": 222,
+        "materials": [
+          "Material.002"
         ],
         "modifiers": []
       },
@@ -29732,36 +29719,26 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.0,
+          0.433,
           0.0
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.1861,
+          1.1861,
+          1.1861
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.053,
-          0.1319,
-          0.132
+          0.0629,
+          0.1565,
+          0.1566
         ],
         "vertices": 604,
         "polygons": 566,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
         ],
         "modifiers": []
       },
@@ -29769,75 +29746,81 @@
         "name": "Mesh_Flamethrower_Hose",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.0507,
+          -0.3269,
+          -0.0689
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.598,
+          2.1969,
+          1.598
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.0441,
-          0.2099,
-          0.078
+          0.0732,
+          0.4473,
+          0.1348
         ],
         "vertices": 480,
         "polygons": 420,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.003"
         ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Flamethrower_Hose.001",
+        "type": "MESH",
+        "location": [
+          -0.0372,
+          0.2103,
+          0.0111
+        ],
+        "scale": [
+          0.7055,
+          0.6118,
+          0.8464
+        ],
+        "collections": [
+          "Scene Collection"
+        ],
+        "dimensions": [
+          0.0323,
+          0.1246,
+          0.0714
+        ],
+        "vertices": 480,
+        "polygons": 420,
+        "materials": [],
         "modifiers": []
       },
       {
         "name": "Mesh_Flamethrower_Muzzle",
         "type": "MESH",
         "location": [
-          0.0,
-          0.0,
-          0.0
+          -0.0004,
+          -0.708,
+          0.013
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.4444,
+          1.9857,
+          1.4444
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.076,
-          0.083,
-          0.068
+          0.1098,
+          0.1648,
+          0.0982
         ],
         "vertices": 592,
         "polygons": 588,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
         ],
         "modifiers": []
       },
@@ -29845,37 +29828,27 @@
         "name": "Mesh_Flamethrower_Pilot",
         "type": "MESH",
         "location": [
-          0.024,
-          -0.517,
-          0.012
+          0.0397,
+          -0.7715,
+          0.0134
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.4341,
+          1.9715,
+          1.4341
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.0125,
-          0.018,
-          0.0131
+          0.0179,
+          0.0355,
+          0.0188
         ],
         "vertices": 60,
         "polygons": 52,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.002"
         ],
         "modifiers": []
       },
@@ -29903,17 +29876,7 @@
         "vertices": 300,
         "polygons": 274,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
         ],
         "modifiers": []
       },
@@ -29922,57 +29885,45 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.0,
-          0.0
+          -0.0536,
+          -0.006
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          0.9182,
+          1.4285,
+          0.9182
         ],
         "collections": [
           "Coll_Flamethrower"
         ],
         "dimensions": [
-          0.05,
-          0.257,
-          0.1113
+          0.0459,
+          0.3671,
+          0.1022
         ],
         "vertices": 480,
         "polygons": 472,
         "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Paint_Safety_Orange",
-          "Mat_Paint_Warn_Red",
-          "Mat_Emissive_Amber"
+          "Material.001"
         ],
         "modifiers": []
       }
     ],
     "materials": [
-      "Mat_Emissive_Amber",
-      "Mat_Emissive_Green_CRT",
-      "Mat_Metal_Chrome_Scuffed",
-      "Mat_Metal_Steel_Dark",
-      "Mat_Metal_Steel_Worn",
-      "Mat_Neutral_Black_Matte",
-      "Mat_Neutral_Panel_Grey",
-      "Mat_Paint_Safety_Orange",
-      "Mat_Paint_Warn_Red",
-      "Mat_Paint_White_Arctic",
-      "Mat_Plastic_Rubber_Black"
+      "Material",
+      "Material.001",
+      "Material.002",
+      "Material.003"
     ],
-    "linked_libraries": [
-      "//../../palette.blend"
-    ],
-    "auto_suffixed_names": []
+    "linked_libraries": [],
+    "auto_suffixed_names": [
+      "Marker_Grip.001",
+      "Marker_GripFore.001",
+      "Mesh_Flamethrower_Bottle.001",
+      "Mesh_Flamethrower_Clamps.001",
+      "Mesh_Flamethrower_Gauge.001",
+      "Mesh_Flamethrower_Hose.001"
+    ]
   },
   "models/gear/foam_gun.blend": {
     "collections": [
@@ -39058,440 +39009,6 @@
     "linked_libraries": [],
     "auto_suffixed_names": []
   },
-  "models/gear/slick_can.blend": {
-    "collections": [
-      {
-        "name": "Coll_SlickCan",
-        "objects": [
-          "Mesh_SlickCan_Body",
-          "Mesh_SlickCan_Foot",
-          "Mesh_SlickCan_Neck",
-          "Mesh_SlickCan_Trigger",
-          "Mesh_SlickCan_Head",
-          "Mesh_SlickCan_Fan",
-          "Mesh_SlickCan_Cap",
-          "Mesh_SlickCan_Gauge",
-          "Marker_Muzzle",
-          "Marker_Grip",
-          "Marker_Gauge"
-        ],
-        "children": []
-      }
-    ],
-    "objects": [
-      {
-        "name": "Marker_Gauge",
-        "type": "MESH",
-        "location": [
-          0.058,
-          0.0,
-          0.14
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.004,
-          0.004,
-          0.004
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Marker_Grip",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.15
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.004,
-          0.004,
-          0.004
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Marker_Muzzle",
-        "type": "MESH",
-        "location": [
-          0.0,
-          -0.068,
-          0.34
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.004,
-          0.004,
-          0.004
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Body",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.1082,
-          0.1082,
-          0.2673
-        ],
-        "vertices": 648,
-        "polygons": 550,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Cap",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.0473,
-          0.0473,
-          0.03
-        ],
-        "vertices": 96,
-        "polygons": 82,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Fan",
-        "type": "MESH",
-        "location": [
-          0.0,
-          -0.068,
-          0.34
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.082,
-          0.045,
-          0.039
-        ],
-        "vertices": 176,
-        "polygons": 168,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Foot",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.1116,
-          0.1116,
-          0.018
-        ],
-        "vertices": 192,
-        "polygons": 192,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Gauge",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.0125,
-          0.03,
-          0.09
-        ],
-        "vertices": 232,
-        "polygons": 222,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Head",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.068,
-          0.062,
-          0.068
-        ],
-        "vertices": 188,
-        "polygons": 166,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Neck",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.0739,
-          0.0739,
-          0.068
-        ],
-        "vertices": 240,
-        "polygons": 204,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SlickCan_Trigger",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SlickCan"
-        ],
-        "dimensions": [
-          0.0933,
-          0.1128,
-          0.0567
-        ],
-        "vertices": 344,
-        "polygons": 302,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Copper_Oxide"
-        ],
-        "modifiers": []
-      }
-    ],
-    "materials": [
-      "Mat_Emissive_Green_CRT",
-      "Mat_Metal_Chrome_Scuffed",
-      "Mat_Metal_Copper_Oxide",
-      "Mat_Metal_Steel_Dark",
-      "Mat_Metal_Steel_Worn",
-      "Mat_Neutral_Black_Matte",
-      "Mat_Neutral_Panel_Grey",
-      "Mat_Paint_White_Arctic",
-      "Mat_Plastic_Rubber_Black"
-    ],
-    "linked_libraries": [
-      "//../../palette.blend"
-    ],
-    "auto_suffixed_names": []
-  },
   "models/gear/squirter.blend": {
     "collections": [
       {
@@ -40510,16 +40027,18 @@
         "name": "Coll_StrapOnBooster_Armed",
         "objects": [
           "Mesh_StrapOnBooster_Casing",
-          "Mesh_StrapOnBooster_HazardBand",
           "Mesh_DeviceNozzle_Bell",
           "Mesh_DeviceClamp_JawFixed",
           "Mesh_StrapOnBooster_StrapFore",
           "Mesh_StrapOnBooster_StrapAft",
-          "Marker_Muzzle",
           "Marker_Mount",
           "Marker_Clamp",
           "Marker_Grip",
-          "Mesh_DeviceGauge_Lamp"
+          "Mesh_DeviceGauge_Lamp",
+          "Marker_Muzzle",
+          "Mesh_StrapOnBooster_BandFore",
+          "Mesh_StrapOnBooster_BandMid",
+          "Mesh_StrapOnBooster_BandAft"
         ],
         "children": []
       },
@@ -40527,16 +40046,18 @@
         "name": "Coll_StrapOnBooster_Clamped",
         "objects": [
           "Mesh_StrapOnBooster_Casing",
-          "Mesh_StrapOnBooster_HazardBand",
           "Mesh_DeviceNozzle_Bell",
           "Mesh_DeviceClamp_JawFixed",
           "Mesh_StrapOnBooster_StrapFore",
           "Mesh_StrapOnBooster_StrapAft",
-          "Marker_Muzzle",
           "Marker_Mount",
           "Marker_Clamp",
           "Marker_Grip",
-          "Mesh_DeviceGauge_Lamp"
+          "Mesh_DeviceGauge_Lamp",
+          "Marker_Muzzle",
+          "Mesh_StrapOnBooster_BandFore",
+          "Mesh_StrapOnBooster_BandMid",
+          "Mesh_StrapOnBooster_BandAft"
         ],
         "children": []
       },
@@ -40544,16 +40065,17 @@
         "name": "Coll_StrapOnBooster_Spent",
         "objects": [
           "Mesh_StrapOnBooster_Casing",
-          "Mesh_StrapOnBooster_HazardBand",
           "Mesh_DeviceNozzle_Bell",
           "Mesh_DeviceClamp_JawFixed",
           "Mesh_StrapOnBooster_StrapFore",
           "Mesh_StrapOnBooster_StrapAft",
-          "Marker_Muzzle",
           "Marker_Mount",
           "Marker_Clamp",
           "Marker_Grip",
-          "Mesh_StrapOnBooster_Scorch"
+          "Marker_Muzzle",
+          "Mesh_StrapOnBooster_BandFore",
+          "Mesh_StrapOnBooster_BandMid",
+          "Mesh_StrapOnBooster_BandAft"
         ],
         "children": []
       }
@@ -40902,6 +40424,96 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_StrapOnBooster_BandAft",
+        "type": "MESH",
+        "location": [
+          0.0001,
+          0.0417,
+          0.0903
+        ],
+        "scale": [
+          -0.0547,
+          -0.0547,
+          -0.0547
+        ],
+        "collections": [
+          "Coll_StrapOnBooster_Armed",
+          "Coll_StrapOnBooster_Clamped",
+          "Coll_StrapOnBooster_Spent"
+        ],
+        "dimensions": [
+          0.1094,
+          0.1094,
+          0.1094
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Mat_Paint_Warn_Red"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_StrapOnBooster_BandFore",
+        "type": "MESH",
+        "location": [
+          0.0001,
+          -0.1696,
+          0.0903
+        ],
+        "scale": [
+          -0.0547,
+          -0.0547,
+          -0.0112
+        ],
+        "collections": [
+          "Coll_StrapOnBooster_Armed",
+          "Coll_StrapOnBooster_Clamped",
+          "Coll_StrapOnBooster_Spent"
+        ],
+        "dimensions": [
+          0.1094,
+          0.1094,
+          0.0224
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Mat_Paint_Warn_Red"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_StrapOnBooster_BandMid",
+        "type": "MESH",
+        "location": [
+          0.0001,
+          -0.1276,
+          0.0903
+        ],
+        "scale": [
+          -0.0547,
+          -0.0547,
+          -0.038
+        ],
+        "collections": [
+          "Coll_StrapOnBooster_Armed",
+          "Coll_StrapOnBooster_Clamped",
+          "Coll_StrapOnBooster_Spent"
+        ],
+        "dimensions": [
+          0.1094,
+          0.1094,
+          0.076
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Mat_Paint_Warn_Red"
+        ],
+        "modifiers": []
+      },
+      {
         "name": "Mesh_StrapOnBooster_Casing",
         "type": "MESH",
         "location": [
@@ -40921,11 +40533,11 @@
         ],
         "dimensions": [
           0.11,
-          0.312,
+          0.3544,
           0.1116
         ],
-        "vertices": 572,
-        "polygons": 551,
+        "vertices": 592,
+        "polygons": 571,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -40946,102 +40558,6 @@
           "Mat_Glass_Canopy_Tinted",
           "Mat_Emissive_Portal_Blue",
           "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_StrapOnBooster_HazardBand",
-        "type": "MESH",
-        "location": [
-          -0.0,
-          -0.04,
-          0.088
-        ],
-        "scale": [
-          0.8836,
-          0.8836,
-          0.8836
-        ],
-        "collections": [
-          "Coll_StrapOnBooster_Armed",
-          "Coll_StrapOnBooster_Clamped",
-          "Coll_StrapOnBooster_Spent"
-        ],
-        "dimensions": [
-          0.1069,
-          0.053,
-          0.1069
-        ],
-        "vertices": 448,
-        "polygons": 432,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_StrapOnBooster_Scorch",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_StrapOnBooster_Spent"
-        ],
-        "dimensions": [
-          0.1169,
-          0.092,
-          0.1197
-        ],
-        "vertices": 456,
-        "polygons": 426,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Paint_Warn_Red",
           "Mat_Fabric_Canvas_Faded"
         ],
         "modifiers": []
@@ -41755,1260 +41271,6 @@
       "Mat_Paint_Hull_Bleached",
       "Mat_Paint_Warn_Red",
       "Mat_Plastic_Rubber_Black"
-    ],
-    "linked_libraries": [
-      "//../../palette.blend"
-    ],
-    "auto_suffixed_names": []
-  },
-  "models/gear/vacuum_canister.blend": {
-    "collections": [
-      {
-        "name": "Coll_VacuumCanister_Cracked",
-        "objects": [
-          "Mesh_VacuumCanister_Foot",
-          "Mesh_VacuumCanister_Body",
-          "Mesh_VacuumCanister_Collar",
-          "Mesh_VacuumCanister_Handle",
-          "Mesh_VacuumCanister_Emitter",
-          "Marker_Muzzle",
-          "Marker_Grip",
-          "Marker_Gauge",
-          "Mesh_DeviceNozzle_IrisRing",
-          "Mesh_DeviceNozzle_IrisLeaf_1",
-          "Mesh_DeviceNozzle_IrisLeaf_2",
-          "Mesh_DeviceNozzle_IrisLeaf_3",
-          "Mesh_DeviceNozzle_IrisLeaf_4",
-          "Mesh_DeviceNozzle_IrisLeaf_5",
-          "Mesh_DeviceNozzle_IrisLeaf_6",
-          "Mesh_SprayerGauge_Plate",
-          "Mesh_VacuumCanister_GlassBroken",
-          "Mesh_VacuumCanister_LidSprung"
-        ],
-        "children": []
-      },
-      {
-        "name": "Coll_VacuumCanister_Empty",
-        "objects": [
-          "Mesh_VacuumCanister_Foot",
-          "Mesh_VacuumCanister_Body",
-          "Mesh_VacuumCanister_Collar",
-          "Mesh_VacuumCanister_Handle",
-          "Mesh_VacuumCanister_Emitter",
-          "Marker_Muzzle",
-          "Marker_Grip",
-          "Marker_Gauge",
-          "Mesh_DeviceNozzle_IrisRing",
-          "Mesh_DeviceNozzle_IrisLeaf_1",
-          "Mesh_DeviceNozzle_IrisLeaf_2",
-          "Mesh_DeviceNozzle_IrisLeaf_3",
-          "Mesh_DeviceNozzle_IrisLeaf_4",
-          "Mesh_DeviceNozzle_IrisLeaf_5",
-          "Mesh_DeviceNozzle_IrisLeaf_6",
-          "Mesh_SprayerGauge_Plate",
-          "Mesh_VacuumCanister_GlassClear",
-          "Mesh_VacuumCanister_LidOpen"
-        ],
-        "children": []
-      },
-      {
-        "name": "Coll_VacuumCanister_Full",
-        "objects": [
-          "Mesh_VacuumCanister_Foot",
-          "Mesh_VacuumCanister_Body",
-          "Mesh_VacuumCanister_Collar",
-          "Mesh_VacuumCanister_Handle",
-          "Mesh_VacuumCanister_Emitter",
-          "Marker_Muzzle",
-          "Marker_Grip",
-          "Marker_Gauge",
-          "Mesh_DeviceNozzle_IrisRing",
-          "Mesh_DeviceNozzle_IrisLeaf_1",
-          "Mesh_DeviceNozzle_IrisLeaf_2",
-          "Mesh_DeviceNozzle_IrisLeaf_3",
-          "Mesh_DeviceNozzle_IrisLeaf_4",
-          "Mesh_DeviceNozzle_IrisLeaf_5",
-          "Mesh_DeviceNozzle_IrisLeaf_6",
-          "Mesh_SprayerGauge_Plate",
-          "Mesh_VacuumCanister_GlassSealed",
-          "Mesh_VacuumCanister_LidShut",
-          "Mesh_VacuumCanister_Field",
-          "Mesh_VacuumCanister_Captive"
-        ],
-        "children": []
-      }
-    ],
-    "objects": [
-      {
-        "name": "Marker_Gauge",
-        "type": "MESH",
-        "location": [
-          0.0,
-          -0.095,
-          0.33
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.004,
-          0.004,
-          0.004
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Marker_Grip",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.13,
-          0.24
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.004,
-          0.004,
-          0.004
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Marker_Muzzle",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.424
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.004,
-          0.004,
-          0.004
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisLeaf_1",
-        "type": "MESH",
-        "location": [
-          0.07,
-          0.0,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0198,
-          0.0668,
-          0.0893
-        ],
-        "vertices": 32,
-        "polygons": 22,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisLeaf_2",
-        "type": "MESH",
-        "location": [
-          0.035,
-          -0.0606,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0198,
-          0.0668,
-          0.0893
-        ],
-        "vertices": 32,
-        "polygons": 22,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisLeaf_3",
-        "type": "MESH",
-        "location": [
-          -0.035,
-          -0.0606,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0198,
-          0.0668,
-          0.0893
-        ],
-        "vertices": 32,
-        "polygons": 22,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisLeaf_4",
-        "type": "MESH",
-        "location": [
-          -0.07,
-          -0.0,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0198,
-          0.0668,
-          0.0893
-        ],
-        "vertices": 32,
-        "polygons": 22,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisLeaf_5",
-        "type": "MESH",
-        "location": [
-          -0.035,
-          0.0606,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0198,
-          0.0668,
-          0.0893
-        ],
-        "vertices": 32,
-        "polygons": 22,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisLeaf_6",
-        "type": "MESH",
-        "location": [
-          0.035,
-          0.0606,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0198,
-          0.0668,
-          0.0893
-        ],
-        "vertices": 32,
-        "polygons": 22,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_DeviceNozzle_IrisRing",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.405
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.172,
-          0.034,
-          0.172
-        ],
-        "vertices": 480,
-        "polygons": 480,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SprayerGauge_Plate",
-        "type": "MESH",
-        "location": [
-          0.0,
-          -0.086,
-          0.33
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.09,
-          0.0125,
-          0.03
-        ],
-        "vertices": 120,
-        "polygons": 114,
-        "materials": [
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Metal_Steel_Worn"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Body",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.186,
-          0.184,
-          0.338
-        ],
-        "vertices": 1120,
-        "polygons": 1114,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Captive",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.0395,
-          0.0881,
-          0.0508
-        ],
-        "vertices": 164,
-        "polygons": 136,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Collar",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.204,
-          0.22,
-          0.066
-        ],
-        "vertices": 588,
-        "polygons": 556,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Emitter",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.044,
-          0.044,
-          0.29
-        ],
-        "vertices": 288,
-        "polygons": 248,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Field",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.119,
-          0.1505,
-          0.2183
-        ],
-        "vertices": 632,
-        "polygons": 624,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Foot",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.206,
-          0.198,
-          0.034
-        ],
-        "vertices": 408,
-        "polygons": 378,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_GlassBroken",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked"
-        ],
-        "dimensions": [
-          0.1164,
-          0.016,
-          0.1988
-        ],
-        "vertices": 24,
-        "polygons": 18,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_GlassClear",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Empty"
-        ],
-        "dimensions": [
-          0.114,
-          0.016,
-          0.2
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_GlassSealed",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.114,
-          0.016,
-          0.2
-        ],
-        "vertices": 8,
-        "polygons": 6,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_Handle",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked",
-          "Coll_VacuumCanister_Empty",
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.052,
-          0.06,
-          0.14
-        ],
-        "vertices": 208,
-        "polygons": 192,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_LidOpen",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.09,
-          0.408
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Empty"
-        ],
-        "dimensions": [
-          0.216,
-          0.2223,
-          0.1525
-        ],
-        "vertices": 616,
-        "polygons": 574,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_LidShut",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.09,
-          0.408
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Full"
-        ],
-        "dimensions": [
-          0.216,
-          0.234,
-          0.068
-        ],
-        "vertices": 624,
-        "polygons": 580,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_VacuumCanister_LidSprung",
-        "type": "MESH",
-        "location": [
-          0.0,
-          0.09,
-          0.408
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_VacuumCanister_Cracked"
-        ],
-        "dimensions": [
-          0.216,
-          0.2308,
-          0.1584
-        ],
-        "vertices": 616,
-        "polygons": 574,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Plastic_Rubber_Black",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Paint_White_Arctic",
-          "Mat_Neutral_Panel_Grey",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Emissive_Green_CRT",
-          "Mat_Emissive_Amber",
-          "Mat_Emissive_Red_Warn",
-          "Mat_Paint_Blue_Station",
-          "Mat_Plastic_Safety_Yellow",
-          "Mat_Paint_Warn_Red",
-          "Mat_Paint_Hazard_Yellow",
-          "Mat_Metal_Brass_Tarnished",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Emissive_Portal_Blue",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      }
-    ],
-    "materials": [
-      "Mat_Emissive_Amber",
-      "Mat_Emissive_Green_CRT",
-      "Mat_Emissive_Portal_Blue",
-      "Mat_Emissive_Red_Warn",
-      "Mat_Fabric_Canvas_Faded",
-      "Mat_Glass_Canopy_Tinted",
-      "Mat_Metal_Brass_Tarnished",
-      "Mat_Metal_Chrome_Scuffed",
-      "Mat_Metal_Rust_Heavy",
-      "Mat_Metal_Steel_Dark",
-      "Mat_Metal_Steel_Worn",
-      "Mat_Neutral_Black_Matte",
-      "Mat_Neutral_Panel_Grey",
-      "Mat_Neutral_Slate_Dark",
-      "Mat_Paint_Blue_Station",
-      "Mat_Paint_Hazard_Yellow",
-      "Mat_Paint_Warn_Red",
-      "Mat_Paint_White_Arctic",
-      "Mat_Plastic_Rubber_Black",
-      "Mat_Plastic_Safety_Yellow"
     ],
     "linked_libraries": [
       "//../../palette.blend"
@@ -93122,6 +91384,107 @@
     "linked_libraries": [
       "/Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/Assets/Game/Art/Models/_Source~/palette.blend"
     ],
+    "auto_suffixed_names": []
+  },
+  "models/creatures/robot_horse/robot_horse.blend": {
+    "collections": [
+      {
+        "name": "Collection",
+        "objects": [
+          "Arm_RobotHorse",
+          "Mesh_RobotHorse_Body"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Arm_RobotHorse",
+        "type": "ARMATURE",
+        "location": [
+          -0.0018,
+          -0.4757,
+          1.3631
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "bones": [
+          "root",
+          "spine1",
+          "femur.L",
+          "fibula.L",
+          "metarsal.L",
+          "hoof_B.L",
+          "spine2",
+          "spine3",
+          "spine4",
+          "scapula.L",
+          "humerus.L",
+          "radius.L",
+          "metacarpal.L",
+          "hoof_F.L",
+          "neck1",
+          "neck2",
+          "head",
+          "ear.L",
+          "ear.R",
+          "scapula.R",
+          "humerus.R",
+          "radius.R",
+          "metacarpal.R",
+          "hoof_F.R",
+          "tail1",
+          "tail2",
+          "tail3",
+          "tail4",
+          "femur.R",
+          "fibula.R",
+          "metarsal.R",
+          "hoof_B.R"
+        ]
+      },
+      {
+        "name": "Mesh_RobotHorse_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.7114,
+          3.1728,
+          2.1996
+        ],
+        "vertices": 17055,
+        "polygons": 10252,
+        "materials": [
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      }
+    ],
+    "materials": [
+      "Dots Stroke",
+      "Mat_Metal_Rust_Heavy"
+    ],
+    "linked_libraries": [],
     "auto_suffixed_names": []
   },
   "models/creatures/vrescal/vrescal_hexapod_rigged.blend": {

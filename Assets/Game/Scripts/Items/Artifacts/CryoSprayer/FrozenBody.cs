@@ -1,8 +1,8 @@
 // How frozen one body looks, on one machine.
 //
-// It owns nothing about being frozen except the LOOK. Helplessness is FrozenStatus and
-// StatusReactionModule, the shatter is FrozenStatus, the ten seconds are FrozenStatus, and the
-// creature's reaction is StatusReactionModule. This is the rime, the pose and the plinth.
+// It owns nothing about being frozen except the LOOK. Helplessness is FrozenStatus, read off
+// StatusReceiver.Suppressed by AgentController and by BodyHold, and the ten seconds are
+// FrozenStatus's own. This is the rime, the pose and the plinth.
 //
 // EVERY MACHINE HAS ITS OWN. The build-up is derived, not replicated: the sprayer's aim ray reaches
 // the owner, the server and every peer on the ordinary hold stream, so every machine traces the same
@@ -121,12 +121,20 @@ namespace SpaceGame.Items
         /// difference between a control tool and a lock nobody escapes (GDC-L1-MP-0002).
         /// </para>
         /// </summary>
-        public void Chill(float seconds, float freezeSeconds)
+        /// <param name="rate">
+        /// How much of the freezing rate this body takes, as a fraction — 1 on the crosshair and
+        /// less out towards the rim of the plume. See <c>ConeSweep.Falloff</c>.
+        /// </param>
+        public void Chill(float seconds, float freezeSeconds, float rate)
         {
-            if (Frozen || seconds <= 0f) return;
+            if (Frozen || seconds <= 0f || rate <= 0f) return;
 
+            // The SPAN and the AMOUNT are two different numbers and only one of them is scaled. A
+            // body caught at the rim of the plume banks less per sweep, but it is being sprayed for
+            // just as long — putting the scaled amount into the expiry too would let the thaw run
+            // between sweeps on the very body that is standing in the vapour.
             chilledUntil = Time.time + seconds;
-            chill = Mathf.Clamp01(chill + (freezeSeconds > 0f ? seconds / freezeSeconds : 1f));
+            chill = Mathf.Clamp01(chill + (freezeSeconds > 0f ? seconds * rate / freezeSeconds : 1f));
 
             Paint();
         }

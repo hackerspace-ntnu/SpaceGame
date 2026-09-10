@@ -333,11 +333,14 @@ namespace SpaceGame.Items
 
             GameObject instance = Instantiate(prefab, bone);
             EquipItemSocket.Sanitize(instance);
+            BodyAttachment.Mark(instance);
 
             // torsoForm, not Worn: the gear screen is WHERE gear is put on, so an item can perfectly
             // well arrive while the screen is open, and one seated in the world's form then would
             // be the only thing on that screen wearing the wrong shape until it closed.
-            WornSeat.Apply(instance, bone, instance.GetComponent<WornFit>(), TorsoMount(kind), torsoForm);
+            WornFit fit = instance.GetComponent<WornFit>();
+            WornSeat.Apply(instance, bone, fit, TorsoMount(kind), torsoForm);
+            WornAnchor.Follow(instance, bone, fit, () => TorsoMount(kind));
 
             return instance;
         }
@@ -385,8 +388,12 @@ namespace SpaceGame.Items
             Transform bone = WornSeat.BoneFor(kind, entry.Bone, chest);
             if (bone == null) return;
 
-            WornSeat.Apply(entry.Instance, bone, entry.Instance.GetComponent<WornFit>(),
-                           TorsoMount(kind), form);
+            WornFit fit = entry.Instance.GetComponent<WornFit>();
+            WornSeat.Apply(entry.Instance, bone, fit, TorsoMount(kind), form);
+
+            // The gear screen's model has its own span, so the re-seat above is a different pose.
+            // That is the one to hold from here on.
+            WornAnchor.Follow(entry.Instance, bone, fit, () => TorsoMount(kind));
         }
 
         /// <summary>
@@ -426,9 +433,11 @@ namespace SpaceGame.Items
 
             GameObject instance = Instantiate(prefab, entry.Bone);
             EquipItemSocket.Sanitize(instance);
+            BodyAttachment.Mark(instance);
 
             ForearmSeat.Apply(instance, entry.Bone, entry.Socket.Socket, entry.Socket.GripRotation,
                               entry.Slot == BodySlot.LeftGauntlet, fit);
+            WornAnchor.Pin(instance, entry.Bone);
 
             return instance;
         }

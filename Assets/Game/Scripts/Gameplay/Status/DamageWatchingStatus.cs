@@ -6,17 +6,17 @@ namespace SpaceGame.Gameplay.Status
     /// A condition that a hit can end, or end the body it is on.
     ///
     /// <para>
-    /// Two kinds want this and they want exactly the same plumbing: <see cref="FrozenStatus"/>,
-    /// where a hard enough hit shatters the body, and <see cref="FoamedStatus"/>, where a hit
-    /// breaks the encasement early. Both subscribe while they run, unsubscribe when they stop,
-    /// ignore a restore, and act only on the deciding machine. That is the whole of the shared
-    /// part, so it is written once here and the two subclasses are left with a threshold and a
-    /// consequence.
+    /// <see cref="FoamedStatus"/> wants it, where a hit breaks the encasement early, and so does
+    /// anything added later that a hit must end. It subscribes while it runs, unsubscribes when it
+    /// stops, ignores a restore, and acts only on the deciding machine. That is the whole of the
+    /// shared part, so it is written once here and a subclass is left with a threshold and a
+    /// consequence. <see cref="FrozenStatus"/> deliberately does NOT use it: a freeze deals no
+    /// damage and ends on its own clock alone.
     /// </para>
     /// <para>
     /// The restore check is not optional. A load writes real health values through the same path a
-    /// real hit does, and a status that cannot tell them apart shatters a creature for the crime of
-    /// being loaded.
+    /// real hit does, and a status that cannot tell them apart breaks itself off a creature for the
+    /// crime of being loaded.
     /// </para>
     /// </summary>
     [Serializable]
@@ -58,9 +58,9 @@ namespace SpaceGame.Gameplay.Status
             if (watched.IsRestoring) return;
 
             // Every machine hears its own copy of the damage, and only one of them may act on it —
-            // a client that shattered a body would be deciding a death the server never agreed to
-            // (GDC-L1-MP-0004). The clear that follows comes back to it as a message like everyone
-            // else's.
+            // a client that ended a condition on its own would be deciding world state the server
+            // never agreed to (GDC-L1-MP-0004). The clear that follows comes back to it as a
+            // message like everyone else's.
             if (!watching.Decides) return;
 
             OnHit(watching, amount);

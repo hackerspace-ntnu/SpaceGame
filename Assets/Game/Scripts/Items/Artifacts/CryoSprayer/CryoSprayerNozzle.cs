@@ -39,11 +39,17 @@ namespace SpaceGame.Items
         [SerializeField, Range(0f, 90f)] private float shutConeDegrees = 3f;
 
         [Tooltip("Cone half-angle with the valve fully open, in degrees. Fifteen: narrower than " +
-                 "the flamethrower's cone, because this is a precision tool. It is the plume's " +
-                 "SPREAD — what the cold actually freezes is whatever the crosshair is on, since " +
-                 "a one-and-a-half-second hold whose progress depended on which part of a fan " +
-                 "happened to land would read as a broken tool rather than a precise one.")]
+                 "the flamethrower's cone, because this is a precision tool. This is the plume " +
+                 "the player SEES, and it must match the cone that freezes — " +
+                 "CryoSprayerArtifact.coneHalfAngle, which warns when the two drift apart.")]
         [SerializeField, Range(0f, 90f)] private float openConeDegrees = 15f;
+
+        /// <summary>
+        /// The spread the plume is drawn at, for the artifact to check its own freeze cone against.
+        /// Vapour that visibly washes over a creature and does nothing to it is the whole bug this
+        /// exists to make loud.
+        /// </summary>
+        public float OpenConeDegrees => openConeDegrees;
 
         [Header("Landing")]
         [Tooltip("Frost forming where the plume lands. Played at the hit point while the cold is " +

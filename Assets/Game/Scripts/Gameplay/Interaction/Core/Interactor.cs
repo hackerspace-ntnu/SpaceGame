@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Gameplay
@@ -167,7 +168,13 @@ namespace SpaceGame.Gameplay
             bool available = IsAvailable(interactable);
             if (available)
             {
-                interactable.Interact(this);
+                // Barriered on the TARGET, not on this Interactor: a broken door must cost the
+                // player that door, not their ability to interact with anything ever again. Quarantine
+                // therefore switches off the door, which is the thing that is actually broken.
+                if (interactable is Component target)
+                    Fault.Run(target, "Interactable.Interact", () => interactable.Interact(this));
+                else
+                    interactable.Interact(this);
                 return;
             }
 
@@ -240,7 +247,11 @@ namespace SpaceGame.Gameplay
             if (interactable is IContextualInteractable contextual && !contextual.CanInteract(this))
                 return;
             if (!secondary.CanSecondaryInteract()) return;
-            secondary.SecondaryInteract(this);
+
+            if (secondary is Component target)
+                Fault.Run(target, "Interactable.SecondaryInteract", () => secondary.SecondaryInteract(this));
+            else
+                secondary.SecondaryInteract(this);
         }
 
         private bool DoInteractionTest(out IInteractable interactable)

@@ -13,9 +13,8 @@ glance:
           Nothing in `sprayer_kit.blend` is a sealed inflator tip.
   Iris    a six-leaf shutter over a wide mouth, authored OPEN. Things come IN
           here. `Mesh_SprayerNozzle_Iris` is a single static mesh; this one is
-          six separately hinged leaves, because the vacuum canister's design
-          names the irising shutter as a moving part and a one-piece iris
-          cannot open.
+          six separately hinged leaves, for a shell whose shutter has to open:
+          a one-piece iris cannot.
 
 Orientation and origin
 ----------------------

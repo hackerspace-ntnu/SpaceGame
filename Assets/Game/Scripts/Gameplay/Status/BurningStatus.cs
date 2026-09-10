@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SpaceGame.Gameplay.Status
 {
     /// <summary>
-    /// On fire: damage on its own clock, for as long as the fire lasts.
+    /// On fire: damage on its own clock, for five seconds and then out.
     ///
     /// <para>
     /// The item that lit the body does not bill the damage. That is the whole reason this system
@@ -22,7 +22,7 @@ namespace SpaceGame.Gameplay.Status
     [Serializable]
     public sealed class BurningStatus : StatusBehaviour
     {
-        /// <summary>Five seconds, refreshed while the flame stays on the target.</summary>
+        /// <summary>Five seconds from the moment a body catches, and not a second more.</summary>
         private const float DefaultDuration = 5f;
 
         public BurningStatus() : base(DefaultDuration) { }
@@ -31,6 +31,17 @@ namespace SpaceGame.Gameplay.Status
                  "worth in total, which is the number to tune against a creature's health rather " +
                  "than against the item that lit it.")]
         [SerializeField] private float damagePerSecond = 4f;
+
+        [Tooltip("How long a body is proof against catching again after a fire on it goes out, " +
+                 "in seconds. Without it a creature standing in a patch of flame relights on the " +
+                 "frame its own fire expires and burns for as long as it stands there.")]
+        [SerializeField] private float reigniteDelay = 3f;
+
+        /// <summary>
+        /// When the last fire on this body went out, on the deciding machine's clock. Negative
+        /// infinity so a body that has never burned is not serving a cooldown from time zero.
+        /// </summary>
+        private float lastOut = float.NegativeInfinity;
 
         /// <summary>
         /// Damage owed but not yet whole. Damage is an integer here, so a 4/s fire on a 60 Hz frame
@@ -41,7 +52,23 @@ namespace SpaceGame.Gameplay.Status
 
         public override StatusKind Kind => StatusKind.Burning;
 
+        /// <summary>
+        /// A fire burns for its own five seconds and cannot be topped up.
+        ///
+        /// <para>
+        /// The flamethrower's cone announces this fifteen times a second and every patch of ground
+        /// fire announces it again, so a refreshing fire is one that lasts exactly as long as
+        /// somebody keeps the flame on it — a creature standing in a burning patch would never stop
+        /// burning. Refusing the refresh makes the five seconds the whole of it, and the cooldown
+        /// is what stops the next frame's announcement from simply starting it over.
+        /// </para>
+        /// </summary>
+        public override bool CanApply(StatusReceiver body, bool running) =>
+            !running && Time.time - lastOut >= reigniteDelay;
+
         public override void OnApplied(StatusReceiver body) => owed = 0f;
+
+        public override void OnCleared(StatusReceiver body) => lastOut = Time.time;
 
         public override void OnTick(StatusReceiver body, float deltaTime)
         {

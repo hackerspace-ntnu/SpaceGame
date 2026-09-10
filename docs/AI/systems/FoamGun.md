@@ -1,0 +1,208 @@
+---
+system: FoamGun
+layer: items
+summary: "Standable lumps laid along a ballistic arc: a violent particle jet in front, welded spheres behind"
+paths:
+  - Assets/Game/Scripts/Items/Artifacts/FoamGun
+  - Assets/Game/Editor/Items/FoamGunSprayBuilder.cs
+  - Assets/Game/Editor/Items/FoamGunModelBuilder.cs
+  - Assets/Game/Art/Models/Items/squirter.fbx
+  - Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab
+  - Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamBlob.prefab
+  - Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader
+  - Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader
+  - Assets/Game/Art/Shaders/Artifacts/FoamSurface.hlsl
+  - Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat
+  - Assets/Game/Art/Materials/Items/FoamSpray.mat
+  - Assets/Game/Art/Materials/Items/FoamMist.mat
+  - Assets/Game/Editor/Tests/FoamFieldTests.cs
+symptoms:
+  - "the foam gun sprays nothing at all, the trigger just makes a noise"
+  - "foam is only laid when the crosshair is on a surface, never when aimed at the sky"
+  - "the foam lands metres short of where the crosshair is pointing"
+  - "a lump is laid on the player's own body or on the machine they are riding"
+  - "foam looks like a row of identical white balls instead of one substance"
+  - "the mass welds near me and turns into separate spheres further away"
+  - "raising the dab rate above 15 changes nothing"
+  - "the camera shakes constantly while the trigger is held"
+  - "the flat puff under a foam impact never appears"
+  - "the muzzle blast never fires on the first press of the trigger"
+  - "foam blobs are all exactly the same size"
+  - "a blob is visibly bigger than the area that caught the player inside it"
+  - "the jet swings rigidly with the gun instead of hanging in the air"
+  - "foam never gets planted on the ground"
+  - "a held spray spreads a flat carpet instead of piling foam up"
+  - "a dab passes through foam that is already there and lands on the ground behind it"
+  - "a ramp will not build any higher no matter how long the trigger is held"
+  - "a mass swells up at the far wall before the spray reaches it"
+  - "the spray looks like bubble gum or soap rather than foam"
+  - "the foam is a pile of perfect circles or a ball pit"
+  - "the foam blob is full of flat plates or panels"
+  - "a lump of foam is faceted and looks like a low-poly rock"
+  - "the standing foam has no bubbles in it, just light and dark patches"
+  - "the bumps on the foam slide around when the camera moves"
+  - "foam clumps have a bright glassy edge"
+  - "the foam on the ground is a pile of identical balls"
+  - "there is nowhere near enough foam standing after a long spray"
+  - "two lumps meet with a visible seam or a fillet welded onto empty air"
+  - "the impact gob bursts before the foam arrives"
+  - "the spray is made of flat rectangles or squares"
+  - "particles in the spray look like flying discs or lenses seen edge-on"
+  - "every bubble in the spray is the same colour and the same brightness"
+  - "a bubble cuts across the ground as a hard ellipse"
+  - "retuning a shader default changed nothing in the game"
+  - "the foam gun's hoses are missing from the model in Unity"
+  - "the gun points backwards out of the player's hands"
+  - "the jet comes out of the middle of the barrel instead of the bell"
+reads_with: [Artifacts, Multiplayer, Persistence]
+updated: 2026-09-09
+---
+
+# Foam gun
+
+Hold the trigger and it lays dabs where the stream falls, welding into one lumpy mass you can stand on: a ramp up a cliff, a plug in a hole, a body held to the neck. Everything it makes has a clock. It is a **hose**: the landing is traced along a ballistic arc, so spraying at open sky lays foam on the ground under the stream rather than laying nothing at all.
+**Scope:** [FoamGunArtifact.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamGunArtifact.cs), [FoamBlob.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamBlob.cs), [FoamField.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamField.cs), [FoamGunNozzle.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamGunNozzle.cs), [FoamSprayFx.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamSprayFx.cs). The original design brief is [Artifacts/FoamGun.md](Artifacts/FoamGun.md).
+
+## Model
+
+- **Two separate things carry "foam", and confusing them is the first mistake to avoid.** In front of the muzzle is a *particle jet* that decides nothing and collides with nothing that matters. Behind it, one lump per dab is a *spawned network object* with a collider that every machine stands on. The jet is the feel; the blobs are the geometry.
+- **The landing is an ARC, not the crosshair.** `SprayArc.Trace` — the same twenty-chord parabola the portal gun paints along, which is why it lives in `Gameplay/Ballistics` — is walked out of the muzzle at `sprayTravelSpeed` under `sprayGravity`, for at most `sprayFlightTime`. Reach follows from those three and there is no range knob to disagree with them: about **7 m held level and 20 m lobbed at 45°**, where the old hitscan ray put foam anywhere inside a flat 14 m. The trace is blind to the sprayer and to whatever they are riding (`AimProvider.NearestOutside`), so a stream thrown at your own feet builds a step instead of stopping on your knees. It lands on **everything** it reaches, foam included — and foam is tested against the volume a lump has COMMITTED to fill rather than against its collider, which is `FoamField.FirstAlong` handed to the trace as a `SprayArc.ChordTest` and answered by `FoamBlob.TryHitCommitted`. The two shapes agree only at the end of the swell: a dab is spawned at 6 % of its size, holds there for its whole flight and is still under half size a second and a half later, which at 15 dabs a second is the opening of every held trigger. Traced against the colliders alone, twenty-odd dabs go straight through the mass and onto the ground and the gun spreads a carpet where the player was building a mound (`GDC-L1-FEEL-0007` — the sensation is the target, and the collider's honest current size is the accuracy that fights it). The committed test is an ELLIPSOID, because a sphere of `CommittedRadius` stands a third of a metre proud of a squashed lump and leaves a dab hanging in the air beside the mass; and a chord starting inside one reports nothing, exactly as a raycast does, or a player who has buried their own muzzle could not spray back out.
+- **`sprayGravity` is 1.4, and it is a TUNED number rather than a measured one** (`GDC-L1-FEEL-0007`). Foam does not fall 1.4x as fast as everything else because that is physical; it falls that fast because heavier fall is what turns a 14 m hitscan gun into a hose you place foam with, and what brings even a near-vertical lob back down inside the traced flight. The droplets then have to be given the same lie, or the stream and the landing disagree (`GDC-L1-UX-0003`: the jet is the only signal a player has for where foam is about to be).
+- **Foam ARRIVES before it grows, and that is a deliberate delay.** The landing point is decided by the arc and the lump is spawned at once, but the foam a player can *see* is still crossing the room. So `FoamGunArtifact.TravelSecondsTo` — muzzle-to-hit distance over `sprayTravelSpeed`, times `flightBias` because an arc is longer than the chord across it — is handed to BOTH the blob and the impact, and each holds until it has passed. `FoamBlob.Begin` implements it by stamping `bornAt` in the FUTURE: `Age` clamps at zero, so the lump sits at its birth size until the foam gets there and then swells over 3 s. It costs no extra replication, because `bornAt` already crosses the wire.
+- **Every spray particle is a QUAD RAY TRACED INTO A SPHERE**, not a textured billboard and not a sphere mesh. [FoamSpray.shader](Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader) maps the quad's UV to the unit disc and rebuilds the surface normal as `n = float3(p.xy, sqrt(1 - dot(p.xy, p.xy)))` — the classic impostor (GPU Gems 3 ch. 21; Ray Tracing Gems II ch. 28). It gives a clump real rounded lighting for two triangles, far cheaper than the sphere meshes it replaced.
+- **It is FOAM, and four specific decisions are what say so.** The shader was first written as a soap bubble and was rejected twice for looking like one. What replaced those cues: the **silhouette is bitten** by a noise field rather than being a perfect circle (a circle is the strongest bubble cue there is, and a hundred of them is a ball pit); the clump is **opaque**; the grazing edge is **darkened** rather than lifted, because a dense scattering mass does the opposite of a thin film; and a turbulence field breaks the surface into **cells**. There is no specular highlight and no thin-film iridescence — do not add either back "for a bit of life", which is exactly how this became bubble gum twice.
+- **The LUMPS are textured with real cells, and it is the ONE field here that is not triplanar.** The standing mass uses a 3D Worley F1 field (`SubstanceCells`), because value noise makes blotches and foam is packed round bubbles with dark walls between them. Two things fall out of one lookup: the wall distance, subtracted from the shading scalar so a seam lands a whole band down, and the direction to the cell's crown, which **is** the bump gradient and so costs nothing extra — that replaced a normal bent along the VIEW direction, which is not a bump at all and swung with the camera. It is 3D rather than triplanar because triplanar AVERAGES two copies of a field on any face between two axes, which merely softens a value field and *deletes* a cell field's walls over half a sphere; sharpening the weights cannot fix it, since at 45° the two are equal by symmetry at any exponent. 27 cells costs about what the 3×9 triplanar lookup did.
+- **The bite is applied to the CLIP only.** The lighting normal stays spherical underneath, so a clump still reads as a rounded mass while not being a drawn circle. One noise field does both jobs — it eats the silhouette and pockets the surface — which is why the two agree instead of fighting.
+- **The bubbles and the lumps are ONE substance by construction.** Both shaders drive a single scalar into the same four authored bands, chosen to sit on one column of the palette lattice. Neither ever tints: a colour composited after the band snap walks the entry off its column and the quantizer scatters it.
+- **Colour variation is made on the SCALAR, before the snap** — a per-bubble `_ShadeJitter` off the particle's own random, and a per-blob `_ShadeBias` written through the property block. Both land the thing on a *different one of the four existing entries*, which is variation the palette cannot punish. The only thing allowed off the ladder is the thin film.
+- **The thin film is real interference, banded.** Hue follows the optical path length through the shell, which grows as the view grazes it (hence `1 / facing`), offset per bubble, then quantized into 8 hue steps and generated in Oklch at chroma 0.07. Below about C 0.02 a colour falls off the chroma rings onto the grey ramp, so the tint is made faint by COVERAGE — it rings the silhouette — never by desaturating it.
+- **The dab rate is capped by `UseChannel.HoldSendInterval` at 15 Hz, and that is a ceiling rather than a starting point.** `OnRequestHold` is called once per hold send, so `dabsPerSecond` above 15 lays exactly one dab per tick and reads as a knob that does nothing. Volume above 15 /s is bought with `FoamBlob.radius`, never with the rate.
+- **The blob mass reads as one substance only because of a shader field.** [FoamSurface.hlsl](Assets/Game/Art/Shaders/Artifacts/FoamSurface.hlsl) shades each fragment against the smooth union of its neighbours, read from two globals — `_FoamBlobs[64]` and `_FoamBlobCount` — that [FoamField](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamField.cs) uploads per camera. With the count at 0 nothing errors: every blob simply draws as a correctly shaded sphere, which is the pile of white balls the design was trying to avoid.
+- **`FoamField.MaxBlobs` and `FOAM_MAX_BLOBS` are one number in two languages.** [FoamFieldTests](Assets/Game/Editor/Tests/FoamFieldTests.cs) is what keeps them equal; Unity fixes a global array's size at the first upload and truncates silently after that.
+- **A lump is a smooth ELLIPSOID, and nothing displaces it.** It is scaled NON-UNIFORMLY (`shapeSquash`, two axes squashed up to 38 %) and laid at a random `Tumble` orientation, both seeded from the replicated stamp so every machine derives the same lump. What the mass reads from is the weld plus the cell field, not per-lump geometry.
+- **A VERTEX DISPLACEMENT WAS TRIED HERE AND REMOVED, and the reason bounds any future attempt.** `_ShapeDepth` / `_ShapeScale` pushed the surface off the sphere so a lump had a non-circular outline. Displacing a mesh only works where the mesh can RESOLVE the field, and this one could not: 21 % of the radius against a 0.45 m noise feature on 0.18 m edges is under three edges per lobe, so between vertices the surface went linear and the lumps arrived FACETED — a mass of them read as a heap of flat plates, which is the complaint that removed it. Raising the subdivision chases the frequency and never catches it. A lumpier silhouette is a mesh or raymarch question, not a displacement one.
+- **The longest axis is always exactly the radius.** The gun sweeps `FullRadius + catchMargin` for bodies to encase and cannot know a per-blob shape, so lumps only ever squash, never stretch. That keeps every existing guarantee true and costs volume, which is bought back on the radius instead.
+- **The weld field is told `FieldRadius`, the MEAN half-extent — not `Radius`.** The field unions spheres; a squashed lump is not one. Handing it the longest extent inflates the field past the geometry on two axes out of three and welds a fillet onto empty air.
+- **Blobs vary in size, downward only.** `radiusVariance` (0.36) shrinks each lump to 0.64–1.0 of `radius`, seeded off the replicated `bornAt` stamp and the object id so every machine derives the same figure. Downward is not a style choice: the gun's catch sweep is measured off the **full** radius, so a blob allowed to exceed it would encase bodies the sweep never looked at.
+- **The gun is the squirter** — a hand-built 1.30 m two-hander (`squirter.blend` → [squirter.fbx](Assets/Game/Art/Models/Items/squirter.fbx)) with a slung tank, three hoses, a trigger handle at the back and a second handle under the barrel. It replaced the kit-built 0.50 m one-hander `foam_gun.fbx` on 2026-09-08; nothing about the gun's behaviour changed with it. It is held `TwoHanded` at `holdSize` **1.05**, between the flamethrower's 0.9 and the dragon bazooka's 1.25 — a bracket of its own, because the silhouette is what tells a player which sprayer is in their hands (`GDC-L1-UX-0003`).
+- **Everything the prefab hangs off the mesh is re-seated by a script, from numbers the export prints.** The `Muzzle`, the `GripPoint`, the gauge bar and the fitted collider were all measured against the old mesh, and a model swap that leaves any one of them behind is a working gun whose jet leaves the middle of the barrel. [FoamGunModelBuilder](Assets/Game/Editor/Items/FoamGunModelBuilder.cs) owns those four; `squirter_export.py` prints the marker coordinates it carries. The squirter has **no iris** — the shutter was a part of the old kit model, and `FoamGunNozzle` treats a missing one as "this gun has no shutter".
+- **The tank is not a new system.** The cartridge is a `SupplyReservoir` — the shared drain-and-refill reservoir every tank in the game uses, drawn by `SupplyGauge` on the cartridge's own gauge plate. Its fill replicates and saves for free, because `SupplyCharge` answers "does this item carry a charge" by looking for exactly that component.
+- **The camera kick is dosed, capped and shippable-off** (`GDC-L1-FEEL-0006`). The press earns a real kick; a held trigger earns a small rumble re-struck on `holdInterval` rather than stacked per tick. Everything is multiplied by `GameSettings.CameraShakeIntensity` — `CameraShakerHandler` does **not** apply that dial for you.
+
+### Numbers
+
+| Knob | Value | Where |
+| --- | --- | --- |
+| Dab rate | 15 /s (the hold stream's ceiling) | `FoamGunArtifact.dabsPerSecond` |
+| Live dab budget | 128 per player | `FoamGunArtifact.liveDabBudget` |
+| Blob radius | 1.05 m longest half-extent, shrunk to 0.64–1.0 (so 0.67–1.05 m) | `FoamBlob.radius`, `radiusVariance` |
+| Blob squash | two axes to 0.62–1.0, random tumble | `FoamBlob.shapeSquash` |
+| Lump mesh | 1280-triangle unit sphere, undisplaced | [foam_blob.fbx](Assets/Game/Art/Models/Props/foam_blob.fbx) |
+| Grow / dissolve | **3 s** / 0.8 s | `FoamBlob` |
+| Blob shade variation | ±0.22 of the ladder | `FoamBlob.shadeVariance` |
+| Jet / froth emission | 4200 /s and 1800 /s | `FoamGunSprayBuilder` |
+| Jet droplet life / fall / ceiling | 0.7-2 s, 1.1-1.7 g, 8400 particles | same, and they must agree with the arc |
+| Spray speed | 22 m/s (the arc's launch AND the delay before a lump swells) | `FoamGunArtifact.sprayTravelSpeed` |
+| Spray fall / flight | 1.4x world gravity (25.2 m/s2), 2 s of trace | `FoamGunArtifact.sprayGravity`, `sprayFlightTime` |
+| Reach | ~7 m level, ~20 m lobbed at 45°, and every pitch lands | follows from the three above |
+| Arc delay correction | 1.08 of the chord | `FoamGunArtifact.flightBias` |
+| Clump opacity | 1.0 (core) / 0.9 (froth) | `FoamGunSprayBuilder.EnsureFoamMaterial` |
+| Edge bite / cell scale | 0.42 and 8 (core), 0.55 and 5 (froth) | same |
+| Lump surface cells | Worley: `_BubbleScale` 14 /m (7 cm bubbles), `_BubbleDepth` 0.45 dome, `_BubbleShade` 0.4 seam | [Mat_FoamSurface.mat](Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat) |
+| Terrain / encasement lifetime | 60 s / 10 s | `FoamGunArtifact` |
+| Weld field | 128 blobs, `_WeldRadius` 0.45 | `FoamField.MaxBlobs`, [Mat_FoamSurface.mat](Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat) |
+| Tank drain / refill | 0.1 /s held, 0.05 /s idle | the prefab's `SupplyReservoir` |
+
+Foam volume is `rate × (4/3)π r³ × mean variance` ≈ **11.5 m³/s**, five times the 2.3 m³/s the artifact shipped with.
+
+Standing foam is about **224 m³** at a full budget, 5.3x what the artifact carried before the shape work — bought on the radius and the budget together, because volume goes as r³ and the squash gives a third of it back.
+
+**The three-second swell is the effect, not a way of hiding a pop.** A lump keeps rising long after the jet has moved on, so a sweep leaves a mass that is still visibly growing behind you. It also means a ramp is not standable the instant it lands — that is the trade, and it is deliberate.
+
+## Key types
+
+| Type | File | Role |
+|---|---|---|
+| `FoamGunArtifact` | [FoamGunArtifact.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamGunArtifact.cs) | The gun. Owner describes the dab, **server** spawns it, every machine presents it. `UseAuthority.Server`, `IsContinuous` |
+| `FoamBlob` | [FoamBlob.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamBlob.cs) | One lump: growth, dissolve, size variance, `Encase`, and `TryHitCommitted` — the volume it will fill, which is what the arc lands on |
+| `FoamField` | [FoamField.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamField.cs) | Every live blob on this machine, the per-camera upload the weld reads, and `FirstAlong` — the arc's chord test, so a dab lands on foam already laid |
+| `FoamGunNozzle` | [FoamGunNozzle.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamGunNozzle.cs) | The bell: jet, loop, aim, and an **optional** iris the squirter does not have. One "is it spraying" flag, played **with children**. `AimAlong` takes a LAUNCH direction, not a point |
+| `SprayArc` | [SprayArc.cs](Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs) | The parabola, shared with the portal gun — see [Portals](Portals.md). `Sample` / `Trace` (20 chords, blind to a self + carrier pair, optionally landing on a `ChordTest` volume as well as on colliders) / `TryAimAt` |
+| `FoamSprayFx` | [FoamSprayFx.cs](Assets/Game/Scripts/Items/Artifacts/FoamGun/FoamSprayFx.cs) | The impact: gob, flat spread and **landing sound** at the arrival point, muzzle blast on the press, camera kick. Owns the in-flight queue |
+| `FoamGunSprayBuilder` | [FoamGunSprayBuilder.cs](Assets/Game/Editor/Items/FoamGunSprayBuilder.cs) | *Tools ▸ Build Foam Gun Spray VFX*. Owns `Jet`, `MuzzleBlast`, `ImpactSplat` and the two spray materials |
+| `FoamGunModelBuilder` | [FoamGunModelBuilder.cs](Assets/Game/Editor/Items/FoamGunModelBuilder.cs) | *Tools ▸ SpaceGame ▸ Items ▸ Rebuild Foam Gun Model*. Owns the nested `Model`, `Muzzle`, `GripPoint`, `Gauge_*` and the grip's pose and size |
+| `FoamSpray.shader` | [FoamSpray.shader](Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader) | The impostor: bitten silhouette, foam cells, banded shading, opaque body, soft particles. Materials [FoamSpray.mat](Assets/Game/Art/Materials/Items/FoamSpray.mat) (the core) and [FoamMist.mat](Assets/Game/Art/Materials/Items/FoamMist.mat) (the froth) |
+
+The jet's four layers are one hierarchy under `Muzzle/Jet`: **Jet** (fat mesh gobs, 340 /s), **Froth** (soft wide billboards — the silhouette), **Spatter** (fast heavy stretched flecks), **BellVent** (what escapes back around the bell). All four world-space, all four turbulent.
+
+## Flows
+
+1. **Press.** `OnRequestUse` on the **owner**: reset the throttle, ask the tank once (`SupplyReservoir.CanStart`), and describe the first dab. `Use()` on the **server** lays it. `Present()` on **every machine** starts the jet, fires the muzzle blast and kicks the camera.
+2. **Hold, 15 times a second.** `OnRequestHold` traces the arc — against the colliders and against every committed foam volume, whichever comes first — puts this instant's landing point in `arg.P`, the surface normal in `arg.R`, and sets `DabBit` (bit 1 of `arg.B`) when the throttle and the tank both agree. `Hold()` spawns; `PresentHold()` plays the dab sound, bursts the gob and rumbles.
+3. **Droplets, every frame.** `FoamGunArtifact.LateUpdate` (every machine, only while foam is actually coming out) turns the emitter to the launch direction through `FoamGunNozzle.AimAlong`: the live aim on the holder, `SprayArc.TryAimAt(muzzle, lastLanding, …)` on a peer. Per frame, not per tick — a stream that turned fifteen times a second staircases behind a sweeping aim.
+4. **The lump.** `FoamBlob.Begin` stamps `bornAt` and `lifetime` on the shared server clock. Every machine derives growth and dissolve from that pair, so a late joiner picks a blob up exactly where everyone else has it.
+5. **Arrival.** The lump holds at its birth size for the flight time, then swells over 3 s. The impact gob, its flat spread and its sound are queued in `FoamSprayFx` for the same instant.
+6. **Expiry.** The server despawns on the clock; the budget retires the oldest of a player's blobs when they exceed 64.
+7. **The weld.** `FoamField` sorts by distance to the camera's **surface** and uploads the nearest 64, once per camera per frame.
+
+## Multiplayer
+
+The dab stream rides the existing hold path; nothing new is on the wire. The arc changed **who computes what**, not what is sent: the owner still traces and sends one landing point, the server still spawns from it, and a peer reconstructs the launch direction from that point with `SprayArc.TryAimAt` rather than being told it. Blobs replicate as ordinary network objects, so a client collides with the same geometry it can see.
+
+- **`UseAuthority.Server`, not Owner.** `GameServices.World.Spawn` is server-only by contract; Owner would run `Hold()` on a client, where the spawn is refused outright. The design brief's "Owner for the request" describes the *request*, which is owner-side for every artifact in the game.
+- **The server never takes the owner's word for a victim.** The message says where foam landed, not who is inside it; the server overlaps the dab itself and foams whatever bodies it finds. A client that could name its target could foam a player across the map (`GDC-L1-MP-0004`).
+- **`arg.A` is the hotbar slot code on the press and on every hold tick**, and the server reads it back as its stale-slot guard. An item writing flags there is silently refused for every slot but the matching one — which is why the dab flag lives in bit 1 of `B`, above the low bit `EquipmentController` owns.
+- **`FoamBlob.Sprayer` is deliberately not replicated.** The only question it answers is whose budget to retire from, and that is the server's alone.
+- The **camera kick** fires only where the holder's own `AimProvider.ViewCamera` is live. A peer's copy of a player has its camera switched off, which makes that the honest local test — and it avoids `Camera.main`, which is never the player's camera in this project.
+
+## Persistence
+
+**Nothing here is saved, and that is load-bearing rather than an omission.** Every blob dies inside a minute, so a save taken mid-spray loads a world with no foam in it. The gun's own tank fill is captured by `UsableItem`'s shared `SupplyCharge` path and needs no override.
+
+The blob prefab must therefore **not** carry a non-kinematic `Rigidbody`, a `HealthComponent`, a `PickupableItem`, a `NavMeshAgent` or a `SceneTracked`: `SaveablePolicy.EnsureSpawned` reads exactly those, and any one would give it a `SaveableEntity` with no stamped prefab id — captured faithfully into every save and dropped with a warning on every load.
+
+## Gotchas
+
+- **Anything that takes the impostor quad out of plane breaks it, silently.** `startRotation3D` tilts the camera-facing quad and the round silhouette foreshortens into a flat lens, so the spray fills with flying discs; it was left over from when these were sphere meshes. Stretch billboards fail identically — stretch scales the quad along the velocity while the shader keeps tracing a round sphere inside it, so a fast fleck comes out as a lens seen edge-on. A sphere impostor is rotation-invariant: no system here sets any rotation, and the spatter is a plain billboard whose speed reads off the motion.
+- **A `.mat` freezes the shader defaults it was BORN with.** Retuning a default in `FoamSpray.shader` changes nothing on a material that already exists — this cost a full render-and-compare cycle. `EnsureFoamMaterial` therefore writes EVERY value it cares about, including the ones that match the shader.
+- **`FoamCells(...)` in `FoamSurface.hlsl` is a noise function, not this shader.** It is the cell field the standing lumps are textured and dissolved with, and the name is unrelated to the retired `FoamBubbles.shader` — do not "unify" the two. It was called `FoamBubbles` until it became a Worley field, which made the older name actively misleading.
+- **DO NOT DISPLACE THIS SPHERE. It has been tried twice and it makes flat plates both times.** A displacement the mesh cannot resolve is not a lobed blob, it is a faceted one, and the facets are all the eye gets. Two further traps if it is ever attempted on a denser mesh: the fragment must tilt the normal by the displacement's tangential GRADIENT, or the surface moves while the lighting stays on the sphere the mesh no longer is; and that tilt must be applied AFTER `FoamWeldedNormal`, which does not perturb the normal it is handed but *replaces* it with the sphere-union gradient, discarding a lump normal passed in as the fallback for every fragment that has a neighbour — which is most of a mass. `ClothWind.hlsl` displaces for a living and is one edit from the same failure.
+- **Both bubble knobs fail quietly, in opposite directions.** `_BubbleDepth` changed meaning: it used to swing the normal along the VIEW direction, where 0.72 was mild, and it now tilts along a real world-space gradient, where 0.72 is about 36 degrees and the bubbles invert — crowns shading darker than the seams. 0.45 is the tuned value. `_BubbleShade` absent from the `.mat` reads as 0, and at 0 the seams vanish and the surface goes back to a field of pale domes — polystyrene, not foam. It is the cue doing the most work here and nothing reports its absence.
+- **Whatever moves a vertex must move it in ALL THREE passes.** Forward, ShadowCaster and DepthOnly each transform their own position, and while the displacement existed DepthOnly was the one that missed it — the pass `PastelQuantize`'s ink reads the silhouette from, so the outline was drawn around a sphere the lit surface had left. It is also what a depth prepass tests the forward pass against: `PC_Renderer` has `m_DepthPrimingMode: 0` so none runs today, but enabling priming with the passes disagreeing would z-fail the forward pass against its own depth and punch holes in every lump.
+- **The vertex stream ORDER is the interface.** `SetActiveVertexStreams` packs Position → POSITION, Color → COLOR, UV → TEXCOORD0.xy, StableRandomXY → TEXCOORD0.zw, which is exactly what the shader declares. Insert a stream anywhere but the end and every bubble reads its hue and its shade out of whatever now occupies those two floats. Without the stream the spray still draws — every bubble simply comes out identical, which is the look this was written to remove.
+- **The soft-particle fade needs URP's Depth Texture**, which both `PC_RPAsset` and `Mobile_RPAsset` have on. With it off, the reversed-Z depth sample reads as the far plane and the fade is a no-op — bubbles stay visible and cut the ground as hard ellipses, which is the safe direction to fail.
+- **These particles are alpha-blended shells, so they sort by distance, not `SortMode.None`.** Unsorted, a near bubble drawn before a far one punches a hole through it and the spray flickers.
+- **`TWO_PI` comes from URP's `Macros.hlsl`.** Defining it again compiles, with a redefinition warning on every variant.
+- **A builder run over MCP can execute STALE code and report success.** This bit three times here: the menu item ran the previous assembly and the prefab came out with the old numbers. `Assets/Refresh` and a `true` menu-refresh flag do not settle it. Force it — `CompilationPipeline.RequestScriptCompilation()`, then wait until `Library/ScriptAssemblies/Assembly-CSharp-Editor.dll` is NEWER than the builder's `.cs` — and then read a value back off the prefab before believing the run.
+- **The mesh must stay EXACTLY radius 1**, and `foam_blob_export.py` says why: a mesh that departs from it "puts its silhouette where the analytic field is not, and the weld between two blobs grows a seam". That contract is why the displacement could not simply be tuned down rather than removed.
+- **The mesh is a 1280-triangle sphere, and the triangles are bought for the OUTLINE.** It shipped at 320 on the reasoning that a sphere whose whole surface is a shader needs no vertices — true of the shading and false of the silhouette, which is the one thing a shader cannot round off. A lump is a metre across and gets stood on at arm's length, where 320 reads as a polygon (`foam_blob_BUILD.md`).
+- **THREE numbers describe the same parabola, and they live in two files.** `sprayTravelSpeed` / `sprayGravity` / `sprayFlightTime` on the artifact are the arc the dab is traced along; `startSpeed` / `gravityModifier` / `startLifetime` on the Jet are the stream the player watches. Change one side alone and the foam lands somewhere the stream was never seen to go, which reads as the gun being inaccurate rather than as a mismatch — `FoamFieldTests.TheDropletsFlyTheArcTheFoamIsTracedAlong` is what keeps them together. The particle half only reaches the prefab when the builder is re-run.
+- **A flight time shorter than the arc is a trigger that lays nothing.** The trace gives up after `sprayFlightTime`, so a lob still climbing at that instant lands no dab at all — which is the exact complaint the hitscan ray produced and this replaced. 2 s is measured, not round: a shot thrown STRAIGHT UP at 22 m/s under 25.2 m/s² is back on the ground after 1.81, and at 1.8 s the band from 85° to vertical laid nothing at all.
+- **The jet's `maxParticles` is rate x longest life, and it has to be the whole product.** A system at its ceiling stops emitting, which starves the stream at the bell rather than trimming its tail — a stutter at the muzzle, where it is most visible. The ceiling is only ever reached spraying at open sky, where nothing kills a droplet early; a level shot keeps about 1400 in the air. So the ceiling silently becomes the real rate, and raising emission without raising it buys nothing at all: the two move together.
+- **The arc is traced blind to the sprayer and their ride.** `SprayArc.Trace` takes a `self` + `carrier` pair and runs it through `AimProvider.NearestOutside` — without it a bell held at chest height stops the stream on the sprayer's own knees when they spray their feet, and glues foam to the mount they are sitting on. It is also blind to a lump's own COLLIDER, which is the wrong shape to trace a spray against and fails as a carpet rather than as an error: anything asking "where does this stream land" goes through `FoamField.FirstAlong`, never through a plain `SprayArc.Trace` (the cryo sprayer and the portal gun do not, because neither lands on foam). That overload hands back a point and a normal rather than a `RaycastHit` — a volume hit has no collider, and the physics hit is DROPPED when a volume beats it, because a caller reading both would be reading two different landings. It is asked on the OWNER only, against that machine's own registry, so a client at 200 ms stacks against foam a few dabs behind the server's — the same lag the collider trace always had, and nothing new on the wire.
+- **It is FOAM, not soap.** The near-opaque core, the thin film cut to a trace, and the very high emission rates are what say so. Thinning any of the three takes it straight back to reading as a bubble gun — that was the first shipped look and it was rejected.
+- **`ParticleSystem.Emit` reaches one system and never its children.** `SplatRing` is a child of `ImpactSplat` so that one move places both, but it is wired to `FoamSprayFx` as its own reference and emitted into separately. A ring left to be "emitted with its parent" simply never appears, with a clean console.
+- **`dabsPerSecond` above 15 does nothing.** See Model. The throttle also subtracts 5 % of the period, because a tick arriving a millisecond early against an exact period is a dab silently dropped.
+- **The press cannot gate on `delivering`.** That flag is computed once a frame in `Update`, and on the press frame it was last computed while the trigger was still up — gating the muzzle blast on it swallows the one blast that matters most. The press asks `tank.CanStart` directly instead.
+- **Past `FOAM_MAX_BLOBS`, foam draws as separate spheres, and the array is the most expensive number in this artifact.** A budget larger than the field is a gun whose own mass reads as a pile of balls at the far end of a sweep, so `FoamFieldTests` asserts `liveDabBudget <= FoamField.MaxBlobs` — raise them together or not at all. Raising the field itself is a profiler question rather than a taste one, because every foam pixel pays for every entry (`GDC-L1-PERF-0001`).
+- **Size variance must never grow a blob, and it is seeded off `bornAt` rather than off the spawn position.** The catch sweep is `FullRadius + catchMargin`, so a lump reaching past it is a player visibly inside foam that is not holding them. On the seed: a client's copy holds the prefab pose until the spawn payload is unpacked, so a position-seeded size would pop a frame later. `NetworkObjectId` is mixed in only when `IsSpawned` — `NetworkBehaviour.NetworkObjectId` logs an error of its own before that.
+- **Every jet system simulates in WORLD space.** In local space the whole stream swings rigidly with the barrel, which is the single tell that separates a jet from a cone stuck to a gun.
+- **Particle scaling is `Local`, not `Hierarchy`.** `ItemGrip` rescales this prefab to fit the hand, and `ImpactSplat` is moved up to twenty metres away — on `Hierarchy` a distant splat is drawn at the size of the gun.
+- **`ImpactSplat` is emitted into, never played**, which needs three things at once: playing, emission disabled, and `AlwaysSimulate` culling. The gun is in the player's hands and the impact is across the room, so the emitter's own visibility says nothing about the particles'.
+- **A dry tank shuts the bell, the blast and the kick** while the trigger stays down. That, alongside the bar on the cartridge, is what tells the player why nothing is landing — an empty tank deliberately does not end the hold.
+- **Do not hand-edit `Jet`, `MuzzleBlast` or `ImpactSplat` on the prefab.** `FoamGunSprayBuilder` replaces those three subtrees wholesale on every run. The nested `Model`, `Muzzle`, `GripPoint` and `Gauge_*` belong to `FoamGunModelBuilder` in the same way — tune those in the script's constants. What is left is hand-authored and both builders leave it alone.
+- **`squirter.blend` is HAND-BUILT, and the export normalises three things about it that the kit-built models never needed.** Its hoses are Bézier curves, and `_exportlib.export` ships meshes only — un-converted they are dropped with no warning and the gun arrives with bare fittings. Its bell points **+Y**, where the library faces −Y, so un-rotated the gun points backwards out of the hands. And it is authored ~8.5x life size with its origin out in space, which makes every marker the prefab carries meaningless. `squirter_export.py` fixes all three in memory, on a copy: the .blend is the user's file and is never written back to.
+- **The marker coordinates are printed, not eyeballed.** The hand-built file carries no `Marker_*` meshes to adopt, so the export measures the bell mouth, the palm and the tank flank off the geometry and prints them in the prefab's own space. Re-export, then copy them into `FoamGunModelBuilder` and re-run it.
+- **No NavMesh carving.** Agents avoid foam by physics, not by a runtime bake; a bake per dab is a cost this does not earn.
+
+## Extending
+
+0. **More reach:** `sprayTravelSpeed` (range goes as v²) or a lower `sprayGravity`, then re-run the spray builder so the droplets fly the new curve, and raise `sprayFlightTime` to cover the longest arc the pair can make. There is no range knob; a hose's reach is its speed and its fall.
+1. **More foam:** raise `FoamBlob.radius`, not `dabsPerSecond` — the rate is already at the hold stream's ceiling. Volume goes as r³, so small radius changes move a lot. Raising the budget past `FoamField.MaxBlobs` costs the weld on the far end of a sweep, so the two move together.
+2. **More irregular lumps:** `shapeSquash` and `radiusVariance` on the blob, and `_WeldRadius` for how far two of them fuse. Not a vertex displacement — see Gotchas; that has been tried twice and facets both times.
+3. **More lumps standing at once:** raise `liveDabBudget` **and** `FoamField.MaxBlobs` **and** `FOAM_MAX_BLOBS` together, then profile. `FoamFieldTests` fails on the first two drifting apart.
+4. **Retune the jet:** the constants in [FoamGunSprayBuilder.cs](Assets/Game/Editor/Items/FoamGunSprayBuilder.cs), then re-run *Tools ▸ Build Foam Gun Spray VFX* — after forcing the recompile, see Gotchas. A new layer hung under `Jet` needs no new serialized field: the nozzle plays that subtree with its children. Size lives in two places that multiply — `startSize` and `Grow`'s end factor — so read the product, not either half.
+8. **Retune a foam look — two materials, never shader defaults, because a `.mat` freezes the defaults it was born with.** *Sprayed:* `_CoreAlpha` / `_RimAlpha` for how solid a shell is, `_FilmStrength` / `_FilmBands` for the iridescence, `_ShadeJitter` for how much bubbles differ, `_SpecStrength` for the wet pop — written in `EnsureBubbleMaterial`. *Standing:* `_BubbleScale` for bubble size, `_BubbleDepth` for how far it domes, `_BubbleShade` for how dark the wall between two goes — written into [Mat_FoamSurface.mat](Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat). Those three are the whole "is this foam" read; the four bands are the palette contract and are not the place to go looking.
+5. **Retune the kick:** `pressMagnitude`, `holdMagnitude`, `holdInterval` on `FoamSprayFx`, or [FoamSprayShake.asset](Assets/Game/ScriptableObjects/Shake/FoamSprayShake.asset) itself. Anything added there must stay behind `GameSettings.CameraShakeIntensity`.
+6. **Foam that persists** brings a save record with it, and this document's Persistence section is then wrong — say so in the same commit.
+7. **A second sprayer** (the cryo sprayer) reuses `SupplyReservoir` and the hold stream; it does not reuse `FoamField`, which is this substance's own weld — so it does not stack on itself either. **Anything a stream should stack on** is a `SprayArc.ChordTest`: a delegate over one chord returning a point, a normal and a distance from that chord's start. That is the seam, and it exists so the arc is stepped in one place rather than once per kind of target.

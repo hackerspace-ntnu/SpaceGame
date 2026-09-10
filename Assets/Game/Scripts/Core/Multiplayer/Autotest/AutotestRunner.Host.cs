@@ -73,6 +73,10 @@ namespace SpaceGame.Core
             Report("HOST_LEASHES", SpaceGame.Items.Leash.All.Count);
             Report("HOST_PORTALS", AutotestProbes.CountPortals());
 
+            // Break something on purpose before the rest of the host sequence runs, so the probes
+            // below prove the session actually survived it rather than just not having crashed yet.
+            ProbeFaultContainment();
+
             yield return FitShipPartsAsHost();
 
             yield return WatchTerminalAsHost();

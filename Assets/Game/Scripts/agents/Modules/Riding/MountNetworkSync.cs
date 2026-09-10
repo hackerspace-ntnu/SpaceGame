@@ -65,6 +65,28 @@ namespace SpaceGame.Agents
         private int mountIndex = -1;
 
         /// <summary>
+        /// Whether taking THIS seat should hand the vehicle over.
+        ///
+        /// <para>
+        /// Ownership is per-<c>NetworkObject</c>, and a hull carries every one of its seats on one:
+        /// PlayerShip has four. So a rule of "the last person to sit down owns the ship" is not a
+        /// rule about driving at all. A passenger dropping into a chair took the whole hull off the
+        /// pilot, and <c>NetAuthority</c> on the pilot's machine then did exactly what it is for —
+        /// disabled the drivers and made the body kinematic — so the pilot's steering went nowhere,
+        /// on a hull nobody else was steering either. The ship simply stopped moving the moment a
+        /// second player sat down, with nothing in the console.
+        /// </para>
+        /// <para>
+        /// A seat drives if it has a <see cref="SteerModule"/>, which is the same test the rest of
+        /// the codebase already makes — "only the helm has a SteerModule, so a passenger chair…"
+        /// (<see cref="MountModule"/>). <c>SteerModule</c> requires a <c>MountModule</c> on its own
+        /// GameObject, so this is exact rather than a heuristic. A machine with a single mount is
+        /// unaffected: that mount is its helm.
+        /// </para>
+        /// </summary>
+        private bool SeatDrivesTheVehicle => GetComponent<SteerModule>() != null;
+
+        /// <summary>
         /// Which mount on this entity we are — the <see cref="NetArg.A"/> of every message this
         /// sends, and the first thing every handler here checks.
         ///
@@ -334,11 +356,12 @@ namespace SpaceGame.Agents
 
             // Hand the mount to the rider so their local SteerModule input moves it and the motion
             // replicates outward from them. Without this the rider steers a body they don't own and
-            // the server's NetworkTransform overwrites it every tick.
+            // the server's NetworkTransform overwrites it every tick. Only for a seat that steers —
+            // see SeatDrivesTheVehicle for the ship a passenger used to stop dead by sitting down.
             NetworkObject mountObject = GetComponentInParent<NetworkObject>();
             NetworkObject riderNet = riderObject != null ? riderObject.GetComponent<NetworkObject>() : null;
 
-            if (Network.IsNetworked && mountObject != null && riderNet != null
+            if (SeatDrivesTheVehicle && Network.IsNetworked && mountObject != null && riderNet != null
                 && mountObject.IsSpawned && mountObject.OwnerClientId != riderNet.OwnerClientId)
             {
                 mountObject.ChangeOwnership(riderNet.OwnerClientId);
@@ -374,8 +397,11 @@ namespace SpaceGame.Agents
 
             ApplyDismount();
 
+            // Only the seat that took the vehicle gives it back. A passenger standing up used to
+            // hand the hull to the server out from under a pilot who was still steering it, which
+            // is the same stall as the mount side and needs no second player to reproduce.
             NetworkObject mountObject = GetComponentInParent<NetworkObject>();
-            if (Network.IsNetworked && mountObject != null && mountObject.IsSpawned
+            if (SeatDrivesTheVehicle && Network.IsNetworked && mountObject != null && mountObject.IsSpawned
                 && mountObject.OwnerClientId != NetworkManager.ServerClientId)
             {
                 mountObject.ChangeOwnership(NetworkManager.ServerClientId);

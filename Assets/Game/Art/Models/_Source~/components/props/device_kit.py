@@ -1,7 +1,7 @@
 """Shared numbers for the issued-equipment device family.
 
-The family is nine hand devices built across several sessions — vacuum canister,
-inflator nozzle, strap-on booster, and six more by other hands. They are meant to
+The family is the issued hand devices built across several sessions — inflator
+nozzle, strap-on booster, and the rest by other hands. They are meant to
 read as *one kit*: pale moulded shells, one saturated colour per function, and a
 `SupplyGauge` face wherever the thing holds a reservoir.
 
@@ -39,7 +39,7 @@ MATS = [
     "Mat_Emissive_Green_CRT",       # 8  CRT     — the SupplyGauge fill strip
     "Mat_Emissive_Amber",           # 9  AMBER
     "Mat_Emissive_Red_Warn",        # 10 REDLAMP
-    "Mat_Paint_Blue_Station",       # 11 BLUE    — vacuum canister: containment
+    "Mat_Paint_Blue_Station",       # 11 BLUE
     "Mat_Plastic_Safety_Yellow",    # 12 YELLOW  — inflator nozzle: pressure
     "Mat_Paint_Warn_Red",           # 13 RED     — strap-on booster: propellant
     "Mat_Paint_Hazard_Yellow",      # 14 HAZARD  — the booster's striped band

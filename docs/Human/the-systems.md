@@ -50,6 +50,12 @@ Roughly 1,800 automated checks, all of them running in the editor without ever e
 
 **Worth knowing:** whole areas have zero tests — all of terrain and settlement generation, conventional weapons, audio, cutscenes, and most of the HUD.
 
+### When something breaks mid-game *(Diagnostics)*
+
+When one feature goes wrong at runtime, that feature stops and everyone keeps playing. A part that fails repeatedly switches itself off and says so in chat, naming what stopped, rather than taking the session down with it; `/faults` lists what has gone wrong and can write the lot to a file to attach to a bug report. Separately, the game watches itself for the states that leave a player stranded — frozen behind a cursor with no menu on screen, unable to move with nothing holding the controls, sitting on a mount that no longer exists, staring at a black screen — and hands the session back a few seconds later, always logging an error, because the repair means a real bug happened somewhere else.
+
+**Worth knowing:** this is only for parts that can fail independently. Anything the machines must agree on — damage, ownership, spawning — refuses outright instead of half-happening, because a session where two players disagree never recovers.
+
 ## The world
 
 ### Loading the world in tiles *(WorldStreaming)*
@@ -122,6 +128,12 @@ Every creature, villager, enemy and gun emplacement is a body plus a stack of sm
 
 **Worth knowing:** a creature with no faction is invisible to every targeting system with no error at all, and a species is peaceful precisely by having *zero* relationship rows — adding one "for completeness" makes the whole faction attack on sight.
 
+### Picking a creature up off the ground *(CarriedAgent)*
+
+Animals and people who walk the world walk on an invisible navigation surface, and until now that surface held them down absolutely: a rope could drag a creature along the sand but could never lift it, so a pilot with a jetpack and a leash hauled a dune rat about at ground level while paying the full cost of carrying it. A roped creature pulled steeply enough now comes off that surface and hangs from the rope, falls under its own weight when the rope lets go, and puts itself back down wherever it lands.
+
+**Worth knowing:** it stays awake the whole time. Being carried is not the same as being caught — a hoisted animal is upright and still angry, and lands on its feet ready to carry on, which is what keeps it different from a net or a tie.
+
 ### What makes something a thing in the world *(EntitySystem)*
 
 There is no single entity class and no central entity manager. Something becomes a proper world object by making three independent claims: that it is part of the changeable world worth saving, that it follows the player between the streamed chunks of the map, and that AI can see it. Four authoring presets exist for stamping the standard creature, NPC, enemy or vehicle setup onto a prefab in one click; the preset deletes itself once applied.
@@ -165,6 +177,60 @@ Every gadget, spell, scanner, throwable and hand tool that occupies a hotbar slo
 A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear. It lands **shut** — a box you set down and open, not a mat that unrolls itself: click the standing board, or press R, to lay it flat and get at your gear.
 
 **Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix. The ship's gear wall shares the whole placement layer, so it answers a click the same way.
+
+### Building with foam *(FoamGun)*
+
+Hold the trigger and the gun throws a thick, boiling jet of foam at whatever you are pointing at, about fifteen gobs a second. Each one lands, swells, and welds into whatever is already there, so a sweep leaves a single lumpy mass rather than a row of balls — a ramp up a cliff, a plug in a hole, a bridge over a gap. It is loud, wide and hard to aim precisely, and it is meant to be: you are laying material, not placing blocks.
+
+Foam that lands on the ground stands for a minute. Foam that lands on a *person* holds them where they are for ten seconds. That difference is on purpose — a ramp should still be there when you have climbed back down, while being stuck should be a setback rather than a sentence.
+
+The foam keeps swelling for about three seconds after it lands, so a wall you sprayed is still visibly rising while you walk away from it — and a ramp is not quite there the instant you make it.
+
+**Worth knowing:** the cartridge under the barrel is the only thing that tells you how much you have left, and the jet cuts out while the trigger is still down when it runs dry. You can only have so much of your own foam standing at once; spray past that and the oldest of it dissolves behind you.
+
+### Throwing weather *(StormFlask)*
+
+Uncork the flask at a patch of ground and a storm gathers over it — a small, flat, rotating cloud about twenty-four metres across, hanging fifteen metres up, standing for half a minute. It rains underneath. Fires go out, the ground turns wet and a little slippery, and every couple of seconds the cloud throws a bolt of lightning at whatever is tallest beneath it.
+
+Tallest includes you. The storm has no idea who threw it, and that is the whole tension of the thing: standing next to your own weather on high ground is a way to be struck by it, and standing in a ditch while something towers over you is a way to make it useful.
+
+You can walk into it, and it is meant to be worth doing. The cloud and the rain are both real volumes rather than pictures painted on a surface, so the cloud boils and turns over as you watch it, and the rain has depth — curtains of it crossing in front of each other, gusts sweeping through, and the far side of the storm eleven metres away through the weather. When a bolt goes, it lights the cloud from the inside, from the place it actually left.
+
+**Worth knowing:** the cloud is drawn no wider than the circle the lightning can reach, so what you can see is what can hit you. There is a limit on how many storms can stand at once; uncork past it and the oldest one blows out.
+
+### Burning the ground *(Flamethrower)*
+
+Hold the trigger and a jet of fire reaches about six metres. Anything caught in it starts burning on its own clock and keeps burning after the flame has moved on — and so does the sand. You do not have to aim down at the ground: anything the flame passes low over catches, so firing across open sand leaves a line of fire standing in it, lighting the ground for about five seconds, and anything that walks into it catches too. That is the point of the weapon: you are not shooting things, you are deciding where it is dangerous to stand.
+
+The fire is stylised rather than photoreal — hard bands of white, orange and soot, boiling and breaking into tongues at the far end — so it sits with the rest of the game's look instead of fighting it.
+
+Everything catches, and everything that catches visibly burns: creatures, other players, crates, barrels, anything loose enough to be knocked about wears its own flames until the fire goes out, sized to whatever it is. The ground itself is the exception — it does not become one burning object, it grows patches of fire standing on it.
+
+**Worth knowing:** the patches burn friend and foe alike, including you. The pilot flame at the muzzle is lit the whole time you are holding the thing, which is the only warning anything standing in front of you gets.
+
+### The strap-on booster *(StrapOnBooster)*
+
+A rack of five rockets, each about the size of a thermos, with a clamp on one end and a bell on the other. Point at anything and press use: one leaves your hand, clamps where you were looking, and lights. It burns for two seconds and then falls off, spent — and you keep the rest until the fifth is gone.
+
+It sticks to *anything* — a crate, a barrel, a parked hull, an animal, a wall, the sand. What it does after that is your problem, because nothing about the rocket chooses a direction: the thrust runs straight out of the bell, and the bell points out of whatever surface you stuck it to. One on the side of a crate slides the crate away from you. One underneath it flies it. One on a cliff face is a firework. The crosshair lights up when you are aiming at something the booster would actually move, so you can tell the two apart before you spend it — and it is only spent when it actually sticks, never on a press that clamped nothing.
+
+An off-centre clamp spins whatever it is stuck to rather than pushing it straight, which is most of the fun and all of the difficulty. It burns with the jetpack's flame, so a booster going off reads as the same kind of machine from a long way away.
+
+**Worth knowing:** it throws hard enough to put a person the better part of a hundred metres up, which is well past what the ground forgives. Arriving somewhere at speed costs whatever the booster was pushing, on the same closing-speed rule the glider and the jetpack use, and the bill lands on the thing that got launched — so riding one is a plan that needs a landing in it. Strapping one to a teammate is the best use of the item and also the worst.
+
+### The bottled singularity *(BottledSingularity)*
+
+A flask about the size of a fist, with a machined collar and a black core behind thick glass. Throw it. Where it lands the collar twists open and a white, half-see-through ball starts growing out of it, ringed like Saturn in a band of pure black. For three seconds everything loose inside it is dragged toward the middle — crates, barrels, animals, other players — hard at the centre and weakly at the rim.
+
+Then it gulps. The ball snaps out to twice its size, goes completely black, and falls in on itself over about a second, and everything it was holding *is gone*. Not knocked over, not ragdolled — gone. For five seconds there is nothing there but the little black core sitting in the sand.
+
+If you were one of the things it took, you are somewhere else. A room that is completely white — floor, walls, sky, all the same white with no edge between them and no horizon. You can walk around in it. There is nothing in it but whatever else got swallowed with you, and there is no way out.
+
+Then the white ball flashes back in the desert for an instant and throws the lot out at once, in every direction, hard — and you are back where you were standing, in the air, going somewhere.
+
+There are no exemptions. It does not know who threw it and it does not care.
+
+**Worth knowing:** a level throw only carries about seven metres and the reach is eight, so if you throw it flat, you are in it — lob it if you want to watch from outside. It cannot pull anything it cannot see, so a wall or a rock between you and it is real cover. And the white room is about six seconds long with nothing to do in it. That is the price of standing too close, and it is meant to be a strange six seconds.
 
 ### Roping an animal *(Lasso)*
 
@@ -273,15 +339,15 @@ It takes the same single slot as the wing pack and the jetpack, so you carry one
 
 ### The jetpack *(Jetpack)*
 
-Two motors on a bar across your back. Tap Space twice — standing on flat sand is fine, unlike the other two — and they light, kick you off the ground and fly your own body. Hold Space for full thrust, let go and you hang there, hold Ctrl and the motors cut out and you fall.
+Two motors on a bar across your back. Tap Space twice — standing on flat sand is fine, unlike the other two — and they light, kick you off the ground and fly your own body. There is one control and it is Space: hold it for full thrust, let go and the motors idle and you fall. Nothing catches you, so coming down is something you steer with short burns and landing is a burn you have to aim.
 
 **The motors swing, and they are what you are actually steering.** W, A, S and D do not push you; they tell the nozzles where to point, and the nozzles take about half a second to get there. Where you look changes how far over they swing — look down while holding W and you go flat and fast, look up and the same key climbs. Turning your body with the mouse swings the thrust with it. The result is that you fly arcs rather than corners: you have to set a turn up before you need it, and stopping is something you plan. That is the whole difficulty of the thing, and it is one rule rather than a list of them.
 
-**It runs on heat, not fuel.** Held at full thrust it overheats in fifteen seconds; just hanging in the air it lasts twenty-five. Nothing cools it except cutting the motors and falling — so a long flight is a rhythm of burning, cutting out, coasting and burning again, and a pilot who does that can stay up indefinitely. When it does overheat the motors cut dead and will not relight until it is most of the way cool, so overheating high up is a real fall. The nozzle tips glow red and smoke as it gets close, and because they are behind you there is a burn gauge on your visor as well — it empties toward danger, like the air and health bars beside it.
+**It runs on heat, not fuel.** Held at full thrust it overheats in six seconds. Falling is what cools it, at about a third of the rate the burn heats it — so a long flight is a rhythm of burning, dropping, and burning again, and a pilot who spends three seconds falling for every one climbing can stay up indefinitely. When it does overheat the motors cut dead and will not relight until it is most of the way cool, so overheating high up is a real fall. The nozzle tips glow red and smoke as it gets close, and because they are behind you there is a burn gauge on your visor as well — it empties toward danger, like the air and health bars beside it.
 
 **The view steps out behind you while you fly it**, because the machine is on your back — in first person every part of it, the swinging motors, the flames, the tips going red, is behind the camera. Each lit motor leaves a smoke trail, and once it starts overheating the trail thickens into something you can see from a long way off.
 
-**Worth knowing:** Hanging still with the nozzles hard over costs you altitude — the hover can only just hold your weight straight down, and pointed sideways it cannot. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so an overheat pays for itself.
+**Worth knowing:** Height is the thing you are spending. Every metre you climb is a metre you fall back down, and the flames are lit only while you are actually holding Space — dark nozzles mean you are falling, whether you let go or the pack cut out on you. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so both an overheat and a careless drop pay for themselves.
 
 ## What you see and hear
 

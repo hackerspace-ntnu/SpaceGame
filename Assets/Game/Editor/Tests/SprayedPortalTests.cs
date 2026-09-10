@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Portals;
 
@@ -214,7 +215,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void TheStreamFallsUnderGravity()
         {
-            Vector3 level = PortalJet.Sample(Vector3.zero, Vector3.forward, Speed, 1f, 0.8f);
+            Vector3 level = SprayArc.Sample(Vector3.zero, Vector3.forward, Speed, 1f, 0.8f);
 
             Assert.Less(level.y, -1f, "most of a second out, the stream has visibly dropped");
             Assert.Greater(level.z, 5f, "and is still going forward");
@@ -231,7 +232,7 @@ namespace SpaceGame.EditorTools
             // Everything here is measured against Physics.gravity, which is 18 in this project.
             // Doing the same sums against 9.81 is what left the shipped hose reaching half what
             // its own comments claimed.
-            float lobbed = PortalJet.BallisticRange(Speed, 1f);
+            float lobbed = SprayArc.BallisticRange(Speed, 1f);
 
             Assert.Greater(lobbed, 25f, "the hose has no pressure; a room is out of reach");
             Assert.Less(lobbed, 45f, "at this range it is a paint gun again, not a hose");
@@ -256,7 +257,7 @@ namespace SpaceGame.EditorTools
 
             Physics.SyncTransforms();
 
-            Assert.IsTrue(PortalJet.Trace(Vector3.zero, Vector3.forward, Speed, 1f, Flight, ~0,
+            Assert.IsTrue(SprayArc.Trace(Vector3.zero, Vector3.forward, Speed, 1f, Flight, ~0,
                                           out RaycastHit hit, out float flight));
 
             Assert.Less(Mathf.Abs(hit.point.z - 5.75f), 0.3f, "stopped at the wall's near face");
@@ -270,7 +271,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void AStreamAimedAtNothingReportsNoHit()
         {
-            Assert.IsFalse(PortalJet.Trace(new Vector3(0f, 500f, 0f), Vector3.up, Speed, 1f,
+            Assert.IsFalse(SprayArc.Trace(new Vector3(0f, 500f, 0f), Vector3.up, Speed, 1f,
                                            Flight, ~0, out RaycastHit _, out float _));
         }
 
@@ -294,7 +295,7 @@ namespace SpaceGame.EditorTools
                          new Vector3(-3f, -2f, 2f),      // close and below, a floor at your feet
                      })
             {
-                Assert.IsTrue(PortalJet.TryAimAt(origin, target, Speed, 1f, out Vector3 direction),
+                Assert.IsTrue(SprayArc.TryAimAt(origin, target, Speed, 1f, out Vector3 direction),
                               $"{target} is inside the hose's reach and was refused");
 
                 // Finely enough that the residual is the solve's, not the sampling's: at 24 m/s
@@ -302,7 +303,7 @@ namespace SpaceGame.EditorTools
                 float best = float.PositiveInfinity;
                 for (int i = 0; i <= 4000; i++)
                 {
-                    Vector3 point = PortalJet.Sample(origin, direction, Speed, 1f,
+                    Vector3 point = SprayArc.Sample(origin, direction, Speed, 1f,
                                                      Flight * i / 4000f);
                     best = Mathf.Min(best, Vector3.Distance(point, target));
                 }
@@ -317,7 +318,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ASolvedLaunchTakesTheFlatArc()
         {
-            Assert.IsTrue(PortalJet.TryAimAt(Vector3.zero, new Vector3(0f, 0f, 8f), Speed, 1f,
+            Assert.IsTrue(SprayArc.TryAimAt(Vector3.zero, new Vector3(0f, 0f, 8f), Speed, 1f,
                                              out Vector3 direction));
 
             float elevation = Mathf.Asin(Mathf.Clamp(direction.normalized.y, -1f, 1f))
@@ -331,8 +332,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void APointBeyondTheHoseIsNotSolved()
         {
-            Assert.IsFalse(PortalJet.TryAimAt(Vector3.zero,
-                                              new Vector3(0f, 0f, PortalJet.BallisticRange(Speed, 1f) + 20f),
+            Assert.IsFalse(SprayArc.TryAimAt(Vector3.zero,
+                                              new Vector3(0f, 0f, SprayArc.BallisticRange(Speed, 1f) + 20f),
                                               Speed, 1f, out Vector3 _));
         }
 

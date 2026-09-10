@@ -9,9 +9,9 @@ namespace SpaceGame.Gear.Jetpack
     ///
     /// <para>
     /// The rule is reused rather than rewritten because the two ways a jetpack flight can end
-    /// must measure the same quantity, or one of them is free: settling onto the sand under the
-    /// hover servo, and falling out of the sky because the motors overheated. Closing speed is
-    /// the one number that prices both without either being a special case.
+    /// must measure the same quantity, or one of them is free: a landing burned down onto the
+    /// sand, and falling out of the sky because the motors overheated. Closing speed is the one
+    /// number that prices both without either being a special case.
     /// </para>
     /// <para>
     /// <b>This is the whole punishment for an overheat</b>, and it is why the heat rules needed
@@ -29,9 +29,11 @@ namespace SpaceGame.Gear.Jetpack
     {
         public JetpackLandingConfig()
         {
-            // A hover servo puts the player down at a walking pace, so an ordinary landing is
-            // nowhere near this. It is set at the wingsuit's figure on purpose: the same body
-            // hitting the same sand should cost the same whichever machine dropped it.
+            // Reached about 2.3 m below wherever the pilot let go of Space, because a release
+            // is a real fall — so an ordinary landing is a burn feathered near the ground rather
+            // than a free settle, and this is the number to move first if that reads as punishing
+            // rather than as demanding. It is set at the wingsuit's figure on purpose: the same
+            // body hitting the same sand should cost the same whichever machine dropped it.
             SafeClosingSpeed = 9f;
 
             // An overheat at height reaches this in about three seconds of free fall at 18 m/s²,

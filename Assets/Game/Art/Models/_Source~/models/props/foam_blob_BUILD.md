@@ -10,7 +10,7 @@ one reversal, and the reversal is the interesting part.
 
 ## What shipped
 
-**One mesh: `Mesh_FoamBlob_Unit`, a 320-triangle unit sphere.** No variations,
+**One mesh: `Mesh_FoamBlob_Unit`, a 1280-triangle unit sphere.** No variations,
 no lobing, radius exactly 1.
 
 ## Why, and what it replaced
@@ -60,15 +60,31 @@ wrong for a mesh whose per-vertex channel tables have to line up with it.
 
 ## Poly budget
 
-320 triangles, and the subdivision number is a trap worth writing down:
+1280 triangles, and the subdivision number is a trap worth writing down:
 `bmesh.ops.create_icosphere` counts the icosahedron itself as **subdivision 1**,
-so `subdivisions=3` is two rounds of splitting. At 2 the blob comes out at 80
-triangles and its own facets read as the silhouette; at 4 it costs 1280 for no
-visible gain on a surface that is entirely shader.
+so `subdivisions=4` is three rounds of splitting.
 
-24 live blobs per player with several players spraying is the first performance
-question this artifact raises, and the design says so. A sphere whose entire
-surface is a shader does not need vertices (`GDC-L1-PERF-0004`).
+**This shipped at 320 (subdivision 3) and was raised, and the reversal is the
+second interesting thing in this file.** The original reasoning — "a sphere
+whose entire surface is a shader does not need vertices" — is true of the
+SHADING and false of the OUTLINE. The outline is the one part of a lump a
+shader cannot round off, and a lump is about a metre across and gets stood on
+at arm's length, where 320 triangles read as a visible polygon rather than a
+ball. 1280 halves the edge length.
+
+A vertex displacement (`_ShapeDepth`) was tried in the same window, to give a
+lump a silhouette that was not a circle, and it is the reason 1280 was first
+reached for. It was then **removed**: displacing a mesh only works where the
+mesh can resolve the field, and at 21 % of the radius against a 0.45 m noise
+feature on 0.18 m edges — under three edges per lobe — the surface between
+vertices went linear and the lumps came out faceted, reading as a heap of flat
+plates. The subdivision stayed up because the outline argument above stands on
+its own.
+
+Live blobs per player with several players spraying is still the first
+performance question this artifact raises (`GDC-L1-PERF-0004`), and the design
+says so — but it is a fill-rate and draw-call question. The per-fragment weld
+loop over `_FoamBlobs` is the expensive part; 642 vertices a lump is not.
 
 ## The mesh is closed, and that matters
 
@@ -95,7 +111,7 @@ than launch them.
 
 `FoamSurface.shader` reads **none of these**. They are carried to the shared
 prop convention in `components/props/flask_kit.py` because they cost a few bytes
-on a 162-vertex mesh, `channel_report()` measures them on every export, and the
+on a 642-vertex mesh, `channel_report()` measures them on every export, and the
 next shader that wants a height ramp will not need a re-export.
 
 | Channel | Where | Value |
@@ -118,8 +134,27 @@ None, and none is possible: it grows (a scale) and it expires (a despawn).
 
 - Built dimensions measured off the file: **2.000 × 2.000 × 2.000 m** — a unit
   sphere, as the shader requires. **This is not a metre figure to be corrected.**
-- FBX re-imported and checked: 162 vertices, `uv=['UVMap', 'Data']`,
+- FBX re-imported and checked: 642 vertices, `uv=['UVMap', 'Data']`,
   `col=[('Col', 'BYTE_COLOR', 'CORNER')]`, `Marker_EffectOrigin` present.
+
+### The .blend WAS regenerated, and here is the proof it was safe to
+
+`foam_blob.py` says never to re-run a generator over the file it produced,
+because a shipped `.blend` may carry hand edits that exist nowhere else. Raising
+the subdivision needed exactly that, so it was earned with a **control diff**
+first: the generator was run unchanged to a scratch path, and both files were
+opened and compared on vertex count, polygon count, UV sets, colour attributes,
+object scale and a SHA-1 over every vertex coordinate.
+
+    Mesh_FoamBlob_Unit  verts=162 polys=320 uv=['UVMap','Data'] col=['Col']
+                        scale=(1,1,1) sha=f794aaf8508b3056     # shipped
+    Mesh_FoamBlob_Unit  verts=162 polys=320 uv=['UVMap','Data'] col=['Col']
+                        scale=(1,1,1) sha=f794aaf8508b3056     # fresh run
+
+Byte-identical geometry, so the shipped file held nothing the script does not
+produce and regenerating it destroyed nothing. **Do the same diff before ever
+regenerating this file again** — the result above is evidence about the file as
+it was that day, not a standing exemption.
 
 ## Principles cited
 

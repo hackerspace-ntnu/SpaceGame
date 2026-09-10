@@ -72,7 +72,9 @@ namespace SpaceGame.Agents
             "• Panic — alarms FleeModule once when the condition starts; FleeModule owns the run\n" +
             "• Helpless — claims the frame with an idle intent for as long as the condition lasts, " +
             "starving every lower-priority module. Derived every frame, so nothing has to be " +
-            "restored and a loaded creature is never left suppressed\n" +
+            "restored and a loaded creature is never left suppressed. Frozen and Foamed say this " +
+            "for themselves and need no row here — AgentController already refuses to run any " +
+            "module while either is running\n" +
             "• A creature with no FleeModule cannot panic, and simply keeps doing what it was doing";
 
         private void Reset() => SetPriorityDefault(ModulePriority.Scripted);
@@ -120,6 +122,13 @@ namespace SpaceGame.Agents
             get
             {
                 if (receiver == null) return false;
+
+                // The condition's own answer first. Frozen and Foamed mean "cannot act" wherever
+                // they land, so that is the KIND's property rather than a row every creature has
+                // to be authored with — and it is the same answer AgentController reads to refuse
+                // the whole module list, which is what makes an agent with no reactions authored
+                // at all still stand still while it is frozen.
+                if (receiver.Suppressed) return true;
 
                 foreach (StatusReaction reaction in reactions)
                     if (reaction.Response == StatusResponse.Helpless && receiver.Has(reaction.Kind))

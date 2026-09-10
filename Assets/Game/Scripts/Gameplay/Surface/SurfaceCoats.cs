@@ -1,6 +1,6 @@
 // The one thing the rest of the game talks to about coats.
 //
-// The Slick Can, the Cryo Sprayer and the Storm Flask are consumers of this facade and know nothing
+// The Cryo Sprayer and the Storm Flask are consumers of this facade and know nothing
 // about the field, the patches, the messages or the save record. Laying a new kind of coat, or a new
 // way to lay one, is a call to one function here — that is the whole reason it exists.
 //

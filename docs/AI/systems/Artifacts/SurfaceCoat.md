@@ -1,32 +1,40 @@
 ---
 system: SurfaceCoat
-status: design
+status: implemented
 layer: items
 summary: "A timed friction and material override painted onto a world surface — slick, ice, wet"
-consumers: [SlickCan, CryoSprayer, StormFlask]
-updated: 2026-09-07
+consumers: [CryoSprayer, StormFlask]
+updated: 2026-09-09
 ---
 
-# Surface coat (design)
+# Surface coat
 
-Not implemented. Design only. Read [../Artifacts.md](../Artifacts.md) first.
+Read [../Artifacts.md](../Artifacts.md) first.
 
 The world-facing twin of [StatusEffects](StatusEffects.md). A status hangs on a *body*; a coat hangs
-on a *surface*. The Slick Can anchors this system, the Cryo Sprayer and Storm Flask reuse it.
+on a *surface*. The [Cryo Sprayer](CryoSprayer.md) lays two of the three kinds and the Storm Flask
+lays the third.
 
 ## Model
 
 - **A coat is a patch, not a flag on a collider.** Spraying a dune does not tag the terrain — it
   spawns a thin patch at the sprayed point with a radius, a kind and an expiry. Patches overlap and
   merge visually; the newest one wins where they cross.
-- **Three kinds.** `Slick` (Slick Can, 20 s), `Ice` (Cryo Sprayer on liquid or wet ground,
-  permanent until broken), `Wet` (Storm Flask rain, lasts as long as the cloud plus a little).
+- **Three kinds.** `Slick` (Cryo Sprayer on anything else level enough to stand on, 20 s), `Ice`
+  (Cryo Sprayer on liquid or wet ground, permanent until broken), `Wet` (Storm Flask rain, lasts as
+  long as the cloud plus a little).
+- **`Slick` and `Ice` leave the same grip, 0.03.** They are the same plume's cold and the difference
+  between them is what is THERE, not how much of it a foot can use — a player who has learnt what
+  frozen ground does to them should not have to learn it twice because one patch landed on water
+  (GDC-L1-SYS-0006). `Wet` sits far away at 0.55 so rain and frost stay tellable apart.
 - **Movement asks the coat, the coat does not push movement.** A moving body queries the patch under
   its feet once per frame and scales its own grip. That keeps the player's own movement
   owner-authoritative, which is the codebase's rule; a server that wrote the player's velocity would
   be overwritten within a tick and nothing would report it.
-- **Wheeled and legged movers ask the same question.** Vehicles and legged rigs read the same grip
-  multiplier, so a slicked ramp is slick for everything that crosses it, not only the player.
+- **Every mover asks the same question.** Vehicles, legged rigs and NavMesh agents read the same
+  grip multiplier through `GroundGrip`, so a frosted ramp is slippery for everything that crosses
+  it, not only the player. A NavMesh agent applies it to its `acceleration` alone and never to its
+  angular speed — see [NavMeshSystem](../NavMeshSystem.md).
 - **`Ice` is geometry as well as grip.** Freezing a liquid makes it standable — the patch carries a
   collider, which the other two kinds do not.
 
@@ -40,9 +48,8 @@ on a *surface*. The Slick Can anchors this system, the Cryo Sprayer and Storm Fl
 ## Persistence
 
 `Slick` and `Wet` are not saved — both expire inside half a minute. `Ice` is the one kind that
-outlives a session, so a frozen pool that a player has made a bridge of is worth saving as a small
-record: position, radius, kind. That is the same shape as any other placed thing and can wait until
-the Cryo Sprayer is actually built.
+outlives a session, so a frozen pool that a player has made a bridge of is saved as a small record:
+position, radius, kind. That is the same shape as any other placed thing.
 
 ## Risks
 

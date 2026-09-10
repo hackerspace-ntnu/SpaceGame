@@ -3,7 +3,7 @@
 // THE INTEGRATION CONTRACT. FoamSurface.shader shades each fragment against the smooth union of
 // its NEIGHBOURS, read from two shader globals that gameplay code has to upload:
 //
-//     float4 _FoamBlobs[32]   xyz = world centre, w = world radius
+//     float4 _FoamBlobs[128]  xyz = world centre, w = world radius
 //     int    _FoamBlobCount
 //
 // With the count at 0 nothing errors, nothing goes black, and every blob simply falls back to its
@@ -11,18 +11,19 @@
 // intersecting spheres is the failure the design named, and it degrades in silence. So the upload
 // is here, on the registry itself, rather than on some component somebody has to remember to place.
 //
-// WHY IT UPLOADS PER CAMERA. The two values are globals, and which 32 of them are worth sending
+// WHY IT UPLOADS PER CAMERA. The two values are globals, and which 128 of them are worth sending
 // depends on where you are looking from — a split screen, a schematic stage and the ship's terminal
 // all render their own camera in one frame. RenderPipelineManager.beginCameraRendering is the same
 // hook PlayerLook already uses to answer a per-camera question, and it hands us the camera rather
 // than making us guess at one (Camera.main is never the player's camera in this project).
 //
-// PAST 32. The nearest 32 to the camera weld; the rest render, and each of those falls back to its
+// PAST 128. The nearest 128 to the camera weld; the rest render, and each of those falls back to its
 // own mesh normal. A distant mass therefore reads as separate balls while the one at your feet is
 // one substance, which is the right way round for a bounded per-fragment cost (GDC-L1-PERF-0004 —
 // the array is the budget, and the shader pays for every entry on every foam pixel).
 using System;
 using System.Collections.Generic;
+using SpaceGame.Gameplay;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -39,7 +40,7 @@ namespace SpaceGame.Items
         /// long every time regardless of how many are in use: Unity fixes a global array's size at
         /// the first upload and silently truncates a longer one later.
         /// </summary>
-        public const int MaxBlobs = 32;
+        public const int MaxBlobs = 128;
 
         private static readonly List<FoamBlob> Live = new List<FoamBlob>();
         private static readonly List<FoamBlob> Selected = new List<FoamBlob>(MaxBlobs);
@@ -144,6 +145,63 @@ namespace SpaceGame.Items
             return null;
         }
 
+        /// <summary>
+        /// Where one chord of a spray arc first meets standing foam — a
+        /// <see cref="SprayArc.ChordTest"/>, handed to the trace so a dab lands on the mass
+        /// instead of through it.
+        ///
+        /// <para>
+        /// It is here rather than on the gun because the gun does not know what foam exists; this
+        /// registry is the only thing that does. It answers off each lump's COMMITTED volume, not
+        /// its collider — see <see cref="FoamBlob.TryHitCommitted"/> for why the two differ for
+        /// the first seconds of a lump's life, which is exactly the window a held trigger fills.
+        /// </para>
+        /// <para>
+        /// Asked on the OWNER's machine only, fifteen times a second, as part of describing a dab.
+        /// Nothing about it crosses the wire: the owner has always been the machine that decides
+        /// where its own foam lands, and the server still spawns from the point it is sent.
+        /// </para>
+        /// </summary>
+        public static bool FirstAlong(Vector3 from, Vector3 to, out Vector3 point,
+                                      out Vector3 normal, out float distance)
+        {
+            point = default;
+            normal = Vector3.up;
+            distance = float.PositiveInfinity;
+
+            float length = Vector3.Distance(from, to);
+            if (length < 1e-5f) return false;
+
+            bool found = false;
+
+            for (int i = 0; i < Live.Count; i++)
+            {
+                FoamBlob blob = Live[i];
+
+                // Nulls are swept by Push rather than here: this runs inside an arc walk, and a
+                // list edited mid-walk is a surprise the caller cannot see. Skipping is enough.
+                if (blob == null || !blob.isActiveAndEnabled) continue;
+
+                // A chord cannot reach a lump further off than its own length plus that lump's
+                // reach. Twenty chords a tick against a full field is 2560 ellipsoid solves, and
+                // this rejects almost all of them on a subtraction and a compare.
+                float reach = length + blob.CommittedRadius;
+                if ((blob.Centre - from).sqrMagnitude > reach * reach) continue;
+
+                if (!blob.TryHitCommitted(from, to, out Vector3 hitPoint, out Vector3 hitNormal,
+                                          out float hitDistance)) continue;
+
+                if (hitDistance >= distance) continue;
+
+                point = hitPoint;
+                normal = hitNormal;
+                distance = hitDistance;
+                found = true;
+            }
+
+            return found;
+        }
+
         private static float SortKey(FoamBlob blob) =>
             blob != null
                 ? Vector3.Distance(blob.Centre, sortOrigin) - blob.Radius
@@ -212,7 +270,11 @@ namespace SpaceGame.Items
             for (int i = 0; i < UploadedCount; i++)
             {
                 Vector3 centre = Selected[i].Centre;
-                Packed[i] = new Vector4(centre.x, centre.y, centre.z, Selected[i].Radius);
+
+                // FieldRadius, not Radius: a lump is a squashed ellipsoid now, and the field
+                // unions SPHERES. The mean half-extent is the sphere that best fits it; the
+                // longest would weld a fillet onto empty air on two axes out of three.
+                Packed[i] = new Vector4(centre.x, centre.y, centre.z, Selected[i].FieldRadius);
             }
 
             // The unused tail keeps whatever it held last frame; the shader never reads past

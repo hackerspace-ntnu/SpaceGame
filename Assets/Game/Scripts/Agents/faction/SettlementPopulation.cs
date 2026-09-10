@@ -15,9 +15,13 @@
 //     gone and the town repopulates in the quiet that follows -- which is also when nobody sees
 //     where they came from.
 //
-// Deciding and spawning run only where Network.Simulates(this) is true (the server, and offline);
-// the spawn goes through GameServices.World.Spawn, which puts the new inhabitant on the wire and
-// opts it into the world save under its own prefabId. So the PEOPLE persist and replicate by
+// Deciding and spawning run on the server, and offline -- deliberately NOT Network.Simulates(this),
+// which answers about THIS object, and a settlement root is scenery streamed in from a chunk scene
+// with no NetworkObject of its own. Simulates says "yes, you simulate this" on every client, so
+// every client ran its own wave and WorldService refused each one with "Spawn(...) called on a
+// client". The thing that has an authority here is the inhabitant being created, and that is the
+// server's. The spawn goes through GameServices.World.Spawn, which puts the new inhabitant on the
+// wire and opts it into the world save under its own prefabId. So the PEOPLE persist and replicate by
 // themselves; this component persists nothing on purpose -- the only state it owns is the clock
 // to the next wave, and a reload re-arming that clock costs one interval, not a population.
 using System.Collections.Generic;
@@ -91,13 +95,16 @@ namespace SpaceGame.Agents
             this.countRadius = countRadius;
         }
 
+        /// <summary>Server or offline. See the note at the top of the file for why not Simulates.</summary>
+        private static bool ThisMachineDecides => !Network.IsNetworked || Network.Server;
+
         private void Awake() => alarm = GetComponent<SettlementAlarm>();
 
         private void OnEnable() => state = default;
 
         private void Update()
         {
-            if (!Network.Simulates(this))
+            if (!ThisMachineDecides)
                 return;
 
             EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,

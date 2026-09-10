@@ -10,6 +10,7 @@
 using SpaceGame.Characters;
 using SpaceGame.Gameplay;
 using SpaceGame.Gear.Jetpack;
+using SpaceGame.Items;
 using SpaceGame.Vehicles.Ornithopter;
 using UnityEngine;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
@@ -82,14 +83,14 @@ namespace SpaceGame.Characters
         public float HeatFraction => heat.Fraction(flight);
 
         /// <summary>
-        /// Throttle as 0..1, for the flames. Zero when not flying, and zero for a CUT — the dark
-        /// nozzles are what tells a pilot that this fall is the overheat and not their own hand
-        /// off the key, which is the only way the two states can be told apart from inside.
+        /// Throttle as 0..1, for the flames. <b>One or zero: the motors are lit or they are
+        /// not.</b> A released key is a free fall on dead nozzles exactly as an overheat is, so a
+        /// flame under either would say the pack was pushing when nothing is — and an idle plume
+        /// on a pack that is merely worn is worse still, because it says the machine is running
+        /// while its wearer walks about (<c>GDC-L1-UX-0003</c>: the flame answers one question,
+        /// and it has to answer it truthfully).
         /// </summary>
-        public float ThrottleFraction => !flying ? 0f
-            : throttle == JetThrottle.Thrust ? 1f
-            : throttle == JetThrottle.Descend ? 0.35f
-            : 0f;
+        public float ThrottleFraction => flying && throttle == JetThrottle.Thrust ? 1f : 0f;
 
         /// <summary>The tuning, so the item and the gauge read the same numbers this flies on.</summary>
         public JetpackConfig Config => flight;
@@ -276,8 +277,12 @@ namespace SpaceGame.Characters
             float dt = Time.fixedDeltaTime;
             bool wasOverheated = heat.Overheated;
 
+            // What the pack is hauling, re-asked every step rather than latched: a rope is tied,
+            // cut and slackened mid-flight, and a stale figure is thrust the pilot has not got.
+            float lift = JetpackLift.Factor(LoadRatio(), flight);
+
             throttle = heat.Resolve(Wanted());
-            heat = JetpackHeat.Step(heat, throttle, flight, dt);
+            heat = JetpackHeat.Step(heat, throttle, flight, dt, lift);
 
             if (!wasOverheated && heat.Overheated) Overheated?.Invoke();
 
@@ -294,7 +299,7 @@ namespace SpaceGame.Characters
             nozzle = JetpackVector.Advance(nozzle, command, flight, dt);
 
             body.linearVelocity = JetpackStep.Step(body.linearVelocity, throttle, nozzle,
-                                                   transform.eulerAngles.y, flight, dt);
+                                                   transform.eulerAngles.y, flight, dt, lift);
 
             PoseAnimator();
             CheckForLanding();
@@ -341,15 +346,21 @@ namespace SpaceGame.Characters
         ///
         /// <para>
         /// <b>There is no key for coming down, and that is the design.</b> Releasing Space is the
-        /// descent — the motors idle to a steady sink with the nozzles still lit — so the whole
-        /// machine is one button held and let go (<c>GDC-L1-UX-0005</c>: a new action costs an
-        /// input, and this one replaces a binding rather than adding one). The crouch cut it
+        /// descent — the motors idle and the pilot falls at this world's full gravity — so the
+        /// whole machine is one button held and let go (<c>GDC-L1-UX-0005</c>: a new action costs
+        /// an input, and this one replaces a binding rather than adding one). The crouch cut it
         /// replaced was a second way to say "down" that also happened to be the only way to cool,
         /// which made a hidden key mandatory for a long flight rather than optional.
         /// </para>
         /// <para>
-        /// A pack with no input source at all descends rather than hangs, so a flight that loses
-        /// its pilot comes down and lands instead of parking a body in the sky.
+        /// <b>Letting go is a real fall, and that is what altitude is for.</b> Nothing catches the
+        /// pilot at a sink rate any more: a descent is arrested by lighting the motors again, so
+        /// every metre climbed is a metre that has to be paid for on the way down and a landing is
+        /// a burn the pilot has to aim. The one thing a release still buys is heat back.
+        /// </para>
+        /// <para>
+        /// A pack with no input source at all falls rather than hangs, so a flight that loses its
+        /// pilot comes down and lands instead of parking a body in the sky.
         /// </para>
         /// </summary>
         private JetThrottle Wanted()
@@ -357,6 +368,28 @@ namespace SpaceGame.Characters
             if (inputs == null) return JetThrottle.Descend;
 
             return inputs.JumpHeld ? JetThrottle.Thrust : JetThrottle.Descend;
+        }
+
+        /// <summary>
+        /// What is hanging off the pilot's ropes, as a multiple of their own mass.
+        ///
+        /// <para>
+        /// The leash resolves its ends by mass SHARE, so a load does not slow a climb down — it
+        /// takes its own fraction of the whole acceleration, and an equal-weight passenger turns
+        /// this pack's climb into a sink. <c>JetpackLift</c> is where that is answered; this is
+        /// only the reading, and it is a ratio rather than a mass because the pack does not care
+        /// about kilograms, it cares how it compares with the pilot.
+        /// </para>
+        /// <para>
+        /// Owner-only, like the rest of the flight: a peer's copy of this component never steps,
+        /// so it never asks. The ropes on the far end resolve on their own owner's machine.
+        /// </para>
+        /// </summary>
+        private float LoadRatio()
+        {
+            if (body == null || body.mass <= 0f) return 0f;
+
+            return LeashLoad.HangingMassOn(body) / body.mass;
         }
 
         /// <summary>

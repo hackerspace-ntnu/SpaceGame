@@ -27,8 +27,8 @@ symptoms:
   - "no hint ever appears telling me how to get out of the crashed ship"
   - "some players could look around during the intro descent and others could not, or kept their HUD through it"
   - "a cutscene locked or blacked out the wrong player in a multiplayer session"
-reads_with: [SceneTransitions, PlayerShip, CutsceneExamples, audio]
-updated: 2026-09-02
+reads_with: [SceneTransitions, PlayerShip, CutsceneExamples, audio, Diagnostics]
+updated: 2026-09-09
 ---
 
 # Cutscenes & Presentation
@@ -117,6 +117,7 @@ Coroutine-driven scripted camera moments (no Timeline, no Cinemachine) plus the 
   either knowing about the other, and `EntryBurnCurve` is authored to have the burn OUT before
   `impactFade` starts.
 - **A cutscene that waits on the wire needs a bounded wait.** `ArrivalCutscene.launchWait` (30 s) exists because the failure mode of the launch gate is a player staring at black for the rest of the session. It warns and plays anyway.
+- **A cutscene that throws used to end the session, and `EndCutscene` is why it no longer does.** `RunCutscene` runs inside `Fault.Coroutine` with `EndCutscene()` as its teardown — the routine's own tail, extracted, with `playing` and `lockedPlayer` hoisted from coroutine locals onto the director so it can be called from outside the routine. A dead routine without it leaves `IsPlaying` true forever: every later `Play` is refused, the bars stay across the screen, the player stays in cutscene mode — and `InputRestoreGuard` asks `IsPlaying` before handing input back, so the one thing that could rescue the session politely declines to. It is idempotent and safe on the abort path, where it announces no end because no start was announced. `LetterboxOverlay`'s four routines are guarded the same way with `SnapClear` (bumping the generations is what releases anyone awaiting a dead animation). See [Diagnostics](Diagnostics.md).
 - **`ThirdPersonWalkThroughCutscene` writes the player Rigidbody directly** — correct offline, fights `NetworkTransform` in a session. It needs to move to the teleport seam.
 - **Manual-emit particles: one system for N impacts.** See [`GravelBlastFx`](Assets/Game/Scripts/Items/Artifacts/Gadgets/GravelBlastFx.cs) and `Manual()` in [`GravelBlasterBuilder`](Assets/Game/Editor/AssetPipeline/GravelBlasterBuilder.cs). Four things must hold at once: `main.loop = true` + `playOnAwake = true` (a stopped system never simulates handed-in particles); `emission.enabled = false` with bursts cleared (an authored burst goes off at the gun on equip); `cullingMode = AlwaysSimulate` (the emitter is in your hands, the impacts are 70 m away); `scalingMode = Local` (`ItemGrip` rescales the prefab to fit the hand). Emit by **moving the system to the hit point** then `system.Emit(emitParams, count)` — world simulation space means particles already in the air do not follow it. The alternative, thirty GameObjects per shot, spikes frames.
 - **`ClothWindDriver` resolves `WindField` reflectively** (`SpaceGame.Vehicles.DuneFoil` cannot be referenced from here) and collects renderers by **shader name** using `sharedMaterials` — touching `.materials` in edit mode leaks a cloned material into the scene every run.

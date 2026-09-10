@@ -21,9 +21,11 @@ derived from input travel **in the message** — never recompute them on the rec
 
 **Why.** `Camera.main` on the server is the *host's* camera, and `NetAuthority` switches off remote drivers, so a suppressed driver never runs
 the code that spawns its own effect. Gate on `Simulates`, not `IsServer` — but on an unspawned held item `Simulates` is true everywhere, so
-there ask about the owner.
+there ask about the owner. `Simulates` answers about the object it is handed; when the decision creates or moves something *else* — a spawner,
+a trigger volume, anything on unnetworked chunk scenery — gate on `!Network.IsNetworked || Network.Server` instead.
 
-**How it fails.** Every client's shot and every NPC's barrel follow the host's head; a remote turret fires with no muzzle flash.
+**How it fails.** Every client's shot and every NPC's barrel follow the host's head; a remote turret fires with no muzzle flash; a settlement
+spawns a wave per client and each one is refused with `[WorldService] Spawn('X') called on a client`.
 
 **Where.** [Multiplayer](systems/Multiplayer.md) · [Artifacts](systems/Artifacts.md) · [Combat](systems/Combat.md) · [AgentSystem](systems/AgentSystem.md)
 
@@ -109,6 +111,21 @@ bake; an MPPM clone reads assets fine and imports nothing.
 
 **Where.** [EditorTooling](systems/EditorTooling.md) · [ArtPipeline](systems/ArtPipeline.md) · [Environment](systems/Environment.md) · [NavMeshSystem](systems/NavMeshSystem.md)
 
+## Degrade at the seams, abort at the decisions
+
+**The rule.** A loop that invokes N independent plug-ins wraps each one in `Fault.Run` and carries on with the rest. A single decision whose
+failure would leave state half-applied does **not** — it aborts. Every coroutine that takes something (input, the cursor, a camera, a menu
+scope) goes through `Fault.Coroutine` with the teardown that gives it back.
+
+**Why.** Unity's own per-message catch is not enough: it skips the rest of that method, so a throw partway through a loop starves every
+plug-in below it, and a throw in a coroutine kills the coroutine permanently, mid-way, with whatever it took still taken. But a barrier in the
+wrong place is worse than none — a half-applied damage or ownership change is how a session diverges and stays diverged.
+
+**How it fails.** One broken creature behaviour stops the creature moving at all; a broken muzzle flash stops the shot; a cutscene that throws
+leaves the player with a free cursor, no input and no way out but quitting.
+
+**Where.** [Diagnostics](systems/Diagnostics.md) · [AgentSystem](systems/AgentSystem.md) · [Artifacts](systems/Artifacts.md) · [Cutscenes](systems/Cutscenes.md) · [NetChannel.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetChannel.cs)
+
 ## Every handler fires more than once, and one of those times is a load
 
 **The rule.** Handlers must be idempotent and re-entrancy-safe — act only when the new state differs — and anything reacting to a state
@@ -127,19 +144,22 @@ its own copy; loot re-dropped and the death animation replayed on each load.
 
 **The rule.** Every probe and every aim skips its own hierarchy and the machine it is standing in or strapped into, filters against
 `hit.collider.transform` rather than `hit.transform`, and treats a miss as *not yet* rather than a value to guess. Ground probes additionally
-skip non-kinematic Rigidbodies.
+skip non-kinematic Rigidbodies. **Anything born inside a body — a bullet at a muzzle, a net, a thrown bottle — also skips the thing that fired
+it, and throws away any hit at `distance <= 0`.**
 
 **Why.** `Physics.IgnoreCollision` and `RiderCollisionIgnore` suspend *contacts*; raycasts, spherecasts and overlaps ignore that entirely, so
 the hull is still solid to them. A raycast also sees a passenger as geometry — the deck rises, the carrier lifts the rider, the probe finds
 them higher, and the machine climbs its own passenger — which is why pass-through surfaces call
 `IGroundProbeExclusions.ExcludeFromGroundProbes` and why the aim filters in `AimProvider.NearestOutside`. And `RaycastHit.transform` is the
 **rigidbody's**, which over any vehicle is its root, so a filter written against it matches everything or nothing. A miss in a streamed world
-means the chunk is not loaded.
+means the chunk is not loaded. A muzzle or a fist sits *inside* the player's own 0.5 m capsule, and a sweep that starts already overlapping
+reports **distance 0 with `point` left at the origin** — not at the caster, at `Vector3.zero`.
 
 **How it fails.** A vehicle climbs into the sky; a rope tied to a flank rides onto the animal's back; a walker stops at a hole it may cross;
-every item a mounted player fires lands on their own fuselage a metre from their head.
+every item a mounted player fires lands on their own fuselage a metre from their head; every shot lands at the shooter's feet, or — worse,
+because it is invisible rather than merely wrong — kilometres away at the world origin.
 
-**Where.** [Locomotion](systems/Locomotion.md) · [Vehicles](systems/Vehicles.md) · [Portals](systems/Portals.md) · [PlayerCharacter](systems/PlayerCharacter.md) · [Artifacts](systems/Artifacts.md) · [WalkerGround.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerGround.cs)
+**Where.** [Locomotion](systems/Locomotion.md) · [Vehicles](systems/Vehicles.md) · [Portals](systems/Portals.md) · [PlayerCharacter](systems/PlayerCharacter.md) · [Artifacts](systems/Artifacts.md) · [BottledSingularity](systems/BottledSingularity.md) · [WalkerGround.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerGround.cs)
 
 ## Statics outlive the world, the session and play mode
 
@@ -165,6 +185,24 @@ at all outside it — so initialise explicitly (`Present()`, not `Awake()`) and 
 **How it fails.** Correct for everyone but the late joiner; a HUD that never shows the only announcement there was; a bag of nulls in a test.
 
 **Where.** [UI](systems/UI.md) · [Multiplayer](systems/Multiplayer.md) · [PlayerCharacter](systems/PlayerCharacter.md) · [Testing](systems/Testing.md)
+
+## A shader that reports no errors can still be the magenta error shader
+
+`ShaderUtil` is not a verdict. A shader can compile, return `isSupported == true`, `ShaderHasError`
+false and an empty `GetShaderMessages`, and still be drawn by Unity as the flat magenta error
+material — or be skipped entirely. There is no console line and no warning. Two causes are known in
+this project, both found in `Assets/Game/Art/Shaders/Artifacts/` (see [StormFlask](systems/StormFlask.md)):
+
+- **A property name that collides with a legacy built-in global.** `_Wind` is one. Prefix a
+  property whose name is a bare common noun (`_RainWind`, not `_Wind`).
+- **A function with `out` parameters and more than one `return`.** Intersection helpers are the
+  usual shape. Write them single-exit: compute every branch, combine the conditions into one
+  boolean, assign the outputs once.
+
+So **never accept "it compiles" as proof a shader works.** Render it and look at the pixels, and
+sample one: exactly `(1, 0, 1)` is the error material, not your output. Note that the FIRST
+`Camera.Render()` after an import is Unity's magenta placeholder for a normal reason, so warm up
+with one throwaway render before believing any capture.
 
 ## Path casing is load-bearing
 

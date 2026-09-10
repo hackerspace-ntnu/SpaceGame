@@ -29,8 +29,10 @@ symptoms:
   - "the ball lightning orb drifts through creatures without ever hurting them"
   - "the orb discharges on the host and on a client at slightly different moments"
   - "firing a gun near wildlife or a guard provokes no reaction at all"
+  - "my worn gear is flung off my body when I die"
+  - "the backpack's flaps move on their own after a death"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-07
+updated: 2026-09-09
 ---
 
 # Combat
@@ -136,6 +138,7 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 
 ## Gotchas
 
+- **The ragdoll must not build itself out of the body's GEAR, and it used to.** `RagdollRig.FlattenRig` walks every descendant and `RagdollSkeleton.SelectRigNodes` takes each node that draws nothing but has geometry beneath it — which is exactly the shape of a worn item's root. Measured on a player wearing the jetpack with the pack shouldered, **nine of the fourteen structural candidates were gear**: `Jetpack`, its `Model` and `WornModel`, and the pack's `PIVOT_Back`/`PIVOT_Leaf`/`PIVOT_Lid`/`PIVOT_Wing_L`/`PIVOT_Wing_R` flap hinges. On death those get a `Rigidbody` and a `CharacterJoint` and are simulated as limbs, so the jetpack is flung off the body and the pack's flaps are driven by physics — reported as gear that vanished and a backpack whose parts had moved. Anything the body systems attach is now marked [`BodyAttachment`](Assets/Game/Scripts/Items/Equipped/BodyAttachment.cs) and its subtree is skipped. **Both skinned passes need the same guard, not just the flatten:** they reach for renderers with `GetComponentsInChildren` rather than through the flattened hierarchy, and `Select` takes its candidates straight from the importance map with no rig-node filter — so a worn wingsuit's own bones would still have been selectable. Gear excluded here is not lost: it stays parented to the bone it hangs off and rides it, exactly as it did while the body lived. Note this pass contributes little else on a skinned character — its real bones come from `renderer.bones` — so what the structural rule was mostly finding WAS the gear.
 - **Both overlays invisible for everyone, no errors → the `WorldOverlay` Canvas itself is disabled.** The components run, labels are created and positioned, nothing renders. Historic cause: menu screens hid every canvas in the game and the launch path never restored the `DontDestroyOnLoad` ones — see the [UI](UI.md) gotcha on canvas scoping. Diagnose by reading `Canvas.enabled` on the WorldOverlay object at runtime before suspecting the damage signals.
 - **A shot is a gameplay event, not just a sound — and it reaches AI through `Noise`, not the damage pipeline.** A miss damages nothing, so `HealthComponent` never fires and no listener would ever learn a gun went off. `Weapon.ReportGunshot` emits `NoiseType.Gunshot` from `TryFire`, **after** a round has actually left: not when a charge *starts* (nothing is in the air yet), and not from `Present()`. That placement is what keeps it authority-only without a check of its own — `TryFire` is reached from `Use()` and nowhere else, while `Present()` calls `Fire()` directly. It has to stay that way: a creature only ticks on the machine that owns it, so a noise emitted on a peer is heard by a copy that cannot act on it while the copy that can hears nothing. The agent-side guns do the same behind `authority.SimulatedHere` (`AgentRangedCombatModule.FireOne`, `TurretModule.Fire`, `RocketLauncherTurret.Fire`). Tune with `Weapon.gunshotNoiseRadius` / `AgentWeaponDefinition.gunshotNoiseRadius`; 0 is silent to AI and still audible to players. Who listens is [AgentSystem](AgentSystem.md).
 - **Damage multiplied by player count.** The classic symptom of a missing `Cosmetic`/`ShotDealsDamage` gate, or a scene prop that damages from every machine's copy. Gate on the **victim's** authority (`Network.Simulates(health)`), not the prop's — scenery has no `NetworkObject`.

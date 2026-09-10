@@ -16,7 +16,7 @@ symptoms:
   - "legacy Input.GetKey compiles fine but throws at runtime"
   - "which Unity, URP or Netcode version is this project on, and what packages are installed"
 reads_with: [Multiplayer, NavMeshSystem, WorldStreaming, Environment]
-updated: 2026-09-01
+updated: 2026-09-08
 ---
 
 # Project Config
@@ -99,7 +99,7 @@ Consequences:
 ## Tags & sorting layers
 
 - **Custom tags: none.** `TagManager.tags: []`. Only Unity's 7 builtins exist (`Untagged`, `Respawn`, `Finish`, `EditorOnly`, `MainCamera`, `Player`, `GameController`).
-- `CompareTag("Player")` is used in ~8 gameplay files (`SpawnClearance`, `VolumeTrigger`, `SnareCatch`, `LassoArtifact`, `LeashEnd`, `DamageNumbers`, `CaveExitCover`). It works because `PlayerCharacter.prefab` carries the **builtin** `Player` tag, and `PlayerCharacterNetworked.prefab` is a prefab instance of it.
+- `CompareTag("Player")` is used in ~7 gameplay files (`SpawnClearance`, `VolumeTrigger`, `SnareCatch`, `LassoArtifact`, `LeashEnd`, `DamageNumbers`). `CaveExitCover` no longer does: a cave is left by whoever `InteriorManager` brought in, mounts and creatures included. It works because `PlayerCharacter.prefab` carries the **builtin** `Player` tag, and `PlayerCharacterNetworked.prefab` is a prefab instance of it.
 - **Sorting layers: one**, `Default` (uniqueID 0). Nothing 2D depends on ordering.
 - NavMesh areas ([NavMeshAreas.asset](ProjectSettings/NavMeshAreas.asset)): only the 3 builtins — `Walkable`, `Not Walkable`, `Jump`.
 

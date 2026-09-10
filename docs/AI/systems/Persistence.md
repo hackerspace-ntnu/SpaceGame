@@ -20,8 +20,11 @@ symptoms:
   - "a second copy of the ship stands inside the first after every load, and the count doubles each time"
   - "the same creature stands in one chunk ten times over after an hour of play, and the copies survive a reload"
   - "a pickup placed in a chunk is stacked ten deep at its authored spot"
+  - "carried or worn items duplicate in the world, one more copy after every load"
+  - "copies of my gear are falling below the terrain at thousands of metres down"
+  - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer]
-updated: 2026-09-05
+updated: 2026-09-09
 ---
 
 # Persistence / Save-Load
@@ -85,7 +88,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 2. `RestoreGlobals` stages every global payload; a saver registering later is served (once) in `RegisterGlobalSaver`.
 3. Subscribe `WorldStreamer.OnChunkLoaded/WillUnload/Unloaded` and the three identical `InteriorManager` events.
 4. `Start`: `Hydrate(SceneKey.Persistent, this scene)` by hand — no streaming event ever fires for it, and every Pin'd `SceneTracked` entity lives there. Then `SaveNewWorld()` writes the file immediately.
-5. Per scene `Hydrate`: `EnsureScene` (wire unwired) → `RemoveDestroyed` → `RestoreAuthored` (`SaveTeleport.Move` then `entity.Restore`) → `SpawnEntities` (Instantiate → `MoveGameObjectToScene` → `EnsureSpawned` → `EnsureRuntime` → `AdoptIdentity` → `Restore` → `SpawnIfNetworked`) → `OnSceneHydrated`.
+5. Per scene `Hydrate`: `EnsureScene` (wire unwired) → `RemoveDestroyed` → `RestoreAuthored` (`SaveTeleport.Move` then `entity.Restore`) → `SpawnEntities` (Instantiate → `MoveGameObjectToScene` → `EnsureSpawned` → `EnsureRuntime` → `AdoptIdentity` → `SpawnIfNetworked` → `Restore`) → `OnSceneHydrated`.
 6. Player: `PlayerSaveSync` (owner) → `ClaimProfileServerRpc` → `PlayerSaveService.Bind` → place, restore, `NotifyLoadComplete`, then raise `PlayerBound` → `SaveManager.RunWorldDeferredPass()`.
 
 **Save** (`SaveManager.Save`): static `SaveManager.Capturing` fires first — the pre-capture hook for a system mid-sequence to normalise what it is doing so the file records an end state (`ArrivalDirector` grounds a mid-descent hull here; handlers are synchronous and must not save) — then `BuildDocument` → `playerService.CaptureAll()` + `worldStore.DehydrateLoaded()` + persistent scene + `Compact()` + `CaptureGlobals`. Serialize on the main thread, `Task.Run` the write (synchronous for quit/exit, which *waits out* an in-flight write rather than standing down). Guards: `WouldDowngradeFormat`, `WouldDiscardAllPlayers`. Triggers: 300 s timer (retries in ≤15 s after a refusal), `OnApplicationQuit`, `SaveManager.SaveOnExit()` (menu return), F5, `SaveNewWorld`.
@@ -101,6 +104,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 - **Server-only.** Every hydrate/dehydrate/save handler early-returns on `Network.IsNetworked && !Network.Server`. Singleplayer is a host of one, so the host path is the only path that ever writes.
 - Clients get world state through normal replication; a client F5 is refused with an explanation, and a client F9 is refused because reloading the scene would drop it out of the session.
 - Restored objects go through `SaveNetworking.SpawnIfNetworked`, which checks `NetworkConfig.Prefabs.NetworkPrefabOverrideLinks` for `PrefabIdHash` **itself** — NGO does not throw for an unregistered server-side dynamic spawn, the *client* silently fails to construct it.
+- **`SpawnIfNetworked` runs before `Restore`, not after.** A saver that puts a child back — `EntityEquipmentSaveable` (the NPC's weapon), `MountSaveable` (the rider) — attaches an object whose prefab carries a NetworkObject, and NGO refuses to spawn a root that already has one nested under it. Both restore sites (`WorldSaveStore.SpawnEntities`, `Captivity.Rebuild`) spawn first for this reason.
 - Player pose is owner-authoritative, so placement goes through `PlayerSaveService.Bind` (skipped for the host, already placed), never a server teleport.
 - `SaveablePrefabRegistry` folds in the NetworkManager prefab list lazily on the first cache miss — scanning at load time races NetworkManager's `Awake`.
 
@@ -127,6 +131,8 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | `CaptureState` returning a bare list/int/string | Key dropped (error logged, capture survives) — see [StateBag.Set](Assets/Game/Scripts/Core/Persistence/Format/StateBag.cs#L44) | Wrap in a public-field struct |
 | Ignoring the `state == null` branch of `RestoreState` | Stale value re-applied after a save that stored nothing | null means "restore defaults"; clear pending refs too |
 | Resolving a `SaveRef` in `RestoreState` | Rider never re-seated; second player's mount empty forever | Resolve in `OnLoadComplete`, consume only on success |
+| Leaving a `SaveableEntity` on a copy that is carried rather than lying in the world | The carried thing is captured **inside its carrier** and re-spawned as a loose root object at that pose on the next hydrate — one more copy per load, each falling further than the last | `CaptureScene` walks `GetComponentsInChildren` from every scene ROOT, so a saveable nested under a player, a vehicle or a fixture is a world record. Take it off the copy (`EquipItemSocket.Sanitize`) or `DisownToExternal()` it |
+| Restoring an entity's state *before* network-spawning it | `Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects` from `NetworkSpawnManager.AuthorityLocalSpawn`, once per affected entity, and the entity stays host-only. Restore is what nests the child: `EntityEquipmentSaveable` puts the NPC's weapon back in its hand and every item prefab ships a NetworkObject. A chunk with five armed Clankers logged it five times on hydrate. NGO **logs** this rather than throwing, so the `try/catch` around `Spawn()` never sees it | Network-spawn between `AdoptIdentity` and `Restore`. A child attached to an already-spawned root is just an unspawned child — which is what a held item is at runtime anyway |
 | Treating `OnLoadComplete` as once-only | State re-applied over a world that moved on | Idempotent — it fires per player bind and per late chunk |
 | Restoring pose with `transform.position` | Object snaps back within a frame | The record's pose is applied for you via `SaveTeleport.Move` |
 | Persisting `isKinematic` | Loaded player cannot walk (quit-time autosave captures the body after netcode teardown) | Never save engine-owned flags; `RigidbodySaveable` returns null for a kinematic body |

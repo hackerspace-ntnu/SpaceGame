@@ -1,15 +1,17 @@
 ---
 artifact: BottledSingularity
-status: design
+status: shipped
 authority: Server
 continuous: false
 uses: [RepulsorBlast]
-updated: 2026-09-07
+updated: 2026-09-09
 ---
 
 # Bottled singularity (design)
 
-Not implemented. Design only. Read [../Artifacts.md](../Artifacts.md) first.
+**Shipped.** This page is the original brief and is kept for the reasoning behind the decisions.
+For what the code actually does, read [BottledSingularity](../BottledSingularity.md) — it is the
+governing doc, and where this page and that one disagree, that one is right.
 
 A thrown bottle that inhales everything within 8 m for 3 s, holds it in a knot, then flings it all
 back out. It does not know who threw it.
@@ -20,6 +22,11 @@ Throw the bottle. Where it lands it opens: for 3 s everything loose within 8 m i
 bottle, pull strongest at the centre and falling off with distance. Props, creatures, players,
 loose vehicles — no exemptions, including the thrower. Then it lets go in one outward impulse and
 everything ragdolls away on a scatter that every machine draws identically.
+
+**Shipped larger than this brief.** The release is no longer one impulse at the end of the inhale:
+the hole gulps, collapses, and everything it caught is *gone from the world* for five seconds before
+it is spat back out. The brief's three seconds are now the first of six phases. See
+[BottledSingularity](../BottledSingularity.md).
 
 The comedy is entirely in the lack of exemptions. Throw it short and you are part of the pile.
 
@@ -67,12 +74,19 @@ light. Moving parts: the collar's iris opens when it lands, and the core visibly
 inhale and snaps flat at the release. No hold pose — it is a bottle, and the firearm poses lie about
 it, same call as the Lightning Spell.
 
-## Risks
+## Risks, and how they were answered
 
 - **A player caught while riding.** A mounted rider's body is kinematic; pulling it does nothing.
-  Either the pull ignores mounted riders, or it asks the vehicle through `ITowable`. Decide before
-  building, and write down which.
+  **Answered by `ITowable`**, asked by the machine that owns the vehicle. Ignoring mounted riders
+  was rejected: riding would have been a total, invisible immunity to the item.
 - **Sucking a player through geometry.** A steady pull toward a point on the far side of a wall is a
-  way into the terrain. Pull along a path that is clear, or stop pulling when blocked.
+  way into the terrain. **Answered by a line-of-sight check** from the bottle's mouth to each body —
+  a body the bottle cannot see is a body it does not touch.
 - **The bottle itself.** It must not inhale itself into a loop, and it must be destroyed cleanly on
-  the server after the fling.
+  the server after the fling. **Answered**: its own colliders are excluded from both sweeps, and it
+  is despawned rather than hidden once the burst has read.
+- **The thrower was NOT on this list, and should have been.** The bottle is born in a fist inside a
+  capsule half a metre across, so the landing trace stopped on the thrower on the first physics step
+  of every throw — and a sweep that starts overlapping reports distance 0 with its hit point left at
+  the origin, so the singularity opened at the world origin and the item read as doing nothing at
+  all. See the Gotchas in [BottledSingularity](../BottledSingularity.md).

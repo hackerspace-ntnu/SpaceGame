@@ -25,6 +25,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Characters;
 using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.EditorTools
 {

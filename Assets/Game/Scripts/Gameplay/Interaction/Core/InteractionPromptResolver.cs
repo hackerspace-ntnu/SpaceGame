@@ -46,18 +46,25 @@ namespace SpaceGame.Gameplay
     public static class InteractionPromptResolver
     {
         /// <summary>Shown when nothing more specific is known.</summary>
-        public const string DefaultPrompt = "E: interact";
+        public const string DefaultPrompt = "RMB: interact";
 
         /// <summary>Appended when the interactable also takes a Use action.</summary>
         public const string SecondarySuffix = "   LMB: use";
+
+        /// <summary>
+        /// Shown INSTEAD of <see cref="DefaultPrompt"/> when the same button's only meaning here is
+        /// "take it back" — a placeable has nothing to operate, so offering both would name two
+        /// verbs for one press.
+        /// </summary>
+        public const string RetrievePrompt = "RMB: pick up";
 
         // Trailing words that describe the plumbing rather than the thing. "DoorInteraction" is a
         // door; "MountModule" is a mount. Order matters only in that longer suffixes are listed
         // first so "Interactable" is not half-eaten by "Interact".
         //
         // "Workstation" is deliberately NOT here. It looks like the same kind of noise as
-        // "Station" and it is not: stripping it turned RepairWorkstation into "Repair", which
-        // names the verb instead of the thing.
+        // "Station" and it is not: stripping it names the verb instead of the thing — the
+        // now-removed RepairWorkstation came out as "Repair".
         private static readonly string[] NoiseSuffixes =
         {
             "Interactable", "Interaction", "Component", "Behaviour",
@@ -112,7 +119,7 @@ namespace SpaceGame.Gameplay
 
         /// <summary>
         /// A readable name for an interactable that never said what it was.
-        /// "DoorInteraction" becomes "Door", "RepairWorkstation" becomes "Repair Workstation",
+        /// "DoorInteraction" becomes "Door", "TraderInteraction" becomes "Trader",
         /// "InteriorEntrance" becomes "Interior Entrance". A purely generic wrapper such as
         /// "InteractableTrigger" falls through to the GameObject's own name.
         /// </summary>
@@ -151,15 +158,30 @@ namespace SpaceGame.Gameplay
             return false;
         }
 
-        /// <summary>"E: interact", plus the Use line when the component takes one.</summary>
+        /// <summary>
+        /// "RMB: interact", plus the Use line when the component takes one — or "RMB: pick up"
+        /// when the same button's only meaning here is to take the thing back.
+        ///
+        /// <para>
+        /// Which of the two it is comes from the same question <see cref="Interactor.PressPicksUp"/>
+        /// asks of the press: is there a primary verb to spend the button on. Per-player refusals
+        /// (<see cref="IContextualInteractable"/>) are not visible here — the resolver is handed a
+        /// component, not an interactor — so a target that is retrievable AND refuses one player's
+        /// press specifically still reads "interact" for them. Nothing in the project is both.
+        /// </para>
+        /// </summary>
         public static string DerivePrompt(IInteractable interactable)
         {
-            return interactable is ISecondaryInteractable
-                ? DefaultPrompt + SecondarySuffix
-                : DefaultPrompt;
+            if (interactable is IRetrievable retrievable
+                && !SafeCanInteract(interactable)
+                && SafeCanRetrieve(retrievable)) return RetrievePrompt;
+
+            string prompt = DefaultPrompt;
+            if (interactable is ISecondaryInteractable) prompt += SecondarySuffix;
+            return prompt;
         }
 
-        /// <summary>Split a PascalCase identifier into words. "RepairWorkstation" -> "Repair Workstation".</summary>
+        /// <summary>Split a PascalCase identifier into words. "HoloProjector" -> "Holo Projector".</summary>
         public static string Humanise(string identifier)
         {
             if (string.IsNullOrEmpty(identifier)) return string.Empty;
@@ -199,6 +221,17 @@ namespace SpaceGame.Gameplay
         {
             try { return interactable.CanInteract(); }
             catch { return true; }
+        }
+
+        /// <summary>
+        /// The same guard for the pick-up half, and it errs the other way: an author's
+        /// <c>CanRetrieve</c> that throws leaves the default "interact" prompt standing rather
+        /// than promising a pick-up nothing can honour.
+        /// </summary>
+        private static bool SafeCanRetrieve(IRetrievable retrievable)
+        {
+            try { return retrievable.CanRetrieve(); }
+            catch { return false; }
         }
 
         private static string FirstNonEmpty(string a, string b, string c)

@@ -4,6 +4,8 @@
 // Also supports the legacy IAgentBrain interface so old prefabs don't break immediately.
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Diagnostics;
+using SpaceGame.Gameplay.Status;
 using SpaceGame.Persistence;
 using SpaceGame.World;
 
@@ -48,6 +50,18 @@ namespace SpaceGame.Agents
 
         private AgentAuthority authority;
 
+        /// <summary>
+        /// The conditions this agent is under, so a frozen or foamed one stops acting.
+        ///
+        /// <para>
+        /// Ensured rather than authored, and on EVERY machine: a status arrives as a message on
+        /// this body's own relay, and a body with nothing subscribed drops it without a word. An
+        /// agent that has to be freezable is every agent, so the receiver belongs on the component
+        /// every agent already has rather than on the prefabs somebody remembered to tick.
+        /// </para>
+        /// </summary>
+        private StatusReceiver status;
+
         // What the last frame concluded, so the switch between deciding and watching is an EVENT
         // and not a per-frame reassertion. Starts true because that is what an agent has always
         // been — offline, in a test, in a scene opened from the editor — and because the first
@@ -84,6 +98,15 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             authority = new AgentAuthority(this);
+
+            // On THIS object rather than through StatusReceiver.Ensure, which resolves to the
+            // networked root: a rider is parented into a saddle, and an agent that borrowed its
+            // mount's receiver would be frozen by whatever was sprayed at the animal under it.
+            // Every Awake on a GameObject runs before any OnEnable, so a StatusReactionModule
+            // beside this one finds this receiver rather than making a second.
+            status = GetComponent<StatusReceiver>();
+            if (status == null) status = gameObject.AddComponent<StatusReceiver>();
+
             ResolveMotor();
             ResolveModules();
             speedVariationPhase = Random.Range(0f, Mathf.PI * 2f);
@@ -112,6 +135,27 @@ namespace SpaceGame.Agents
 
             if (Motor == null)
                 return;
+
+            // Helplessness is DERIVED here, every frame, and written nowhere. A frozen creature is
+            // not a creature with its brain switched off — that is what a world save captures, and
+            // it reloads suppressed for ever with a clean console. It is a creature whose modules
+            // are simply not asked this frame, so the frame the condition ends it moves again with
+            // nothing to restore.
+            //
+            // Above the modules rather than inside one of them, because "cannot act" has to hold
+            // for every agent in the game and not only for the ones somebody remembered to put a
+            // StatusReactionModule on. Side-effect modules are starved with the rest: a frozen
+            // creature that could still bite is not frozen.
+            if (status != null && status.Suppressed)
+            {
+                MoveIntent idle = MoveIntent.Idle();
+                Motor.Tick(in idle, deltaTime);
+
+                if (animatorDriver)
+                    animatorDriver.Tick(Motor.Velocity, Motor.IsImmobile, false);
+
+                return;
+            }
 
             AgentContext context = BuildContext();
             MoveIntent intent = EvaluateModules(in context, deltaTime);
@@ -194,7 +238,7 @@ namespace SpaceGame.Agents
             foreach (IBehaviourModule module in presentationModules)
             {
                 if (module.IsActive)
-                    module.Tick(in context, deltaTime);
+                    RunModule(module, in context, deltaTime);
             }
         }
 
@@ -259,6 +303,37 @@ namespace SpaceGame.Agents
         // Module evaluation
         // ──────────────────────────────────────────────
 
+        /// <summary>
+        /// Ticks one module behind the fault barrier, and reports what it claimed.
+        ///
+        /// <para>
+        /// A module that throws returns null — the same answer as "I pass" — so the frame falls
+        /// through to the next module rather than being lost. That is the whole degradation
+        /// contract here: one broken behaviour costs the creature that behaviour, not its ability
+        /// to move at all. Before this, the throw escaped the loop and every module below the
+        /// broken one starved, which is why a bug in chasing also removed fleeing and wandering.
+        /// </para>
+        /// <para>
+        /// Public and static so the barrier can be tested without a motor, a NavMesh or an Awake.
+        /// Not <c>internal</c>: the tests live in <c>Assembly-CSharp-Editor</c>, which has no
+        /// <c>InternalsVisibleTo</c> into <c>Assembly-CSharp</c> and would not see it.
+        /// </para>
+        /// </summary>
+        public static MoveIntent? RunModule(IBehaviourModule module, in AgentContext context, float deltaTime)
+        {
+            if (module is not Component owner) return null;
+
+            MoveIntent? result = null;
+            AgentContext local = context;   // a lambda cannot capture an `in` parameter
+
+            Fault.Run(owner, ModuleSite, () => result = module.Tick(in local, deltaTime));
+
+            return result;
+        }
+
+        /// <summary>One site name for every module, so a creature's quarantines are per component.</summary>
+        private const string ModuleSite = "AgentModule.Tick";
+
         private MoveIntent EvaluateModules(in AgentContext context, float deltaTime)
         {
             // Always tick side-effect modules (attacks, audio, etc.) — they never produce a MoveIntent.
@@ -267,7 +342,7 @@ namespace SpaceGame.Agents
                 foreach (IBehaviourModule module in sideEffectModules)
                 {
                     if (module.IsActive)
-                        module.Tick(in context, deltaTime);
+                        RunModule(module, in context, deltaTime);
                 }
             }
 
@@ -279,7 +354,7 @@ namespace SpaceGame.Agents
                     if (!module.IsActive)
                         continue;
 
-                    MoveIntent? result = module.Tick(in context, deltaTime);
+                    MoveIntent? result = RunModule(module, in context, deltaTime);
                     if (result.HasValue)
                     {
                         // Don't broadcast Idle — it would lock the whole herd in place.
@@ -310,12 +385,20 @@ namespace SpaceGame.Agents
                 if (!module.IsActive)
                     continue;
 
-                if (module.TryGetFacing(in context, out Vector3 facePosition))
-                {
-                    intent.FacePosition = facePosition;
-                    intent.OverrideFacing = true;
-                    return;
-                }
+                if (module is not Component owner) continue;
+
+                bool wants = false;
+                Vector3 facePosition = Vector3.zero;
+                AgentContext local = context;
+
+                Fault.Run(owner, "AgentModule.Facing",
+                          () => wants = module.TryGetFacing(in local, out facePosition));
+
+                if (!wants) continue;
+
+                intent.FacePosition = facePosition;
+                intent.OverrideFacing = true;
+                return;
             }
         }
 

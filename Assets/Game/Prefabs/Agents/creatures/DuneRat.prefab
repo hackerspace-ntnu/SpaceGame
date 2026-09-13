@@ -170,7 +170,27 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6345000896566801122}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7906705051617186316}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3381072259645718227}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5558904162206321970}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4093305773647497827}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1841014291172686441}
   m_SourcePrefab: {fileID: 100100000, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+--- !u!4 &810097992514676371 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8929324545226619115, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+  m_PrefabInstance: {fileID: 8130508641694424696}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &2431885669563376617 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
@@ -210,7 +230,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8940832018371814185}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 40
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -390,6 +410,7 @@ MonoBehaviour:
     Path: 
   despawnDelay: 8
   disableAgentOnDeath: 1
+  logDamage: 0
 --- !u!114 &6203367197017369867
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -456,6 +477,13 @@ MonoBehaviour:
   attackCooldown: 1.2
   attackDamage: 12
   attackCommitDuration: 0.5
+  knockbackSpeed: 0
+  knockbackLift: 0.3
+  knockbackLeapDistance: 4
+  knockbackLeapHeight: 1.6
+  knockbackLeapDuration: 0.55
+  knockbackMassReference: 80
+  knockbackMassScale: {x: 0.4, y: 2.5}
   attackAnimTrigger: Meele
   OnAttack:
     m_PersistentCalls:
@@ -590,7 +618,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 0
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -600,12 +628,12 @@ MonoBehaviour:
   SyncScaleX: 1
   SyncScaleY: 1
   SyncScaleZ: 1
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
   InLocalSpace: 0
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
@@ -820,3 +848,134 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &7906705051617186316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
+  minBoneWeightFraction: 0.015
+  maxBones: 20
+  minimumUsefulBones: 4
+  limbAspect: 0.3
+  minRadius: 0.04
+  totalMass: 70
+  minBoneMass: 0.6
+  angularDamping: 0.6
+  linearDamping: 0.05
+  solverIterations: 14
+  sleepWhenSettled: 1
+  selfCollision: 0
+  swingLimit: 45
+  twistLimit: 25
+  settleLinearSpeed: 0.35
+  settleAngularSpeed: 1.2
+  settleSeconds: 0.45
+  maxLimpSeconds: 4
+  recoverBlendSeconds: 0.35
+  groundProbeHeight: 3
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxConcurrentRagdolls: 12
+--- !u!114 &3381072259645718227
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  deathImpulse: 2.5
+  deathImpulseLift: 0.35
+  downedSeconds: 1.2
+--- !u!114 &5558904162206321970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.35
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
+--- !u!114 &4093305773647497827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+  frozen:
+    seconds: 10
+    shatterDamage: 25
+  slick:
+    seconds: 20
+    grip: 0.03
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  inflationTarget: {fileID: 810097992514676371}
+--- !u!114 &1841014291172686441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69eae6986bef940a180aa26bee3169a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StatusReactionModule
+  priority: 100
+  active: 1
+  reactions:
+  - Kind: 0
+    Response: 1
+  - Kind: 1
+    Response: 2
+  - Kind: 4
+    Response: 2

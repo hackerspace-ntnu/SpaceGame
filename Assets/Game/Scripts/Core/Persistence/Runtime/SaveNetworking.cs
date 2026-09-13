@@ -17,6 +17,18 @@ namespace SpaceGame.Core.Persistence
         /// Spawns a restored object across the network when it is one Netcode owns.
         ///
         /// <para>
+        /// <b>Call this BEFORE the state goes back on, never after.</b> Netcode refuses to spawn a
+        /// prefab instance that already has a NetworkObject somewhere below its root — "Spawning
+        /// NetworkObjects with nested NetworkObjects is only supported for scene objects" — and a
+        /// restore is exactly what puts one there. <c>EntityEquipmentSaveable</c> puts the NPC's
+        /// weapon back in its hand, and every item prefab carries a NetworkObject because a copy
+        /// lying in the sand is a world object; <c>MountSaveable</c> puts a rider back on a mount
+        /// the same way. So a chunk holding five armed Clankers logged the refusal five times and
+        /// left the Clankers themselves host-only. Spawning first removes the whole class: a child
+        /// attached to an object that is ALREADY spawned is just an unspawned child, which is what
+        /// a held item is on every machine at runtime anyway.
+        /// </para>
+        /// <para>
         /// <b>The registration check is ours, not Netcode's.</b> This used to wrap
         /// <c>Spawn()</c> in a try/catch on the assumption that an unregistered prefab throws here.
         /// It does not. A server-side dynamic spawn never consults the prefab table: it spawns
@@ -54,8 +66,10 @@ namespace SpaceGame.Core.Persistence
             catch (System.Exception e)
             {
                 // Belt and braces for everything the check above cannot see — a NetworkManager that
-                // is shutting down, a nested NetworkObject, an object already owned elsewhere. Worth
-                // reporting loudly, not worth aborting the rest of the world's restore over.
+                // is shutting down, an object already owned elsewhere. Worth reporting loudly, not
+                // worth aborting the rest of the world's restore over. A nested NetworkObject is
+                // NOT one of these: Netcode logs that one and carries on, so nothing is thrown and
+                // the only defence is the call order documented above.
                 Debug.LogError($"[Save] Could not network-spawn restored object '{instance.name}': {e.Message}.", instance);
             }
         }

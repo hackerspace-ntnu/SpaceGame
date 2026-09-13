@@ -25,11 +25,21 @@ namespace SpaceGame.Items
             remove => playerInventory.OnSlotChanged -= value;
         }
     
-        public event Action<InventoryItem> OnItemDropped
+        public event Action<InventoryItem, ItemState> OnItemDropped
         {
-            add => playerInventory.OnItemDropped += value; 
+            add => playerInventory.OnItemDropped += value;
             remove => playerInventory.OnItemDropped -= value;
         }
+
+        private EquipmentController equipment;
+
+        /// <summary>
+        /// The hand this hotbar feeds. Resolved on demand rather than in Awake, for the reason
+        /// <c>PlayerInventorySaveable</c> does the same: component order within a frame is not
+        /// something to hang a null on.
+        /// </summary>
+        private EquipmentController Equipment =>
+            equipment != null ? equipment : equipment = GetComponent<EquipmentController>();
 
         private void Awake()
         {
@@ -58,20 +68,42 @@ namespace SpaceGame.Items
         }
 
         public bool TryAddItem(InventoryItem item) => playerInventory.TryAddItem(item);
+
+        public bool TryAddItem(InventoryItem item, out int index) =>
+            playerInventory.TryAddItem(item, out index);
+
+        public bool TrySetSlot(int index, InventoryItem item)
+        {
+            if (index < 0 || index >= GetInventorySize()) return false;
+            playerInventory.SetSlot(index, item);
+            return true;
+        }
         public bool TryRemoveItem(int index) => playerInventory.TryRemoveItem(index);
  
         private void DropItem()
         {
+            // The held object has been diverging from its slot since it was equipped, so the same
+            // write-back a save does has to run first — see PlayerInventoryNetwork's copy of this
+            // for why it cannot be left to Unequip.
+            Equipment?.WriteBackHeldItemState();
+
             playerInventory.DropItem(SelectedSlotIndex);
         }
     
         public InventorySlot GetSlot(int index) => playerInventory.GetSlot(index);
         public InventorySlot GetSelectedSlot() => playerInventory.GetSelectedSlot();
     
+        /// <summary>
+        /// What the player is holding, or null when they are holding nothing.
+        ///
+        /// Null-checked for the reason <c>PlayerInventoryNetwork</c>'s copy of this is: nothing
+        /// selected is the state a hotbar starts in, and <c>PlayerInventory.GetSelectedSlot</c>
+        /// answers that with null rather than with an empty slot.
+        /// </summary>
         public InventoryItem GetSelectedItem()
         {
-            var slot = GetSelectedSlot();
-            return slot.IsEmpty ? null : slot.Item;
+            InventorySlot slot = GetSelectedSlot();
+            return slot == null || slot.IsEmpty ? null : slot.Item;
         }
         public int GetInventorySize() => playerInventory.GetInventorySize();
     }

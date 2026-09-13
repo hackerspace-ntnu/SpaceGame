@@ -44,6 +44,9 @@ namespace SpaceGame.Agents
         [SerializeField] private GameObject projectilePrefab;
         [Tooltip("Initial speed (m/s) of the projectile along the barrel's forward axis.")]
         [SerializeField] private float projectileSpeed = 35f;
+        [Tooltip("Metres a shot from this gun is heard over by NoiseReceiverModules. "
+                 + "0 = silent to AI.")]
+        [SerializeField] private float gunshotNoiseRadius = 55f;
         [Tooltip("Damage per direct hit on an IDamageable.")]
         [SerializeField] private int damagePerHit = 25;
         [Tooltip("Seconds between shots.")]
@@ -291,6 +294,12 @@ namespace SpaceGame.Agents
                 rb = proj.AddComponent<Rigidbody>();
             rb.useGravity = true;
             rb.linearVelocity = launchDir * projectileSpeed;
+
+            // Same split as the damage above: every machine draws the shell, only the one
+            // that simulates this turret reports the bang to the AI.
+            if (authority.SimulatedHere && gunshotNoiseRadius > 0f)
+                Noise.Emit(NoiseType.Gunshot, spawn.position, gunshotNoiseRadius,
+                           transform, transform);
         }
 
         private void OnDrawGizmosSelected()

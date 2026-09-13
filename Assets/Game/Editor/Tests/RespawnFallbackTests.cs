@@ -1,16 +1,19 @@
 // Coming back to life when the spawn point will not have you.
 //
-// Reported from a normal multiplayer session: a player died and the respawn button did nothing but
-// print "[Respawn] No valid spawn position — the player stays down". The world has exactly one
-// spawn point, it is a child of ShipRV standing on the cargo bay floor, and every reason that point
-// has to refuse — cargo stacked on it, the ship parked somewhere awkward, the chunk under it not
-// loaded — ended the respawn outright and left the player face down with no button left to press.
+// The respawn rule proper — you come back inside your ship — lives in ShipRespawn and is pinned by
+// ShipRespawnTests. This path is what PlayerRespawn falls back to when no ship can take the player
+// at all: a scene with no hull, a versus team that never resolved.
+//
+// Originally reported from a normal multiplayer session: a player died and the respawn button did
+// nothing but print "[Respawn] No valid spawn position — the player stays down". Every reason a
+// spawn point has to refuse — cargo stacked on it, the chunk under it not loaded — ended the
+// respawn outright and left the player face down with no button left to press.
 //
 // Refusing is the right answer for a JOINING client, which can wait and ask again. It is the wrong
-// answer for someone already in the session, and nothing about standing up requires a cargo bay. So
-// a refused respawn now looks for open ground outside instead, and these pin that down: it must
-// still prefer the spawn point, it must land under open sky rather than back under the hull, and it
-// must still refuse when there is genuinely no world loaded to stand on.
+// answer for someone already in the session. So a refused respawn looks for open ground instead,
+// and these pin that down: it must still prefer the spawn point, it must land under open sky
+// rather than back under a hull, and it must still refuse when there is genuinely no world loaded
+// to stand on.
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;

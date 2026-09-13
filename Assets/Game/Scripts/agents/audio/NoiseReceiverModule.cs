@@ -55,6 +55,11 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            // Self-registration is what makes this hearable. Noise.Emit walks the registry
+            // rather than the physics scene, so a receiver that never registers is deaf no
+            // matter where it stands or what layer it is on.
+            Noise.Register(this);
+
             // The guard walking toward a gunshot has to still be walking toward it after a reload.
             if (restoredInvestigation)
             {
@@ -64,6 +69,11 @@ namespace SpaceGame.Agents
 
             isInvestigating = false;
             investigateTimer = 0f;
+        }
+
+        private void OnDisable()
+        {
+            Noise.Unregister(this);
         }
 
         /// <summary>
@@ -88,6 +98,19 @@ namespace SpaceGame.Agents
         private AgentTargeting Targeting =>
             targeting != null ? targeting : targeting = AgentTargeting.GetOrAdd(gameObject);
 
+        // A Hurt noise carries the ATTACKER as its instigator, and the attacker is whoever the
+        // faction table says it is. Without this check a Clanker hearing a nomad scream would turn
+        // on whoever shot the nomad — including another Clanker — and an ally that hurt this agent
+        // by accident would be targeted through the noise path even though the faction path never
+        // acquires an ally.
+        private bool IsAlly(Transform other)
+        {
+            EntityFaction self = GetComponent<EntityFaction>();
+            if (self == null) return false;
+            EntityFaction theirs = other.GetComponentInParent<EntityFaction>();
+            return theirs != null && self.IsAlliedWith(theirs);
+        }
+
         // Called by NoiseEmitter when this receiver is within range.
         public void OnNoiseHeard(NoiseType type, Vector3 origin, float radius, Transform instigator)
         {
@@ -95,7 +118,12 @@ namespace SpaceGame.Agents
 
             OnHearNoise?.Invoke(origin);
 
-            if ((aggroOn & typeMask) != 0 && instigator)
+            // Never aggro onto yourself. AgentTargeting.ForceTarget has no self-check of its own,
+            // and a creature handed its own transform chases a target it can never lose and melees
+            // a target it can never miss — it beats itself to death with no attacker anywhere.
+            if ((aggroOn & typeMask) != 0 && instigator
+                && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                && !IsAlly(instigator))
             {
                 Targeting.ForceTarget(instigator);
                 isInvestigating = false;

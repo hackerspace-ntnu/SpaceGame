@@ -1,5 +1,7 @@
-﻿// Reacts to HealthComponent events by enabling/disabling modules at configurable thresholds.
-// Handles death cleanup: ragdoll trigger, despawn timer, and noise emission.
+// Reacts to HealthComponent events by enabling/disabling modules at configurable thresholds.
+// Handles death cleanup: despawn timer and noise emission. The body going limp is AgentRagdoll's,
+// which subscribes to the same HealthComponent directly — a corpse has to be limp on every machine
+// looking at it, and this module's consequences are deliberately run only where the death happened.
 // Drag onto any entity with a HealthComponent.
 using System;
 using System.Collections.Generic;
@@ -68,6 +70,10 @@ namespace SpaceGame.Agents
         /// <summary>Whether this body ever goes away on its own. False means the despawn timer is
         /// switched off, so <see cref="Despawning"/> will never fire and nothing may wait on it.</summary>
         public bool Despawns => despawnDelay > 0f;
+
+        [Header("Diagnostics")]
+        [Tooltip("Log every hit this entity takes, with who dealt it and how much. For 'it keeps taking damage and I cannot see what from'. HealthComponent already records LastDamageSource; nothing was reading it back out, so the only way to answer the question was to guess. Off by default: a busy fight would fill the console.")]
+        [SerializeField] private bool logDamage = false;
 
         private HealthComponent health;
         private NoiseEmitter noiseEmitter;
@@ -192,6 +198,18 @@ namespace SpaceGame.Agents
 
         private void HandleDamage(int amount)
         {
+            if (logDamage)
+            {
+                Transform source = health.LastDamageSource;
+                // The full path, not just the name: "Cactus" and "Cactus" are two different props,
+                // and the parent chain is what says which system a hit came out of.
+                string who = source != null
+                    ? $"{Path(source)} ({source.GetInstanceID()})"
+                    : "<no source recorded>";
+                Debug.Log($"[Damage] {name} took {amount} from {who}, now " +
+                          $"{health.GetHealth}/{health.GetMaxHealth}", this);
+            }
+
             if (!string.IsNullOrEmpty(hurtAnimTrigger) && animator)
                 animator.SetTrigger(hurtAnimTrigger);
 
@@ -201,6 +219,14 @@ namespace SpaceGame.Agents
             Sfx.Play(hurtId, transform.position, hurtSound, GetInstanceID());
 
             CheckThresholds();
+        }
+
+        private static string Path(Transform t)
+        {
+            string path = t.name;
+            for (Transform p = t.parent; p != null; p = p.parent)
+                path = p.name + "/" + path;
+            return path;
         }
 
         private void HandleDeath()

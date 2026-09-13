@@ -48,7 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Weather.SandstormVfx
   intensityProperty: Intensity
   windProperty: WindDirection
-  presenceCurve: 0.4
+  presenceCurve: 0.32
 --- !u!1 &6252389382884756895
 GameObject:
   m_ObjectHideFlags: 0
@@ -919,7 +919,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 3400
+      scalar: 4200
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -5755,7 +5755,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 32000
+      scalar: 40000
       minScalar: 10
       maxCurve:
         serializedVersion: 2

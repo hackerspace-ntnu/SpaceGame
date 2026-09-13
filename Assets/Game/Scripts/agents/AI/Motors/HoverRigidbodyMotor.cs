@@ -61,6 +61,20 @@ namespace SpaceGame.Agents
 
         [SerializeField] private HoverGroundSensor groundSensor = new HoverGroundSensor();
 
+        [Header("Parked")]
+        [Tooltip("When nobody is riding and the AI has no standing order, hand the hull to " +
+                 "physics: gravity on, servo off, so the craft settles onto its own colliders " +
+                 "and sits there as dead weight. Off = classic behaviour: an empty craft keeps " +
+                 "hovering at ride height.")]
+        [SerializeField] private bool restWhenParked;
+
+        [Tooltip("How fast a parked hull rights itself, in degrees/sec. A driven hull is held flat " +
+                 "every physics step; a parked one is held by nothing, and FreezeRotation only " +
+                 "preserves whatever attitude it already has. So a hull left pitched — by an " +
+                 "interrupted descent, a restored save, a teleport — keeps that pitch for ever, and " +
+                 "a tilted deck is one the crew slide off. 0 leaves the attitude alone.")]
+        [SerializeField, Min(0f)] private float parkedLevelRate = 45f;
+
         // What the AI channel last asked for. Applied on the physics clock, not when it arrives.
         private MoveIntent pendingIntent = MoveIntent.Idle();
         private Vector3? currentDestination;
@@ -90,7 +104,18 @@ namespace SpaceGame.Agents
         private float riderForwardSpeed;
         private bool riderSpeedValid;
 
+        // Whether the parked handover to physics is currently in effect. Tracked so the gravity
+        // flag is only written on the transition, not fought over every step.
+        private bool isParked;
+
+        // The constraints the body was authored with, captured once so parking can add its own and
+        // un-parking can hand back exactly what it found.
+        private RigidbodyConstraints authoredConstraints;
+
         public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>.</summary>
+        public float TopSpeed => maxSpeed;
 
         /// <summary>Ground clearance the craft is holding, in metres.</summary>
         public float RideHeight
@@ -101,6 +126,18 @@ namespace SpaceGame.Agents
 
         /// <summary>True while the craft is over ground it can actually measure.</summary>
         public bool HasGround => groundSensor.HasGround;
+
+        /// <summary>
+        /// Half-extents of the ground this craft rides over, in its own axes.
+        ///
+        /// <para>
+        /// Exposed so whoever puts the craft DOWN measures the same patch of ground the servo will
+        /// hold it over once it wakes up. A landing grounded against a different footprint is a
+        /// landing the craft corrects on its first physics step, which reads as a ship that touches
+        /// down and then floats back up.
+        /// </para>
+        /// </summary>
+        public Vector2 FootprintExtents => groundSensor.FootprintExtents;
 
         public bool IsImmobile
         {
@@ -174,13 +211,29 @@ namespace SpaceGame.Agents
                 body = GetComponent<Rigidbody>();
 
             // The servo owns the vertical axis outright, so gravity would only be a force to cancel
-            // every step. Unlike a flying craft there is no parked state where letting go is right:
-            // a hovercraft with nobody aboard still hovers.
+            // every step. By default there is no parked state where letting go is right — a
+            // hovercraft with nobody aboard still hovers. restWhenParked is the opt-out for hulls
+            // that are meant to stand on the ground as dead weight between flights.
             if (body)
-                body.useGravity = false;
+            {
+                authoredConstraints = body.constraints;
+                body.useGravity = restWhenParked;
+                isParked = restWhenParked;
+                if (isParked) body.constraints = ParkedConstraints(authoredConstraints);
+            }
 
             groundSensor.Initialize(transform);
         }
+
+        /// <summary>
+        /// Tell the hull it is carrying <paramref name="body"/>, so its own height probe stops
+        /// reading them as the ground and climbing on them. See
+        /// <see cref="HoverGroundSensor.Carry"/> for the failure this prevents.
+        /// </summary>
+        public void Carry(GameObject body) => groundSensor.Carry(body);
+
+        /// <summary>Counterpart to <see cref="Carry"/>.</summary>
+        public void StopCarrying(GameObject body) => groundSensor.StopCarrying(body);
 
         // ─────────── AI channel ───────────
         public void Tick(in MoveIntent intent, float deltaTime)
@@ -207,10 +260,72 @@ namespace SpaceGame.Agents
             riderSpeedValid = false;
             hasPendingRiderInput = false;
 
-            if (!body)
+            // A kinematic body has no velocity to zero, and Unity warns on the write. The arrival
+            // parks the hull while it is still kinematic from the descent, which is how this used
+            // to log twice per landing.
+            if (!body || body.isKinematic)
                 return;
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
+        }
+
+        /// <summary>
+        /// What a parked hull may do: everything it was authored to, minus horizontal travel.
+        ///
+        /// <para>
+        /// Pure so the one fact worth asserting — parking pins X and Z and ONLY X and Z — can be
+        /// asserted without a physics scene. Y stays free deliberately: gravity is what seats the
+        /// parked hull on the ground, and freezing it would leave a craft parked mid-hover hanging
+        /// where it stopped.
+        /// </para>
+        /// </summary>
+        public static RigidbodyConstraints ParkedConstraints(RigidbodyConstraints authored) =>
+            authored | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
+
+        /// <summary>
+        /// One step of a parked hull righting itself: the same yaw, no pitch and no roll, reached at
+        /// no more than <paramref name="maxDegrees"/> of turn.
+        ///
+        /// <para>
+        /// Pure so the fact worth asserting — a parked hull ends level and keeps the heading it was
+        /// parked on — can be asserted without a physics scene. The rate exists rather than a snap
+        /// because a wreck that flicks upright in one frame reads as a glitch, and because anybody
+        /// standing on the deck is carried by that rotation.
+        /// </para>
+        /// </summary>
+        public static Quaternion LevelStep(Quaternion current, float maxDegrees)
+        {
+            Quaternion level = Quaternion.Euler(0f, current.eulerAngles.y, 0f);
+            return maxDegrees <= 0f
+                ? current
+                : Quaternion.RotateTowards(current, level, maxDegrees);
+        }
+
+        /// <summary>
+        /// Keep a parked hull flat.
+        ///
+        /// <para>
+        /// The driven path writes the attitude every physics step, "whether or not anything steered
+        /// this step", for exactly this reason: this hull is walked around inside. Parking used to
+        /// return before that write, which made the parked state the one place a tilt could survive
+        /// — and <c>FreezeRotation</c> is no help, because it stops physics CHANGING the attitude,
+        /// not physics being unable to correct one. A pitch left over from an interrupted descent, a
+        /// restored save or a teleport therefore stood for the rest of the session, with the crew
+        /// sliding off their own deck and nothing in the console.
+        /// </para>
+        /// </summary>
+        private void HoldParkedAttitude()
+        {
+            // A kinematic hull is somebody else's to pose — the descent's, or a remote machine's.
+            // MoveRotation on it would fight whatever is writing the transform.
+            if (parkedLevelRate <= 0f || body.isKinematic)
+                return;
+
+            Quaternion stepped = LevelStep(body.rotation, parkedLevelRate * Time.fixedDeltaTime);
+            if (stepped == body.rotation)
+                return;
+
+            body.MoveRotation(stepped);
         }
 
         public void NudgeDestination(Vector3 offset)
@@ -239,6 +354,32 @@ namespace SpaceGame.Agents
         {
             if (!body)
                 return;
+
+            // Parked = nobody riding and no standing AI order. With restWhenParked on, this is the
+            // one state where the motor deliberately lets go: gravity is on and nothing writes the
+            // velocity or the attitude, so the hull rests on its own colliders. Its horizontal
+            // position is FROZEN while it does — "moves as far as its mass allows" was the first
+            // version, and mass is no defence here: agents and mounts walk on KINEMATIC bodies,
+            // and a kinematic collider depenetrates a dynamic one with infinite authority, so a
+            // strolling NPC could shove a 60-tonne wreck around by leaning on it. The vertical
+            // axis stays free so gravity can still settle the hull onto the ground it was parked
+            // over. The moment anything drives again, the constraints are handed back and the
+            // servo re-seeds its heading from wherever physics left the hull pointing.
+            bool parked = restWhenParked && !hasPendingRiderInput
+                          && pendingIntent.Type == AgentIntentType.Idle;
+            if (parked != isParked)
+            {
+                isParked = parked;
+                body.useGravity = parked;
+                body.constraints = parked ? ParkedConstraints(authoredConstraints) : authoredConstraints;
+                if (!parked)
+                    headingValid = false;
+            }
+            if (parked)
+            {
+                HoldParkedAttitude();
+                return;
+            }
 
             float deltaTime = Time.fixedDeltaTime;
 

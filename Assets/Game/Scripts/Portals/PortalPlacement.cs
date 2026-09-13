@@ -159,6 +159,36 @@ namespace SpaceGame.Portals
         }
 
         /// <summary>
+        /// Where one blob of sprayed paint lands, or false if it does not stick.
+        ///
+        /// The whole edge-probing apparatus above is deliberately absent here. <see cref="Fit"/>
+        /// exists because a single click had to place a whole aperture that might hang half off
+        /// the end of a wall — the player never chose its outline, so the code had to. Paint
+        /// chooses its own outline: it can only land where the player pointed at a surface, and a
+        /// dab that falls off the end of a wall simply is not painted. So there is nothing to
+        /// slide, no rim to check and no best-effort fallback to fall back to. It sticks, or it
+        /// splashes and the aperture is whatever the rest of the stroke came to.
+        /// </summary>
+        public static bool FitDab(RaycastHit hit, LayerMask surfaceMask, Vector3 viewForward,
+                                  out Vector3 position, out Quaternion rotation)
+        {
+            position = hit.point;
+            rotation = Quaternion.identity;
+
+            Collider surface = hit.collider;
+            if (surface == null) return false;
+
+            if ((surfaceMask.value & (1 << surface.gameObject.layer)) == 0) return false;
+
+            // The one hard refusal, and it is opt-in: a designer says no.
+            if (surface.GetComponentInParent<NonPortalable>() != null) return false;
+
+            rotation = Orientation(hit.normal, viewForward);
+            position = hit.point + hit.normal * SurfaceOffset;
+            return true;
+        }
+
+        /// <summary>
         /// Which way is up on this wall.
         ///
         /// Vertical surfaces take world up, so apertures on walls are never

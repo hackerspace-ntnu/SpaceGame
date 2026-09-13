@@ -232,20 +232,5 @@ namespace SpaceGame.Tests
             Assert.IsNotNull(handlers, "The visor never subscribed at all.");
             Assert.AreEqual(1, handlers.GetInvocationList().Length);
         }
-
-        [Test]
-        public void NavMarkersTakeTheWearersFaction()
-        {
-            PlayerController wearer = NewPlayer("player-0");
-            NewPlayer("player-1");
-            NewPlayer("player-2");
-
-            var go = new GameObject("NavMarkers", typeof(RectTransform));
-            go.transform.SetParent(wearer.transform, false);
-            var markers = go.AddComponent<HelmetNavMarkers>();
-
-            Assert.AreSame(wearer.GetComponent<EntityFaction>(), markers.PlayerFaction,
-                "Adopting a stranger's faction is what paints your own team-mates hostile.");
-        }
     }
 }

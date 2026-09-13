@@ -109,18 +109,13 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            // Prefer the *currently active* main camera (handles mount/unmount and
-            // third-person swaps where the AimProvider's serialized camera ref can
-            // be stale or disabled). Fall back to AimProvider, then player forward.
+            // AimProvider, and only AimProvider. It already resolves the view a mounted player is
+            // actually looking through; the Camera.main preference that used to sit in front of it
+            // could not — the mount's orbit camera is deliberately left Untagged so it never
+            // becomes Camera.main, and the eye it falls back to is switched off for the whole ride.
             Vector3 rawAimDir;
             string aimSource;
-            var activeCam = Camera.main;
-            if (activeCam != null && activeCam.isActiveAndEnabled)
-            {
-                rawAimDir = activeCam.transform.forward;
-                aimSource = "Camera.main:" + activeCam.name;
-            }
-            else if (aimProvider != null)
+            if (aimProvider != null)
             {
                 rawAimDir = aimProvider.GetAimRay().direction;
                 aimSource = "AimProvider";

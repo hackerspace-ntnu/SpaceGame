@@ -47,6 +47,15 @@ namespace SpaceGame.Agents
         [Header("Debug")]
         [SerializeField] private bool logTransitions = false;
 
+        [Tooltip("Optional. Drives NpcTask.dwellFlag while the NPC is working a site — how a " +
+                 "grazing animal gets its head down. Found on this object or a child when unset.")]
+        [SerializeField] private AgentAnimatorDriver animatorDriver;
+
+        // The flag currently held true, so it can be cleared on the way out even if the task has
+        // already been swapped for the next one. Leaving it set is how an animal ends up grazing
+        // its way across the desert.
+        private string heldDwellFlag;
+
         // Side-effect only. See the file header — this is the contract, not an optimisation.
         public override bool ClaimsMovement => false;
 
@@ -267,6 +276,7 @@ namespace SpaceGame.Agents
 
             CurrentPhase = Phase.Dwelling;
             phaseTimer = CurrentTask != null ? CurrentTask.RollDwell() : 10f;
+            SetDwellFlag(CurrentTask != null ? CurrentTask.dwellFlag : null);
             Log($"arrived, working for {phaseTimer:F0}s");
         }
 
@@ -276,11 +286,37 @@ namespace SpaceGame.Agents
             if (phaseTimer > 0f) return;
 
             CollectYield();
+            SetDwellFlag(null);
             CurrentPhase = Phase.Choosing;
             phaseTimer = 0f;
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Hold one animator bool for the duration of a dwell, and never more than one.
+        ///
+        /// Clearing the previous flag before setting the new one is the whole of it: the two tasks
+        /// either side of a transition can name different flags, and setting without clearing
+        /// leaves an animal grazing and drinking at once.
+        /// </summary>
+        private void SetDwellFlag(string flag)
+        {
+            if (heldDwellFlag == flag) return;
+
+            if (animatorDriver == null)
+                animatorDriver = GetComponentInChildren<AgentAnimatorDriver>();
+
+            if (animatorDriver != null)
+            {
+                if (!string.IsNullOrEmpty(heldDwellFlag))
+                    animatorDriver.SetBoolByName(heldDwellFlag, false);
+                if (!string.IsNullOrEmpty(flag))
+                    animatorDriver.SetBoolByName(flag, true);
+            }
+
+            heldDwellFlag = flag;
+        }
 
         private void CollectYield()
         {

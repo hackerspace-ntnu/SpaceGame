@@ -17,12 +17,10 @@ Exports are meant to be re-run; this only ever reads the .blend.
 import os
 import sys
 
-import bpy
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 
-from _exportlib import export, unity_path  # noqa: E402
+from _exportlib import describe, export, unity_path  # noqa: E402
 
 SRC = os.path.join(HERE, "item_scanner.blend")
 DST = unity_path("Items", "item_scanner.fbx")
@@ -31,14 +29,9 @@ DST = unity_path("Items", "item_scanner.fbx")
 def main():
     export(SRC, DST, keep_armature=False)
     # The Unity prefab wires the dial, antenna and screen by serialized
-    # reference and needs to know where each pivot landed. Printing it here
-    # beats measuring it in the editor afterwards.
-    meshes = [o for o in bpy.data.objects if o.type == 'MESH']
-    for obj in sorted(meshes, key=lambda o: o.name):
-        loc = obj.location
-        uv = "uv" if obj.data.uv_layers else "--"
-        print("  PIVOT %-34s (%.4f, %.4f, %.4f)  %s"
-              % (obj.name, loc.x, loc.y, loc.z, uv))
+    # reference and needs to know where each pivot landed; the screen plate
+    # must be the one mesh reported with a UV layer.
+    describe(worn_scale=2.1)
 
 
 main()

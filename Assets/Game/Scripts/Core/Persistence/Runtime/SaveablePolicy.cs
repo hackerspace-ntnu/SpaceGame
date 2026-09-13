@@ -153,6 +153,15 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(HealthSaveable));
             }
 
+            // Air, for the same reason as health and by the same rule: it is a number on the
+            // wearer that nothing else records. A bottle's charge saves itself because a charged
+            // and a drained bottle are two different items, but a half-empty SUIT is a float.
+            if (go.GetComponent<SuitOxygen>() != null && go.GetComponent<SuitOxygenSaveable>() == null)
+            {
+                go.AddComponent<SuitOxygenSaveable>();
+                parts.Add(nameof(SuitOxygenSaveable));
+            }
+
             // Momentum only where there is a body to carry it, and never on a kinematic one, whose
             // velocity is meaningless.
             var body = go.GetComponent<Rigidbody>();
@@ -209,6 +218,24 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<OrnithopterSaveable>();
                 parts.Add(nameof(OrnithopterSaveable));
+            }
+
+            // Which hull modules a ship has been repaired with. On the root rather than the
+            // subtree, unlike ArticulatedPart above: the rack IS the entity's own component, and
+            // a hull towing another hull must not adopt its parts.
+            if (go.GetComponent<ShipPartRack>() != null && go.GetComponent<ShipPartsSaveable>() == null)
+            {
+                go.AddComponent<ShipPartsSaveable>();
+                parts.Add(nameof(ShipPartsSaveable));
+            }
+
+            // Which team a hull is painted for. Runtime-spawned rather than authored — every versus
+            // ship is made mid-match — so the runtime pass is the one that matters here, and it is
+            // the reason this clause exists rather than the colour being wired onto a prefab.
+            if (go.GetComponent<ShipTeamAccent>() != null && go.GetComponent<ShipAccentSaveable>() == null)
+            {
+                go.AddComponent<ShipAccentSaveable>();
+                parts.Add(nameof(ShipAccentSaveable));
             }
 
             EnsureAgentMind(go, parts);
@@ -482,18 +509,21 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(LeverSaveable));
             }
 
-            if (go.GetComponent<RepairWorkstation>() != null &&
-                go.GetComponent<RepairWorkstationSaveable>() == null)
+            // A cell and a bottle left in the plant are items out of somebody's hotbar. Without
+            // this they are simply gone on the next load, and the machine comes back dark needing
+            // a cell nobody has any more.
+            if (go.GetComponent<OxygenGenerator>() != null &&
+                go.GetComponent<OxygenGeneratorSaveable>() == null)
             {
-                go.AddComponent<RepairWorkstationSaveable>();
-                parts.Add(nameof(RepairWorkstationSaveable));
+                go.AddComponent<OxygenGeneratorSaveable>();
+                parts.Add(nameof(OxygenGeneratorSaveable));
             }
 
-            // The game's win condition. Deposit two of three scrap, reload, and it was back at zero.
-            if (go.GetComponent<SpaceGame.World.Ship>() != null && go.GetComponent<ShipSaveable>() == null)
+            if (go.GetComponent<HoloProjectorInteraction>() != null &&
+                go.GetComponent<ProjectorSaveable>() == null)
             {
-                go.AddComponent<ShipSaveable>();
-                parts.Add(nameof(ShipSaveable));
+                go.AddComponent<ProjectorSaveable>();
+                parts.Add(nameof(ProjectorSaveable));
             }
 
             if (go.GetComponent<SpaceGame.Gameplay.Trading.TraderInteraction>() != null &&
@@ -567,6 +597,11 @@ namespace SpaceGame.Core.Persistence
             // load, so its record would be captured faithfully and then dropped with a warning. Say so
             // now, at the spawn, where the prefab responsible is still identifiable.
             SaveableEntity entity = go.GetComponent<SaveableEntity>();
+
+            // Says "this one really was created during play", so EnsureScene leaves its GUID alone
+            // rather than promoting it the way it promotes a placed prefab instance.
+            if (entity != null) entity.MarkIdentityFinal();
+
             if (entity != null && string.IsNullOrEmpty(entity.PrefabId))
             {
                 Debug.LogWarning($"[Save] '{go.name}' was spawned at runtime and qualifies for saving, " +
@@ -586,6 +621,23 @@ namespace SpaceGame.Core.Persistence
         /// subset somebody remembered to prepare. Objects wired here get a derived identity — see
         /// <see cref="SaveableEntity.DeriveAuthoredId"/> — because a fresh GUID would be a different
         /// object every session and would persist nothing.
+        ///
+        /// <para>
+        /// Two kinds of object need that identity, and for a long time only the first got it. A
+        /// plain GameObject placed in a scene has no <see cref="SaveableEntity"/> until this pass
+        /// adds one. An instance of a saveable PREFAB already has one, brought in from the prefab
+        /// asset with <c>authored</c> false and <c>instanceId</c> empty — and this pass used to skip
+        /// anything that already had the component, so every placed creature, vehicle and pickup in
+        /// the world kept the random GUID <c>Awake</c> gives it and was captured as though a player
+        /// had spawned it during play. On the next hydrate the scene file re-created it AND the
+        /// store instantiated the record beside it: one more copy per chunk load, growing for the
+        /// life of the world, with nothing logged. Ten golems stood in Chunk_7_5 after an hour.
+        /// </para>
+        /// <para>
+        /// Baking the identity into the scene at edit time is still preferred — a GUID survives
+        /// renaming and re-parenting where a derived id does not — but it is an optimisation again
+        /// rather than the only thing standing between a placed object and being duplicated.
+        /// </para>
         /// </summary>
         public static int EnsureScene(Scene scene)
         {
@@ -599,7 +651,13 @@ namespace SpaceGame.Core.Persistence
                 {
                     GameObject go = t.gameObject;
 
-                    if (go.GetComponent<SaveableEntity>() != null) continue;
+                    var existing = go.GetComponent<SaveableEntity>();
+                    if (existing != null)
+                    {
+                        if (AdoptPlacedInstance(existing, go)) wired++;
+                        continue;
+                    }
+
                     if (!NeedsSaving(go, out _)) continue;
 
                     // Identity before savers: SaveableEntity registers itself the moment it is
@@ -614,6 +672,35 @@ namespace SpaceGame.Core.Persistence
             }
 
             return wired;
+        }
+
+        /// <summary>
+        /// Gives a placed instance of a saveable prefab the authored identity nobody baked into the
+        /// scene for it, and reports whether it needed one.
+        ///
+        /// The three things it must not touch, in the order they are checked:
+        /// an object that already knows what it is — baked at edit time, derived here on an earlier
+        /// hydrate, or adopted from the record it was restored from; a player, whose record belongs
+        /// to <c>PlayerSaveService</c> and which would be captured twice and re-instantiated
+        /// lifeless beside itself; and an object genuinely spawned during play, which
+        /// <see cref="EnsureSpawned"/> has marked, because an authored record is never dropped and a
+        /// dropped item promoted here could not be picked back up for good.
+        /// </summary>
+        private static bool AdoptPlacedInstance(SaveableEntity entity, GameObject go)
+        {
+            if (!entity.IdentityIsProvisional || entity.IsAuthored) return false;
+            if (!entity.BelongsToWorld) return false;
+            if (!NeedsSaving(go, out _)) return false;
+
+            entity.AdoptAuthoredIdentity(SaveableEntity.DeriveAuthoredId(go));
+
+            // The prefab supplied the entity but not necessarily the savers its components imply —
+            // a prefab wired before someone added a HealthComponent to it is missing one. Unlike
+            // the branch above, this entity has been alive since Awake and may already have cached
+            // its saver list, so anything added now has to be announced or it is never captured.
+            if (Ensure(go, out _)) entity.InvalidateSavers();
+
+            return true;
         }
     }
 }

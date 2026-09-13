@@ -45,7 +45,7 @@ namespace SpaceGame.Gameplay
         [SerializeField] private bool useGameObjectName;
 
         [Tooltip("What the buttons do. Empty derives it from which interfaces the component " +
-                 "implements — 'E: interact', plus a Use line when it takes a secondary action.")]
+                 "implements — 'RMB: interact', plus a Use line when it takes a secondary action.")]
         [SerializeField] private string prompt;
 
         /// <summary>Whether this interactable should be described on screen at all.</summary>

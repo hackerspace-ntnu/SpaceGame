@@ -41,7 +41,7 @@ namespace SpaceGame.Core
         public event Action OnDropPressed;
     
         public event Action OnInteractPressed;
-    
+
         public event Action OnUsePressed;
 
         /// <summary>
@@ -57,28 +57,264 @@ namespace SpaceGame.Core
         public event Action OnUseReleased;
 
         /// <summary>
-        /// The secondary trigger — right mouse, left gamepad trigger.
+        /// Crouch, held rather than toggled: pressed and released are both published, and
+        /// <see cref="CrouchHeld"/> is the same answer for anything that would rather ask than
+        /// listen.
         ///
-        /// Built in code rather than added to InputSystem_Actions, because
-        /// InputControls.cs embeds its own copy of that asset's JSON and is what
-        /// actually binds at runtime: editing the .inputactions does nothing
-        /// until the generated file is regenerated, and hand-patching 3000 lines
-        /// of generated code to add one button is a much larger risk to every
-        /// other control in the game than owning this one action here.
-        ///
-        /// It still lives on this component so it obeys the same enable and
-        /// disable as everything else — an alternate fire that kept working
-        /// through death and menus would be worse than not having one.
+        /// The action was already declared in InputSystem_Actions and generated into
+        /// InputControls — it simply had no consumer — so this is a subscription, not a new
+        /// binding, and it costs none of the risk described on <see cref="OnPackYawScrolled"/>.
         /// </summary>
-        public event Action OnAltUsePressed;
+        public event Action OnCrouchPressed;
 
-        private InputAction altUse;
+        /// <summary>Crouch let go of. Also raised by the Input System when the map is disabled,
+        /// which is what stands a player up on death and on opening a menu.</summary>
+        public event Action OnCrouchReleased;
+
+        /// <summary>
+        /// Is crouch down right now? Latched from the same two callbacks, so it can never
+        /// disagree with them, and cleared in <see cref="OnDisable"/> for the same reason
+        /// <see cref="MoveInput"/> is: a held key that outlives the map is a stance nothing
+        /// will ever come back to cancel.
+        /// </summary>
+        public bool CrouchHeld { get; private set; }
+
+        /// <summary>
+        /// Is sprint (Shift) down right now? Latched the way <see cref="CrouchHeld"/> is and
+        /// cleared with it, for the same reason. The action existed and was read only by the
+        /// mounts' <c>SteerModule</c>; the body's own sprint was a double tap of forward.
+        /// </summary>
+        public bool SprintHeld { get; private set; }
+
+        /// <summary>
+        /// Whether Jump is DOWN, as opposed to having been pressed.
+        ///
+        /// <para>
+        /// The jetpack's throttle. Every other consumer of Jump wants the edge — one press, one
+        /// hop — but a motor that fires for as long as you hold the button has to be able to ask
+        /// the state, and reconstructing it from the two events at every call site is how two
+        /// systems end up disagreeing about whether the key is down.
+        /// </para>
+        /// <para>
+        /// Cleared in <see cref="OnDisable"/> for the same reason <see cref="CrouchHeld"/> is: a
+        /// held key that outlives the map is a throttle nothing will ever come back to close.
+        /// </para>
+        /// </summary>
+        public bool JumpHeld { get; private set; }
 
         public event Action OnJumpPressed;
-    
+
+        /// <summary>
+        /// A gauntlet's own trigger went down: Q for the left forearm, E for the right. Pressed
+        /// and released are both published because the grapple's winch latches on the button, so
+        /// a gauntlet has the same hold stream a held item does.
+        ///
+        /// <para>
+        /// Q and E are also the <c>Turn</c> axis every mount steers with. That is deliberate — a
+        /// rider has no free hands — and it is the consumer's job to drop these while mounted;
+        /// the actions themselves stay bound so nothing has to be rebound on dismount.
+        /// </para>
+        /// </summary>
+        public event Action<Items.ItemGrip.Hand> OnGauntletPressed;
+
+        /// <summary>The gauntlet trigger let go of. Also raised by the Input System when the map is
+        /// disabled, which is what ends a held grapple on death and on opening a menu.</summary>
+        public event Action<Items.ItemGrip.Hand> OnGauntletReleased;
+
+        /// <summary>
+        /// Jump pressed twice inside <see cref="bodyActivateDoubleTap"/>: deploy whatever is worn
+        /// on the back. The first press still jumps — <see cref="OnJumpPressed"/> is raised for
+        /// both — and the second is a jump too if the body is grounded, which it is not once the
+        /// first one has taken it off the ground. The wing pack, the only back item, refuses on
+        /// the ground anyway.
+        /// </summary>
+        public event Action OnBodyActivatePressed;
+
+        [Header("Body gear")]
+        [Tooltip("Seconds between two Jump presses that count as a double tap. Fixed and short, so " +
+                 "it reads as a gesture rather than an assist.")]
+        [SerializeField, Min(0.05f)] private float bodyActivateDoubleTap = 0.3f;
+
+        private Items.DoubleTap bodyActivate;
+
         public event Action OnDashPressed;
 
         public event Action OnBackpackPressed;
+
+        /// <summary>
+        /// Wheel notches while an item is held in hand over a deployed pack: +1 per notch up,
+        /// -1 per notch down. The consumer turns them into yaw.
+        ///
+        /// <para>
+        /// A second action on the same physical wheel rather than a second subscriber to
+        /// <see cref="OnHotbarScrolled"/>, because that one is already bound to changing hotbar
+        /// slots — rotating a staff on the mat would also swap what the player is holding.
+        /// </para>
+        /// <para>
+        /// Built in code rather than added to InputSystem_Actions: <c>InputControls.cs</c> embeds
+        /// its own copy of that asset's JSON and is what actually binds at runtime, so editing the
+        /// .inputactions does nothing until the generated file is regenerated, and hand-patching
+        /// 3000 lines of generated code to add one control is a much larger risk to every other
+        /// binding in the game than owning this one action here. It still lives on this component
+        /// so it obeys the same enable and disable as everything else.
+        /// </para>
+        /// </summary>
+        public event Action<int> OnPackYawScrolled;
+
+        private InputAction packYaw;
+        private float packYawAccumulator;
+
+        /// <summary>
+        /// A hotbar key pressed while a pack is open in front of the player: that slot's item comes
+        /// into the player's hand, to be put down wherever they then click. The 0-based slot index.
+        ///
+        /// <para>
+        /// The click verb on a key. The mouse counterpart is a left-click on the slot itself, which
+        /// <c>InventorySlotUI</c> hands to <c>PackHandController</c> through <c>InventoryUI</c>, and
+        /// that is the one most players will find. This stays because a key the player already
+        /// associates with that slot costs nothing and needs no aim — and because it lifts rather
+        /// than places, it cannot put anything anywhere the player did not point at.
+        /// </para>
+        /// <para>
+        /// Separate actions on the same physical keys rather than a second subscriber to
+        /// <see cref="OnHotbarPressed"/>, for the reason spelled out on
+        /// <see cref="OnPackYawScrolled"/> and one more besides. The first: those actions live on
+        /// the <c>Hotbar</c> map, and focus mode runs with this whole component — and therefore
+        /// that map — disabled, so they do not fire at all while a pack is open. The second: they
+        /// are already bound to CHANGING the selected slot, so waking them here would select a slot
+        /// in the same keystroke that empties it.
+        /// </para>
+        /// <para>
+        /// Four, not ten: the hotbar is four slots wide (<c>PlayerInventoryNetwork.inventorySize</c>)
+        /// and keys 5-10 select nothing to stow.
+        /// </para>
+        /// </summary>
+        public event Action<int> OnPackStowPressed;
+
+        /// <summary>How many hotbar keys the stow gesture covers. See <see cref="OnPackStowPressed"/>.</summary>
+        private const int PackStowKeys = 4;
+
+        private InputAction[] packStow;
+
+        /// <summary>
+        /// R while a pack is open in front of the player: flip its front leaf up into a rack, or
+        /// back down flat.
+        ///
+        /// <para>
+        /// A new action rather than a reuse, and the reason is the same one that forced the two
+        /// above into existence: focus mode runs with this whole component — and therefore every
+        /// map on it — disabled, so nothing already bound is even firing. What IS alive in a focus
+        /// session is the wheel and keys 1-4, and both are already spoken for; there is nothing
+        /// left to compose with.
+        /// </para>
+        /// <para>
+        /// R is free of conflict by construction, not by luck: the action is off unless a session
+        /// switched it on, so it does nothing in the world, nothing in a menu, and nothing on a
+        /// body that is not the local player's.
+        /// </para>
+        /// </summary>
+        public event Action OnPackRackPressed;
+
+        private InputAction packRack;
+
+        /// <summary>
+        /// Switches the pack-yaw wheel on for the length of a focus session.
+        ///
+        /// <para>
+        /// Off by default and NOT enabled by <see cref="OnEnable"/>, unlike every other action
+        /// here, because focus mode runs with this whole component disabled — taking control goes
+        /// through <c>PlayerController.EnterCutsceneMode</c>, which is exactly what stops the
+        /// player walking about while they rummage. So the one input that must survive that has to
+        /// be turned on afterwards, by the thing that took control.
+        /// </para>
+        /// <para>
+        /// <see cref="OnDisable"/> still turns it off. A focus session enters the menu scope first
+        /// and enables this second, so the ordering works out; and a player who dies holding an item has
+        /// their input disabled again, which takes the wheel with it.
+        /// </para>
+        /// </summary>
+        public void SetPackYawEnabled(bool on)
+        {
+            EnsureInputs();
+
+            if (on) packYaw.Enable();
+            else
+            {
+                packYaw.Disable();
+                packYawAccumulator = 0f;
+            }
+        }
+
+        /// <summary>
+        /// Switches the hotbar-to-pack keys on for the length of a focus session.
+        ///
+        /// Off by default and turned on by the thing that took control, for exactly the reasons
+        /// written out on <see cref="SetPackYawEnabled"/> — which this is a second copy of because
+        /// the two are enabled and disabled by the same two lines and must not drift apart.
+        /// </summary>
+        public void SetPackStowEnabled(bool on)
+        {
+            EnsureInputs();
+
+            for (int i = 0; i < packStow.Length; i++)
+            {
+                if (on) packStow[i].Enable();
+                else packStow[i].Disable();
+            }
+        }
+
+        /// <summary>
+        /// Hands the wheel to the pack-yaw action and takes it back off the hotbar, or the other
+        /// way round.
+        ///
+        /// <para>
+        /// The backpack never needed this: focus mode runs with this whole component — and
+        /// therefore the Hotbar map — disabled, so switching the yaw action on there could not
+        /// collide with anything. The inventory wall has no mode at all; the player is walking
+        /// around with every action live, and one notch would otherwise both turn the item and
+        /// change which item they are holding.
+        /// </para>
+        /// <para>
+        /// So the two are switched as a PAIR, here, rather than by two calls that could drift out
+        /// of step and leave a player whose wheel does nothing at all. Re-enabling the hotbar wheel
+        /// unconditionally is safe: it is on whenever this component is, and this method is only
+        /// reachable from a body whose input is live.
+        /// </para>
+        /// </summary>
+        public void SetWheelTurnsItems(bool on)
+        {
+            EnsureInputs();
+
+            if (on)
+            {
+                inputs.Hotbar.HotbarScroll.Disable();
+                packYaw.Enable();
+                return;
+            }
+
+            packYaw.Disable();
+            packYawAccumulator = 0f;
+
+            // The leftovers as well as the action. A notch banked against the yaw threshold would
+            // otherwise be waiting the next time the player looks at a wall, and turn the first
+            // item they hold up to it without them touching the wheel.
+            scrollAccumulator = 0f;
+            inputs.Hotbar.HotbarScroll.Enable();
+        }
+
+        /// <summary>
+        /// Switches the rack key on for the length of a focus session. Third copy of the two
+        /// above, and off by default for the same reason: the component this lives on is disabled
+        /// while a session owns the screen, so anything that must survive that has to be switched
+        /// on afterwards by whatever took control.
+        /// </summary>
+        public void SetPackRackEnabled(bool on)
+        {
+            EnsureInputs();
+
+            if (on) packRack.Enable();
+            else packRack.Disable();
+        }
 
         private void Awake()
         {
@@ -103,9 +339,26 @@ namespace SpaceGame.Core
 
             inputs = new InputControls();
 
-            altUse = new InputAction("AltUse", InputActionType.Button);
-            altUse.AddBinding("<Mouse>/rightButton").WithGroup("Keyboard&Mouse");
-            altUse.AddBinding("<Gamepad>/leftTrigger").WithGroup("Gamepad");
+            // Value, not Button: a wheel reports a delta and this needs every one of them, the
+            // same way Hotbar.HotbarScroll does.
+            packYaw = new InputAction("PackYaw", InputActionType.Value);
+            packYaw.AddBinding("<Mouse>/scroll/y").WithGroup("Keyboard&Mouse");
+
+            // One action per key rather than one action with four bindings, so which key was
+            // pressed is the action's identity instead of a string read back off the control that
+            // triggered it. The paths match the Hotbar map's own — see the note on
+            // OnPackStowPressed for why this cannot simply reuse those actions.
+            packStow = new InputAction[PackStowKeys];
+
+            for (int i = 0; i < PackStowKeys; i++)
+            {
+                packStow[i] = new InputAction("PackStow" + (i + 1), InputActionType.Button);
+                packStow[i].AddBinding("<Keyboard>/" + (i + 1)).WithGroup("Keyboard&Mouse");
+            }
+
+            packRack = new InputAction("PackRack", InputActionType.Button);
+            packRack.AddBinding("<Keyboard>/r").WithGroup("Keyboard&Mouse");
+            packRack.AddBinding("<Gamepad>/buttonNorth").WithGroup("Gamepad");
 
             BindActions();
         }
@@ -136,24 +389,42 @@ namespace SpaceGame.Core
 
             // World interaction
             inputs.Player.Interact.performed += _ => OnInteractPressed?.Invoke();
-            inputs.Player.Jump.performed     += _ => OnJumpPressed?.Invoke();
+            inputs.Player.Jump.performed     += _ => { JumpHeld = true; HandleJump(); };
+            inputs.Player.Jump.canceled      += _ => JumpHeld = false;
+            inputs.Player.GauntletLeft.performed  += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Left);
+            inputs.Player.GauntletLeft.canceled   += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Left);
+            inputs.Player.GauntletRight.performed += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Right);
+            inputs.Player.GauntletRight.canceled  += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Right);
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
             inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
             inputs.Player.Use.canceled    += _ => OnUseReleased?.Invoke();
             inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
+            inputs.Player.Crouch.performed += _ => { CrouchHeld = true;  OnCrouchPressed?.Invoke(); };
+            inputs.Player.Crouch.canceled  += _ => { CrouchHeld = false; OnCrouchReleased?.Invoke(); };
+            inputs.Player.Sprint.performed += _ => SprintHeld = true;
+            inputs.Player.Sprint.canceled  += _ => SprintHeld = false;
 
             // Bound here with the rest, and exactly once, for the same reason
             // they are: the callback is a lambda that nothing can unsubscribe,
             // so binding it in OnEnable would leave another copy attached after
             // every death and respawn.
-            altUse.performed += _ => OnAltUsePressed?.Invoke();
+            packYaw.performed += HandlePackYawScroll;
+
+            // The index is captured into a local, not read off the loop variable. A lambda closing
+            // over `i` would report 4 for every key.
+            for (int i = 0; i < packStow.Length; i++)
+            {
+                int slot = i;
+                packStow[i].performed += _ => OnPackStowPressed?.Invoke(slot);
+            }
+
+            packRack.performed += _ => OnPackRackPressed?.Invoke();
         }
 
         private void OnEnable()
         {
             EnsureInputs();
             inputs.Enable();
-            altUse?.Enable();
         }
 
         private void OnDisable()
@@ -161,13 +432,22 @@ namespace SpaceGame.Core
             // Not EnsureInputs: if the asset was never created there is nothing enabled to stop,
             // and building one here just to disable it would leak it past OnDestroy.
             inputs?.Disable();
-            altUse?.Disable();
+            packYaw?.Disable();
+            packYawAccumulator = 0f;
+
+            if (packStow != null)
+                foreach (InputAction action in packStow) action?.Disable();
+
+            packRack?.Disable();
 
             // Stale axes outlive the disable otherwise — MoveInput and LookInput are only written
             // by Update, so whatever the stick last read stays latched. On death that is a live
             // movement vector waiting for the next system that reads it.
             MoveInput = Vector2.zero;
             LookInput = Vector2.zero;
+            CrouchHeld = false;
+            SprintHeld = false;
+            JumpHeld = false;
         }
 
         private void OnDestroy()
@@ -175,43 +455,100 @@ namespace SpaceGame.Core
             inputs?.Dispose();
             inputs = null;
 
-            altUse?.Dispose();
-            altUse = null;
+            packYaw?.Dispose();
+            packYaw = null;
+
+            if (packStow != null)
+                foreach (InputAction action in packStow) action?.Dispose();
+
+            packStow = null;
+
+            packRack?.Dispose();
+            packRack = null;
         }
 
         /// <summary>
-        /// Turns a wheel delta into whole slot steps.
-        /// <para>
-        /// The delta is not comparable across platforms — Windows reports 120 per notch where other
-        /// backends report single digits, and a trackpad streams fractions of a notch every frame.
-        /// A notch is the largest delta a device produces, so measuring against the biggest value
-        /// seen makes one notch move one slot everywhere, while a trackpad's smaller deltas pile up
-        /// until they add up to a notch instead of racing through the bar.
-        /// </para>
+        /// Every jump press jumps. The second of two quick ones also deploys the back item.
+        ///
+        /// Unscaled time, so the window is the same width in slow motion and while a menu holds
+        /// the clock — and lazily built, because the window is a serialized field that is not
+        /// readable before Awake and the first press can arrive from OnEnable before that.
+        /// </summary>
+        private void HandleJump()
+        {
+            OnJumpPressed?.Invoke();
+
+            bodyActivate ??= new Items.DoubleTap(bodyActivateDoubleTap);
+            if (bodyActivate.Press(Time.unscaledTime)) OnBodyActivatePressed?.Invoke();
+        }
+
+        /// <summary>
+        /// One slot along the bar per notch. See <see cref="NotchesFrom"/> for what a notch is.
         /// </summary>
         private void HandleHotbarScroll(InputAction.CallbackContext context)
         {
-            float delta = context.ReadValue<float>();
-            if (Mathf.Abs(delta) < ScrollDeadzone) return;
+            int notches = NotchesFrom(context.ReadValue<float>(), ref scrollAccumulator);
+
+            for (int i = 0; i < Mathf.Abs(notches); i++)
+            {
+                int direction = notches > 0 ? -1 : 1;   // Scrolling up moves back along the bar.
+                OnHotbarScrolled?.Invoke(GameSettings.InvertHotbarScroll ? -direction : direction);
+            }
+        }
+
+        /// <summary>
+        /// The same wheel, counted into its own accumulator, for turning the pack item in hand.
+        ///
+        /// A separate accumulator so a flick that half-fills one is not carried into the other:
+        /// the two are never live at the same time, but leftovers from before a focus session
+        /// would otherwise make its first notch arrive early.
+        /// </summary>
+        private void HandlePackYawScroll(InputAction.CallbackContext context)
+        {
+            int notches = NotchesFrom(context.ReadValue<float>(), ref packYawAccumulator);
+            if (notches != 0) OnPackYawScrolled?.Invoke(notches);
+        }
+
+        /// <summary>
+        /// Turns a raw wheel delta into whole, signed notches. Positive is a scroll up.
+        ///
+        /// <para>
+        /// The delta is not comparable across platforms — Windows reports 120 per notch where
+        /// other backends report single digits, and a trackpad streams fractions of a notch every
+        /// frame. A notch is the largest delta a device produces, so measuring against the biggest
+        /// value seen makes one notch mean one step everywhere, while a trackpad's smaller deltas
+        /// pile up until they add up to a notch instead of racing through.
+        /// </para>
+        /// <para>
+        /// <see cref="measuredScrollUnit"/> is deliberately shared by both consumers: it is a fact
+        /// about the DEVICE, not about what the wheel is currently driving, and measuring it twice
+        /// would mean the first notch of a carry arrives on a scale nothing has calibrated yet.
+        /// </para>
+        /// </summary>
+        private int NotchesFrom(float delta, ref float accumulator)
+        {
+            if (Mathf.Abs(delta) < ScrollDeadzone) return 0;
 
             measuredScrollUnit = Mathf.Max(Mathf.Abs(delta), measuredScrollUnit * ScrollUnitDecay);
-            float unitsPerSlot = scrollUnitsPerSlot > 0f ? scrollUnitsPerSlot : measuredScrollUnit;
+            float unitsPerNotch = scrollUnitsPerSlot > 0f ? scrollUnitsPerSlot : measuredScrollUnit;
+            if (unitsPerNotch <= 0f) return 0;
 
             // Reversing direction starts the count again, so a flick back the other way is not
             // held up by leftovers pointing the wrong way.
-            if (scrollAccumulator != 0f && Mathf.Sign(delta) != Mathf.Sign(scrollAccumulator))
-                scrollAccumulator = 0f;
+            if (accumulator != 0f && Mathf.Sign(delta) != Mathf.Sign(accumulator))
+                accumulator = 0f;
 
-            scrollAccumulator += delta;
+            accumulator += delta;
 
-            while (Mathf.Abs(scrollAccumulator) >= unitsPerSlot)
+            int notches = 0;
+            while (Mathf.Abs(accumulator) >= unitsPerNotch)
             {
-                float sign = Mathf.Sign(scrollAccumulator);
-                scrollAccumulator -= sign * unitsPerSlot;
-
-                int direction = sign > 0f ? -1 : 1;   // Scrolling up moves back along the bar.
-                OnHotbarScrolled?.Invoke(GameSettings.InvertHotbarScroll ? -direction : direction);
+                float sign = Mathf.Sign(accumulator);
+                accumulator -= sign * unitsPerNotch;
+                notches += sign > 0f ? 1 : -1;
             }
+
+            return notches;
         }
 
         private void Update()

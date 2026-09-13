@@ -141,9 +141,9 @@ namespace SpaceGame.Vehicles
         public string Label => "Helm";
 
         public string Prompt => !IsManned
-            ? "E: take the helm"
+            ? "RMB: take the helm"
             : IsMannedByLocalPlayer
-                ? "A / D: steer the foil   E: let go"
+                ? "A / D: steer the foil   RMB: let go"
                 : "Somebody else is at the wheel";
 
         /// <summary>Centred reads as half, so the bar sits in the middle like a real rudder gauge.</summary>

@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Gameplay;
 using SpaceGame.Persistence;
 
 using SpaceGame.Teleporting;
@@ -262,6 +263,20 @@ namespace SpaceGame.Vehicles.DuneFoil
             Vector3 force = SailAerodynamics.Flatten(rig.TotalForce);
             velocity += force / mass * dt;
 
+            // What the ground under the wheels is willing to give, as a share of normal — the same
+            // question the player's own movement and every legged machine ask, so a slicked or
+            // frozen pan is slick for the craft crossing it as well as for the player standing on
+            // it. It takes both halves of the craft's contact with the sand at once: the foil stops
+            // refusing leeway, so the hull crabs, and the wheels stop scrubbing, so it will not
+            // slow down.
+            //
+            // Asked only where there IS ground, and at the ground's own height rather than the
+            // hull's: a craft up on its foil is not standing on the patch below it.
+            float grip = foil.HasGround
+                ? GroundGrip.For(gameObject, new Vector3(transform.position.x, foil.GroundY,
+                                                         transform.position.z))
+                : GroundGrip.Full;
+
             // The foil is what makes sailing upwind possible: it refuses most of the sideways
             // motion, leaving the forward component of a mostly-sideways force to drive the
             // craft. Without this the sails would simply blow it to leeward.
@@ -272,15 +287,18 @@ namespace SpaceGame.Vehicles.DuneFoil
             Vector3 right = Vector3.Cross(Vector3.up, heading);
             float forward = Vector3.Dot(velocity, heading);
             float lateral = Vector3.Dot(velocity, right);
-            lateral *= Mathf.Exp(-leewayResistance * foil.LateralGrip() * dt);
+            lateral *= Mathf.Exp(-leewayResistance * foil.LateralGrip() * grip * dt);
 
             float speed = Mathf.Abs(forward);
 
             // Everything that slows the craft, gathered in one place so "it will not stop" and
             // "it will not go" are both answerable by reading four lines.
-            float decel = foil.DragDeceleration(speed)          // sand, quadratic
+            // Only the two GROUND terms are scaled by grip. Air drag is the same at any friction,
+            // and a craft on ice that kept the air's share of its braking still stops eventually,
+            // which is what stops a slicked pan being a one-way trip.
+            float decel = foil.DragDeceleration(speed) * grip    // sand, quadratic
                         + parasiticDrag * speed * speed          // air, quadratic
-                        + foil.RollingDeceleration();            // packing and bearings, constant
+                        + foil.RollingDeceleration() * grip;     // packing and bearings, constant
             forward -= Mathf.Sign(forward) * Mathf.Min(Mathf.Abs(forward), decel * dt);
 
             // Climbing. Applied only to forward way and only ever subtracted, so a dune face takes

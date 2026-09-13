@@ -144,8 +144,8 @@ namespace SpaceGame.Tests
             Assert.IsEmpty(unnetworked,
                 "These item prefabs have no NetworkObject on their root, so dropping one spawns " +
                 "nothing and the item is destroyed:\n  " + string.Join("\n  ", unnetworked) +
-                "\nAdd a NetworkObject (plus PickupableItem, a collider, a Rigidbody and " +
-                "DropItemPhysics) — see LaserStaffBuilder for the whole block.");
+                "\nAdd a NetworkObject and call ItemWorldPresence.Apply — see " +
+                "LaserStaffBuilder for the whole block.");
 
             Assert.IsEmpty(unregistered,
                 "These item prefabs are networked but unregistered, so only the host will ever " +

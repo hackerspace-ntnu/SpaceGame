@@ -9,9 +9,68 @@ namespace SpaceGame.Items
         int SelectedSlotIndex { get; }
         event Action<InventorySlot> OnSlotSelected;
         event Action<int, InventorySlot> OnSlotChanged;
-        event Action<InventoryItem> OnItemDropped;
+        /// <summary>
+        /// Something left the bar for the ground, with the whole <see cref="ItemState"/> the slot
+        /// was holding for it — a tank's charge, a gun's spent charges, whatever else the item had
+        /// become. Null for an item at its authored defaults, which is most of them.
+        ///
+        /// <para>
+        /// The bag rides the event rather than being looked up afterwards because by then it is
+        /// gone: the slot has been cleared, and clearing a slot takes its bag with it. Without it a
+        /// drained tank dropped on the sand comes back full.
+        /// </para>
+        /// <para>
+        /// It carried only a charge until 2026-09-07, and the rest of the bag was discarded by the
+        /// act of putting an item down. That was survivable while the only per-instance state
+        /// anybody could see was a fill level, and stopped being survivable the moment an item
+        /// could hold a living thing. One value on this event is one value the drop path has to
+        /// know about; the bag is the mechanism the hotbar, the save file and the gear slots
+        /// already share, so the world uses it too and the next item with state costs this
+        /// signature nothing.
+        /// </para>
+        /// </summary>
+        event Action<InventoryItem, ItemState> OnItemDropped;
 
         bool TryAddItem(InventoryItem item);
+
+        /// <summary>
+        /// Add, and say which slot it landed in. <paramref name="index"/> is -1 when nothing was
+        /// added.
+        ///
+        /// <para>
+        /// It exists because an item can carry per-instance state that has to follow it into the
+        /// slot — a tank's charge (<see cref="SupplyCharge"/>) is the first — and
+        /// <see cref="InventorySlot.State"/> can only be written by index. Searching for the item
+        /// afterwards is not a substitute: a hotbar can legitimately hold two of the same asset,
+        /// and the search would write one tank's charge onto the other.
+        /// </para>
+        /// <para>
+        /// The default implementation is for the hand-written hotbars in tests. It reads the first
+        /// free slot before the add and trusts the add to fill it, which is true of every first-fit
+        /// inventory in this project; the two real implementations override it and report the index
+        /// they actually used.
+        /// </para>
+        /// </summary>
+        bool TryAddItem(InventoryItem item, out int index)
+        {
+            index = -1;
+
+            for (int i = 0; i < GetInventorySize(); i++)
+            {
+                InventorySlot slot = GetSlot(i);
+                if (slot == null || slot.IsEmpty)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (TryAddItem(item)) return true;
+
+            index = -1;
+            return false;
+        }
+
         bool TryRemoveItem(int index);
         void SelectSlot(int slotIndex);
 
@@ -28,6 +87,29 @@ namespace SpaceGame.Items
         /// that slot. Entries past the inventory's size are dropped.
         /// </summary>
         void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot);
+
+        /// <summary>
+        /// Server only: put <paramref name="item"/> (or null) into one named slot, replacing whatever
+        /// is there. The seam a move between the hotbar and the body slots writes the hotbar half
+        /// through — TryAddItem picks its own slot and TryRemoveItem cannot fill one, and a swap
+        /// needs both halves to land where the player pointed. Refused, with a warning, off the
+        /// server; on a networked client the answer arrives as a slot-change event.
+        /// </summary>
+        bool TrySetSlot(int index, InventoryItem item);
+
+        /// <summary>
+        /// Push every slot's per-instance charge (<see cref="SupplyCharge"/>) out to whoever else
+        /// needs to see it. Server side; call it after writing an <see cref="InventorySlot.State"/>
+        /// directly, which a restore and a transfer off the pack both do.
+        ///
+        /// <para>
+        /// Nothing by default: an offline hotbar's slots ARE the truth, and there is nobody to tell.
+        /// Only <c>PlayerInventoryNetwork</c> overrides it, because only a replicated hotbar has a
+        /// second copy that can silently disagree — and a client whose own tank reads full while
+        /// the server drains it is exactly that disagreement.
+        /// </para>
+        /// </summary>
+        void PublishSlotCharges() { }
         int GetInventorySize();
         InventorySlot GetSlot(int index);
         InventorySlot GetSelectedSlot();

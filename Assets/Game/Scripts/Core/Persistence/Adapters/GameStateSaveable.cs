@@ -17,9 +17,9 @@ namespace SpaceGame.Core.Persistence
     /// The state enum used to be deliberately left out, on the grounds that a run is always
     /// resumed as a run. It is not: <c>GameManager.WinGame</c> sets <c>Won</c>, and a world saved
     /// after the ship left came back <c>Playing</c> — with the timer counting again, because
-    /// <c>Update</c> only advances it while playing. Restoring the enum is also what makes
-    /// <c>ShipSaveable</c> safe to keep dumb: the ship restores its scrap count without re-deciding
-    /// the win, because the win is recorded here.
+    /// <c>Update</c> only advances it while playing. This is also the ONLY record that the run is
+    /// over: whatever wins the game next can restore its own progress without re-deciding the win,
+    /// because the win is recorded here.
     /// </para>
     /// <para>
     /// Restoring it needs no migration. A save written before this field existed simply has no

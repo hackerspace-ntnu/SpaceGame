@@ -23,7 +23,7 @@ namespace SpaceGame.Items
         private MeshRenderer mr;
         private static readonly int ProgressId = Shader.PropertyToID("_Progress");
 
-        // Optional muzzle to follow each frame, so walking/re-aiming while the
+        // Optional muzzle whose POSITION the cone tip follows each frame, so walking while the
         // pulse plays keeps the cone glued to the scanner. Null = stay put.
         private Transform muzzleTracker;
 
@@ -129,13 +129,14 @@ namespace SpaceGame.Items
 
         private void Update()
         {
-            // Follow the muzzle so moving/re-aiming keeps the cone on the gun.
+            // Follow the muzzle's POSITION so walking while the pulse plays keeps the cone on the
+            // gun. Not its direction: the cone shows the sweep that was actually scanned, and that
+            // direction came off the scanning player's own view and travelled in the use message.
+            // Re-deriving it here from Camera.main pointed every peer's copy of the cone down its
+            // OWN player's view — and left the drawn sweep disagreeing with the reveal it was
+            // drawn for even on the machine that fired.
             if (muzzleTracker != null)
-            {
                 transform.position = muzzleTracker.position;
-                Vector3 dir = ResolveAimDirection(muzzleTracker);
-                transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-            }
 
             float t = Mathf.Clamp01((Time.time - startTime) / Mathf.Max(0.01f, duration));
 
@@ -144,17 +145,6 @@ namespace SpaceGame.Items
             mr.SetPropertyBlock(mpb);
 
             if (t >= 1f) Destroy(gameObject);
-        }
-
-        /// <summary>
-        /// Live aim for the tracking cone: currently active main camera first,
-        /// then the muzzle's own forward — mirrors the artifact's fire-time order.
-        /// </summary>
-        private static Vector3 ResolveAimDirection(Transform muzzle)
-        {
-            var cam = Camera.main;
-            if (cam != null && cam.isActiveAndEnabled) return cam.transform.forward;
-            return muzzle.forward;
         }
     }
 }

@@ -268,15 +268,8 @@ namespace SpaceGame.World.NavMeshTools
 
                 foreach (var col in root.GetComponentsInChildren<Collider>(true))
                 {
-                    if (col == null || col.isTrigger) continue;
                     if (col is TerrainCollider) continue;          // already covered by the Terrain
-                    if (!InMask(mask, col.gameObject.layer)) continue;
-
-                    // Anything with a non-kinematic body is scenery that moves; baking it fixes it
-                    // in place forever.
-                    var body = col.attachedRigidbody;
-                    if (body != null && !body.isKinematic) continue;
-
+                    if (!IsBakeable(col, mask)) continue;
                     if (!TryColliderToSource(col, out var src)) continue;
 
                     into.Add(src);
@@ -286,6 +279,32 @@ namespace SpaceGame.World.NavMeshTools
         }
 
         private static bool InMask(LayerMask mask, int layer) => (mask.value & (1 << layer)) != 0;
+
+        /// <summary>
+        /// Whether a collider is part of the ground the world walks on, as opposed to something
+        /// that walks on it or moves across it.
+        ///
+        /// <para>
+        /// Two things are excluded besides triggers and layers. A <b>non-kinematic</b> body is
+        /// scenery that moves; baking it fixes it in place forever. And anything under a
+        /// <see cref="NavMeshAgent"/> is a walker: every NavMesh creature here is a <b>kinematic</b>
+        /// body with a solid collider (AgentSystem.md), so the kinematic rule alone let a patrol
+        /// robot hand-placed in a chunk scene bake in as an obstacle — six robot-shaped holes in the
+        /// first Clanker settlement, each exactly where a robot would spawn and find no mesh under
+        /// its feet. Measured 2026-09-07: no mesh within 0.35 m of any of the four robots probed,
+        /// mesh everywhere around them.
+        /// </para>
+        /// </summary>
+        public static bool IsBakeable(Collider col, LayerMask mask)
+        {
+            if (col == null || col.isTrigger) return false;
+            if (!InMask(mask, col.gameObject.layer)) return false;
+
+            var body = col.attachedRigidbody;
+            if (body != null && !body.isKinematic) return false;
+
+            return col.GetComponentInParent<NavMeshAgent>(true) == null;
+        }
 
         private static void Encapsulate(ref Bounds bounds, ref bool have, Bounds b)
         {

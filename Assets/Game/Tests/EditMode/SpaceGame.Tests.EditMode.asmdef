@@ -2,8 +2,10 @@
     "name": "SpaceGame.Tests.EditMode",
     "rootNamespace": "",
     "references": [
+        "SpaceGame.Diagnostics",
         "SpaceGame.Persistence",
         "SpaceGame.Minigame.Core",
+        "SpaceGame.Versus.Core",
         "SpaceGame.World.Streaming",
         "SpaceGame.World.Safety",
         "SpaceGame.Locomotion",
@@ -14,6 +16,7 @@
         "SpaceGame.Vehicles.Crawler",
         "SpaceGame.Vehicles.DuneFoil",
         "SpaceGame.Vehicles.Ornithopter",
+        "SpaceGame.Gear.JumpingRod",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "SpaceGame.Teleporting"

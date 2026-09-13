@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using FMODUnity;
+using SpaceGame.Agents;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -26,6 +27,11 @@ namespace SpaceGame.Weapons
         [SerializeField] protected float spawnOffset = 0.5f;
         [SerializeField] protected LayerMask aimMask = ~0;
 
+        [Tooltip("How far the aim reaches for something to converge on, in metres. A shot at open " +
+                 "sky is aimed at this distance, which is also the far point the replicated " +
+                 "orientation is turned back into a target with.")]
+        [SerializeField] protected float aimRange = 500f;
+
         [Header("Ammo")]
         [SerializeField] private Magazine magazine;
         [SerializeField] protected int ammoPerShot = 1;
@@ -39,6 +45,14 @@ namespace SpaceGame.Weapons
         [SerializeField] protected EventReference fireSound;
         [SerializeField] protected SfxId chargeStartSoundId = SfxId.WeaponEnergyChargeLoop;
         [SerializeField] protected EventReference chargeStartSound;
+
+        // Hearing, not listening: this is what makes a shot a gameplay event rather than only a
+        // sound. Anything with a NoiseReceiverModule inside this radius is told a gun went off and
+        // who fired it — guards investigate, wildlife bolts. Zero disables it for a weapon that
+        // should not carry, which is why it is per-weapon and not a constant.
+        [Tooltip("Metres a shot from this weapon is heard over. Anything with a NoiseReceiverModule " +
+                 "inside it reacts. 0 = silent to AI.")]
+        [SerializeField] protected float gunshotNoiseRadius = 40f;
 
         [Header("Charging")]
         [SerializeField] protected bool enableCharging = false; // Toggle charging mode on/off
@@ -185,9 +199,30 @@ namespace SpaceGame.Weapons
                 return;
             }
 
+            // The holder's arm is doing the aiming, so the item must not also aim itself. Two
+            // things pointing the same weapon do not agree: this method writes a WORLD rotation
+            // about the item's own pivot, which walks the grip out of the palm — it never calls
+            // ReseatGrip, unlike the NPC path — and with the arm now in shot that shows.
+            //
+            // Checked on the holder rather than on a flag we set, so it stays true for a weapon
+            // that changes hands. A holder with no rig (a dropped weapon, a test rig, an NPC)
+            // keeps exactly the behaviour it had.
+            if (owner != null && owner.GetComponent<PlayerAimRig>() != null)
+            {
+                return;
+            }
+
             if (!Network.Owns(this))
             {
                 AimAlongReplicatedView();
+                return;
+            }
+
+            // The aim ray, not a camera's forward: the two are the same thing on foot and are not
+            // while the holder is riding anything. See GetLocalAimPoint.
+            if (aimProvider != null && aimProvider.AimTransform != null)
+            {
+                transform.rotation = Quaternion.LookRotation(aimProvider.GetAimRay().direction);
                 return;
             }
 
@@ -201,12 +236,10 @@ namespace SpaceGame.Weapons
                 return;
             }
 
-            // Get camera's forward direction
-            Vector3 cameraForward = aimCamera.transform.forward;
-
             // Create a rotation that points toward the camera's forward direction
             // This includes both pitch (up/down) and yaw (left/right)
-            transform.rotation = Quaternion.LookRotation(cameraForward, aimCamera.transform.up);
+            transform.rotation = Quaternion.LookRotation(aimCamera.transform.forward,
+                                                         aimCamera.transform.up);
         }
 
         /// <summary>
@@ -265,6 +298,7 @@ namespace SpaceGame.Weapons
                     
                         // Launch the already-charged projectile with current aim direction
                         Fire();
+                        ReportGunshot();
                     }
                     catch (MissingReferenceException)
                     {
@@ -295,6 +329,7 @@ namespace SpaceGame.Weapons
             {
                 // Normal firing (no charging)
                 Fire();
+                ReportGunshot();
                 nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
                 return true;
             }
@@ -334,7 +369,7 @@ namespace SpaceGame.Weapons
             // host, so a client's shot used to travel along the host's crosshair.
             if (UseArg.HasOrientation)
             {
-                return GetSpawnPosition() + UseArg.R * Vector3.forward * 500f;
+                return GetSpawnPosition() + UseArg.R * Vector3.forward * aimRange;
             }
 
             return GetLocalAimPoint();
@@ -350,6 +385,22 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual Vector3 GetLocalAimPoint()
         {
+            // The holder's own aim, and only the holder's. It is the one thing that knows which
+            // camera this player is actually looking through — riding anything, that is NOT the eye
+            // on their head, and the mount's orbit camera is deliberately left Untagged so the
+            // Camera.main fallback below cannot find it either — and it looks past the player's own
+            // body and the machine they are strapped into on the way out.
+            if (aimProvider != null && aimProvider.AimTransform != null)
+            {
+                return aimProvider.TryGetAimHit(aimRange, aimMask, out RaycastHit aimed)
+                    ? aimed.point
+                    : aimProvider.GetAimRay().GetPoint(aimRange);
+            }
+
+            // Nothing holding it that has a view: a weapon on a rack, an NPC, a test rig. Only a
+            // player carries an AimProvider, so a holder without one keeps exactly the behaviour it
+            // had — which for an NPC is also the wrong camera, and is why the agent's own combat
+            // module points its barrel instead (see ExternallyAimed).
             if (aimCamera == null)
             {
                 aimCamera = Camera.main;
@@ -358,17 +409,14 @@ namespace SpaceGame.Weapons
             if (aimCamera != null)
             {
                 Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-                Vector3 targetPoint = ray.origin + ray.direction * 500f; // Default far distance
 
-                if (Physics.Raycast(ray, out RaycastHit hit, 500f, aimMask, QueryTriggerInteraction.Ignore))
-                {
-                    targetPoint = hit.point;
-                }
-
-                return targetPoint;
+                return Physics.Raycast(ray, out RaycastHit hit, aimRange, aimMask,
+                                       QueryTriggerInteraction.Ignore)
+                    ? hit.point
+                    : ray.GetPoint(aimRange);
             }
 
-            return transform.position + transform.forward * 500f;
+            return transform.position + transform.forward * aimRange;
         }
 
         /// <summary>
@@ -501,6 +549,42 @@ namespace SpaceGame.Weapons
         /// bills the target for the same bullet.
         /// </summary>
         protected bool ShotDealsDamage { get; private set; } = true;
+
+        /// <summary>
+        /// Tell the world a shot was fired here, so AI can react to it.
+        ///
+        /// <para>
+        /// Called from <see cref="TryFire"/> only, and only after a round has actually left — not
+        /// when a charge starts, which makes no noise and puts nothing in the air. That placement is
+        /// also what keeps this authority-only without a check of its own: <c>TryFire</c> is reached
+        /// from <see cref="Use"/> and nowhere else, and <c>Use</c> runs on the deciding machine.
+        /// <see cref="Present"/> calls <c>Fire</c> directly, so a peer showing a copy of someone
+        /// else's shot never emits a second one.
+        /// </para>
+        /// <para>
+        /// That matters more than it looks: a creature only ticks on the machine that owns it, so a
+        /// noise emitted on a peer would be heard by a copy of the animal that cannot act on it,
+        /// while the copy that can heard nothing.
+        /// </para>
+        /// <para>
+        /// The instigator is the holder, not the gun. A receiver set to aggro on gunfire targets
+        /// whoever it is handed, and the weapon is about to be unequipped, dropped or destroyed.
+        /// </para>
+        /// </summary>
+        private void ReportGunshot()
+        {
+            if (gunshotNoiseRadius <= 0f)
+                return;
+
+            Transform origin = GetFireOrigin();
+            Transform shooter = owner != null ? owner.transform : transform;
+
+            Noise.Emit(NoiseType.Gunshot,
+                       origin != null ? origin.position : transform.position,
+                       gunshotNoiseRadius,
+                       shooter,
+                       shooter);
+        }
 
         // ── Per-instance state ─────────────────────────────────────────────────
         //

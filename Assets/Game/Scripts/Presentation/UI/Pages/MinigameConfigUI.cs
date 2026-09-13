@@ -138,6 +138,12 @@ namespace SpaceGame.Presentation
                 if (canvas.transform.IsChildOf(transform)) continue;
                 if (!canvas.enabled) continue;
 
+                // Only canvases from this screen's own scene — same rule as MenuScreen. The
+                // DontDestroyOnLoad surfaces (WorldOverlay, ChatUI) survive the arena load that
+                // Launch() triggers without restoring, so hiding one here would strand it
+                // disabled for the whole match.
+                if (canvas.gameObject.scene != gameObject.scene) continue;
+
                 canvas.enabled = false;
                 hiddenCanvases.Add(canvas);
             }
@@ -223,12 +229,9 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 900;
 
-            // Same reference resolution the menu's own canvas uses, so type sized
-            // against the menu's 90pt entries scales identically.
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            // The project-wide rule, which the menu's own canvas also follows, so type
+            // sized against the menu's 90pt entries scales identically.
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             // Left column, like the menu's own entry list. Nothing behind it — the
             // scene shows through, which is exactly why the column is confined to the

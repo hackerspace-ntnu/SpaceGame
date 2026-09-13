@@ -1,69 +1,95 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Drives the scanner's display: turns a list of contacts into the numbers the
-    /// <c>SpaceGame/ItemScannerScreen</c> shader draws.
+    /// Drives the scanner's display: turns a list of contacts into the plot and the readouts on
+    /// the world-space canvas laid over the screen plate.
     ///
     /// <para>
-    /// Everything goes through a <see cref="MaterialPropertyBlock"/> rather than the material, so
-    /// two scanners in a session — one in each of two players' hands, both instantiated from the
-    /// same prefab — do not share a display. Writing to <c>renderer.material</c> would clone the
-    /// material per instance instead, which works and then leaks one material per equip.
+    /// The display is built the way the standing terminal's is — a millimetre-unit world-space
+    /// canvas standing a fraction of a millimetre off the glass, with the plate's own emissive
+    /// green showing through behind it — and for the same reason: it is text and vector geometry,
+    /// so it stays crisp however close the wearer brings their arm, and it needs no render texture
+    /// and no second camera. <see cref="ScannerRadar"/> draws the rings, the beam and the contacts;
+    /// this class decides what they mean. The canvas is built onto the prefab by
+    /// <c>ItemScannerScreenBuilder</c>, never at runtime.
     /// </para>
     /// <para>
     /// Contacts arrive in world space and are resolved here into the scanner's own frame, because
     /// that frame is what the display means: +Y is where the holder is facing, X is across. A
-    /// contact behind the holder gets a negative Y and the shader parks it in the rear strip.
+    /// contact behind the holder plots below the centre of the disc.
     /// </para>
     /// </summary>
     public class ItemScannerScreen : MonoBehaviour
     {
-        /// <summary>Must match MAX_BLIPS in the shader.</summary>
+        /// <summary>Most contacts the plot will draw at once.</summary>
         public const int MaxBlips = 24;
 
         [Header("Wiring")]
-        [Tooltip("The screen plate's renderer. Falls back to a Renderer on this object.")]
+        [Tooltip("The display canvas. Switched off outright while the set is dark, so an unpowered " +
+                 "scanner costs nothing to draw.")]
+        [SerializeField] private Canvas canvas;
+
+        [Tooltip("Fades the whole display as the tube warms up and collapses.")]
+        [SerializeField] private CanvasGroup group;
+
+        [Tooltip("The plot: rings, beam and contacts.")]
+        [SerializeField] private ScannerRadar radar;
+
+        [Tooltip("Top line — what the set is and how far it reaches.")]
+        [SerializeField] private TextMeshProUGUI headerText;
+
+        [Tooltip("The nearest contact's distance. The one number worth reading at a glance.")]
+        [SerializeField] private TextMeshProUGUI nearestText;
+
+        [Tooltip("How many contacts the scan found, including any past the plot's limit.")]
+        [SerializeField] private TextMeshProUGUI countText;
+
+        [Tooltip("The screen plate's renderer, so the glass behind the canvas dims with the tube.")]
         [SerializeField] private Renderer screenRenderer;
 
-        [Tooltip("Material index on that renderer, for a screen that shares a mesh with its bezel.")]
+        [Tooltip("Which material slot on that renderer is the display face.")]
         [SerializeField] private int materialIndex;
 
         [Header("Beam")]
-        [Tooltip("Seconds for one left-to-right pass of the sweep. Also the rate at which a " +
-                 "contact's flare is refreshed, since the two are the same event.")]
-        [SerializeField] private float sweepPeriod = 1.6f;
+        [Tooltip("Seconds for one turn of the sweep. Also how long a contact takes to be refreshed, " +
+                 "since the two are the same event.")]
+        [SerializeField] private float sweepPeriod = 2.4f;
 
         [Tooltip("Seconds a contact keeps glowing after the last scan that saw it. Longer than " +
                  "the scan interval on purpose: a target flickering in and out of a wall should " +
                  "fade, not blink.")]
         [SerializeField] private float contactFade = 1.1f;
 
+        [Tooltip("How lit a contact stays between passes of the beam, as a share of its full glow.")]
+        [SerializeField, Range(0f, 1f)] private float restingGlow = 0.35f;
+
         [Header("Tube")]
         [Tooltip("Seconds the display takes to warm up or collapse when switched.")]
         [SerializeField] private float warmupTime = 0.55f;
 
-        private static readonly int BlipsId = Shader.PropertyToID("_Blips");
-        private static readonly int BlipCountId = Shader.PropertyToID("_BlipCount");
-        private static readonly int SweepId = Shader.PropertyToID("_Sweep");
-        private static readonly int PowerId = Shader.PropertyToID("_Power");
-        private static readonly int NearestId = Shader.PropertyToID("_Nearest");
-        private static readonly int ContactsId = Shader.PropertyToID("_Contacts");
-        private static readonly int RangeId = Shader.PropertyToID("_RangeM");
-        private static readonly int AspectId = Shader.PropertyToID("_Aspect");
+        private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
 
-        private readonly Vector4[] blips = new Vector4[MaxBlips];
+        private readonly List<ScannerRadar.Blip> plot = new();
+        private readonly Vector2[] plotted = new Vector2[MaxBlips];
+        private readonly ScanClass[] classes = new ScanClass[MaxBlips];
         private readonly float[] seenAt = new float[MaxBlips];
 
         private MaterialPropertyBlock block;
+        private Color glassEmission;
+        private bool glassEmits;
+        private float canvasWidthScale = 1f;
+
         private float power;
         private float sweep;
         private int liveBlips;
         private int totalContacts;
         private float nearest;
-        private float range = 100f;
+        private float range = 50f;
         private bool on;
 
         /// <summary>Sweep phase 0..1, so the artifact can time its ping to the beam.</summary>
@@ -74,8 +100,16 @@ namespace SpaceGame.Items
 
         private void Awake()
         {
-            if (screenRenderer == null) screenRenderer = GetComponent<Renderer>();
             block = new MaterialPropertyBlock();
+            if (canvas != null) canvasWidthScale = Mathf.Abs(canvas.transform.localScale.x);
+
+            // The plate's authored emission, so the glass can be dimmed with the tube and put back
+            // exactly as the material has it. Read once: it is a property of the model, not of
+            // this instance, and the instance only ever scales it.
+            Material glass = screenRenderer != null ? Slot(screenRenderer) : null;
+            glassEmits = glass != null && glass.HasProperty(EmissionId);
+            if (glassEmits) glassEmission = glass.GetColor(EmissionId);
+
             Push();
         }
 
@@ -90,6 +124,7 @@ namespace SpaceGame.Items
             liveBlips = 0;
             totalContacts = 0;
             nearest = 0f;
+            if (radar != null) radar.Clear();
             Push();
         }
 
@@ -115,14 +150,11 @@ namespace SpaceGame.Items
                 // Flattened deliberately. The display is a plan view: a crate on a roof twenty
                 // metres up is at the same place on it as one at your feet, which is what a player
                 // reading a map expects. Height goes unshown rather than shown wrongly.
-                float x = Vector3.Dot(offset, right) / range;
-                float y = Vector3.Dot(offset, forward) / range;
-
-                blips[i] = new Vector4(Mathf.Clamp(x, -1f, 1f), Mathf.Clamp(y, -1f, 1f),
-                                       1f, (float)contacts[i].Class);
+                plotted[i] = new Vector2(Vector3.Dot(offset, right) / range,
+                                         Vector3.Dot(offset, forward) / range);
+                classes[i] = contacts[i].Class;
                 seenAt[i] = now;
             }
-            for (int i = liveBlips; i < MaxBlips; i++) blips[i] = Vector4.zero;
         }
 
         private void LateUpdate()
@@ -135,54 +167,105 @@ namespace SpaceGame.Items
             if (power > 0.001f && sweepPeriod > 0f)
                 sweep = Mathf.Repeat(sweep + Time.deltaTime / sweepPeriod, 1f);
 
-            // Fade each contact from the moment it was last seen, rather than clearing the array
-            // between scans. A blip that vanishes on the frame the scan misses it makes the
-            // display twitch at the scan rate; one that decays reads as a real return.
-            float now = Time.time;
-            for (int i = 0; i < liveBlips; i++)
-            {
-                float age = now - seenAt[i];
-                float strength = contactFade <= 0f ? 1f : Mathf.Clamp01(1f - age / contactFade);
-                blips[i].z = strength;
-            }
-
             Push();
         }
 
+        /// <summary>Everything the display shows, from the last scan and the beam's phase.</summary>
         private void Push()
         {
-            if (screenRenderer == null || block == null) return;
+            KeepReadable();
+            if (canvas != null) canvas.enabled = power > 0.001f;
+            if (group != null) group.alpha = power;
 
-            screenRenderer.GetPropertyBlock(block, materialIndex);
-            block.SetVectorArray(BlipsId, blips);
-            block.SetFloat(BlipCountId, liveBlips);
-            block.SetFloat(SweepId, sweep);
-            block.SetFloat(PowerId, power);
-            block.SetFloat(NearestId, Mathf.Round(Mathf.Min(nearest, 999f)));
-            block.SetFloat(ContactsId, Mathf.Min(totalContacts, 99));
-            block.SetFloat(RangeId, Mathf.Round(Mathf.Min(range, 999f)));
-            block.SetFloat(AspectId, AspectOf(screenRenderer));
-            screenRenderer.SetPropertyBlock(block, materialIndex);
+            if (glassEmits && screenRenderer != null)
+            {
+                screenRenderer.GetPropertyBlock(block, materialIndex);
+                block.SetColor(EmissionId, glassEmission * Mathf.Max(power, 0.06f));
+                screenRenderer.SetPropertyBlock(block, materialIndex);
+            }
+
+            if (power <= 0.001f) return;
+
+            if (radar != null)
+            {
+                BuildPlot();
+                radar.Present(plot, sweep);
+            }
+
+            if (headerText != null) headerText.text = $"SCAN  {Mathf.Round(Mathf.Min(range, 999f)):0}M";
+            if (nearestText != null)
+                nearestText.text = liveBlips > 0 ? $"{Mathf.Round(Mathf.Min(nearest, 999f)):0}M" : "--";
+            if (countText != null)
+                countText.text = totalContacts == 1 ? "1 CONTACT" : $"{Mathf.Min(totalContacts, 99)} CONTACTS";
         }
 
         /// <summary>
-        /// Width over height of the plate, measured from its own mesh.
+        /// The contact list the plot draws, each with the brightness it has earned.
         ///
-        /// Measured rather than serialised because the shader draws circles: an aspect that
-        /// disagrees with the mesh turns every range ring into an ellipse, and that is exactly the
-        /// kind of wrongness nobody notices in the inspector and everybody notices on the screen.
+        /// <para>
+        /// Two decays multiply. One is the time since the last scan that SAW the contact: a blip
+        /// that vanishes on the frame a scan misses it makes the display twitch at the scan rate,
+        /// where one that fades reads as a real return. The other is the time since the BEAM last
+        /// crossed its bearing, which is what makes the plot look swept rather than lit — a
+        /// contact flares as the beam reaches it and settles back to <see cref="restingGlow"/>.
+        /// </para>
         /// </summary>
-        private static float AspectOf(Renderer r)
+        private void BuildPlot()
         {
-            Bounds b = r.localBounds;
-            Vector3 e = b.size;
-            // The plate is thin on one axis; the other two are the display.
-            float min = Mathf.Min(e.x, Mathf.Min(e.y, e.z));
-            float w, h;
-            if (Mathf.Approximately(min, e.z)) { w = e.x; h = e.y; }
-            else if (Mathf.Approximately(min, e.y)) { w = e.x; h = e.z; }
-            else { w = e.z; h = e.y; }
-            return h > 1e-5f ? Mathf.Clamp(w / h, 0.25f, 4f) : 1f;
+            plot.Clear();
+            float now = Time.time;
+
+            for (int i = 0; i < liveBlips; i++)
+            {
+                float age = now - seenAt[i];
+                float seen = contactFade <= 0f ? 1f : Mathf.Clamp01(1f - age / contactFade);
+                if (seen <= 0.01f) continue;
+
+                // Turns clockwise from forward, the same frame the beam is drawn in.
+                float bearing = Mathf.Repeat(Mathf.Atan2(plotted[i].x, plotted[i].y) / (2f * Mathf.PI), 1f);
+                float sinceSwept = Mathf.Repeat(sweep - bearing, 1f);
+                float swept = Mathf.Lerp(restingGlow, 1f, 1f - sinceSwept);
+
+                plot.Add(new ScannerRadar.Blip(plotted[i], seen * swept, classes[i]));
+            }
+        }
+
+        /// <summary>
+        /// Cancels a mirrored seating, so the words on the glass read forwards on both arms.
+        ///
+        /// <para>
+        /// <c>ForearmSeat</c> puts a gauntlet on the LEFT arm by giving it a negative X scale
+        /// rather than by mirroring the model, because the cuff's buckles have a side. Everything
+        /// the device draws survives that; text does not — a reflected canvas is a canvas read in
+        /// a mirror. So the canvas takes the reflection back out of its own scale, which leaves
+        /// the plate mirrored (as intended) and the display the right way round (as required).
+        /// </para>
+        /// <para>
+        /// Checked every frame rather than on equip: the seating is applied by another component,
+        /// and reading a sign is cheaper than agreeing with it about ordering.
+        /// </para>
+        /// </summary>
+        private void KeepReadable()
+        {
+            if (canvas == null) return;
+
+            // The PARENT's frame, deliberately: the canvas's own matrix already carries the
+            // correction, so reading that would flip the sign back every frame.
+            Transform seat = canvas.transform.parent;
+            bool mirrored = seat != null && seat.localToWorldMatrix.determinant < 0f;
+            float want = mirrored ? -canvasWidthScale : canvasWidthScale;
+            Vector3 scale = canvas.transform.localScale;
+            if (Mathf.Approximately(scale.x, want)) return;
+
+            scale.x = want;
+            canvas.transform.localScale = scale;
+        }
+
+        /// <summary>The shared material in the display's own slot, or null if the slot is empty.</summary>
+        private Material Slot(Renderer r)
+        {
+            Material[] materials = r.sharedMaterials;
+            return materialIndex >= 0 && materialIndex < materials.Length ? materials[materialIndex] : null;
         }
     }
 }

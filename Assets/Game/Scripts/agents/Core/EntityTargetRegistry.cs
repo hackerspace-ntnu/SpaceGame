@@ -109,6 +109,36 @@ namespace SpaceGame.Agents
             }
         }
 
+        // The same query for something that has a side but is not itself an entity — a settlement
+        // alarm, a territory. It owns no EntityFaction (registering one would make the town a
+        // target), so it asks by definition and table instead.
+        public static void Query(FactionDefinition owner, FactionRelationshipTable table,
+                                 FactionRelationship required, Vector3 position, float maxRange,
+                                 List<EntityFaction> results)
+        {
+            results.Clear();
+            if (owner == null || table == null)
+                return;
+
+            float maxRangeSqr = maxRange > 0f ? maxRange * maxRange : float.MaxValue;
+
+            for (int i = entities.Count - 1; i >= 0; i--)
+            {
+                EntityFaction e = entities[i];
+                if (e == null)
+                {
+                    entities.RemoveAt(i);
+                    continue;
+                }
+                if ((e.transform.position - position).sqrMagnitude > maxRangeSqr)
+                    continue;
+                if (table.Get(owner, e.Faction) != required)
+                    continue;
+
+                results.Add(e);
+            }
+        }
+
         public static bool HasAny(EntityFaction owner, FactionRelationship required)
         {
             if (owner == null)

@@ -80,7 +80,7 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(prefab.GetComponent<Collider>(),
                 "No collider: it cannot be aimed at to pick up.");
             Assert.IsNotNull(prefab.GetComponent<Rigidbody>(),
-                "No Rigidbody: DropItemPhysics has nothing to throw.");
+                "No Rigidbody: PlayerDropService has nothing to toss.");
             Assert.IsNotNull(prefab.GetComponent<ConjurerStaffArtifact>(),
                 "No artifact script: it would be a stick.");
             Assert.IsNotNull(prefab.GetComponent<ItemGrip>(),

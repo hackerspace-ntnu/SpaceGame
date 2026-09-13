@@ -67,6 +67,39 @@ namespace SpaceGame.World.Streaming
                                   Mathf.Clamp(cy, 0, Dimensions.y - 1));
         }
 
+        /// <summary>
+        /// Every chunk a view <paramref name="size"/> metres across and centred on
+        /// <paramref name="worldPos"/> touches. <paramref name="min"/> is inclusive,
+        /// <paramref name="max"/> exclusive, and neither is clamped to the grid — a view near the
+        /// edge of the world overhangs it, and the caller decides what that means.
+        ///
+        /// This is not <see cref="ToCoord"/> ± a radius. That window is symmetric about the
+        /// CHUNK, so it reaches up to half a chunk further on one side of the position than the
+        /// other and swaps which side as the position crosses a boundary — invisible when the
+        /// window is used to decide what to LOAD, and plainly visible when it decides what to
+        /// DRAW: it hangs the map hologram's terrain off the centre it is supposed to be
+        /// centred on.
+        /// </summary>
+        public void WindowAround(Vector3 worldPos, Vector2 size, out Vector2Int min, out Vector2Int max)
+        {
+            if (!IsUsable)
+            {
+                min = Vector2Int.zero;
+                max = Vector2Int.zero;
+                return;
+            }
+
+            float relX = worldPos.x - Origin.x;
+            float relZ = worldPos.z - Origin.z;
+            float halfX = size.x * 0.5f;
+            float halfZ = size.y * 0.5f;
+
+            min = new Vector2Int(Mathf.FloorToInt((relX - halfX) / ChunkSize.x),
+                                 Mathf.FloorToInt((relZ - halfZ) / ChunkSize.y));
+            max = new Vector2Int(Mathf.CeilToInt((relX + halfX) / ChunkSize.x),
+                                 Mathf.CeilToInt((relZ + halfZ) / ChunkSize.y));
+        }
+
         public bool IsValidCoord(Vector2Int coord)
         {
             return coord.x >= 0 && coord.x < Dimensions.x

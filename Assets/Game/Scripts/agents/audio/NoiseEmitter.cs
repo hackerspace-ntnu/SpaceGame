@@ -1,40 +1,41 @@
-// Emits noise events that nearby NoiseReceiverModules can hear.
-// Call Emit() from any system: footsteps, weapons, explosions, HealthReactionModule, etc.
-// Uses OverlapSphereNonAlloc — no allocations per emission.
+// Convenience wrapper: emits noise from this GameObject's position.
+//
+// The broadcast itself lives in the static Noise class, so anything without a
+// component — a weapon, an explosion, a scripted event — can report a sound with
+// one call. This exists for the case where the emitter *is* an object in the
+// world and its transform is the answer, which is what EntityAudioModule,
+// PerceptionModule and HealthReactionModule all want.
+//
+// It used to own the broadcast, using an OverlapSphere against a serialized
+// receiverLayers mask. That mask defaulted to Nothing, so an emitter added
+// without one was silently deaf to the whole world; see Noise.cs for why the
+// registry replaced it. The field is gone — nothing needs configuring now.
 using UnityEngine;
 
 namespace SpaceGame.Agents
 {
     public class NoiseEmitter : MonoBehaviour
     {
-        [SerializeField] private LayerMask receiverLayers;
-
-        private readonly Collider[] hitBuffer = new Collider[64];
+        [Tooltip("Emitted noises skip receivers under this transform, so the entity does not " +
+                 "startle itself with its own footsteps. Defaults to this object's root.")]
+        [SerializeField] private Transform selfRoot;
 
         private void Awake()
         {
-            if (receiverLayers == 0)
-                Debug.LogWarning($"{name}: NoiseEmitter.receiverLayers is Nothing — noise will never reach any receiver. Set the layer mask in the Inspector.", this);
+            if (selfRoot == null)
+                selfRoot = transform.root;
         }
 
+        /// <summary>Report a noise of <paramref name="type"/> carrying <paramref name="radius"/> metres.</summary>
+        /// <param name="instigator">
+        /// Who to blame. Defaults to this object — right for a footstep, wrong for a hurt
+        /// noise, where the caller passes the attacker so receivers can aggro onto them.
+        /// </param>
         public void Emit(NoiseType type, float radius, Transform instigator = null)
         {
-            if (instigator == null)
-                instigator = transform;
-
-            int count = Physics.OverlapSphereNonAlloc(transform.position, radius, hitBuffer, receiverLayers);
-            for (int i = 0; i < count; i++)
-            {
-                NoiseReceiverModule receiver = hitBuffer[i].GetComponent<NoiseReceiverModule>();
-                if (receiver && hitBuffer[i].transform != transform)
-                    receiver.OnNoiseHeard(type, transform.position, radius, instigator);
-            }
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.color = new Color(0f, 1f, 1f, 0.1f);
-            Gizmos.DrawWireSphere(transform.position, 10f); // preview radius only
+            Noise.Emit(type, transform.position, radius,
+                       instigator != null ? instigator : transform,
+                       selfRoot != null ? selfRoot : transform);
         }
     }
 }

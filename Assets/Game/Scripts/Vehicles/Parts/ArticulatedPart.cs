@@ -3,8 +3,8 @@
 // expressed as a rotation about — or a slide along — a local axis.
 //
 // The component rotates around its OWN origin, so put it on a pivot GameObject placed at the
-// hinge line with the mesh parented underneath. ShipRV is built that way (see
-// Assets/Game/Editor/Vehicles/ShipRVBuilder.cs).
+// hinge line with the mesh parented underneath. PlayerShip is built that way (see
+// Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs).
 //
 // Deliberately knows nothing about who moves it. Player interaction lives in
 // ArticulatedPartInteraction; mount-driven deployment lives in VehicleDeploymentController.

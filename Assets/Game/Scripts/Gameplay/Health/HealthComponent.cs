@@ -25,6 +25,18 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public static event Action<HealthComponent, int> AnyDamaged;
 
+        /// <summary>
+        /// As <see cref="AnyDamaged"/>, but carrying WHERE the hit came from, so a listener can
+        /// point at it. The bool says whether there was a source at all: a fall, suffocation and
+        /// sand all arrive with none, and a position of zero is a real place in the world rather
+        /// than a usable "nowhere".
+        /// <para>
+        /// The position rather than the Transform, because this is also raised from a replicated
+        /// message on a machine where the attacker may not exist as an object at all.
+        /// </para>
+        /// </summary>
+        public static event Action<HealthComponent, int, Vector3, bool> AnyDamagedFrom;
+
         public event Action<int> OnDamage;
         public event Action<int> OnHeal;
         public event Action OnDeath;
@@ -59,6 +71,24 @@ namespace SpaceGame.Gameplay
 
         public Transform LastDamageSource { get; private set; }
 
+        /// <summary>
+        /// Announces a hit this machine did NOT resolve, for
+        /// <see cref="AnyDamagedFrom"/>'s listeners only.
+        ///
+        /// <para>
+        /// The replication layer's seam. A client never runs <see cref="Damage"/> — the server
+        /// does — so without this its own visor could never learn which way to point. It changes
+        /// no health: the value arrives separately through the health NetworkVariable, and
+        /// applying it here as well would subtract the same hit twice.
+        /// </para>
+        /// </summary>
+        public void ReportDamageDirection(int amount, Vector3 sourcePosition, bool hasSource)
+        {
+            if (amount <= 0) return;
+
+            AnyDamagedFrom?.Invoke(this, amount, sourcePosition, hasSource);
+        }
+
         public void Damage(int amount) => Damage(amount, null);
 
         public void Damage(int amount, Transform source)
@@ -72,6 +102,8 @@ namespace SpaceGame.Gameplay
 
             // After OnDamage and before the death check, so a killing blow still shows its number.
             AnyDamaged?.Invoke(this, amount);
+            AnyDamagedFrom?.Invoke(this, amount, source != null ? source.position : Vector3.zero,
+                                   source != null);
 
             if (currentHealth <= 0) OnDeath?.Invoke();
         }

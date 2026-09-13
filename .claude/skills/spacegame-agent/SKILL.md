@@ -5,6 +5,10 @@ description: Use when adding or changing a creature, NPC, enemy, animal, turret,
 
 # SpaceGame agents
 
+> **Design check:** before tuning how a creature behaves, threatens or reads to the player, consult
+> the `SYS`, `DESIGN`, `FEEL` and `BAL` principles in `docs/game-development-constitution/INDEX.md`
+> and cite their IDs.
+
 ## Overview
 
 An agent is a **prefab plus a set of components**. Behaviour is composed by dropping
@@ -67,7 +71,7 @@ best template for a new creature builder.
 3. **Prefab** in `Assets/Game/Prefabs/agents/creatures/` (or `.../Robots/`, `.../Characters/`,
    `.../Caravan/`, `.../Vehicles/{Ground,Aircraft,Spacecraft}/`). Existing examples:
    `DuneRat.prefab`, `Golem.prefab`, `Ostrich.prefab`, `Vrescal.prefab`, `Nomad.prefab`,
-   `PatrolRobot.prefab`, `DeathmatchBot.prefab`.
+   `PatrolRobot.prefab`, `DeathmatchBot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`).
 4. **Animator** — reuse the FBX's own `Animator`, never add a second one. Set
    `applyRootMotion = false` (the motor owns movement) and `cullingMode = AlwaysAnimate` for any
    rig built from many bone-parented renderers, or it freezes mid-stride when Unity thinks its

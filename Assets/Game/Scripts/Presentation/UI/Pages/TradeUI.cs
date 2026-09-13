@@ -357,10 +357,7 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 2050;
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             group = canvasGo.GetComponent<CanvasGroup>();
             group.alpha = 0f;

@@ -29,6 +29,9 @@ namespace SpaceGame.Agents
         [SerializeField] private GameObject projectilePrefab;
         [Tooltip("Initial speed (m/s) of the projectile along the muzzle's forward axis.")]
         [SerializeField] private float projectileSpeed = 35f;
+        [Tooltip("Metres a shot from this gun is heard over by NoiseReceiverModules. "
+                 + "0 = silent to AI.")]
+        [SerializeField] private float gunshotNoiseRadius = 55f;
         [Tooltip("Damage dealt by each projectile direct hit on an IDamageable.")]
         [SerializeField] private int damagePerHit = 50;
         [Tooltip("Seconds between shots.")]
@@ -133,6 +136,11 @@ namespace SpaceGame.Agents
                 rb = proj.AddComponent<Rigidbody>();
             rb.useGravity = useGravity;
             rb.linearVelocity = launchDir * projectileSpeed;
+
+            // Simulating machine only -- see the Cosmetic split above.
+            if (authority.SimulatedHere && gunshotNoiseRadius > 0f)
+                Noise.Emit(NoiseType.Gunshot, spawn.position, gunshotNoiseRadius,
+                           transform, transform);
         }
 
         private void OnDrawGizmosSelected()

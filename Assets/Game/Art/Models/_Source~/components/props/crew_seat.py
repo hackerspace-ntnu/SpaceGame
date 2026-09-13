@@ -31,6 +31,12 @@ MATS = ["Mat_Fabric_Seat_Ochre", "Mat_Metal_Steel_Worn", "Mat_Metal_Steel_Dark",
 
 SEAT_H = 0.46     # cushion top above the deck — standard sitting height
 
+# The seats face +X and a rotation about +Y carries +Z toward +X, so a rearward rake
+# is a NEGATIVE angle. Every cushion, batten and headrest that rides on a raked shell
+# has to share the shell's sign, or it splays off the shell instead of lying on it.
+RAKE_PILOT = Matrix.Rotation(math.radians(-12), 4, 'Y')
+RAKE_COPILOT = Matrix.Rotation(math.radians(-14), 4, 'Y')
+
 
 def pedestal(p, height=SEAT_H - 0.10, r=0.085, slide=True):
     """Column, foot and (optionally) the fore-aft slide rail under it."""
@@ -79,24 +85,23 @@ def pilot(coll, mats):
 
     cushion(p, -0.28, 0.30, 0.50, 0.44, 0.10)
     # Backrest cushion, raked back 12 degrees.
-    p.box((-0.36, 0.0, 0.84), (0.16, 0.48, 0.66), VINYL,
-          rot=Matrix.Rotation(math.radians(12), 4, 'Y'))
+    p.box((-0.36, 0.0, 0.84), (0.16, 0.48, 0.66), VINYL, rot=RAKE_PILOT)
     for i in range(4):
         z = 0.60 + i * 0.16
         p.box((-0.30 - i * 0.012, 0.0, z), (0.03, 0.44, 0.022), VINYL,
-              rot=Matrix.Rotation(math.radians(12), 4, 'Y'))
+              rot=RAKE_PILOT)
     # Headrest on two posts.
     for s in (-1, 1):
         p.cyl((-0.40, s * 0.10, 1.20), 0.016, 0.14, 'Z', 8, CHROME)
-    p.box((-0.42, 0.0, 1.30), (0.15, 0.34, 0.16), VINYL,
-          rot=Matrix.Rotation(math.radians(12), 4, 'Y'))
+    p.box((-0.42, 0.0, 1.30), (0.15, 0.34, 0.16), VINYL, rot=RAKE_PILOT)
 
-    # Five-point harness: shoulder straps, lap straps, buckle.
+    # Five-point harness: shoulder straps, lap straps, buckle. The shoulder strap
+    # spans shoulder to buckle, so it is sized to that run rather than left short.
     for s in (-1, 1):
-        p.box((-0.22, s * 0.15, 0.94), (0.42, 0.075, 0.016), CANVAS,
-              rot=Matrix.Rotation(math.radians(-58), 4, 'Y'))
+        p.box((-0.18, s * 0.15, 0.86), (0.60, 0.075, 0.016), CANVAS,
+              rot=Matrix.Rotation(math.radians(59), 4, 'Y'))
         p.box((0.02, s * 0.24, 0.52), (0.30, 0.07, 0.016), CANVAS,
-              rot=Matrix.Rotation(math.radians(-8), 4, 'Y'))
+              rot=Matrix.Rotation(math.radians(8), 4, 'Y'))
     p.box((-0.02, 0.0, 0.60), (0.11, 0.10, 0.045), CHROME)
     p.cyl((-0.02, 0.0, 0.625), 0.032, 0.02, 'Z', 10, AMBER)
 
@@ -121,11 +126,10 @@ def copilot(coll, mats):
     p.prism([(-0.32, 0.38), (0.32, 0.38), (0.32, 0.46), (-0.26, 0.48),
              (-0.38, 0.96), (-0.48, 0.94), (-0.44, 0.42)], 0.54, 'Y', DARK)
     cushion(p, -0.26, 0.28, 0.48, 0.44, 0.09, seg=4)
-    p.box((-0.34, 0.0, 0.72), (0.15, 0.46, 0.44), VINYL,
-          rot=Matrix.Rotation(math.radians(14), 4, 'Y'))
+    p.box((-0.34, 0.0, 0.72), (0.15, 0.46, 0.44), VINYL, rot=RAKE_COPILOT)
     for i in range(3):
         p.box((-0.28 - i * 0.012, 0.0, 0.58 + i * 0.16), (0.03, 0.42, 0.022),
-              VINYL, rot=Matrix.Rotation(math.radians(14), 4, 'Y'))
+              VINYL, rot=RAKE_COPILOT)
     # Lap belt only — the copilot is not strapped in for launch.
     p.box((0.02, 0.0, 0.51), (0.34, 0.075, 0.016), CANVAS)
     p.box((-0.02, 0.0, 0.55), (0.09, 0.09, 0.04), CHROME)
@@ -156,12 +160,15 @@ def bench(coll, mats):
     for i in range(6):
         y = -0.60 + i * 0.24
         p.box((0.19, y, 0.525), (0.38, 0.02, 0.014), CANVAS)
-    for s in (-1, 1):
-        p.cyl((0.18, s * 0.66, 0.30), 0.016, 0.42, 'X', 8, STEEL,
-              rot=Matrix.Rotation(math.radians(-52), 4, 'Y'))
     # Canvas backrest slung between two uprights.
     for s in (-1, 1):
         p.cyl((-0.06, s * 0.68, 0.78), 0.022, 0.56, 'Z', 8, STEEL)
+    # Stays in tension from the uprights down to the front of the pan. Both ends land
+    # inside solid geometry — an upright above, the pan slab below — so the strut is
+    # carried by the bench itself rather than by an assumed wall behind it.
+    for s in (-1, 1):
+        p.cyl((0.17, s * 0.68, 0.58), 0.016, 0.54, 'X', 8, STEEL,
+              rot=Matrix.Rotation(math.radians(31), 4, 'Y'))
     p.box((-0.03, 0.0, 0.92), (0.03, 1.34, 0.30), CANVAS)
     p.box((-0.03, 0.0, 1.02), (0.045, 1.30, 0.035), STEEL)
     p.bevel(width=0.006, segments=2)
@@ -178,8 +185,10 @@ def stool(coll, mats):
         a = math.pi / 2 * i + math.pi / 4
         p.box((math.cos(a) * 0.14, math.sin(a) * 0.14, 0.055),
               (0.26, 0.045, 0.04), STEEL, rot=Matrix.Rotation(a, 4, 'Z'))
+        # The castor axle has to turn with its leg. A bare 'Y' axis is square to
+        # the ship, not to the star arm, so every wheel sits skewed on its leg.
         p.cyl((math.cos(a) * 0.26, math.sin(a) * 0.26, 0.032), 0.032, 0.026,
-              'Y', 10, RUBBER)
+              'Y', 10, RUBBER, rot=Matrix.Rotation(a, 4, 'Z'))
     p.cyl((0, 0, 0.26), 0.05, 0.38, 'Z', 12, CHROME)
     p.cyl((0, 0, 0.20), 0.062, 0.06, 'Z', 12, DARK)
     # Foot ring.

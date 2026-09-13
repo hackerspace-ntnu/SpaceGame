@@ -523,6 +523,7 @@ GameObject:
   - component: {fileID: -6273495021938504230}
   - component: {fileID: -7986690598945737756}
   - component: {fileID: 161939302357112543}
+  - component: {fileID: 7743234698818080356}
   m_Layer: 0
   m_Name: RigWalker
   m_TagString: Untagged
@@ -648,6 +649,7 @@ MonoBehaviour:
   lookActionName: Look
   lookSensitivity: 20
   lookPitchClamp: 75
+  firstPersonYawClamp: 180
   defaultMountedPitch: -15
   orbitPitchMin: -25
   orbitPitchMax: 60
@@ -797,7 +799,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 0
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -807,12 +809,12 @@ MonoBehaviour:
   SyncScaleX: 1
   SyncScaleY: 1
   SyncScaleZ: 1
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
   InLocalSpace: 0
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
@@ -1004,6 +1006,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 224ea88323b7644c2a480ebc564c8756, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &7743234698818080356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3114823854941761195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+  frozen:
+    seconds: 10
+    shatterDamage: 25
+  slick:
+    seconds: 20
+    grip: 0.03
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  inflationTarget: {fileID: 1575715764640252018}
 --- !u!1 &3863881385437383182
 GameObject:
   m_ObjectHideFlags: 0

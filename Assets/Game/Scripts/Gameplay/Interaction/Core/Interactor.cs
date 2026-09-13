@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Gameplay
@@ -25,10 +26,47 @@ namespace SpaceGame.Gameplay
         public bool IsHoveringInteractable { get; private set; }
 
         /// <summary>
+        /// The eye the E key looks down, and how far it reaches.
+        ///
+        /// <para>
+        /// Exposed for things the crosshair points at that are not <see cref="IInteractable"/> —
+        /// the ship's inventory wall, whose verb changes per cell and so cannot be one. They have
+        /// to cast the SAME ray this does, or the player aims at a cell with one control and
+        /// presses E into another.
+        /// </para>
+        /// <para>
+        /// Degenerate — origin, zero direction — with no look transform wired, which every caller
+        /// must test rather than assume: this component is on a camera rig that a mount disables.
+        /// </para>
+        /// </summary>
+        public Ray LookRay => lookTransform != null
+            ? new Ray(lookTransform.position, lookTransform.forward)
+            : new Ray(Vector3.zero, Vector3.zero);
+
+        /// <summary>How far <see cref="LookRay"/> reaches — the E key's own range.</summary>
+        public float CastDistance => _castDistance;
+
+        /// <summary>
         /// What the crosshair is on right now, or null. Same resolution the E key uses, so the HUD
         /// can never describe one control while the key works another.
         /// </summary>
         public IInteractable HoveredInteractable { get; private set; }
+
+        /// <summary>
+        /// The collider the ray actually met to reach <see cref="HoveredInteractable"/>, or null.
+        ///
+        /// <para>
+        /// Published because the interactable alone does not say WHERE the player is pointing, and
+        /// a HUD that re-derives that from the component's own hierarchy gets a different answer:
+        /// an interactable resolved off a parent names the whole hull, and one whose collider is a
+        /// trigger standing proud of a fixture names air. This is the hit that was arbitrated, so
+        /// anything drawing on the target draws on the same place the press will act.
+        /// </para>
+        /// </summary>
+        public Collider HoveredCollider { get; private set; }
+
+        /// <summary>Where the look ray met <see cref="HoveredCollider"/>. Meaningless with no hover.</summary>
+        public Vector3 HoveredPoint { get; private set; }
 
         [Header("Debug")]
         [SerializeField] private bool _debugRay = true;
@@ -78,39 +116,92 @@ namespace SpaceGame.Gameplay
         {
             IsHoveringInteractable = false;
             HoveredInteractable = null;
+            HoveredCollider = null;
         }
 
         private void Update()
         {
             if (!DoInteractionTest(out IInteractable interactable))
             {
-                IsHoveringInteractable = false;
-                HoveredInteractable = null;
+                ClearHoverState();
                 return;
             }
 
             if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled)
             {
-                IsHoveringInteractable = false;
-                HoveredInteractable = null;
+                ClearHoverState();
                 return;
             }
 
             // Match the crosshair to what pressing Interact would actually do. Without the
             // CanInteract test the crosshair lights up over things that refuse the interaction —
             // e.g. a whole vehicle hull whose root MountModule is the nearest IInteractable.
-            IsHoveringInteractable = IsAvailable(interactable);
+            IsHoveringInteractable = IsActionable(interactable);
             HoveredInteractable = IsHoveringInteractable ? interactable : null;
+
+            // The arbitrated hit, kept beside the interactable it answered with. Cleared with it,
+            // so a reader can never pair a live hover with a stale point.
+            HoveredCollider = IsHoveringInteractable ? hitInfo.collider : null;
+            HoveredPoint = hitInfo.point;
         }
 
+        /// <summary>
+        /// The interact button, on whatever the crosshair is on. It has two meanings and they do
+        /// not overlap: <b>operate</b> the thing, or — when the thing has no verb to operate and
+        /// can be taken back — <b>pick it up</b>.
+        ///
+        /// <para>
+        /// Picking up used to be a key of its own (Q), which put the two halves of one verb on two
+        /// different buttons: loose salvage came up on right mouse and a lantern the player had put
+        /// down came up on Q. Worse, Q is also the left gauntlet's trigger, so the pocket gesture
+        /// fired a worn device at the same time. One button, and which of its two meanings applies
+        /// is decided by the target rather than by the player remembering — see
+        /// <see cref="PressPicksUp"/>.
+        /// </para>
+        /// </summary>
         private void Interact()
         {
             if (!DoInteractionTest(out IInteractable interactable)) return;
 
             if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
-            if (!IsAvailable(interactable)) return;
-            interactable.Interact(this);
 
+            bool available = IsAvailable(interactable);
+            if (available)
+            {
+                // Barriered on the TARGET, not on this Interactor: a broken door must cost the
+                // player that door, not their ability to interact with anything ever again. Quarantine
+                // therefore switches off the door, which is the thing that is actually broken.
+                if (interactable is Component target)
+                    Fault.Run(target, "Interactable.Interact", () => interactable.Interact(this));
+                else
+                    interactable.Interact(this);
+                return;
+            }
+
+            if (PressPicksUp(interactable, available) && interactable is IRetrievable retrievable)
+                retrievable.Retrieve(this);
+        }
+
+        /// <summary>
+        /// Whether the interact press on this target means "take it back" rather than "use it".
+        ///
+        /// <para>
+        /// Asked in exactly two places — here, and by the crosshair through
+        /// <see cref="IsActionable"/> — so the prompt can never offer a pick-up the press then
+        /// refuses, or light up for a target the press does nothing to.
+        /// </para>
+        /// <para>
+        /// The primary verb wins when there is one. A placeable that <i>does</i> something keeps
+        /// the interact button for doing it and offers its pick-up on LMB
+        /// (<see cref="ISecondaryInteractable"/>) instead, which is the same split placing already
+        /// uses: LMB puts a thing down, this button takes it back.
+        /// </para>
+        /// </summary>
+        /// <param name="canUse">Whether the target's own primary verb is available right now.</param>
+        public static bool PressPicksUp(IInteractable interactable, bool canUse)
+        {
+            if (canUse) return false;
+            return interactable is IRetrievable retrievable && retrievable.CanRetrieve();
         }
 
         /// <summary>
@@ -122,6 +213,19 @@ namespace SpaceGame.Gameplay
         /// crosshair and the key can never disagree — a prompt that lights up and then refuses the
         /// press is the failure this method exists to prevent.
         /// </summary>
+        /// <summary>
+        /// Whether the player can do ANYTHING here, which is what the crosshair and the prompt
+        /// answer to. Wider than <see cref="IsAvailable"/> on purpose: a placeable has no verb to
+        /// operate at all, only a pick-up, and gating the hover on <c>CanInteract</c> alone left it
+        /// with no prompt and an unlit crosshair — the player had no way to learn it could be
+        /// picked up.
+        /// </summary>
+        private bool IsActionable(IInteractable interactable)
+        {
+            bool available = IsAvailable(interactable);
+            return available || PressPicksUp(interactable, available);
+        }
+
         private bool IsAvailable(IInteractable interactable)
         {
             if (interactable == null || !interactable.CanInteract()) return false;
@@ -143,7 +247,11 @@ namespace SpaceGame.Gameplay
             if (interactable is IContextualInteractable contextual && !contextual.CanInteract(this))
                 return;
             if (!secondary.CanSecondaryInteract()) return;
-            secondary.SecondaryInteract(this);
+
+            if (secondary is Component target)
+                Fault.Run(target, "Interactable.SecondaryInteract", () => secondary.SecondaryInteract(this));
+            else
+                secondary.SecondaryInteract(this);
         }
 
         private bool DoInteractionTest(out IInteractable interactable)
@@ -188,6 +296,11 @@ namespace SpaceGame.Gameplay
         /// from a parent, and the ray passes straight through it to whatever is really there. A
         /// trigger that IS a control still works: the crawler's DOOR_MountStation holds its
         /// MountStation on the very GameObject the trigger is on.
+        ///
+        /// The one exception is <see cref="InteractionBlocker"/>: a trigger that stands for
+        /// something you can see through and cannot reach through. It offers nothing and stops the
+        /// ray, which is how a hull with a deliberate hole in its collision — the PlayerShip's
+        /// canopy — keeps what is behind it out of reach.
         /// </summary>
         /// <param name="ignoreRoot">
         /// Hierarchy to treat as invisible — the interacting player's own body. Optional so tests
@@ -213,7 +326,19 @@ namespace SpaceGame.Gameplay
                 {
                     // Only a trigger that is itself a control answers; everything else is see-through.
                     IInteractable own = collider.GetComponent<IInteractable>();
-                    if (own == null) continue;
+                    if (own == null)
+                    {
+                        // Unless it is glass. See-through also meant reach-through, and a hull is
+                        // only as opaque as its collision: the PlayerShip's canopy dome carries
+                        // none on purpose, so the four cockpit chairs' own trigger volumes were the
+                        // first thing an outside ray met and the ship was boardable from the air
+                        // above it. An InteractionBlocker is a trigger that stops the ray without
+                        // offering anything — solid to the hand, invisible to physics.
+                        if (collider.GetComponent<InteractionBlocker>() == null) continue;
+                        chosen = hits[index];
+                        return false;
+                    }
+
                     interactable = own;
                     chosen = hits[index];
                     return true;

@@ -50,6 +50,7 @@ namespace SpaceGame.Weapons
         private Vector3 lastHitNormal = Vector3.up;
         private bool hasLastHit;
         private Light runtimeStrikeLight;
+        private int overrideFrame = -1;
 
         private void Reset()
         {
@@ -105,9 +106,58 @@ namespace SpaceGame.Weapons
             }
         }
 
+        /// <summary>
+        /// Aim the orb's bolt at a point in the world for this frame, in place of the idle scan.
+        ///
+        /// <para>
+        /// The shader has exactly one direct bolt, so the wandering light show and a real discharge
+        /// cannot both hold it. The caller wins for as long as it keeps calling, and the scan takes
+        /// it back the first frame it stops — which is what lets
+        /// <see cref="BallLightningDischarge"/> whip the same bolt between several bodies without a
+        /// second lightning being drawn anywhere.
+        /// </para>
+        /// <para>
+        /// The write happens here rather than being queued for <see cref="Update"/>, because
+        /// component order decides which of the two runs first and a queued override would be a
+        /// frame late half the time. Update yields whenever this has already run for the current
+        /// frame; when it runs first instead, this simply overwrites what it wrote.
+        /// </para>
+        /// </summary>
+        public void StrikeAt(Vector3 worldPoint)
+        {
+            if (lightningController == null)
+            {
+                return;
+            }
+
+            Vector2 uv = WorldPointToUv(worldPoint);
+
+            // Seeded into the smoothing state as well, so that if the scan ever does take the bolt
+            // back it eases on from where the discharge left it rather than snapping through the
+            // orb from some stale ground target.
+            currentUv = uv;
+            lastUv = uv;
+            hasLastUv = true;
+
+            lastHitPoint = worldPoint;
+            lastHitNormal = Vector3.up;
+            hasLastHit = true;
+
+            lightningController.SetExternalDirectBolt(uv, true);
+            UpdateStrikePointLight(true);
+
+            overrideFrame = Time.frameCount;
+        }
+
         private void Update()
         {
             if (lightningController == null)
+            {
+                return;
+            }
+
+            // Something is discharging through this orb and has already aimed the bolt this frame.
+            if (overrideFrame == Time.frameCount)
             {
                 return;
             }

@@ -27,6 +27,24 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// Hold a wrapped yaw offset inside a seat's look limit.
+        ///
+        /// A limit of 180 is not a limit at all, and that is the point of naming this rather than
+        /// clamping inline: the offset arrives already folded into (-180, 180], so a ±180 clamp can
+        /// never fire, and a rider who keeps turning wraps onto the near side and carries on round.
+        /// That is what lets one field say both "you may look anywhere" and "this seat faces one
+        /// way" without a sentinel value meaning the first.
+        /// </summary>
+        /// <param name="wrappedOffset">Offset already through <see cref="WrapAngle"/>.</param>
+        /// <param name="limitEachWay">Degrees either side of the seat's forward. 180 = all the way round.</param>
+        public static float ClampYaw(float wrappedOffset, float limitEachWay)
+        {
+            return limitEachWay >= 180f
+                ? wrappedOffset
+                : Mathf.Clamp(wrappedOffset, -limitEachWay, limitEachWay);
+        }
+
+        /// <summary>
         /// Advance an orbit offset one frame towards zero, holding it completely until the rider
         /// has been off the look stick for <paramref name="delay"/> seconds.
         ///

@@ -46,6 +46,14 @@ namespace SpaceGame.EditorTools
             mountObject = new GameObject("Mount");
             mount = mountObject.AddComponent<MountModule>();
 
+            // Edit mode never advances Time.time, so the authored 0.25 s cooldown reads as
+            // "0 >= 0.25" and IsAvailableForMount refuses every mount — every test here then
+            // fails on its first TryMount, before reaching the restore behaviour it is about.
+            // Same workaround as MountSeatAddressingTests.Fit.
+            var cooldown = new UnityEditor.SerializedObject(mount);
+            cooldown.FindProperty("mountCooldown").floatValue = 0f;
+            cooldown.ApplyModifiedPropertiesWithoutUndo();
+
             riderObject = new GameObject("Rider");
             movement = riderObject.AddComponent<PlayerMovement>();
             look = riderObject.AddComponent<PlayerLook>();

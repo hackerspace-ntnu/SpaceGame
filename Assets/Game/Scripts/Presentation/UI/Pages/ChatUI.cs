@@ -296,8 +296,7 @@ namespace SpaceGame.Presentation
             bool show = open || openness > 0.001f || AnyRowVisible();
             if (canvas.gameObject.activeSelf != show) canvas.gameObject.SetActive(show);
 
-            logBackdrop.color = new Color(UITheme.Panel.r, UITheme.Panel.g, UITheme.Panel.b,
-                                          UITheme.Panel.a * openness);
+            logBackdrop.color = new Color(LogPanel.r, LogPanel.g, LogPanel.b, LogPanel.a * openness);
         }
 
         /// <summary>
@@ -440,10 +439,7 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             canvasGroup = canvasGo.GetComponent<CanvasGroup>();
             canvasGroup.blocksRaycasts = false;
@@ -476,7 +472,7 @@ namespace SpaceGame.Presentation
             panel.offsetMax = Vector2.zero;
 
             logBackdrop = UIBuilder.Sprite(UIBuilder.Fill(UIBuilder.Rect("Backdrop", panel)),
-                UITheme.PanelSprite, new Color(UITheme.Panel.r, UITheme.Panel.g, UITheme.Panel.b, 0f));
+                UITheme.PanelSprite, new Color(LogPanel.r, LogPanel.g, LogPanel.b, 0f));
 
             var viewport = UIBuilder.Fill(UIBuilder.Rect("Viewport", panel), 10f, 8f, 10f, 8f);
             viewport.gameObject.AddComponent<RectMask2D>();
@@ -578,7 +574,7 @@ namespace SpaceGame.Presentation
             pad.childForceExpandHeight = false;
 
             var label = UIBuilder.Label(UIBuilder.Rect("Text", rect), Compose(message),
-                UITheme.ValueSize, BodyColor(message));
+                VisorStyle.BodySize, BodyColor(message));
             label.enableWordWrapping = true;
             label.overflowMode = TextOverflowModes.Overflow;
             label.alignment = TextAlignmentOptions.TopLeft;
@@ -604,11 +600,21 @@ namespace SpaceGame.Presentation
             return $"<color=#{hex}><noparse>{message.Sender}</noparse></color>  <noparse>{message.Text}</noparse>";
         }
 
+        /// <summary>
+        /// The log's own backdrop: near-black carrying a trace of the visor's ink, rather than
+        /// UITheme's menu navy. Chat is drawn on the helmet glass now, not in a menu.
+        /// </summary>
+        private static readonly Color LogPanel = new(0.02f, 0.045f, 0.06f, 0.9f);
+
+        /// <summary>
+        /// Chat sits one step quieter than the system channel: the suit's own messages are the
+        /// thing you must read, and another player saying "heading east" is not.
+        /// </summary>
         private static Color BodyColor(ChatMessage message) => message.Kind switch
         {
-            ChatKind.System => UITheme.Muted,
-            ChatKind.Notice => UITheme.AccentWarm,
-            _ => UITheme.Bright,
+            ChatKind.System => VisorStyle.InkFaint,
+            ChatKind.Notice => VisorStyle.Alarm,
+            _ => VisorStyle.InkDim,
         };
 
         /// <summary>
@@ -633,9 +639,18 @@ namespace SpaceGame.Presentation
                     hash *= prime;
                 }
 
-                // Kept light and not too saturated: these sit on a dark strip and have to stay
-                // legible next to the white body text.
-                return Color.HSVToRGB(hash % 360u / 360f, 0.45f, 1f);
+                // Constrained to the cool band — cyan through blue to violet — rather than the
+                // whole hue wheel. On the visor, warm means danger and nothing else: a player
+                // whose name hashed to orange would read as an alarm every time they spoke.
+                // 110 degrees is still plenty to tell a lobby of people apart by colour alone.
+                const float bandStart = 170f / 360f;
+                const float bandWidth = 110f / 360f;
+
+                float hue = bandStart + (hash % 1000u / 1000f * bandWidth);
+
+                // Light and not too saturated: these sit on a dark strip and have to stay legible
+                // beside the body text.
+                return Color.HSVToRGB(hue, 0.45f, 1f);
             }
         }
     }

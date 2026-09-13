@@ -8,6 +8,7 @@ using FMODUnity;
 using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 
 namespace SpaceGame.Agents
 {
@@ -24,6 +25,30 @@ namespace SpaceGame.Agents
         [SerializeField] private int attackDamage = 10;
         [Tooltip("Seconds the agent stays locked in StopAndFace after a swing fires — keeps the attack committed so it can't start walking mid-animation if the target drifts out of attackRange. Typically set to the length of the attack animation.")]
         [SerializeField] private float attackCommitDuration = 0.5f;
+
+        // Knockback is OFF by default, and that is deliberate: this module is shared, and giving
+        // every melee creature in the project a shove because one of them needed it would retune
+        // three shipped fights silently. A creature that should knock you back says so.
+        [Header("Knockback")]
+        [Tooltip("Metres per second the victim is thrown at. 0 disables knockback entirely.")]
+        [SerializeField] private float knockbackSpeed;
+
+        [Tooltip("Upward share of the shove, as a fraction of knockbackSpeed. A little lift is what " +
+                 "makes a hit read as an impact rather than a nudge; too much turns it into a punt.")]
+        [SerializeField] [Range(0f, 1f)] private float knockbackLift = 0.3f;
+
+        [Tooltip("How far a hit CREATURE is thrown. A creature's transform belongs to its motor and " +
+                 "forces never land on it, so it is asked for a leap instead — see BlastPush.")]
+        [SerializeField] private float knockbackLeapDistance = 4f;
+        [SerializeField] private float knockbackLeapHeight = 1.6f;
+        [SerializeField] private float knockbackLeapDuration = 0.55f;
+
+        [Tooltip("Mass a loose Rigidbody is priced against, so a crate and a pebble both move a " +
+                 "believable amount. Only used for physics props — players and creatures take the " +
+                 "two routes above.")]
+        [SerializeField] private float knockbackMassReference = 80f;
+        [Tooltip("Clamp on that mass compensation: nothing gets launched into orbit, nothing is immovable.")]
+        [SerializeField] private Vector2 knockbackMassScale = new Vector2(0.4f, 2.5f);
 
         [Header("Animation")]
         [Tooltip("Trigger to fire on each attack. Leave empty to disable.")]
@@ -186,6 +211,13 @@ namespace SpaceGame.Agents
             if (health != null && health.Alive)
                 NetDamage.Apply(health.gameObject, attackDamage, transform);
 
+            // Alongside the damage, not inside the presentation below: a shove moves the victim,
+            // and where the victim ends up is exactly the state every machine must agree on.
+            // BlastPush routes it correctly for each kind of target — a player is
+            // owner-authoritative and gets NetMsg.Flung, a creature's transform belongs to its
+            // motor so it is asked for a leap, and a loose Rigidbody takes a mass-scaled impulse.
+            Knock(target);
+
             // Deliberately NOT part of the presentation below, and not carried in the message
             // either: this hands out the TARGET, which is exactly the divergent state AgentActed
             // exists so that watchers never have to guess at. A handler holding the victim is one
@@ -203,6 +235,44 @@ namespace SpaceGame.Agents
             // swing already holds the agent still for attackCommitDuration, so the wire rate is
             // bounded by attackCooldown and nothing else.
             AgentActionRelay.Broadcast(this, AgentAction.Melee, origin, direction);
+        }
+
+        /// <summary>
+        /// Throw the victim away from the attacker.
+        ///
+        /// <para>
+        /// Authority only — it is called from <see cref="Attack"/>, which is the deciding side.
+        /// Running it on a watcher would shove the same victim once per machine in the session,
+        /// which is the movement equivalent of the damage bug the <c>Cosmetic</c> split exists to
+        /// prevent.
+        /// </para>
+        /// <para>
+        /// The direction is flattened before the lift is added back, so the shove is always
+        /// outward along the ground rather than steeply up when the attacker's head happens to be
+        /// above the victim — which for a creature that hits with a lowered head is most of the
+        /// time.
+        /// </para>
+        /// </summary>
+        private void Knock(Transform target)
+        {
+            if (knockbackSpeed <= 0f)
+                return;
+
+            Vector3 away = target.position - transform.position;
+            away.y = 0f;
+            // Directly on top of each other: shove along the attacker's facing rather than
+            // resolving a zero vector to no direction at all.
+            if (away.sqrMagnitude < 1e-6f)
+                away = transform.forward;
+
+            Vector3 velocity = away.normalized * knockbackSpeed
+                             + Vector3.up * (knockbackSpeed * knockbackLift);
+
+            BlastPush.Apply(target.GetComponentInChildren<Collider>(), target.gameObject, velocity,
+                            knockbackSpeed,
+                            BlastPush.Leap.Proportional(knockbackLeapDistance, knockbackLeapHeight,
+                                                        knockbackLeapDuration),
+                            knockbackMassReference, knockbackMassScale);
         }
 
         /// <summary>
@@ -261,6 +331,14 @@ namespace SpaceGame.Agents
             attackCooldown = Mathf.Max(0.1f, attackCooldown);
             attackDamage = Mathf.Max(0, attackDamage);
             attackCommitDuration = Mathf.Max(0f, attackCommitDuration);
+            knockbackSpeed = Mathf.Max(0f, knockbackSpeed);
+            knockbackLeapDistance = Mathf.Max(0f, knockbackLeapDistance);
+            knockbackLeapHeight = Mathf.Max(0f, knockbackLeapHeight);
+            knockbackLeapDuration = Mathf.Max(0.05f, knockbackLeapDuration);
+            knockbackMassReference = Mathf.Max(0.1f, knockbackMassReference);
+            // An inverted range silently clamps every mass to the wrong end.
+            knockbackMassScale.x = Mathf.Max(0.01f, knockbackMassScale.x);
+            knockbackMassScale.y = Mathf.Max(knockbackMassScale.x, knockbackMassScale.y);
             SetMinPriority(ModulePriority.MeleeAttack);
         }
     }

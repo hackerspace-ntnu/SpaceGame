@@ -18,9 +18,6 @@ namespace SpaceGame.Presentation
     [DisallowMultipleComponent]
     public class WorldOverlay : MonoBehaviour
     {
-        /// <summary>Reference resolution, matched to PlayerHUD so text is the same size on both.</summary>
-        private static readonly Vector2 ReferenceResolution = new(1920f, 1080f);
-
         /// <summary>
         /// Behind PlayerHUD (which sits at 0), so the crosshair, the health readout and every menu
         /// draw over these labels rather than under them. World annotations are the bottom layer of
@@ -126,11 +123,7 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = ReferenceResolution;
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
+            UIScale.Apply(gameObject);
 
             // Deliberately no GraphicRaycaster. Nothing here is clickable, and adding one would put
             // a full-screen canvas in front of every real button in the game.

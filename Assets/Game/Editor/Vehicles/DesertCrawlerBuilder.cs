@@ -27,7 +27,7 @@
 // `Collector_Bucket`, as the retired `Cube.001` was), not here.
 //
 // Model orientation: authored −Y forward in Blender, which the default FBX axis conversion lands
-// on Unity's +Z. There is deliberately no ModelYaw here, unlike ShipRVBuilder.
+// on Unity's +Z, so there is deliberately no ModelYaw here.
 //
 // Re-run from: Tools ▸ Vehicles ▸ Build Desert Crawler Prefab
 using System.Collections.Generic;

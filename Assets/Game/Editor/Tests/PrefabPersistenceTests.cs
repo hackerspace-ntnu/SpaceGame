@@ -30,6 +30,7 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.DuneFoil;
 
 namespace SpaceGame.EditorTools
@@ -57,6 +58,35 @@ namespace SpaceGame.EditorTools
             PersistenceProbe.AssertEveryWiredPrefabHasItsSavers();
 
         /// <summary>
+        /// The half neither sweep above can see, because both of them ask Unity rather than the file.
+        /// A prefab whose <c>prefabId</c> is only ever filled in by <c>OnValidate</c> looks correct in
+        /// the editor and ships blank — and anything spawned from it is captured into the save and
+        /// then dropped, so it is missing from the world with nothing said. The PlayerShip reached
+        /// exactly that state when its builder was run in Play mode, where the wiring pass refuses.
+        /// </summary>
+        [Test]
+        public void EveryWorldEntityPrefabCarriesItsPrefabIdOnDisk() =>
+            PersistenceProbe.AssertEveryWorldEntityPrefabIsStampedOnDisk();
+
+        /// <summary>
+        /// A saveable prefab nested inside another keeps its own entity, and OnValidate stamps that
+        /// entity with the OUTER prefab's id. The map projector inside the PlayerShip did exactly
+        /// this, and every load of a world put a second hull on top of the first.
+        /// </summary>
+        [Test]
+        public void NoWorldEntityPrefabNestsASecondSaveableEntity() =>
+            PersistenceProbe.AssertNoWorldEntityPrefabNestsASecondSaveableEntity();
+
+        /// <summary>
+        /// The second half of the same nesting bug: with the nested entity gone, the nested
+        /// object's own TransformSaveable is collected after the root's under the same key, and a
+        /// capture keeps the child's pose as the whole object's.
+        /// </summary>
+        [Test]
+        public void NoWorldEntityPrefabHasTwoSaversOnOneKey() =>
+            PersistenceProbe.AssertOneSaverPerKeyOnEveryWorldEntityPrefab();
+
+        /// <summary>
         /// A floor under the sweeps. If the discovery query breaks — a moved folder, a renamed root —
         /// both sweeps above start passing while checking nothing at all, which is the one way a
         /// project-wide test can fail silently.
@@ -80,6 +110,7 @@ namespace SpaceGame.EditorTools
         private const string Golem = "Assets/Game/Prefabs/agents/creatures/Golem.prefab";
         private const string DuneFoil = "Assets/Game/Prefabs/agents/Vehicles/Ground/DuneFoil.prefab";
         private const string PatrolRobot = "Assets/Game/Prefabs/agents/Robots/PatrolRobot.prefab";
+        private const string PlayerShip = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
         [Test]
         public void Ostrich_IsWiredForSaving() =>
@@ -136,6 +167,25 @@ namespace SpaceGame.EditorTools
         public void DuneFoil_StaysMoored() =>
             PersistenceProbe.For(DuneFoil)
                 .Mutate(go => go.GetComponent<DuneFoilLocomotion>().HoldStation = true)
+                .AssertSurvivesRoundTrip();
+
+        /// <summary>
+        /// The hull modules a player found, hauled home and fitted. This is the entire reward of the
+        /// salvage loop, and it is the one thing on a wrecked ship that a reload must not undo —
+        /// coming back to the same hole in the roof with the motor gone from the pack too is worse
+        /// than never having found it.
+        /// </summary>
+        [Test]
+        public void PlayerShip_KeepsTheModulesFittedToIt() =>
+            PersistenceProbe.For(PlayerShip)
+                .Mutate(go =>
+                {
+                    ShipPartRack rack = go.GetComponent<ShipPartRack>();
+
+                    // Two, not all: a mask that happens to equal "everything" would pass even if the
+                    // saver were writing a constant.
+                    rack.RestoreMask(0b101);
+                })
                 .AssertSurvivesRoundTrip();
 
         // ─────────────────────────────────────────────

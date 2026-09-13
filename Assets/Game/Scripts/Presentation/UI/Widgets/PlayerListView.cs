@@ -78,7 +78,7 @@ namespace SpaceGame.Presentation
         {
             if (container == null) return;
 
-            List<PlayerIdentity.Entry> roster = PlayerIdentity.BuildRoster();
+            List<PlayerRoster.Entry> roster = PlayerRoster.Build();
 
             emptyLabel.gameObject.SetActive(roster.Count == 0);
             // The empty note is the first child; keeping it there means it does not jump to the
@@ -94,7 +94,7 @@ namespace SpaceGame.Presentation
                 row.Host.SetActive(used);
                 if (!used) continue;
 
-                PlayerIdentity.Entry entry = roster[i];
+                PlayerRoster.Entry entry = roster[i];
 
                 row.Name.text = entry.Name;
                 row.Name.color = entry.IsLocal ? UITheme.Bright : UITheme.Muted;
@@ -107,7 +107,7 @@ namespace SpaceGame.Presentation
             }
         }
 
-        private static string BuildTag(PlayerIdentity.Entry entry)
+        private static string BuildTag(PlayerRoster.Entry entry)
         {
             if (entry.IsLocal && entry.IsHost) return "YOU · HOST";
             if (entry.IsLocal) return "YOU";

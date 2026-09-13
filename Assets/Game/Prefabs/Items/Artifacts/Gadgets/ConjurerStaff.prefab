@@ -228,7 +228,6 @@ GameObject:
   - component: {fileID: 7216376606410314582}
   - component: {fileID: 2280600989630335006}
   - component: {fileID: 2052529921372856812}
-  - component: {fileID: 1969612161751879263}
   - component: {fileID: 2515871878280129748}
   - component: {fileID: 8472168382952220890}
   - component: {fileID: 5535267089666507733}
@@ -356,22 +355,6 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
---- !u!114 &1969612161751879263
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3304215016121176040}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 237d3ab58014498d88b389d980dd4b87, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.DropItemPhysics
-  rb: {fileID: 2280600989630335006}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 128
 --- !u!114 &2515871878280129748
 MonoBehaviour:
   m_ObjectHideFlags: 0

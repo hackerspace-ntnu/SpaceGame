@@ -49,6 +49,10 @@ namespace SpaceGame.Agents
         // can tell apart.
         private const float SpeedToWire = 100f;
 
+        // Angles travel as hundredths of a degree, for the same reason and with the same slack:
+        // the launch climb only has to survive a clamp to whole degrees at the far end.
+        private const float AngleToWire = 100f;
+
         private bool externallyPosed;
 
         // Presentation sampling. The pose arrives over the wire, so how fast the craft is going is
@@ -108,7 +112,7 @@ namespace SpaceGame.Agents
         /// Offline this degrades to a local dispatch, which is the same call it always was.
         /// </para>
         /// </summary>
-        public void NetworkLaunch(Vector3 headingForward, float initialSpeed)
+        public void NetworkLaunch(Vector3 headingForward, float initialSpeed, float climbDegrees = 0f)
         {
             Vector3 flat = headingForward;
             flat.y = 0f;
@@ -120,6 +124,7 @@ namespace SpaceGame.Agents
             {
                 R = heading,
                 A = Mathf.RoundToInt(Mathf.Max(0f, initialSpeed) * SpeedToWire),
+                B = Mathf.RoundToInt(Mathf.Clamp(climbDegrees, -89f, 89f) * AngleToWire),
             });
         }
 
@@ -134,7 +139,7 @@ namespace SpaceGame.Agents
             if (flying) return;
 
             Vector3 forward = arg.HasOrientation ? arg.R * Vector3.forward : transform.forward;
-            Launch(forward, arg.A / SpeedToWire);
+            Launch(forward, arg.A / SpeedToWire, arg.B / AngleToWire);
         }
 
         /// <summary>

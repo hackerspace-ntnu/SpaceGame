@@ -544,6 +544,13 @@ namespace SpaceGame.EditorTools
             SetEnum(tracked, "policy", (int)SceneTracked.UnloadPolicy.Migrate);
             SetBool(tracked, "keepChunksLoaded", false);
 
+            // Every component this prefab needs must be added HERE. A rebuild overwrites the asset
+            // wholesale, so anything added by hand in the Inspector is silently gone.
+            //
+            // Six legs, so unlike every other agent in this project it lies along the slope rather
+            // than standing upright across it.
+            AgentGroundConformWiring.Ensure(root, AgentGroundConformWiring.ManyLeggedSlopeFollow);
+
             EnsureFolder("Assets/Game/Prefabs/Agents/Creatures");
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);

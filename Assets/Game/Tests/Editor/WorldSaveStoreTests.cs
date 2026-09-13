@@ -153,6 +153,35 @@ namespace SpaceGame.EditorTests
                             RuntimeIn(store, ChunkKey)[0].InstanceId);
         }
 
+        /// <summary>
+        /// Netcode's shutdown destroys every spawned object before the quit-save runs, so the store
+        /// is sealed after one last capture: a dehydrate after that must keep what it recorded
+        /// rather than mistake the teardown for the player having destroyed everything. This is
+        /// how the runtime-spawned player ship went missing from the file on every editor Stop.
+        /// </summary>
+        [Test]
+        public void Dehydrate_AfterSeal_KeepsRecordsForEntitiesTheTeardownDestroyed()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject ship = RuntimeEntity("ship", "prefab-a", new Vector3(7f, 0f, 2f), 9);
+            string instanceId = ship.GetComponent<SaveableEntity>().InstanceId;
+
+            store.Dehydrate(PersistentKey, scene);
+            store.Seal();
+
+            // The teardown, not the player.
+            Object.DestroyImmediate(ship);
+            spawned.Remove(ship);
+
+            store.Dehydrate(PersistentKey, scene);
+
+            List<EntityRecord> kept = RuntimeIn(store, PersistentKey);
+            Assert.AreEqual(1, kept.Count, "the teardown was recorded as a destruction");
+            Assert.AreEqual(instanceId, kept[0].InstanceId);
+            Assert.AreEqual(new Vector3(7f, 0f, 2f), kept[0].Position);
+        }
+
         /// <summary>The runtime records routed to one scene, which is what a scene load has to spawn.</summary>
         private static List<EntityRecord> RuntimeIn(WorldSaveStore store, string sceneKey) =>
             store.Record.InScene(sceneKey).Where(r => !r.Authored).ToList();
@@ -443,6 +472,119 @@ namespace SpaceGame.EditorTests
 
             Assert.IsTrue(creature == null, "the destroyed creature came back in its home scene");
             spawned.Remove(creature);
+        }
+
+        // ─────────────────────────────────────────────
+        //  Scene-placed instances of a saveable prefab
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// An object placed in a scene by hand is authored, whether or not anyone baked an identity
+        /// into the scene file for it.
+        ///
+        /// The hole this closes: a placed PREFAB INSTANCE already carries a SaveableEntity, brought
+        /// in from the prefab with <c>authored</c> false and <c>instanceId</c> empty, and the
+        /// runtime wiring pass used to step over anything that already had one. So it kept the
+        /// random GUID <c>Awake</c> hands out, was captured as a RUNTIME record, and on the next
+        /// hydrate the scene file re-created it while the store instantiated the record beside it.
+        /// One more copy per chunk load, for the life of the world.
+        /// </summary>
+        [Test]
+        public void EnsureScene_AdoptsAPlacedPrefabInstanceAsAuthored()
+        {
+            GameObject placed = Placed("golem");
+            SaveableEntity entity = placed.GetComponent<SaveableEntity>();
+
+            Assert.IsFalse(entity.IsAuthored, "fixture is wrong — it should start out unstamped");
+            Assert.IsTrue(entity.IdentityIsProvisional,
+                "fixture is wrong — a freshly placed instance owns no identity yet");
+
+            SaveablePolicy.EnsureScene(scene);
+
+            Assert.IsTrue(entity.IsAuthored, "a hand-placed object was left looking runtime-spawned");
+            Assert.AreEqual(SaveableEntity.DeriveAuthoredId(placed), entity.InstanceId,
+                "the adopted identity is not the one derived from where the object sits, so it " +
+                "will be a different value next session");
+        }
+
+        /// <summary>
+        /// The bug as it is actually met: walk away from a chunk and back, and there are two golems.
+        ///
+        /// Each cycle is a capture, the scene going away, the scene file putting its own copy back,
+        /// and a hydrate — which is exactly what streaming does every time a player leaves a chunk
+        /// and returns.
+        /// </summary>
+        [Test]
+        public void APlacedPrefabInstance_DoesNotMultiplyAcrossChunkCycles()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject placed = Placed("golem");
+            store.Hydrate(ChunkKey, scene);
+
+            for (int cycle = 0; cycle < 3; cycle++)
+            {
+                store.Dehydrate(ChunkKey, scene);
+
+                // The chunk unloads, and loads again — the scene file supplies its own copy, as
+                // unstamped as the first one was.
+                Object.DestroyImmediate(placed);
+                spawned.Remove(placed);
+                placed = Placed("golem");
+
+                store.Hydrate(ChunkKey, scene);
+            }
+
+            Assert.AreEqual(1, WorldSaveStore.EntitiesIn(scene).Count(),
+                "the placed object was duplicated by walking away from its chunk and back");
+            Assert.AreEqual(1, store.Record.Entities.Count,
+                "every cycle left one more record behind in the save file");
+        }
+
+        /// <summary>
+        /// The other half of the rule: something genuinely spawned during play keeps the random GUID
+        /// it was born with. Promoting one would give it an authored record, and authored records
+        /// are never dropped — so a dropped item could not be picked back up for good.
+        /// </summary>
+        [Test]
+        public void EnsureScene_LeavesARuntimeSpawnAlone()
+        {
+            GameObject dropped = InScene("dropped-crate");
+            dropped.AddComponent<Rigidbody>().isKinematic = false;
+            SaveablePolicy.EnsureSpawned(dropped);
+
+            SaveableEntity entity = dropped.GetComponent<SaveableEntity>();
+            string born = entity.InstanceId;
+
+            SaveablePolicy.EnsureScene(scene);
+
+            Assert.IsFalse(entity.IsAuthored, "a runtime spawn was promoted to authored");
+            Assert.AreEqual(born, entity.InstanceId, "a runtime spawn had its identity replaced");
+        }
+
+        /// <summary>
+        /// An instance of a saveable prefab, in the state one is in a moment after its scene loads:
+        /// the entity and the prefab id come from the prefab asset, and the identity is the
+        /// placeholder GUID it was handed for want of a baked one.
+        ///
+        /// That GUID is assigned here because <c>Awake</c> is what assigns it at runtime and Unity
+        /// delivers no <c>Awake</c> to a plain MonoBehaviour in edit mode. Standing in for it is the
+        /// whole point of the fixture: an entity with no id at all is skipped by <c>Dehydrate</c>
+        /// outright, so the placeholder is the state that produces the duplication, and a test
+        /// without it would go red for the wrong reason.
+        /// </summary>
+        private GameObject Placed(string name)
+        {
+            GameObject go = InScene(name);
+            go.AddComponent<Rigidbody>().isKinematic = false;
+            SaveableEntity entity = go.AddComponent<SaveableEntity>();
+
+            var so = new UnityEditor.SerializedObject(entity);
+            so.FindProperty("instanceId").stringValue = System.Guid.NewGuid().ToString("N");
+            so.FindProperty("prefabId").stringValue = "prefab-a";
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            return go;
         }
 
         /// <summary>

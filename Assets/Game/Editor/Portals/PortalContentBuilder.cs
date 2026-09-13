@@ -36,9 +36,6 @@ namespace SpaceGame.EditorTools.Portals
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles a dropped item against.</summary>
-        private const int GroundLayerMask = 128;
-
         // Named to match the FBX's own material slots, so the remap below is a
         // substitution rather than a rename — and so PortalGunItem, which finds
         // the two fluids by material name, keeps working against either.
@@ -53,6 +50,97 @@ namespace SpaceGame.EditorTools.Portals
 
         /// <summary>Seconds an aperture the gun opens stays open before it irises shut.</summary>
         private const float PortalLifetime = 20f;
+
+        /// <summary>
+        /// Seconds a ground splat lasts. The APERTURE outlives it by forty times over, on purpose:
+        /// the paint that became a portal is the thing the player made, and the paint that merely
+        /// spattered around it is exhaust.
+        /// </summary>
+        private const float SplatLife = 0.5f;
+
+        /// <summary>
+        /// How big the gun is IN THE HAND, metres along its longest axis — <c>ItemGrip.holdSize</c>,
+        /// and the <see cref="ItemScaleLadder"/>'s BigTool bracket rather than its Gun bracket.
+        ///
+        /// <para>
+        /// It sat on the Gun bracket's 1.25 m until 2026-09-06 (backlog GEAR-02) and that was a
+        /// defect: a bracket number is a <b>reach</b>, <c>holdSize</c> is a <b>longest axis</b>, and
+        /// on every other gun those are the same edge only because a gun is longest along its
+        /// barrel. This one is a fire extinguisher gripped by the handle on top of it, so the
+        /// number landed on its HEIGHT — 1.25 m of bottle hanging out of the fist to below the knee,
+        /// through the thigh and out of the first-person view. 0.73 is the BigTool bracket's own
+        /// 1.65x inflation (0.90 over a 0.54 m pressure bottle) on this vessel's true 0.4445 m.
+        /// <c>ItemScaleLadder.VesselWhy</c> carries the full reasoning and owns the number; changing
+        /// it means changing it there too.
+        /// </para>
+        /// </summary>
+        private const float HoldSize = 0.73f;
+
+        /// <summary>
+        /// How long the gun is drawn LYING ON THE BACKPACK, metres along its longest axis. This is
+        /// <c>ItemGrip.packSize</c>, and it is a different question from <see cref="HoldSize"/>,
+        /// which is not touched by this number.
+        ///
+        /// <para>
+        /// <b>The mat is in true-world metres; the hand is not.</b> The astronaut's hand is about
+        /// 1.7x a human's, so <c>ItemScaleLadder</c> inflates gripped items for the feel of holding
+        /// them — this gun is a 0.4445 m fire extinguisher carried at <see cref="HoldSize"/>. The
+        /// pack is read from above at a fixed standoff, where that inflation buys nothing and is
+        /// paid for in cells out of a finite 255. Every item on the roster that has ever been
+        /// re-sized FOR the mat says the same thing, and says it in whole cells of the rig's
+        /// webbing pitch: Leash 0.27 (true 0.160), Lasso 0.36 (true 0.267), GrapplingHook 0.54
+        /// (true 0.382) — each one its true modelled size rounded up to the next cell, plus one.
+        /// Not one of them is anywhere near its hand size.
+        /// </para>
+        /// <para>
+        /// So: 0.4445 m true is 4.94 of the 0.09 m pitch those three were authored against, and one
+        /// cell of margin above that is <b>6 cells = 0.54 m</b> — the same value the GrapplingHook
+        /// carries, which is the nearest thing to it in true size (0.382 m). On the mat that draws
+        /// an 0.81 m bottle standing in a 2 x 4 cell footprint. It was 1.875 m in 4 x 9.
+        /// </para>
+        /// <para>
+        /// <b>Written on every run, unlike the grip pose.</b> A pose is judged by eye and must
+        /// survive a rebuild; this is a capacity decision derived from a measurement, and leaving
+        /// it to the field default means <c>packSize 0</c>, which does not mean "unset" — it means
+        /// "follow <c>holdSize</c>". That silently re-wires the gun's share of the pack to the
+        /// HAND's bracket ladder, so the next person who moves it a bracket for feel pays for it
+        /// on the mat with nothing to say why. Same reasoning as the jet constants below.
+        /// </para>
+        /// </summary>
+        private const float PackSize = 0.54f;
+
+        /// <summary>The hose's numbers, mirroring PortalGunItem's serialized defaults.
+        ///
+        /// These MUST match, and not approximately. The droplets are an ordinary ParticleSystem
+        /// under Unity's own gravity, and SprayArc integrates the same parabola in C# to decide
+        /// where the paint lands. Same start speed, same gravity modifier, same lifetime means the
+        /// stream you watch and the stream that paints are the one curve. Drift them apart and the
+        /// paint lands somewhere the player never saw the water go.</summary>
+        private const float JetSpeed = 24f;
+        private const float JetGravity = 1f;
+        private const float JetFlightTime = 2f;
+
+        /// <summary>
+        /// How far the aperture's edge crawls off its own outline, in metres.
+        ///
+        /// Written to the surface AND the halo material, because the two draw one edge:
+        /// <c>PortalStencilCrawl</c> in PortalStencil.hlsl is the shared definition and both
+        /// shaders call it with their own <c>_Crawl</c>. Left to the shader defaults they happen
+        /// to agree today and silently stop agreeing the day one of them is tuned — and a halo
+        /// drawn around an outline the hole does not have is exactly the defect this replaced.
+        /// </summary>
+        private const float EdgeCrawl = 0.06f;
+
+        /// <summary>
+        /// The halo's ring: how far outside the edge it sits, and how wide it is, both as shares
+        /// of the stroke radius the aperture was sprayed at.
+        ///
+        /// Stated here rather than left to the shader defaults because <see cref="Portal.RimReach"/>
+        /// sizes the quad from them — the sheet has to be big enough to hold the ring at every
+        /// aperture size, and it can only be sized against numbers somebody wrote down.
+        /// </summary>
+        private const float RimRingOffset = 0.06f;
+        private const float RimRingThickness = 0.22f;
 
         // Both apertures are YELLOW. An earlier pass had one orange and one blue,
         // and two saturated complementary colours across the same screen read as
@@ -85,7 +173,8 @@ namespace SpaceGame.EditorTools.Portals
             // a unit sphere, so it keeps the centred default.
             Material fluidPrimary   = BuildFluidMaterial(PrimaryFluidName, Gold, 0.092f, 0.240f);
             Material fluidSecondary = BuildFluidMaterial(SecondaryFluidName, Lemon, 0.092f, 0.240f);
-            Material blob           = BuildFluidMaterial("PortalBlob", Gold);
+            Material paint          = BuildGooMaterial("PortalGoo");
+            Material splatMaterial  = BuildSplatMaterial("PortalSplat", Gold);
 
             RemapGunMaterials(fluidPrimary, fluidSecondary);
 
@@ -96,8 +185,8 @@ namespace SpaceGame.EditorTools.Portals
             GameObject portalPrimary   = BuildPortalPrefab("PortalPrimary", surfacePrimary, rimPrimary);
             GameObject portalSecondary = BuildPortalPrefab("PortalSecondary", surfaceSecondary, rimSecondary);
 
-            GameObject projectile = BuildProjectilePrefab(blob);
-            GameObject gun = BuildGunPrefab(portalPrimary, projectile, fluidPrimary, fluidSecondary);
+            GameObject splat = BuildSplatPrefab(splatMaterial);
+            GameObject gun = BuildGunPrefab(portalPrimary, paint, splat, fluidPrimary, fluidSecondary);
 
             InventoryItem item = BuildItemAsset(gun);
             WireItemIntoPickup(gun, item);
@@ -123,8 +212,49 @@ namespace SpaceGame.EditorTools.Portals
             material.SetColor("_HotColour", Hot);
             material.SetFloat("_EdgeGlow", 3.2f);
             material.SetFloat("_EdgeWidth", 0.22f);
+            material.SetFloat("_Crawl", EdgeCrawl);
             material.SetFloat("_Throat", 0.45f);
             material.SetFloat("_Swirl", 2.1f);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// The gunk in flight.
+        ///
+        /// Deliberately UNTINTED: the droplets take their colour from the particle system's start
+        /// colour, so one material serves both barrels and the gun switches hue by setting the
+        /// system rather than by instancing a second material per barrel.
+        /// </summary>
+        private static Material BuildGooMaterial(string name)
+        {
+            Material material = EnsureMaterial(name, "SpaceGame/Portal/PortalGoo");
+            material.SetFloat("_Glossiness", 42f);
+            material.SetFloat("_SpecStrength", 1.6f);
+            material.SetFloat("_Fresnel", 1.5f);
+            material.SetFloat("_ShadeDepth", 0.45f);
+            material.SetFloat("_Cutoff", 0.5f);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>The coat of paint a landing leaves. Per-splat values are set at runtime.</summary>
+        private static Material BuildSplatMaterial(string name, Color colour)
+        {
+            Material material = EnsureMaterial(name, "SpaceGame/Portal/PortalSplat");
+            material.SetColor("_Colour", colour);
+            material.SetColor("_HotColour", Hot);
+            material.SetFloat("_Lobes", 7f);
+            material.SetFloat("_Spread", 0.52f);
+            material.SetFloat("_LobeSize", 0.24f);
+            material.SetFloat("_CoreSize", 0.34f);
+            material.SetFloat("_Smooth", 0.13f);
+            // Half a second, start to gone. The splash spreads in the first 90 ms and spends the
+            // rest of its life drying off. See the header of PortalSplat.cs.
+            material.SetFloat("_Spread01", 0.09f);
+            material.SetFloat("_Life", SplatLife);
+            material.SetFloat("_Fade", 0.28f);
+            material.SetFloat("_Sheen", 1.1f);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -135,6 +265,9 @@ namespace SpaceGame.EditorTools.Portals
             material.SetColor("_Colour", colour);
             material.SetColor("_HotColour", Hot);
             material.SetFloat("_Intensity", 3.2f);
+            material.SetFloat("_Radius", RimRingOffset);
+            material.SetFloat("_Thickness", RimRingThickness);
+            material.SetFloat("_Crawl", EdgeCrawl);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -308,48 +441,164 @@ namespace SpaceGame.EditorTools.Portals
             return child;
         }
 
-        // ── The blob ───────────────────────────────────────────────────────────
+        // ── The jet ────────────────────────────────────────────────────────────
 
-        private static GameObject BuildProjectilePrefab(Material blobMaterial)
+        /// <summary>
+        /// The stream of paint that comes out of the nozzle while the trigger is down.
+        ///
+        /// Built here rather than authored by hand for the reason the rest of this file exists:
+        /// a particle system is thirty settings, of which four matter, and a script says which
+        /// four out loud. The lifetime is deliberately RANGE divided by SPEED, so the droplets
+        /// die about where the paint lands however either is retuned — a jet whose particles
+        /// outlive their own reach is a jet that sprays through walls.
+        ///
+        /// Play On Awake is off on purpose: PortalGunItem.SetJet starts and stops it, and a
+        /// system that begins emitting the moment the gun is equipped paints the floor.
+        /// </summary>
+        private static ParticleSystem BuildJet(Transform muzzle, Material paintMaterial)
         {
-            string path = $"{PrefabFolder}/PortalBlob.prefab";
-            GameObject root = LoadOrCreateRoot(path, "PortalBlob");
+            Transform child = EnsureChild(muzzle, "Jet");
+            var jet = Ensure<ParticleSystem>(child.gameObject);
 
-            PortalProjectile projectile = Ensure<PortalProjectile>(root);
+            ParticleSystem.MainModule main = jet.main;
+            main.loop = true;
+            main.playOnAwake = false;
 
-            Transform body = root.transform.Find("Body");
-            if (body == null)
+            // The three numbers that have to agree with SprayArc, exactly. See the constants.
+            main.startSpeed = JetSpeed;
+            main.gravityModifier = JetGravity;
+            main.startLifetime = JetFlightTime;
+
+            // Big droplets, and a wide spread of sizes. Uniform particles read as a spray can; a
+            // hose throws fat gobs with fine spatter between them, and the size variation is most
+            // of what says "thick" before a single pixel is shaded.
+            main.startSize = new ParticleSystem.MinMaxCurve(0.10f, 0.30f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 1400;
+
+            // VAST amounts. This is a hose, and a hose that emits ninety particles a second looks
+            // like a leak. The cost is affordable precisely because PortalGoo is a cheap opaque
+            // fragment rather than a blended one — overdraw is resolved by the depth buffer.
+            ParticleSystem.EmissionModule emission = jet.emission;
+            emission.rateOverTime = 420f;
+
+            ParticleSystem.ShapeModule shape = jet.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 6.5f;
+            shape.radius = 0.05f;
+
+            // A little randomness on each droplet's speed is what breaks the stream into gobs
+            // instead of a smooth tube of particles.
+            ParticleSystem.VelocityOverLifetimeModule velocity = jet.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+
+            // ALL THREE AXES, and all three in the same MinMaxCurve mode. Unity requires it and
+            // enforces it by throwing "Particle Velocity curves must all be in the same mode" the
+            // moment the system plays — not when the curves are assigned, which is why setting x
+            // and y and leaving z on its default Constant built a perfectly clean prefab that took
+            // the game down on the first trigger pull.
+            //
+            // Small, and symmetric about zero on purpose: this is what breaks the stream into
+            // separate gobs instead of a smooth tube of particles, and a mean of zero is what keeps
+            // the cloud centred on the parabola SprayArc actually paints along.
+            velocity.x = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f);
+            velocity.y = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f);
+            velocity.z = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f);
+
+            // Droplets swell slightly as they fly, the way a thrown blob of liquid does as it comes
+            // apart, then hold. A curve rather than a constant so the growth eases off.
+            ParticleSystem.SizeOverLifetimeModule size = jet.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(
+                1f, AnimationCurve.EaseInOut(0f, 0.75f, 1f, 1.15f));
+
+            // Collision OFF, deliberately. Where the paint lands was settled by the shooter and
+            // travelled in the message; a particle that decided anything would put two machines a
+            // frame apart at two different answers. These are decoration that happens to follow
+            // the same parabola.
+            ParticleSystem.CollisionModule collision = jet.collision;
+            collision.enabled = false;
+
+            var renderer = jet.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = paintMaterial;
+
+            // Billboards, not stretched: PortalGoo reconstructs a sphere normal from the quad's UV,
+            // and stretching the quad would shear that normal into an ellipsoid lit from the wrong
+            // direction.
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.alignment = ParticleSystemRenderSpace.View;
+
+            // The droplets are opaque and cast real shadows, which is the last thing that stops a
+            // stream of paint reading as a stream of light.
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            renderer.receiveShadows = true;
+
+            return jet;
+        }
+
+        /// <summary>
+        /// One quad, carrying PortalSplat and its shader. Everything about how a splash looks is in
+        /// the shader; this is only the surface it is drawn on.
+        /// </summary>
+        private static GameObject BuildSplatPrefab(Material splatMaterial)
+        {
+            string path = $"{PrefabFolder}/PortalSplat.prefab";
+            GameObject root = LoadOrCreateRoot(path, "PortalSplat");
+
+            var splat = Ensure<PortalSplat>(root);
+
+            Transform quad = root.transform.Find("Quad");
+            if (quad == null)
             {
-                GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                sphere.name = "Body";
-                Object.DestroyImmediate(sphere.GetComponent<Collider>());
-                sphere.transform.SetParent(root.transform, false);
-                sphere.transform.localScale = Vector3.one * 0.16f;
-                body = sphere.transform;
+                GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                plane.name = "Quad";
+                Object.DestroyImmediate(plane.GetComponent<Collider>());
+                plane.transform.SetParent(root.transform, false);
+                quad = plane.transform;
             }
 
-            var renderer = body.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = blobMaterial;
+            var renderer = quad.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = splatMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
 
-            Transform lightChild = EnsureChild(root.transform, "Glow");
-            Light light = Ensure<Light>(lightChild.gameObject);
-            light.type = LightType.Point;
-            light.range = 4f;
-            light.intensity = 3f;
-            light.shadows = LightShadows.None;
+            var serialized = new SerializedObject(splat);
+            serialized.FindProperty("quad").objectReferenceValue = renderer;
 
-            var serialized = new SerializedObject(projectile);
-            serialized.FindProperty("blobRenderer").objectReferenceValue = renderer;
-            serialized.FindProperty("blobLight").objectReferenceValue = light;
+            // Written from the same constant the material's _Life gets. The component destroys the
+            // GameObject on this timer and the shader fades on that one; if they disagree the splat
+            // either vanishes mid-fade or sits invisible for the difference.
+            serialized.FindProperty("life").floatValue = SplatLife;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             return SaveRoot(root, path);
         }
 
+        /// <summary>The light at the nozzle, lit only while paint is coming out of it.</summary>
+        private static Light BuildMuzzleLight(Transform muzzle)
+        {
+            Transform child = EnsureChild(muzzle, "Muzzle Light");
+            Light light = Ensure<Light>(child.gameObject);
+
+            light.type = LightType.Point;
+            light.range = 3f;
+            light.intensity = 4f;
+            light.shadows = LightShadows.None;
+
+            // Off in the prefab. SetJet switches it on, and a gun that glows in the inventory is
+            // a light source nobody asked for.
+            light.enabled = false;
+
+            return light;
+        }
+
         // ── The gun ────────────────────────────────────────────────────────────
 
-        private static GameObject BuildGunPrefab(GameObject portalPrefab, GameObject projectilePrefab,
+        private static GameObject BuildGunPrefab(GameObject portalPrefab, Material paintMaterial,
+                                                 GameObject splatPrefab,
                                                  Material fluidPrimary, Material fluidSecondary)
         {
             string path = $"{PrefabFolder}/PortalGun.prefab";
@@ -381,6 +630,34 @@ namespace SpaceGame.EditorTools.Portals
                 model = instance.transform;
             }
 
+            // And it is NOT laid on its side for the backpack, which is the change this comment
+            // exists to refuse a second time. The pack draws an item with its own up still up
+            // (ItemFootprint.FootprintOf is defined as (size.x, size.z)), so the gun stands on the
+            // mat, and the whole-roster orientation audit reports it as "STANDS ON END — its
+            // LONGEST axis is up" and offers a turn about Z. Three measurements say leave it:
+            //
+            //   the base ring is real. 0.0130 m2 of down-facing geometry in the bottom 5 mm of
+            //   the mesh, an annulus from r 0.018 to r 0.0505 against a bottle radius of 0.0589.
+            //   portal_gun.py puts the origin at the centre of it precisely so the bottle "stands
+            //   on a surface without a Z nudge". This is a foot, not a tip — the case Backpack.md
+            //   carves out of "put the smallest axis up".
+            //
+            //   the turn costs the whole rack. Standing it is 4 x 9 cells and sits on the 9 x 9
+            //   rack strictly; laid down it is 14 x 9, which no face takes, and PackOverhang then
+            //   clamps it ski-fashion to every cell of the rack — 81 of the rig's 255, up from 36,
+            //   with a third of a metre hanging off each end.
+            //
+            //   and the sign is not decidable anyway. The mesh is mirror-symmetric about X to
+            //   within 0.07% of face area (+X 0.042826 m2, -X 0.042858 m2), so neither -90 nor +90
+            //   is "upside down"; the only thing the choice picks is which of the two sight tubes,
+            //   the orange charge or the blue, is the one buried against the mat.
+            //
+            // What DID read oddly on the mat was the size, not the pose — holdSize 1.25 is the
+            // Gun bracket for the HAND, and 1.25 x PackScale.Factor drew a 0.44 m extinguisher
+            // 1.875 m tall on a 1.08 m leaf. That is fixed by ItemGrip.packSize, which exists for
+            // exactly this: see PackSize above. PortalGunWiringTests pins both the standing
+            // footprint and the mat size.
+
             // The markers exported alongside the mesh exist only to carry two
             // coordinates across the FBX. Turned into plain transforms on the
             // prefab root, they become the muzzle and the grip; left as meshes,
@@ -408,12 +685,23 @@ namespace SpaceGame.EditorTools.Portals
             serializedItem.FindProperty("muzzle").objectReferenceValue = muzzle;
             serializedItem.FindProperty("portalPrefab").objectReferenceValue =
                 portalPrefab.GetComponent<Portal>();
-            serializedItem.FindProperty("projectilePrefab").objectReferenceValue =
-                projectilePrefab.GetComponent<PortalProjectile>();
+            serializedItem.FindProperty("jet").objectReferenceValue = BuildJet(muzzle, paintMaterial);
+            serializedItem.FindProperty("muzzleLight").objectReferenceValue = BuildMuzzleLight(muzzle);
+            serializedItem.FindProperty("nozzle").objectReferenceValue = muzzle;
+            serializedItem.FindProperty("splat").objectReferenceValue =
+                splatPrefab.GetComponent<PortalSplat>();
             serializedItem.FindProperty("bodyRenderer").objectReferenceValue = bodyRenderer;
             serializedItem.FindProperty("primaryMaterialName").stringValue = PrimaryFluidName;
             serializedItem.FindProperty("secondaryMaterialName").stringValue = SecondaryFluidName;
             serializedItem.FindProperty("portalLifetime").floatValue = PortalLifetime;
+
+            // Written, not left to the field defaults. The prefab is older than the hose and still
+            // carried the hitscan gun's 55 m/s, so the paint was being traced along one parabola
+            // while the droplets flew down another — the exact drift the constants above exist to
+            // prevent, sitting in serialized data where a code default cannot reach it.
+            serializedItem.FindProperty("jetSpeed").floatValue = JetSpeed;
+            serializedItem.FindProperty("jetGravity").floatValue = JetGravity;
+            serializedItem.FindProperty("jetFlightTime").floatValue = JetFlightTime;
             serializedItem.ApplyModifiedPropertiesWithoutUndo();
 
             // Written once. How a thing sits in a hand is judged by looking at
@@ -422,9 +710,27 @@ namespace SpaceGame.EditorTools.Portals
             {
                 var serializedGrip = new SerializedObject(itemGrip);
                 serializedGrip.FindProperty("gripPoint").objectReferenceValue = grip;
-                serializedGrip.FindProperty("holdSize").floatValue = 0.42f;
+                // The BigTool bracket of ItemScaleLadder, NOT the Gun bracket it sat on until
+                // 2026-09-06: a bracket number is a reach, holdSize is a longest axis, and on a
+                // bottle gripped by its top handle those are not the same edge. See
+                // ItemScaleLadder.VesselWhy. Only written for a grip this builder just added, so
+                // the ladder's value on the shipped prefab stands either way.
+                serializedGrip.FindProperty("holdSize").floatValue = HoldSize;
+
+                // One hand. There is no second handle on this model to put the off hand on, and
+                // the two-handed pose reaches for one anyway — the left arm folds across the
+                // chest holding air and half-hides the gun behind its own forearm.
+                serializedGrip.FindProperty("holdStyle").enumValueIndex =
+                    (int)ItemGrip.HoldStyle.OneHanded;
                 serializedGrip.ApplyModifiedPropertiesWithoutUndo();
             }
+
+            // And the mat size every time, for the reason PackSize gives: holdSize is the hand's
+            // and is left exactly where the ladder put it, but a packSize of 0 is not "unset", it
+            // is "follow the hand" — so this one has to be stated or it is silently retracted.
+            var serializedSize = new SerializedObject(itemGrip);
+            serializedSize.FindProperty("packSize").floatValue = PackSize;
+            serializedSize.ApplyModifiedPropertiesWithoutUndo();
 
             // Keep the two fluid slots pointed at the animated materials even if
             // the FBX was imported before the remap existed.
@@ -544,24 +850,12 @@ namespace SpaceGame.EditorTools.Portals
             NetworkObject netObject = Ensure<NetworkObject>(root);
             netObject.SynchronizeTransform = true;
 
-            // Roughly the gun's half-size at the 0.42 m it is held at. ItemGrip.keepColliders is
-            // off, so this is disabled while held and only has to be right for the thing lying in
-            // the sand.
-            SphereCollider sphere = Ensure<SphereCollider>(root);
-            sphere.radius = 0.18f;
-            sphere.center = Vector3.zero;
-
-            Rigidbody body = Ensure<Rigidbody>(root);
-            body.isKinematic = true;
-            body.useGravity = true;
-
             EnsureInternal(root, "SpaceGame.Items.PickupableItem");
 
-            DropItemPhysics drop = Ensure<DropItemPhysics>(root);
-            var serializedDrop = new SerializedObject(drop);
-            serializedDrop.FindProperty("rb").objectReferenceValue = body;
-            serializedDrop.FindProperty("groundLayer").intValue = GroundLayerMask;
-            serializedDrop.ApplyModifiedPropertiesWithoutUndo();
+            // The body, a collider the shape of the gun, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence.
+            // What it replaces here was a sphere of radius 0.18, which is a marble.
+            ItemWorldPresence.Apply(root);
 
             Ensure<SpaceGame.Core.NetRelay>(root);
 

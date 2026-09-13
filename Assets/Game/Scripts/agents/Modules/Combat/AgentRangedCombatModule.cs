@@ -442,6 +442,13 @@ namespace SpaceGame.Agents
 
             PresentShot(muzzle.position, spawnPos, aimDir, cosmetic: !authority.SimulatedHere);
 
+            // Only where the shot counts. A peer drawing a copy of this burst must not also
+            // startle its own copy of the wildlife -- that creature is ticked by whoever owns
+            // it, and this machine is not it.
+            if (authority.SimulatedHere && activeWeapon.gunshotNoiseRadius > 0f)
+                Noise.Emit(NoiseType.Gunshot, spawnPos, activeWeapon.gunshotNoiseRadius,
+                           transform, transform);
+
             // One message per shot, not one per burst — and the third reason is the deciding one.
             //
             // Each shot rolls its own spread, so a single message could not describe a burst

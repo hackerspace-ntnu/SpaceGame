@@ -9,9 +9,18 @@
 //     player aiming straight up at something appeared, to everyone else, to be staring at the
 //     horizon — and the gun in their hand stayed flat, because Weapon.UpdateWeaponRotation had
 //     nothing to aim a remote copy with and deliberately left it on the hand bone.
-//   • WHETHER THEIR TORCH IS ON. The flashlight is a child of that same camera, so a remote
-//     player's lamp was not merely un-replicated, it was switched off with its parent — there was
-//     no light in the scene to replicate.
+//
+//     Yaw-replicates-with-the-body holds only while the body can turn. A SEATED player's is held
+//     at a seat pose by somebody else, so the horizontal half of their look is spent on their neck
+//     instead (PlayerHeadLook) and travels here beside the pitch. On foot it is zero and nothing
+//     downstream changes.
+//   • WHETHER THEIR TORCH IS ON. The flashlight used to be a child of that same camera, so a
+//     remote player's lamp was not merely un-replicated, it was switched off with its parent —
+//     there was no light in the scene to replicate. Since 2026-09-03 the lamp is the head of a
+//     WORN GAUNTLET on the forearm (FlashlightGauntletArtifact), which is instantiated on every
+//     machine from replicated body-slot state and is never switched off with a camera. The lamp is
+//     handed to this component by that gauntlet rather than searched for, and a player wearing no
+//     flashlight gauntlet has no torch to replicate at all.
 //
 // ── Why NetworkVariables and not messages ──
 // Both are STATE that a late joiner has to see, not events. Somebody who joins while a player is
@@ -51,16 +60,32 @@ namespace SpaceGame.Characters
         private readonly NetworkVariable<float> netPitch = new(
             0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        /// <summary>
+        /// How far the head is turned off the body's forward, in degrees. Zero for anyone on foot.
+        ///
+        /// <para>
+        /// Beside the pitch rather than folded into it because it answers the same question for the
+        /// same reason and has the same late-joiner problem: somebody who connects while four
+        /// people are sitting in a cockpit looking at each other must see them looking at each
+        /// other, and a message announcing each head turn went out long before they arrived.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<float> netHeadYaw = new(
+            0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         private readonly NetworkVariable<bool> netTorch = new(
             false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         private PlayerController controller;
         private PlayerLook look;
+        private PlayerHeadLook headLook;
         private Flashlight torch;
 
         private Transform aimPivot;
         private float shownPitch;
+        private float shownHeadYaw;
         private float publishedPitch;
+        private float publishedHeadYaw;
         private bool publishedTorch;
 
         /// <summary>
@@ -76,6 +101,15 @@ namespace SpaceGame.Characters
         /// </summary>
         public Transform AimPivot => aimPivot;
 
+        /// <summary>
+        /// This player's head pitch on THIS machine — their own live value, or the eased copy of
+        /// their last replicated one. Read by <see cref="PlayerHeadLook"/> to pose a remote head.
+        /// </summary>
+        public float HeadPitch => shownPitch;
+
+        /// <summary>Head yaw off the body's forward, same rules as <see cref="HeadPitch"/>.</summary>
+        public float HeadYaw => shownHeadYaw;
+
         /// <summary>Is this player's torch lit? True on every machine, not just theirs.</summary>
         public bool TorchOn => netTorch.Value;
 
@@ -84,9 +118,12 @@ namespace SpaceGame.Characters
             controller = GetComponent<PlayerController>();
             look = GetComponent<PlayerLook>();
 
-            // Included-inactive, because on a remote copy the camera this hangs under has already
-            // been switched off by PlayerController.Awake.
-            torch = GetComponentInChildren<Flashlight>(true);
+            // Added here rather than authored on the prefab: this is the component that publishes
+            // what the head is doing, so it is the one that must be sure there is something
+            // deciding it — on remote copies too, where nothing else on the character is still
+            // running, and where re-exporting the model cannot lose it.
+            headLook = GetComponent<PlayerHeadLook>();
+            if (headLook == null) headLook = gameObject.AddComponent<PlayerHeadLook>();
 
             aimPivot = new GameObject("AimPivot").transform;
             aimPivot.SetParent(transform, worldPositionStays: false);
@@ -98,38 +135,54 @@ namespace SpaceGame.Characters
             // the variables and no change event coming, so both are read once here rather than
             // waited for. Same rule as PlayerInventoryNetwork.AdoptCurrentState.
             shownPitch = netPitch.Value;
+            shownHeadYaw = netHeadYaw.Value;
 
-            // Before the torch is applied, not after. Reparenting a lamp out of the switched-off
-            // camera ACTIVATES it, which runs Flashlight.Awake — and Awake switches the light off.
-            // Lighting it first would be undone a line later.
-            if (!IsOwner) AdoptTorchForRemoteView();
-
+            // Usually null here: nothing is worn until BodyEquipmentController's adopt pass has
+            // run. A gauntlet arriving later brings its own lamp through SetTorch, which applies
+            // the current value at that point.
             ApplyTorch(netTorch.Value);
         }
 
         /// <summary>
-        /// Move the lamp somewhere it can actually be seen.
+        /// Take charge of a lamp somebody put on this body.
         ///
         /// <para>
-        /// The flashlight is authored as a child of the Main Camera, and a remote player's camera
-        /// GameObject is switched off wholesale — so there is nothing to light up. Rather than
-        /// duplicating the lamp (two objects, two sets of tuning, one of them silently drifting
-        /// from the other), the shipped one is moved onto the pivot, which is always active and
-        /// carries the same pose the camera would have.
+        /// Called by <see cref="SpaceGame.Items.FlashlightGauntletArtifact"/> as it is worn, on
+        /// every machine. Pushed rather than pulled because a worn gauntlet is instantiated and
+        /// parented inside one call, and a search of the player for a <see cref="Flashlight"/> run
+        /// any earlier than that — in <c>Awake</c>, in <c>OnNetworkSpawn</c> — finds nothing and
+        /// never looks again.
         /// </para>
         /// <para>
-        /// Remote copies only. The owner's lamp is left exactly where it was authored, because for
-        /// them it already works and the pivot would be a change with nothing to gain.
+        /// The new lamp is switched to the replicated value immediately on a peer, so a player
+        /// putting a lit torch on is lit for everyone on the frame it appears rather than on the
+        /// owner's next publish.
         /// </para>
         /// </summary>
-        private void AdoptTorchForRemoteView()
+        public void SetTorch(Flashlight lamp)
         {
+            torch = lamp;
             if (torch == null) return;
 
-            // worldPositionStays: false keeps the authored local offset — the lamp sits slightly
-            // right of and below the eye, and that offset is expressed in camera space, which is
-            // exactly what the pivot reproduces.
-            torch.transform.SetParent(aimPivot, worldPositionStays: false);
+            if (!OwnsThisPlayer()) ApplyTorch(netTorch.Value);
+        }
+
+        /// <summary>
+        /// Give up a lamp that is about to be destroyed.
+        ///
+        /// <para>
+        /// Ignores a lamp that is not the one held, so an unequip arriving after a swap cannot
+        /// unhook the gauntlet that replaced it.
+        /// </para>
+        /// <para>
+        /// The owner does NOT publish false here: <see cref="Publish"/> reads <c>torch != null &amp;&amp;
+        /// torch.IsOn</c> every frame and will send it on the next one. Doing it twice is how the
+        /// published value and the variable get to disagree.
+        /// </para>
+        /// </summary>
+        public void ClearTorch(Flashlight lamp)
+        {
+            if (torch == lamp) torch = null;
         }
 
         // LateUpdate, so the pitch read here is the one PlayerLook wrote in Update this frame
@@ -138,13 +191,28 @@ namespace SpaceGame.Characters
         {
             if (OwnsThisPlayer())
             {
-                shownPitch = look != null ? look.Pitch : shownPitch;
+                // PlayerHeadLook, not PlayerLook, and that is the point of it: a seated player's
+                // PlayerLook is switched off for the whole arrival, so its pitch is frozen at
+                // whatever they were looking at when they sat down. The head look answers in both
+                // modes and is the only thing that knows the seated yaw at all.
+                if (headLook != null)
+                {
+                    shownPitch = headLook.Pitch;
+                    shownHeadYaw = headLook.Yaw;
+                }
+                else if (look != null)
+                {
+                    shownPitch = look.Pitch;
+                }
+
                 Publish();
             }
             else
             {
-                shownPitch = Mathf.LerpAngle(shownPitch, netPitch.Value,
-                                             1f - Mathf.Exp(-aimSmoothing * Time.deltaTime));
+                float catchUp = 1f - Mathf.Exp(-aimSmoothing * Time.deltaTime);
+
+                shownPitch = Mathf.LerpAngle(shownPitch, netPitch.Value, catchUp);
+                shownHeadYaw = Mathf.LerpAngle(shownHeadYaw, netHeadYaw.Value, catchUp);
                 ApplyTorch(netTorch.Value);
             }
 
@@ -168,6 +236,12 @@ namespace SpaceGame.Characters
                 netPitch.Value = shownPitch;
             }
 
+            if (Mathf.Abs(Mathf.DeltaAngle(publishedHeadYaw, shownHeadYaw)) >= publishThreshold)
+            {
+                publishedHeadYaw = shownHeadYaw;
+                netHeadYaw.Value = shownHeadYaw;
+            }
+
             bool lit = torch != null && torch.IsOn;
             if (lit != publishedTorch)
             {
@@ -181,7 +255,7 @@ namespace SpaceGame.Characters
         {
             if (torch == null || torch.IsOn == lit) return;
 
-            torch.RestoreOn(lit);
+            torch.Switch(lit);
         }
 
         private void PoseAimPivot()
@@ -193,7 +267,12 @@ namespace SpaceGame.Characters
             Transform camera = controller != null ? controller.PlayerCameraTransform : null;
             if (camera != null) aimPivot.localPosition = camera.localPosition;
 
-            aimPivot.localRotation = Quaternion.Euler(shownPitch, 0f, 0f);
+            // Yaw as well as pitch now. It is zero for anyone on foot — their body is already
+            // pointing where they look — so this only changes the answer for a player whose body
+            // cannot turn, and for them it is the difference between a weapon that follows their
+            // head and one that stares out of the windscreen while they look at the seat beside
+            // them.
+            aimPivot.localRotation = Quaternion.Euler(shownPitch, shownHeadYaw, 0f);
         }
 
         /// <summary>

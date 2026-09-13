@@ -24,6 +24,20 @@ namespace SpaceGame.Items
         [SerializeField] private bool damagesCaster;
 
         /// <summary>
+        /// The rod is held, not aimed, so it takes no upper-body pose.
+        ///
+        /// <para>
+        /// Every hold style on the Upper Body layer is a firearm clip — <c>Relaxed</c>, despite
+        /// the name, is <c>HumanM@Gun_Aim02</c>. On a rod that calls a bolt out of the sky that
+        /// read as the character holding an invisible pistol up in the air, which is both odd to
+        /// look at and a lie about what the item does: the pose said "taking aim with a gun" while
+        /// the strike lands wherever the CROSSHAIR is, from any posture. Dropping it leaves the
+        /// arms on the Base Layer, where they idle and walk with the rod in hand.
+        /// </para>
+        /// </summary>
+        protected override bool UsesHoldPose => false;
+
+        /// <summary>
         /// Where the bolt lands, decided by the player who cast it.
         ///
         /// Every machine has to strike the same spot, and only the caster's machine can work out
@@ -33,11 +47,13 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(raycastDistance) : null;
+            RaycastHit hit = default;
+            bool struck = aimProvider != null
+                          && aimProvider.TryGetAimHit(raycastDistance, out hit);
 
             // Zero means "aimed at open sky" — see Present. `?? Vector3.zero` used to be read as a
             // position, so aiming at nothing struck the world origin.
-            arg.P = hit.HasValue ? hit.Value.point + Vector3.up * spawnHeightOffset : Vector3.zero;
+            arg.P = struck ? hit.point + Vector3.up * spawnHeightOffset : Vector3.zero;
         }
 
         /// <summary>

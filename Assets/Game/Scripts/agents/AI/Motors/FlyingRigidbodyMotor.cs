@@ -80,6 +80,9 @@ namespace SpaceGame.Agents
 
         public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
 
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>.</summary>
+        public float TopSpeed => maxSpeed;
+
         public bool IsImmobile
         {
             get

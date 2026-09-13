@@ -1,4 +1,3 @@
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.VFX;
 using SpaceGame.Characters;
@@ -106,6 +105,9 @@ namespace SpaceGame.Items
 
         [Tooltip("How often damage is sampled, in ticks per second. Costs no bandwidth: the whole loop runs on the server only, where NetDamage lands as a direct call.")]
         [SerializeField] private float damageTicksPerSecond = 50f;
+
+        [Tooltip("How near the beam a rope must pass to be cut, in metres. Roughly the arc's own thickness plus the slack a rope is drawn with; zero disables cutting.")]
+        [SerializeField] private float ropeCutRadius = 0.15f;
 
         [Header("Impact")]
         [Tooltip("Parent of the whole impact rig. Moved to the hit point and turned to face along the surface normal, so every emitter under it sprays out of the surface instead of along some fixed axis.")]
@@ -313,11 +315,11 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-            if (aim == null) return;
+            if (aimProvider == null || aimProvider.AimTransform == null) return;
 
-            arg.P = aim.position;
-            arg.R = aim.rotation;
+            Ray aim = aimProvider.GetAimRay();
+            arg.P = aim.origin;
+            arg.R = Quaternion.LookRotation(aim.direction);
         }
 
         /// <summary>
@@ -379,20 +381,18 @@ namespace SpaceGame.Items
         /// <summary>
         /// Owner-side, once per tick: put the aim ray in the message.
         ///
-        /// Read straight off <see cref="AimProvider.AimTransform"/> rather than through
-        /// <see cref="AimProvider.GetRayCast"/>, which logs a warning whenever the ray hits
-        /// nothing. Aiming at open sky is a completely ordinary thing to do with a beam weapon,
-        /// and at fifteen ticks a second it would bury the console.
+        /// The ray itself, not the eye's own forward: mounted, the two are different things — the
+        /// eye is still where the beam leaves from, but the view the player is aiming down is the
+        /// mount's, and a beam that ignored it burned the sand under the craft.
         /// </summary>
         public override void OnRequestHold(ref NetArg arg, bool active)
         {
             if (!active) return;
+            if (aimProvider == null || aimProvider.AimTransform == null) return;
 
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-            if (aim == null) return;
-
-            arg.P = aim.position;
-            arg.R = aim.rotation;
+            Ray aim = aimProvider.GetAimRay();
+            arg.P = aim.origin;
+            arg.R = Quaternion.LookRotation(aim.direction);
         }
 
         // ── Authority side: the damage ─────────────────────────────────────────
@@ -464,7 +464,11 @@ namespace SpaceGame.Items
 
             if (_lit || _ignition > 0f) Trace();
 
-            if (_lit && IsAuthority()) TickDamage();
+            if (_lit && IsAuthority())
+            {
+                TickDamage();
+                CutRopes();
+            }
 
             DrawBeam();
         }
@@ -477,11 +481,11 @@ namespace SpaceGame.Items
         {
             if (OwnerIsLocal())
             {
-                Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-                if (aim != null)
+                if (aimProvider != null && aimProvider.AimTransform != null)
                 {
-                    _rayOrigin = aim.position;
-                    _rayDirection = aim.forward;
+                    Ray aim = aimProvider.GetAimRay();
+                    _rayOrigin = aim.origin;
+                    _rayDirection = aim.direction;
                 }
 
                 _smoothedDirection = _rayDirection;
@@ -584,6 +588,30 @@ namespace SpaceGame.Items
                 _damageCarry -= whole;
                 NetDamage.Apply(_hitObject, whole, transform);
             }
+        }
+
+        /// <summary>
+        /// Part every rope the arc is lying across.
+        ///
+        /// <para>
+        /// Not damage and not sampled like it: a rope is either in the beam or it is not, so there
+        /// is no dwell to accumulate and nothing to carry between frames. A laser that had to be
+        /// held on a rope would also be a laser that cannot cut one on a sweep, which is the only
+        /// way anybody will ever actually do it.
+        /// </para>
+        /// <para>
+        /// The segment is <see cref="MuzzlePoint"/> to <see cref="_endPoint"/> — what is DRAWN, not
+        /// the camera ray the trace begins with. Two things follow from that and both are wanted:
+        /// a rope behind the wall the beam stopped at is safe, with no line-of-sight test written
+        /// anywhere; and a rope beside the holder's head is safe from a beam that leaves the fist a
+        /// metre below it.
+        /// </para>
+        /// </summary>
+        private void CutRopes()
+        {
+            if (ropeCutRadius <= 0f) return;
+
+            CuttableRopes.CutAlong(MuzzlePoint(), _endPoint, ropeCutRadius);
         }
 
         private void DrawBeam()
@@ -858,17 +886,6 @@ namespace SpaceGame.Items
         /// </summary>
         private bool IsAuthority() =>
             !Network.IsNetworked || Network.Server;
-
-        /// <summary>True when the local player is the one holding this staff.</summary>
-        private bool OwnerIsLocal()
-        {
-            if (!Network.IsNetworked) return true;
-
-            if (owner != null && owner.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
-                return netObj.IsOwner;
-
-            return true;
-        }
 
         public override void OnUnequipped(GameObject holder)
         {

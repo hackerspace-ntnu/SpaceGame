@@ -7,6 +7,14 @@ namespace SpaceGame.Agents
     public interface IMovementMotor
     {
         Vector3 Velocity { get; }
+
+        /// <summary>
+        /// The best speed this mover can sustain under its own power, in m/s. Used as the
+        /// "how hard can it haul" half of a rope's pull strength, so it must be a STABLE figure
+        /// off the prefab and never the current speed — both machines resolving a rope derive
+        /// their pull from it independently and have to agree without a message.
+        /// </summary>
+        float TopSpeed { get; }
         bool IsImmobile { get; }
         bool HasReachedDestination { get; }
 

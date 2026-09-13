@@ -42,7 +42,7 @@ namespace SpaceGame.EditorTests
                 remove => inner.OnSlotChanged -= value;
             }
 
-            public event Action<InventoryItem> OnItemDropped
+            public event Action<InventoryItem, ItemState> OnItemDropped
             {
                 add => inner.OnItemDropped += value;
                 remove => inner.OnItemDropped -= value;
@@ -50,6 +50,12 @@ namespace SpaceGame.EditorTests
 
             public bool TryAddItem(InventoryItem item) => inner.TryAddItem(item);
             public bool TryRemoveItem(int index) => inner.TryRemoveItem(index);
+
+            public bool TrySetSlot(int index, InventoryItem item)
+            {
+                inner.SetSlot(index, item);
+                return true;
+            }
             public void SelectSlot(int slotIndex) => inner.SelectSlot(slotIndex);
             public int GetInventorySize() => inner.GetInventorySize();
             public InventorySlot GetSlot(int index) => inner.GetSlot(index);

@@ -5,6 +5,11 @@
 // giving with the stride. There is no sitting or riding clip anywhere in this project and no
 // animator state to put one in, so the pose is built here instead of authored.
 //
+// "Whoever climbs on" is meant literally: a mount takes a player through MountModule and an NPC
+// through NpcPassenger, and both sit in the same saddle. PoseRider/ReleaseRider are the way in for
+// anyone who is not a PlayerMovement — the caravan's nomads rode across the desert standing bolt
+// upright for no better reason than that this class could only be reached through a mount event.
+//
 // Deliberately knows nothing about ostriches. Everything it reacts to is measured off the mount's
 // own transform, so it works on the ant, the crawler, the horse and anything else that grows a
 // MountModule — and, just as importantly, it does not drag Assembly-CSharp into the
@@ -101,8 +106,12 @@ namespace SpaceGame.Agents
             mountModule.Dismounted += HandleDismounted;
 
             // Enabled onto an already-ridden mount — a domain reload, or a module toggled back on.
+            // The player path is asked of MountModule; any other rider is whoever was in the saddle
+            // when this was switched off, which is nobody unless it was switched off mid-ride.
             if (mountModule.IsMounted)
                 HandleMounted(mountModule.MountedPlayerMovement);
+            else if (riderRoot != null)
+                PoseRider(riderRoot);
         }
 
         private void OnDisable()
@@ -115,16 +124,44 @@ namespace SpaceGame.Agents
 
             // Release the bones outright rather than blending: there is no LateUpdate coming to
             // finish the blend with, so a partial pose would be frozen onto the rider for good.
+            //
+            // The rider REFERENCE stays, so switching this back on puts whoever is still in the
+            // saddle back into the pose. LateUpdate clears it on an ordinary dismount, so what
+            // survives here is only a rider who was aboard when the component went away.
             weight = 0f;
             targetWeight = 0f;
             riderAnimator = null;
-            riderRoot = null;
             hasLastSample = false;
         }
 
-        private void HandleMounted(PlayerMovement rider)
+        private void HandleMounted(PlayerMovement rider) =>
+            PoseRider(mountModule ? mountModule.MountedPlayerTransform : null);
+
+        private void HandleDismounted(PlayerMovement rider) =>
+            ReleaseRider(rider ? rider.transform : riderRoot);
+
+        /// <summary>
+        /// Sit <paramref name="rider"/> in the saddle, whoever they are.
+        ///
+        /// <para>
+        /// Public because a mount carries two quite different kinds of rider and only one of them
+        /// arrives through <see cref="MountModule"/>: a player mounts, and a caravan's NPC is
+        /// seated by <see cref="NpcPassenger"/>. Nothing below this line cares which — the pose is
+        /// read off the mount's own motion and written through the rider's humanoid avatar — and
+        /// the NPC riders spent the whole journey standing to attention above the saddle purely
+        /// because there was no way in here that did not go through a PlayerMovement.
+        /// </para>
+        /// </summary>
+        public void PoseRider(Transform rider)
         {
-            riderRoot = mountModule ? mountModule.MountedPlayerTransform : null;
+            // A different rider starts from standing rather than inheriting the last one's pose.
+            // Without this, a player mounting an animal whose nomad has just been turfed out lands
+            // fully seated on the frame they sit down, and the blend that exists to stop exactly
+            // that snap never runs.
+            if (riderRoot != rider)
+                weight = 0f;
+
+            riderRoot = rider;
             riderAnimator = riderRoot ? riderRoot.GetComponentInChildren<Animator>(true) : null;
 
             // Bones are resolved through the humanoid avatar, so a generic rig has nothing to
@@ -140,10 +177,17 @@ namespace SpaceGame.Agents
             ResetMotionSamples();
         }
 
-        private void HandleDismounted(PlayerMovement rider)
+        /// <summary>
+        /// Blend <paramref name="rider"/> back out of the pose.
+        ///
+        /// Ignores anybody else's rider, so a late release from the NPC path cannot cancel the pose
+        /// of the player who has just taken the seat off them. References stay put — LateUpdate
+        /// keeps posting the decaying pose until it reaches 0.
+        /// </summary>
+        public void ReleaseRider(Transform rider)
         {
-            // References stay put — LateUpdate keeps posting the decaying pose until it reaches 0.
-            targetWeight = 0f;
+            if (rider == null || riderRoot == rider)
+                targetWeight = 0f;
         }
 
         private void ResetMotionSamples()

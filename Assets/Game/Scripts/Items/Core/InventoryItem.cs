@@ -48,6 +48,16 @@ namespace SpaceGame.Items
         [Tooltip("Optional icon for UI display.")]
         public Sprite icon;
 
+        [Tooltip("Optional prefab to render the icon from instead of itemPrefab, for items whose "
+            + "held form is not what the player thinks of as the item — e.g. the Wing Pack's icon "
+            + "shows the unfurled ornithopter, not the furled pack in the hand.")]
+        public GameObject iconPrefab;
+
+        [Tooltip("Where this item is equipped. Hand items go into the palm from a hotbar slot; a " +
+                 "Gauntlet is worn on a forearm and fired on that arm's key; a Back item is worn " +
+                 "on the back and deployed on a double tap of jump. Worn kinds are inert in the hotbar.")]
+        public EquipKind equipKind = EquipKind.Hand;
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

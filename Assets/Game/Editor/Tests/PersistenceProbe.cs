@@ -7,7 +7,7 @@
 // writes.
 //
 // So this file exists to make the per-prefab test three lines. See PrefabPersistenceTests.cs for
-// worked examples, and docs/architecture/Persistence.md §9 for when to reach for which method.
+// worked examples, and docs/AI/systems/Persistence.md (Flows, Gotchas) for when to reach for which method.
 //
 // ── The two things worth asserting ────────────────────────────────────────────────────────────
 //
@@ -38,6 +38,11 @@ using UnityEditor;
 using UnityEngine;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Persistence;
+
+// Aliased rather than imported wholesale: this file's own namespace is SpaceGame.EditorTools, and
+// pulling a second …EditorTools namespace into scope beside it invites name collisions that only
+// show up as a build error somebody else has to unpick.
+using SaveablePrefabFile = SpaceGame.Core.Persistence.EditorTools.SaveablePrefabFile;
 
 namespace SpaceGame.EditorTools
 {
@@ -117,7 +122,7 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(SaveablePolicy.NeedsSaving(prefab, out string why),
                 $"'{path}' is not opted in to saving at all, so nothing about it survives a " +
                 "reload. Give one of its root components SpaceGame.Persistence.IPersistentEntity — " +
-                "see docs/architecture/Persistence.md §2.");
+                "see docs/AI/systems/Persistence.md (Model).");
 
             Assert.IsNotNull(prefab.GetComponent<SaveableEntity>(),
                 $"'{path}' qualifies for saving ({why}) but has no SaveableEntity, so it can " +
@@ -208,7 +213,131 @@ namespace SpaceGame.EditorTools
                 "through the runtime fallback's hierarchy-path identity — which is orphaned by any " +
                 "rename or re-parent:\n  " + string.Join("\n  ", unwired) +
                 "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs, then re-save any scene that " +
-                "instances them so the identity overrides are written (see Persistence.md §11).");
+                "instances them so the identity overrides are written (see Persistence.md, Gotchas).");
+        }
+
+        /// <summary>
+        /// Asserts that every world-entity prefab carries its <c>prefabId</c> IN ITS FILE.
+        ///
+        /// <para>
+        /// The one property about wiring that cannot be asked of Unity.
+        /// <c>SaveableEntity.OnValidate</c> is inside <c>#if UNITY_EDITOR</c> and fills the field in
+        /// memory the moment an asset is loaded, so <c>entity.PrefabId</c> looks right in the editor
+        /// on a prefab whose serialized bytes are blank — and the bytes are what a player build
+        /// ships. Both other sweeps read the loaded object and so are blind to it; only
+        /// <see cref="SaveablePrefabFile"/> reads the file.
+        /// </para>
+        /// <para>
+        /// A runtime spawn from an unstamped prefab is captured into the save with an empty
+        /// <c>prefabId</c> and then DELETED by <c>WorldSaveStore.Compact</c>, which cannot tell it
+        /// from residue — so the object is simply not in the world on the next load, with one
+        /// warning at save time and nothing at all at load time. That is how the crash-landed
+        /// PlayerShip disappeared from every world it had arrived in.
+        /// </para>
+        /// </summary>
+        public static void AssertEveryWorldEntityPrefabIsStampedOnDisk()
+        {
+            var unstamped = new List<string>();
+
+            foreach ((GameObject asset, string assetPath) in WorldEntityPrefabs())
+            {
+                if (asset.GetComponent<SaveableEntity>() == null) continue;   // reported by the sweep above
+
+                string guid = AssetDatabase.AssetPathToGUID(assetPath);
+                if (SaveablePrefabFile.IsStampedCorrectly(assetPath, guid)) continue;
+
+                unstamped.Add($"{assetPath} — file says '{SaveablePrefabFile.ReadPrefabId(assetPath)}', " +
+                              $"asset GUID is '{guid}'");
+            }
+
+            if (unstamped.Count == 0) return;
+
+            Assert.Fail(
+                $"{unstamped.Count} world-entity prefab(s) do not carry their own prefabId in their " +
+                "FILE, so anything spawned from them at runtime is captured into the save and then " +
+                "dropped as unrestorable:\n  " + string.Join("\n  ", unstamped) +
+                "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs, out of Play mode — the pass " +
+                "refuses in Play mode and a build script that ignores that refusal is how a prefab " +
+                "gets here (see Persistence.md, Gotchas).");
+        }
+
+        /// <summary>
+        /// Asserts that no world-entity prefab carries a second <see cref="SaveableEntity"/> below
+        /// its root.
+        ///
+        /// <para>
+        /// A nested prefab that is itself saveable (the map projector inside the PlayerShip) keeps
+        /// the entity its own asset carries — and <c>SaveableEntity.OnValidate</c>, running on the
+        /// outer asset, stamps that nested entity's <c>prefabId</c> with the OUTER prefab's GUID.
+        /// Saver collection stops at the nested entity, so the outer record never sees its savers;
+        /// and the nested record names the outer prefab, so every load instantiates a whole second
+        /// copy of it — two overlapping hulls, doubling per reload.
+        /// </para>
+        /// </summary>
+        public static void AssertNoWorldEntityPrefabNestsASecondSaveableEntity()
+        {
+            var nested = new List<string>();
+
+            foreach ((GameObject asset, string assetPath) in WorldEntityPrefabs())
+            {
+                foreach (SaveableEntity entity in asset.GetComponentsInChildren<SaveableEntity>(true))
+                {
+                    if (entity.gameObject == asset) continue;
+                    nested.Add($"{assetPath} — '{entity.name}' (prefabId '{entity.PrefabId}')");
+                }
+            }
+
+            if (nested.Count == 0) return;
+
+            Assert.Fail(
+                $"{nested.Count} world-entity prefab(s) nest a second SaveableEntity below their root, " +
+                "which OnValidate stamps with the OUTER prefab's id — so every load instantiates a " +
+                "whole second copy of the outer prefab from it:\n  " + string.Join("\n  ", nested) +
+                "\n\nFix: remove the nested SaveableEntity in the builder that nests the prefab (the " +
+                "outer entity collects the child's savers once it is gone), then rebuild the prefab.");
+        }
+
+        /// <summary>
+        /// Asserts that no world-entity prefab collects two savers under one key.
+        ///
+        /// <para>
+        /// A <c>StateBag</c> holds one payload per key and a capture writes savers in collection
+        /// order — root first, then children — so a second saver on the same key silently replaces
+        /// the first. The way it happens: a nested prefab keeps its own <c>TransformSaveable</c>
+        /// after its entity is stripped, and the outer object's pose record becomes the child's.
+        /// The PlayerShip's would have been restored at its map projector's pose.
+        /// </para>
+        /// </summary>
+        public static void AssertOneSaverPerKeyOnEveryWorldEntityPrefab()
+        {
+            var clashes = new List<string>();
+
+            foreach ((GameObject asset, string assetPath) in WorldEntityPrefabs())
+            {
+                var savers = new List<SpaceGame.Persistence.ISaveable>();
+                SaveableEntity.CollectSavers(asset.transform, savers);
+
+                var owners = new Dictionary<string, string>();
+
+                foreach (SpaceGame.Persistence.ISaveable saver in savers)
+                {
+                    if (saver is not Component component || string.IsNullOrEmpty(saver.SaveKey)) continue;
+
+                    if (owners.TryGetValue(saver.SaveKey, out string first))
+                        clashes.Add($"{assetPath} — key '{saver.SaveKey}' on '{first}' and on '{component.gameObject.name}'");
+                    else
+                        owners[saver.SaveKey] = component.gameObject.name;
+                }
+            }
+
+            if (clashes.Count == 0) return;
+
+            Assert.Fail(
+                $"{clashes.Count} saver key clash(es): the later saver overwrites the earlier one's " +
+                "payload on every capture, so the record holds the wrong object's state:\n  " +
+                string.Join("\n  ", clashes) +
+                "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs — it removes the nested copy " +
+                "(the root's saver wins). Pose and body savers belong on an entity's root only.");
         }
 
         /// <summary>
@@ -411,7 +540,7 @@ namespace SpaceGame.EditorTools
                     $"  captured:   {before}\n" +
                     $"  after load: {after}\n" +
                     "Either RestoreState is dropping a field CaptureState wrote, or it is reading the " +
-                    "payload without SaveSerializer.Serializer. See Persistence.md §4, rule 6.");
+                    "payload without SaveSerializer.Serializer. See Persistence.md, Persistence section.");
             }
         }
     }

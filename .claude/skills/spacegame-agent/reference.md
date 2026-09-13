@@ -264,7 +264,7 @@ agent-specific facts:
 - `AgentAuthority` is the per-component cached "does this machine drive this entity" answer.
   Ownership, not server-ness. `Invalidate()` from `OnTransformParentChanged` — that is the only
   thing that moves an entity to a different `NetworkObject`.
-- `NetAuthority` (`Assets/Game/Scripts/Core/Multiplayer/NetAuthority.cs`) disables simulation
+- `NetAuthority` (`Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs`) disables simulation
   drivers on remote machines. **Take a `LeggedLocomotion` out of its `simulationDrivers` list** or
   a remote copy slides with still feet.
 - `HealthComponent.IsRestoring` is true while a save is being applied — `EntityLootTable` and

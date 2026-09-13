@@ -3,7 +3,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Characters;
-using SpaceGame.Core;
+using SpaceGame.Core.Lobbies;
 using Unity.Services.Lobbies.Models;
 
 namespace SpaceGame.Tests
@@ -284,19 +284,19 @@ namespace SpaceGame.Tests
         [Test]
         public void PlayerDataCarriesTheSuitColour()
         {
-            Player player = LobbySession.BuildPlayer("Ferdinand", 7);
+            Player player = LobbyOptions.LocalPlayer("Ferdinand", 7);
 
-            Assert.IsTrue(player.Data.ContainsKey(LobbySession.KeySuitColor));
-            Assert.AreEqual("7", player.Data[LobbySession.KeySuitColor].Value);
+            Assert.IsTrue(player.Data.ContainsKey(LobbyKeys.SuitColor));
+            Assert.AreEqual("7", player.Data[LobbyKeys.SuitColor].Value);
         }
 
         [Test]
         public void PlayerDataClampsAColourItWasHandedOutOfRange()
         {
-            Player player = LobbySession.BuildPlayer("Ferdinand", 9999);
+            Player player = LobbyOptions.LocalPlayer("Ferdinand", 9999);
 
             Assert.AreEqual((SuitPalette.Count - 1).ToString(),
-                            player.Data[LobbySession.KeySuitColor].Value);
+                            player.Data[LobbyKeys.SuitColor].Value);
         }
 
         [Test]
@@ -304,10 +304,10 @@ namespace SpaceGame.Tests
         {
             // Including the name would make every arrow press rewrite it, so a rename typed
             // elsewhere mid-lobby could be reverted by a colour change.
-            var options = LobbySession.BuildSuitColorOptions(3);
+            var options = LobbyOptions.SuitColor(3);
 
             Assert.AreEqual(1, options.Data.Count);
-            Assert.IsTrue(options.Data.ContainsKey(LobbySession.KeySuitColor));
+            Assert.IsTrue(options.Data.ContainsKey(LobbyKeys.SuitColor));
         }
 
         [Test]
@@ -322,7 +322,7 @@ namespace SpaceGame.Tests
                 PlayerWith(Data("SuitColor", "not-a-number")),
                 PlayerWith(Data("SuitColor", "9999")));
 
-            int[] colors = LobbySession.SuitColors(lobby);
+            int[] colors = LobbyRoster.SuitColors(lobby);
 
             Assert.AreEqual(4, colors.Length);
             Assert.AreEqual(0, colors[0]);
@@ -340,8 +340,8 @@ namespace SpaceGame.Tests
                 PlayerWith(Both("Ferdinand", "4")),
                 PlayerWith(Both("Tobb", "6")));
 
-            string[] names = LobbySession.PlayerNames(lobby);
-            int[] colors = LobbySession.SuitColors(lobby);
+            string[] names = LobbyRoster.Names(lobby);
+            int[] colors = LobbyRoster.SuitColors(lobby);
 
             Assert.AreEqual(names.Length, colors.Length);
             Assert.AreEqual("Ferdinand", names[0]);
@@ -353,7 +353,7 @@ namespace SpaceGame.Tests
         [Test]
         public void SuitColorsHandlesNoLobbyAtAll()
         {
-            Assert.AreEqual(0, LobbySession.SuitColors(null).Length);
+            Assert.AreEqual(0, LobbyRoster.SuitColors(null).Length);
         }
 
         [Test]
@@ -366,9 +366,9 @@ namespace SpaceGame.Tests
                 PlayerWith("host-id", Both("Ferdinand", "0")),
                 PlayerWith("guest-id", Both("Tobb", "6")));
 
-            Assert.AreEqual(0, LobbySession.SlotOf(lobby, "host-id"));
-            Assert.AreEqual(1, LobbySession.SlotOf(lobby, "guest-id"));
-            Assert.AreEqual(0, LobbySession.HostSlot(lobby));
+            Assert.AreEqual(0, LobbyRoster.SlotOf(lobby, "host-id"));
+            Assert.AreEqual(1, LobbyRoster.SlotOf(lobby, "guest-id"));
+            Assert.AreEqual(0, LobbyRoster.HostSlot(lobby));
         }
 
         [Test]
@@ -377,14 +377,14 @@ namespace SpaceGame.Tests
             // -1 is what makes the cycler hide instead of appearing under somebody else's figure.
             Lobby lobby = LobbyHostedBy(null, PlayerWith("host-id", Both("Ferdinand", "0")));
 
-            Assert.AreEqual(-1, LobbySession.SlotOf(lobby, "nobody"));
-            Assert.AreEqual(-1, LobbySession.SlotOf(lobby, null));
-            Assert.AreEqual(-1, LobbySession.SlotOf(null, "someone"));
-            Assert.AreEqual(-1, LobbySession.HostSlot(null));
+            Assert.AreEqual(-1, LobbyRoster.SlotOf(lobby, "nobody"));
+            Assert.AreEqual(-1, LobbyRoster.SlotOf(lobby, null));
+            Assert.AreEqual(-1, LobbyRoster.SlotOf(null, "someone"));
+            Assert.AreEqual(-1, LobbyRoster.HostSlot(null));
 
             // A lobby whose host has left is a real state the poll can return, and it must not
             // resolve to slot 0 and hand somebody else the underline.
-            Assert.AreEqual(-1, LobbySession.HostSlot(lobby));
+            Assert.AreEqual(-1, LobbyRoster.HostSlot(lobby));
         }
 
         // ──────────────────────────────────────────────────────────────────────── helpers
@@ -439,8 +439,8 @@ namespace SpaceGame.Tests
 
         private static Dictionary<string, PlayerDataObject> Both(string name, string color)
         {
-            var data = Data(LobbySession.KeyPlayerName, name);
-            data[LobbySession.KeySuitColor] =
+            var data = Data(LobbyKeys.PlayerName, name);
+            data[LobbyKeys.SuitColor] =
                 new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, color);
             return data;
         }

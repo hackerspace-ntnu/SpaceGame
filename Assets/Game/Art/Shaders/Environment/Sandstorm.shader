@@ -95,7 +95,19 @@ Shader "SpaceGame/Sandstorm"
 
                 // Past the far clamp the sand is already opaque in any storm worth the name, so
                 // marching further only costs.
-                tFar = min(tFar, min(distance, _MaxDistance));
+                //
+                // Scene depth ends the march only where there is scene. A sky pixel's reconstructed
+                // position sits on the camera's far PLANE, which is nearest along the forward axis,
+                // so clamping to it eats the sand hardest at the centre of the screen. It is
+                // harmless while _MaxDistance stays inside the far clip and wins the min outright,
+                // and it is the same trap that emptied the clouds and the storm shell — see the
+                // full note in VolumetricClouds.shader.
+            #if UNITY_REVERSED_Z
+                bool isSky = rawDepth <= 0.0;
+            #else
+                bool isSky = rawDepth >= 1.0;
+            #endif
+                tFar = min(tFar, isSky ? _MaxDistance : min(distance, _MaxDistance));
 
                 // Hold the sand off your face. A march that starts at the camera fogs the ground
                 // under your own boots first, which is the one piece of the world a player inside

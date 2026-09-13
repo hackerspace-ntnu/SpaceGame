@@ -155,6 +155,86 @@ namespace SpaceGame.EditorTools
                 "applied on peers too, each against their own copy of the layer setup.");
         }
 
+        // ─────────── The harpoon modelled in the launcher ───────────
+        //
+        // The bracer carries a harpoon sitting in its launch tube, and the head that flies is a
+        // separate instance of the same model. The two must never be on screen at once. These run
+        // against SpawnHead/DestroyHead directly because those are the only two places that
+        // decide it, and both of them run on EVERY machine — which is what makes a peer see the
+        // tube empty out rather than watching a hook leave an arm that still has one in it.
+
+        /// <summary>A stand-in for the harpoon child of the bracer model.</summary>
+        private GameObject SeatAHarpoon()
+        {
+            var seated = new GameObject("seated harpoon");
+            seated.transform.SetParent(hook.transform, false);
+            typeof(GrapplingHookArtifact)
+                .GetField("seatedHook", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(artifact, seated);
+            return seated;
+        }
+
+        private void Invoke(string method, params object[] args) =>
+            typeof(GrapplingHookArtifact)
+                .GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)
+                .Invoke(artifact, args);
+
+        [Test]
+        public void FiringEmptiesTheLaunchTube()
+        {
+            GameObject seated = SeatAHarpoon();
+            var headPrefab = new GameObject("head prefab");
+
+            try
+            {
+                typeof(GrapplingHookArtifact)
+                    .GetField("hookHeadPrefab", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(artifact, headPrefab);
+
+                Invoke("SpawnHead", Vector3.zero, Vector3.forward);
+
+                Assert.IsFalse(seated.activeSelf,
+                    "The head that flies is a separate instance. Leaving the modelled one in the " +
+                    "tube puts two harpoons on screen at once — one in flight and one still in the " +
+                    "arm that threw it.");
+            }
+            finally
+            {
+                // DestroyHead uses Destroy, which is a no-op in edit mode.
+                var spawned = (Transform)FieldOf(artifact, "_head");
+                if (spawned != null) Object.DestroyImmediate(spawned.gameObject);
+                Object.DestroyImmediate(headPrefab);
+            }
+        }
+
+        [Test]
+        public void DroppingTheRopePutsTheHarpoonBack()
+        {
+            GameObject seated = SeatAHarpoon();
+            seated.SetActive(false);
+
+            Invoke("DestroyHead");
+
+            Assert.IsTrue(seated.activeSelf,
+                "A launcher that empties once and never refills is a one-shot. The item is rebuilt " +
+                "from the prefab on every equip, so nothing else would ever put it back.");
+        }
+
+        [Test]
+        public void TheHarpoonComesBackEvenWhenNoHeadWasEverSpawned()
+        {
+            GameObject seated = SeatAHarpoon();
+            seated.SetActive(false);
+
+            // _head is null here: this is the unequip path, and the path a shot with no
+            // hookHeadPrefab takes.
+            Invoke("DestroyHead");
+
+            Assert.IsTrue(seated.activeSelf,
+                "Restoring the model behind DestroyHead's null guard leaves the tube empty for " +
+                "good after any drop that never had a head to destroy.");
+        }
+
         // ─────────── Both halves still exist ───────────
 
         [Test]

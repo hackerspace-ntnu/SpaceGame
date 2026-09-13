@@ -29,7 +29,7 @@ namespace SpaceGame.World.Weather
                  "changes with depth is how far you can see, not whether there is sand. Below 1 " +
                  "the grit arrives at the border and only its violence scales inward.")]
         [Range(0.2f, 1f)]
-        [SerializeField] private float presenceCurve = 0.4f;
+        [SerializeField] private float presenceCurve = 0.32f;
 
         private VisualEffect[] graphs;
         private ParticleSystem[] particles;

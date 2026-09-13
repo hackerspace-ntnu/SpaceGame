@@ -122,6 +122,32 @@ def collection(name, parent=None):
     return coll
 
 
+def append_objects(blend, names, into):
+    """Append (not link) named objects from a component file into `into`.
+
+    An export needs real mesh data — a linked object arrives as a proxy the
+    FBX writer skips. The depsgraph update matters: a freshly appended object
+    reports the identity matrix until the view layer updates, so anything
+    measured off it before then is wrong.
+
+    Lifted here from `models/props/repair_station.py` and
+    `models/props/oxygen_generator.py`, which carry their own earlier copies
+    and are left alone: both are historical records of hand-edited files.
+    """
+    with bpy.data.libraries.load(blend, link=False) as (src, dst):
+        missing = [n for n in names if n not in set(src.objects)]
+        if missing:
+            raise SystemExit("Not in %s: %s" % (blend, ", ".join(missing)))
+        dst.objects = list(names)
+    out = []
+    for name in names:
+        obj = bpy.data.objects[name]
+        into.objects.link(obj)
+        out.append(obj)
+    bpy.context.view_layer.update()
+    return out
+
+
 # --------------------------------------------------------------------------
 # Part — a bmesh under construction, with per-face material tracking
 # --------------------------------------------------------------------------
@@ -332,6 +358,37 @@ class Part:
                         rng.uniform(*scale)))
             s['XYZ'.index(flatten)] *= 0.4
             faces += self.box(p, s, mat)
+        return faces
+
+    def helix(self, lo, hi, radius, wire, turns, mat=0, seg=6, per_turn=10):
+        """A coil spring, swept as a chain of short cylinders along a helix.
+
+        Nothing else here can make one. `loft` places its rings perpendicular to
+        a single axis, which turns a helix into a flat spiral ribbon rather than
+        a round wire, and `cyl` alone cannot follow a curve. So this walks the
+        helix and lays one cylinder per step, each rotated onto the local
+        tangent.
+
+        `per_turn` is the resolution: at ten steps per turn the bend between
+        neighbouring segments is 36 degrees, which does not read as faceted at
+        arm's length and keeps a five-turn coil to about 400 triangles.
+        """
+        steps = max(1, int(turns * per_turn))
+        faces = []
+        points = []
+        for i in range(steps + 1):
+            t = i / steps
+            a = 2 * math.pi * turns * t
+            points.append(Vector((radius * math.cos(a), radius * math.sin(a),
+                                  lo + (hi - lo) * t)))
+
+        for a, b in zip(points, points[1:]):
+            d = b - a
+            if d.length < 1e-6:
+                continue
+            rot = d.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+            faces += self.cyl((a + b) / 2.0, wire, d.length, 'Z', seg, mat,
+                              rot=rot)
         return faces
 
     def louvres(self, lo, hi, count, axis='Y', mat=0, thickness=0.02):

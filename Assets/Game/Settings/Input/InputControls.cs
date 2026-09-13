@@ -208,6 +208,33 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""GauntletLeft"",
+                    ""type"": ""Button"",
+                    ""id"": ""2a9fcefe-bad8-4a8b-87a4-f7c1d3425fb3"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""GauntletRight"",
+                    ""type"": ""Button"",
+                    ""id"": ""43d904e9-97de-49d4-863d-d390b23ccd0e"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Retrieve"",
+                    ""type"": ""Button"",
+                    ""id"": ""0554ff0c-7b28-42bb-ab93-935d0029059c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -555,7 +582,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""1c04ea5f-b012-41d1-a6f7-02e963b52893"",
-                    ""path"": ""<Keyboard>/e"",
+                    ""path"": ""<Mouse>/rightButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
@@ -593,17 +620,6 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
                     ""action"": ""Crouch"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""48d64bb1-0aa0-4800-8b89-b777017cd413"",
-                    ""path"": ""<Keyboard>/leftShift"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Dash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -760,6 +776,72 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""Backpack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f551e8f1-f100-4f06-8f94-4be624ad59af"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""GauntletLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""af93a18c-1f85-4781-90be-e50c30ecf37a"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""GauntletLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""38264f8e-adac-4fd6-a39b-0a9c2891d052"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""GauntletRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""19e5caac-6272-4a3a-8a5c-a32216bc449a"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""GauntletRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e4c2555a-1189-4db9-8240-b29afd0523fa"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Retrieve"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f056882e-bc1e-4c78-931b-26f94ee892ab"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Retrieve"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -907,6 +989,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""type"": ""Button"",
                     ""id"": ""1d5b8c73-24af-4a1e-9c60-6a83f1e2b904"",
                     ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""BodyInventory"",
+                    ""type"": ""Button"",
+                    ""id"": ""cb562c79-37dc-451c-bf33-fff09119c273"",
+                    ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -1466,7 +1557,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""3f4500b2-3e44-4367-9dec-afd834211c03"",
-                    ""path"": ""<Keyboard>/i"",
+                    ""path"": ""<Keyboard>/o"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
@@ -1504,6 +1595,28 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Hud"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""fb447a6d-f3c4-4dd1-b976-30bd09c4302e"",
+                    ""path"": ""<Keyboard>/i"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""BodyInventory"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4745226a-ebce-4c38-af38-3ec2f6748350"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""BodyInventory"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1836,6 +1949,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_Player_Vertical = m_Player.FindAction("Vertical", throwIfNotFound: true);
         m_Player_Turn = m_Player.FindAction("Turn", throwIfNotFound: true);
         m_Player_Backpack = m_Player.FindAction("Backpack", throwIfNotFound: true);
+        m_Player_GauntletLeft = m_Player.FindAction("GauntletLeft", throwIfNotFound: true);
+        m_Player_GauntletRight = m_Player.FindAction("GauntletRight", throwIfNotFound: true);
+        m_Player_Retrieve = m_Player.FindAction("Retrieve", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1854,6 +1970,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_DevInventory = m_UI.FindAction("DevInventory", throwIfNotFound: true);
         m_UI_Chat = m_UI.FindAction("Chat", throwIfNotFound: true);
         m_UI_Hud = m_UI.FindAction("Hud", throwIfNotFound: true);
+        m_UI_BodyInventory = m_UI.FindAction("BodyInventory", throwIfNotFound: true);
         // Hotbar
         m_Hotbar = asset.FindActionMap("Hotbar", throwIfNotFound: true);
         m_Hotbar_Hotbar1 = m_Hotbar.FindAction("Hotbar1", throwIfNotFound: true);
@@ -1963,6 +2080,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Vertical;
     private readonly InputAction m_Player_Turn;
     private readonly InputAction m_Player_Backpack;
+    private readonly InputAction m_Player_GauntletLeft;
+    private readonly InputAction m_Player_GauntletRight;
+    private readonly InputAction m_Player_Retrieve;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -2026,6 +2146,18 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Backpack".
         /// </summary>
         public InputAction @Backpack => m_Wrapper.m_Player_Backpack;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/GauntletLeft".
+        /// </summary>
+        public InputAction @GauntletLeft => m_Wrapper.m_Player_GauntletLeft;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/GauntletRight".
+        /// </summary>
+        public InputAction @GauntletRight => m_Wrapper.m_Player_GauntletRight;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Retrieve".
+        /// </summary>
+        public InputAction @Retrieve => m_Wrapper.m_Player_Retrieve;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2091,6 +2223,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Backpack.started += instance.OnBackpack;
             @Backpack.performed += instance.OnBackpack;
             @Backpack.canceled += instance.OnBackpack;
+            @GauntletLeft.started += instance.OnGauntletLeft;
+            @GauntletLeft.performed += instance.OnGauntletLeft;
+            @GauntletLeft.canceled += instance.OnGauntletLeft;
+            @GauntletRight.started += instance.OnGauntletRight;
+            @GauntletRight.performed += instance.OnGauntletRight;
+            @GauntletRight.canceled += instance.OnGauntletRight;
+            @Retrieve.started += instance.OnRetrieve;
+            @Retrieve.performed += instance.OnRetrieve;
+            @Retrieve.canceled += instance.OnRetrieve;
         }
 
         /// <summary>
@@ -2141,6 +2282,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Backpack.started -= instance.OnBackpack;
             @Backpack.performed -= instance.OnBackpack;
             @Backpack.canceled -= instance.OnBackpack;
+            @GauntletLeft.started -= instance.OnGauntletLeft;
+            @GauntletLeft.performed -= instance.OnGauntletLeft;
+            @GauntletLeft.canceled -= instance.OnGauntletLeft;
+            @GauntletRight.started -= instance.OnGauntletRight;
+            @GauntletRight.performed -= instance.OnGauntletRight;
+            @GauntletRight.canceled -= instance.OnGauntletRight;
+            @Retrieve.started -= instance.OnRetrieve;
+            @Retrieve.performed -= instance.OnRetrieve;
+            @Retrieve.canceled -= instance.OnRetrieve;
         }
 
         /// <summary>
@@ -2194,6 +2344,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_DevInventory;
     private readonly InputAction m_UI_Chat;
     private readonly InputAction m_UI_Hud;
+    private readonly InputAction m_UI_BodyInventory;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -2270,6 +2421,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Hud => m_Wrapper.m_UI_Hud;
         /// <summary>
+        /// Provides access to the underlying input action "UI/BodyInventory".
+        /// </summary>
+        public InputAction @BodyInventory => m_Wrapper.m_UI_BodyInventory;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_UI; }
@@ -2343,6 +2498,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Hud.started += instance.OnHud;
             @Hud.performed += instance.OnHud;
             @Hud.canceled += instance.OnHud;
+            @BodyInventory.started += instance.OnBodyInventory;
+            @BodyInventory.performed += instance.OnBodyInventory;
+            @BodyInventory.canceled += instance.OnBodyInventory;
         }
 
         /// <summary>
@@ -2402,6 +2560,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Hud.started -= instance.OnHud;
             @Hud.performed -= instance.OnHud;
             @Hud.canceled -= instance.OnHud;
+            @BodyInventory.started -= instance.OnBodyInventory;
+            @BodyInventory.performed -= instance.OnBodyInventory;
+            @BodyInventory.canceled -= instance.OnBodyInventory;
         }
 
         /// <summary>
@@ -2815,6 +2976,27 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnBackpack(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "GauntletLeft" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGauntletLeft(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "GauntletRight" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGauntletRight(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Retrieve" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRetrieve(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
@@ -2935,6 +3117,13 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnHud(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "BodyInventory" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnBodyInventory(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Hotbar" which allows adding and removing callbacks.

@@ -35,7 +35,11 @@ namespace SpaceGame.Agents
             float scaled = lookSensitivity * GameSettings.MouseSensitivity * deltaTime;
             float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
 
+            bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
+
             cameraYawOffset = MountLookMath.WrapAngle(cameraYawOffset + lookInput.x * scaled);
+            if (firstPerson)
+                cameraYawOffset = MountLookMath.ClampYaw(cameraYawOffset, firstPersonYawClamp);
             mountedPitch = Mathf.Clamp(mountedPitch - pitchInput * scaled, -lookPitchClamp, lookPitchClamp);
             orbitPitch = Mathf.Clamp(orbitPitch - pitchInput * scaled, orbitPitchMin, orbitPitchMax);
 
@@ -47,15 +51,27 @@ namespace SpaceGame.Agents
             else
                 timeSinceLastLookInput += deltaTime;
 
-            cameraYawOffset = MountLookMath.StepRecentre(cameraYawOffset, timeSinceLastLookInput,
-                                                         cameraAutoAlignDelay, cameraAutoAlignSpeed,
-                                                         deltaTime);
+            // The drift home is the ORBIT's behaviour and stays there. A third-person camera has a
+            // neutral worth returning to — behind the vehicle — and a flank view that never came
+            // back would strand the camera out to one side for the rest of the ride. A head has no
+            // such neutral: it points where the person is looking, and turning it back on its own
+            // is the view overriding the player rather than serving them. A passenger watching the
+            // dunes go past would have the window slide out from under them every three seconds.
+            if (!firstPerson)
+                cameraYawOffset = MountLookMath.StepRecentre(cameraYawOffset, timeSinceLastLookInput,
+                                                             cameraAutoAlignDelay, cameraAutoAlignSpeed,
+                                                             deltaTime);
             orbitPitch = MountLookMath.StepRecentre(orbitPitch, timeSinceLastLookInput,
                                                     cameraAutoAlignDelay, cameraAutoAlignSpeed,
                                                     deltaTime);
 
+            // Yaw as well as pitch. Without the Y term the look stick's whole horizontal axis was
+            // read, accumulated into cameraYawOffset and then dropped on the floor in first person
+            // — the camera answered half the control, so a seated rider could look up and down and
+            // not left or right.
             if (mountedFirstPersonCameraRoot)
-                mountedFirstPersonCameraRoot.localRotation = Quaternion.Euler(mountedPitch, 0f, 0f);
+                mountedFirstPersonCameraRoot.localRotation =
+                    Quaternion.Euler(mountedPitch, cameraYawOffset, 0f);
         }
 
         /// <summary>
@@ -75,11 +91,9 @@ namespace SpaceGame.Agents
             activePerspective = perspective;
             bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
 
-            // The head is a VISUAL, so it is decided everywhere. A remote rider is only ever seen
-            // from outside, and hiding their head to match a first-person view nobody on this
-            // machine is looking through leaves a decapitated player sitting on the saddle.
-            mountedPlayerLook?.SetHeadVisible(!RiderIsLocal || !firstPerson);
-
+            // The rider's head takes care of itself: PlayerLook hides it per camera render, only
+            // for the camera that IS this rider's first-person view. The orbit camera below is a
+            // different camera, so switching to it shows the head with no toggle here.
             if (!RiderIsLocal)
                 return;
 
@@ -95,6 +109,36 @@ namespace SpaceGame.Agents
                 SetThirdPersonCameraEnabled(true);
                 SetMountedVisorEnabled(false);
             }
+
+            PublishRiderAimView(firstPerson);
+        }
+
+        /// <summary>
+        /// Tell the rider's aim which view they are looking through, and that this machine is
+        /// around them.
+        ///
+        /// <para>
+        /// Every aimed item in the game measures from <see cref="AimProvider"/>, and left alone it
+        /// measures from the rider's own eye — which mounting has just parented under the seat
+        /// marker wearing the seat's rotation. On the ornithopter that seat is rotated ninety
+        /// degrees, because a prone pilot faces the floor, so an unattended aim pointed straight
+        /// into the sand under the craft while the pilot watched the horizon through the orbit
+        /// camera. Third person hands the aim that orbit camera to converge through; first person
+        /// hands it nothing but the hull, because there the eye already is the view.
+        /// </para>
+        /// <para>
+        /// Both halves are named after the machine rather than the perspective: whichever camera
+        /// the rider is on, a raycast still crosses the fuselage they are strapped inside, and
+        /// <c>Physics.IgnoreCollision</c> does nothing to a query.
+        /// </para>
+        /// </summary>
+        private void PublishRiderAimView(bool firstPerson)
+        {
+            if (mountedAimProvider == null)
+                return;
+
+            mountedAimProvider.SetExternalView(firstPerson ? null : runtimeThirdPersonCamera,
+                                               transform);
         }
 
         /// <summary>
@@ -116,6 +160,9 @@ namespace SpaceGame.Agents
             SetThirdPersonCameraEnabled(false);
             SetFirstPersonCameraEnabled(true);
             SetMountedVisorEnabled(true);
+
+            if (mountedAimProvider != null)
+                mountedAimProvider.ClearExternalView();
         }
 
         private void InitializeMountedViewState()
@@ -216,6 +263,24 @@ namespace SpaceGame.Agents
 
             if (!cameraObject.GetComponent<AudioListener>())
                 cameraObject.AddComponent<AudioListener>();
+
+            // This object is RUNTIME state and must never reach a scene file.
+            //
+            // It is spawned unparented (see above) into whatever scene is currently open, so in the
+            // editor it is an ordinary root object that Ctrl+S writes to disk like any other. Four
+            // of them once shipped inside persistentScene that way: enabled, depth -1, display 0,
+            // tying with the real Main Camera, so which camera the game rendered through was
+            // arbitrary -- and each carried an AudioListener and a StudioListener besides.
+            //
+            // DontSaveInEditor rather than DontSave, so a scene load in play mode still destroys
+            // it. Nothing destroys it in EDIT mode, though: Unity delivers no OnDestroy to a plain
+            // MonoBehaviour there, so an EditMode test destroying its mount never releases this,
+            // and closing the scene detaches a DontSaveInEditor object rather than destroying it.
+            // What is left is a scene-less, enabled camera that the next play session renders
+            // through. The marker below is what lets it be found and swept -- see
+            // MountRuntimeCamera.
+            cameraObject.hideFlags = HideFlags.DontSaveInEditor;
+            MountRuntimeCamera.Attach(cameraObject, this);
 
             // Without the parent to start it in the right place, the first frame must snap rather
             // than lerp — otherwise the camera swoops in from wherever the prefab was authored.

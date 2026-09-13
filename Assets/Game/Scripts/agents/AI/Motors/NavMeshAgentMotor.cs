@@ -3,6 +3,8 @@
 // Includes optional mounted-jump simulation via baseOffset animation.
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Core;
+using SpaceGame.Gameplay;
 using SpaceGame.World;
 using SpaceGame.Teleporting;
 
@@ -22,8 +24,12 @@ namespace SpaceGame.Agents
     // Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(NavMeshAgent))]
-    public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor,
-                                     IRiderControllable, ISelfDrivingMotor, ITeleportAware
+    // Partial: the rope-carry state lives in NavMeshAgentMotor.Carry.cs, the way the ornithopter's
+    // replication does. It is a self-contained state with its own clock and its own tunables, and
+    // this file is long enough already.
+    public partial class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
+                                             IMountLeapMotor, IRiderControllable, ISelfDrivingMotor,
+                                             ITeleportAware, ITowable
     {
         [Header("Navigation")]
         [SerializeField] private NavMeshAgent agent;
@@ -44,6 +50,14 @@ namespace SpaceGame.Agents
         [Header("Facing")]
         [SerializeField] private float faceRotateSpeed = 8f;
 
+        [Header("Grip")]
+        [Tooltip("Least share of its authored acceleration this agent keeps on frictionless " +
+                 "ground. A coat never reports zero grip, and this is the second floor under " +
+                 "that: an agent whose acceleration reached zero could never leave the patch it " +
+                 "is standing on, which turns twenty seconds of sliding into twenty seconds of " +
+                 "nothing (GDC-L1-BAL-0004).")]
+        [SerializeField, Range(0.005f, 1f)] private float minGripAcceleration = 0.02f;
+
         [Header("Mounted Jump")]
         [SerializeField] private bool enableMountedJump = true;
         [SerializeField] private float mountedJumpHeight = 1.25f;
@@ -58,8 +72,15 @@ namespace SpaceGame.Agents
         [Header("Rider Steering")]
         [Tooltip("Tank-steer yaw rate in degrees/sec while the rider is driving.")]
         [SerializeField] private float riderTurnSpeed = 120f;
-        [Tooltip("How far ahead of self the NavMesh destination is placed while rider drives.")]
+        [Tooltip("How far ahead of self the NavMesh destination is placed while rider drives, at the " +
+                 "least. The distance actually used is the larger of this and speed x riderLookaheadSeconds.")]
         [SerializeField] private float riderForwardTargetDistance = 2f;
+        [Tooltip("Seconds of travel the rider's destination is placed ahead. A destination a fixed 2 m " +
+                 "ahead is reached inside any frame longer than 2 m / speed -- 0.14 s at a 14 m/s " +
+                 "gallop -- and an agent that reaches its destination zeroes its velocity and starts " +
+                 "again from rest, which reads as a mount that keeps stopping. Half a second of travel " +
+                 "survives a chunk-load hitch and gives the path a bend to follow.")]
+        [SerializeField] private float riderLookaheadSeconds = 0.5f;
         [SerializeField] private float riderStopDistance = 0.15f;
         [SerializeField] private float riderNavMeshSampleDistance = 4f;
 
@@ -72,8 +93,54 @@ namespace SpaceGame.Agents
         private float defaultStoppingDistance;
         private float defaultSpeed;
         private float defaultBaseOffset;
+        private float defaultAcceleration;
         private float jumpElapsed = -1f;
         private float jumpCooldownTimer;
+
+        // baseOffset has more than one thing to say now, so nobody writes it directly any more.
+        //
+        // The jump arc was its only author until ground conforming arrived, and two components
+        // assigning the same field do not add up -- whichever ran later in the frame silently
+        // erased the other. So each contribution is kept separately and summed in one place.
+        //
+        // groundOffset is the NavMesh-to-real-ground correction, pushed in by AgentGroundConform.
+        // jumpArc is the mounted jump. defaultBaseOffset is whatever the prefab was authored with.
+        private float groundOffset;
+        private float jumpArc;
+
+        /// <summary>
+        /// Vertical correction between the NavMesh polygon this agent stands on and the ground
+        /// underneath it. Written by <c>AgentGroundConform</c>; 0 when nothing is conforming.
+        /// </summary>
+        public float GroundOffset
+        {
+            get => groundOffset;
+            set
+            {
+                groundOffset = value;
+                ApplyBaseOffset();
+            }
+        }
+
+        /// <summary>
+        /// World Y of the NavMesh polygon under this agent, with every offset stripped back off.
+        ///
+        /// <para>
+        /// This is the number a ground conform has to correct against, and it cannot be recovered
+        /// from <c>transform.position</c> alone: that already carries the prefab's own base offset
+        /// and, mid-jump, the arc as well, so subtracting only the ground term would leave the
+        /// conform fighting the jump. The fallback covers an agent that has been parked off the
+        /// mesh, where the transform is the only position there is.
+        /// </para>
+        /// </summary>
+        public float NavSurfaceY => Agent != null && Agent.isActiveAndEnabled && Agent.isOnNavMesh
+            ? Agent.nextPosition.y - Agent.baseOffset
+            : transform.position.y - groundOffset;
+
+        private void ApplyBaseOffset()
+        {
+            if (Agent) Agent.baseOffset = defaultBaseOffset + groundOffset + jumpArc;
+        }
 
         // Set to Time.frameCount inside ApplyRiderInput so the MoveIntent switch in Tick skips
         // that frame. Arc/cooldown updates still run.
@@ -92,6 +159,11 @@ namespace SpaceGame.Agents
         private Vector3 leapEnd;
 
         public Vector3 Velocity => IsAgentReady ? agent.velocity : Vector3.zero;
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>. The fallback is load-bearing:
+        /// <c>defaultSpeed</c> is assigned in Awake, which does not run in EditMode.</summary>
+        public float TopSpeed => defaultSpeed > 0.01f ? defaultSpeed
+                               : agent != null ? agent.speed : 0f;
 
         public bool IsImmobile => !agent || !agent.isOnNavMesh || agent.isStopped;
 
@@ -120,6 +192,20 @@ namespace SpaceGame.Agents
 
         private bool IsAgentReady => agent && agent.isActiveAndEnabled && agent.isOnNavMesh;
 
+        /// <summary>
+        /// The agent, resolved on first use rather than only in Awake.
+        ///
+        /// <para>
+        /// The serialized reference is not assigned on every prefab — the Nomad's is
+        /// <c>fileID: 0</c> — and Awake has always covered for that at runtime. The ground-conform
+        /// members below are the first on this component reachable BEFORE Awake, from an EditMode
+        /// test, and a null agent there does not throw: <c>ApplyBaseOffset</c> would simply do
+        /// nothing while <c>GroundOffset</c> kept accumulating, so the correction runs away to its
+        /// clamp with a clean console.
+        /// </para>
+        /// </summary>
+        private NavMeshAgent Agent => agent ? agent : agent = GetComponent<NavMeshAgent>();
+
         private void Awake()
         {
             if (!agent)
@@ -132,6 +218,7 @@ namespace SpaceGame.Agents
             defaultStoppingDistance = agent.stoppingDistance;
             defaultSpeed = agent.speed;
             defaultBaseOffset = agent.baseOffset;
+            defaultAcceleration = agent.acceleration;
             agent.autoBraking = false;
 
             // Only disable if the NavMesh isn't ready here yet — WorldStreamer will re-enable us
@@ -143,6 +230,8 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            this.NetOn(NetMsg.Leap, OnLeapRequested);
+
             // A restore has already described a jump or a leap in flight. Consumed, so a later
             // genuine enable clears them as it always did.
             if (motorRestored)
@@ -157,6 +246,7 @@ namespace SpaceGame.Agents
             jumpElapsed = -1f;
             leapCooldownTimer = 0f;
             isLeaping = false;
+            carried = false;
         }
 
         // ── Save/restore ──────────────────────────────────────────────────────────
@@ -262,6 +352,14 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // And during a carry, where a rope drives it instead. Same reason, same shape: the
+            // agent's own navigation is switched off and something else owns the pose until the
+            // body is back on the mesh. See NavMeshAgentMotor.Carry.cs.
+            if (carried)
+            {
+                return;
+            }
+
             if (!agent.isOnNavMesh)
             {
                 TrySnapToNavMesh(deltaTime);
@@ -269,6 +367,8 @@ namespace SpaceGame.Agents
             }
 
             NoteNavMeshFound();
+
+            ApplyGroundGrip();
 
             // Rider is driving this frame via ApplyRiderInput — don't re-interpret a MoveIntent.
             if (riderDriveFrame == Time.frameCount)
@@ -421,14 +521,30 @@ namespace SpaceGame.Agents
                 forward = Vector3.forward;
             forward.Normalize();
 
-            Vector3 desired = transform.position + forward * (riderForwardTargetDistance * Mathf.Sign(throttle));
-            Vector3 target = desired;
-            if (NavMesh.SamplePosition(desired, out NavMeshHit hit, riderNavMeshSampleDistance, NavMesh.AllAreas))
+            // Furthest first, halving back toward the minimum: the far point is what keeps a fast
+            // mount moving, and a nearer one is only taken when the far one is off the mesh (a
+            // cliff edge, a wall) so the rider still gets as far as the ground allows.
+            float lookahead = RiderLookahead(agent.speed, riderForwardTargetDistance, riderLookaheadSeconds);
+            Vector3 target = transform.position + forward * (riderForwardTargetDistance * Mathf.Sign(throttle));
+            for (float distance = lookahead; distance >= riderForwardTargetDistance * 0.999f; distance *= 0.5f)
+            {
+                Vector3 desired = transform.position + forward * (distance * Mathf.Sign(throttle));
+                if (!NavMesh.SamplePosition(desired, out NavMeshHit hit, riderNavMeshSampleDistance, NavMesh.AllAreas))
+                    continue;
                 target = hit.position;
+                break;
+            }
 
             agent.isStopped = false;
             agent.SetDestination(target);
         }
+
+        /// <summary>
+        /// How far ahead a rider's destination is placed: at least <paramref name="minimum"/>,
+        /// and further the faster the mount goes. Pure, for the tests.
+        /// </summary>
+        public static float RiderLookahead(float speed, float minimum, float seconds) =>
+            Mathf.Max(minimum, Mathf.Max(0f, speed) * Mathf.Max(0f, seconds));
 
         public void RequestJump()
         {
@@ -445,6 +561,8 @@ namespace SpaceGame.Agents
             jumpElapsed = 0f;
             jumpCooldownTimer = mountedJumpCooldown;
         }
+
+        public bool IsAirborne => jumpElapsed >= 0f || isLeaping || carried;
 
         public bool IsLeapAvailable => enableMountedLeap && !isLeaping && leapCooldownTimer <= 0f;
         public bool IsLeaping => isLeaping;
@@ -504,6 +622,38 @@ namespace SpaceGame.Agents
         {
             leapStart = move.Point(leapStart);
             leapEnd = move.Point(leapEnd);
+        }
+
+        /// <summary>
+        /// Let the ground have its say about how fast this agent can change what it is doing.
+        ///
+        /// <para>
+        /// The same question the player's own movement asks and the same one a legged rig asks, so
+        /// a frosted ramp is slippery for a creature, a mount and the player standing between them
+        /// alike (GDC-L1-SYS-0005) — and it is what makes the cryo sprayer's film mean anything to
+        /// an NPC, which is otherwise the one mover in this game that walks over a coat as if it
+        /// were sand.
+        /// </para>
+        /// <para>
+        /// <b>Acceleration only. The turn rate is never touched.</b> Grip is what a foot can push
+        /// against, so it scales how fast a velocity can change and nothing else: the agent keeps
+        /// its top speed, overshoots its destination and cannot brake, which is what a frictionless
+        /// surface IS. Slowing its angular speed as well would be an agent that cannot follow its
+        /// path around a corner — stuck, not sliding, and stuck for as long as the coat lasts. That
+        /// is the same reason <c>LeggedLocomotion.ApplyGroundGrip</c> leaves the yaw channel alone.
+        /// </para>
+        /// <para>
+        /// Asked only from here, which is downstream of the on-NavMesh, not-leaping and not-carried
+        /// gates: a body being flown along a rope or through a leap arc is not standing on the
+        /// patch below it.
+        /// </para>
+        /// </summary>
+        private void ApplyGroundGrip()
+        {
+            float grip = Mathf.Max(GroundGrip.For(gameObject, agent.nextPosition),
+                                   minGripAcceleration);
+
+            agent.acceleration = defaultAcceleration * grip;
         }
 
         private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)
@@ -744,23 +894,62 @@ namespace SpaceGame.Agents
 
             jumpElapsed += deltaTime;
             float t = Mathf.Clamp01(jumpElapsed / Mathf.Max(0.01f, mountedJumpDuration));
-            float arc = Mathf.Sin(t * Mathf.PI);
-            agent.baseOffset = defaultBaseOffset + arc * Mathf.Max(0.01f, mountedJumpHeight);
+            jumpArc = Mathf.Sin(t * Mathf.PI) * Mathf.Max(0.01f, mountedJumpHeight);
 
             if (t >= 1f)
             {
                 jumpElapsed = -1f;
-                agent.baseOffset = defaultBaseOffset;
+                jumpArc = 0f;
             }
+
+            ApplyBaseOffset();
         }
 
         private void OnDisable()
         {
+            this.NetOff(NetMsg.Leap, OnLeapRequested);
+
+            // Before the restores below, which put updateRotation back: a carry has updatePosition
+            // off as well, and a body streamed out mid-hoist would otherwise come back with the
+            // agent unable to move it at all.
+            AbandonCarry();
+
             if (agent)
             {
+                groundOffset = 0f;
+                jumpArc = 0f;
                 agent.baseOffset = defaultBaseOffset;
                 agent.updateRotation = defaultUpdateRotation;
             }
+        }
+
+        /// <summary>
+        /// A blast has thrown this animal. Run the leap here only if this machine owns it.
+        ///
+        /// <para>
+        /// Broadcast on the mount's relay, so every machine receives this and exactly one acts —
+        /// the server for a loose creature, the RIDER's machine for a mount somebody is on. That
+        /// distinction is the whole reason the message exists: a ridden mount's transform is
+        /// owner-authoritative, so the leap the server used to run on its own copy was overwritten
+        /// within a tick and the rider saw nothing at all.
+        /// </para>
+        /// <para>
+        /// The same shape as <c>FlungBody</c>, which is this for a player. See
+        /// <see cref="NetMsg.Leap"/> for the payload.
+        /// </para>
+        /// </summary>
+        private void OnLeapRequested(in NetArg arg, ulong sender)
+        {
+            if (!Network.Owns(this)) return;
+
+            float distance = arg.P.magnitude;
+            if (distance < 1e-3f) return;
+
+            // Checked here rather than by the sender: availability is a property of THIS motor, and
+            // the machine that composed the message was looking at a different copy of it.
+            if (!IsLeapAvailable) return;
+
+            RequestLeap(arg.P / distance, distance, arg.A * 0.01f, arg.B * 0.001f);
         }
 
         private void OnValidate()

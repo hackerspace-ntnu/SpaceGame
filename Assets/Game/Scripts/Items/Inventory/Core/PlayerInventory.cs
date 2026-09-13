@@ -24,8 +24,8 @@ namespace SpaceGame.Items
             remove => inventory.OnSlotChanged -= value;
         }
     
-        public event Action<InventoryItem> OnItemDropped;
-    
+        public event Action<InventoryItem, ItemState> OnItemDropped;
+
         public PlayerInventory(int size, List<InventoryItem> startingItems = null)
         {
             inventory = new Inventory(size);
@@ -44,6 +44,17 @@ namespace SpaceGame.Items
         public void SetItem(int index, InventoryItem item)
         {
            inventory.SetItem(index, item);
+        }
+
+        /// <summary>
+        /// Assign one slot and say so. <see cref="SetItem"/> is silent by design; this is for a
+        /// single-slot assignment that stands on its own — a move landing in the hotbar — where
+        /// nothing else will raise the change.
+        /// </summary>
+        public void SetSlot(int index, InventoryItem item)
+        {
+            inventory.RestoreSlot(index, item);
+            if (SelectedSlotIndex == index) OnSlotSelected?.Invoke(GetSlot(index));
         }
 
         /// <summary>
@@ -104,10 +115,19 @@ namespace SpaceGame.Items
             if (slot.IsEmpty) return;
         
             InventoryItem item = slot.Item;
+
+            // Read before the removal, which takes the bag with the item. The whole bag and not one
+            // field of it: what an item has become is the item's business, and the drop path is not
+            // the place that decides which part of it is worth keeping.
+            //
+            // The reference survives the removal because clearing a slot REPLACES its State with
+            // null rather than emptying the bag in place.
+            ItemState state = slot.State;
+
             inventory.TryRemoveItem(slotIndex);
             if (SelectedSlotIndex == slotIndex)
                 SelectSlot(-1);
-            OnItemDropped?.Invoke(item);
+            OnItemDropped?.Invoke(item, state);
         }
 
         public InventorySlot GetSlot(int index) => inventory.GetSlot(index);

@@ -78,6 +78,8 @@ namespace SpaceGame.Audio
         InteractScannerDiscovery = 507,
         InteractDenied = 508,
         InteractPrompt = 509,
+        InteractOxygenFillLoop = 510,
+        InteractOxygenFilled = 511,
 
         // ---- Wings and flight (600) ----
         WingsDeploy = 600,
@@ -106,5 +108,23 @@ namespace SpaceGame.Audio
         UiBack = 902,
         UiError = 903,
         UiNotify = 904,
+
+        // ---- Portals (1000) ----
+        PortalSprayLoop = 1000,
+        PortalPaintSplat = 1001,
+
+        // ---- Ropes (1100) ----
+        //
+        // The lasso used to have exactly one sound: the item's `useSound`, pinned to event:/SFX/Hit
+        // and played by UsableItem.PlayUse — which for an item whose press starts a WIND-UP fired
+        // at the moment the button went down, and again on the press that dropped the rope. The
+        // throw, the catch, the crack of the rope going taut and the coil-back were all silent.
+        // These name the moments instead of the button.
+        RopeTwirl = 1100,
+        RopeThrow = 1101,
+        RopeCatch = 1102,
+        RopeSnap = 1103,
+        RopeCoil = 1104,
+        RopeHitch = 1105,
     }
 }

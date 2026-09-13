@@ -59,6 +59,7 @@ using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Vehicles
@@ -91,6 +92,15 @@ namespace SpaceGame.Vehicles
         private float graceUntil;
         private float nextPublish;
         private float nextRenew;
+
+        // What was last put on the wire, so an unchanged state is not sent again — see
+        // RenewClaim (the occupant's request) and ServerTick (the server's announcement).
+        private float sentRequest;
+        private float nextRequestKeepAlive;
+        private bool announcedManned;
+        private GameObject announcedOccupant;
+        private float announcedValue;
+        private float nextKeepAlive;
 
         // ── What a station is ───────────────────────────────────────────────────
 
@@ -155,6 +165,18 @@ namespace SpaceGame.Vehicles
         /// for that with the liveness check in <see cref="ServerTick"/> instead.
         /// </summary>
         protected virtual float ClaimTimeout => 0f;
+
+        /// <summary>
+        /// How often an UNCHANGED request or state still goes out, so a late joiner and a lost
+        /// message are both repaired within this long. Changes travel at <see cref="PublishInterval"/>.
+        /// </summary>
+        protected virtual float KeepAliveInterval => 1f;
+
+        /// <summary>
+        /// The smallest change in the control's value worth a message. Below it a request or an
+        /// announcement is treated as unchanged.
+        /// </summary>
+        protected virtual float ValueDeadband => 0.001f;
 
         /// <summary>
         /// Travel applied the instant a claim lands, in the same units <see cref="AdvanceOnServer"/>
@@ -303,7 +325,12 @@ namespace SpaceGame.Vehicles
             // scene opened straight from the editor, has no business there, and the DuneFoil prefab
             // is instantiated and stepped by EditMode tests.
             if (Network.IsNetworked && !Network.Server && isActiveAndEnabled)
-                StartCoroutine(AskForStateWhenConnected());
+                // No teardown: the ask claims nothing and holds nothing — it is a late joiner's
+                // question, and a station whose question died reads as free, which is the state
+                // it already had. Releasing here would be wrong twice over: this path only runs
+                // on a client, and the release is the server's to decide.
+                StartCoroutine(Fault.Coroutine(
+                    this, "VehicleStation.AskForState", AskForStateWhenConnected()));
         }
 
         protected virtual void OnDisable()
@@ -423,7 +450,17 @@ namespace SpaceGame.Vehicles
             if (Time.time < nextRenew) return;
             nextRenew = Time.time + PublishInterval;
 
-            Send(MannedVerb, LocalRequest(), occupant);
+            // Only a CHANGED request is worth a message at the publish rate. The server keeps the
+            // last request and integrates it every frame regardless, so a helm nobody is touching
+            // used to cost ten reliable messages a second for a number the server already had. A
+            // slow keepalive still goes out, so a request that was somehow lost is repaired.
+            float wanted = LocalRequest();
+            bool changed = Mathf.Abs(wanted - sentRequest) > ValueDeadband;
+            if (!changed && Time.time < nextRequestKeepAlive) return;
+
+            sentRequest = wanted;
+            nextRequestKeepAlive = Time.time + KeepAliveInterval;
+            Send(MannedVerb, wanted, occupant);
         }
 
         // ── Deciding (the server) ───────────────────────────────────────────────
@@ -453,9 +490,10 @@ namespace SpaceGame.Vehicles
             //
             // The server is waved through the way MountNetworkSync.MayDismount waves it through: it
             // seats and unseats people for reasons no client asked for, and offline every send is
-            // attributed to the server id. So is a player with no spawned NetworkObject, which is
-            // single-player and tests, where there is no id to compare against.
-            if (!MayActFor(player, sender)) return;
+            // attributed to the server id. A player with no spawned NetworkObject is refused rather
+            // than waved through — see Network.MayActFor for why that is the strict reading, and
+            // note that the offline case this used to be worried about never reaches the test.
+            if (!Network.MayActFor(player, sender)) return;
 
             if (arg.B == FreeVerb)
             {
@@ -496,19 +534,6 @@ namespace SpaceGame.Vehicles
             }
 
             ClaimOnServer(player, arg.P.x);
-        }
-
-        /// <summary>May <paramref name="sender"/> speak for <paramref name="player"/>? See the
-        /// call site for why this is checked and why the server and unnetworked bodies are not.</summary>
-        private static bool MayActFor(GameObject player, ulong sender)
-        {
-            if (!Network.IsNetworked) return true;
-            if (sender == NetworkManager.ServerClientId) return true;
-
-            NetworkObject body = player.GetComponent<NetworkObject>();
-            if (body == null || !body.IsSpawned) return true;
-
-            return body.OwnerClientId == sender;
         }
 
         private void ClaimOnServer(GameObject player, float wanted)
@@ -576,7 +601,15 @@ namespace SpaceGame.Vehicles
             value = AdvanceOnServer(request, Time.deltaTime);
 
             // Offline there is nobody to publish to, and the local value is already the truth.
-            if (Network.IsNetworked && Time.time >= nextPublish) Announce();
+            // Online, only a value that has MOVED is published at the publish rate — a manned
+            // station holding steady used to broadcast ten identical states a second to every
+            // machine. The keepalive covers a late joiner and anything else that missed one.
+            if (!Network.IsNetworked || Time.time < nextPublish) return;
+
+            bool changed = manned != announcedManned || occupant != announcedOccupant ||
+                           Mathf.Abs(ReadValue() - announcedValue) > ValueDeadband;
+
+            if (changed || Time.time >= nextKeepAlive) Announce();
         }
 
         private bool OccupantStillConnected()
@@ -636,12 +669,17 @@ namespace SpaceGame.Vehicles
         private void Announce()
         {
             nextPublish = Time.time + PublishInterval;
+            nextKeepAlive = Time.time + KeepAliveInterval;
+
+            announcedManned = manned;
+            announcedOccupant = occupant;
+            announcedValue = ReadValue();
 
             NetArg arg = new NetArg
             {
                 A = StationIndex,
                 B = manned ? MannedVerb : FreeVerb,
-                P = new Vector3(ReadValue(), 0f, 0f),
+                P = new Vector3(announcedValue, 0f, 0f),
             };
 
             if (manned && occupant != null) arg = arg.With(occupant);

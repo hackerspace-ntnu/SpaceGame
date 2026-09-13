@@ -14,14 +14,54 @@ namespace SpaceGame.Characters
         private PlayerInputManager inputs; 
     
         [Header("Movement")]
+        [Tooltip("Ordinary walking speed, and the one every other stance is measured against.")]
         [SerializeField] private float moveSpeed = 6f;
+
+        [Tooltip("Speed while sprinting — double-tap forward and hold. See PlayerStance.")]
+        [SerializeField] private float sprintSpeed = 9f;
+
+        [Tooltip("Speed while crouched.")]
+        [SerializeField] private float crouchSpeed = 2.6f;
+
+
         [SerializeField, Range(0f, 1f)] private float airControl = 0.3f;
+
+        [Tooltip("Upward speed, in m/s, above which a carried fling still counts as in flight — " +
+                 "see SteerWithoutBraking. Big enough to ignore the jitter of standing on a " +
+                 "collider, small enough that any real launch clears it.")]
+        [SerializeField] private float momentumRiseThreshold = 0.5f;
+
+        [Tooltip("Sideways acceleration available while hanging from a rope, in m/s². Steering " +
+                 "only — see SteerTether. It can turn a swing and pump it, never slow one.")]
+        [SerializeField] private float tetherAcceleration = 22f;
 
         [Header("Jumping")]
         [SerializeField] private float jumpForce = 7f;
         [SerializeField] private float jumpCooldown = 0.6f;
         [SerializeField] private float groundCheckDistance = 0.2f;
         [SerializeField] private LayerMask groundMask = ~0;
+
+        [Header("Animation matching")]
+        [Tooltip("Ground speed the Move tree's run clip was authored to travel at. Above this " +
+                 "the whole cycle is played proportionally faster, so a sprint puts down more " +
+                 "steps instead of skating on the same ones.")]
+        [SerializeField] private float runClipSpeed = 7.2f;
+
+        [Tooltip("The same figure for the Crouch tree's walk clip.")]
+        [SerializeField] private float crouchClipSpeed = 1.6f;
+
+        [Tooltip("How quickly the replicated animator floats (SpeedX, SpeedY, FallSpeed) follow " +
+                 "the body, in seconds. Damped here rather than by the Animator so the value can " +
+                 "come to rest — see DampedAnimatorFloat.")]
+        [SerializeField] private float animatorDampTime = 0.1f;
+
+        [Tooltip("Step size the replicated animator floats are written in. Below this a change is " +
+                 "not worth a network message; 0.05 m/s is invisible in the blend trees.")]
+        [SerializeField] private float animatorFloatQuantum = 0.05f;
+
+        private DampedAnimatorFloat speedX;
+        private DampedAnimatorFloat speedY;
+        private DampedAnimatorFloat fallSpeed;
 
         [Header("Dash")]
         [SerializeField] private float dashSpeed = 10f;
@@ -30,6 +70,7 @@ namespace SpaceGame.Characters
         [SerializeField] private Rigidbody rb;
         [SerializeField] private Animator animator;
         [SerializeField] private CapsuleCollider playerCollider;
+        private PlayerStance stance;
         private Vector2 moveInput;
         private float jumpCooldownTimer;
         private bool jumpOnCooldown;
@@ -67,6 +108,26 @@ namespace SpaceGame.Characters
             }
         }
 
+        /// <summary>
+        /// Top speed under the player's own power, in m/s. Read by the leash as the "how hard can
+        /// it haul" half of a pull strength — so it is the authored ceiling, not the current speed.
+        /// </summary>
+        public float SprintSpeed => sprintSpeed;
+
+        /// <summary>
+        /// Where the player is asking to go, in world space, normalised — zero when they are not
+        /// asking. The same vector the move solve builds; exposed so the leash can tell a struggle
+        /// against the rope from a stroll along it.
+        /// </summary>
+        public Vector3 WishDirection
+        {
+            get
+            {
+                Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
+                return move.sqrMagnitude > 1e-4f ? move.normalized : Vector3.zero;
+            }
+        }
+
         /// <summary>Whether the player was on the ground as of the last physics step.</summary>
         public bool IsOnGround => wasGrounded;
 
@@ -94,9 +155,16 @@ namespace SpaceGame.Characters
         ///
         ///   * A rider being carried. <c>MountModule</c> makes the body kinematic on purpose and
         ///     parents the player into the mount, and freeing it would drop them through their own
-        ///     seat. Phrased as "has a parent" rather than a MountModule lookup, the same way
-        ///     <c>UnderTerrainGuard.Evaluate</c> decides the same question, so any future carrier is
-        ///     covered without being named.
+        ///     seat. Asked of <c>CarriedBody</c>, which every carrier registers with, plus the older
+        ///     "has a parent" test for anything that carries by parenting without saying so.
+        ///     <para>
+        ///     The parent test alone was not enough, and the arrival is why. A player strapped into
+        ///     a ship's seat for the crash landing is NOT parented — the player's NetworkTransform is
+        ///     owner-authoritative and world-space, so a rider is carried by having their pose
+        ///     written every frame — and is therefore kinematic with no parent, which is precisely
+        ///     the shape this method exists to break. It duly broke it, every physics step, for the
+        ///     whole descent.
+        ///     </para>
         ///   * Somebody else's player. Netcode keeps a remote body kinematic deliberately, and this
         ///     component is disabled on those anyway — the ownership test is what makes that a rule
         ///     rather than a coincidence.
@@ -109,6 +177,7 @@ namespace SpaceGame.Characters
         {
             if (Body == null || !Body.isKinematic) return;
             if (transform.parent != null) return;
+            if (SpaceGame.Agents.CarriedBody.IsHeld(gameObject)) return;
             if (!Network.Owns(this)) return;
 
             Body.isKinematic = false;
@@ -120,6 +189,31 @@ namespace SpaceGame.Characters
                 $"[PlayerMovement] {name} was driving a kinematic body, so nothing it was told to " +
                 "do could move it. Released it. Something handed this player a body it does not " +
                 "own — check whatever last touched isKinematic.", this);
+        }
+
+        /// <summary>
+        /// How fast the player may travel right now.
+        ///
+        /// <para>
+        /// The stance is asked rather than tracked, so there is exactly one component that decides
+        /// whether the player is crouched — and it is the one that also shortened the capsule and
+        /// dropped the camera. A player with no PlayerStance on them simply walks, which is what
+        /// every caller wants from a body that has no stance to be in.
+        /// </para>
+        /// </summary>
+        private float CurrentMoveSpeed
+        {
+            get
+            {
+                if (stance != null && stance.IsCrouching) return crouchSpeed;
+                if (stance == null) return moveSpeed;
+                return stance.IsSprinting ? sprintSpeed : moveSpeed;
+            }
+        }
+
+        private void Awake()
+        {
+            stance = GetComponent<PlayerStance>();
         }
 
         private void Start()
@@ -152,17 +246,62 @@ namespace SpaceGame.Characters
         
             bool grounded = IsGrounded();
 
-            HandleFallDamage(grounded);
+            // Deliberately skipped while on a rope. A swing on a 20 m tether passes the bottom of
+            // its arc at around 19 m/s downward under this project's -18 gravity, which the fall
+            // table prices at over half the player's health — so a grapple used to survive a drop
+            // would bill them for the swing that saved them. The edge is still consumed: wasGrounded
+            // is written below either way, so releasing over ground does not then fire a phantom
+            // landing for a fall that already finished.
+            // Skipped under a wing for the same reason, and one more: a glide's arrival is priced
+            // on CLOSING speed by the suit itself, so letting the fall table charge for it too
+            // would bill one landing twice. See WingsuitFlight.CheckForLanding for why the edge is
+            // still consumed correctly on the frame the glide ends.
+            if (!tethered && !gliding) HandleFallDamage(grounded);
+
+            // Under a wing this component is a passenger. Everything above still runs — the probe,
+            // the grounded edge, the animator below — and only the two things the wing owns are
+            // skipped: the horizontal write, and the fall damage above. This is deliberately not
+            // an early return at the top of FixedUpdate: that is what DisableGroundSnap does, and
+            // a player with no grounded state and no animator updates for the whole flight is the
+            // bug the tether was written to stop repeating.
+            if (gliding)
+            {
+                lastYVelocity = rb.linearVelocity.y;
+                wasGrounded = grounded;
+                UpdateAnimatorParameters(rb.linearVelocity, grounded);
+                return;
+            }
 
             Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
             move = Vector3.ClampMagnitude(move, 1f);
-            Vector3 desiredHorizontal = move * moveSpeed;
+            Vector3 desiredHorizontal = move * CurrentMoveSpeed;
 
             Vector3 velocity = rb.linearVelocity;
             Vector3 currentHorizontal = new Vector3(velocity.x, 0f, velocity.z);
-        
-            float control = grounded ? 1f : airControl;
-            Vector3 newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
+
+            Vector3 newHorizontal;
+            if (tethered)
+            {
+                newHorizontal = SteerTether(currentHorizontal, move);
+            }
+            else
+            {
+                // Grip is what the ground is able to do to this body, so it scales the pull toward
+                // the walk target and nothing else. At the slick film's 0.05 the player still
+                // steers and still has gravity; what they lose is the ability to accelerate or
+                // brake, which is what being on a frictionless surface IS.
+                //
+                // Asked only while grounded — a body in mid-air must not read the patch below it,
+                // or a jump clean over a slick pool skids through the air.
+                //
+                // Read HERE, on the machine that owns this body, and never written by the server:
+                // the server owns the flag (GDC-L1-MP-0004) and a server-side write to a remote
+                // player's velocity is overwritten within a tick with nothing in the console, while
+                // reading it locally puts the skid on the frame the player is looking at
+                // (GDC-L1-FEEL-0002). Wheeled and legged movers ask GroundGrip the same question.
+                float control = grounded ? GroundGrip.For(gameObject, groundPoint) : airControl;
+                newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
+            }
             newHorizontal = SteerWithoutBraking(currentHorizontal, newHorizontal, grounded);
 
             velocity.x = newHorizontal.x;
@@ -180,6 +319,7 @@ namespace SpaceGame.Characters
         ///
         /// Set by <see cref="CarryMomentum"/> and cleared the moment the player
         /// lands or slows to a walk, so it is off for all of ordinary movement.
+        /// "Lands" is stricter than the ground probe — see <see cref="SteerWithoutBraking"/>.
         /// </summary>
         private bool carryingMomentum;
 
@@ -197,6 +337,153 @@ namespace SpaceGame.Characters
         public void CarryMomentum() => carryingMomentum = true;
 
         /// <summary>
+        /// True while something else is doing the moving on a rope — today the grappling hook.
+        /// Unlike <see cref="carryingMomentum"/> this never expires on its own: the thing holding
+        /// the rope is the only one that knows when it let go.
+        /// </summary>
+        private bool tethered;
+
+        /// <summary>
+        /// Hand the body over to a rope, or take it back.
+        ///
+        /// <para>
+        /// This replaces what the grappling hook used to do, which was call
+        /// <see cref="DisableGroundSnap"/> for 999 seconds. That name undersells it — a disabled
+        /// ground snap makes <see cref="FixedUpdate"/> return before it does anything at all, so a
+        /// grappling player had no steering, no animator updates and no grounded state for the whole
+        /// swing. It also began at the press rather than at the hit, which is why firing the hook
+        /// felt like being dragged before it had caught anything: control was gone the moment the
+        /// trigger came down, while the rope was still in the air.
+        /// </para>
+        /// <para>
+        /// A tether keeps every one of those running and changes only how the move input is applied.
+        /// The caller MUST clear it — see the grappling hook's StopGrapple, which is reached from
+        /// its release, its arrival, and its teardown alike.
+        /// </para>
+        /// </summary>
+        public void SetTethered(bool value) => tethered = value;
+
+        /// <summary>Whether a rope currently owns this body's horizontal motion.</summary>
+        public bool IsTethered => tethered;
+
+        /// <summary>
+        /// True while a wing owns this body's motion entirely — today the wingsuit.
+        ///
+        /// <para>
+        /// Wider than <see cref="tethered"/>, which only changes how the move input is applied: a
+        /// wing writes all three axes and its own gravity, so this component must write none of
+        /// them. Narrower than <see cref="DisableGroundSnap"/>, which stops the probe and the
+        /// animator too — those are still wanted, because the wing asks this component where the
+        /// ground is and the body still has to be animated while it flies.
+        /// </para>
+        /// <para>
+        /// Like the tether it never expires on its own. The wing is the only thing that knows when
+        /// it folded, and <c>WingsuitFlight.End</c> is reached from the fold, the landing and the
+        /// teardown alike.
+        /// </para>
+        /// </summary>
+        public void SetGliding(bool value) => gliding = value;
+
+        /// <summary>Whether a wing currently owns this body.</summary>
+        public bool IsGliding => gliding;
+
+        /// <summary>See <see cref="SetGliding"/>. Owner-side only; nothing replicates it.</summary>
+        private bool gliding;
+
+        /// <summary>
+        /// Outward normal of whatever the ground probe last found, or up when it found nothing.
+        ///
+        /// <para>
+        /// Exposed because a landing has to be priced against the surface it happened on: gliding
+        /// down a dune face at the angle of the dune is an arrival at almost no closing speed,
+        /// and assuming a level normal would charge for the whole descent. Read from the same
+        /// sphere cast <see cref="IsOnGround"/> answers from, so the two can never disagree.
+        /// </para>
+        /// </summary>
+        public Vector3 GroundNormal => groundNormal;
+
+        private Vector3 groundNormal = Vector3.up;
+
+        /// <summary>
+        /// Where the ground probe last touched down, which is where this body is standing for the
+        /// purpose of asking <see cref="GroundGrip"/> what is underfoot. Taken from the same sphere
+        /// cast <see cref="groundNormal"/> comes from, so the two can never describe different
+        /// surfaces; the body's own position would be a metre above the sand and, on a slope,
+        /// somewhere else entirely.
+        /// </summary>
+        private Vector3 groundPoint;
+
+        /// <summary>
+        /// True while the player is riding something sprung — today the jumping rod.
+        ///
+        /// <para>
+        /// Deliberately much narrower than <see cref="tethered"/>, and the narrowness is the point.
+        /// A tether takes over horizontal motion; this changes nothing about how the player moves.
+        /// It does two things and no more.
+        /// </para>
+        /// <para>
+        /// It suppresses <b>fall damage</b>, because the whole business of a pogo stick is arriving
+        /// hard and leaving harder: at this project's -18 gravity a three-metre hop lands at about
+        /// -11 m/s, which the fall table prices at a fifth of the player's health — so a rod that
+        /// bounced you well would kill you in five bounces.
+        /// </para>
+        /// <para>
+        /// And it hands over the <b>Jump button</b>: <see cref="OnJump"/> steps aside, leaving the
+        /// press to whatever is doing the bouncing. On the rod a press means the landing boost, and
+        /// a 7 m/s leg jump firing underneath it would overwrite an 11 m/s hop.
+        /// </para>
+        /// <para>
+        /// The rod is left to write <c>linearVelocity.y</c> directly rather than being given a
+        /// method here, because <see cref="FixedUpdate"/> only ever writes x and z: the vertical
+        /// axis is already free for anything that wants it, and a second jump API would be a second
+        /// thing to keep in step with this one.
+        /// </para>
+        /// </summary>
+        public void SetBouncing(bool value) => bouncing = value;
+
+        /// <summary>Whether something sprung is absorbing this player's landings.</summary>
+        public bool IsBouncing => bouncing;
+
+        /// <summary>See <see cref="SetBouncing"/>. Owner-side only; nothing replicates it.</summary>
+        private bool bouncing;
+
+        /// <summary>
+        /// Air steering for a player hanging on a rope.
+        ///
+        /// The ordinary air lerp cannot be used here, for the same reason
+        /// <see cref="CarryMomentum"/> had to exist: it pulls horizontal velocity 30% of the way
+        /// toward a 6 m/s walk fifty times a second, so a 25 m/s swing is confiscated in about a
+        /// fifth of a second and the pendulum dies before it completes one pass.
+        ///
+        /// So this pushes instead of blending toward a target. The player can turn the arc and pump
+        /// it, and nothing they press can brake it. The ceiling is whichever is greater of the speed
+        /// they already had and a walk — steering can never itself become a source of speed, and a
+        /// slow hang near the anchor is still nudgeable at walking pace.
+        ///
+        /// <para>
+        /// Used whether or not the player is on the ground. Excluding the grounded case was the
+        /// obvious-looking call — on your feet you should walk normally — and it was wrong. On the
+        /// ground the ordinary branch runs at <c>control = 1</c>, which sets horizontal velocity
+        /// straight to the input target, and with no input that target is ZERO. So a winch pulling
+        /// toward anything near horizontal had its entire effect deleted fifty times a second while
+        /// the player stood there; and because the distance to the anchor then never changed, the
+        /// hook's own stall guard dropped the rope a moment later. Standing on the ground was a hard
+        /// counter to the grappling hook.
+        /// </para>
+        /// <para>
+        /// Nothing is given up by including it: with no move input this returns the current velocity
+        /// unchanged, so ground friction, gravity and the rope all still do exactly what they did.
+        /// </para>
+        /// </summary>
+        private Vector3 SteerTether(Vector3 current, Vector3 move)
+        {
+            Vector3 steered = current + move * (tetherAcceleration * Time.fixedDeltaTime);
+
+            float ceiling = Mathf.Max(current.magnitude, CurrentMoveSpeed);
+            return steered.magnitude > ceiling ? steered.normalized * ceiling : steered;
+        }
+
+        /// <summary>
         /// While momentum is being carried, air control may TURN the flight but
         /// never slow it.
         ///
@@ -205,13 +492,32 @@ namespace SpaceGame.Characters
         /// that was always wanted. It ends by itself: on touchdown, because the
         /// ground is where speed is supposed to be given back, and at walking
         /// pace, because below that there is no fling left to protect.
+        ///
+        /// <para>
+        /// "On touchdown" cannot be read off <see cref="IsGrounded"/> alone, which is why
+        /// <paramref name="grounded"/> is qualified by whether the body is still RISING. That probe
+        /// sphere-casts a 0.45 m sphere from the capsule's centre over the full half-height plus
+        /// the ground check distance, so with the authored capsule it keeps answering "grounded"
+        /// for roughly the first 0.6 m of clearance. A fling leaves at up to ~10 m/s of vertical,
+        /// which is 0.2 m of rise per physics step — so the launch is still "grounded" for the
+        /// next several ticks, and the unqualified clause cleared the latch on the very first one.
+        /// The horizontal half was then handed to the ordinary <c>control = 1</c> lerp, whose
+        /// target with no input is ZERO: a standing victim popped straight up and landed on the
+        /// spot, and the gauntlet's own recoil died the same way.
+        /// </para>
+        /// <para>
+        /// Rising is not an escape hatch. Gravity spends the launch in well under a second, after
+        /// which a grounded body clears the latch exactly as before; and the walking-pace clause
+        /// is untouched, so it still ends a carry that has nothing left to protect.
+        /// </para>
         /// </summary>
         private Vector3 SteerWithoutBraking(Vector3 current, Vector3 steered, bool grounded)
         {
             if (!carryingMomentum) return steered;
 
             float carried = current.magnitude;
-            if (grounded || carried <= moveSpeed)
+            bool rising = rb != null && rb.linearVelocity.y > momentumRiseThreshold;
+            if (ShouldEndCarry(grounded, rising, carried, CurrentMoveSpeed))
             {
                 carryingMomentum = false;
                 return steered;
@@ -219,6 +525,19 @@ namespace SpaceGame.Characters
 
             return steered.sqrMagnitude > 1e-6f ? steered.normalized * carried : current;
         }
+
+        /// <summary>
+        /// Whether a carried fling is finished — the decision <see cref="SteerWithoutBraking"/>
+        /// makes, pulled out as pure arithmetic so it can be pinned by a test without a physics
+        /// scene, and so the reasoning above lives next to something checkable.
+        ///
+        /// <para>
+        /// A body that is still rising has not landed, whatever the ground probe says; and a body
+        /// down to walking pace has no fling left to protect, whether or not it is in the air.
+        /// </para>
+        /// </summary>
+        public static bool ShouldEndCarry(bool grounded, bool rising, float carriedSpeed, float moveSpeed)
+            => (grounded && !rising) || carriedSpeed <= moveSpeed;
 
         private void HandleFallDamage(bool grounded)
         {
@@ -228,6 +547,11 @@ namespace SpaceGame.Characters
                 // Fired for every landing, including harmless ones — audio wants the soft touchdowns
                 // too, and the impact speed lets a listener pick between a step and a thud.
                 OnLanded?.Invoke(lastYVelocity);
+
+                // A sprung landing costs nothing. The event above still fires — the landing did
+                // happen and audio still wants it — but the arrival was absorbed by something the
+                // player is deliberately standing on rather than by their legs.
+                if (bouncing) return;
 
                 // Only apply if falling fast enough
                 if (lastYVelocity < minFallSpeed)
@@ -256,12 +580,54 @@ namespace SpaceGame.Characters
             if (!animator || animator.runtimeAnimatorController == null) return;
 
             Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
+            bool crouching = stance != null && stance.IsCrouching;
 
-            animator.SetFloat("SpeedX", localVelocity.x, .1f, Time.deltaTime);
-            animator.SetFloat("SpeedY", localVelocity.z, .1f, Time.deltaTime);
-            animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
+            // SpeedX/SpeedY feed two blend trees that were authored in different units. The
+            // standing Move tree places its clips at the ground speed each one travels at — walk
+            // at 4, run at 7.2 — so it wants metres per second. The Crouch tree places its four
+            // clips on a unit square, so it wants a direction. Handing both the same number is
+            // what pins the crouch blend to full stride the instant the player nudges the stick.
+            float blendScale = crouching ? 1f / Mathf.Max(0.01f, crouchSpeed) : 1f;
+
+            // Damped and quantised on this side rather than by SetFloat's own damping, because
+            // ClientNetworkAnimator sends any float that differs from last frame's, reliably, and
+            // the Animator's damping never quite stops moving. These four are what a standing
+            // player used to replicate every frame.
+            animator.SetFloat("SpeedX", speedX.Step(localVelocity.x * blendScale, animatorDampTime,
+                                                    Time.deltaTime, animatorFloatQuantum));
+            animator.SetFloat("SpeedY", speedY.Step(localVelocity.z * blendScale, animatorDampTime,
+                                                    Time.deltaTime, animatorFloatQuantum));
+            animator.SetFloat("FallSpeed", fallSpeed.Step(velocity.y, animatorDampTime,
+                                                          Time.deltaTime, animatorFloatQuantum));
+            animator.SetFloat("MoveAnimSpeed", DampedAnimatorFloat.Quantise(
+                StrideRate(localVelocity, crouching), animatorFloatQuantum));
             animator.SetBool("IsGrounded", grounded);
             animator.SetBool("IsImmobalized", !groundSnapEnabled);
+        }
+
+        /// <summary>
+        /// How fast to play the walk cycle so the feet keep up with the ground.
+        ///
+        /// <para>
+        /// A blend tree picks WHICH clip plays, never how fast; the clip runs at the pace it was
+        /// authored at whatever the body is doing. So the tree's fastest anchor is also the fastest
+        /// the legs can honestly go, and a sprint past it is a run animation sliding along the
+        /// floor. Above that anchor the state's whole playback rate is scaled by however far past
+        /// it the player is, which is the only field that actually changes stride length.
+        /// </para>
+        /// <para>
+        /// Below the anchor it returns exactly 1, so ordinary walking is untouched — and so is the
+        /// idle at the centre of the tree, which a rate derived from speed would otherwise freeze
+        /// solid the moment the player stood still.
+        /// </para>
+        /// </summary>
+        private float StrideRate(Vector3 localVelocity, bool crouching)
+        {
+            float clipSpeed = crouching ? crouchClipSpeed : runClipSpeed;
+            if (clipSpeed <= 0.01f) return 1f;
+
+            float planar = new Vector2(localVelocity.x, localVelocity.z).magnitude;
+            return planar <= clipSpeed ? 1f : planar / clipSpeed;
         }
 
         private void TriggerAnimator(string triggerName)
@@ -277,9 +643,14 @@ namespace SpaceGame.Characters
                 return;
             }
 
+            speedX.Reset(0f);
+            speedY.Reset(0f);
+            fallSpeed.Reset(0f);
+
             animator.SetFloat("SpeedX", 0f);
             animator.SetFloat("SpeedY", 0f);
             animator.SetFloat("FallSpeed", 0f);
+            animator.SetFloat("MoveAnimSpeed", 1f);
             animator.SetBool("IsGrounded", IsGrounded());
             animator.SetBool("IsImmobalized", true);
         }
@@ -287,6 +658,15 @@ namespace SpaceGame.Characters
         public void OnJump()
         {
             if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+            {
+                return;
+            }
+
+            // Something sprung owns Jump while it is carrying this player — see SetBouncing. Not
+            // merely tidiness: the leg jump is 7 m/s and it SETS the vertical axis, so pressing it
+            // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
+            // a smaller number and the player would go lower for having timed it well.
+            if (bouncing)
             {
                 return;
             }
@@ -344,7 +724,12 @@ namespace SpaceGame.Characters
             if (colliderToUse == null)
             {
                 Vector3 rayOrigin = transform.position;
-                return Physics.Raycast(rayOrigin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
+                bool rayHit = Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit flat,
+                                              groundCheckDistance, groundMask,
+                                              QueryTriggerInteraction.Ignore);
+                groundNormal = rayHit ? flat.normal : Vector3.up;
+                groundPoint = rayHit ? flat.point : transform.position;
+                return rayHit;
             }
 
             Bounds bounds = colliderToUse.bounds;
@@ -352,7 +737,14 @@ namespace SpaceGame.Characters
             Vector3 origin = bounds.center + Vector3.up * 0.05f;
             float distance = bounds.extents.y + groundCheckDistance;
 
-            return Physics.SphereCast(origin, radius, Vector3.down, out _, distance, groundMask, QueryTriggerInteraction.Ignore);
+            bool hit = Physics.SphereCast(origin, radius, Vector3.down, out RaycastHit ground,
+                                          distance, groundMask, QueryTriggerInteraction.Ignore);
+
+            // Up when nothing was found, rather than a stale normal from the last surface: a body
+            // in the air is not standing on the slope it left.
+            groundNormal = hit ? ground.normal : Vector3.up;
+            groundPoint = hit ? ground.point : transform.position;
+            return hit;
         }
 
         private void HandleJumpCooldown()

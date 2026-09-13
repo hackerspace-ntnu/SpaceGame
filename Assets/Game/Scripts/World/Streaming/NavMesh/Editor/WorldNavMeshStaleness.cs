@@ -134,10 +134,30 @@ namespace SpaceGame.World.NavMeshTools
     /// </summary>
     public class WorldNavMeshBuildCheck : IPreprocessBuildWithReport
     {
+        /// <summary>
+        /// Set while a build that ships NO chunk scenes is running.
+        ///
+        /// <para>
+        /// The guard below exists because agents would otherwise navigate a world that has since
+        /// been edited. A player that contains none of that world cannot get it wrong: there is no
+        /// chunk to stream, so there is no baked mesh in use to be stale.
+        /// <c>MultiplayerTestPlayerBuilder</c> builds exactly such a player on purpose, and a
+        /// stale bake there is a refusal for a risk that is not present.
+        /// </para>
+        /// <para>
+        /// Declared by the builder rather than worked out here because a
+        /// <see cref="BuildReport"/> does not carry the scene list at preprocess time — the caller
+        /// is the only thing that knows, so the caller is what says so.
+        /// </para>
+        /// </summary>
+        public static bool BuildingWithoutChunks;
+
         public int callbackOrder => 0;
 
         public void OnPreprocessBuild(BuildReport report)
         {
+            if (BuildingWithoutChunks) return;
+
             var result = WorldNavMeshStaleness.Check();
             if (!result.IsStale) return;
 

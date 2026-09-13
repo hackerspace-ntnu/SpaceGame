@@ -1,17 +1,18 @@
 // What a bolt of lightning does where it lands, in one place.
 //
 // Extracted from LightningSpell, which used to be the only thing that could throw one.
-// The lightning conjurer throws the same bolt, and two copies of "who is inside the
-// radius, and how many times do we bill them" is exactly the kind of duplication that
-// drifts: one side gets a fix for hitting a creature once per limb and the other does
-// not, and nobody notices until a boss dies to four hits instead of twelve.
+// The lightning conjurer throws the same bolt, and two copies of "where does the bolt
+// stop, and what does it draw between" is exactly the kind of duplication that drifts.
+//
+// Who is inside the blast, and how many times each of them is billed, is NOT decided
+// here: that is RadiusDamage's, which every blast in the game shares. This is only the
+// lightning-shaped part on top of it -- a sweep along the bolt's line, and the picture.
 //
 // Deliberately NOT a MonoBehaviour and deliberately holding no tuning of its own. The
 // caster owns its numbers -- the player's spell hits for 120 in 3.5 m because that is
 // balanced against the player's cooldown, and the conjurer's is balanced against its
 // own -- so damage, radius and mask are arguments rather than fields. What is shared is
 // the mechanism, not the values.
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Gameplay
@@ -37,37 +38,12 @@ namespace SpaceGame.Gameplay
         public static int Damage(Vector3 ground, int damage, float radius, LayerMask mask,
                                  GameObject attacker, bool damagesAttacker)
         {
-            if (damage <= 0 || radius <= 0f) return 0;
+            if (radius <= 0f) return 0;
 
-            Collider[] caught = Physics.OverlapSphere(ground, radius, mask,
-                                                      QueryTriggerInteraction.Ignore);
+            Transform source = attacker != null ? attacker.transform : null;
 
-            // Colliders, not creatures: a body is several of them, and billing each would
-            // multiply the damage by however many limbs happened to be inside the radius.
-            var billed = new HashSet<GameObject>();
-
-            foreach (Collider collider in caught)
-            {
-                if (collider == null) continue;
-
-                if (!damagesAttacker && attacker != null &&
-                    collider.transform.IsChildOf(attacker.transform))
-                    continue;
-
-                HealthComponent health = collider.GetComponentInParent<HealthComponent>();
-
-                // Not everything hurtable owns a HealthComponent -- destructible props
-                // implement IDamageable directly -- so fall back to the collider itself
-                // and let NetDamage work out which of the two it is looking at.
-                GameObject target = health != null ? health.gameObject : collider.gameObject;
-
-                if (!billed.Add(target)) continue;
-
-                NetDamage.Apply(target, damage,
-                                attacker != null ? attacker.transform : null);
-            }
-
-            return billed.Count;
+            return RadiusDamage.Apply(ground, radius, mask, damage, source,
+                                      damagesAttacker ? null : source);
         }
 
         /// <summary>

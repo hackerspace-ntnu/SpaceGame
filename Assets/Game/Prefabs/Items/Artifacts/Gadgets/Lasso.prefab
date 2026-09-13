@@ -152,10 +152,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2293433729987862684}
   - component: {fileID: 5008401424221717455}
-  - component: {fileID: 5176368271126788194}
   - component: {fileID: 1551125703998199896}
   - component: {fileID: 8851460314457709842}
-  - component: {fileID: 7690567672306401050}
   - component: {fileID: 8923646687290719108}
   - component: {fileID: 4400000000000000002}
   - component: {fileID: 2409302174725578370}
@@ -163,6 +161,10 @@ GameObject:
   - component: {fileID: -1647028050785076292}
   - component: {fileID: 4629741334537591802}
   - component: {fileID: 3355989327457081065}
+  - component: {fileID: 581091475039784607}
+  - component: {fileID: 2108435516405805946}
+  - component: {fileID: 7541400731118616190}
+  - component: {fileID: 1774652831079298802}
   m_Layer: 0
   m_Name: Lasso
   m_TagString: Untagged
@@ -218,29 +220,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!136 &5176368271126788194
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6774419219061973401}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 1
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1551125703998199896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -288,22 +267,6 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
---- !u!114 &7690567672306401050
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6774419219061973401}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 237d3ab58014498d88b389d980dd4b87, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DropItemPhysics
-  rb: {fileID: 5008401424221717455}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!114 &8923646687290719108
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -320,43 +283,100 @@ MonoBehaviour:
   useSoundId: 0
   useSound:
     Guid:
-      Data1: 568073404
-      Data2: 1232003800
-      Data3: -533523275
-      Data4: -1075932117
-    Path: event:/SFX/Hit
-  maxRange: 30
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   hookableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  throwDelay: 1
+  minThrowRange: 12
+  maxRange: 30
+  twirlChargeTime: 1.2
+  hitchRange: 6
+  holdTimeout: 0.5
+  twirlHeight: 2.1
+  twirlForward: 0.85
   throwSpeed: 30
-  throwRadius: 1
   reelSpeed: 18
   ropeSlack: 1.5
-  ropeTension: 600
   reelInForce: 18
+  maxDragSpeed: 14
   reelInAction: {fileID: -4090225696740746782, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  npcAttachHeightOffset: 1.2
   throwTrigger: Throw
   lassoModel: {fileID: 6305314979930376641}
   lineRenderer: {fileID: 6756972679757077413}
   muzzle: {fileID: 4202001528767388540}
-  ropeSegments: 24
-  ropeGravity: 3
-  ropeWidth: 0.04
+  rope:
+    points: 30
+    iterations: 8
+    gravity: 14
+    damping: 0.96
+    simulationStep: 0.011111111
+    stiffness: 1
+    bendResistance: 0.3
+    cornerVertices: 2
+    capVertices: 2
+    width: 0.062
+    metresPerTextureRepeat: 0.35
+    material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30a33, type: 2}
+    snapAmplitude: 0.4
+    snapWaves: 3
   loopRenderer: {fileID: 2281198309816797548}
-  loopSegments: 24
-  loopRadius: 0.35
-  loopSpinSpeed: 360
-  loopTiltAngle: 60
-  loopDistortAmount: 0.12
-  loopDistortSpeed: 1.8
-  throwArcHeight: 4
+  loop:
+    segments: 28
+    coilRadius: 0.22
+    openRadius: 0.8
+    collarRadius: 0.45
+    spinSpeed: 620
+    twirlTilt: 74
+    flightTilt: 50
+    orbitRadius: 0.35
+    cinchDuration: 0.25
+    hondaPinch: 0.55
+    belly: 0.12
+    droop: 0.2
+    wobbleAmount: 0.1
+    wobbleSpeed: 1.8
+    width: 0.062
+    metresPerTextureRepeat: 0.35
+    material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30a33, type: 2}
+  struggle:
+    attachFraction: 0.75
+    attachHeight: 1.2
+    struggleSeconds: 6
+    struggleSpeed: 4.5
+    thrashFrequency: 2.2
+    thrashShare: 0.45
+    turnSpeed: 220
+    recoverySeconds: 4
+  tension:
+    fullStrainOvershoot: 0.6
+    breakSeconds: 7
+    recoverySeconds: 3.5
+    payOutSpeed: 3.2
+    maxLength: 26
+  aim:
+    arcSamples: 18
+    ringSegments: 20
+    width: 0.035
+    minRingRadius: 0.22
+    groundOffset: 0.05
+    weakColor: {r: 0.85, g: 0.78, b: 0.6, a: 0.35}
+    strongColor: {r: 1, g: 0.86, b: 0.42, a: 0.85}
+    blockedColor: {r: 0.9, g: 0.35, b: 0.3, a: 0.7}
+    material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30b01, type: 2}
+  tautFovKick: 6
+  minArcHeight: 1
+  maxArcHeight: 4
   throwGravity: 18
-  wobbleAmplitude: 0.3
-  wobbleFrequency: 2.5
-  wobbleDecay: 2
+  twirlSound: 1100
+  throwSound: 1101
+  catchSound: 1102
+  snapSound: 1103
+  coilSound: 1104
+  hitchSound: 1105
 --- !u!114 &4400000000000000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -371,11 +391,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 0}
   boolParameter: Hold
-  requireStationary: 1
-  inputDeadzone: 0.01
-  velocityThreshold: 0.15
-  holdReArmDelay: 0.2
-  debugLog: 0
 --- !u!114 &2409302174725578370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -443,11 +458,115 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 2995474478887713656}
   hand: 0
+  holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 90}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.45
+  holdSize: 0.6
+  packSize: 0.36
   sizeReference: {fileID: 6686484516145681275}
   keepColliders: 0
+--- !u!114 &581091475039784607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6774419219061973401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &2108435516405805946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6774419219061973401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
+  ShowTopMostFoldoutHeaderGroup: 1
+  simulationDrivers: []
+  freezePhysicsOnRemote: 1
+--- !u!114 &7541400731118616190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6774419219061973401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f50f2a17a0a945af85a1e2619d71e13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WorldItem
+  sizing: 0
+  mass: 0
+  density: 90
+  minimumMass: 1.5
+  maximumMass: 80
+  linearDamping: 1.5
+  angularDamping: 4
+  minimumGrabSize: 0.45
+--- !u!65 &1774652831079298802
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6774419219061973401}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.2671939, y: 0.23133531, z: 0.117806114}
+  m_Center: {x: -0.009973049, y: -0.000051178038, z: -0.005992789}
 --- !u!1 &7106407005302916264
 GameObject:
   m_ObjectHideFlags: 0

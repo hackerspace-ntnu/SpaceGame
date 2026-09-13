@@ -88,9 +88,6 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float GripFraction = 0.36f;
 
-        /// <summary>The ground layer DropItemPhysics settles against, as every item prefab uses.</summary>
-        private const int GroundLayerMask = 128;
-
         /// <summary>Cyan, matching Mat_Emissive_Portal_Blue on the staff's own emitter.</summary>
         private static readonly Color RingColour = new Color(0.24f, 0.55f, 1.00f);
         private static readonly Color RingCore = new Color(0.78f, 0.92f, 1.00f);
@@ -232,27 +229,19 @@ namespace SpaceGame.EditorTools
                 var netObject = root.AddComponent<NetworkObject>();
                 netObject.SynchronizeTransform = true;
 
-                // A capsule rather than the sphere the smaller artifacts use. This one is nearly two
-                // metres of stick: a sphere at its origin would make the whole staff un-clickable
-                // except at the very bottom, and a dropped staff you cannot point at is a dropped
-                // staff you cannot pick up.
-                CapsuleCollider capsule = root.AddComponent<CapsuleCollider>();
-                capsule.direction = 1;                       // Y
-                capsule.height = HandheldHeight;
-                capsule.radius = HandheldHeight * 0.09f;
-                capsule.center = Vector3.up * (HandheldHeight * 0.5f);
-
-                Rigidbody body = root.AddComponent<Rigidbody>();
-                body.isKinematic = true;
-                body.useGravity = true;
-
                 AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-                var drop = root.AddComponent<DropItemPhysics>();
-                SetPrivate(drop, "rb", body);
-                SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
-
                 root.AddComponent<SpaceGame.Core.NetRelay>();
+
+                // Body, a collider fitted to the mesh, and the netcode an item needs to be seen
+                // moving -- the same block every item prefab gets. It replaces the hand-rolled
+                // Rigidbody + CapsuleCollider that used to be written out here, and the fitted box
+                // answers what the capsule was for: nearly two metres of stick needs a collider
+                // that covers the whole staff, or a dropped one can only be clicked at the very
+                // bottom. NetworkObject FIRST -- EnsureNetworking enriches an existing one rather
+                // than creating it.
+                ItemWorldPresence.Apply(root);
+
                 root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();
                 root.AddComponent<SpaceGame.Core.Persistence.TransformSaveable>();
 
@@ -637,12 +626,6 @@ namespace SpaceGame.EditorTools
         {
             FieldInfo info = Field(target, field);
             info?.SetValue(target, value);
-        }
-
-        private static void SetPrivateLayerMask(Component target, string field, int mask)
-        {
-            FieldInfo info = Field(target, field);
-            info?.SetValue(target, (LayerMask)mask);
         }
 
         private static void SetPrivateEnum(Component target, string field, string valueName)

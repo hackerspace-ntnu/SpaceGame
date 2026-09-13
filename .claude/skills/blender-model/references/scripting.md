@@ -157,6 +157,7 @@ These follow from the `.blend` being the source of truth:
 - **Never** `read_factory_settings` in a script that opens an existing file.
 - **Never** delete objects by name pattern or by iterating `bpy.data.objects` — you cannot know what the user added.
 - **Never** clear a collection.
+- **Never** merge parts: no `bpy.ops.object.join()`, no bmesh fold of two parts into one datablock, no applied boolean union between parts. Every logical part stays its own named object so it remains individually modifiable. Booleans only within a single part's own construction.
 - Create with unique, specific names so an additive run cannot collide with existing content.
 - If a script must touch an existing file, have it open the file, add only, and save — and get the user's agreement first, since MCP is the correct tool for that job.
 
@@ -170,3 +171,37 @@ blender --background Assets/Models/_Source~/components/props/crate_panel.blend \
 ```
 
 Check names, dimensions against the intended real-world size, and material assignments.
+
+## Verifying rotations
+
+Rotation errors are silent and common: radians vs degrees, a flipped sign, the wrong axis. `bpy` rotations are **radians** — always `math.radians(deg)`, never a bare number. After rotating, prove the orientation from the data instead of trusting the call:
+
+```python
+from math import degrees
+
+def report_orientation(obj):
+    """Print where the object's local axes point in world space."""
+    m = obj.matrix_world
+    print(obj.name,
+          "fwd(-Y):", tuple(round(v, 3) for v in (-m.col[1].xyz)),
+          "up(+Z):",  tuple(round(v, 3) for v in m.col[2].xyz),
+          "euler(deg):", tuple(round(degrees(a), 1) for a in obj.rotation_euler))
+```
+
+The library convention is −Y forward, +Z up: a correctly facing part reports `fwd(-Y)` pointing where the part should face. If it reads wrong, work out the *actual* current orientation before applying any corrective rotation — stacking guesses mirrors parts. For visually asymmetric parts, additionally render or capture the viewport and look.
+
+## Checking for z-fighting
+
+Two coplanar faces from different objects flicker. Where parts touch, embed one a few millimetres into the other or offset the exposed face by ≥ 1–2 mm. A quick pairwise check on axis-aligned faces:
+
+```python
+def bounds_world(obj):
+    from mathutils import Vector
+    pts = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
+    return [min(p[i] for p in pts) for i in range(3)], [max(p[i] for p in pts) for i in range(3)]
+
+# For each touching pair: a shared plane (|face_a - face_b| < 1e-4 with overlapping
+# extent on the other two axes) means z-fighting — offset or embed one of them.
+```
+
+This catches the common case (flat panels on flat bodies); for angled contacts, verify visually at a grazing angle.

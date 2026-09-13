@@ -3,6 +3,7 @@
 //
 // Factions are the sole definition of who targets whom — modules look up candidates
 // by faction relationship, not by string tag.
+using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Gameplay;
 
@@ -52,7 +53,82 @@ namespace SpaceGame.Agents
         }
 
         private void OnEnable() => EntityTargetRegistry.Register(this);
-        private void OnDisable() => EntityTargetRegistry.Unregister(this);
+
+        private void OnDisable()
+        {
+            EntityTargetRegistry.Unregister(this);
+
+            // Whoever this entity was told to overlook is forgotten with it. An ignore is a
+            // relationship between two live objects — a creature that is despawned, streamed out
+            // and brought back has no business still holding a grudge-shaped hole for somebody who
+            // may have got off in the meantime, and the seat that granted it re-grants it on the
+            // way back in.
+            ignored.Clear();
+        }
+
+        // ── Individual exemptions ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Entities this one cannot see, whatever the faction table says about them.
+        ///
+        /// <para>
+        /// A per-entity exemption on top of the faction answer, not a second faction system. The
+        /// case it exists for is a rider being carried: a player sitting on a robot's shoulder is
+        /// still a hostile member of PlayerFaction to every other robot in the world, and must stay
+        /// one — but the machine carrying them cannot be allowed to turn round and fight its own
+        /// passenger. Faction cannot express that, because it is a statement about the two SIDES
+        /// and this is a statement about these two INDIVIDUALS.
+        /// </para>
+        /// <para>
+        /// It lives here rather than on <see cref="AgentTargeting"/> because that is not the only
+        /// thing that hunts. <c>DormantModule</c>, <c>FleeModule</c>, <c>WatchModule</c> and
+        /// <c>ApproachModule</c> all ask <see cref="EntityTargetRegistry"/> directly, and an
+        /// exemption those cannot see is one a sleeping conjurer wakes up in spite of. Every
+        /// registry query already takes the asking entity's <see cref="EntityFaction"/>, so putting
+        /// the list here is what makes one check cover all of them.
+        /// </para>
+        /// </summary>
+        private readonly List<EntityFaction> ignored = new List<EntityFaction>();
+
+        /// <summary>Stop seeing <paramref name="other"/>. Idempotent.</summary>
+        public void Ignore(EntityFaction other)
+        {
+            if (other == null || other == this || ignored.Contains(other))
+                return;
+            ignored.Add(other);
+        }
+
+        /// <summary>See <paramref name="other"/> again. Idempotent.</summary>
+        public void StopIgnoring(EntityFaction other)
+        {
+            if (other == null)
+                return;
+            ignored.Remove(other);
+        }
+
+        /// <summary>
+        /// Is <paramref name="other"/> currently invisible to this entity?
+        ///
+        /// Cheap on the overwhelmingly common path — the list is empty for every entity that is not
+        /// carrying somebody, so this is one count check per candidate.
+        /// </summary>
+        public bool Ignores(EntityFaction other)
+        {
+            if (ignored.Count == 0 || other == null)
+                return false;
+
+            // Destroyed entries are dropped as they are met rather than swept on a timer: the list
+            // is at most a handful long and only ever walked by an entity that has one.
+            for (int i = ignored.Count - 1; i >= 0; i--)
+            {
+                if (ignored[i] == null)
+                    ignored.RemoveAt(i);
+                else if (ignored[i] == other)
+                    return true;
+            }
+
+            return false;
+        }
 
         // Guarantees an entity is visible to targeting, adding the component if the prefab is
         // missing one. Every spawn path should go through here.

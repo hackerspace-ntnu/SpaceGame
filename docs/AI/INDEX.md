@@ -75,6 +75,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [AgentSystem](systems/AgentSystem.md), [Artifacts](systems/Artifacts.md), [Hogtie](systems/Hogtie.md), [Jetpack](systems/Jetpack.md), [Lasso](systems/Lasso.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md), [Locomotion](systems/Locomotion.md), [RopeCutting](systems/RopeCutting.md) |
 | [Oxygen](systems/Oxygen.md) | The ship's oxygen plant: two receptacles, a power cell that wakes it and a bottle it fills in five seconds | [Inventory](systems/Inventory.md), [Backpack](systems/Backpack.md), [PlayerShip](systems/PlayerShip.md), [InteractionSystem](systems/InteractionSystem.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
 | [Placeables](systems/Placeables.md) | Items put into the world under a placement rule with LMB, and picked back up with RMB | [Artifacts](systems/Artifacts.md), [InteractionSystem](systems/InteractionSystem.md), [Backpack](systems/Backpack.md), [Saddles](systems/Saddles.md) |
+| [ResizerRemote](systems/ResizerRemote.md) | A radio handset that drives a body up or down in size at 25 m, with a rim round whatever it is locked on | [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Inventory](systems/Inventory.md), [SupplyCharge](systems/SupplyCharge.md) |
 | [RopeCutting](systems/RopeCutting.md) | A beam parts a leash, a lasso or a grapple cable, each by its own break path | [Artifacts](systems/Artifacts.md), [LeashSystem](systems/LeashSystem.md), [Lasso](systems/Lasso.md), [Multiplayer](systems/Multiplayer.md) |
 | [Saddles](systems/Saddles.md) | Fitting a saddle to an animal: what makes it rideable, what it carries, and what happens when it comes off | [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md) |
 | [ShipSchematic](systems/ShipSchematic.md) | The terminal's SHIP page: a live 3D lander whose missing modules glow and can be pointed at | [Terminal](systems/Terminal.md), [PlayerShip](systems/PlayerShip.md), [Multiplayer](systems/Multiplayer.md) |
@@ -138,4 +139,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 55 system docs, 6 redirects -->
+<!-- 56 system docs, 6 redirects -->

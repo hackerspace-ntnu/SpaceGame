@@ -55,10 +55,31 @@ namespace SpaceGame.Items
         /// </summary>
         public static void Build(GameObject visual, Material outline, float weight, List<GameObject> parts)
         {
+            if (visual == null) { Clear(parts); return; }
+
+            BuildAtWidth(visual, outline, WidthFor(visual, weight), parts);
+        }
+
+        /// <summary>
+        /// The same shell at a width the caller has already decided, in world metres.
+        ///
+        /// <para>
+        /// <see cref="Build"/>'s width comes from the visual's own size between
+        /// <see cref="MinOutlineWidth"/> and <see cref="MaxOutlineWidth"/>, which are tuned for
+        /// props held at arm's length on the gear wall — a 10 mm ceiling that is right there and
+        /// invisible on a body twenty metres off. A rim traced round something at RANGE wants a
+        /// width that grows with the distance instead, so that it reads at the same thickness
+        /// wherever the target is standing; that sum needs the camera, which this file has no
+        /// business knowing about. So the caller does it and passes the answer.
+        /// </para>
+        /// </summary>
+        public static void BuildAtWidth(GameObject visual, Material outline, float width,
+                                        List<GameObject> parts)
+        {
             Clear(parts);
             if (visual == null) return;
 
-            TintMaterials.SetOutlineWidth(outline, WidthFor(visual, weight));
+            TintMaterials.SetOutlineWidth(outline, width);
 
             foreach (Renderer source in visual.GetComponentsInChildren<Renderer>(true))
             {

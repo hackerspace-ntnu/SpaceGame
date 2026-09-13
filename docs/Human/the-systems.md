@@ -232,6 +232,18 @@ There are no exemptions. It does not know who threw it and it does not care.
 
 **Worth knowing:** a level throw only carries about seven metres and the reach is eight, so if you throw it flat, you are in it — lob it if you want to watch from outside. It cannot pull anything it cannot see, so a wall or a rock between you and it is real cover. And the white room is about six seconds long with nothing to do in it. That is the price of standing too close, and it is meant to be a strange six seconds.
 
+### Shrinking and enlarging people *(ResizerRemote)*
+
+A rugged cream handset on a pistol grip with a long telescoping antenna standing off the top. Point it at somebody and hold the trigger. The antenna runs out, a lamp lights on the chin, a thin line of light connects the two of you — and they start changing size. Which way depends on a knob on the front of the case: turned one way it grows them, turned the other it shrinks them. Tap the trigger twice to turn it.
+
+It reaches about twenty-five metres, which is the whole reason to carry one — the inflator nozzle does the same thing to the same bodies and does it faster, but you have to be standing next to them. The remote pays for the distance by not going nearly as far: it will make somebody comically large or knee-high, but it will never make them light enough to float off or small enough to lose, which the nozzle will.
+
+Whatever you point at is outlined for you while you have it, in the colour of whichever way the knob is turned. The outline is yours alone — it answers *your* question about whether you have a lock, and it is not something the other person sees on themselves.
+
+Let go, or let them step behind a rock, and they come back to their own size over about six seconds. Nothing you do with this is permanent, and nothing survives a save.
+
+**Worth knowing:** it runs on a cell that is good for about twenty-two seconds of continuous transmission and takes half a minute of not using it to fill again, so you cannot simply hold someone. It refuses anything strapped into a seat or already pinned, which means you cannot resize a rider out of their saddle. And it announces itself loudly from both ends — everyone nearby sees the antenna go up and the beam come out — so nobody is ever resized out of a clear sky.
+
 ### Roping an animal *(Lasso)*
 
 Hold the button and a loop starts turning over your head, opening wider the longer you wind it — which is both how far the throw will reach and how big a mouth it will have when it gets there. While you are winding, a faint arc runs out from your hand to a ring on the ground showing exactly where the loop will land; let go and it flies that arc. Catch something and the loop cinches shut, the rope cracks tight, and the animal starts fighting you — pulling away, throwing its weight across the rope, taking line off you while it has the strength. Right-click reels line back in. Which end of the rope actually moves depends on which end is heavier: a small creature comes to you, a big one plants its feet and takes you with it. Give it slack and it gets its wind back; hold it hard and the rope wears through and parts. When you have walked it somewhere you want it, point at a post or a rock and click — the rope becomes an ordinary tied rope, and your lasso comes back to your hand.

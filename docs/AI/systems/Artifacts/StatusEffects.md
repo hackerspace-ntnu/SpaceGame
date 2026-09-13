@@ -3,8 +3,8 @@ system: StatusEffects
 status: implemented
 layer: items
 summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed — owned by the server, presented everywhere"
-consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity]
-updated: 2026-09-09
+consumers: [Flamethrower, CryoSprayer, InflatorNozzle, ResizerRemote, FoamGun, StormFlask, BottledSingularity]
+updated: 2026-09-13
 ---
 
 # Status effects

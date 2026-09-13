@@ -399,7 +399,7 @@ namespace SpaceGame.Items
             if (tank != null && tank.Charge <= 0f) return;
 
             TraceTarget(arg, out _, out StatusReceiver body);
-            if (body == null || !CanTakePressure(body)) return;
+            if (body == null || !InflationScalar.CanResize(body)) return;
 
             float presented = InflationScalar.Presented(body);
 
@@ -420,32 +420,6 @@ namespace SpaceGame.Items
                        magnitude: InflationScalar.Pumped(presented, pumpsToward, secondsToFull,
                                                          elapsed),
                        source: owner != null ? owner.transform : null);
-        }
-
-        /// <summary>
-        /// May this body be pumped at all?
-        ///
-        /// <para>
-        /// Only a body PhysX can push. Inflating something grows its colliders, and a body that
-        /// grows into a wall is depenetrated back out of it — which is the whole comedy of the item,
-        /// and is free for anything dynamic. A KINEMATIC body cannot be depenetrated and cannot be
-        /// lifted by the buoyancy either, so pumping one would end with a creature welded halfway
-        /// into a cliff and no way out of it. That case is not hypothetical: mounting makes a
-        /// rider's body kinematic, a ragdoll pins one to hold a body down, and a parked vehicle is
-        /// one all the time. A body with no Rigidbody at all is refused for the same reason — there
-        /// is nothing to resolve the overlap it would make.
-        /// </para>
-        /// <para>
-        /// Refusing a mounted rider is also the anti-griefing half of this rule
-        /// (<c>GDC-L1-MP-0002</c>): a player strapped into a seat cannot be inflated out of it.
-        /// </para>
-        /// </summary>
-        private static bool CanTakePressure(StatusReceiver body)
-        {
-            // From the parent, like everything else that resolves a body off the collider an aim
-            // happened to hit: the Rigidbody sits on the root and the receiver may not.
-            Rigidbody weighted = body.GetComponentInParent<Rigidbody>();
-            return weighted != null && !weighted.isKinematic;
         }
 
         // ── The trace ──────────────────────────────────────────────────────────

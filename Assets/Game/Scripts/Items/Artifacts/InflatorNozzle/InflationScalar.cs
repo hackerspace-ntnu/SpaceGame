@@ -80,5 +80,38 @@ namespace SpaceGame.Items
             return Mathf.MoveTowards(scalar, limit,
                                      Mathf.Abs(limit) / secondsToFull * deltaTime);
         }
+
+        /// <summary>
+        /// May this body be resized at all?
+        ///
+        /// <para>
+        /// Only a body PhysX can push. Resizing grows or shrinks a body's colliders, and one that
+        /// grows into a wall is depenetrated back out of it — which is free for anything dynamic. A
+        /// KINEMATIC body cannot be depenetrated and cannot be lifted by the buoyancy either, so
+        /// resizing one would end with a creature welded halfway into a cliff and no way out of it.
+        /// That case is not hypothetical: mounting makes a rider's body kinematic, a ragdoll pins
+        /// one to hold a body down, and a parked vehicle is one all the time. A body with no
+        /// Rigidbody at all is refused for the same reason — there is nothing to resolve the
+        /// overlap it would make.
+        /// </para>
+        /// <para>
+        /// Refusing a mounted rider is also the anti-griefing half of this rule
+        /// (<c>GDC-L1-MP-0002</c>): a player strapped into a seat cannot be resized out of it.
+        /// </para>
+        /// <para>
+        /// It lives here rather than on either item because it is a fact about the PROPERTY, not
+        /// about the tool reaching for it — and because the moment a second item pumped this scalar
+        /// there were two copies of it, which is two places for the rule to drift.
+        /// </para>
+        /// </summary>
+        public static bool CanResize(StatusReceiver body)
+        {
+            if (body == null) return false;
+
+            // From the parent, like everything else that resolves a body off the collider an aim
+            // happened to hit: the Rigidbody sits on the root and the receiver may not.
+            Rigidbody weighted = body.GetComponentInParent<Rigidbody>();
+            return weighted != null && !weighted.isKinematic;
+        }
     }
 }

@@ -32,6 +32,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a bevelled bezel has a chamfer groove running across its face at every corner | [ArtPipeline](systems/ArtPipeline.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a blob is visibly bigger than the area that caught the player inside it | [FoamGun](systems/FoamGun.md) |
+| a body lights up under the crosshair but the trigger does nothing to it | [Artifacts](systems/Artifacts.md) |
+| a body lights up under the crosshair but the trigger does nothing to it | [ResizerRemote](systems/ResizerRemote.md) |
 | a booster stuck to a creature burns and the creature walks off unaffected | [StrapOnBooster](systems/StrapOnBooster.md) |
 | a booster stuck to a mounted rider does nothing | [StrapOnBooster](systems/StrapOnBooster.md) |
 | a bottle fills on the host and stays empty for everyone else | [Oxygen](systems/Oxygen.md) |
@@ -167,6 +169,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a passenger sitting down in a chair takes the ship off the pilot | [PlayerShip](systems/PlayerShip.md) |
 | a patch of fire fires all its flames sideways across the sand | [Flamethrower](systems/Flamethrower.md) |
 | a peaceful creature stands still and lets itself be shot instead of running | [AgentSystem](systems/AgentSystem.md) |
+| a peer sees no whip, no beam and no lamp while somebody is resizing them | [ResizerRemote](systems/ResizerRemote.md) |
 | a pickup placed in a chunk is stacked ten deep at its authored spot | [Persistence](systems/Persistence.md) |
 | a placed object is gone after a save and reload | [Placeables](systems/Placeables.md) |
 | a player being dragged breaks the rope by holding one movement key | [LeashSystem](systems/LeashSystem.md) |
@@ -328,6 +331,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | dead NPCs re-instantiate themselves on every reload | [EntitySystem](systems/EntitySystem.md) |
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
+| double-tapping Use fires twice instead of turning the dial | [ResizerRemote](systems/ResizerRemote.md) |
 | editing a script while the game is running kills my camera and controls for the rest of the session | [PlayerCharacter](systems/PlayerCharacter.md) |
 | EntityProfile_RobotPhil / _DesertRat is referenced but does not exist | [EntitySystem](systems/EntitySystem.md) |
 | equipping or unequipping a gauntlet keeps selecting the chest or back item | [BodyEquipment](systems/BodyEquipment.md) |
@@ -697,6 +701,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
 | the gun points backwards out of the player's hands | [FoamGun](systems/FoamGun.md) |
 | the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
+| the handset hums and drains but nothing ever changes size | [ResizerRemote](systems/ResizerRemote.md) |
 | the health bar is gone after I pressed H | [Visor](systems/Visor.md) |
 | the heat gauge never appears, or fills toward danger instead of emptying | [Jetpack](systems/Jetpack.md) |
 | the highlighted cell on the gear wall is not the one under the crosshair, or its board is bigger than the grid drawn on it | [Backpack](systems/Backpack.md) |
@@ -808,6 +813,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the playOnce cutscene replays after loading a save | [Cutscenes](systems/Cutscenes.md) |
 | the pods do not move when I steer | [Jetpack](systems/Jetpack.md) |
 | the pods swing but the flames stay pointing straight down | [Jetpack](systems/Jetpack.md) |
+| the polarity is back to the prefab default every time I reload | [ResizerRemote](systems/ResizerRemote.md) |
 | the portal's glowing outline is drawn well clear of the hole it surrounds | [Portals](systems/Portals.md) |
 | the power cell I fitted is gone after loading the world, and the plant is dark again | [Oxygen](systems/Oxygen.md) |
 | the power cell I fitted never appears in the slot, and the one I took out is still standing there | [Oxygen](systems/Oxygen.md) |
@@ -827,9 +833,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the rain is a wall of grey cubes instead of falling water | [StormFlask](systems/StormFlask.md) |
 | the raymarched storm disappears when the camera does not produce a depth texture | [StormFlask](systems/StormFlask.md) |
 | the repair station stands in the aft bulkhead, or inside the map projector, after a re-export of the lander | [PlayerShip](systems/PlayerShip.md) |
+| the resizer works on a crate but never on a player | [ResizerRemote](systems/ResizerRemote.md) |
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
+| the rim round the target is a hairline at range and a slab up close | [ResizerRemote](systems/ResizerRemote.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
 | the rope is drawn in a wood texture, smeared once along its whole length | [Lasso](systems/Lasso.md) |
@@ -902,6 +910,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the swinger keeps rope steering after somebody cut their grapple cable | [RopeCutting](systems/RopeCutting.md) |
 | the tank in my hand shows its level but the one on the pack mat always looks full | [SupplyGauge](systems/SupplyGauge.md) |
 | the target bracket and its name sit beside what I am pointing at, not on it | [Visor](systems/Visor.md) |
+| the target rim stays behind after the item leaves the hand | [ResizerRemote](systems/ResizerRemote.md) |
 | the team ship spawns for the host and nobody else can see it | [GameModes](systems/GameModes.md) |
 | the terminal says In use after the player using it disconnected | [Terminal](systems/Terminal.md) |
 | the terminal stands on the deck but pressing a tab does nothing | [Terminal](systems/Terminal.md) |
@@ -1037,6 +1046,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/BottledSingularity.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FlashlightGauntlet.prefab` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/Interiors/SingularityVoid.cs` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Scripts/Items/Artifacts/InflatorNozzle/InflationScalar.cs` | [ResizerRemote](systems/ResizerRemote.md) |
 | `Assets/Game/Scripts/Items/Inventory/Components/EquipmentController.cs` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Vehicles/DesertCrawler/DesertCrawlerLocomotion.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Art/Models/_Source~/models/characters/astronaut/glide.py` | [Wingsuit](systems/Wingsuit.md) |
@@ -1109,6 +1119,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Effects/LightningVFX.shadergraph` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Art/Shaders/UI/Terminal/SchematicHull.shader` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Art/Shaders/UI/Terminal/SchematicWire.shader` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Editor/AssetPipeline/ResizerRemoteBuilder.cs` | [ResizerRemote](systems/ResizerRemote.md) |
 | `Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs` | [Multiplayer](systems/Multiplayer.md) |
@@ -1169,6 +1180,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
+| `Assets/Game/Scripts/Items/Artifacts/ResizerRemote` | [ResizerRemote](systems/ResizerRemote.md) |
 | `Assets/Game/Scripts/Items/Equipped/DisplayCopy.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/ForearmSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Items/Equipped/GauntletFit.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1187,6 +1199,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [SupplyGauge](systems/SupplyGauge.md) |
 | `Assets/Game/Art/Materials/Items/FlameBillow.mat` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Art/Models/Items/resizer_remote.fbx` | [ResizerRemote](systems/ResizerRemote.md) |
 | `Assets/Game/Art/Shaders/Effects/Flashlight.hlsl` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Art/Shaders/Effects/JetFlame.shader` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Art/Shaders/Effects/JetSmoke.shader` | [Jetpack](systems/Jetpack.md) |
@@ -1368,4 +1381,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 990 symptoms, 352 paths, 55 docs -->
+<!-- 999 symptoms, 356 paths, 56 docs -->

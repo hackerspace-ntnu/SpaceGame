@@ -10,7 +10,7 @@ produced with it.
 | `nomad_palette.py` | The colour map: eight roles, the contrast ladder between them, and the schemes. |
 | `nomad_settlement_flip_doors.py` | One-shot: turned the shipped file's 74 doors round without rebuilding it. |
 | `nomad_settlement_export.py` | Ships each building to Unity as its own FBX under `Assets/Game/Art/Models/Environment/Structures/NomadSettlement/`. |
-| `nomad_settlement.blend` | Its output: **40 buildings** in three families, 74 units, 8137 objects, 399 meshes. |
+| `nomad_settlement.blend` | Its output: **40 buildings** in three families, 82 units, 11331 objects, 403 meshes. |
 | `../../components/nomad_settlement/components_clean.blend` | The kit it draws parts from. |
 | `../../components/nomad_settlement/KIT_MAP.md` | What every kit part is and how the parts mate. |
 
@@ -61,6 +61,7 @@ silhouettes apart.
 | R9 | **A ring marks a floor seam, and one ring is the default.** 64 % of seams get a single thin ring, 16 % a pair, 12 % a tall band and 8 % a heavy one, never two heavy in a row. Banding every seam three deep turned the town into a stack of tyres and stopped reading as storeys at all |
 | R15 | **A ring never crosses an opening.** Rings are placed *after* the windows and the door and tested against their measured spans; a blocked ring is dropped, or demoted to a 90° arc on a stretch of blank wall. Part-way up a storey the detail piece is *always* an arc — a full ring there reads as a floor line that is not there |
 | R16 | **Nothing stands in front of a door.** The doorway is barred to electrical boxes, pilasters, pipe runs and pipe brackets, at every height, out to 65° either side |
+| R17 | **A rectangular opening is the norm and a porthole is the accent.** The window-family deck is three `rect` to two `mixed` to one `round`, and `mixed` itself is weighted two rect to one round. Measured over the finished file: **80 % of the openings are rectangular** |
 | R10 | Archetype, storey count, crown type and window family are **dealt from shuffled decks**, not rolled per building. The deck guarantees 3 `tall`, 3 `large` and 14 `normal`, five of each crown, and a fusion count of 0–3 across the set. Then no two neighbours in the layout may share both storey count and crown |
 | R11 | One `SEED` constant reproduces the whole settlement exactly (`GDC-L1-CONTENT-0005`) |
 | R13 | **A fused building's annexes bite 35 % of the smaller radius into the main body**, so they merge into one silhouette instead of kissing tangentially. Annex angles stay clear of the main door and of each other, and the main body gives up the sectors an annex is buried in |
@@ -77,6 +78,7 @@ silhouettes apart.
 | X5 | A **terrace is rare** (18 %), is **recessed into the wall** rather than bolted to it, and never appears without a door opening onto it |
 | X7 | **Faces, roofs and trim belong to a block, not to the plan.** They used to be sized to the storey's outer *rectangle*, which is a lie for any plan that is not a single box: on an L that put a band and a roof across the notch, hanging over nothing. Faces are now per block with internal ones dropped, and any block with nothing above it gets its own roof |
 | X8 | **Every storey of every block carries its own ring**, including the topmost, so the storeys read as storeys |
+| X9 | **Every building stands on a foundation**, both families. The boxy one takes the kit's square or rectangular slab, sized to its plan; a drum takes the kit's circular slab, **one pad per building rather than one per unit** — a pad each would give two overlapping slabs coplanar tops to z-fight over wherever an annex meets the main body. The pad reaches 0.42 m past the outermost wall of the outermost annex, stands 0.22 m proud of the ground line and is buried 0.30 m below it, and **the drums start on top of it**, so the door and its step stand on the pad instead of being buried by it |
 | X6 | **Neighbouring blocks overlap by the bevel.** Every block carries a Bevel modifier 0.3 wide in its own space — 0.33 m off each vertical edge, 0.18 m off top and bottom. A bevel does not move a face plane, so butted blocks still touch across the flat middle, but the rounded strip either side of the seam leaves a lens-shaped gap that reads as a crack. Cells sit `CELL_BITE` closer and storeys sink `STOREY_BITE` deeper |
 
 ### Archetypes
@@ -114,7 +116,7 @@ never gets silly on a wide one. The tightest wins.
 
 | Opening | Width ≤ | Width ≤ | Height ≤ | Height ≤ |
 | --- | --- | --- | --- | --- |
-| Window | 20 % of the wall diameter at that height | 0.40 m | 32 % of the storey height | 0.46 m |
+| Window | 15 % of the wall diameter at that height | 0.30 m | 26 % of the storey height | 0.36 m |
 | Door | 30 % of the ground wall diameter | 0.62 m | 60 % of the height budget | 1.05 m |
 
 The stock part is scaled **uniformly** to meet whichever cap binds, so the frame keeps its
@@ -130,8 +132,15 @@ Two escape hatches keep the caps from producing blank buildings:
   wide) before being dropped. Without this the top half of a ten-storey tower came out blank: high
   up, the wall is under a metre across and 26 % of it is narrower than any porthole.
 
-Measured over the finished file: **widest window 0.550 m, widest door 0.620 m** — both exactly on
-the cap, nothing over it.
+Measured over the finished file: **widest door 0.620 m**, exactly on the cap; the widest window
+measures **0.318 m** across as it sits on the wall, which is its 0.30 m aperture plus what R6's lean
+adds to a horizontal measurement. Nothing over either cap.
+
+**How many, not just how big.** The count is capped as hard as the size is, because a wall of
+windows reads as an office block and these are mud huts. A drum takes one window per 2.2 m of
+diameter on top of a 1-3 draw; a flat face takes one per 3.3 m of width, and a third of the faces
+take none at all. Over the forty that is **410 openings**, down from 591 when the count followed the
+circumference twice as fast.
 
 ### Pipework — R14
 
@@ -156,13 +165,17 @@ the pipe it swamps a thin run.
 ## How a building is assembled
 
 ```
+per building:
+  foundation pad                  stock slab, one per building, every building (X9)
 per unit (main body M, plus annexes A1..A3 fused into it):
   ground block                    generated, straight, Clay_Bone, carries the door
   + drum x storeys                generated: 32 sides, n-gon caps, flat shaded
     + ring stack at every seam    stock, scaled to the wall diameter + 0.14 or + 0.35
     + windows on the sector grid  stock
-    + electrical boxes            stock, 3-9 per unit, three different boxes,
+    + electrical boxes            stock, 5-9 per unit, three different boxes,
                                   sized 9-26 % of the drum diameter
+    + wall detail panels          stock, 6-15 per unit, from the same pass as the
+                                  boxes and under the same R16 door keep-out
     + pipe runs                   generated against the wall, stock clamps
     + pilasters                   stock, main body only
   + crown                         flat cap | crowned hat | vented deck | open deck
@@ -174,37 +187,60 @@ while R1 and R14 still hold. Everything else is a copy of a kit part. Copies sha
 mesh datablock, so 3741 objects cost **280 meshes**, and an edit to one kit part propagates to
 every building that used it.
 
-## The twenty
+## The forty
 
-Storeys and base Ø are the main body's; height includes annexes and roof furniture.
+What the generator prints as it builds them. Storeys and annexes are the main body's; `top` is the
+top of the main body, before its crown and roof furniture; `parts` is every object in the building,
+annexes included.
 
-| Building | Storeys | Base Ø | Annexes | Crown | Windows | Height | Parts |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| B01 | 3 | 1.54 | 0 | vented deck | rect+round | 5.27 | 79 |
-| B02 | 2 | 4.53 | 3 | vented deck | rect | 6.10 | 210 |
-| B03 | 2 | 1.87 | 3 | vented deck | rect+round | 3.40 | 258 |
-| B04 | 1 | 1.62 | 1 | flat | rect+round | 3.31 | 133 |
-| B05 | 3 | 1.92 | 0 | vented deck | round | 5.66 | 98 |
-| B06 | 8 | 2.11 | 2 | deck | rect | 11.56 | 337 |
-| B07 | 4 | 2.67 | 3 | deck | rect | 5.42 | 270 |
-| B08 | 10 | 1.88 | 3 | flat | rect+round | 13.34 | 376 |
-| B09 | 1 | 1.91 | 1 | vented deck | rect | 3.13 | 120 |
-| B10 | 2 | 2.96 | 1 | crowned | round | 6.17 | 132 |
-| B11 | 4 | 2.10 | 0 | flat | rect | 5.69 | 114 |
-| B12 | 2 | 2.07 | 2 | vented deck | rect+round | 3.67 | 187 |
-| B13 | 10 | 1.94 | 2 | crowned | rect+round | 13.14 | 398 |
-| B14 | 2 | 4.91 | 3 | flat | rect | 4.36 | 161 |
-| B15 | 2 | 2.22 | 2 | deck | round | 5.38 | 142 |
-| B16 | 3 | 1.64 | 1 | flat | rect | 4.91 | 127 |
-| B17 | 3 | 2.50 | 1 | deck | rect+round | 6.52 | 115 |
-| B18 | 1 | 2.35 | 0 | flat | round | 3.79 | 42 |
-| B19 | 4 | 2.27 | 3 | deck | rect+round | 6.54 | 225 |
-| B20 | 2 | 6.48 | 3 | flat | rect+round | 5.41 | 217 |
+| Building | Family | Plan / archetype | Storeys | Annexes | Parts | Top |
+| --- | --- | --- | --- | --- | --- | --- |
+| B01 | round | normal | 3 | 0 | 207 | 4.29 |
+| B02 | round | large | 2 | 3 | 454 | 2.73 |
+| B03 | round | normal | 2 | 3 | 489 | 2.87 |
+| B04 | round | normal | 1 | 1 | 235 | 1.64 |
+| B05 | round | normal | 3 | 0 | 213 | 4.27 |
+| B06 | round | tall | 8 | 2 | 567 | 10.13 |
+| B07 | round | normal | 4 | 3 | 585 | 5.21 |
+| B08 | round | tall | 10 | 3 | 696 | 13.30 |
+| B09 | round | normal | 1 | 1 | 223 | 1.50 |
+| B10 | round | normal | 2 | 1 | 358 | 2.29 |
+| B11 | round | normal | 4 | 0 | 232 | 5.38 |
+| B12 | round | normal | 2 | 2 | 290 | 2.08 |
+| B13 | round | tall | 10 | 2 | 532 | 12.06 |
+| B14 | round | large | 2 | 3 | 563 | 2.54 |
+| B15 | round | normal | 2 | 2 | 297 | 2.16 |
+| B16 | round | normal | 3 | 1 | 308 | 3.84 |
+| B17 | round | normal | 3 | 1 | 340 | 4.06 |
+| B18 | round | normal | 1 | 0 | 165 | 1.71 |
+| B19 | round | normal | 4 | 3 | 557 | 5.33 |
+| B20 | round | large | 2 | 3 | 502 | 3.09 |
+| B21 | rect | Wing | 2 | 0 | 125 | 2.93 |
+| B22 | rect | Hut | 2 | 0 | 82 | 2.37 |
+| B23 | rect | Stack | 3 | 0 | 80 | 2.87 |
+| B24 | rect | Long | 3 | 0 | 229 | 3.98 |
+| B25 | rect | Hut | 2 | 0 | 152 | 2.92 |
+| B26 | rect | Tee | 1 | 0 | 100 | 1.80 |
+| B27 | rect | Wing | 2 | 0 | 138 | 2.50 |
+| B28 | rect | Yard | 2 | 0 | 202 | 2.79 |
+| B29 | rect | Tee | 2 | 0 | 154 | 3.11 |
+| B30 | rect | Long | 2 | 0 | 176 | 3.34 |
+| B31 | rect | Ell | 1 | 0 | 85 | 1.84 |
+| B32 | rect | Ell | 2 | 0 | 159 | 3.01 |
+| B33 | hybrid | Hut | 1 | 1 | 174 | 4.57 |
+| B34 | hybrid | Stack | 2 | 1 | 213 | 7.25 |
+| B35 | hybrid | Wing | 1 | 1 | 278 | 4.66 |
+| B36 | hybrid | Yard | 1 | 1 | 192 | 5.14 |
+| B37 | hybrid | Tee | 1 | 1 | 225 | 6.86 |
+| B38 | hybrid | Ell | 1 | 1 | 259 | 7.07 |
+| B39 | hybrid | Long | 2 | 1 | 303 | 6.68 |
+| B40 | hybrid | Hut | 1 | 1 | 192 | 4.63 |
 
-17 of the 20 are fused, 34 annexes in total. Tallest are B08 and B13 at 13.3 m; widest is B20 at
-6.5 m across before its annexes.
+34 annexes over the set. The round family carries all of them and the hybrid's tower counts as a
+unit of its own, which is what makes 40 buildings into 82 units. Tallest are B08 and B13; widest is
+B20 at 6.5 m across before its annexes.
 
-They are laid out on a 5 × 4 grid at 17 m pitch. That is a contact sheet, not a town plan — place
+They are laid out on an 8 × 5 grid at 17 m pitch. That is a contact sheet, not a town plan — place
 them properly with instances.
 
 ## Moving and placing them
@@ -278,11 +314,14 @@ Everything worth turning is a named constant at the top of the script.
 | `SEED` | A different settlement. Same seed, same twenty buildings, forever |
 | `SCHEME` | Which entry of `nomad_palette.SCHEMES` the town is painted in — all eight colours at once |
 | `OPENING_RULES`, `SMALL_WINDOW` | The size caps, and the fallback aperture |
+| `WINDOW_SETS`, `WINDOW_DECK` | R17 - which windows a family may use, and how often each family is dealt. Rectangular is the norm here; swap the deck to turn the town round again |
+| `ROUND_FOUNDATION`, `FOUNDATION_PROUD`, `FOUNDATION_BURIED`, `FOUNDATION_MARGIN` | X9 - which slab a drum stands on, how far it stands proud, how deep it is buried, and how far it reaches past the walls |
 | `TAPER` | The kit's wall angle. Changing it makes a different town, not a broken one — but change it in `KIT_MAP.md` too, or the doc lies |
 | `RING_STACKS`, `RING_GAP` | How banded the town is — the dial for more or fewer full rings |
 | `ARC_SEAM_CHANCE`, `ARC_MID_CHANCE`, `ARC_CLEARANCE` | How often a blocked ring becomes a half ring, how often a storey gets a mid-height arc, and how far an arc keeps off an opening |
 | `DOOR_KEEPOUT` | R16 — how wide a berth everything gives the doorway |
-| `GEAR_MIN_FRAC`, `GEAR_MAX_FRAC` | Electrical box size range, as a fraction of the drum |
+| `GEAR_MIN_FRAC`, `GEAR_MAX_FRAC` | Electrical box and wall-panel size range, as a fraction of the drum |
+| `spec["panels"]`, `spec["greebles"]` | How much wall decoration a unit carries, and how many of those are electrical boxes rather than detail panels. Asked for separately: one roll for both meant more decoration also meant more meter boxes |
 | `FUSE_BITE` | How deeply annexes merge. Lower reads as separate huts touching, higher as one mass |
 | `CROWN_HAT_MAX_D` | Above this drum diameter the crowned hat becomes a parasol and is swapped out |
 | `PIPE_SRC_RADIUS`, `PIPE_STANDOFF`, `PIPE_SEGS` | Pipe gauge, how proud it sits, how round it is |
@@ -298,17 +337,19 @@ against the script's intentions. Every unit — main body and each annex — is 
 on its own axis:
 
 ```
-buildings=40 units=74 annexes=34 objects=8137
-doors=54 windows=420 rings=167 pipes=78 electrical-boxes=248
-block units=20 detail-panel parts=1630
-widest window 0.400 m, widest door 0.620 m
-meshes=399 materials=8
+buildings=40 units=82 annexes=34 objects=11331
+doors=74 windows=410 rings=177 arcs=35 pipes=654 foundations=40
+wall furniture 803 groups: 5963 panel parts + 2476 box parts
+widest window 0.318 m on the wall (0.30 m aperture), widest door 0.620 m
+meshes=403 materials=8
 ALL RULES HOLD      floaters 0      trim overhangs 0
+every part of every building stands on that building's foundation
 ```
 
 It checks every coned drum's angle against 6.4° ± 0.35°, that every ground storey is straight, every
 drum's top diameter against the floor, every seam for both z-overlap and radial step, that every
-unit has exactly one door, that every building has one root empty with everything parented to it and
+unit has exactly one door, **that every building has a foundation and that nothing on it sinks below
+that foundation or stands off its footprint**, that every building has one root empty with everything parented to it and
 an instance offset, that every opening straddles the wall rather than floating off it or sinking into
 it, both opening size caps, that no crown overhangs its drum past its type's ratio, **that no ring
 or arc overlaps an opening in both height and angle**, **that no box, pilaster, pipe or bracket
@@ -339,11 +380,16 @@ origin; `NomadSettlementBuilder` (menu *Tools ▸ Environment ▸ Build Nomad Se
 them into prefabs under `Assets/Game/Prefabs/Environment/Structures/NomadSettlement/`, sorted into
 `Small` (6), `Medium` (22) and `Large` (12) by their finished size.
 
-- **Everything is scaled to the astronaut, who is 2.00 m.** This kit is authored at about half that:
-  the doors here measure 0.53–0.96 m. Each building is scaled so its own smallest door clears the
-  astronaut with headroom — 2.3× to 4.3× — which puts the town at 5.5–44.6 m across and 11.7–64.9 m
-  tall, on 3.2–6.4 m storeys. Per building rather than one factor for the settlement, because the
-  generator's doors vary two to one: one factor would give most of them four-metre gateways.
+- **Everything is scaled to the astronaut, who is 2.00 m, and then grown by half again.** This kit
+  is authored at about half the astronaut: the doors here measure 0.53–0.96 m. Each building is
+  scaled so its own smallest door clears the astronaut with headroom, per building rather than one
+  factor for the settlement, because the generator's doors vary two to one. On top of that sits
+  `SettlementGrowth`, a flat 1.5× on the whole town — the door sets the scale a building is *read*
+  at, this sets how much of the skyline it takes. Together that is **3.5×–6.8×**, a town **10–77 m
+  across and 16–99 m tall** on 4.9–9.6 m storeys, with every doorway 3.38 m.
+  The doorways are deliberately 1.7 astronauts tall: that is what a flat growth factor does to a set
+  scaled by its doors, and it was the trade asked for. The size-class thresholds divide the growth
+  back out, so `Small`/`Medium`/`Large` still split the set the way they were measured.
 - **Collision is one convex hull per structural part** — `Drum*`, `Blk*`, `Foundation*`, the roof
   slabs, the roof cap and the parapet — and nothing at all on rings, arcs, windows, doors, panels,
   gear, pipes or roof furniture. Every structural part is convex by construction, so a hull is not an
@@ -352,8 +398,33 @@ them into prefabs under `Assets/Game/Prefabs/Environment/Structures/NomadSettlem
   determinant. `_exportlib`'s `fix_inverted` does it in Blender and on *this* file it also threw three
   buildings' mirrored parts up to 137 m away — these collections share one mesh datablock between as
   many as 75 objects. See the export script's docstring.
-- **Each building carries 1–4 shade sails** off its walls, from `components/nomad_settlement/tents.blend`, scaled to its own storeys and seated against its own
-  colliders. How many it ends up with is what fits round it, not what was asked for.
+- **Each building carries shade sails** off its walls, from
+  `components/nomad_settlement/tents.blend`, scaled to its own storeys and seated against its own
+  colliders. How many it ends up with is what fits round it, not what was asked for: a seated sail
+  owns the heading it sits on, so a wall is full at three or four of them. They are therefore hung in
+  **three bands** — 3.5, 2.2 and 1.1 storeys up — which is what lets a building carry **two to
+  twelve** without any of them being made smaller. A band that clamps to within 0.9 storeys of one
+  already hung is skipped rather than stacked. A hung sail is then asked the question the verify
+  pass asks — is every wall fixing touching masonry? — and one that cannot answer it is taken down
+  again rather than shipped hanging in the air.
+- **The freestanding tents are grown 2.5× in their own prefabs**, because nothing else sizes them: a
+  wall sail is sized to the wall it hangs on, but a tent in a yard is placed at the size it ships at,
+  and beside a building at this scale the authored size read as luggage. The growth goes on the
+  parts inside the prefab and never on its root — `NomadSettlementGenerator.LongestSide` measures a
+  tent in root-local metres to space the scatter, and a root scale is exactly what that does not
+  see.
+
+### What the Unity side reports
+
+```
+sails: 18 prefabs, 0 colliders, 18 cloth parts, 0 still back-face culled
+Small: 6 buildings    Medium: 19 buildings    Large: 15 buildings
+buildings 40, bare 0, sails hung 247
+colliders 338 hulls, concave 0; shortest door 3.38 m against 2.00 m
+sail scale 2.00-6.61x, fixings 5.0-19.0 m up, cloth 5.3-29.8 m across
+fixings 506: on the wall 302, sunk in 197, off it 7 (worst 0.08 m)
+mirrored parts still back-face culled: 0
+```
 
 ## Known gaps
 
@@ -377,6 +448,11 @@ them into prefabs under `Assets/Game/Prefabs/Environment/Structures/NomadSettlem
   kit and `tents.blend` still show the kit's cream `Clay_Bone` while the settlement shows the mapped
   yellow one. Retune the kit deliberately if you want them to agree:
   `blender --background components_clean.blend --python nomad_palette.py -- --apply nomad --save`.
+- **A settlement already placed in the world does not re-space itself.** The building and tent
+  prefabs keep their GUIDs, so every settlement in the chunk scenes picks up the new geometry the
+  moment it is rebuilt — at the new size, in the old positions. The spacing those positions were
+  chosen for was a smaller town. Re-run *Tools ▸ SpaceGame ▸ Settlements ▸ Build Nomad Settlements*
+  after a scale change, and check its report for tents it could not fit.
 - **Annexes do not share interiors with the main body.** They interpenetrate geometrically; nothing
   cuts an opening between them. Fine for exterior silhouettes, not for a walkable interior.
 - **No LOD, no collision, no UVs.** These are silhouette blockouts of production quality, not

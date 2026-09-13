@@ -95,8 +95,8 @@ CROWN_HAT_MAX_D = 3.00
 # R4 - opening size caps. Proportional cap first, absolute cap second, tightest
 # wins. These are what keep windows and doors from swallowing a wall.
 OPENING_RULES = {
-    "window": dict(max_w_frac=0.20, max_w_abs=0.40,
-                   max_h_frac=0.32, max_h_abs=0.46, min_k=0.30),
+    "window": dict(max_w_frac=0.15, max_w_abs=0.30,
+                   max_h_frac=0.26, max_h_abs=0.36, min_k=0.28),
     # A door is never skipped - a building without one reads as a silo. When the
     # caps would shrink it below min_k the scale is clamped up to min_k instead.
     "door":   dict(max_w_frac=0.30, max_w_abs=0.62,
@@ -135,11 +135,18 @@ OPENINGS = {
 # metre across once R4's proportional cap has had its say.
 SMALL_WINDOW = "rect_small"
 
+# R17 - a rectangular opening is the norm and a porthole is the accent, so
+# `mixed` is weighted two to one rather than dealt evenly, and the deck below
+# hands out three rect buildings for every round one.
 WINDOW_SETS = {
     "round": ["round_deep", "round_flat"],
     "rect":  ["rect_large", "rect_small"],
-    "mixed": ["round_deep", "round_flat", "rect_large", "rect_small"],
+    "mixed": ["rect_large", "rect_large", "rect_small", "rect_small",
+              "round_deep", "round_flat"],
 }
+
+# R17 - the window-family deck, shuffled per family in the rolls below.
+WINDOW_DECK = ["rect", "rect", "mixed", "rect", "mixed", "round"]
 
 # Radially symmetric trim, keyed by the diameter the part was built at so a
 # scale factor can be derived from a target diameter, plus how far it stands
@@ -176,6 +183,15 @@ PANEL_MIN_K = 0.45
 PANEL_CLEAR = 0.06          # gap between neighbouring panels on one face
 PANEL_FACE_MARGIN = 0.30    # a panel is flat and small, so it may sit
                             # closer to a corner than a window may
+
+# X9 - every building stands on a foundation, the round family included. On a
+# drum it is the kit's own circular slab, sized to cover the whole complex -
+# annexes as well - because one pad per building cannot z-fight with itself the
+# way a pad per unit does where two of them overlap on the ground.
+ROUND_FOUNDATION = "round"      # the key in nomad_rect.FOUNDATIONS
+FOUNDATION_PROUD = 0.22         # how far the pad stands above the ground line
+FOUNDATION_BURIED = 0.30        # and how much of it is below it
+FOUNDATION_MARGIN = 0.42        # how far it reaches past the widest wall
 
 TERRACE_CHANCE = 0.18       # X5 - deliberately rare
 RECT_FACE_MARGIN = 0.46     # the corner bevel rounds 0.33 m off each
@@ -336,7 +352,8 @@ def roll_settlement(rng, n):
     is guaranteed to contain the extremes rather than regressing to a mean."""
     kinds = (["tall"] * 3 + ["large"] * 3 + ["normal"] * (n - 6))[:n]
     crowns = (["flat", "crowned", "deck", "opendeck"] * ((n + 3) // 4))[:n]
-    windows = (["round", "rect", "mixed"] * ((n + 2) // 3))[:n]
+    windows = (WINDOW_DECK * ((n + len(WINDOW_DECK) - 1)
+                             // len(WINDOW_DECK)))[:n]
     # A lot of the town is fused: most buildings carry at least one annex.
     fuse = ([0] * 6 + [1] * 5 + [2] * 5 + [3] * 4)[:n]
     rng.shuffle(kinds)
@@ -390,9 +407,12 @@ def roll_settlement(rng, n):
             specs[i]["crown"] = rng.choice(
                 [c for c in CROWN_PARTS if c != specs[i - 1]["crown"]
                  and not (c == "crowned" and specs[i]["storeys"] < 2)])
-    # Panels go on every family; a round wall takes fewer because it curves away.
+    # X3 - the wall details, and they go on the round family too: a drum
+    # carries its panels and its boxes from the same pass (place_wall_gear),
+    # because both are wall furniture fitted to a curve. Fewer than the boxy
+    # family gets, because a round wall curves away from a flat backplate.
     for sp in specs:
-        sp["panels"] = rng.choice([7, 8, 9, 10, 11])
+        sp["panels"] = rng.choice([6, 7, 8, 9])
     return specs
 
 
@@ -400,7 +420,8 @@ def roll_rect(rng, n, family, start_idx):
     """The rectangular and hybrid deals. Same discipline as the round one:
     plan, storey count and window family are dealt, not rolled."""
     plans = [rk.PLANS[i % len(rk.PLANS)] for i in range(n)]
-    windows = (["round", "rect", "mixed"] * ((n + 2) // 3))[:n]
+    windows = (WINDOW_DECK * ((n + len(WINDOW_DECK) - 1)
+                              // len(WINDOW_DECK)))[:n]
     rng.shuffle(plans)
     rng.shuffle(windows)
     specs = []
@@ -415,9 +436,9 @@ def roll_rect(rng, n, family, start_idx):
                         rng.choice([1, 1, 1, 1, 2, 2, 2, 2, 2, 3])),
             block_k=rng.uniform(0.72, 1.10),
             windows=windows[i],
-            foundation=rng.random() < 0.75,
+            foundation=True,                         # X9
             terrace=rng.random() < TERRACE_CHANCE,
-            panels=rng.choice([10, 12, 13, 14, 16, 18]),
+            panels=rng.choice([14, 16, 18, 20]),
             crown=rng.choice(["flat", "deck", "opendeck"]),
             masts=rng.choice([1, 2, 2, 3, 4]),
             dish=rng.random() < 0.60,
@@ -617,11 +638,12 @@ def place_openings(unit, spec, src, coll, prefix, bag, rng, with_door):
         free = [n for n in range(SECTORS)
                 if n not in (blocked if j == 0 else unit["blocked"])]
         rng.shuffle(free)
-        # Window count follows the circumference. R4 caps a window at 0.55 m
-        # however wide the wall, so a 6 m drum with the same two windows as a
-        # 1.5 m hut reads as a blank silo rather than a building.
-        want = min(len(free), rng.choice([1, 2, 2, 3, 3, 4])
-                   + int(drum["d0"] / 1.30))
+        # Window count follows the circumference, but sparsely: these are mud
+        # huts, and a drum ringed with openings reads as a lighthouse. One per
+        # 2.2 m of diameter on top of the base draw, which is itself two lower
+        # than the first pass used.
+        want = min(len(free), rng.choice([1, 1, 2, 2, 3])
+                   + int(drum["d0"] / 2.20))
         for n in free[:want]:
             zc = drum["z0"] + EDGE_MARGIN + usable * rng.uniform(0.25, 0.75)
             wall_d = 2 * wall_radius(drum, zc)
@@ -700,24 +722,29 @@ def place_furniture(unit, spec, src, coll, prefix, bag, rng, roof_z):
               coll, "%s_Dish%d" % (prefix, di), bag)
 
 
-def place_wall_gear(unit, spec, src, coll, prefix, bag, rng, count):
-    """Electrical boxes. Wall furniture, so the same R5/R6 wall fit as a window.
+def place_wall_gear(unit, spec, src, coll, prefix, bag, rng, boxes, panels):
+    """Wall furniture on a curved wall: detail panels and electrical boxes.
 
-    R16 - never in the door's sectors, at any height. Boxes climb the whole
-    building, not just the bottom two storeys, and their size range runs well
-    below the window scale so a wall can carry several without reading busy.
+    The same R5/R6 wall fit as a window, and R16 - never in the door's sectors,
+    at any height. Both climb the whole building, not just the bottom two
+    storeys, and their size range runs well below the window scale so a wall can
+    carry a dozen without reading busy.
+
+    X3 - the two counts are asked for separately rather than rolled per item.
+    One roll meant the panel count was a consequence of the box count, so
+    asking for more decoration also asked for more meter boxes.
     """
     drums = unit["drums"]
     free = [n for n in range(SECTORS)
             if off_door(unit, n * 2 * math.pi / SECTORS)]                   # R16
     if not free:
         return
-    # X3 - draw from the discovered detail panels when the kit has them, so the
-    # user's new wall details land on the round family as well as the boxy one.
-    panels = src.get("__panels") or []
-    for i in range(count):
-        if panels and rng.random() < 0.75:
-            p = panels[rng.randrange(len(panels))]
+    pool = src.get("__panels") or []
+    queue = (["panel"] * panels if pool else []) + ["box"] * boxes
+    rng.shuffle(queue)
+    for i, want in enumerate(queue):
+        if want == "panel":
+            p = pool[rng.randrange(len(pool))]
             srcs, size = p["objs"], Vector((p["w"], p["d"], p["h"]))
         else:
             kind = rng.choice(list(GREEBLES))
@@ -737,7 +764,8 @@ def place_wall_gear(unit, spec, src, coll, prefix, bag, rng, count):
         rx = math.radians(-math.degrees(wall_slope(drum)))
         stamp(srcs, delta_for(srcs, on_wall(unit, drum, a, zc, size.y * k),
                               k, a, rx, 0.0),
-              coll, "%s_Gear%d" % (prefix, i), bag)
+              coll, "%s_%s%d" % (prefix, "Panel" if want == "panel" else "Gear",
+                                 i), bag)
 
 
 def drum_at(drums, z):
@@ -876,6 +904,28 @@ def place_skirt(unit, src, coll, prefix, bag):
               coll, "%s_Pad%d" % (prefix, i), bag)
 
 
+def place_round_foundation(units, src, coll, prefix, bag):
+    """X9 - one circular pad under a whole round complex, annexes included.
+
+    The units are raised onto it by FOUNDATION_PROUD, so the door and its step
+    stand on the pad rather than being buried by it. Sized to reach past the
+    outermost wall of the outermost annex: a pad that only covered the main
+    drum left every annex standing on nothing.
+    """
+    cx, cy = units[0]["ox"], units[0]["oy"]
+    reach = max(math.hypot(u["ox"] - cx, u["oy"] - cy) + 0.5 * u["drums"][0]["d0"]
+                for u in units) + FOUNDATION_MARGIN
+    name, fw, _fd, fh = rk.FOUNDATIONS[ROUND_FOUNDATION]
+    s = src[name]
+    # A slab, so it may take a per-axis scale (X1) - but the two horizontal axes
+    # scale together or the circle goes oval.
+    sxy = 2.0 * reach / fw
+    sz = (FOUNDATION_PROUD + FOUNDATION_BURIED) / fh
+    t = Vector((cx, cy, -FOUNDATION_BURIED))
+    stamp([s], delta_for([s], t, (sxy, sxy, sz), 0.0, 0.0, 0.0, anchor="base"),
+          coll, prefix + "_M_Foundation", bag)
+
+
 def place_pilasters(unit, count, src, coll, prefix, bag):
     ground = unit["drums"][0]
     s = src[PILASTER[0]]
@@ -944,10 +994,11 @@ def place_rect_openings(unit, spec, src, coll, prefix, bag, rng, faces, ground):
         if usable <= 0.25:
             continue
         # Fewer, larger-spaced openings: a wall of windows reads as an office
-        # block, and these are mud huts.
-        if rng.random() < 0.22:
+        # block, and these are mud huts. A third of the faces carry none at all,
+        # which is what leaves room for the wall details.
+        if rng.random() < 0.34:
             continue
-        want = max(1, int(face["w"] / 2.30)) + rng.choice([0, 0, 0, 1])
+        want = max(1, int(face["w"] / 3.30))
         for _ in range(want):
             zc = face["z0"] + EDGE_MARGIN + usable * rng.uniform(0.25, 0.75)
             k = None
@@ -1260,7 +1311,8 @@ def build_rect_building(spec, src, root, rng):
             o.location = Vector((tow["ox"], tow["oy"], d["z0"]))
         place_openings(tow, spec, src, coll, p, bag, rng, with_door=False)
         place_rings(tow, src, coll, p, bag, rng)
-        place_wall_gear(tow, spec, src, coll, p, bag, rng, 2)
+        place_wall_gear(tow, spec, src, coll, p, bag, rng, 2,
+                        max(4, spec["panels"] // 2))
         place_pipes(tow, src, coll, p, bag, rng, spec["pipes"])
         kind = crown_for(spec, tow["drums"][-1]["d1"], rng, False)
         top_z = place_crown(tow, kind, src, coll, p, bag)
@@ -1297,10 +1349,12 @@ def build_building(spec, src, root, rng):
     # under its adobe. It also keeps Clay_Bone in use now the plinth is gone.
     bone = bpy.data.materials["Mat_Nomad_Clay_Bone"]
 
+    # X9 - the drums start on top of the foundation pad, not on the ground, so
+    # the door and its step stand on the pad instead of being buried in it.
     main = dict(ox=spec["ox"], oy=spec["oy"], facing=0.0,
                 blocked=set(), used=set(), door_sectors=set(), openings=[],
                 drums=build_stack(spec["base_d"], spec["storey_h"],
-                                  spec["taper"], 0.0))
+                                  spec["taper"], FOUNDATION_PROUD))
 
     # --- R13: annexes fused into the main body ----------------------------
     annexes = []
@@ -1331,11 +1385,12 @@ def build_building(spec, src, root, rng):
             facing=a, blocked=sector_span(a + math.pi, 0.8), used=set(),
             door_sectors=set(), openings=[],
             drums=build_stack(ad, heights, [False] + [rng.random() < 0.6] * (n_st - 1),
-                              0.0)))
+                              FOUNDATION_PROUD)))
         # The main body loses the sectors the annex is buried in.
         main["blocked"] |= sector_span(a, 0.55)
 
     # --- geometry ---------------------------------------------------------
+    place_round_foundation([main] + annexes, src, coll, prefix, bag)   # X9
     for tag, unit, is_annex in ([("M", main, False)] +
                                 [("A%d" % (i + 1), u, True)
                                  for i, u in enumerate(annexes)]):
@@ -1356,6 +1411,9 @@ def build_building(spec, src, root, rng):
         place_wall_gear(unit, spec, src, coll, p, bag, rng,
                         (spec["greebles"] if unit is main
                          else max(2, spec["greebles"] - 1))
+                        + len(unit["drums"]) // 2,
+                        (spec["panels"] if unit is main
+                         else max(3, spec["panels"] - 3))
                         + len(unit["drums"]) // 2)
         place_pipes(unit, src, coll, p, bag, rng,
                     spec["pipes"] if unit is main else max(1, spec["pipes"] - 1))

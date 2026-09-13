@@ -142,6 +142,29 @@ namespace SpaceGame.EditorTools
         private const float DoorHeadroom = 0.25f;
 
         /// <summary>
+        /// Grow the whole settlement by this on top of the door-derived factor.
+        /// The door sets the scale a building is READ at; this sets how much of the
+        /// skyline it takes, and the town wanted more of it. Applied to the model,
+        /// so every measurement below -- storey, wall radius, sail size -- follows
+        /// it, and divided back out of the size-class thresholds so the Small /
+        /// Medium / Large split stays where it was measured.
+        /// </summary>
+        private const float SettlementGrowth = 1.5f;
+
+        /// <summary>
+        /// The freestanding tents are scaled in their own prefabs by this, because
+        /// nothing else sizes them: a wall sail is sized to the wall it hangs on, but
+        /// a tent in a yard is placed by NomadSettlementPlacer at the size it ships
+        /// at, and at the authored size it read as luggage beside a building.
+        ///
+        /// It goes on the model INSIDE the prefab, never on the prefab root:
+        /// NomadSettlementGenerator.LongestSide measures a tent in root-local metres
+        /// for its scatter spacing, and a root scale is exactly what that does not
+        /// see -- the tents would grow and stand as close together as before.
+        /// </summary>
+        private const float FreestandingTentGrowth = 2.5f;
+
+        /// <summary>
         /// A sane band for the per-building factor. Outside it the export changed
         /// shape and the scale is being derived from something that is not a door.
         /// </summary>
@@ -151,11 +174,25 @@ namespace SpaceGame.EditorTools
         private const string DoorPart = "Door_Door_Frame";
 
         /// <summary>
-        /// How far up a building a sail hangs, in storeys. Two: one storey put the
-        /// cloth barely over head height on a building five storeys tall and read as
-        /// an awning over a window rather than shade over a yard.
+        /// How far up a building a sail hangs, in storeys, highest band first. One
+        /// storey put the cloth barely over head height on a building five storeys
+        /// tall and read as an awning over a window rather than shade over a yard.
+        ///
+        /// TWO bands, because on one band a building is full at three or four sails:
+        /// a sail seated on a wall owns the heading it sits on, so the only way to
+        /// carry more of them without making each one smaller is to hang them at
+        /// heights that do not compete. A second band at half the height doubles
+        /// what a wall can hold and reads as a second storey of awnings.
         /// </summary>
-        private const float StoreysUnderSail = 3f;
+        private static readonly float[] SailBands = { 3.5f, 2.2f, 1.1f };
+
+        /// <summary>
+        /// How far apart two bands must sit before the lower one is used at all, in
+        /// storeys. On a low building the bands all clamp to the same height -- the
+        /// top one is held under the roof -- and a second ring would hang inside the
+        /// first. Under a storey apart is one ring, not two.
+        /// </summary>
+        private const float BandSeparation = 0.9f;
 
         /// <summary>
         /// …but never so wide that it wraps the wall it hangs on. A sail's fixing
@@ -174,7 +211,7 @@ namespace SpaceGame.EditorTools
         /// never shrunk below the size it was authored at.
         /// </summary>
         private const float MinSailScale = 2f;
-        private const float MaxSailScale = 9f;
+        private const float MaxSailScale = 14f;
 
         // -------------------------------------------------------------------
         // Size classes
@@ -203,9 +240,9 @@ namespace SpaceGame.EditorTools
         // prints that rather than this.
         private static readonly Vector2Int[] SailsPerClass =
         {
-            new Vector2Int(2, 4),    // Small
-            new Vector2Int(6, 6),    // Medium
-            new Vector2Int(8, 10),   // Large
+            new Vector2Int(4, 6),     // Small
+            new Vector2Int(9, 11),    // Medium
+            new Vector2Int(13, 16),   // Large
         };
 
         // -------------------------------------------------------------------
@@ -344,7 +381,8 @@ namespace SpaceGame.EditorTools
             // against the numbers that produced it rather than against whatever
             // the file says now.
             report.AppendLine($"  astronaut {AstronautHeight:F2} m + {DoorHeadroom:F2} headroom · " +
-                              $"sails {StoreysUnderSail:F1} storeys up, " +
+                              $"sails {string.Join("/", SailBands.Select(b => b.ToString("F1")))} " +
+                              "storeys up, " +
                               $"{MinSailScale:F2}-{MaxSailScale:F2}x, " +
                               $"width share {SailWidthShare:F2}");
 
@@ -557,6 +595,22 @@ namespace SpaceGame.EditorTools
                 root.transform.position = Vector3.zero;
                 root.transform.rotation = Quaternion.identity;
 
+                // A freestanding tent grows here; a wall sail does not, because it is
+                // sized to the wall it hangs on. Every direct child is moved as well as
+                // scaled, which is a root scale in everything but where it is stored --
+                // and where it is stored is the point: the prefab ROOT has to stay at
+                // scale 1 for the scatter spacing to see the growth. See
+                // FreestandingTentGrowth.
+                bool freestanding = !name.StartsWith("Wall", System.StringComparison.Ordinal);
+                if (freestanding)
+                {
+                    foreach (Transform child in root.transform)
+                    {
+                        child.localPosition *= FreestandingTentGrowth;
+                        child.localScale *= FreestandingTentGrowth;
+                    }
+                }
+
                 Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
                 if (renderers.Length == 0)
                 {
@@ -589,6 +643,11 @@ namespace SpaceGame.EditorTools
                 if (sail.HangsOnOneWall)
                     MeasureSeat(sail, renderers);
 
+                // Measured before the instance is destroyed: a Renderer read after
+                // that throws MissingReferenceException, not a zero.
+                float span = Span(renderers);
+                int parts = renderers.Length;
+
                 StaticPropBuilder.BuildLodGroup(root, renderers, LodCullRatio);
                 StaticPropBuilder.MarkStatic(root);
 
@@ -599,14 +658,23 @@ namespace SpaceGame.EditorTools
                 sail.Prefab = saved;
                 built.Add(sail);
 
-                report.AppendLine($"  sail {name}: {renderers.Length} parts, {cloth} cloth " +
+                report.AppendLine($"  sail {name}: {parts} parts, {cloth} cloth " +
                                   (sail.HangsOnOneWall
                                       ? $"— {sail.HalfWidth * 2f:F2} m wide at {sail.FixTop:F2} m, " +
                                         $"reaches {sail.Reach:F2} m"
-                                      : "— freestanding"));
+                                      : $"— freestanding at {FreestandingTentGrowth:F2}x, " +
+                                        $"{span:F1} m across"));
             }
 
             return built;
+        }
+
+        /// <summary>The widest horizontal span of a set of renderers, in metres.</summary>
+        private static float Span(Renderer[] renderers)
+        {
+            Bounds b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+            return Mathf.Max(b.size.x, b.size.z);
         }
 
         /// <summary>
@@ -710,7 +778,7 @@ namespace SpaceGame.EditorTools
             }
 
             float door = SmallestDoor(renderers, name);
-            float scale = AstronautScale(door, name);
+            float scale = AstronautScale(door, name) * SettlementGrowth;
             model.transform.localScale = Vector3.one * scale;
 
             var structural = new List<Renderer>();
@@ -838,6 +906,14 @@ namespace SpaceGame.EditorTools
 
         private static int Classify(float footprint, float height)
         {
+            // The thresholds were measured on the set before SettlementGrowth, so the
+            // measurement is taken back to that scale rather than every threshold
+            // being restated -- growing the town must not reclassify all forty
+            // buildings as Large and empty the Small and Medium folders the placer
+            // draws from.
+            footprint /= SettlementGrowth;
+            height /= SettlementGrowth;
+
             if (footprint >= LargeFootprint || height >= LargeHeight) return 2;
             if (footprint < SmallFootprint && height < SmallHeight) return 0;
             return 1;
@@ -883,20 +959,36 @@ namespace SpaceGame.EditorTools
             Bounds body = structural[0].bounds;
             for (int i = 1; i < structural.Count; i++) body.Encapsulate(structural[i].bounds);
 
-            // A short building cannot carry a sail three storeys up, so the target
-            // drops to whatever wall it does have.
-            float hangHeight = Mathf.Min(StoreysUnderSail * storey, body.max.y - storey * 0.5f);
-            float radius = Typical(Profile(structural, hangHeight));
             float outerRadius = Mathf.Max(body.extents.x, body.extents.z);
 
-            // Full size first. A building too narrow to carry anything that big
-            // gets a second pass at the authored size rather than shipping bare --
-            // five of the forty did exactly that when the floor was the only rule.
-            int hung = Hang(MinSailScale);
-            if (hung == 0) hung = Hang(1f);
+            int hung = 0;
+            var heights = new List<float>();
+
+            for (int b = 0; b < SailBands.Length && hung < wanted; b++)
+            {
+                // A short building cannot carry a sail three storeys up, so the
+                // target drops to whatever wall it does have -- and a band that
+                // lands on top of one already hung is skipped rather than stacked.
+                float height = Mathf.Min(SailBands[b] * storey, body.max.y - storey * 0.5f);
+                if (height <= 0f) continue;
+                if (heights.Any(h => Mathf.Abs(h - height) < BandSeparation * storey)) continue;
+
+                float radius = Typical(Profile(structural, height));
+                if (radius <= 0f) continue;
+
+                // Full size first. A building too narrow to carry anything that big
+                // gets a second pass at the authored size rather than shipping bare
+                // -- five of the forty did exactly that when the floor was the only
+                // rule.
+                int placed = Hang(MinSailScale, height, radius, wanted - hung, b);
+                if (placed == 0 && hung == 0) placed = Hang(1f, height, radius, wanted, b);
+                if (placed > 0) heights.Add(height);
+                hung += placed;
+            }
+
             return hung;
 
-            int Hang(float floor)
+            int Hang(float floor, float hangHeight, float radius, int want, int bandIndex)
             {
                 var scales = new float[sails.Count];
                 for (int i = 0; i < sails.Count; i++)
@@ -920,13 +1012,16 @@ namespace SpaceGame.EditorTools
                 // the same way.
                 var roll = new Roll(seed);
                 roll.Range(band.x, band.y + 1);          // the count, already drawn
-                float yaw = roll.Unit() * Mathf.PI * 2f;
-                int firstChoice = roll.Range(0, sails.Count);
+                // Each lower band starts a third of a turn round from the one above,
+                // so the two rings read as staggered rather than as one sail under
+                // another.
+                float yaw = (roll.Unit() * Mathf.PI * 2f) + (bandIndex * 2.09f);
+                int firstChoice = roll.Range(0, sails.Count) + bandIndex;
 
                 var taken = new List<Vector2>();         // (heading, half span)
                 int placedCount = 0;
 
-                for (int attempt = 0; attempt < SearchAttempts && placedCount < wanted; attempt++)
+                for (int attempt = 0; attempt < SearchAttempts && placedCount < want; attempt++)
                 {
                     bool placed = false;
 
@@ -951,6 +1046,17 @@ namespace SpaceGame.EditorTools
                         Edge(instance.transform, sail, scale, colliders, yaw, outerRadius,
                              ref distance);
 
+                        // The seat was solved against the wall PROFILE and closed against
+                        // the colliders; this asks the colliders the question the verify
+                        // pass asks, and a sail that cannot answer it is taken down again
+                        // rather than shipped hanging in the air. Three bands of sails on
+                        // a lumpy silhouette will always produce a few of those.
+                        if (!Bedded(instance.transform, sail, colliders))
+                        {
+                            Object.DestroyImmediate(instance);
+                            continue;
+                        }
+
                         taken.Add(new Vector2(yaw, halfSpan));
                         yaw += halfSpan * 2f + SailGap;
                         placedCount++;
@@ -962,6 +1068,34 @@ namespace SpaceGame.EditorTools
 
                 return placedCount;
             }
+        }
+
+        /// <summary>
+        /// The most a wall fixing may sit off the masonry and still count as seated,
+        /// in metres. Tighter than the verify pass's own probe, so anything this
+        /// accepts that pass also accepts.
+        /// </summary>
+        private const float MaxFixingGap = 0.08f;
+
+        /// <summary>
+        /// True when every one of a hung sail's wall fixings is actually touching the
+        /// building. `Physics.SyncTransforms` first: the sail was moved in this same
+        /// editor call, and a collider query without it answers where the sail WAS.
+        /// </summary>
+        private static bool Bedded(Transform sail, Sail spec, Collider[] colliders)
+        {
+            Physics.SyncTransforms();
+
+            foreach (Vector2 fixing in spec.Fixings)
+            {
+                Vector3 point = sail.TransformPoint(new Vector3(fixing.x, fixing.y, 0f));
+                float gap = float.MaxValue;
+                foreach (Collider c in colliders)
+                    gap = Mathf.Min(gap, Vector3.Distance(c.ClosestPoint(point), point));
+                if (gap > MaxFixingGap) return false;
+            }
+
+            return true;
         }
 
         /// <summary>

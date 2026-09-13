@@ -306,6 +306,13 @@ namespace SpaceGame.Agents
             if (!TargetResolution.IsViable(target))
                 return;
 
+            // An ally shouting about somebody, or a noise heard through a wall, is still a route to
+            // a target and has to obey the same exemption the scoring loop does. Without this, a
+            // conjurer carrying a passenger acquires them the moment another robot calls them out —
+            // through a path that deliberately bypasses line of sight.
+            if (IsIgnored(target))
+                return;
+
             EnsureSettings();
 
             Transform previous = Target;
@@ -345,6 +352,47 @@ namespace SpaceGame.Agents
             DistanceToTarget = float.MaxValue;
         }
 
+        /// <summary>
+        /// Let go of a target this agent has since been told to overlook.
+        ///
+        /// <para>
+        /// <see cref="EntityFaction.Ignore"/> keeps an entity out of future queries; it says nothing
+        /// about the one already held. Called on the re-evaluation interval, that gap is up to
+        /// <c>reevaluateInterval</c> seconds long — long enough for a conjurer to put a bolt on the
+        /// player who has just climbed onto its shoulder. So whoever grants the exemption calls this
+        /// too, and the seat is empty of a target on the same frame it is filled with a rider.
+        /// </para>
+        /// <para>
+        /// The remembered position goes with it. A target that is no longer perceivable is not
+        /// somewhere to go and look, and leaving it standing sends SearchModule walking toward a
+        /// player the agent is carrying.
+        /// </para>
+        /// </summary>
+        public void ForgetIgnored()
+        {
+            if (Target != null && IsIgnored(Target))
+            {
+                ClearTarget();
+                HasLastKnownPosition = false;
+            }
+
+            if (LastAttacker != null && IsIgnored(LastAttacker))
+                LastAttacker = null;
+        }
+
+        /// <summary>
+        /// Is <paramref name="candidate"/> exempt for this agent? Walks up to the entity that
+        /// carries the faction, because callers hold anything from a limb collider to an entity root.
+        /// </summary>
+        private bool IsIgnored(Transform candidate)
+        {
+            if (selfFaction == null || candidate == null)
+                return false;
+
+            EntityFaction candidateFaction = candidate.GetComponentInParent<EntityFaction>();
+            return candidateFaction != null && selfFaction.Ignores(candidateFaction);
+        }
+
         // Puts back what this agent remembered, for a save being loaded.
         //
         // Separate from ForceTarget because the two say different things. ForceTarget is an event —
@@ -382,6 +430,13 @@ namespace SpaceGame.Agents
             // Attribute the hit to the entity, not to whichever child collider or projectile
             // carried the reference, so the bias actually matches a scoring candidate.
             EntityFaction attacker = source.GetComponentInParent<EntityFaction>();
+
+            // A passenger who shoots the machine they are riding is still a passenger. Recording
+            // them here would not acquire them on its own — an exempt entity is never scored — but
+            // it would leave a stale bias pointing at somebody this agent cannot see.
+            if (attacker != null && selfFaction != null && selfFaction.Ignores(attacker))
+                return;
+
             LastAttacker = attacker != null ? attacker.transform : source;
         }
 
@@ -479,6 +534,11 @@ namespace SpaceGame.Agents
         {
             if (selfFaction == null)
                 return;
+
+            // The backstop. ForgetIgnored is called by whoever grants an exemption so the drop is
+            // immediate; running it again here means an exemption granted by anything that does not
+            // know to is still honoured, one interval later, rather than held forever.
+            ForgetIgnored();
 
             // Sight range, not the raw acquisition range: in a sandstorm an agent scores only what
             // it could actually see. proximityAcquireRange below is deliberately left alone — a

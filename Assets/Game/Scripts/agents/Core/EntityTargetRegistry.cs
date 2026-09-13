@@ -5,6 +5,11 @@
 //
 // Factions are the SOLE definition of who targets whom — there is no string-tag
 // fallback. An entity without an EntityFaction is invisible to the targeting system.
+//
+// One exception, and it is per-asker rather than per-faction: EntityFaction.Ignores lets a
+// single entity be blanked out for a single other entity. Every query below honours it, which
+// is the point — AgentTargeting is not the only thing that hunts, and an exemption the dormant,
+// flee, watch and approach modules could not see would be one they act on anyway.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -51,6 +56,8 @@ namespace SpaceGame.Agents
                 }
                 if (e == owner)
                     continue;
+                if (owner.Ignores(e))
+                    continue;
                 if (owner.GetRelationshipWith(e) != required)
                     continue;
 
@@ -92,6 +99,8 @@ namespace SpaceGame.Agents
                 if (e == owner)
                     continue;
                 if ((e.transform.position - position).sqrMagnitude > maxRangeSqr)
+                    continue;
+                if (owner.Ignores(e))
                     continue;
                 if (owner.GetRelationshipWith(e) != required)
                     continue;
@@ -137,6 +146,8 @@ namespace SpaceGame.Agents
             foreach (EntityFaction e in entities)
             {
                 if (e == null || e == owner)
+                    continue;
+                if (owner.Ignores(e))
                     continue;
                 if (owner.GetRelationshipWith(e) == required)
                     return true;

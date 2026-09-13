@@ -8,6 +8,7 @@
 //     tells everyone. This keeps two players from mounting the same animal on the same frame.
 //   • Ownership of the mount transfers to the rider so their SteerModule can drive it and have the
 //     resulting motion replicate through the mount's NetworkTransform. On dismount it goes back.
+//     A mount with no SteerModule — a passenger seat — keeps its owner: see MountModule.RiderDrives.
 //   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat.
 //     Cameras, look input and steering are the local rider's alone — MountModule.RiderIsLocal.
 //
@@ -77,14 +78,20 @@ namespace SpaceGame.Agents
         /// second player sat down, with nothing in the console.
         /// </para>
         /// <para>
-        /// A seat drives if it has a <see cref="SteerModule"/>, which is the same test the rest of
-        /// the codebase already makes — "only the helm has a SteerModule, so a passenger chair…"
-        /// (<see cref="MountModule"/>). <c>SteerModule</c> requires a <c>MountModule</c> on its own
-        /// GameObject, so this is exact rather than a heuristic. A machine with a single mount is
-        /// unaffected: that mount is its helm.
+        /// The same question matters for an AI mount for a second reason. <c>AgentAuthority</c>
+        /// gates the whole module stack on ownership, so handing a client an ostrich moves its
+        /// targeting, its combat and its transform onto the machine of whoever sat down on it — a
+        /// passenger's PC would be deciding who the robot fires lightning at.
+        /// </para>
+        /// <para>
+        /// Answered by <see cref="MountModule.RiderDrives"/>, which is the seat's own
+        /// <see cref="SteerModule"/> test asked once at Awake rather than per seating. That module
+        /// IS the rider's controls, and it requires a <c>MountModule</c> on its own GameObject, so
+        /// this is exact rather than a heuristic. A machine with a single mount is unaffected:
+        /// that mount is its helm.
         /// </para>
         /// </summary>
-        private bool SeatDrivesTheVehicle => GetComponent<SteerModule>() != null;
+        private bool SeatDrivesTheVehicle => mount != null && mount.RiderDrives;
 
         /// <summary>
         /// Which mount on this entity we are — the <see cref="NetArg.A"/> of every message this

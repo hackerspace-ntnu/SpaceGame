@@ -1,10 +1,15 @@
 """Tensile shade sails for the nomad settlement.
 
-Ten pitched sails, every one a tensioned membrane on raked masts — no walls, no
-furniture, no props. They replace the earlier ten pastel tarp shelters, of which
-only the shade sail was worth keeping; this is that one, turned into a family.
+Eighteen pitched sails, every one a tensioned membrane on thin raked timber poles —
+no walls of their own, no furniture, no props, no metal. They replace the earlier
+ten pastel tarp shelters, of which only the shade sail was worth keeping; this is
+that one, turned into a family.
 
-Rules, so ten sails read as one camp:
+Eight are freestanding. The last ten are **wall-mounted**: they hang half their
+corners off a building and drop the masts those corners would have needed, down
+to `WallLean`, which has no mast at all. See S9 and the `Wall*` recipes.
+
+Rules, so eighteen sails read as one camp:
 
   S1  One cloth colour per sail. No stripes, no borders, no second note. The
       camp's variety comes from silhouette and size, not from panelling.
@@ -17,18 +22,23 @@ Rules, so ten sails read as one camp:
       between them, so no sail is a plane from any angle.
   S5  Masts rake away from the sail they carry, the way a real mast is set so
       the cloth's pull brings it back toward upright.
-  S6  Every corner is tied off - to a mast head with a guy to an anchor, or by
-      a rope straight down to an anchor of its own.
+  S6  Every corner is tied off - to a mast head with a guy to an anchor, to a
+      fixing on a wall, or by a rope straight down to an anchor of its own.
   S7  One SEED reproduces the whole camp.
+  S8  Wood and rope only, and poles stay thin. Girth does not follow length -
+      see GIRTH_POW.
+  S9  A wall-mounted sail puts its wall edge on y = 0 and hangs toward -Y, with
+      its root empty on the wall face at ground level. It is dropped at the foot
+      of a facade, not at the centre of a pitch.
 
 What is generated and what is reused:
 
   * The **canopies are generated**. A sail's shape is a function of where you
-    are on the membrane, so ten silhouettes means ten surfaces.
+    are on the membrane, so eighteen silhouettes means eighteen surfaces.
   * The **rigging is reused** from `components/structural/sail_rig.blend` -
-    four masts and three ground anchors, built for this job because the awning
-    kit's poles each carry an outrigger brace modelled for a vertical stance,
-    and raking one lays its brace across the sail it is holding up.
+    four masts, three ground anchors and three wall fixings, built for this job
+    because the awning kit's poles each carry an outrigger brace modelled for a
+    vertical stance, and raking one lays its brace across the sail it holds up.
 
     blender --background --python tents.py -- --out <path.blend>
 """
@@ -40,7 +50,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")))
@@ -92,7 +102,38 @@ ANCHORS = {
     "cleat": "Mesh_SailRig_AnchorCleat",
     "log":   "Mesh_SailRig_AnchorLog",
 }
-RIG_SRC = sorted(set(v[0] for v in MASTS.values()) | set(ANCHORS.values()))
+
+# S9 - wall fixings, as (object, eye offset from the wall face). A fixing is
+# placed by the wall it is nailed to rather than by the ground, so unlike every
+# other part here it is positioned from its own origin: the wall face is y = 0,
+# the fixing hangs off it toward -Y, and `Camp.wall_fix()` sets it back by this
+# offset so its rope eye lands exactly on the sail corner.
+WALLFIX = {
+    "hook":    ("Mesh_SailRig_WallHook", (0.0, -0.125, 0.0)),
+    "cleat":   ("Mesh_SailRig_WallCleat", (0.0, -0.108, 0.0)),
+    "bracket": ("Mesh_SailRig_WallBracket", (0.0, -0.460, 0.055)),
+}
+RIG_SRC = sorted(set(v[0] for v in MASTS.values()) | set(ANCHORS.values())
+                 | set(v[0] for v in WALLFIX.values()))
+
+
+def fix_corner(mount, kind, rz=0.0):
+    """Where the sail corner lands for a fixing bolted to the wall at `mount`.
+
+    A wall sail is authored the other way round from a pitched one: you choose
+    where the fixing is nailed and the corner follows, because the corner is
+    wherever that fixing's rope eye ends up. Authoring the corner first and
+    working back to the fixing is what buried the `WallBracket`'s whole 0.46 m
+    knee brace inside the building on the first cut of these, with only its ring
+    showing on the facade.
+
+    `rz` turns the fixing for a wall that does not run along X. A fixing points
+    along -Y at rz = 0, and rotating by rz carries that onto (sin rz, -cos rz),
+    so a wall at +X facing -X wants rz = -90 degrees and one at -X wants +90.
+    """
+    eye = Vector(WALLFIX[kind][1])
+    eye.rotate(Matrix.Rotation(rz, 4, 'Z'))
+    return tuple(Vector(mount) + eye)
 
 
 # ------------------------------------------------------------------ cloth
@@ -303,6 +344,21 @@ class Camp:
                                      0.0, anchor="foot"),
                  self.coll, "%s_%s" % (self.tag, self.uniq("Anchor")), self.bag)
 
+    def wall_fix(self, mount, kind="cleat", rz=0.0):
+        """S9 - bolt a fixing to a building so a sail corner can hang off it
+        instead of standing a mast under it.
+
+        `mount` is on the wall face, which is y = 0 for a wall running along X;
+        the sail then hangs toward -Y. Pair every call with `fix_corner()` on
+        the same mount and kind, which is where the corner actually lands.
+        """
+        name, _ = WALLFIX[kind]
+        s = self.src[name]
+        delta = (Matrix.Translation(self.o + Vector(mount))
+                 @ Matrix.Rotation(rz, 4, 'Z'))
+        bl.stamp([s], delta, self.coll,
+                 "%s_%s" % (self.tag, self.uniq("WallFix")), self.bag)
+
     def tiedown(self, corner, kind="stake", reach=0.55, out=None):
         """S6 - a corner with no mast, roped straight out to the sand."""
         corner = Vector(corner)
@@ -420,9 +476,136 @@ def s_kite(c, M):
         c.mast(corners[i], "stub", anchor="stake")
 
 
+# ------------------------------------------------------- wall-mounted sails
+# Half the masts of a freestanding sail, because the building carries the other
+# half. Every one of these has its wall edge on y = 0 and hangs toward -Y, and
+# its root empty sits on the wall face at ground level - so the collection
+# instance is dropped at the foot of a facade, not at the centre of a pitch.
+def hang(c, mounts, kind, rz=0.0):
+    """Bolt a run of fixings to a wall and hand back the corners they make."""
+    for m in mounts:
+        c.wall_fix(m, kind, rz)
+    return [fix_corner(m, kind, rz) for m in mounts]
+
+
+def s_wall_quad(c, M):
+    """The wall counterpart of QuadSmall: a hypar with two corners on the
+    building and two on poles. Two masts instead of four."""
+    W, L = 1.85, 3.40
+    wallc = hang(c, [(-W, 0.0, 3.35), (W, 0.0, 2.75)], "cleat")
+    free = [(W, -L, 3.15), (-W, -L, 2.55)]
+    c.cloth(14, 14, quad_field(wallc + free, 0.13, 0.30), M[ORANGE])
+    for p in free:
+        c.mast(p, "pole", anchor="stake")
+
+
+def s_wall_tri(c, M):
+    """Three corners, two of them on the wall. One mast in the whole sail."""
+    wallc = hang(c, [(2.05, 0.0, 2.65), (-1.90, 0.0, 3.45)], "hook")
+    free = (0.15, -3.85, 2.95)
+    c.cloth(21, 9, radial_field(wallc + [free], 0.30, 0.16, 0.24), M[BLUE])
+    c.mast(free, "pole", anchor="cleat")
+
+
+def s_wall_strip(c, M):
+    """A shaded walkway down the length of a facade, on brackets that stand the
+    tie clear of whatever the wall already carries. Two stubs instead of four
+    full masts."""
+    W, L = 2.20, 2.15
+    wallc = hang(c, [(-W, 0.0, 2.95), (W, 0.0, 2.45)], "bracket")
+    free = [(W, -L, 1.85), (-W, -L, 2.25)]
+    c.cloth(20, 10, quad_field(wallc + free, 0.15, 0.22), M[RED])
+    for p in free:
+        c.mast(p, "stub", anchor="stake")
+
+
+def s_wall_lean(c, M):
+    """No masts at all: the wall holds the high edge and the low edge is roped
+    straight down to the sand. The cheapest shelter in the camp."""
+    W, L = 1.95, 3.10
+    wallc = hang(c, [(-W, 0.0, 3.75), (W, 0.0, 3.45)], "cleat")
+    free = [(W, -L, 1.15), (-W, -L, 1.45)]
+    c.cloth(14, 16, quad_field(wallc + free, 0.14, 0.26), M[WHITE])
+    for p in free:
+        c.tiedown(p, "log", reach=0.75, out=(0.0, -1.0))
+
+
+def s_wall_porch(c, M):
+    """Narrow and deep - a porch over a doorway rather than a shaded yard."""
+    W, L = 1.25, 4.10
+    wallc = hang(c, [(-W, 0.0, 3.50), (W, 0.0, 3.25)], "cleat")
+    free = [(W, -L, 2.85), (-W, -L, 3.10)]
+    c.cloth(10, 20, quad_field(wallc + free, 0.14, 0.30), M[RED])
+    for p in free:
+        c.mast(p, "pole", anchor="cleat")
+
+
+def s_wall_corner(c, M):
+    """Pinned to TWO walls where a building turns a corner: four fixings carry
+    it and one pole holds the open side. The wall that runs along Y is at
+    x = +3.10 and faces -X, so its fixings are turned -90 degrees."""
+    XW = 3.10
+    a = hang(c, [(-2.30, 0.0, 3.30), (0.40, 0.0, 3.05)], "cleat")
+    b = hang(c, [(XW, -0.70, 3.20), (XW, -2.60, 2.80)], "cleat",
+             rz=math.radians(-90))
+    free = (0.10, -3.90, 2.95)
+    corners = [free, b[1], b[0], a[1], a[0]]      # anticlockwise
+    c.cloth(30, 9, radial_field(corners, 0.34, 0.15, 0.26), M[ORANGE])
+    c.mast(free, "pole", anchor="log")
+
+
+def s_wall_fan(c, M):
+    """A fan: three fixings spread along one long wall gathering to a single
+    pole. One mast where a freestanding four-point sail needs four."""
+    a = hang(c, [(-2.70, 0.0, 2.95), (0.0, 0.0, 3.30), (2.70, 0.0, 2.85)],
+             "hook")
+    free = (0.0, -3.60, 2.55)
+    corners = [free, a[2], a[1], a[0]]            # anticlockwise
+    c.cloth(28, 10, radial_field(corners, 0.26, 0.14, 0.26), M[BLUE])
+    c.mast(free, "pole", anchor="stake")
+
+
+def s_wall_canopy_long(c, M):
+    """The long one: 7.2 m of facade under cover on three brackets and three
+    poles, where the freestanding six-point sail needs six."""
+    a = hang(c, [(-3.60, 0.0, 2.80), (0.0, 0.0, 3.00), (3.60, 0.0, 2.75)],
+             "bracket")
+    free = [(-3.20, -2.40, 2.05), (0.0, -2.60, 2.35), (3.20, -2.40, 2.10)]
+    corners = [free[0], free[1], free[2], a[2], a[1], a[0]]   # anticlockwise
+    c.cloth(36, 9, radial_field(corners, 0.22, 0.13, 0.22), M[WHITE])
+    for p in free:
+        c.mast(p, "pole", anchor="stake")
+
+
+def s_wall_billow(c, M):
+    """The inverse of WallLean: the wall holds the LOW edge and the sail lifts
+    away from the building, so it opens to the sky instead of shedding to it."""
+    W, L = 2.25, 3.00
+    wallc = hang(c, [(-W, 0.0, 1.85), (W, 0.0, 2.80)], "hook")
+    free = [(W, -L, 3.20), (-W, -L, 4.05)]
+    c.cloth(14, 14, quad_field(wallc + free, 0.14, 0.34), M[ORANGE])
+    for p in free:
+        c.mast(p, "pole", anchor="log")
+
+
+def s_wall_spur(c, M):
+    """The smallest thing in the camp: a scrap of shade off a wall on one stub.
+    Two hooks and a post."""
+    a = hang(c, [(-1.30, 0.0, 2.55), (1.30, 0.0, 2.25)], "hook")
+    free = (0.10, -1.90, 1.70)
+    corners = [free, a[1], a[0]]                  # anticlockwise
+    c.cloth(18, 8, radial_field(corners, 0.18, 0.15, 0.16), M[BLUE])
+    c.mast(free, "stub", anchor="stake")
+
+
 SAILS = [("QuadSmall", s_quad_small), ("QuadLarge", s_quad_large),
          ("Tri", s_tri), ("TriTall", s_tri_tall), ("Penta", s_penta),
-         ("HexLow", s_hex_low), ("Ribbon", s_ribbon), ("Kite", s_kite)]
+         ("HexLow", s_hex_low), ("Ribbon", s_ribbon), ("Kite", s_kite),
+         ("WallQuad", s_wall_quad), ("WallTri", s_wall_tri),
+         ("WallStrip", s_wall_strip), ("WallLean", s_wall_lean),
+         ("WallPorch", s_wall_porch), ("WallCorner", s_wall_corner),
+         ("WallFan", s_wall_fan), ("WallCanopyLong", s_wall_canopy_long),
+         ("WallBillow", s_wall_billow), ("WallSpur", s_wall_spur)]
 
 
 # ------------------------------------------------------------------- main

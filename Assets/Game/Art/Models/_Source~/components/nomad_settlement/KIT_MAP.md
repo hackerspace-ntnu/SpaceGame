@@ -46,6 +46,18 @@ keeps them from colliding if this file is ever appended next to the palette.
 Twelve objects carry **no material at all**: the four antenna masts, both dish parts, and all six
 bevelled curves. They render default grey. That is pre-existing and was left alone.
 
+**These hexes are this file's, not the settlement's.** Each of the eight is mapped to a *role* in
+`../../models/buildings/nomad_palette.py` — `wall`, `footing`, `joinery`, `trim`, `shadow`, `pipe`,
+`fitting`, `glass` — and the settlement generator repaints all eight from that map after appending,
+so the town's colours come from the scheme rather than from this file. The visible difference today
+is `Clay_Bone`: cream here, a hand-tuned yellow in the settlement. Nothing repaints this kit unless
+you ask it to:
+
+```bash
+blender --background components_clean.blend \
+    --python ../../models/buildings/nomad_palette.py -- --apply nomad --save
+```
+
 ---
 
 ## The kit

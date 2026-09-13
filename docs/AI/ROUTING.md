@@ -39,6 +39,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a bottle sits in the plant forever and never fills | [Oxygen](systems/Oxygen.md) |
 | a bubble cuts across the ground as a hard ellipse | [FoamGun](systems/FoamGun.md) |
 | a builder logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
+| a builder's collider query says everything is already in the right place and nothing moves | [EditorTooling](systems/EditorTooling.md) |
 | a burning crate takes damage but shows no flames at all | [Flamethrower](systems/Flamethrower.md) |
 | a captive unties themselves by walking to the far knot and clicking there | [LeashSystem](systems/LeashSystem.md) |
 | a caught creature can never be let out again once it has been reeled in | [Lasso](systems/Lasso.md) |
@@ -265,7 +266,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an effect on a worn item stops the moment the item goes on the body | [BodyEquipment](systems/BodyEquipment.md) |
 | an empty battery still reads as part charged | [SupplyGauge](systems/SupplyGauge.md) |
 | an entity duplicates every time I reload the world | [Persistence](systems/Persistence.md) |
+| an exported building arrives in Unity with a scatter of its parts hundreds of metres away | [ArtPipeline](systems/ArtPipeline.md) |
 | an impact effect spawns dozens of GameObjects and spikes the frame | [Cutscenes](systems/Cutscenes.md) |
+| an imported building is the right shape but its doors are half the height of the player | [ArtPipeline](systems/ArtPipeline.md) |
 | an interior scene stays loaded after the last occupant left | [SceneTransitions](systems/SceneTransitions.md) |
 | an item comes back at its authored defaults after I drop it and pick it up again | [Inventory](systems/Inventory.md) |
 | an item fits nowhere on the ship's gear wall and clicking it will not turn it round, the way clicking does on the backpack | [Backpack](systems/Backpack.md) |
@@ -773,6 +776,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the membrane is stiff as plywood and never billows | [Wingsuit](systems/Wingsuit.md) |
 | the menu's decorative astronauts stand in front of the roster once the lobby has several teams | [Lobby](systems/Lobby.md) |
 | the model comes out 100x too big when parented to a socket | [ArtPipeline](systems/ArtPipeline.md) |
+| the model is correct in Blender and only some of its parts are in the wrong place in the FBX | [ArtPipeline](systems/ArtPipeline.md) |
 | the module the schematic had lit goes dark the moment the mouse button goes down | [ShipSchematic](systems/ShipSchematic.md) |
 | the modules on the schematic are almost impossible to click | [ShipSchematic](systems/ShipSchematic.md) |
 | the moment I press Play the game renders through some camera other than the player's, and nothing in the Hierarchy explains it | [Vehicles](systems/Vehicles.md) |
@@ -1400,4 +1404,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1020 symptoms, 354 paths, 55 docs -->
+<!-- 1024 symptoms, 354 paths, 55 docs -->

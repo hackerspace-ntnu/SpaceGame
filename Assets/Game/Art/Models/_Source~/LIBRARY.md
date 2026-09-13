@@ -664,76 +664,76 @@ Variations / collections: `Coll_Antenna_Dish`, `Coll_Antenna_Masts`, `Coll_Door_
 
 ### `components/nomad_settlement/tents.blend`
 
-Variations / collections: `Coll_NomadSail_Cone`, `Coll_NomadSail_HexLow`, `Coll_NomadSail_Kite`, `Coll_NomadSail_Penta`, `Coll_NomadSail_QuadLarge`, `Coll_NomadSail_QuadSmall`, `Coll_NomadSail_Ribbon`, `Coll_NomadSail_Tri`, `Coll_NomadSail_TriTall`, `Coll_NomadSail_TwinPeak`
+Variations / collections: `Coll_NomadSail_HexLow`, `Coll_NomadSail_Kite`, `Coll_NomadSail_Penta`, `Coll_NomadSail_QuadLarge`, `Coll_NomadSail_QuadSmall`, `Coll_NomadSail_Ribbon`, `Coll_NomadSail_Tri`, `Coll_NomadSail_TriTall`, `Coll_NomadSail_WallBillow`, `Coll_NomadSail_WallCanopyLong`, `Coll_NomadSail_WallCorner`, `Coll_NomadSail_WallFan`, `Coll_NomadSail_WallLean`, `Coll_NomadSail_WallPorch`, `Coll_NomadSail_WallQuad`, `Coll_NomadSail_WallSpur`, `Coll_NomadSail_WallStrip`, `Coll_NomadSail_WallTri`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `S01_Anchor1_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S01_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S01_Anchor3_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S01_Anchor_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S01_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S01_Anchor2_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S01_Anchor3_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S01_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S01_Canopy` | 3.4 x 3.4 x 0.92 | 144 | Mat_Fabric_Sail_Orange |
 | `S01_Guy` | 0.8783 x 0.8783 x 1.905 | 50 | Mat_Fabric_Rope_Hemp |
 | `S01_Guy1` | 1.2817 x 1.2817 x 2.8248 | 50 | Mat_Fabric_Rope_Hemp |
 | `S01_Guy2` | 0.8783 x 0.8783 x 1.905 | 50 | Mat_Fabric_Rope_Hemp |
 | `S01_Guy3` | 1.2817 x 1.2817 x 2.8248 | 50 | Mat_Fabric_Rope_Hemp |
-| `S01_Mast1_SailRig_MastStraight` | 0.2475 x 0.2475 x 3.0227 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S01_Mast2_SailRig_MastStraight` | 0.1688 x 0.1688 x 2.0617 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S01_Mast3_SailRig_MastStraight` | 0.2475 x 0.2475 x 3.0227 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S01_Mast_SailRig_MastStraight` | 0.1688 x 0.1688 x 2.0617 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Anchor1_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Anchor2_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Anchor3_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Anchor_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S01_Mast1_SailRig_MastPole` | 0.0875 x 0.0875 x 3.0267 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S01_Mast2_SailRig_MastPole` | 0.0764 x 0.0764 x 2.0563 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S01_Mast3_SailRig_MastPole` | 0.0875 x 0.0875 x 3.0267 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S01_Mast_SailRig_MastPole` | 0.0764 x 0.0764 x 2.0563 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Anchor1_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Anchor2_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Anchor3_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Anchor_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S02_Canopy` | 7.0 x 7.0 x 1.9 | 324 | Mat_Fabric_Tarp_Azure |
 | `S02_Guy` | 1.2773 x 1.2773 x 2.8148 | 50 | Mat_Fabric_Rope_Hemp |
 | `S02_Guy1` | 2.1103 x 2.1103 x 4.7147 | 50 | Mat_Fabric_Rope_Hemp |
 | `S02_Guy2` | 1.2773 x 1.2773 x 2.8148 | 50 | Mat_Fabric_Rope_Hemp |
 | `S02_Guy3` | 2.1103 x 2.1103 x 4.7147 | 50 | Mat_Fabric_Rope_Hemp |
-| `S02_Mast1_SailRig_MastStepped` | 0.4968 x 0.4968 x 4.9996 | 478 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Mast2_SailRig_MastStepped` | 0.2998 x 0.2998 x 3.0171 | 478 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Mast3_SailRig_MastStepped` | 0.4968 x 0.4968 x 4.9996 | 478 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S02_Mast_SailRig_MastStepped` | 0.2998 x 0.2998 x 3.0171 | 478 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S03_Anchor1_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S03_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S03_Anchor_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S02_Mast1_SailRig_MastLashed` | 0.1325 x 0.1325 x 5.0227 | 948 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Mast2_SailRig_MastLashed` | 0.1109 x 0.1109 x 3.0186 | 948 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Mast3_SailRig_MastLashed` | 0.1325 x 0.1325 x 5.0227 | 948 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S02_Mast_SailRig_MastLashed` | 0.1109 x 0.1109 x 3.0186 | 948 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S03_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S03_Anchor2_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S03_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S03_Canopy` | 4.72 x 4.9466 x 1.15 | 168 | Mat_Fabric_Sail_Red |
 | `S03_Guy` | 0.7298 x 1.9501 x 3.2648 | 50 | Mat_Fabric_Rope_Hemp |
 | `S03_Guy1` | 0.8841 x 1.0493 x 2.1149 | 50 | Mat_Fabric_Rope_Hemp |
 | `S03_Guy2` | 1.5827 x 0.3061 x 2.5149 | 50 | Mat_Fabric_Rope_Hemp |
-| `S03_Mast1_SailRig_MastStraight` | 0.1868 x 0.1868 x 2.281 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S03_Mast2_SailRig_MastStraight` | 0.221 x 0.221 x 2.6988 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S03_Mast_SailRig_MastStraight` | 0.2851 x 0.2851 x 3.4823 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S04_Anchor1_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S04_Anchor2_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S04_Anchor_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S03_Mast1_SailRig_MastPole` | 0.0792 x 0.0792 x 2.2778 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S03_Mast2_SailRig_MastPole` | 0.084 x 0.084 x 2.6997 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S03_Mast_SailRig_MastPole` | 0.092 x 0.092 x 3.4908 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S04_Anchor1_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S04_Anchor2_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S04_Anchor_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S04_Canopy` | 5.4 x 4.9 x 3.0767 | 189 | Mat_Fabric_Sail_White |
 | `S04_Guy` | 0.032 x 2.7514 x 4.3648 | 50 | Mat_Fabric_Rope_Hemp |
-| `S04_Mast_SailRig_MastStraight` | 0.3792 x 0.3792 x 4.6313 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S04_Mast_SailRig_MastPole` | 0.1017 x 0.1017 x 4.6511 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S04_Tie` | 0.5833 x 0.4539 x 1.4042 | 50 | Mat_Fabric_Rope_Hemp |
 | `S04_Tie1` | 0.5833 x 0.4539 x 1.4042 | 50 | Mat_Fabric_Rope_Hemp |
-| `S05_Anchor1_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Anchor3_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Anchor4_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Anchor_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S05_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Anchor2_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Anchor3_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Anchor4_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S05_Canopy` | 5.8966 x 5.608 x 1.35 | 270 | Mat_Fabric_Sail_Orange |
 | `S05_Guy` | 0.032 x 2.1624 x 3.4148 | 50 | Mat_Fabric_Rope_Hemp |
 | `S05_Guy1` | 1.2654 x 0.4328 x 2.0649 | 50 | Mat_Fabric_Rope_Hemp |
 | `S05_Guy2` | 1.1382 x 1.5582 x 3.0148 | 50 | Mat_Fabric_Rope_Hemp |
 | `S05_Guy3` | 0.8648 x 1.1819 x 2.2649 | 50 | Mat_Fabric_Rope_Hemp |
 | `S05_Guy4` | 1.7077 x 0.5765 x 2.8148 | 50 | Mat_Fabric_Rope_Hemp |
-| `S05_Mast1_SailRig_MastStraight` | 0.1825 x 0.1825 x 2.2288 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Mast2_SailRig_MastTripod` | 1.0065 x 0.8896 x 3.0991 | 616 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Mast3_SailRig_MastStraight` | 0.1996 x 0.1996 x 2.4377 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Mast4_SailRig_MastTripod` | 0.9405 x 0.8313 x 2.8959 | 616 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S05_Mast_SailRig_MastTripod` | 1.1385 x 1.0063 x 3.5056 | 616 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Anchor1_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Anchor3_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Anchor4_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Anchor5_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Anchor_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S05_Mast1_SailRig_MastPole` | 0.0785 x 0.0785 x 2.2251 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Mast2_SailRig_MastTripod` | 1.0752 x 0.9398 x 3.2436 | 558 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Mast3_SailRig_MastPole` | 0.0811 x 0.0811 x 2.436 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Mast4_SailRig_MastTripod` | 1.05 x 0.9177 x 3.0309 | 558 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S05_Mast_SailRig_MastTripod` | 1.1226 x 0.9812 x 3.669 | 558 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Anchor2_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Anchor3_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Anchor4_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Anchor5_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S06_Canopy` | 6.5818 x 6.536 x 0.8 | 288 | Mat_Fabric_Tarp_Azure |
 | `S06_Guy` | 0.032 x 1.4803 x 2.3149 | 50 | Mat_Fabric_Rope_Hemp |
 | `S06_Guy1` | 0.8886 x 0.456 x 1.5151 | 50 | Mat_Fabric_Rope_Hemp |
@@ -741,67 +741,121 @@ Variations / collections: `Coll_NomadSail_Cone`, `Coll_NomadSail_HexLow`, `Coll_
 | `S06_Guy3` | 0.032 x 0.9842 x 1.5151 | 50 | Mat_Fabric_Rope_Hemp |
 | `S06_Guy4` | 1.333 x 0.6766 x 2.3149 | 50 | Mat_Fabric_Rope_Hemp |
 | `S06_Guy5` | 0.8886 x 0.456 x 1.5151 | 50 | Mat_Fabric_Rope_Hemp |
-| `S06_Mast1_SailRig_MastStub` | 0.4005 x 0.4005 x 1.7034 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Mast2_SailRig_MastStraight` | 0.2039 x 0.2039 x 2.4899 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Mast3_SailRig_MastStub` | 0.4005 x 0.4005 x 1.7034 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Mast4_SailRig_MastStraight` | 0.2039 x 0.2039 x 2.4899 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Mast5_SailRig_MastStub` | 0.4005 x 0.4005 x 1.7034 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S06_Mast_SailRig_MastStraight` | 0.2039 x 0.2039 x 2.4899 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Anchor1_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Anchor2_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Anchor3_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Anchor_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S06_Mast1_SailRig_MastStub` | 0.1284 x 0.1284 x 1.6944 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Mast2_SailRig_MastPole` | 0.0817 x 0.0817 x 2.4888 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Mast3_SailRig_MastStub` | 0.1284 x 0.1284 x 1.6944 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Mast4_SailRig_MastPole` | 0.0817 x 0.0817 x 2.4888 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Mast5_SailRig_MastStub` | 0.1284 x 0.1284 x 1.6944 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S06_Mast_SailRig_MastPole` | 0.0817 x 0.0817 x 2.4888 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Anchor1_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Anchor2_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Anchor3_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Anchor_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 | `S07_Canopy` | 2.3 x 8.4 x 1.2 | 192 | Mat_Fabric_Sail_Red |
 | `S07_Guy` | 0.9712 x 1.595 x 2.9148 | 50 | Mat_Fabric_Rope_Hemp |
 | `S07_Guy1` | 0.6193 x 1.0107 x 1.815 | 50 | Mat_Fabric_Rope_Hemp |
 | `S07_Guy2` | 0.9392 x 1.5419 x 2.8148 | 50 | Mat_Fabric_Rope_Hemp |
 | `S07_Guy3` | 0.5873 x 0.9575 x 1.715 | 50 | Mat_Fabric_Rope_Hemp |
-| `S07_Mast1_SailRig_MastStub` | 0.4761 x 0.4761 x 2.0249 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Mast2_SailRig_MastStraight` | 0.2466 x 0.2466 x 3.0122 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Mast3_SailRig_MastStub` | 0.4509 x 0.4509 x 1.9178 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S07_Mast_SailRig_MastStraight` | 0.2552 x 0.2552 x 3.1167 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Anchor1_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Anchor3_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Anchor_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Canopy` | 5.5 x 3.6 x 1.4738 | 352 | Mat_Fabric_Sail_White |
-| `S08_Guy` | 1.0398 x 0.6889 x 1.915 | 50 | Mat_Fabric_Rope_Hemp |
-| `S08_Guy1` | 1.0398 x 0.6889 x 1.915 | 50 | Mat_Fabric_Rope_Hemp |
-| `S08_Guy2` | 1.0398 x 0.6889 x 1.915 | 50 | Mat_Fabric_Rope_Hemp |
-| `S08_Guy3` | 1.0398 x 0.6889 x 1.915 | 50 | Mat_Fabric_Rope_Hemp |
-| `S08_Mast1_SailRig_MastStraight` | 0.1697 x 0.1697 x 2.0721 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Mast2_SailRig_MastStraight` | 0.1697 x 0.1697 x 2.0721 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Mast3_SailRig_MastStraight` | 0.1697 x 0.1697 x 2.0721 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Mast4_SailRig_MastTripod` | 1.1163 x 0.9867 x 3.4373 | 616 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Mast5_SailRig_MastTripod` | 1.1163 x 0.9867 x 3.4373 | 616 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S08_Mast_SailRig_MastStraight` | 0.1697 x 0.1697 x 2.0721 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Anchor1_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Anchor3_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Anchor4_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Anchor5_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Anchor_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Canopy` | 4.6 x 4.6 x 2.29 | 252 | Mat_Fabric_Sail_Orange |
-| `S09_Mast_SailRig_MastStraight` | 0.2842 x 0.2842 x 3.4706 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S09_Tie` | 0.0277 x 0.5301 x 1.4009 | 50 | Mat_Fabric_Rope_Hemp |
-| `S09_Tie1` | 0.4595 x 0.2815 x 1.4009 | 50 | Mat_Fabric_Rope_Hemp |
-| `S09_Tie2` | 0.4595 x 0.2815 x 1.4009 | 50 | Mat_Fabric_Rope_Hemp |
-| `S09_Tie3` | 0.0277 x 0.5301 x 1.4009 | 50 | Mat_Fabric_Rope_Hemp |
-| `S09_Tie4` | 0.4595 x 0.2815 x 1.4009 | 50 | Mat_Fabric_Rope_Hemp |
-| `S09_Tie5` | 0.4595 x 0.2815 x 1.4009 | 50 | Mat_Fabric_Rope_Hemp |
-| `S10_Anchor1_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Anchor2_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Anchor3_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Anchor_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Canopy` | 5.05 x 4.95 x 2.65 | 256 | Mat_Fabric_Tarp_Azure |
-| `S10_Guy` | 2.4127 x 0.5819 x 3.9148 | 50 | Mat_Fabric_Rope_Hemp |
-| `S10_Guy1` | 1.7759 x 0.566 x 2.9148 | 50 | Mat_Fabric_Rope_Hemp |
-| `S10_Guy2` | 0.3891 x 0.7487 x 1.2652 | 50 | Mat_Fabric_Rope_Hemp |
-| `S10_Guy3` | 0.4469 x 0.9954 x 1.665 | 50 | Mat_Fabric_Rope_Hemp |
-| `S10_Mast1_SailRig_MastStraight` | 0.2552 x 0.2552 x 3.1167 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Mast2_SailRig_MastStub` | 0.3375 x 0.3375 x 1.4355 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Mast3_SailRig_MastStub` | 0.4383 x 0.4383 x 1.8642 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `S10_Mast_SailRig_MastStepped` | 0.4138 x 0.4138 x 4.1649 | 478 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `S07_Mast1_SailRig_MastStub` | 0.1365 x 0.1365 x 2.0198 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Mast2_SailRig_MastPole` | 0.0874 x 0.0874 x 3.0162 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Mast3_SailRig_MastStub` | 0.1339 x 0.1339 x 1.9114 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S07_Mast_SailRig_MastPole` | 0.0884 x 0.0884 x 3.1217 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Anchor1_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Anchor2_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Anchor3_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Anchor_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Canopy` | 5.05 x 4.95 x 2.65 | 256 | Mat_Fabric_Sail_White |
+| `S08_Guy` | 2.4127 x 0.5819 x 3.9148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S08_Guy1` | 1.7759 x 0.566 x 2.9148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S08_Guy2` | 0.3891 x 0.7487 x 1.2652 | 50 | Mat_Fabric_Rope_Hemp |
+| `S08_Guy3` | 0.4469 x 0.9954 x 1.665 | 50 | Mat_Fabric_Rope_Hemp |
+| `S08_Mast1_SailRig_MastPole` | 0.0884 x 0.0884 x 3.1217 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Mast2_SailRig_MastStub` | 0.1208 x 0.1208 x 1.4231 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Mast3_SailRig_MastStub` | 0.1326 x 0.1326 x 1.8571 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S08_Mast_SailRig_MastLashed` | 0.1242 x 0.1242 x 4.1788 | 948 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S09_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S09_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S09_Canopy` | 3.7 x 3.292 x 0.8 | 196 | Mat_Fabric_Sail_Orange |
+| `S09_Guy` | 0.9615 x 1.7437 x 3.1148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S09_Guy1` | 0.7837 x 1.4169 x 2.5149 | 50 | Mat_Fabric_Rope_Hemp |
+| `S09_Mast1_SailRig_MastPole` | 0.084 x 0.084 x 2.6997 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S09_Mast_SailRig_MastPole` | 0.0905 x 0.0905 x 3.3326 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S09_WallFix1_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S09_WallFix_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S10_Anchor_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S10_Canopy` | 3.95 x 3.725 x 0.8092 | 189 | Mat_Fabric_Tarp_Azure |
+| `S10_Guy` | 0.1032 x 1.8516 x 2.9148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S10_Mast_SailRig_MastPole` | 0.0884 x 0.0884 x 3.1217 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S10_WallFix1_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S10_WallFix_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S11_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S11_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S11_Canopy` | 4.4 x 1.69 x 1.155 | 200 | Mat_Fabric_Sail_Red |
+| `S11_Guy` | 0.8481 x 0.8294 x 1.815 | 50 | Mat_Fabric_Rope_Hemp |
+| `S11_Guy1` | 1.0255 x 1.0027 x 2.2149 | 50 | Mat_Fabric_Rope_Hemp |
+| `S11_Mast1_SailRig_MastStub` | 0.1462 x 0.1462 x 2.4538 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S11_Mast_SailRig_MastStub` | 0.1365 x 0.1365 x 2.0198 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S11_WallFix1_SailRig_WallBracket` | 0.14 x 0.53 x 0.3367 | 498 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S11_WallFix_SailRig_WallBracket` | 0.14 x 0.53 x 0.3367 | 498 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S12_Anchor1_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S12_Anchor_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S12_Canopy` | 3.9 x 2.992 x 2.6 | 224 | Mat_Fabric_Sail_White |
+| `S12_Tie` | 0.032 x 0.7727 x 1.1058 | 50 | Mat_Fabric_Rope_Hemp |
+| `S12_Tie1` | 0.0277 x 0.7781 x 1.4053 | 50 | Mat_Fabric_Rope_Hemp |
+| `S12_WallFix1_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S12_WallFix_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S13_Anchor1_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S13_Anchor_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S13_Canopy` | 2.5 x 3.992 x 0.6638 | 200 | Mat_Fabric_Sail_Red |
+| `S13_Guy` | 0.5459 x 1.7172 x 2.8148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S13_Guy1` | 0.5911 x 1.8655 x 3.0648 | 50 | Mat_Fabric_Rope_Hemp |
+| `S13_Mast1_SailRig_MastPole` | 0.09 x 0.09 x 3.2799 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S13_Mast_SailRig_MastPole` | 0.0874 x 0.0874 x 3.0162 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S13_WallFix1_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S13_WallFix_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S14_Anchor_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S14_Canopy` | 5.292 x 3.792 x 0.6626 | 270 | Mat_Fabric_Sail_Orange |
+| `S14_Guy` | 0.0789 x 1.8522 x 2.9148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S14_Mast_SailRig_MastPole` | 0.0884 x 0.0884 x 3.1217 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S14_WallFix1_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S14_WallFix2_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S14_WallFix3_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S14_WallFix_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S15_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S15_Canopy` | 5.4 x 3.475 x 0.7675 | 280 | Mat_Fabric_Tarp_Azure |
+| `S15_Guy` | 0.032 x 1.6043 x 2.5149 | 50 | Mat_Fabric_Rope_Hemp |
+| `S15_Mast_SailRig_MastPole` | 0.084 x 0.084 x 2.6997 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S15_WallFix1_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S15_WallFix2_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S15_WallFix_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_Anchor1_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_Anchor2_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_Canopy` | 7.2 x 2.14 x 1.01 | 324 | Mat_Fabric_Sail_White |
+| `S16_Guy` | 1.045 x 0.7894 x 2.015 | 50 | Mat_Fabric_Rope_Hemp |
+| `S16_Guy1` | 0.032 x 1.4803 x 2.3149 | 50 | Mat_Fabric_Rope_Hemp |
+| `S16_Guy2` | 1.0698 x 0.808 x 2.0649 | 50 | Mat_Fabric_Rope_Hemp |
+| `S16_Mast1_SailRig_MastPole` | 0.0817 x 0.0817 x 2.4888 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_Mast2_SailRig_MastPole` | 0.0785 x 0.0785 x 2.2251 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_Mast_SailRig_MastPole` | 0.0779 x 0.0779 x 2.1723 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_WallFix1_SailRig_WallBracket` | 0.14 x 0.53 x 0.3367 | 498 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_WallFix2_SailRig_WallBracket` | 0.14 x 0.53 x 0.3367 | 498 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S16_WallFix_SailRig_WallBracket` | 0.14 x 0.53 x 0.3367 | 498 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S17_Anchor1_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S17_Anchor_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S17_Canopy` | 4.5 x 2.875 x 2.2 | 196 | Mat_Fabric_Sail_Orange |
+| `S17_Guy` | 1.2172 x 1.6155 x 3.1648 | 50 | Mat_Fabric_Rope_Hemp |
+| `S17_Guy1` | 1.5335 x 2.0371 x 4.0148 | 50 | Mat_Fabric_Rope_Hemp |
+| `S17_Mast1_SailRig_MastPole` | 0.0988 x 0.0988 x 4.282 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S17_Mast_SailRig_MastPole` | 0.091 x 0.091 x 3.3854 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S17_WallFix1_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S17_WallFix_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S18_Anchor_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S18_Canopy` | 2.6 x 1.775 x 0.85 | 144 | Mat_Fabric_Tarp_Azure |
+| `S18_Guy` | 0.0874 x 1.0766 x 1.665 | 50 | Mat_Fabric_Rope_Hemp |
+| `S18_Mast_SailRig_MastStub` | 0.1326 x 0.1326 x 1.8571 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S18_WallFix1_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `S18_WallFix_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 
 ### `components/organic/claw_talon.blend`
 
@@ -1915,17 +1969,20 @@ Variations / collections: `Coll_PrefabHab_Annex`, `Coll_PrefabHab_Corner`, `Coll
 
 ### `components/structural/sail_rig.blend`
 
-Variations / collections: `Coll_SailRig_AnchorBlock`, `Coll_SailRig_AnchorPin`, `Coll_SailRig_AnchorPlate`, `Coll_SailRig_MastStepped`, `Coll_SailRig_MastStraight`, `Coll_SailRig_MastStub`, `Coll_SailRig_MastTripod`
+Variations / collections: `Coll_SailRig_AnchorCleat`, `Coll_SailRig_AnchorLog`, `Coll_SailRig_AnchorStake`, `Coll_SailRig_MastLashed`, `Coll_SailRig_MastPole`, `Coll_SailRig_MastStub`, `Coll_SailRig_MastTripod`, `Coll_SailRig_WallBracket`, `Coll_SailRig_WallCleat`, `Coll_SailRig_WallHook`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `Mesh_SailRig_AnchorBlock` | 0.32 x 0.26 x 0.2576 | 272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `Mesh_SailRig_AnchorPin` | 0.144 x 0.144 x 0.3357 | 216 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `Mesh_SailRig_AnchorPlate` | 0.21 x 0.21 x 0.1645 | 274 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `Mesh_SailRig_MastStepped` | 0.3637 x 0.3637 x 3.66 | 478 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `Mesh_SailRig_MastStraight` | 0.3 x 0.3 x 3.664 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `Mesh_SailRig_MastStub` | 0.3438 x 0.3438 x 1.462 | 416 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
-| `Mesh_SailRig_MastTripod` | 1.188 x 1.05 x 3.658 | 616 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy |
+| `Mesh_SailRig_AnchorCleat` | 0.31 x 0.088 x 0.1543 | 318 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_AnchorLog` | 0.1656 x 0.34 x 0.1575 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_AnchorStake` | 0.0742 x 0.0706 x 0.28 | 222 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_MastLashed` | 0.119 x 0.119 x 3.7 | 948 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_MastPole` | 0.0938 x 0.0938 x 3.7 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_MastStub` | 0.1224 x 0.1224 x 1.48 | 258 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_MastTripod` | 1.1394 x 0.9959 x 3.8286 | 558 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_WallBracket` | 0.14 x 0.53 x 0.3367 | 498 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_WallCleat` | 0.176 x 0.1534 x 0.104 | 394 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
+| `Mesh_SailRig_WallHook` | 0.0762 x 0.195 x 0.0725 | 260 | Mat_Wood_Timber_Silvered, Mat_Wood_Ply_Worn, Mat_Fabric_Rope_Hemp |
 
 ### `components/structural/scaffold_bay.blend`
 

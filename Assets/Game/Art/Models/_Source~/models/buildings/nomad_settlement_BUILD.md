@@ -7,6 +7,9 @@ produced with it.
 | --- | --- |
 | `nomad_settlement.py` | The system: the round family and the shared rules. |
 | `nomad_rect.py` | The boxy half: block plans, terraces, detail discovery. |
+| `nomad_palette.py` | The colour map: eight roles, the contrast ladder between them, and the schemes. |
+| `nomad_settlement_flip_doors.py` | One-shot: turned the shipped file's 74 doors round without rebuilding it. |
+| `nomad_settlement_export.py` | Ships each building to Unity as its own FBX under `Assets/Game/Art/Models/Environment/Structures/NomadSettlement/`. |
 | `nomad_settlement.blend` | Its output: **40 buildings** in three families, 74 units, 8137 objects, 399 meshes. |
 | `../../components/nomad_settlement/components_clean.blend` | The kit it draws parts from. |
 | `../../components/nomad_settlement/KIT_MAP.md` | What every kit part is and how the parts mate. |
@@ -214,6 +217,58 @@ base on the 3D cursor.
 Instance rather than duplicate: one edit to `Coll_NomadBuilding_07` then updates every placement of
 it, which is the whole point at settlement scale.
 
+## Colour — the map, not the hexes
+
+The kit's eight materials are eight **jobs**, not eight colours, and they live mapped to those jobs
+in `nomad_palette.py`. Retuning the town is one word — `SCHEME` at the top of `nomad_settlement.py`,
+or `--apply <scheme>` on any file that already exists.
+
+| Role | Material | What actually carries it (measured off the finished file) |
+| --- | --- | --- |
+| `wall` | `Mat_Nomad_Clay_Sand` | drums, block faces, meter-box bodies — 1964 parts, the base colour |
+| `footing` | `Mat_Nomad_Clay_Bone` | R12's ground block on the 54 round units, and nothing else — the hand-tuned yellow |
+| `joinery` | `Mat_Nomad_Clay_Ochre` | door leaves, rect blocks, foundations, simple roofs |
+| `trim` | `Mat_Nomad_Clay_Terracotta` | rings and bands, door frames, doorsteps, roof decks, stacks |
+| `shadow` | `Mat_Nomad_Clay_Oxblood` | vent slots, recesses, deep detail — the near-black |
+| `pipe` | `Mat_Nomad_Metal_Charcoal` | pipe runs and their clamps |
+| `fitting` | `Mat_Nomad_Metal_Grey` | collars, brackets, masts, dish, and anything the kit left bare |
+| `glass` | `Mat_Nomad_Glass_Amber` | every window pane — the brightest thing on a building |
+
+What must survive a retune is not a hue, it is the **ladder** — the relative-luminance order and the
+gaps between neighbours. Two principles, both `contextual`, confidence 4:
+
+- `GDC-L1-LEVEL-0002` asks for districts with **their own palette, architecture and mood, so an area
+  is identifiable at a glance**. That is the argument for schemes rather than one fixed set of hexes:
+  a second settlement in `ash` reads as a different place built by the same hands.
+- `GDC-L1-LEVEL-0001` says light and contrast are the strongest tools, and that the **strongest
+  contrast should be reserved for what matters**. That is the argument for the ladder being a rule
+  rather than a note: a retune that flattens wall against trim does not just look different, it stops
+  the facade guiding the eye.
+
+Worth deciding rather than inheriting: by that second principle the **door** should own the strongest
+local contrast on a building, since it is the thing that matters. Today it does not — the brightest
+roles are `glass` and `footing`, and the door is `trim` frame on `joinery` leaf, a middling step down
+from the wall. Left as it is because it is a colour-direction call, not a bug.
+
+`CONTRASTS` states it as rules — panes brighter
+than the wall, footing lighter than the adobe it carries, banding markedly darker or the storeys stop
+reading, vents the near-black — and `check` refuses a scheme that breaks one before it reaches a
+`.blend`. `MIN_SEPARATION` catches the other failure: two roles so close in value that the palette
+has quietly collapsed to seven colours.
+
+```bash
+blender --background --python nomad_palette.py -- --list       # roles and rules
+blender --background --python nomad_palette.py -- --check      # every scheme, with its ladder
+blender --background <file>.blend --python nomad_palette.py -- --dump
+blender --background <file>.blend --python nomad_palette.py -- --apply ash --save
+```
+
+Three schemes ship: `nomad` (what the file wears — warm clay, with the hand-tuned yellow bone
+course), `ash` (cold volcanic grey), `verdigris` (oxidised copper over bleached clay). A fourth is
+eight hex values. `apply` touches the colour, roughness and metallic of the eight mapped materials
+and **nothing else** — no geometry, and no material the map does not name — so it is safe on a
+hand-edited file. It reaches `.001`-suffixed duplicates too, which is what the kit is full of.
+
 ## Tuning it
 
 Everything worth turning is a named constant at the top of the script.
@@ -221,6 +276,7 @@ Everything worth turning is a named constant at the top of the script.
 | Knob | Effect |
 | --- | --- |
 | `SEED` | A different settlement. Same seed, same twenty buildings, forever |
+| `SCHEME` | Which entry of `nomad_palette.SCHEMES` the town is painted in — all eight colours at once |
 | `OPENING_RULES`, `SMALL_WINDOW` | The size caps, and the fallback aperture |
 | `TAPER` | The kit's wall angle. Changing it makes a different town, not a broken one — but change it in `KIT_MAP.md` too, or the doc lies |
 | `RING_STACKS`, `RING_GAP` | How banded the town is — the dial for more or fewer full rings |
@@ -276,6 +332,29 @@ Defects it caught, all now fixed:
   and openings on odd storeys sit half a sector off that grid. Everything angular now compares
   angles, and against the opening's real width, not its centre line.
 
+## In Unity
+
+`nomad_settlement_export.py` writes one FBX per `Coll_NomadBuilding_NN`, each moved onto its own
+origin; `NomadSettlementBuilder` (menu *Tools ▸ Environment ▸ Build Nomad Settlement Prefabs*) turns
+them into prefabs under `Assets/Game/Prefabs/Environment/Structures/NomadSettlement/`, sorted into
+`Small` (6), `Medium` (22) and `Large` (12) by their finished size.
+
+- **Everything is scaled to the astronaut, who is 2.00 m.** This kit is authored at about half that:
+  the doors here measure 0.53–0.96 m. Each building is scaled so its own smallest door clears the
+  astronaut with headroom — 2.3× to 4.3× — which puts the town at 5.5–44.6 m across and 11.7–64.9 m
+  tall, on 3.2–6.4 m storeys. Per building rather than one factor for the settlement, because the
+  generator's doors vary two to one: one factor would give most of them four-metre gateways.
+- **Collision is one convex hull per structural part** — `Drum*`, `Blk*`, `Foundation*`, the roof
+  slabs, the roof cap and the parapet — and nothing at all on rings, arcs, windows, doors, panels,
+  gear, pipes or roof furniture. Every structural part is convex by construction, so a hull is not an
+  approximation, it is the shape: 2–25 hulls a building, 311 over the settlement.
+- **The negative scales are repaired on the Unity side**, per renderer, by the sign of the
+  determinant. `_exportlib`'s `fix_inverted` does it in Blender and on *this* file it also threw three
+  buildings' mirrored parts up to 137 m away — these collections share one mesh datablock between as
+  many as 75 objects. See the export script's docstring.
+- **Each building carries 1–4 shade sails** off its walls, from `components/nomad_settlement/tents.blend`, scaled to its own storeys and seated against its own
+  colliders. How many it ends up with is what fits round it, not what was asked for.
+
 ## Known gaps
 
 - **Negative scales are inherited from the kit.** 36 kit objects carry a negative scale axis, which
@@ -291,7 +370,13 @@ Defects it caught, all now fixed:
   component file.
 - **Materials are the kit's eight local ones**, not links from `palette.blend`, for the same reason
   the kit keeps them local — swapping would change the colours. All eight are appended explicitly so
-  the file always carries the full palette.
+  the file always carries the full palette, and then repainted from the colour map (below), so the
+  kit's own colours are a starting point rather than the answer.
+- **The kit file still holds the old colours.** `nomad_palette` is applied to the settlement at the
+  end of generation, not to `components_clean.blend` — the kit is hand-made and is left alone. So the
+  kit and `tents.blend` still show the kit's cream `Clay_Bone` while the settlement shows the mapped
+  yellow one. Retune the kit deliberately if you want them to agree:
+  `blender --background components_clean.blend --python nomad_palette.py -- --apply nomad --save`.
 - **Annexes do not share interiors with the main body.** They interpenetrate geometrically; nothing
   cuts an opening between them. Fine for exterior silhouettes, not for a walkable interior.
 - **No LOD, no collision, no UVs.** These are silhouette blockouts of production quality, not
@@ -304,11 +389,17 @@ Defects it caught, all now fixed:
   faces of an L are blank.
 - **An opening's `pre_z` is measured, never assumed.** The door group is
   0.642 x 0.181 x 0.996 with its leaf on the **+Y** side — it already stands with its width on X and
-  its outer face on +Y, so it needs a **half** turn to join the windows on −Y. It carried a quarter
-  turn, which laid all forty doors flat along their walls and buried them in the masonry. The
-  validator now checks it: on a block unit by how much of the door's volume is inside the walls (a
-  seated door is about a quarter embedded, a turned one nearly all of it), and on a drum by the same
-  radial straddle test the windows use — a box-overlap test says nothing about a cylinder.
+  its outer face on +Y, so it needs **no turn at all**: `pre_z = 0`. Two wrong values have shipped.
+  A **quarter** turn laid every door flat along its wall and buried it in the masonry — that one the
+  validator catches, on a block unit by how much of the door's volume is inside the walls (a seated
+  door is about a quarter embedded, a turned one nearly all of it), and on a drum by the same radial
+  straddle test the windows use, because a box-overlap test says nothing about a cylinder. A **half**
+  turn is the one no geometric test can catch: the door's bounding box is unchanged, it is seated
+  correctly, it straddles the wall correctly, and it is simply back to front — frame to the street,
+  leaf inside the wall. Only looking at it finds that. Fixed in the shipped file by
+  `nomad_settlement_flip_doors.py`, which turns each door about the vertical axis through its own box
+  centre; because the box is symmetric about that axis, the half turn moves nothing but the facing
+  (worst box drift over 74 doors: 0.000017 m).
 - **Tapered blocks carry bands but no openings.** Their batter would gap a frame.
 - **No arches anywhere.** An arcade generator was built and removed at the user's request; the kit
   has no arch part either.

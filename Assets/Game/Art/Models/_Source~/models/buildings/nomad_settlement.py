@@ -50,8 +50,14 @@ sys.path.insert(0, os.path.abspath(
 import _buildlib as bl  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import nomad_rect as rk  # noqa: E402
+import nomad_palette as pal  # noqa: E402
 
 SEED = 20260913
+
+# Which colour scheme the town is painted in. Every colour in the kit is mapped
+# to a role in `nomad_palette`, so this one name retunes all eight at once and
+# the contrast ladder between them is checked before anything is painted.
+SCHEME = "nomad"
 
 # Three families in one settlement. The round set keeps the rules it always had;
 # the rectangular set is the same discipline applied to the kit's block module;
@@ -115,11 +121,14 @@ OPENINGS = {
                              "Mesh_WindowRectSmall_Glass"], pre_z=-89.8, lean=-6.78),
     # Measured, not assumed: the door group is 0.642 x 0.181 x 0.996 with its
     # leaf on the +Y side, so it already stands with its width on X and its
-    # outer face on +Y. Every window faces -Y, so the door needs a half turn to
-    # join them - NOT the quarter turn it had, which laid all forty doors flat
-    # along their walls and buried them in the masonry.
+    # outer face on +Y. It needs no turn at all - the half turn it carried put
+    # the leaf inside the wall and the frame's back to the street, which is
+    # what "the doors face the wrong way" meant. What it must never carry is a
+    # QUARTER turn: that lays the door flat along its wall and buries it.
+    # A half turn leaves the door's bounding box exactly where it was, so this
+    # changes which way it faces and nothing else.
     "door":       dict(objs=["Mesh_Door_Frame", "Mesh_Door_Leaf"],
-                       pre_z=180.0, lean=0.0),
+                       pre_z=0.0, lean=0.0),
 }
 
 # The kit's smallest aperture, and the only one that still fits a wall a
@@ -1433,6 +1442,13 @@ def main():
             if base is not None:
                 m.user_remap(base)
                 bpy.data.materials.remove(m)
+
+    # Paint the scheme on last, so the town's colours come from the role map
+    # rather than from whatever the kit happens to carry today. This is also
+    # what keeps a hand-tuned colour - the bone course is yellow, not cream -
+    # from being lost the next time the settlement is rebuilt.
+    print("  palette: %r on %d materials"
+          % (SCHEME, pal.apply(SCHEME)))
 
     root = bl.collection("Coll_Settlement")
     specs = roll_settlement(rng, COUNT_ROUND)

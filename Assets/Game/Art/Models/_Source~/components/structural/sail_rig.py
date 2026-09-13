@@ -9,7 +9,7 @@ the awning kit's poles (`Mesh_AwningStrip_Pole`, `Mesh_AwningPorch_PoleLeft`)
 each carry an outrigger brace modelled for a vertical stance, and tipping one
 lays its brace across the sail it is holding up. These are the poles that rake.
 
-Four masts and three anchors, each its own collection:
+Four masts, three ground anchors and three wall fixings, each its own collection:
 
   Mast_Pole       one tapered pole, hemp whipping at the head - the default
   Mast_Lashed     two poles spliced and lashed, for the heavy corners
@@ -18,10 +18,19 @@ Four masts and three anchors, each its own collection:
   Anchor_Stake    a driven peg with a rope turn, 0.28 m - the default tie-down
   Anchor_Cleat    a buried deadman board pinned by two stakes
   Anchor_Log      a short log laid on the sand with rope round it
+  Wall_Hook       a peg driven into a wall with a rope turn - the cheapest fixing
+  Wall_Cleat      a timber block pegged flat to the wall, rope eye standing proud
+  Wall_Bracket    a knee brace that stands the tie 0.52 m off the facade
 
 Masts are modelled along +Z with their foot at z = 0 and their axis on x = y = 0,
 so a caller can scale one to a length and rake it about its foot without the
 shaft walking off the point it was planted on. Anchors sit on z = 0 the same way.
+
+Wall fixings are the one family with a different convention: **the wall face is
+the plane y = 0 and the fixing hangs off it toward −Y**, with its origin on that
+face, because a wall fixing is placed by the wall it is nailed to, not by the
+ground. Each one's tie point sits at a known depth out from that face - the `eye`
+column in `WALLFIX` in `components/nomad_settlement/tents.py`.
 
 The tie point is the hemp whipping at the head, not a ring: its height is what a
 caller scales by, and the sail corner and its guy both land on it.
@@ -160,6 +169,45 @@ def build_log(coll, mats):
     emit(coll, "Mesh_SailRig_AnchorLog", mats, part, bevel=0.004)
 
 
+# ------------------------------------------------------------ wall fixings
+# Wall face is y = 0; the fixing hangs off it toward -Y. Origin on the face.
+def build_hook(coll, mats):
+    """A peg driven straight into the wall with one turn of rope on it. What a
+    camp uses when the facade will take a nail and the load is small."""
+    def part(p):
+        pole(p, (0, 0.04, 0), (0, -0.155, 0), 0.026, 0.018, seg=6)
+        p.torus((0, -0.125, 0), 0.028, 0.011, axis='Y', maj_seg=10, min_seg=6,
+                mat=ROPE)
+    emit(coll, "Mesh_SailRig_WallHook", mats, part, bevel=0.003)
+
+
+def build_wall_cleat(coll, mats):
+    """A timber block pegged flat to the wall with a rope eye standing proud of
+    it - the fixing that spreads its load into the facade instead of one nail."""
+    def part(p):
+        p.slab((-0.088, -0.095, -0.052), (0.088, 0.0, 0.052), mat=PLY)
+        for s in (-1, 1):
+            pole(p, (s * 0.056, 0.035, 0), (s * 0.056, -0.020, 0), 0.013, 0.010,
+                 seg=6)
+        p.torus((0, -0.108, 0), 0.040, 0.012, axis='Y', maj_seg=10, min_seg=6,
+                mat=ROPE)
+    emit(coll, "Mesh_SailRig_WallCleat", mats, part, bevel=0.004)
+
+
+def build_bracket(coll, mats):
+    """A knee brace: a strut out from the wall with a diagonal under it, so the
+    tie stands clear of eaves, gutters and anything else on the facade."""
+    def part(p):
+        p.slab((-0.070, -0.075, -0.24), (0.070, 0.0, 0.075), mat=PLY)  # wall pad
+        pole(p, (0, 0.02, 0.020), (0, -0.500, 0.020), 0.032, 0.024)    # strut
+        pole(p, (0, 0.02, -0.215), (0, -0.435, 0.012), 0.026, 0.020)   # diagonal
+        p.torus((0, -0.46, 0.055), 0.034, 0.011, axis='Y', maj_seg=10, min_seg=6,
+                mat=ROPE)
+        p.torus((0, -0.43, 0.020), 0.037, 0.010, axis='Z', maj_seg=10, min_seg=6,
+                mat=ROPE)                                  # lashing at the knee
+    emit(coll, "Mesh_SailRig_WallBracket", mats, part, bevel=0.004)
+
+
 def main():
     out = bl.parse_out()
     bl.start(out)
@@ -173,6 +221,9 @@ def main():
     build_stake(bl.collection("Coll_SailRig_AnchorStake", root), mats)
     build_cleat(bl.collection("Coll_SailRig_AnchorCleat", root), mats)
     build_log(bl.collection("Coll_SailRig_AnchorLog", root), mats)
+    build_hook(bl.collection("Coll_SailRig_WallHook", root), mats)
+    build_wall_cleat(bl.collection("Coll_SailRig_WallCleat", root), mats)
+    build_bracket(bl.collection("Coll_SailRig_WallBracket", root), mats)
 
     bl.report()
     bl.save(out)

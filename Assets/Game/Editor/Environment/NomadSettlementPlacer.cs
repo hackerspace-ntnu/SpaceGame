@@ -126,7 +126,10 @@ namespace SpaceGame.EditorTools
                 for (int index = 0; index < Settlements.Length; index++)
                 {
                     (NomadSettlementSize size, string name) = Settlements[index];
-                    float siteRadius = NomadSettlementGenerator.SiteRadiusFor(size);
+                    float siteRadius = NomadSettlementGenerator.SiteRadiusFor(
+                        size,
+                        new NomadSettlementGenerator.PrefabSets(
+                            prefabs.Large, prefabs.Medium, prefabs.Small, prefabs.Tents));
 
                     if (!TryChooseSite(config, siteRadius, keepOut, chosen, out Vector3 centre, out float range))
                     {

@@ -76,6 +76,50 @@ namespace SpaceGame.World
         private const float BuildingPadding = 2f;
         private const float MinSpacing = 6f;
 
+        /// <summary>
+        /// The street between two neighbours, as a share of their own longest sides.
+        ///
+        /// A FRACTION, not a fixed metre count, for the same reason MaxGrade is a grade: two metres
+        /// of clear ground reads as a lane between two 6 m tents and as a crack between two 50 m
+        /// towers. The buildings were scaled up by half and the flat padding did not follow, which
+        /// is exactly what "no distance between the buildings" looked like. At 0.45 two neighbours
+        /// of longest side S sit at least 0.45*S + 2 m apart, edge to edge.
+        /// </summary>
+        private const float NeighbourGap = 0.45f;
+
+        /// <summary>
+        /// Head room on a computed ring radius. The ring is sized from the MEAN structure in its
+        /// band and the band holds whatever the deck deals it, so a band of mostly-large draws needs
+        /// a little more circumference than the mean asked for.
+        /// </summary>
+        private const float RingSlack = 1.12f;
+
+        /// <summary>
+        /// How much of the full radial clearance a band keeps from the band inside it.
+        ///
+        /// The full figure is the sum of the two structures' clearance radii, which is the right
+        /// answer only for two that end up on the same heading. Bands are rings of many, so holding
+        /// every band to the worst case pushes a large town past 400 m across and past any level
+        /// ground the world has. Four fifths of it, and the overlap test still refuses the pairs that
+        /// do land radially.
+        /// </summary>
+        private const float BandStep = 0.8f;
+
+        /// <summary>Clear ground the placer looks for beyond the outermost tent.</summary>
+        private const float SiteMargin = 10f;
+
+        /// <summary>
+        /// The largest site the world can actually hold, radius in metres.
+        ///
+        /// This is not a taste knob, it is the chunk. A settlement's whole disc has to lie inside ONE
+        /// 500 m chunk -- everything it makes goes into a single chunk scene -- so a site of radius R
+        /// can only be centred in the (500 - 2R) square at that chunk's middle, and it has to be level
+        /// ground and 800 m from every other town as well. At 200 m that leaves a 100 m square per
+        /// chunk to find flat ground in and the large towns simply do not place. A plan that wants
+        /// more than this is scaled down to fit rather than shipped unplaceable.
+        /// </summary>
+        private const float MaxSiteRadius = 165f;
+
         private const int PlacementAttempts = 60;
 
         /// <summary>Attempts spent walking a structure's own ring slot before the band is searched at random.</summary>
@@ -95,37 +139,137 @@ namespace SpaceGame.World
             public float CoreRadius, MidRadius, OuterRadius, TentRadius;
         }
 
-        // The radii are sized from the ring they have to hold, not chosen by eye. A band's ring has a
-        // circumference of 2*pi*r, and N structures of longest side S need N*(S + BuildingPadding) of
-        // it. The large prefabs run to 11.3 m, so seven of them need about 93 m of ring -- a radius of
-        // ~15 m at minimum, which is why the large town's core is 26 m and not the 18 m it started at.
-        // That first guess placed one building of seven.
-        private static Plan PlanFor(NomadSettlementSize size) => size switch
+        /// <summary>
+        /// The four prefab sets a town is built from, in the order its bands use them. Passed around
+        /// as one value because the radii below are MEASURED off these prefabs, and the placer has to
+        /// ask how big a town will be before there is a generator standing on the ground to ask.
+        /// </summary>
+        public readonly struct PrefabSets
+        {
+            public readonly GameObject[] Large, Medium, Small, Tents;
+
+            public PrefabSets(GameObject[] large, GameObject[] medium, GameObject[] small,
+                              GameObject[] tents)
+            {
+                Large = large;
+                Medium = medium;
+                Small = small;
+                Tents = tents;
+            }
+        }
+
+        public PrefabSets Sets =>
+            new PrefabSets(largeBuildings, mediumBuildings, smallBuildings, tents);
+
+        /// <summary>
+        /// What a town of each size is made of, before the ground is measured. The radii are filled
+        /// in by <see cref="Fit"/> from the prefabs themselves.
+        /// </summary>
+        private static Plan CountsFor(NomadSettlementSize size) => size switch
         {
             NomadSettlementSize.Large => new Plan
             {
                 Large = 7, Medium = 11, Small = 7, Tents = 12,
                 Residents = 12, Flocks = 3, FlockSize = 4, PatrolRoutes = 2, PatrolSize = 3, Mounted = 2,
-                CoreRadius = 26f, MidRadius = 44f, OuterRadius = 60f, TentRadius = 76f,
             },
             NomadSettlementSize.Medium => new Plan
             {
                 Large = 3, Medium = 6, Small = 5, Tents = 7,
                 Residents = 7, Flocks = 2, FlockSize = 3, PatrolRoutes = 1, PatrolSize = 3, Mounted = 1,
-                CoreRadius = 17f, MidRadius = 30f, OuterRadius = 44f, TentRadius = 58f,
             },
             _ => new Plan
             {
                 Large = 1, Medium = 3, Small = 4, Tents = 4,
                 Residents = 4, Flocks = 1, FlockSize = 3, PatrolRoutes = 0, PatrolSize = 0, Mounted = 0,
-                CoreRadius = 11f, MidRadius = 20f, OuterRadius = 31f, TentRadius = 42f,
             },
         };
+
+        /// <summary>
+        /// The radii a town of this size needs to hold its own prefabs, measured rather than typed in.
+        ///
+        /// They used to be four hand-tuned numbers sized off an 11.3 m prefab. Then the buildings were
+        /// scaled up by half and the numbers were not, so seven landmarks that wanted 90 m of core
+        /// ring were still being dealt 26 m of it: the ring slots all collided, placement fell through
+        /// to random attempts in the same crowded band, and what survived stood shoulder to shoulder.
+        ///
+        /// A band's ring has a circumference of 2*pi*r, and N structures whose clearance DIAMETER is D
+        /// need N*D of it -- so the ring cannot be tighter than N*D/(2*pi). It also has to clear the
+        /// band inside it by half of each one's structure. The wider of those two is the ring, and the
+        /// band's outer radius is then whatever puts <see cref="PlaceStructures"/>'s own ring line
+        /// there: the core band rings at 70 % of its radius, every other band at 55 % across it.
+        /// </summary>
+        private static Plan Fit(Plan plan, PrefabSets sets)
+        {
+            float dL = MeanClearance(sets.Large);
+            float dM = MeanClearance(sets.Medium);
+            float dS = MeanClearance(sets.Small);
+            float dT = MeanClearance(sets.Tents);
+
+            // Core: no inner edge to clear, so the ring only has to hold its own count.
+            float ringL = Ring(plan.Large, dL);
+            plan.CoreRadius = ringL / 0.7f;
+
+            float ringM = Mathf.Max(Ring(plan.Medium, dM), ringL + (dL + dM) * 0.5f * BandStep);
+            plan.MidRadius = plan.CoreRadius + ((ringM - plan.CoreRadius) / 0.55f);
+
+            float ringS = Mathf.Max(Ring(plan.Small, dS), ringM + (dM + dS) * 0.5f * BandStep);
+            plan.OuterRadius = plan.MidRadius + ((ringS - plan.MidRadius) / 0.55f);
+
+            // The tents share the mid band's inner edge and scatter at random rather than on a ring,
+            // so theirs is an area, not a circumference: the annulus has to hold their footprints
+            // with room to miss each other in.
+            float area = plan.Tents * Mathf.PI * dT * dT;
+            plan.TentRadius = Mathf.Max(plan.OuterRadius + dT,
+                                        Mathf.Sqrt((plan.MidRadius * plan.MidRadius) + (area / Mathf.PI)));
+
+            // The chunk has the last word. Scaled as a whole so the bands keep their proportions:
+            // a town squeezed into the ground available is still a town, a town with one band
+            // squeezed is a ring of buildings standing in another ring.
+            float want = plan.TentRadius + SiteMargin;
+            if (want > MaxSiteRadius)
+            {
+                float k = (MaxSiteRadius - SiteMargin) / plan.TentRadius;
+                plan.CoreRadius *= k;
+                plan.MidRadius *= k;
+                plan.OuterRadius *= k;
+                plan.TentRadius *= k;
+            }
+
+            return plan;
+        }
+
+        private static float Ring(int count, float diameter) =>
+            count <= 0 ? 0f : count * diameter * RingSlack / (Mathf.PI * 2f);
+
+        /// <summary>
+        /// The typical structure in a set, as the diameter of the clear ground it wants. The mean
+        /// rather than the largest: one 77 m landmark in a deck of forty should not space the whole
+        /// band as though every draw were that big, and a draw that does not fit its slot walks round
+        /// the ring until it does.
+        /// </summary>
+        private static float MeanClearance(GameObject[] prefabs)
+        {
+            if (prefabs == null || prefabs.Length == 0) return MinSpacing;
+
+            float total = 0f;
+            int counted = 0;
+            foreach (GameObject prefab in prefabs)
+            {
+                if (prefab == null) continue;
+                total += ClearanceRadius(prefab) * 2f;
+                counted++;
+            }
+
+            return counted == 0 ? MinSpacing : total / counted;
+        }
+
+        private static Plan PlanFor(NomadSettlementSize size, PrefabSets sets) =>
+            Fit(CountsFor(size), sets);
 
         /// <summary>How many structures a town of this size asks for. The placer checks what it got.</summary>
         public static int ExpectedStructures(NomadSettlementSize size)
         {
-            Plan plan = PlanFor(size);
+            Plan plan = CountsFor(size);
             return plan.Large + plan.Medium + plan.Small + plan.Tents;
         }
 
@@ -136,9 +280,10 @@ namespace SpaceGame.World
         /// on it, and a second copy of these numbers over there would drift the first time a plan
         /// changed.
         /// </summary>
-        public static float SiteRadiusFor(NomadSettlementSize size) => PlanFor(size).TentRadius + 10f;
+        public static float SiteRadiusFor(NomadSettlementSize size, PrefabSets sets) =>
+            PlanFor(size, sets).TentRadius + SiteMargin;
 
-        public float SiteRadius => SiteRadiusFor(size);
+        public float SiteRadius => SiteRadiusFor(size, Sets);
 
         // ── generate ─────────────────────────────────────────────────────────────
 
@@ -147,7 +292,7 @@ namespace SpaceGame.World
         {
             Clear();
 
-            Plan plan = PlanFor(size);
+            Plan plan = PlanFor(size, Sets);
             var random = new System.Random(seed);
             var taken = new List<(Vector2 centre, float radius)>();
 
@@ -171,7 +316,9 @@ namespace SpaceGame.World
             // the line only says what it managed.
             Debug.Log($"[NomadSettlementGenerator] {name} ({size}): " +
                       $"large {large}/{plan.Large}, medium {medium}/{plan.Medium}, " +
-                      $"small {small}/{plan.Small}, tents {tent}/{plan.Tents}, {people} nomads.", this);
+                      $"small {small}/{plan.Small}, tents {tent}/{plan.Tents}, {people} nomads, " +
+                      $"rings {plan.CoreRadius:F0}/{plan.MidRadius:F0}/{plan.OuterRadius:F0}/" +
+                      $"{plan.TentRadius:F0} m.", this);
         }
 
         [ContextMenu("Reroll (new seed + generate)")]
@@ -412,9 +559,13 @@ namespace SpaceGame.World
             return oversized;
         }
 
-        /// <summary>The longest side, not the average: a yaw must not push a building into its neighbour.</summary>
+        /// <summary>
+        /// The longest side, not the average: a yaw must not push a building into its neighbour. Plus
+        /// a street that scales with the building, because a flat padding that reads as a lane between
+        /// two tents reads as a crack between two towers -- see <see cref="NeighbourGap"/>.
+        /// </summary>
         private static float ClearanceRadius(GameObject prefab) =>
-            Mathf.Max(LongestSide(prefab) + BuildingPadding, MinSpacing) * 0.5f;
+            Mathf.Max((LongestSide(prefab) * (1f + NeighbourGap)) + BuildingPadding, MinSpacing) * 0.5f;
 
         private static bool IsTaken(Vector2 centre, float radius, List<(Vector2 centre, float radius)> taken)
         {
@@ -668,7 +819,7 @@ namespace SpaceGame.World
 
         private void OnDrawGizmosSelected()
         {
-            Plan plan = PlanFor(size);
+            Plan plan = PlanFor(size, Sets);
             Gizmos.color = new Color(0.95f, 0.75f, 0.3f, 0.5f);
             DrawCircle(plan.CoreRadius);
             Gizmos.color = new Color(0.9f, 0.55f, 0.25f, 0.4f);

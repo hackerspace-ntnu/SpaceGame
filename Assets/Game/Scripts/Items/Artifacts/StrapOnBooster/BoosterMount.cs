@@ -51,13 +51,6 @@ namespace SpaceGame.Items
                  "launcher now, and the fall is the price.")]
         [SerializeField, Min(0f)] private float thrustAcceleration = 40f;
 
-        [Header("Towing")]
-        [Tooltip("How far ahead of a towed machine the booster hangs its anchor, metres. A tow is " +
-                 "a pull TOWARDS a point, so a booster asks to be pulled at something out along " +
-                 "its own axis. Far enough that a two-second burn never arrives, or the machine " +
-                 "would let go halfway through.")]
-        [SerializeField, Min(1f)] private float towAnchorDistance = 60f;
-
         [Header("Impact")]
         [Tooltip("What arriving somewhere at speed costs whatever the booster was pushing.")]
         [SerializeField] private BoosterImpactConfig impact = new BoosterImpactConfig();
@@ -169,9 +162,6 @@ namespace SpaceGame.Items
 
         /// <summary>How hard this booster is pushing, m/s². Read by <see cref="BoostedBody"/>.</summary>
         public float Acceleration => thrustAcceleration;
-
-        /// <summary>See <see cref="towAnchorDistance"/>.</summary>
-        public float TowAnchorDistance => towAnchorDistance;
 
         /// <summary>See <see cref="impact"/>.</summary>
         public BoosterImpactConfig Impact => impact;

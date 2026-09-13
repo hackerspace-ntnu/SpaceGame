@@ -65,9 +65,37 @@ namespace SpaceGame.Items
                  "volume above 15 /s is bought with the blob's radius instead.")]
         [SerializeField, Min(0.1f)] private float dabsPerSecond = 15f;
 
+        [Tooltip("How many lumps one tick lays. This is the knob that raises VOLUME, because the " +
+                 "rate is already at the hold stream's 15 Hz ceiling and cannot go up. The cluster " +
+                 "is spread and then settled per lump, so it reads as a thicker stream rather than " +
+                 "as one fat dab — and it costs the live budget that many times faster.")]
+        [SerializeField, Range(1, 6)] private int dabsPerTick = 2;
+
+        [Tooltip("How far the lumps in one tick's cluster are thrown apart before they settle, as " +
+                 "a share of a blob radius. Zero stacks them on one point, where the settle has to " +
+                 "break the tie itself and the pile comes out narrow.")]
+        [SerializeField, Range(0f, 2f)] private float clusterSpread = 0.7f;
+
+        [Tooltip("How many times a landed lump may fall and be pushed back out of the foam it " +
+                 "lands in before it is spawned where it stops. This is what makes a held spray " +
+                 "build a mound instead of a column — see FoamSettle. Higher runs further down a " +
+                 "long slope and costs one raycast a step.")]
+        [SerializeField, Range(1, 24)] private int settleSteps = 10;
+
+        [Tooltip("How far one of those falls is, as a share of a blob radius. Small steps trace " +
+                 "the slope more closely and reach less far for the same step count.")]
+        [SerializeField, Range(0.05f, 1f)] private float settleStepShare = 0.35f;
+
+        [Tooltip("How deeply two settled lumps may interpenetrate, as a share of a radius. It is " +
+                 "not slack: the weld field fuses lumps that OVERLAP, so a mass packed to exactly " +
+                 "touching reads as a heap of separate balls. It is also what sets how steeply the " +
+                 "pile stands, because a deeper pack holds a steeper slope.")]
+        [SerializeField, Range(0f, 0.8f)] private float settleOverlap = 0.4f;
+
         [Tooltip("How many of this player's blobs may stand at once. The oldest is retired to make " +
-                 "room, so a long sweep dissolves behind you rather than being refused.")]
-        [SerializeField, Min(1)] private int liveDabBudget = 128;
+                 "room, so a long sweep dissolves behind you rather than being refused. It may not " +
+                 "exceed FoamField.MaxBlobs, or the far end of a sweep stops welding.")]
+        [SerializeField, Min(1)] private int liveDabBudget = 192;
 
         [Tooltip("What foam sticks to. Anything else the arc passes through.")]
         [SerializeField] private LayerMask surfaceMask = ~0;
@@ -374,13 +402,24 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Put one lump in the world, and decide whether it is terrain or an encasement.
+        /// Put this tick's lumps in the world, each where it comes to REST rather than where the
+        /// stream hit, and decide for each whether it is terrain or an encasement.
         ///
         /// <para>
-        /// The decision is a sweep the server runs itself rather than a body named in the message.
-        /// It costs one overlap per dab and it means a client cannot nominate a victim
+        /// The landing point the message carries is where the stream met something. It is not where
+        /// the foam ends up: wet foam slides off what it lands on and runs downhill, which is what
+        /// <see cref="FoamSettle"/> resolves, and it is the whole reason a held trigger builds a
+        /// widening mound instead of a column leaning back along the stream. The solve is the
+        /// server's and happens BEFORE the spawn, so the rest point travels as the spawn position
+        /// and nothing new is on the wire.
+        /// </para>
+        /// <para>
+        /// The encasement decision is a sweep the server runs itself rather than a body named in
+        /// the message. It costs one overlap per dab and it means a client cannot nominate a victim
         /// (GDC-L1-MP-0004); it also catches a second player standing in the same lump, which a
-        /// single named target never would.
+        /// single named target never would. It is asked at the REST point, because that is where
+        /// the lump will be — a sweep at the landing point would foam whoever was standing under
+        /// the stream while the foam itself slid away down the slope.
         /// </para>
         /// </summary>
         private void LayDab(NetArg arg)
@@ -394,9 +433,37 @@ namespace SpaceGame.Items
                 return;
             }
 
-            bool encases = EncaseBodiesAt(arg.P);
+            // The flight time is measured to the LANDING point for every lump in the cluster: it is
+            // how long the player watches the stream travel, and a lump that settled ten metres
+            // down a slope did not get there any sooner.
+            float travel = TravelSecondsTo(arg.P);
 
-            GameObject spawned = GameServices.World.Spawn(foamBlobPrefab.gameObject, arg.P, arg.R);
+            Vector3 normal = arg.R * Vector3.forward;
+            Transform self = owner != null ? owner.transform : null;
+
+            for (int i = 0; i < Mathf.Max(1, dabsPerTick); i++)
+                LayOne(Spread(arg.P, normal), normal, arg.R, self, travel);
+
+            RetireOverBudget();
+        }
+
+        /// <summary>
+        /// One lump: settle it, sweep it, spawn it.
+        /// </summary>
+        private void LayOne(Vector3 landing, Vector3 normal, Quaternion pose, Transform self,
+                            float travel)
+        {
+            // The furthest a lump may fall in one step is the gun's own reach: foam cannot come to
+            // rest further below the stream than the stream could have been thrown, and deriving it
+            // here rather than serializing it keeps one more number from disagreeing with the arc.
+            Vector3 rest = FoamSettle.Resolve(landing, normal, BlobRadius, surfaceMask, self,
+                                              self != null ? self.root : null,
+                                              settleSteps, settleStepShare, settleOverlap,
+                                              sprayTravelSpeed * sprayFlightTime);
+
+            bool encases = EncaseBodiesAt(rest);
+
+            GameObject spawned = GameServices.World.Spawn(foamBlobPrefab.gameObject, rest, pose);
             if (spawned == null) return;
 
             if (!spawned.TryGetComponent(out FoamBlob blob))
@@ -406,10 +473,35 @@ namespace SpaceGame.Items
                 return;
             }
 
-            blob.Begin(owner, encases ? encasementLifetime : terrainLifetime,
-                       TravelSecondsTo(arg.P));
+            blob.Begin(owner, encases ? encasementLifetime : terrainLifetime, travel);
+        }
 
-            RetireOverBudget();
+        /// <summary>
+        /// Throw one lump of a cluster off the landing point, ACROSS the surface it landed on.
+        ///
+        /// <para>
+        /// In the contact plane rather than in a ball, because an offset with a component along the
+        /// normal either buries the lump in what the stream hit or hangs it in the air above it —
+        /// and the settle would then spend its first steps undoing the offset rather than finding
+        /// the slope.
+        /// </para>
+        /// <para>
+        /// The draw is the server's own <c>Random</c> and is deliberately not seeded to agree with
+        /// anything: the only output is a spawn position, and that reaches every other machine in
+        /// the spawn payload. Nothing here has to be re-derived anywhere.
+        /// </para>
+        /// </summary>
+        private Vector3 Spread(Vector3 landing, Vector3 normal)
+        {
+            if (clusterSpread <= 0f) return landing;
+
+            Vector2 disc = Random.insideUnitCircle * (clusterSpread * BlobRadius);
+
+            Vector3 right = Vector3.Cross(normal, Vector3.up);
+            if (right.sqrMagnitude < 1e-6f) right = Vector3.Cross(normal, Vector3.forward);
+            right.Normalize();
+
+            return landing + right * disc.x + Vector3.Cross(normal, right) * disc.y;
         }
 
         /// <summary>
@@ -624,6 +716,12 @@ namespace SpaceGame.Items
             // two ticks, so it is floored well clear of the keepalive rather than left to whoever
             // edits it next.
             holdTimeout = Mathf.Max(0.3f, holdTimeout);
+
+            // Past the weld array a player's own foam stops welding at the far end of a sweep,
+            // which is the pile of separate balls the whole substance was written to avoid. The
+            // two numbers move together or not at all — FoamFieldTests asserts the same thing on
+            // the prefab, and this is what stops an Inspector edit from getting there first.
+            liveDabBudget = Mathf.Min(liveDabBudget, FoamField.MaxBlobs);
         }
     }
 }

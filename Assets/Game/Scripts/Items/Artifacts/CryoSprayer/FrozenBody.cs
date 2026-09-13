@@ -121,20 +121,15 @@ namespace SpaceGame.Items
         /// difference between a control tool and a lock nobody escapes (GDC-L1-MP-0002).
         /// </para>
         /// </summary>
-        /// <param name="rate">
-        /// How much of the freezing rate this body takes, as a fraction — 1 on the crosshair and
-        /// less out towards the rim of the plume. See <c>ConeSweep.Falloff</c>.
-        /// </param>
-        public void Chill(float seconds, float freezeSeconds, float rate)
+        public void Chill(float seconds, float freezeSeconds)
         {
-            if (Frozen || seconds <= 0f || rate <= 0f) return;
+            if (Frozen || seconds <= 0f) return;
 
-            // The SPAN and the AMOUNT are two different numbers and only one of them is scaled. A
-            // body caught at the rim of the plume banks less per sweep, but it is being sprayed for
-            // just as long — putting the scaled amount into the expiry too would let the thaw run
-            // between sweeps on the very body that is standing in the vapour.
+            // chilledUntil is what tells this body it is still standing in vapour, and it is the
+            // SPAN of the sweep rather than anything derived from it: a window shorter than the
+            // sweep interval lets the thaw run between two sweeps on the very body being sprayed.
             chilledUntil = Time.time + seconds;
-            chill = Mathf.Clamp01(chill + (freezeSeconds > 0f ? seconds * rate / freezeSeconds : 1f));
+            chill = Mathf.Clamp01(chill + (freezeSeconds > 0f ? seconds / freezeSeconds : 1f));
 
             Paint();
         }

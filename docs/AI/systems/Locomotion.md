@@ -18,7 +18,7 @@ symptoms:
   - "the creature stopped walking after I added a LateUpdate to its subclass"
   - "the feet trail behind the body, or a planted foot slips along the ground"
 reads_with: [AgentSystem, Vehicles, Persistence]
-updated: 2026-09-05
+updated: 2026-09-13
 ---
 
 # Locomotion
@@ -123,7 +123,7 @@ Purely **cosmetic**: it removes one stumble per creature per load. Phase is assi
 - **Bind the gait pattern before deriving speeds.** An unbound pattern can report duty 0 → `MaxSpeed` 0 → `SetTwist` clamps everything to 0 → the distance-driven clock stops → no slice reopens. Dead machine, no error. (Invariant I1; cost a session on the crawler.)
 - **You cannot move a walker by writing its transform.** `pathPos` overwrites it next frame — silently. Teleports, respawns, save restores and portals must go through `ITeleportAware.OnTeleported`, which rebases path, footholds, normals, swing arcs and arm targets by the same rigid transfer. A **rope** goes through `Drag` instead (below); a leash writing `Rigidbody.MovePosition` moved a towed ostrich not at all.
 - **`Drag` moves the path and deliberately NOT the footholds** — that is the whole difference from `OnTeleported`. A transfer carries the feet so the machine arrives in the stance it left; a tow leaves them, because they are still on the ground it is being hauled across, and the over-reach is what makes the legs step rather than skate. `BodyPosition` reads `pathPos`, not the transform, because the transform is only this class's last output.
-- **`ITowable` cannot be implemented here.** It lives in the default assembly and no asmdef may reference it — the same rule that put `LeggedDriver` outside `SpaceGame.Locomotion`. The driver implements it and calls `Drag`, capped at `MaxSpeed` so a rope drags an animal no faster than it could walk. See [LeashSystem.md](LeashSystem.md).
+- **`ITowable` cannot be implemented here.** It lives in the default assembly and no asmdef may reference it — the same rule that put `LeggedDriver` outside `SpaceGame.Locomotion`. The driver implements it and calls `Drag`, capped at `MaxSpeed` so a rope drags an animal no faster than it could walk. A **thruster** (`RequestThrust`) takes the same road: a booster strapped to a walker sets a direction and the gait sets the speed, so it hauls the machine flat out rather than launching it. See [LeashSystem.md](LeashSystem.md) and [StrapOnBooster.md](StrapOnBooster.md).
 - **Ground probes ignore non-kinematic Rigidbodies** (`WalkerGround.IsLooseBody`). A player standing on the crawler deck was read as ground: deck rises → carrier lifts the rider → probe finds them higher → the machine climbs into the sky. Only ever in the middle of the deck, where the single central ray is.
 - **`Physics.IgnoreCollision` does nothing to a raycast.** Portals must call `IGroundProbeExclusions.ExcludeFromGroundProbes` (idempotent, safe before the rig exists) or a walker stops dead at the rim of a hole it may legally walk through.
 - **Nothing at stride frequency may go through a filter.** `heightSmooth` is for terrain noise only; bob/lean/arm-swing are added on top, unfiltered and in phase. Springs (`HorseRideSpring`, `OstrichNeckSpring`) are second-order and are allowed to lag — that lag *is* the effect.

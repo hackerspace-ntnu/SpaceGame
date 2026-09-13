@@ -3,8 +3,7 @@ using System;
 namespace SpaceGame.Gameplay.Surface
 {
     /// <summary>
-    /// Ground the rain has been falling on. A little slippery, and the surface
-    /// <see cref="IceCoat"/> can be laid over.
+    /// Ground the rain has been falling on. A little slippery, and the only coat in the game.
     ///
     /// <para>
     /// <b>Its life is the cloud's, not its own.</b> A storm re-sprays the ground under it on every
@@ -32,8 +31,8 @@ namespace SpaceGame.Gameplay.Surface
 
         /// <summary>
         /// Damp, not frictionless. Enough that a run across it overshoots and a braking turn washes
-        /// out, and far enough from the frozen coats' 0.03 that a player can tell rain from frost
-        /// by how the ground behaves as well as by how it looks (GDC-L1-SYS-0006).
+        /// out, and far enough from the 0.03 a slicked BODY is left with that a player can tell wet
+        /// ground from a film on themselves by how it behaves (GDC-L1-SYS-0006).
         /// </summary>
         private const float DefaultGrip = 0.55f;
 

@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.TestTools;
 using SpaceGame.Items;
 
 namespace SpaceGame.EditorTools
@@ -10,6 +11,13 @@ namespace SpaceGame.EditorTools
     public class DisplayCopyTests
     {
         private class Ticker : MonoBehaviour { }
+
+        // A [RequireComponent] pair in discovery order: the required half is added first, so a
+        // stripper that destroys in that order hits it while its dependent still holds it.
+        private class Reservoir : MonoBehaviour { }
+
+        [RequireComponent(typeof(Reservoir))]
+        private class Dockable : MonoBehaviour { }
 
         private GameObject prefab;
         private GameObject parent;
@@ -55,6 +63,23 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(0, copy.GetComponentsInChildren<Collider>(true).Length);
             Assert.AreEqual(0, copy.GetComponentsInChildren<MonoBehaviour>(true).Length,
                 "no script may survive — NetworkObject and the Ticker are both MonoBehaviours");
+        }
+
+        [Test]
+        public void StripsARequiredComponentWithoutUnityRefusingIt()
+        {
+            // Unity only LOGS a refusal to remove a required component, so the old stripper's
+            // retry pass cleared the object anyway and the failure showed up as console noise
+            // ("Can't remove SupplyReservoir because DockableSupply depends on it") on every pack
+            // rebuild. The test framework fails on an unexpected LogError, which is the assertion
+            // that matters here; NoUnexpectedReceived says so at the point it is checked.
+            prefab.AddComponent<Reservoir>();
+            prefab.AddComponent<Dockable>();
+
+            copy = DisplayCopy.Make(prefab, parent.transform);
+
+            LogAssert.NoUnexpectedReceived();
+            Assert.AreEqual(0, copy.GetComponentsInChildren<MonoBehaviour>(true).Length);
         }
 
         [Test]

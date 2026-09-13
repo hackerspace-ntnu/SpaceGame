@@ -24705,7 +24705,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.CryoSprayerNozzle
   plume: {fileID: 6918358510080892232}
   shutConeDegrees: 3
-  openConeDegrees: 15
+  openConeDegrees: 22
   bite: {fileID: 5826846078985186763}
   blowoff: {fileID: 9018025273692494807}
   rimedParts:
@@ -24743,7 +24743,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  maxGroundAngle: 50
+  coneHalfAngle: 22
   sweepsPerSecond: 15
   freezeSeconds: 0.75
   frost:

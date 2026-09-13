@@ -44,5 +44,31 @@ namespace SpaceGame.Agents
         /// </para>
         /// </summary>
         bool RequestTow(Vector3 anchor);
+
+        /// <summary>
+        /// Ask to be driven along <paramref name="acceleration"/> — metres per second squared, in
+        /// world space — for one physics step.
+        ///
+        /// <para>
+        /// The other half of the channel, and a different question from <see cref="RequestTow"/>.
+        /// A rope knows where it wants this machine to BE and has worked the distance out from the
+        /// rope's own physics; a motor bolted to the machine knows only how hard it pushes, and
+        /// how far that gets the body in one step is the machine's business — a craft resolves it
+        /// against its flight path, a walker against its gait, a creature on a NavMesh against
+        /// whether the push has taken it off the mesh at all.
+        /// </para>
+        /// <para>
+        /// Kept apart rather than folded into the anchor, because the two asks cannot be spelled
+        /// as one vector. A thruster handing a rope-shaped ask has to invent a distance, and an
+        /// implementor that reads that distance literally moves the body by it: a booster asking
+        /// to be pulled towards a point 60 m out along its own axis moved every NavMesh creature
+        /// it was strapped to 60 m per physics step, which read as the animal vanishing.
+        /// </para>
+        /// <para>
+        /// Asked every step for as long as the thrust lasts, exactly as a tow is, so a push that
+        /// stops being asked for stops. Returns false when this machine will not take it at all.
+        /// </para>
+        /// </summary>
+        bool RequestThrust(Vector3 acceleration);
     }
 }

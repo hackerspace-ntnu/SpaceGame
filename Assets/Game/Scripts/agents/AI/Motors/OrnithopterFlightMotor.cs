@@ -494,6 +494,39 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// Something strapped to the craft is pushing it at <paramref name="acceleration"/> this
+        /// step — a booster rather than a rope.
+        ///
+        /// <para>
+        /// No anchor and no arrival: a thruster has nowhere to get to, so the two endings a tow
+        /// has do not exist here and the push lasts exactly as long as it is asked for. It is
+        /// latched into the same slot a rope's pull uses, so it resolves against the flight path
+        /// the same way — a booster adds speed, climb and turn in the proportions the airframe
+        /// gives everything else, rather than sliding the hull sideways through its own lift.
+        /// </para>
+        /// <para>
+        /// It costs stamina like a tow, because the flight model prices whatever is in that slot
+        /// (<c>TowStaminaDrainPerSecond</c>) and fades it as the reserve empties. That is the
+        /// craft's rule about being hauled rather than the booster's about burning, and it is left
+        /// standing: a tired pilot gets less out of a rocket, which is the answer the wings give
+        /// too.
+        /// </para>
+        /// </summary>
+        public bool RequestThrust(Vector3 acceleration)
+        {
+            towActive = false;
+
+            // Nothing to push: on the ground, wrecked, or flown by somebody else's machine — the
+            // same refusal RequestTow makes, and for the same reason.
+            if (!flying || ExternallyPosed) return false;
+            if (acceleration.sqrMagnitude < 1e-8f) return false;
+
+            towAcceleration = acceleration;
+            towActive = true;
+            return true;
+        }
+
+        /// <summary>
         /// The AI channel's "stop what you are doing". For a ground motor that means dropping the
         /// nav destination; for this one it must mean nothing at all while the craft is airborne.
         ///

@@ -172,6 +172,48 @@ namespace SpaceGame.Tests
             Assert.AreEqual(SingularityPhase.Spent, previous);
         }
 
+        /// <summary>
+        /// The Swallowed flag outlasts the stay in the void, for the well's own durations.
+        ///
+        /// <para>
+        /// The swallow is the first frame of <c>Collapsing</c> and the spit is the first frame of
+        /// <c>Spitting</c>, so a body is away for the COLLAPSE and the hold — not the hold alone.
+        /// A flag that covers only the hold runs out with the body still in the white room, which
+        /// is exactly the state <c>SingularityVoidGuard</c> reads as "stranded": the guard hauls a
+        /// player out of a singularity that is still holding them, and the spit then throws nobody.
+        /// Read against the durations the prefab actually ships, so retuning one is caught here.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void TheSwallowedFlagCoversTheWholeTimeInTheVoid()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(WellPrefabPath);
+            Assert.IsNotNull(prefab, $"No prefab at {WellPrefabPath}.");
+
+            var serialized = new SerializedObject(prefab.GetComponent<SingularityWell>());
+
+            float inhale = serialized.FindProperty("inhaleSeconds").floatValue;
+            float flare = serialized.FindProperty("flareSeconds").floatValue;
+            float collapse = serialized.FindProperty("collapseSeconds").floatValue;
+            float hold = serialized.FindProperty("holdSeconds").floatValue;
+            float spit = serialized.FindProperty("spitSeconds").floatValue;
+
+            float swallowAt = inhale + flare;
+            float spitAt = inhale + flare + collapse + hold;
+
+            Assert.AreEqual(SingularityPhase.Collapsing,
+                            SingularityWell.PhaseAt(swallowAt, inhale, flare, collapse, hold, spit),
+                            "The swallow no longer happens on the first frame of Collapsing.");
+            Assert.AreEqual(SingularityPhase.Spitting,
+                            SingularityWell.PhaseAt(spitAt, inhale, flare, collapse, hold, spit),
+                            "The spit no longer happens on the first frame of Spitting.");
+
+            Assert.GreaterOrEqual(SingularityWell.SwallowedSeconds(collapse, hold, spit),
+                                  spitAt - swallowAt,
+                                  "The Swallowed flag expires before the body is spat back out, " +
+                                  "so it spends that gap in the void looking stranded.");
+        }
+
         // ── Being swallowed ────────────────────────────────────────────────────
 
         /// <summary>

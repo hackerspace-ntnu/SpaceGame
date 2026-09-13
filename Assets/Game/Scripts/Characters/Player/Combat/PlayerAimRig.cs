@@ -32,6 +32,23 @@ namespace SpaceGame.Characters
         /// <summary>Name of the masked layer this component owns outright.</summary>
         public const string UpperBodyLayer = "Upper Body";
 
+        /// <summary>
+        /// Name of the second masked layer, which covers the LEFT arm alone.
+        ///
+        /// <para>
+        /// It exists because the layer above answers exactly one ask. A player wearing a working
+        /// device on each forearm — a lit torch and a powered scanner — makes two, and the right
+        /// one used to win outright: the left arm hung at the side with its lamp lighting the
+        /// ground, which is the device's own on/off state reported wrongly (GDC-L1-ANIM-0003).
+        /// This layer carries the left arm's pose for that case and only that case; see
+        /// <see cref="LeftArmStyle"/>.
+        /// </para>
+        /// </summary>
+        public const string WornLeftLayer = "Worn Left";
+
+        /// <summary>Int parameter the Worn Left layer's Any State transitions compare against.</summary>
+        private const string WornLeftStyleParameter = "WornLeftStyle";
+
         [Header("References")]
         [SerializeField] private Animator animator;
 
@@ -66,8 +83,10 @@ namespace SpaceGame.Characters
         private const string AimPitchParameter = "AimPitch";
 
         private int upperBodyLayerIndex = -1;
+        private int wornLeftLayerIndex = -1;
         private int holdStyleHash;
         private int holdMirrorHash;
+        private int wornLeftStyleHash;
         private int armRaiseHash;
         private int aimPitchHash;
 
@@ -92,6 +111,10 @@ namespace SpaceGame.Characters
         private float raiseLeftT;
         private float raiseRightT;
 
+        // The Worn Left layer's weight, eased through the same ramp the hold pose uses so the
+        // second arm comes up at the same speed as the first rather than snapping beside it.
+        private float wornLeftT;
+
         /// <summary>
         /// What is in the hand right now, or <see cref="ItemGrip.HoldStyle.None"/> for empty.
         /// The value <see cref="HoldAnimator"/> last pushed in.
@@ -105,8 +128,9 @@ namespace SpaceGame.Characters
         /// <para>
         /// A held item wins, and it wins for free rather than through a rule: something in the
         /// hand is a better answer to "what are the arms doing" than a device on the wrist, and
-        /// both hands are on it anyway. Between two working gauntlets the right one wins, which is
-        /// arbitrary and has to be: there is one pose and it faces one way.
+        /// both hands are on it anyway. Between two working gauntlets the right one takes THIS
+        /// layer — there is one pose here and it faces one way — and the left one is answered on
+        /// its own layer instead; see <see cref="LeftArmStyle"/>.
         /// </para>
         /// </summary>
         public ItemGrip.HoldStyle PoseStyle =>
@@ -136,6 +160,29 @@ namespace SpaceGame.Characters
             wornLeft != ItemGrip.HoldStyle.None;
 
         /// <summary>
+        /// What the LEFT arm's own layer plays — the left device's pose, and only while the main
+        /// layer is already busy with the right one.
+        ///
+        /// <para>
+        /// A left device alone is not this case: it takes the main layer mirrored, which poses the
+        /// chest with it and reads better than an arm moving on its own. This exists for the arm
+        /// the main layer cannot reach — one pose there, two working devices — and answering it on
+        /// a left-arm mask is the only way both can be up at once.
+        /// </para>
+        /// <para>
+        /// A held item stops it, exactly as it stops the worn pose on the main layer: both hands
+        /// are on the item, and pulling one off it for a wrist device would break the grip the
+        /// held pose exists to show.
+        /// </para>
+        /// </summary>
+        public ItemGrip.HoldStyle LeftArmStyle =>
+            heldStyle == ItemGrip.HoldStyle.None &&
+            wornRight != ItemGrip.HoldStyle.None &&
+            wornLeft != ItemGrip.HoldStyle.None
+                ? wornLeft
+                : ItemGrip.HoldStyle.None;
+
+        /// <summary>
         /// Whether the masked layer should be carrying a pose at all this frame — the thing the
         /// layer WEIGHT is eased towards.
         ///
@@ -157,12 +204,19 @@ namespace SpaceGame.Characters
             controller = GetComponent<PlayerController>();
             view = GetComponent<PlayerViewNetwork>();
 
+            // Added here rather than authored on the prefab, exactly as PlayerViewNetwork adds the
+            // head look: this component decides WHICH arm is posed, so it is the one that must be
+            // sure something is pointing it — on remote copies too, and without a prefab edit that a
+            // re-export or a rebuilt player could lose.
+            if (GetComponent<PlayerArmAim>() == null) gameObject.AddComponent<PlayerArmAim>();
+
             // Included-inactive: on a remote copy PlayerController.Awake has already switched
             // parts of this character off, and the Animator is still the one we must drive.
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
 
             holdStyleHash = Animator.StringToHash(HoldStyleParameter);
             holdMirrorHash = Animator.StringToHash(HoldMirrorParameter);
+            wornLeftStyleHash = Animator.StringToHash(WornLeftStyleParameter);
             gesturingHash = Animator.StringToHash(GesturingParameter);
             armRaiseHash = Animator.StringToHash(ArmRaiseParameter);
             aimPitchHash = Animator.StringToHash(AimPitchParameter);
@@ -170,12 +224,22 @@ namespace SpaceGame.Characters
             if (animator == null) return;
 
             upperBodyLayerIndex = animator.GetLayerIndex(UpperBodyLayer);
+            wornLeftLayerIndex = animator.GetLayerIndex(WornLeftLayer);
 
             // Loud, because everything else about this component will look like it is working:
             // the blend runs, the parameters are written, and nothing appears on screen.
             if (upperBodyLayerIndex < 0)
                 Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{UpperBodyLayer}' " +
                                "layer. Run Tools/SpaceGame/Player/Build Upper Body Layer.", this);
+
+            // Equally loud and for the same reason, but on its own line: a rig with the main layer
+            // and without this one works for everything except the one case this layer exists for,
+            // and that case is two worn devices at once — easy to miss and impossible to diagnose
+            // from what is on screen.
+            if (wornLeftLayerIndex < 0)
+                Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{WornLeftLayer}' " +
+                               "layer, so a left-arm device cannot pose while the right arm is " +
+                               "posing. Run Tools/SpaceGame/Player/Build Upper Body Layer.", this);
         }
 
         /// <summary>
@@ -251,6 +315,30 @@ namespace SpaceGame.Characters
             else wornRight = style;
         }
 
+        /// <summary>
+        /// Is <paramref name="arm"/> being held up by the device worn ON it, right now?
+        ///
+        /// <para>
+        /// The one question <see cref="PlayerArmAim"/> asks before it swings that arm at the
+        /// crosshair, and it is asked here rather than answered by the device because every reason
+        /// the arm might not be the device's to move is already known here and not there: something
+        /// in the hands outranks a wrist device, the gear screen stands the body down, and a corpse
+        /// keeps whatever pose it died in.
+        /// </para>
+        /// <para>
+        /// True for BOTH arms when both wear a working device — that is what the Worn Left layer
+        /// exists for, and a torch on the left wrist has exactly as much business pointing where the
+        /// player looks as one on the right.
+        /// </para>
+        /// </summary>
+        public bool WornArmPosed(ItemGrip.Hand arm)
+        {
+            if (heldStyle != ItemGrip.HoldStyle.None) return false;
+            if (Relaxed || (controller != null && controller.IsDead)) return false;
+
+            return (arm == ItemGrip.Hand.Left ? wornLeft : wornRight) != ItemGrip.HoldStyle.None;
+        }
+
         private void Update()
         {
             Blend(Time.deltaTime);
@@ -289,6 +377,12 @@ namespace SpaceGame.Characters
             bool alive = !Relaxed && (controller == null || !controller.IsDead);
             raiseLeftT = PoseBlend.Ease(raiseLeftT, raiseLeft && alive ? 1f : 0f, raiseBlendTime, deltaTime);
             raiseRightT = PoseBlend.Ease(raiseRightT, raiseRight && alive ? 1f : 0f, raiseBlendTime, deltaTime);
+
+            // The left arm's own layer yields to that arm's firing raise, which plays on the main
+            // layer and would otherwise be overwritten by this one the whole time a device on that
+            // wrist is switched on — the gauntlet would fire with no gesture at all.
+            bool leftArmPosing = LeftArmStyle != ItemGrip.HoldStyle.None && alive && !raiseLeft;
+            wornLeftT = PoseBlend.Ease(wornLeftT, leftArmPosing ? 1f : 0f, holdBlendTime, deltaTime);
         }
 
         private void WriteAnimator()
@@ -314,6 +408,14 @@ namespace SpaceGame.Characters
             // is the owner's live pitch here and their replicated pitch on every other machine.
             animator.SetInteger(armRaiseHash, (raiseLeft ? 1 : 0) | (raiseRight ? 2 : 0));
             animator.SetFloat(aimPitchHash, LookPitch());
+
+            // The second arm, on the mask that is only that arm. Written whatever the main layer
+            // is doing: the two never describe the same limb at once, because LeftArmStyle is None
+            // unless the main layer has already been claimed by the right arm.
+            if (wornLeftLayerIndex < 0) return;
+
+            animator.SetLayerWeight(wornLeftLayerIndex, wornLeftT);
+            animator.SetInteger(wornLeftStyleHash, (int)LeftArmStyle);
         }
 
         /// <summary>The look pitch in degrees, up positive, clamped to the blend tree's range.</summary>
@@ -339,6 +441,7 @@ namespace SpaceGame.Characters
             raiseRight = false;
             raiseLeftT = 0f;
             raiseRightT = 0f;
+            wornLeftT = 0f;
             wornLeft = ItemGrip.HoldStyle.None;
             wornRight = ItemGrip.HoldStyle.None;
             heldStyle = ItemGrip.HoldStyle.None;

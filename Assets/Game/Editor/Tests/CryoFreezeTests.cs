@@ -165,37 +165,38 @@ namespace SpaceGame.EditorTests
                             "the ice.");
         }
 
-        // ── What the cold does to the ground ───────────────────────────────────
+        // ── What the cold does to the ground ───────────────────────
 
         /// <summary>
-        /// Frost and ice leave the same grip. Two numbers were one number too many the day the
-        /// sprayer started laying both of them: a player who has learnt what frozen ground does to
-        /// them should not have to learn it twice because one patch happened to land on water
-        /// (GDC-L1-SYS-0006).
+        /// Nothing. The plume used to lay a disc of frost, or a sheet of ice over water, wherever
+        /// its centre line landed; both were removed because the discs took the holder's own
+        /// footing away as readily as the target's and nobody was spraying the gun for that
+        /// (GDC-L1-BAL-0004).
+        ///
+        /// <para>
+        /// The kinds they used are wire ids, so reviving either number is worse than a regression:
+        /// a peer on an older build would read it as the coat it used to be.
+        /// </para>
         /// </summary>
         [Test]
-        public void FrostAndIceLeaveTheSameGrip()
+        public void TheGroundTakesNoCoatFromTheCold()
         {
-            float frost = new SlickCoat().Grip;
-            float ice = new IceCoat().Grip;
+            Assert.IsFalse(System.Enum.IsDefined(typeof(SurfaceCoatKind), 0),
+                           "Coat kind 0 is back. That was the cryo sprayer's frost, and the " +
+                           "sprayer does not coat the ground any more — a new kind must take a " +
+                           "new number, because 0 is what an older build reads as frost.");
 
-            Assert.AreEqual(ice, frost, 0.001f,
-                            $"Frost leaves {frost} grip and ice leaves {ice}. The same plume made " +
-                            "both, so the difference between them is what is THERE, not how much " +
-                            "of it a foot can use.");
-
-            Assert.Less(frost, 0.1f,
-                        "Frost is no longer frictionless. The whole of what the sprayer does to " +
-                        "ground it cannot freeze is take the grip out of it.");
+            Assert.IsFalse(System.Enum.IsDefined(typeof(SurfaceCoatKind), 1),
+                           "Coat kind 1 is back. That was the sheet of ice over water, and the " +
+                           "same rule applies: the number is retired, not free.");
         }
 
         /// <summary>
-        /// The film on a body and the film on the ground report the same figure. They are asked
-        /// through one interface precisely so that a mover never learns which of the two it is
-        /// standing in, and two different numbers would make that a lie.
+        /// The film on a body outlived the ground coats, and it is still what the plume's first
+        /// touch is worth: no purchase, and ropes sliding straight off.
         /// </summary>
         [Test]
-        public void TheFilmOnABodyMatchesTheFilmOnTheGround()
+        public void AGrazedBodyStillLosesItsGrip()
         {
             var body = new SlickStatus();
             GameObject slicked = New("slicked", typeof(StatusReceiver));
@@ -204,47 +205,15 @@ namespace SpaceGame.EditorTests
 
             try
             {
-                Assert.AreEqual(new SlickCoat().Grip, body.GripFor(slicked, Vector3.zero), 0.001f,
-                                "A slicked body and slicked ground disagree about how much grip " +
-                                "is left, so the same spray does two different things depending " +
-                                "on whether it caught the creature or the sand under it.");
+                Assert.Less(body.GripFor(slicked, Vector3.zero), 0.1f,
+                            "A slicked body has its grip back. The film is the warning the " +
+                            "victim acts on before the pose locks, and it is the whole of what " +
+                            "the plume's first touch does.");
             }
             finally
             {
                 body.OnCleared(slicked.GetComponent<StatusReceiver>());
             }
-        }
-
-        /// <summary>
-        /// Frost goes on anything; ice needs something that can freeze. That split is what stops
-        /// the sprayer building a bridge over dry sand while still leaving every surface it touches
-        /// slippery.
-        /// </summary>
-        [Test]
-        public void FrostTakesAnySurfaceAndIceDoesNot()
-        {
-            Assert.IsTrue(new SlickCoat().CanCoat(Vector3.zero, null, out _),
-                          "Frost refused a surface. It is the coat with no conditions on it — the " +
-                          "one that makes 'everything the plume touches is slippery' true.");
-
-            Assert.IsFalse(new IceCoat().CanCoat(Vector3.zero, null, out _),
-                           "Ice was laid on nothing at all. A sheet over dry sand is a bridge " +
-                           "over nothing and a rule the player cannot see either way.");
-        }
-
-        /// <summary>
-        /// Frost expires and is never written to a save; ice is the one kind that outlives the
-        /// session. Getting this backwards fills a save file with twenty-second patches.
-        /// </summary>
-        [Test]
-        public void FrostExpiresAndIsNotSaved()
-        {
-            var frost = new SlickCoat();
-
-            Assert.Greater(frost.DefaultSeconds, 0f, "Frost never expires.");
-            Assert.IsFalse(frost.Saved, "Frost is written to the save. It lasts twenty seconds.");
-            Assert.IsTrue(new IceCoat().Saved, "Ice is no longer saved. A frozen pool is a bridge " +
-                          "somebody built and it has to come back.");
         }
 
         // ── What actually ships ────────────────────────────────────────────────
@@ -302,24 +271,26 @@ namespace SpaceGame.EditorTests
         }
 
         /// <summary>
-        /// Aiming has to keep paying, or an eighteen-metre cone nine metres across at its far end
-        /// makes the sprayer a longer-ranged flamethrower (GDC-L1-BAL-0004).
+        /// The plume freezes what it covers, at one rate. A body at the rim used to bank a third
+        /// of the cold, which read as a gun that washed vapour over a creature and did nothing —
+        /// and the player could not see the axis they were being scored against (GDC-L1-FEEL-0003).
         /// </summary>
         [Test]
-        public void TheColdFallsOffAcrossTheCone()
+        public void EverythingInThePlumeFreezesAtTheSameRate()
         {
-            Assert.AreEqual(1f, ConeSweep.Falloff(0f, 15f, 0.35f), 0.001f,
-                            "A body on the crosshair no longer freezes at the authored rate.");
+            MethodInfo chill = typeof(CryoSprayerArtifact).GetMethod(
+                "Chill", BindingFlags.NonPublic | BindingFlags.Instance);
 
-            Assert.AreEqual(0.35f, ConeSweep.Falloff(15f, 15f, 0.35f), 0.001f,
-                            "A body at the rim of the cone does not take the authored edge rate.");
+            Assert.IsNotNull(chill, "No 'Chill' on the sprayer.");
+            Assert.AreEqual(3, chill.GetParameters().Length,
+                            "Chill takes a fourth argument again. The one that used to be there " +
+                            "was the off-axis rate, and where a body stands in the plume must " +
+                            "buy it nothing.");
 
-            Assert.AreEqual(0.35f, ConeSweep.Falloff(40f, 15f, 0.35f), 0.001f,
-                            "The falloff runs past the rim, so a body outside the cone would " +
-                            "still be scaled rather than skipped.");
-
-            Assert.Greater(ConeSweep.Falloff(5f, 15f, 0.35f), ConeSweep.Falloff(12f, 15f, 0.35f),
-                           "The cold does not fall off with angle, so aiming buys nothing.");
+            Assert.IsNull(
+                typeof(ConeSweep).GetMethod("Falloff", BindingFlags.Public | BindingFlags.Static),
+                "ConeSweep.Falloff is back. Nothing scales an effect across the cone any more; a " +
+                "gun that wants to must say so in its own terms.");
         }
 
         private static void AssertMatches(SerializedObject shipped, SerializedObject defaults,

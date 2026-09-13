@@ -16,7 +16,7 @@ symptoms:
   - "scenes are full of missing prefab instances a GUID grep cannot find"
   - "a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0)"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-07
+updated: 2026-09-13
 ---
 # Editor Tooling
 
@@ -72,7 +72,7 @@ Every custom Unity Editor window, menu command, prefab/asset builder and importe
 | Tools/SpaceGame/Menus/Setup World Select | [WorldSelectSetup.cs](Assets/Game/Editor/Menus/WorldSelectSetup.cs) | Rebuilds the world-select panel in the same scene |
 | Tools/SpaceGame/Menus/Setup Lobby Preview | [LobbyPreviewSetup.cs](Assets/Game/Editor/Menus/LobbyPreviewSetup.cs) | Builds `Resources/LobbyPreviewAstronaut.prefab` + wires the scene |
 | Tools/SpaceGame/Multiplayer/Sync Network Prefabs | [NetworkPrefabRegistrar.cs](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) | Adds every prefab with a root `NetworkObject` to the list `NetworkManager.prefab` references |
-| Tools/SpaceGame/Player/Build Upper Body Layer | [PlayerUpperBodySetup.cs](Assets/Game/Editor/PlayerUpperBodySetup.cs) | Rebuilds the aim/hold layer inside `AstronautArmature.controller` |
+| Tools/SpaceGame/Player/Build Upper Body Layer | [PlayerUpperBodySetup.cs](Assets/Game/Editor/PlayerUpperBodySetup.cs) | Rebuilds the two masked layers inside `AstronautArmature.controller`: `Upper Body` (hold poses, mirrored twins, gauntlet raises) and `Worn Left` (the left arm alone, for a device on each forearm) |
 | Tools/SpaceGame/Ragdoll/Wire Prefabs | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Adds `AgentRagdoll`/`PlayerRagdoll` across creature + player prefabs |
 | Tools/SpaceGame/Ragdoll/{Report Candidates, Audit Skeletons, Diagnose Wired Prefabs} | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Read-only: felling candidates, skinned vs rigid-part rigs, broken joints on wired prefabs |
 | Tools/Tests/Run EditMode Tests (headless) | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Runs the EditMode suite, writes a result file |

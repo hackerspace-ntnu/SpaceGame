@@ -91,6 +91,61 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void ADeviceOnEachArm_PosesBothArms()
+        {
+            // A lit torch on one wrist and a powered scanner on the other. The main layer answers
+            // one ask and the right arm takes it, so without the left arm's own layer the left
+            // lamp lit the ground while its own screen said it was on.
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+
+            Assert.AreEqual(ItemGrip.HoldStyle.OneHanded, rig.PoseStyle,
+                "the right arm's device keeps the main layer");
+            Assert.IsFalse(rig.PoseMirrored,
+                "which it plays unmirrored, or the wrong arm comes up for it");
+            Assert.AreEqual(ItemGrip.HoldStyle.OneHanded, rig.LeftArmStyle,
+                "and the left arm is answered on its own layer instead of losing");
+        }
+
+        [Test]
+        public void ALeftDeviceAlone_StaysOnTheMainLayer()
+        {
+            // Mirrored on the main layer, which poses the chest with it. The left arm's own layer
+            // is for the case that layer is already taken — using it here would leave the torso
+            // out of a pose it used to have.
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+
+            Assert.IsTrue(rig.PoseMirrored);
+            Assert.AreEqual(ItemGrip.HoldStyle.None, rig.LeftArmStyle);
+        }
+
+        [Test]
+        public void AHeldItemStopsTheSecondArmToo()
+        {
+            // Both hands are on the item. Pulling one off it for a wrist device would break the
+            // grip the held pose exists to show.
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+            rig.SetHeldStyle(ItemGrip.HoldStyle.TwoHanded);
+
+            Assert.AreEqual(ItemGrip.HoldStyle.TwoHanded, rig.PoseStyle);
+            Assert.AreEqual(ItemGrip.HoldStyle.None, rig.LeftArmStyle);
+        }
+
+        [Test]
+        public void SwitchingTheRightDeviceOff_HandsTheLeftBackToTheMainLayer()
+        {
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.OneHanded);
+            rig.SetWornStyle(ItemGrip.Hand.Left, ItemGrip.HoldStyle.OneHanded);
+
+            rig.SetWornStyle(ItemGrip.Hand.Right, ItemGrip.HoldStyle.None);
+
+            Assert.IsTrue(rig.PoseMirrored, "the left lamp is the only ask left, so it takes the layer");
+            Assert.AreEqual(ItemGrip.HoldStyle.None, rig.LeftArmStyle,
+                "and the second layer stands down, or both would pose the same arm");
+        }
+
+        [Test]
         public void AHeldItemStillWins_AndIsNeverMirrored()
         {
             // The off hand grips items without the body turning round; mirroring for a held item

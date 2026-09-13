@@ -1,4 +1,4 @@
-// "Q to exit the ship" — shown while this machine's own player is sitting in a landed ship and
+// "Esc to exit the ship" — shown while this machine's own player is sitting in a landed ship and
 // may get up.
 //
 // It exists because the crash landing is the one seat in the game you are put into rather than
@@ -36,7 +36,7 @@ namespace SpaceGame.Presentation
                  "cutscene is fine.")]
         [SerializeField, Min(0f)] private float delayWithoutRecovery = 10f;
 
-        [SerializeField] private string hintText = "<color=#FFD980><b>Q</b></color>  exit the ship";
+        [SerializeField] private string hintText = "<color=#FFD980><b>Esc</b></color>  exit the ship";
 
         private float mayLeaveSince = -1f;
         private float cutsceneOverSince = -1f;

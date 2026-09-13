@@ -850,8 +850,17 @@ namespace SpaceGame.EditorTools
         /// this is what puts a real one back, and a real one lifts off the mat and goes on again.
         /// </para>
         /// <para>
-        /// The rig gets the CHARGED bottle (it replaces one that always read as full) and the wall
-        /// the drained one, so the plant has something to do on the first visit.
+        /// Every bottle stocked here enters FULL — see <see cref="StockedFull"/>. Air kills now,
+        /// and the arrival is a crash landing: an opening minute spent hunting the plant with
+        /// sixty seconds of suit reserve is a scramble against a system nobody has been taught.
+        /// </para>
+        /// <para>
+        /// <b>The wall's tanks are PER CREW, and its battery is not.</b> A spare bottle each is a
+        /// store, and a crew of four splitting one is a party-size difficulty curve nobody
+        /// authored, so the tank goes in <c>WallInventory.perCrewItems</c> — laid on by the arrival
+        /// once it knows how many people are riding the hull down. The battery is a machine part
+        /// rather than a consumable: the plant needs exactly one and it never drains, so a second
+        /// is a duplicate with nothing to do. It stays in the fixed manifest.
         /// </para>
         /// </summary>
         private static void RouteIntoTheGame()
@@ -860,11 +869,15 @@ namespace SpaceGame.EditorTools
             var battery = AssetDatabase.LoadAssetAtPath<InventoryItem>(BatteryAsset);
             if (tank == null || battery == null) return;
 
-            // A SPARE tank on the wall as well as the one on the rig, which the container can now
-            // actually hold: PackItemKey gives every placement its own instance handle, so two of
-            // one asset are two placements. Before it, a second tank was silently refused.
-            Stock(GearWallPrefab, "the ship's gear wall", tank, battery);
-            Stock(ExpeditionRigPrefab, "the expedition rig", tank);
+            Stock(GearWallPrefab, "the ship's gear wall", MainItemsField, battery);
+            Stock(GearWallPrefab, "the ship's gear wall", PerCrewItemsField, tank);
+
+            // Migration, 2026-09-12: the wall's tank used to be one fixed bottle in the manifest.
+            // Left there it would be a bottle ON TOP of the per-crew count, so a crew of one would
+            // find two, and the count would be quietly wrong at every crew size.
+            Unstock(GearWallPrefab, "the ship's gear wall", MainItemsField, tank);
+
+            Stock(ExpeditionRigPrefab, "the expedition rig", MainItemsField, tank);
         }
 
         /// <summary>
@@ -916,28 +929,26 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// Add items to one <see cref="PackContainer"/>'s authored starting list, skipping any it
-        /// already holds. Idempotent, because this runs on every build of the roster.
+        /// The fixed manifest every <see cref="PackContainer"/> has: the same gear whoever turns up.
         /// </summary>
-        private static void Stock(string prefabPath, string what, params InventoryItem[] items)
+        private const string MainItemsField = "startingMainItems";
+
+        /// <summary>
+        /// <c>WallInventory</c>'s per-head list, laid on by the arrival once the crew is known.
+        /// Only a wall has one — a backpack has no crew.
+        /// </summary>
+        private const string PerCrewItemsField = "perCrewItems";
+
+        /// <summary>
+        /// Add items to one container's authored list, skipping any it already holds. Idempotent,
+        /// because this runs on every build of the roster.
+        /// </summary>
+        private static void Stock(string prefabPath, string what, string field,
+                                  params InventoryItem[] items)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            var container = prefab != null ? prefab.GetComponent<PackContainer>() : null;
-
-            if (container == null)
-            {
-                Debug.LogWarning("[OxygenGear] No PackContainer at " + prefabPath +
-                                 ", so the new items are in the registry but nowhere in the world.");
+            if (!TryOpenList(prefabPath, what, field, out GameObject prefab,
+                             out SerializedObject so, out SerializedProperty list))
                 return;
-            }
-
-            var so = new SerializedObject(container);
-            SerializedProperty list = so.FindProperty("startingMainItems");
-            if (list == null || !list.isArray)
-            {
-                Debug.LogWarning("[OxygenGear] " + what + " has no startingMainItems list.");
-                return;
-            }
 
             // Dangling entries first. Deleting an item asset does not remove references to it —
             // it nulls them in place, silently — so merging the two tanks left a hole in this very
@@ -974,6 +985,145 @@ namespace SpaceGame.EditorTools
             Debug.Log("[OxygenGear] " + what + ": stocked " +
                       (added.Count > 0 ? string.Join(", ", added) : "nothing") +
                       (pruned > 0 ? ", pruned " + pruned + " dangling entry/entries" : "") + ".");
+        }
+
+        /// <summary>
+        /// Take items back OUT of one container's authored list. The mirror of <see cref="Stock"/>,
+        /// and the only way an item that has moved between two lists stops being in both.
+        ///
+        /// <para>
+        /// Idempotent for the reason <see cref="Stock"/> is: a list that no longer names the item
+        /// is left untouched and nothing is written, so the ordinary run of this builder on an
+        /// already-migrated project saves no prefab.
+        /// </para>
+        /// </summary>
+        private static void Unstock(string prefabPath, string what, string field,
+                                    params InventoryItem[] items)
+        {
+            if (!TryOpenList(prefabPath, what, field, out GameObject prefab,
+                             out SerializedObject so, out SerializedProperty list))
+                return;
+
+            var removed = new List<string>();
+
+            for (int i = list.arraySize - 1; i >= 0; i--)
+            {
+                Object held = list.GetArrayElementAtIndex(i).objectReferenceValue;
+
+                foreach (InventoryItem item in items)
+                {
+                    if (held != item) continue;
+
+                    // DeleteArrayElementAtIndex on an object reference NULLS the element the first
+                    // time and only removes it the second. Cleared first, so the single delete
+                    // takes the row out rather than leaving the hole Stock has to prune.
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = null;
+                    list.DeleteArrayElementAtIndex(i);
+                    removed.Add(item.itemName);
+                    break;
+                }
+            }
+
+            if (removed.Count == 0) return;
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SavePrefabAsset(prefab);
+
+            Debug.Log("[OxygenGear] " + what + ": took " + string.Join(", ", removed) +
+                      " out of " + field + ".");
+        }
+
+        /// <summary>
+        /// One container prefab's serialized item list, or false with the reason logged.
+        ///
+        /// <para>
+        /// <c>GetComponent&lt;PackContainer&gt;</c> answers with the subclass on the object, so a
+        /// <c>SerializedObject</c> built from it exposes <c>WallInventory</c>'s own fields as well
+        /// as the base's. That is what lets one pair of helpers write both lists.
+        /// </para>
+        /// </summary>
+        /// <summary>
+        /// The gear wall's two lists, off disk: a battery in the fixed manifest, a tank per crew
+        /// member, and the tank gone from the manifest it used to sit in.
+        ///
+        /// <para>
+        /// Here rather than only in a test because <see cref="Stock"/> and <see cref="Unstock"/>
+        /// write PREFABS, and a prefab save is the thing this project has watched
+        /// <c>AssetDatabase</c> discard without raising anything. A run that logged "stocked" and
+        /// wrote nothing leaves a ship whose crew arrive with no air.
+        /// </para>
+        /// </summary>
+        private static IEnumerable<string> StockProblems()
+        {
+            var tank = AssetDatabase.LoadAssetAtPath<InventoryItem>(TankAsset);
+            var battery = AssetDatabase.LoadAssetAtPath<InventoryItem>(BatteryAsset);
+
+            if (tank == null || battery == null)
+            {
+                yield return "the tank or the battery asset is missing, so the gear wall's stock " +
+                             "could not be checked";
+                yield break;
+            }
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GearWallPrefab);
+            var wall = prefab != null ? prefab.GetComponent<PackContainer>() : null;
+
+            if (wall == null)
+            {
+                yield return "no PackContainer at " + GearWallPrefab;
+                yield break;
+            }
+
+            var so = new SerializedObject(wall);
+
+            if (!Holds(so, MainItemsField, battery))
+                yield return "the gear wall's " + MainItemsField + " has no battery, so the " +
+                             "oxygen plant can never be powered";
+
+            if (!Holds(so, PerCrewItemsField, tank))
+                yield return "the gear wall's " + PerCrewItemsField + " has no tank, so the crew " +
+                             "arrive with no spare air";
+
+            if (Holds(so, MainItemsField, tank))
+                yield return "the gear wall still carries a tank in " + MainItemsField +
+                             " as well as per crew, so every crew size gets one bottle too many";
+        }
+
+        private static bool Holds(SerializedObject so, string field, InventoryItem item)
+        {
+            SerializedProperty list = so.FindProperty(field);
+            if (list == null || !list.isArray) return false;
+
+            for (int i = 0; i < list.arraySize; i++)
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == item) return true;
+
+            return false;
+        }
+
+        private static bool TryOpenList(string prefabPath, string what, string field,
+                                        out GameObject prefab, out SerializedObject so,
+                                        out SerializedProperty list)
+        {
+            so = null;
+            list = null;
+
+            prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            var container = prefab != null ? prefab.GetComponent<PackContainer>() : null;
+
+            if (container == null)
+            {
+                Debug.LogWarning("[OxygenGear] No PackContainer at " + prefabPath +
+                                 ", so the new items are in the registry but nowhere in the world.");
+                return false;
+            }
+
+            so = new SerializedObject(container);
+            list = so.FindProperty(field);
+
+            if (list != null && list.isArray) return true;
+
+            Debug.LogWarning("[OxygenGear] " + what + " has no " + field + " list.");
+            return false;
         }
 
         // ─────────────────────────── Proof ───────────────────────────
@@ -1058,12 +1208,14 @@ namespace SpaceGame.EditorTools
                     problems.Add(supply.Name + " is not in " + NetworkPrefabsPath);
             }
 
+            problems.AddRange(StockProblems());
+
             if (problems.Count == 0)
             {
                 Debug.Log("[OxygenGear] VERIFIED off disk: " + Roster.Length + " items, holdSize " +
                           HoldSize.ToString("F2") + ", packSize " + TankPackSize.ToString("F2") +
                           "/" + CellPackSize.ToString("F2") + ", both gauged, all registered for " +
-                          "clients.");
+                          "clients, one battery and a tank per crew member on the gear wall.");
                 return true;
             }
 

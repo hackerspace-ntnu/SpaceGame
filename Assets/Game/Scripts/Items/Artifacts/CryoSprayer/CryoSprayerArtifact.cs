@@ -1,37 +1,32 @@
 // The cryo sprayer.
 //
-// Hold Use and a plume of vapour comes out. Everything it touches loses its grip. What it lands on
-// decides HOW: liquid and wet ground become a standable sheet of ice, any other ground level enough
-// to hold a disc takes a film of frost, and a body wears that film until it has had enough cold to
-// freeze solid.
+// Hold Use and a plume of vapour comes out. Every body it washes over wears a film of frost at
+// once, and holds the pose it was caught in once it has had enough cold to freeze solid.
 //
-// None of those is this item's work. StatusKind.Frozen owns the helplessness and the ten seconds it
-// lasts; StatusKind.Slick owns the film on a body; SurfaceCoatKind.Ice and .Slick own the patches,
-// their colliders, their merge rules, their cap, their replication and their save records;
-// SupplyReservoir owns the tank. What the sprayer owns is WHERE the cold lands, how long it has to
-// stay there, and what the gun looks like putting it there — and nothing else. Every number the
-// freeze and the film are made of is authored on FrozenStatus, SlickStatus, IceCoat and SlickCoat,
-// and this deliberately passes no duration and no radius so that it cannot disagree with them.
+// Neither of those is this item's work. StatusKind.Frozen owns the helplessness and the ten seconds
+// it lasts; StatusKind.Slick owns the film on a body; SupplyReservoir owns the tank. What the
+// sprayer owns is WHERE the cold lands, how long it has to stay there, and what the gun looks like
+// putting it there — and nothing else. Every number the freeze and the film are made of is authored
+// on FrozenStatus and SlickStatus, and this deliberately passes no duration and no radius so that
+// it cannot disagree with them.
 //
-// WHY ONE GUN DOES BOTH. The slick can used to lay this film, over four metres, at a fifth of the
-// grip reduction, and did nothing else — a strictly narrower version of a job the sprayer's plume
-// already covered at eighteen. Two systems doing substantially the same job is the case
-// GDC-L1-SYS-0005 says to merge rather than to differentiate, and the merged tool is not a strict
-// gain: the frost is symmetric, so the ground the holder is denying is ground they cannot brake on
-// either, and the film that slides a rope off a creature slides it off one they were trying to
-// catch (GDC-L1-BAL-0004).
+// THE GROUND TAKES NOTHING. The plume used to leave a disc of frost, or a sheet of ice over water,
+// wherever its centre line landed. Those patches were a second weapon nobody had asked for: the
+// player spraying a creature carpeted the ground they were both standing on, and the film is
+// symmetric, so the discs took the holder's own footing away as readily as the target's
+// (GDC-L1-BAL-0004). The cold is now a thing that happens to BODIES, which is the one effect the
+// gun was reached for, and the ground reads as ground.
 //
 // WHAT DOES NOT GO ON THE WIRE. Nothing of the sprayer's own. arg.A is the hotbar slot on the press
 // and on every hold tick and belongs to the server's stale-slot guard; arg.B's low bit belongs to
 // EquipmentController's active flag. The sprayer needs neither: it writes only the aim ray (origin
-// in P, rotation in R), and the status receiver and the coat field each send their own facts.
+// in P, rotation in R), and the status receiver sends its own facts.
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay.Status;
-using SpaceGame.Gameplay.Surface;
 
 namespace SpaceGame.Items
 {
@@ -39,9 +34,8 @@ namespace SpaceGame.Items
     /// A one-handed sprayer that freezes what it is pointed at.
     ///
     /// <para>
-    /// <b>Authority is Server</b>, because a freeze is a condition on somebody else's body and a
-    /// sheet of ice is a change to shared ground — both contested, neither the holder's own
-    /// (GDC-L1-MP-0004). Only the server applies the status and only the server lays the coat.
+    /// <b>Authority is Server</b>, because a freeze is a condition on somebody else's body —
+    /// contested, and not the holder's own (GDC-L1-MP-0004). Only the server applies the status.
     /// </para>
     /// <para>
     /// <b>The build-up is derived rather than replicated.</b> Freezing a body takes three quarters
@@ -63,20 +57,22 @@ namespace SpaceGame.Items
     /// which is what makes it a fight rather than a click (GDC-L1-DESIGN-0006).
     /// </para>
     /// <para>
-    /// <b>The plume freezes the cone it is drawn as, not only its centre line.</b> What the player
-    /// sees leaving the barrel is a fifteen-degree spray, so vapour visibly washing over a creature
-    /// and doing nothing to it reads as a broken gun however precisely the crosshair rule is
-    /// documented (GDC-L1-FEEL-0003 — answer what the player meant, and the cone they can see is
-    /// what they meant). Every body inside that cone chills, and it is a cone rather than a fan of
-    /// sampled dabs so that the build-up cannot stall and restart for reasons nobody can see.
+    /// <b>Anything the plume washes over freezes, at the same rate wherever it stands in it.</b>
+    /// What the player sees leaving the barrel is the whole of what the gun does, so vapour
+    /// visibly covering a creature and doing nothing — or doing a third of something — reads as a
+    /// broken gun however precisely the crosshair rule is documented (GDC-L1-FEEL-0003: answer
+    /// what the player meant, and the cone they can see is what they meant). Every body inside the
+    /// cone chills at the authored rate, and it is a cone rather than a fan of sampled dabs so
+    /// that the build-up cannot stall and restart for reasons nobody can see.
     /// </para>
     /// <para>
-    /// <b>Aiming still pays, because the cold falls off across the cone.</b> A body on the
-    /// crosshair freezes in the authored three quarters of a second and one at the rim takes
-    /// <see cref="edgeChill"/> of that rate — see <see cref="ConeSweep.Falloff"/>. Without the
-    /// falloff an eighteen-metre cone is nine metres across at its far end and the sprayer becomes
-    /// a better flamethrower held at four times the range (GDC-L1-BAL-0004). The spread itself is
-    /// authored on <see cref="CryoSprayerNozzle"/>, which draws it.
+    /// <b>What aiming buys is the cone, not a bonus inside it.</b> The spread is wide enough that
+    /// a target near the crosshair is covered and narrow enough that the plume is a spray rather
+    /// than an area — the cost of that is deliberate and known: a body at the rim now freezes as
+    /// fast as one dead ahead, which makes a held plume swept across a group a crowd freeze at a
+    /// range the flamethrower cannot reach (GDC-L1-BAL-0004). The freeze deals no damage and
+    /// cannot kill, which is what keeps that affordable. The spread itself is authored on
+    /// <see cref="CryoSprayerNozzle"/>, which draws it.
     /// </para>
     /// </summary>
     public sealed class CryoSprayerArtifact : ToolItem
@@ -95,29 +91,19 @@ namespace SpaceGame.Items
 
         [Tooltip("Half the freezing cone's opening angle, in degrees. Must match the spread the " +
                  "plume is DRAWN at — CryoSprayerNozzle.openConeDegrees — or vapour washes over a " +
-                 "creature and does nothing to it; OnValidate warns when the two drift apart.")]
-        [SerializeField, Range(0f, 45f)] private float coneHalfAngle = 15f;
-
-        [Tooltip("How much of the freezing rate a body standing at the very rim of the cone " +
-                 "takes, as a fraction. One freezes the whole cone as fast as the crosshair, " +
-                 "which at eighteen metres is a nine-metre-wide crowd freeze; the authored value " +
-                 "keeps a rim target roughly three times slower than an aimed one.")]
-        [SerializeField, Range(0.05f, 1f)] private float edgeChill = 0.35f;
+                 "creature and does nothing to it; OnValidate warns when the two drift apart.\n\n" +
+                 "Everything inside it freezes at the same rate, so this angle IS the gun's " +
+                 "accuracy: widening it is the difference between a spray and an area weapon.")]
+        [SerializeField, Range(0f, 45f)] private float coneHalfAngle = 22f;
 
         [Tooltip("What stops the cold reaching a body. Set to nothing to let the plume freeze " +
                  "through walls, which is almost never what is wanted at eighteen metres.")]
         [SerializeField] private LayerMask sightBlockers = ~0;
 
-        [Tooltip("Steepest surface that still takes a coat, in degrees off level. A coat is a " +
-                 "horizontal disc laid at the point it was sprayed, so frost put on a wall would " +
-                 "hang in the air beside it as a rink nobody is standing on. The same gate for " +
-                 "ice and for frost: what it is really asking is whether anything stands here.")]
-        [SerializeField, Range(0f, 89f)] private float maxGroundAngle = 50f;
-
-        [Tooltip("How often the plume is resolved, in sweeps per second. Costs nothing in " +
-                 "bandwidth by itself, but the authority lays a coat per sweep and each of those " +
-                 "is one message — fifteen matches the hold stream, which is the rate every other " +
-                 "continuous item in this game already costs.")]
+        [Tooltip("How often the plume is resolved, in sweeps per second. Fifteen matches the " +
+                 "hold stream, which is the rate every other continuous item in this game already " +
+                 "runs at — and the rate the landing burst is moved at, so a slower one makes the " +
+                 "frost at the plume's end jump between points.")]
         [SerializeField, Min(1f)] private float sweepsPerSecond = 15f;
 
         [Header("Freeze")]
@@ -182,7 +168,7 @@ namespace SpaceGame.Items
         private static readonly Func<GameObject, StatusReceiver> ResolveBody =
             StatusReceiver.EnsureOnBody;
 
-        /// <summary>The freeze and the ice are both contested, so exactly one machine decides them.</summary>
+        /// <summary>A freeze is contested, so exactly one machine decides it.</summary>
         public override UseAuthority Authority => UseAuthority.Server;
 
         /// <summary>The trigger is a spray, so the sprayer rides the hold stream. See UsableItem.</summary>
@@ -391,16 +377,13 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Sweep the plume and leave whatever it found colder: every body in the cone, and the
-        /// ground the centre line ends on.
+        /// Sweep the plume and leave every body in the cone colder.
         ///
         /// <para>
         /// The cone and the centre line answer two different questions and are not alternatives.
-        /// Bodies come from the cone, because the vapour the player watched wash over a creature is
-        /// what they aimed (GDC-L1-FEEL-0003); the COAT comes from the single trace, because a coat
-        /// is a disc laid at one point and a cone has no one point. A creature standing in the way
-        /// still shields the ground behind it — the trace stops on the body, and a body takes no
-        /// coat.
+        /// The cold comes from the cone, because the vapour the player watched wash over a creature
+        /// is what they aimed (GDC-L1-FEEL-0003); the centre-line trace decides only where the
+        /// landing burst is drawn, because a burst is one point and a cone has no one point.
         /// </para>
         /// <para>
         /// What counts as a body is <see cref="StatusReceiver.EnsureOnBody"/> — anything alive,
@@ -422,8 +405,7 @@ namespace SpaceGame.Items
                              owner.transform.root, StatusReceiver.Of(owner), ResolveBody, chilled);
 
             foreach (ConeBody caught in chilled)
-                Chill(caught.Body, elapsed,
-                      ConeSweep.Falloff(caught.OffAxisDegrees, coneHalfAngle, edgeChill), authority);
+                Chill(caught.Body, elapsed, authority);
 
             if (!Trace(out RaycastHit hit))
             {
@@ -431,25 +413,13 @@ namespace SpaceGame.Items
                 return;
             }
 
-            // The landing effects follow the centre line, which is where the player is looking. A
-            // body on it is always freezing — it is the least off-axis thing in the cone — so the
-            // burst sticks without asking the sweep about it.
-            if (StatusReceiver.EnsureOnBody(hit.collider.gameObject) != null)
-            {
-                if (nozzle != null) nozzle.SetLanding(true, hit.point, true);
-                return;
-            }
+            // The landing burst follows the centre line, which is where the player is looking. It
+            // bites on a body — which is always freezing, being the least off-axis thing in the
+            // cone — and blows off anything else, because ground is the one thing the plume now
+            // leaves exactly as it found it (GDC-L1-SYS-0006: the refusal is shown, not explained).
+            bool onBody = StatusReceiver.EnsureOnBody(hit.collider.gameObject) != null;
 
-            SurfaceCoatKind? coat = CoatFor(hit);
-
-            // Radius and duration left at zero: the kind's own, which for ice is a metre and a half
-            // and forever, and for frost is 1.2 m and twenty seconds. Spraying a kind onto ground
-            // that already carries it GROWS and refreshes that patch rather than laying a second
-            // one, which is what lets a held spray run at fifteen sweeps a second without
-            // carpeting a chunk.
-            if (authority && coat.HasValue) SurfaceCoats.Spray(coat.Value, hit.point);
-
-            if (nozzle != null) nozzle.SetLanding(true, hit.point, coat.HasValue);
+            if (nozzle != null) nozzle.SetLanding(true, hit.point, onBody);
         }
 
         /// <summary>
@@ -457,10 +427,9 @@ namespace SpaceGame.Items
         /// the film and the freeze on the one that decides.
         ///
         /// <para>
-        /// <paramref name="rate"/> is how much of the freezing rate this body takes: 1 on the
-        /// crosshair, falling to <see cref="edgeChill"/> at the rim of the plume. Only the BUILD-UP
-        /// is scaled by it. The film is not: a body the vapour touched at all is slithering
-        /// immediately, which is what makes the graze a warning rather than a surprise.
+        /// Where in the plume the body stands buys it nothing: a body the vapour reaches at all
+        /// freezes at the authored rate, and it wears the film from the first touch — which is
+        /// what makes the graze a warning rather than a surprise.
         /// </para>
         ///
         /// <para>
@@ -477,12 +446,12 @@ namespace SpaceGame.Items
         /// their body back on ground they still cannot brake on rather than at a standstill.
         /// </para>
         /// </summary>
-        private void Chill(StatusReceiver body, float elapsed, float rate, bool authority)
+        private void Chill(StatusReceiver body, float elapsed, bool authority)
         {
             FrozenBody frozen = FrozenBody.Ensure(body, frost);
             if (frozen == null) return;
 
-            frozen.Chill(elapsed, freezeSeconds, rate);
+            frozen.Chill(elapsed, freezeSeconds);
 
             if (!authority) return;
 
@@ -492,33 +461,6 @@ namespace SpaceGame.Items
 
             if (frozen.Progress >= 1f)
                 body.Apply(StatusKind.Frozen, source: owner.transform);
-        }
-
-        /// <summary>
-        /// What the plume leaves on the surface it landed on, or null for one that takes nothing.
-        ///
-        /// <para>
-        /// Two questions, and the first of them belongs here rather than to the coat: the ITEM
-        /// answers "is this level enough to stand a horizontal disc on", which is true of every
-        /// kind and so is asked once; the KIND answers "is this liquid or wet ground", which only
-        /// <see cref="SurfaceCoatKind.Ice"/> cares about. Ice wins where it can, because ice is
-        /// geometry as well as grip and frost laid over a pool would be a film on water nobody can
-        /// stand on.
-        /// </para>
-        /// <para>
-        /// A wall is the one surface that still takes nothing, and it says so: the plume ends in a
-        /// puff of blow-off rather than in frost, which is the reading the player gets before they
-        /// have spent a tank finding out (GDC-L1-SYS-0006). Asked on every machine and not only on
-        /// the authority for exactly that reason.
-        /// </para>
-        /// </summary>
-        private SurfaceCoatKind? CoatFor(RaycastHit hit)
-        {
-            if (Vector3.Angle(hit.normal, Vector3.up) > maxGroundAngle) return null;
-
-            return SurfaceCoats.CanCoat(SurfaceCoatKind.Ice, hit.point)
-                ? SurfaceCoatKind.Ice
-                : SurfaceCoatKind.Slick;
         }
 
         /// <summary>
@@ -622,7 +564,7 @@ namespace SpaceGame.Items
         // bag under SupplyCharge's own key — which is what makes it survive a save, a hotbar scroll,
         // a stow on the pack and a drop. Whether the trigger is down is not state: it is a button,
         // and a quicksave that loaded a sprayer already spraying would hand the player a press they
-        // did not make. Frozen is not saved either, by StatusEffects' own decision, and a sheet of
-        // ice is saved by the coat field rather than by the gun that made it.
+        // did not make. Frozen is not saved either, by StatusEffects' own decision, and the gun
+        // leaves nothing in the world behind it that a save would have to remember.
     }
 }

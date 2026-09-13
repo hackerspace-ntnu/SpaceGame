@@ -27,6 +27,7 @@ using SpaceGame.Locomotion;
 using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.DuneFoil;
+using SpaceGame.World;
 
 namespace SpaceGame.Core.Persistence
 {
@@ -74,18 +75,11 @@ namespace SpaceGame.Core.Persistence
             if (go.GetComponent<PlayerSaveBinder>() != null || go.GetComponent<PlayerSaveSync>() != null)
                 return false;
 
-            bool pickup = false;
-
             foreach (Component c in go.GetComponents<Component>())
             {
                 if (c == null) continue;
 
-                string type = c.GetType().Name;
-                if (Transient.Contains(type)) return false;
-
-                // By name: PickupableItem is internal to SpaceGame.Items, so it cannot be named as
-                // a type here.
-                if (type == "PickupableItem") pickup = true;
+                if (Transient.Contains(c.GetType().Name)) return false;
             }
 
             var reasons = new List<string>();
@@ -101,7 +95,7 @@ namespace SpaceGame.Core.Persistence
             if (go.GetComponent<HealthComponent>() != null) reasons.Add("health");
 
             // A dropped item: the thing a player most expects to find where they left it.
-            if (pickup) reasons.Add("pickup");
+            if (IsPickup(go)) reasons.Add("pickup");
 
             // A mover: anything that can end the session somewhere other than where it started.
             // NavMeshAgent implies a wanderer even when the body is kinematic.
@@ -114,6 +108,22 @@ namespace SpaceGame.Core.Persistence
 
             why = string.Join("+", reasons);
             return true;
+        }
+
+        /// <summary>
+        /// Whether this object is a loose item somebody can pick up.
+        ///
+        /// By name: PickupableItem is internal to SpaceGame.Items, so it cannot be named as a type
+        /// here.
+        /// </summary>
+        private static bool IsPickup(GameObject go)
+        {
+            foreach (Component c in go.GetComponents<Component>())
+            {
+                if (c != null && c.GetType().Name == "PickupableItem") return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -592,6 +602,24 @@ namespace SpaceGame.Core.Persistence
             if (go == null || !NeedsSaving(go, out _)) return false;
 
             Ensure(go, out _);
+
+            // A dropped item belongs to the chunk it is lying in, not to whichever scene it happened
+            // to be instantiated into. Without this every drop stayed in the persistent scene and so
+            // was filed there — and the persistent scene is hydrated in SaveManager.Start, before a
+            // single chunk has streamed in. The item was rebuilt over ground that did not exist yet,
+            // fell, and was captured lower on every save, so each load resumed the fall from where
+            // the last one ended. Handing it to the chunk under it means it is rebuilt when that
+            // chunk's terrain is, which is what authored props have always had.
+            //
+            // It does not pin that chunk loaded: gear left behind must not keep a corner of the
+            // world resident for the rest of the session. The chunk unloading captures the item like
+            // anything else in there, and it comes back when the chunk does.
+            if (IsPickup(go) && go.GetComponent<SceneTracked>() == null)
+            {
+                SceneTracked tracked = go.AddComponent<SceneTracked>();
+                tracked.SetPolicy(SceneTracked.UnloadPolicy.Release);
+                tracked.SetKeepChunksLoaded(false);
+            }
 
             // A prefab whose SaveableEntity was never stamped cannot be resolved back to a prefab on
             // load, so its record would be captured faithfully and then dropped with a warning. Say so

@@ -28,25 +28,22 @@ namespace SpaceGame.Gameplay.Surface
     /// gameplay scene, and it spawns on every peer before the first player does — which is what
     /// makes a client's handler exist before the first <c>CoatSprayed</c> arrives. A message whose
     /// entity has nothing subscribed is dropped without a word, so a field that only the host had
-    /// would be a world slicked for the host and dry for everybody else.
+    /// would be a world wet for the host and dry for everybody else.
     /// </para>
     /// <para>
     /// <b>It answers <see cref="IGripSource"/>; it never pushes.</b> A mover reads the multiplier on
-    /// the machine that owns it, on the frame it reads it — which is what keeps a slicked player's
-    /// own movement owner-authoritative (GDC-L1-MP-0004) and puts the skid on the frame they are
+    /// the machine that owns it, on the frame it reads it — which is what keeps a player's own
+    /// movement owner-authoritative (GDC-L1-MP-0004) and puts the skid on the frame they are
     /// looking at (GDC-L1-FEEL-0002).
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(SurfaceCoatSaveable))]
     public sealed class SurfaceCoatField : MonoBehaviour, IGripSource
     {
         // One concrete field per kind rather than a polymorphic list, for StatusReceiver's reasons:
         // every number below gets an Inspector row on the object that carries it, and no type name
         // ends up in a prefab where a rename would break it.
         [Header("Coats")]
-        [SerializeField] private SlickCoat slick = new SlickCoat();
-        [SerializeField] private IceCoat ice = new IceCoat();
         [SerializeField] private WetCoat wet = new WetCoat();
 
         [Header("Field")]
@@ -71,12 +68,6 @@ namespace SpaceGame.Gameplay.Surface
         /// is the newest, which is the one that wins where two of them cross.
         /// </summary>
         private readonly List<SurfaceCoatPatch> patches = new List<SurfaceCoatPatch>();
-
-        /// <summary>
-        /// Saved coats whose chunk is not loaded. Server-side: the store's invariant is that a
-        /// thing is either live in a loaded scene or in a record, never neither and never both.
-        /// </summary>
-        private readonly List<SurfaceCoatRecord> dormant = new List<SurfaceCoatRecord>();
 
         private SurfaceCoatBehaviour[] behaviours;
         private Transform patchRoot;
@@ -133,13 +124,11 @@ namespace SpaceGame.Gameplay.Surface
         {
             EnsureSubscribed();
 
-            WorldStreamer.OnChunkLoaded += OnChunkLoaded;
             WorldStreamer.OnChunkWillUnload += OnChunkWillUnload;
         }
 
         private void OnDisable()
         {
-            WorldStreamer.OnChunkLoaded -= OnChunkLoaded;
             WorldStreamer.OnChunkWillUnload -= OnChunkWillUnload;
 
             if (subscribed)
@@ -187,17 +176,9 @@ namespace SpaceGame.Gameplay.Surface
                 if (patch.Expired) Remove(i);
             }
 
-            // A loaded world stages its global payload before any chunk has hydrated, and the
-            // machine reading it may not be the server yet either — so a restored coat can arrive
-            // before there is anywhere to put it or anyone allowed to put it there. Retried here
-            // rather than left to the chunk events alone, because a world with no streaming grid at
-            // all (an interior, the arena) never raises one, and the cost is a dictionary lookup
-            // per waiting record in the only worlds that have any.
-            if (dormant.Count > 0) ResolveDormant();
-
-            // A field holding restored ice from before the session started has patches but has
-            // never seen a spray, so nothing has asked it to watch for joiners yet — and a client
-            // arriving after that would never be told about a bridge everyone else is walking on.
+            // A field with patches on it that has never seen a spray of its own — a host that took
+            // over a session mid-storm — has asked nobody to watch for joiners yet, and a client
+            // arriving after that would never be told about ground everyone else can see is wet.
             if (patches.Count > 0) BeginWatchingForJoiners();
         }
 
@@ -208,9 +189,8 @@ namespace SpaceGame.Gameplay.Surface
         /// coats are concerned.
         ///
         /// <para>
-        /// <b>The NEWEST patch wins where two of them cross</b>, rather than the slipperiest —
-        /// freezing a wet patch makes it ice, and rain falling on a slick makes it wet, so the last
-        /// thing done to a piece of ground is what that ground is now. Resolved by patch ID, which
+        /// <b>The NEWEST patch wins where two of them cross</b>, rather than the slipperiest: the
+        /// last thing done to a piece of ground is what that ground is now. Resolved by patch ID, which
         /// the server mints in order, so every machine reaches the same answer without a clock.
         /// </para>
         /// <para>
@@ -244,9 +224,9 @@ namespace SpaceGame.Gameplay.Surface
         /// <summary>
         /// Is there a patch of <paramref name="kind"/> under <paramref name="point"/>?
         ///
-        /// Deliberately not "is the newest coat this kind": the Cryo Sprayer asks whether the
-        /// ground has been rained on, and a slick film sprayed over the puddle afterwards does not
-        /// make it dry.
+        /// Deliberately not "is the newest coat this kind": a caller asking whether the ground has
+        /// been rained on means exactly that, and a later coat laid over the puddle does not make
+        /// it dry.
         /// </summary>
         public bool HasCoat(SurfaceCoatKind kind, Vector3 point)
         {
@@ -255,19 +235,6 @@ namespace SpaceGame.Gameplay.Surface
                     return true;
 
             return false;
-        }
-
-        /// <summary>
-        /// Would a coat of <paramref name="kind"/> stick at <paramref name="point"/>?
-        ///
-        /// Asked separately from <see cref="Spray"/> by anything that wants to show the player what
-        /// its spray is about to do before they commit to it. It costs the kind's own surface test
-        /// — for ice, one short ray — so ask it at a frame rate somebody chose, not per pixel.
-        /// </summary>
-        public bool CanCoat(SurfaceCoatKind kind, Vector3 point)
-        {
-            SurfaceCoatBehaviour coat = BehaviourFor(kind);
-            return coat != null && coat.CanCoat(point, this, out _);
         }
 
         // ─────────── what the artifacts do ───────────
@@ -284,7 +251,7 @@ namespace SpaceGame.Gameplay.Surface
         /// </para>
         /// </summary>
         /// <param name="radius">Footprint in metres, or 0 for the kind's own dab size.</param>
-        /// <param name="seconds">Lifetime, or 0 for the kind's own — which for ice is forever.</param>
+        /// <param name="seconds">Lifetime, or 0 for the kind's own.</param>
         public bool Spray(SurfaceCoatKind kind, Vector3 point, float radius = 0f, float seconds = 0f)
         {
             if (!Decides) return false;
@@ -292,26 +259,13 @@ namespace SpaceGame.Gameplay.Surface
             SurfaceCoatBehaviour coat = BehaviourFor(kind);
             if (coat == null) return false;
 
-            if (!coat.CanCoat(point, this, out int colliderLayer)) return false;
-
-            return Lay(coat, point, radius, seconds, colliderLayer);
+            return Lay(coat, point, radius, seconds);
         }
 
         /// <summary>
-        /// Lay a coat that has already been decided on, merging it into a patch of its own kind if
-        /// there is one under it. The half of <see cref="Spray"/> that does NOT ask the kind whether
-        /// the surface will take it.
-        ///
-        /// <para>
-        /// Split out for the restore, and the split is load-bearing. A save says there WAS ice here;
-        /// re-asking would put that fact at the mercy of a raycast fired at a chunk that has loaded
-        /// but not finished building its colliders — and the answer would be no, and the bridge
-        /// somebody built would be gone from the world with nothing on the console. A restore
-        /// restates; only a spray asks.
-        /// </para>
+        /// Lay a coat, merging it into a patch of its own kind if there is one under it.
         /// </summary>
-        private bool Lay(SurfaceCoatBehaviour coat, Vector3 point, float radius, float seconds,
-                         int colliderLayer)
+        private bool Lay(SurfaceCoatBehaviour coat, Vector3 point, float radius, float seconds)
         {
             float dab = radius > 0f ? radius : coat.DefaultRadius;
             float life = seconds > 0f ? seconds : coat.DefaultSeconds;
@@ -324,23 +278,22 @@ namespace SpaceGame.Gameplay.Surface
             {
                 float reach = Vector3.Distance(HorizontalOf(merged.Center), HorizontalOf(point)) + dab;
                 Announce(merged.Id, coat.Kind, merged.Center,
-                         Mathf.Min(Mathf.Max(merged.Radius, reach), maxPatchRadius), life,
-                         merged.ColliderLayer);
+                         Mathf.Min(Mathf.Max(merged.Radius, reach), maxPatchRadius), life);
                 return true;
             }
 
             if (!MakeRoom()) return false;
 
-            Announce(nextId++, coat.Kind, point, Mathf.Min(dab, maxPatchRadius), life, colliderLayer);
+            Announce(nextId++, coat.Kind, point, Mathf.Min(dab, maxPatchRadius), life);
             return true;
         }
 
         /// <summary>
-        /// End every patch whose footprint <paramref name="point"/> is inside — ice smashed, a fire
-        /// drying the ground out. The deciding machine's call; returns how many it ended.
+        /// End every patch whose footprint <paramref name="point"/> is inside — a fire drying the
+        /// ground out. The deciding machine's call; returns how many it ended.
         ///
         /// <paramref name="kind"/> narrows it to one coat, which is usually what a caller means: a
-        /// hammer breaks the ice it was swung at and has nothing to say about the puddle under it.
+        /// fire dries the ground it was lit on and has nothing to say about anything else there.
         /// </summary>
         public int Break(Vector3 point, float radius, SurfaceCoatKind? kind = null)
         {
@@ -382,9 +335,9 @@ namespace SpaceGame.Gameplay.Surface
 
         /// <summary>
         /// <c>NetMsg.CoatSprayed</c>: A is the patch id, B the kind, P the sprayed point, and R
-        /// carries the floats that are left — x the radius in metres, y the lifetime in seconds
-        /// with 0 meaning permanent, z the physics layer a collider-carrying kind builds its
-        /// geometry on.
+        /// carries the floats that are left — x the radius in metres and y the lifetime in seconds,
+        /// with 0 meaning permanent. (z carried the physics layer a collider-carrying kind built
+        /// its geometry on, and no kind carries one now.)
         ///
         /// <para>
         /// R is four floats on the wire and is being used as such, the way <c>StatusSet</c> uses
@@ -398,21 +351,16 @@ namespace SpaceGame.Gameplay.Surface
         /// </para>
         /// </summary>
         private void Announce(int id, SurfaceCoatKind kind, Vector3 centre, float radius,
-                              float seconds, int colliderLayer = 0)
+                              float seconds)
         {
             EnsureSubscribed();
 
-            // Carried in the message rather than re-derived on arrival: the layer comes from a
-            // probe of the surface being frozen, and a client whose chunk arrived a moment later
-            // would probe different geometry — or nothing at all — and build a sheet of ice its
-            // ground probes cannot see.
             this.NetToAll(NetMsg.CoatSprayed, new NetArg
             {
                 A = id,
                 B = (int)kind,
                 P = centre,
-                R = new Quaternion(radius, Mathf.Max(0f, seconds),
-                                   Mathf.Clamp(colliderLayer, 0, 31), 0f),
+                R = new Quaternion(radius, Mathf.Max(0f, seconds), 0f, 0f),
             });
         }
 
@@ -444,7 +392,7 @@ namespace SpaceGame.Gameplay.Surface
             }
 
             SurfaceCoatPatch patch = SurfaceCoatPatch.Create(coat, arg.A, arg.P, radius, seconds,
-                                                             film, Mathf.RoundToInt(arg.R.z), PatchRoot);
+                                                             film, PatchRoot);
             if (patch == null) return;
 
             // Which chunk owns it, decided from the CENTRE and only where the streaming grid
@@ -490,10 +438,10 @@ namespace SpaceGame.Gameplay.Surface
         /// Say it all again when somebody new arrives.
         ///
         /// A joining client has none of the patches that were laid before it connected, and no
-        /// message it missed will be replayed to it by the transport — which for ice, the coat that
-        /// outlives a session, means a bridge everyone else is standing on and it cannot see. So
-        /// the server restates every live patch as one ordinary announcement, and the joiner walks
-        /// exactly the code path every other machine already walked.
+        /// message it missed will be replayed to it by the transport — so a storm's wet ground
+        /// would be dry on its screen and slippery on everyone else's. The server restates every
+        /// live patch as one ordinary announcement, and the joiner walks exactly the code path
+        /// every other machine already walked.
         /// </summary>
         private void BeginWatchingForJoiners()
         {
@@ -528,8 +476,7 @@ namespace SpaceGame.Gameplay.Surface
                 // Floored above zero, because zero is how this message spells "permanent" and a
                 // patch caught on the frame its clock ran out would arrive as an eternal one.
                 Announce(patch.Id, patch.Kind, patch.Center, patch.Radius,
-                         patch.IsPermanent ? 0f : Mathf.Max(0.01f, patch.SecondsLeft),
-                         patch.ColliderLayer);
+                         patch.IsPermanent ? 0f : Mathf.Max(0.01f, patch.SecondsLeft));
             }
         }
 
@@ -538,10 +485,11 @@ namespace SpaceGame.Gameplay.Surface
         /// <summary>
         /// The chunk under this patch is going away, and with it every reason to keep the patch:
         /// nothing can stand on ground that is not loaded, and a coat left behind would be a disc
-        /// of ice hanging in an empty chunk.
+        /// hanging in an empty chunk.
         ///
-        /// A saved kind is folded back into a record first, which is the store's own invariant —
-        /// state is either live in a loaded scene or in a record, never neither.
+        /// Nothing is folded into a record on the way out, because no coat outlives its session:
+        /// every kind there is expires inside half a minute, and a patch whose ground has been
+        /// unloaded has outlived its reason to exist either way.
         /// </summary>
         private void OnChunkWillUnload(Vector2Int coord, Scene scene)
         {
@@ -552,42 +500,7 @@ namespace SpaceGame.Gameplay.Surface
                 SurfaceCoatPatch patch = patches[i];
                 if (patch == null || !patch.HasOwningChunk || patch.OwningChunk != coord) continue;
 
-                if (patch.Coat.Saved) dormant.Add(SurfaceCoatRecord.Of(patch));
-
                 BreakPatch(patch.Id);
-            }
-        }
-
-        private void OnChunkLoaded(Vector2Int coord, Scene scene) => ResolveDormant();
-
-        /// <summary>
-        /// Lay every dormant record whose ground has arrived. Records outside the streaming grid —
-        /// an interior, the arena — have no chunk to wait for and are laid at once.
-        ///
-        /// Each one comes back with a FRESH id. Ids are session handles for "break that patch", not
-        /// identity, and nothing that outlives a session refers to one.
-        /// </summary>
-        private void ResolveDormant()
-        {
-            if (!Decides || dormant.Count == 0) return;
-
-            for (int i = dormant.Count - 1; i >= 0; i--)
-            {
-                SurfaceCoatRecord record = dormant[i];
-                Vector3 centre = record.Center;
-
-                if (TryOwningChunk(centre, out Vector2Int coord) && !IsChunkLoaded(coord)) continue;
-
-                SurfaceCoatBehaviour coat = BehaviourFor(record.Kind);
-                if (coat == null)
-                {
-                    // A kind this build no longer has. The record is kept where it is rather than
-                    // dropped — a downgrade should not delete somebody's world.
-                    continue;
-                }
-
-                dormant.RemoveAt(i);
-                Lay(coat, centre, record.radius, coat.DefaultSeconds, record.layer);
             }
         }
 
@@ -600,56 +513,8 @@ namespace SpaceGame.Gameplay.Surface
                    world.Config.TryGetStreamingCoord(point, out coord);
         }
 
-        private bool IsChunkLoaded(Vector2Int coord)
-        {
-            WorldStreamer world = Streamer;
-            if (world == null || world.Config == null) return false;
-
-            return world.IsChunkLoadedAt(world.Config.ChunkToWorldPosition(coord));
-        }
-
         private WorldStreamer Streamer =>
             streamer != null ? streamer : streamer = FindFirstObjectByType<WorldStreamer>();
-
-        // ─────────── persistence ───────────
-
-        /// <summary>
-        /// Every coat worth saving, live and dormant alike, as flat records.
-        ///
-        /// Dormant ones are included and have to be: a chunk that unloaded an hour ago still holds
-        /// the pool somebody froze, and a capture that only walked the live list would delete it
-        /// from the world by writing a file that never mentioned it.
-        /// </summary>
-        public void CollectSaved(List<SurfaceCoatRecord> into)
-        {
-            if (into == null) return;
-
-            for (int i = 0; i < patches.Count; i++)
-                if (patches[i] != null && patches[i].Coat.Saved)
-                    into.Add(SurfaceCoatRecord.Of(patches[i]));
-
-            into.AddRange(dormant);
-        }
-
-        /// <summary>
-        /// Replace every saved coat with the loaded set. Restore-only; called by the save system.
-        ///
-        /// Everything is parked dormant rather than laid immediately, because a global payload is
-        /// restored before any chunk has hydrated — <see cref="ResolveDormant"/> then lays each one
-        /// as its ground arrives, and lays anything with no chunk to wait for straight away.
-        /// </summary>
-        public void RestoreSaved(IReadOnlyList<SurfaceCoatRecord> records)
-        {
-            dormant.Clear();
-
-            for (int i = patches.Count - 1; i >= 0; i--)
-                if (patches[i] != null && patches[i].Coat.Saved)
-                    BreakPatch(patches[i].Id);
-
-            if (records != null) dormant.AddRange(records);
-
-            ResolveDormant();
-        }
 
         // ─────────── plumbing ───────────
 
@@ -694,7 +559,7 @@ namespace SpaceGame.Gameplay.Surface
 
         /// <summary>
         /// Make room for one more patch, dropping the oldest coat that was going to expire anyway.
-        /// False when every patch there is permanent, which is a world somebody has covered in ice.
+        /// False when every patch there is permanent.
         /// </summary>
         private bool MakeRoom()
         {
@@ -709,7 +574,7 @@ namespace SpaceGame.Gameplay.Surface
             }
 
             Debug.LogWarning($"[Coats] {maxPatches} permanent coats already in the world — this " +
-                             "one is refused. Raise the cap, or break some of the ice.", this);
+                             "one is refused. Raise the cap, or break some of them.", this);
             return false;
         }
 
@@ -718,9 +583,8 @@ namespace SpaceGame.Gameplay.Surface
             SurfaceCoatPatch patch = patches[index];
             patches.RemoveAt(index);
 
-            // Destroyed, never merely switched off: a disabled collider is out of every physics
-            // query but still standing in the scene, so a sheet of ice hidden that way is one a
-            // raycast finds and nobody can see.
+            // Destroyed, never merely switched off: a patch hidden rather than removed is one
+            // every grip query still walks, and one a later kind's collider would still be in.
             if (patch != null) Destroy(patch.gameObject);
 
             StopAnsweringIfIdle();
@@ -771,8 +635,6 @@ namespace SpaceGame.Gameplay.Surface
                 if (behaviours != null) return behaviours;
 
                 behaviours = new SurfaceCoatBehaviour[SurfaceCoatKinds.Count];
-                Slot(slick);
-                Slot(ice);
                 Slot(wet);
                 return behaviours;
             }

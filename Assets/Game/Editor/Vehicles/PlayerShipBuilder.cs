@@ -76,15 +76,18 @@ namespace SpaceGame.EditorTools
         private const string OxygenGeneratorPrefabPath = OxygenGeneratorBuilder.PrefabPath;
         private const string StandingTerminalPrefabPath = StandingTerminalBuilder.PrefabPath;
 
-        // The terminal stands in the COCKPIT, on the door's side: the main deck's ribs are full
-        // (gear wall to starboard; projector, station and plant to port) and its aft end is the
-        // bay doorway. The fore deck's starboard side between the aft passenger chairs (port)
-        // and the front pair is the one clear run on the ship for a 0.78 x 0.9 m unit with room
-        // to stand in front of it — SWEPT on the built ship on 2026-09-05, clear from z 2.4 to
-        // 5.8 at x 2.4-2.6, like the plant's window was. Inboard is from the fore deck's edge to
-        // the unit's origin; Fore is from the fore deck's aft edge.
-        private const float StandingTerminalInboard = 0.40f;
-        private const float StandingTerminalFore = 1.50f;
+        // The terminal stands in line with the GEAR WALL, on the starboard side, this far
+        // forward of the wall's forward edge. Both ends of the gap are measured off the built
+        // fixtures rather than off the deck, so a resize of the wall (PackScale.WallDrawn) or a
+        // re-export of either model carries the terminal with it instead of leaving it buried.
+        //
+        // Forward and not aft: aft of the wall is the bay doorway and its two leaves, which the
+        // repair station on the other side already stands 0.09 m clear of. Forward, the run the
+        // terminal used to stand in (swept on the built ship on 2026-09-05, clear from z 2.4 to
+        // 5.8) carries on into the cockpit walkway.
+        // Internal, unlike its neighbours: PlayerShip_StandingTerminalStandsInLineWithTheGearWall
+        // measures the built pair against this number rather than carrying a copy of it.
+        internal const float StandingTerminalWallGap = 0.60f;
 
         // The library's fixtures are human-scale furniture (the pedestal is 0.88 m, the bench
         // 0.90 m to its top); the astronaut is ~1.7x human (see the worn-item hand-fit work), so
@@ -468,11 +471,11 @@ namespace SpaceGame.EditorTools
                 BuildCockpit(root.transform, parts);
             BuildArrivalSeats(root.transform, parts);
             BuildCabinAlert(root.transform, parts);
-            BuildInventoryWall(root.transform, mainDeck, sideDoor);
+            GameObject gearWall = BuildInventoryWall(root.transform, mainDeck, sideDoor);
             BuildHoloProjector(root.transform, mainDeck, sideDoor);
             BuildRepairStation(root.transform, mainDeck, sideDoor);
             BuildOxygenGenerator(root.transform, mainDeck, sideDoor);
-            BuildStandingTerminal(root.transform, foreDeck, sideDoor);
+            BuildStandingTerminal(root.transform, mainDeck, gearWall);
             BuildInteriorVolume(root, mainDeck, foreDeck);
 
             MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot,
@@ -2180,7 +2183,11 @@ namespace SpaceGame.EditorTools
         /// survive a re-export of the wall as well as of the ship.
         /// </para>
         /// </summary>
-        private static void BuildInventoryWall(Transform root, Bounds deck, Bounds door)
+        /// <returns>
+        /// The placed fitting, or null when it could not be placed. <see cref="BuildStandingTerminal"/>
+        /// lines the terminal up against it, so the wall has to say whether it got a place to stand.
+        /// </returns>
+        private static GameObject BuildInventoryWall(Transform root, Bounds deck, Bounds door)
         {
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(InventoryWallPrefabPath);
             if (source == null)
@@ -2188,14 +2195,14 @@ namespace SpaceGame.EditorTools
                 Debug.LogWarning("[PlayerShipBuilder] No inventory wall at " +
                                  InventoryWallPrefabPath + " — run Tools/SpaceGame/Items/Build " +
                                  "Inventory Wall Prefab. The ship is built without it.");
-                return;
+                return null;
             }
 
             if (deck.size == Vector3.zero || door.size == Vector3.zero)
             {
                 Debug.LogWarning("[PlayerShipBuilder] Could not measure the main deck or the side " +
                                  "door, so the inventory wall was not placed.");
-                return;
+                return null;
             }
 
             // The LATERAL half of the offset only, and X is lateral by construction: ResolveModelYaw
@@ -2220,7 +2227,7 @@ namespace SpaceGame.EditorTools
                 Debug.LogWarning("[PlayerShipBuilder] The inventory wall prefab has no PackSurface, " +
                                  "so there is nothing to aim it by. Removing it again.");
                 Object.DestroyImmediate(instance);
-                return;
+                return null;
             }
 
             // The face into the room, its v axis up. LookRotation's arguments are (forward, up) and
@@ -2252,6 +2259,8 @@ namespace SpaceGame.EditorTools
                       (side.x > 0f ? "+X" : "-X") + " side, face centre " +
                       surface.ToWorld(surface.Size * 0.5f, 0f).ToString("0.00") +
                       ", normal " + surface.transform.up.ToString("0.00") + ".");
+
+            return instance;
         }
 
         /// <summary>
@@ -2468,16 +2477,31 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The standing terminal: a leaning CRT console in the cockpit, on the door's side, its
-        /// screen turned into the walkway. A nested instance of the StandingTerminal prefab, so
-        /// <see cref="StandingTerminalBuilder"/> stays the one place its wiring lives; nested
-        /// under the ship it inherits the ship's NetworkObject, which is what makes the console's
-        /// page and operator replicate. At scale 1, deliberately, not <see cref="CrewFixtureScale"/>:
-        /// the unit is authored to be used at the crew's own size — its screen leans back to face
-        /// an eye ABOVE it, and at 1.7x the glass would stand above the crew's 2.45 m eye with
-        /// the lean facing away from them.
+        /// The standing terminal: a leaning CRT console standing in line with the gear wall on
+        /// the starboard side, its screen turned into the room. A nested instance of the
+        /// StandingTerminal prefab, so <see cref="StandingTerminalBuilder"/> stays the one place
+        /// its wiring lives; nested under the ship it inherits the ship's NetworkObject, which is
+        /// what makes the console's page and operator replicate. At scale 1, deliberately, not
+        /// <see cref="CrewFixtureScale"/>: the unit is authored to be used at the crew's own size —
+        /// its screen leans back to face an eye ABOVE it, and at 1.7x the glass would stand above
+        /// the crew's 2.45 m eye with the lean facing away from them.
+        ///
+        /// <para>
+        /// Placed against the WALL, not against the deck: the decision on 2026-09-12 was that the
+        /// two read as one run of fittings, so the terminal's face lines up with the wall's grid
+        /// face and its aft edge stands <see cref="StandingTerminalWallGap"/> forward of the
+        /// wall's forward edge. Both are measured off the placed wall, so the pair stay together
+        /// through a resize of either.
+        /// </para>
+        /// <para>
+        /// Its back is INSIDE the hull, and that is part of the same decision: the wall's own back
+        /// is already tucked into the skin's baked convex fill (see <see cref="WallPlacementNudge"/>),
+        /// and a console whose face is flush with the wall's is the deeper of the two. So
+        /// <c>PlayerShip_StandingTerminalStandsClearOfTheShipsFittings</c> guards the fittings, the
+        /// chairs and the doors — the things a crew walks into — and not the skin.
+        /// </para>
         /// </summary>
-        private static void BuildStandingTerminal(Transform root, Bounds foreDeck, Bounds door)
+        private static void BuildStandingTerminal(Transform root, Bounds deck, GameObject wall)
         {
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(StandingTerminalPrefabPath);
             if (source == null)
@@ -2488,17 +2512,19 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            if (foreDeck.size == Vector3.zero || door.size == Vector3.zero)
+            PackSurface face = wall != null ? wall.GetComponentInChildren<PackSurface>(true) : null;
+            if (face == null)
             {
-                Debug.LogWarning("[PlayerShipBuilder] Could not measure the fore deck or the side " +
-                                 "door, so the terminal was not placed.");
+                Debug.LogWarning("[PlayerShipBuilder] The terminal stands in line with the gear " +
+                                 "wall, and the wall was not placed, so there is nothing to line " +
+                                 "it up with. The ship is built without the terminal.");
                 return;
             }
 
-            // The DOOR's side this time — the gear wall's side on the main deck, which is the
-            // side the cockpit keeps clear. Lateral component only; X is lateral by construction.
-            Vector3 toDoor = door.center - foreDeck.center;
-            var side = new Vector3(Mathf.Sign(toDoor.x), 0f, 0f);
+            // Which side the pair stands on is the WALL's answer, already resolved off the side
+            // door in BuildInventoryWall. Lateral component only; X is lateral by construction.
+            Bounds fitting = MeasureAll(wall.transform, System.Array.Empty<string>());
+            var side = new Vector3(Mathf.Sign(fitting.center.x - deck.center.x), 0f, 0f);
 
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
             instance.name = "StandingTerminal";
@@ -2506,24 +2532,38 @@ namespace SpaceGame.EditorTools
             instance.transform.localScale = Vector3.one;
             StripNestedSavers(instance);
 
-            // Screen (+Z on the prefab, the Blender front) into the walkway.
+            // Screen (+Z on the prefab, the Blender front) into the room, the way the wall's face
+            // looks into it.
             instance.transform.localRotation = Quaternion.LookRotation(-side);
+            instance.transform.localPosition = Vector3.zero;
 
-            Vector3 footprint =
-                foreDeck.center
-                + side * (foreDeck.extents.x - StandingTerminalInboard)
-                + Vector3.forward * (StandingTerminalFore - foreDeck.extents.z);
+            // Measured AFTER the turn and AT the origin, so the box is the turned unit's extent
+            // about its own origin and the offsets below are offsets, not positions.
+            Bounds box = MeasureAll(instance.transform, System.Array.Empty<string>());
 
-            // On the floor the crew STAND on, not the deck plate's drawn top. The cockpit's
-            // collision fill steps up 0.3 m over the fore deck's renderer, and a fixture stood
-            // on the renderer is buried in the step — the main-deck fixtures get away with
-            // `deck.max.y` because that deck is flat.
-            footprint.y = FloorUnder(root, footprint, foreDeck.max.y);
+            // The wall's grid plane, which is the line the room sees — not the fitting's inboard
+            // renderer extent, because the tray and the header cowl stand proud of the grid and
+            // lining the console up with THOSE would push it a hand's width further into the
+            // walkway than the face a player aims at.
+            float wallFaceX = face.ToWorld(face.Size * 0.5f, 0f).x;
+
+            var footprint = new Vector3(
+                wallFaceX - (box.center.x - side.x * box.extents.x),
+                0f,
+                fitting.max.z + StandingTerminalWallGap - box.min.z);
+
+            // On the floor the crew STAND on, not the deck plate's drawn top. The floor forward of
+            // the wall steps up where the cockpit begins, and a fixture stood on the renderer's
+            // top is buried in that step.
+            footprint.y = FloorUnder(root, footprint, deck.max.y);
             instance.transform.localPosition = footprint;
 
             Debug.Log("[PlayerShipBuilder] Standing terminal on the " +
-                      (side.x > 0f ? "+X" : "-X") + " side of the cockpit at " +
-                      instance.transform.localPosition.ToString("0.00") + ".");
+                      (side.x > 0f ? "+X" : "-X") + " side at " +
+                      instance.transform.localPosition.ToString("0.00") + ", face on the gear " +
+                      "wall's line at x " + wallFaceX.ToString("0.00") + ", " +
+                      StandingTerminalWallGap.ToString("0.00") + " m forward of the wall's edge " +
+                      "at z " + fitting.max.z.ToString("0.00") + ".");
         }
 
         /// <summary>

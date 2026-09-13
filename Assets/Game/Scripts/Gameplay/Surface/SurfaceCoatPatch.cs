@@ -31,8 +31,6 @@ namespace SpaceGame.Gameplay.Surface
 
         private MaterialPropertyBlock block;
         private MeshRenderer film;
-        private Transform slab;
-        private float slabThickness;
         private float appliedFade = -1f;
 
         /// <summary>
@@ -46,7 +44,7 @@ namespace SpaceGame.Gameplay.Surface
         public SurfaceCoatBehaviour Coat { get; private set; }
 
         /// <summary>Shorthand for <c>Coat.Kind</c>.</summary>
-        public SurfaceCoatKind Kind => Coat != null ? Coat.Kind : SurfaceCoatKind.Slick;
+        public SurfaceCoatKind Kind => Coat != null ? Coat.Kind : SurfaceCoatKind.Wet;
 
         /// <summary>Where it was sprayed, in world space.</summary>
         public Vector3 Center => transform.position;
@@ -57,7 +55,7 @@ namespace SpaceGame.Gameplay.Surface
         /// <summary>Seconds until it wears off. Meaningless while <see cref="IsPermanent"/>.</summary>
         public float SecondsLeft { get; private set; }
 
-        /// <summary>True for a coat only a break can end — ice.</summary>
+        /// <summary>True for a coat only a break can end.</summary>
         public bool IsPermanent { get; private set; }
 
         /// <summary>Has this patch's clock run out?</summary>
@@ -84,18 +82,11 @@ namespace SpaceGame.Gameplay.Surface
         public bool HasOwningChunk { get; private set; }
 
         /// <summary>
-        /// The physics layer this patch's geometry was built on, kept so a restatement to a late
-        /// joiner can say it again. Meaningless for a kind that carries no collider.
-        /// </summary>
-        public int ColliderLayer { get; private set; }
-
-        /// <summary>
-        /// Build a patch. <paramref name="seconds"/> of 0 or less is permanent;
-        /// <paramref name="colliderLayer"/> is only consulted by a kind that carries one.
+        /// Build a patch. <paramref name="seconds"/> of 0 or less is permanent.
         /// </summary>
         public static SurfaceCoatPatch Create(SurfaceCoatBehaviour coat, int id, Vector3 centre,
                                               float radius, float seconds, Material filmMaterial,
-                                              int colliderLayer, Transform parent)
+                                              Transform parent)
         {
             if (coat == null) return null;
 
@@ -106,11 +97,9 @@ namespace SpaceGame.Gameplay.Surface
             var patch = go.AddComponent<SurfaceCoatPatch>();
             patch.Id = id;
             patch.Coat = coat;
-            patch.ColliderLayer = colliderLayer;
             patch.Refresh(radius, seconds);
 
             if (filmMaterial != null) patch.BuildFilm(filmMaterial);
-            coat.Build(patch, colliderLayer);
 
             return patch;
         }
@@ -131,11 +120,6 @@ namespace SpaceGame.Gameplay.Surface
             SecondsLeft = IsPermanent ? 0f : Mathf.Max(SecondsLeft, seconds);
 
             if (film != null) SizeFilm();
-
-            // The footing has to grow with the film. A sheet of ice that a second spray widened
-            // while its collider stayed the size of the first dab is ice a player can see and walk
-            // straight through — the failure this whole system exists to avoid, in reverse.
-            if (slab != null) SizeSlab();
         }
 
         /// <summary>Server-side: say which chunk owns this patch. See <see cref="OwningChunk"/>.</summary>
@@ -171,49 +155,6 @@ namespace SpaceGame.Gameplay.Surface
             return delta.sqrMagnitude <= Radius * Radius;
         }
 
-        /// <summary>
-        /// Make this patch something that can be stood on — the ice sheet's collider.
-        ///
-        /// <para>
-        /// A convex mesh collider on the cylinder's own mesh, not the capsule Unity's cylinder
-        /// primitive ships with: a capsule's caps are hemispheres of the cylinder's radius, so a
-        /// sheet a metre and a half across would bulge three quarters of a metre above the water it
-        /// froze and read as a dome. It is also a disc rather than a box, so the ice a player can
-        /// stand on is the ice they can see — a square slab under a round film puts invisible
-        /// footing forty per cent past the edge at the corners.
-        /// </para>
-        /// <para>
-        /// The slab's TOP sits on the sprayed point. Ice that stood proud of the pool it froze
-        /// would be a step up onto the water.
-        /// </para>
-        /// </summary>
-        public void AddSlab(float thickness, int layer)
-        {
-            if (slab != null) return;
-
-            slabThickness = Mathf.Max(0.01f, thickness);
-
-            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            go.name = "Ice";
-            go.layer = layer;
-            go.transform.SetParent(transform, false);
-
-            Mesh mesh = go.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
-
-            RemovePart(go.GetComponent<Collider>());
-
-            // The film draws the ice; the slab is footing and nothing else. Left in, it would draw
-            // an untextured white cylinder through the decal.
-            RemovePart(go.GetComponent<MeshRenderer>());
-
-            var collider = go.AddComponent<MeshCollider>();
-            collider.sharedMesh = mesh;
-            collider.convex = true;
-
-            slab = go.transform;
-            SizeSlab();
-        }
-
         private void BuildFilm(Material material)
         {
             GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -221,7 +162,7 @@ namespace SpaceGame.Gameplay.Surface
             box.transform.SetParent(transform, false);
 
             // The decal is drawn from inside, so the box must not be solid to anything. A collider
-            // here would also be the one thing in a slick pool a player could trip over.
+            // here would also be the one thing in a wet patch a player could trip over.
             RemovePart(box.GetComponent<Collider>());
 
             film = box.GetComponent<MeshRenderer>();
@@ -240,18 +181,6 @@ namespace SpaceGame.Gameplay.Surface
         {
             float diameter = Radius * 2f;
             film.transform.localScale = new Vector3(diameter, Coat.VerticalReach * 2f, diameter);
-        }
-
-        /// <summary>
-        /// Unity's cylinder primitive is radius 0.5 and height 2, so a half-thickness on Y and a
-        /// diameter on X and Z give a disc of <see cref="Radius"/> that is <c>slabThickness</c>
-        /// deep — hanging below the sprayed plane, with its top face on it.
-        /// </summary>
-        private void SizeSlab()
-        {
-            float diameter = Radius * 2f;
-            slab.localPosition = new Vector3(0f, -slabThickness * 0.5f, 0f);
-            slab.localScale = new Vector3(diameter, slabThickness * 0.5f, diameter);
         }
 
         private void ApplyFade()
@@ -280,8 +209,7 @@ namespace SpaceGame.Gameplay.Surface
         /// <para>
         /// Switched off first, because <c>Destroy</c> is deferred to the end of the frame and the
         /// part is live until then — which is one physics step of a box collider a player can trip
-        /// over inside a slick puddle, and one frame of an untextured white cylinder standing in
-        /// the water.
+        /// over inside a puddle.
         /// </para>
         /// <para>
         /// <c>DestroyImmediate</c> outside play mode, because <c>Destroy</c> is refused there and

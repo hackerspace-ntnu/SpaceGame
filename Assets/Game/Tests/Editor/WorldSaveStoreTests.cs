@@ -23,8 +23,11 @@ namespace SpaceGame.EditorTests
         private const string ChunkKey = "chunk:3,2";
         private const string PersistentKey = SceneKey.Persistent;
 
+        private const string BodyPrefabId = "prefab-body";
+
         private Scene scene;
         private GameObject prefab;
+        private GameObject bodyPrefab;
         private readonly List<GameObject> spawned = new();
 
         // A preview scene, not an additive one. Both are real loaded Scenes that report roots and
@@ -73,6 +76,7 @@ namespace SpaceGame.EditorTests
             spawned.Clear();
 
             if (prefab != null) Object.DestroyImmediate(prefab);
+            if (bodyPrefab != null) Object.DestroyImmediate(bodyPrefab);
             if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
         }
 
@@ -82,6 +86,27 @@ namespace SpaceGame.EditorTests
             var go = new GameObject(name);
             SceneManager.MoveGameObjectToScene(go, scene);
             spawned.Add(go);
+            return go;
+        }
+
+        /// <summary>
+        /// A runtime entity whose prefab carries a live Rigidbody — the shape of every dropped item,
+        /// and the only shape the ground rule holds back. Registered under its own prefab id because
+        /// the fixture's prefab has no body and would be restored regardless of terrain.
+        /// </summary>
+        private GameObject FallingEntity(string name, Vector3 position)
+        {
+            if (bodyPrefab == null)
+            {
+                bodyPrefab = new GameObject("FallingThingPrefab");
+                bodyPrefab.AddComponent<Rigidbody>();
+                bodyPrefab.AddComponent<CounterSaver>();
+                bodyPrefab.SetActive(false);
+                SaveablePrefabRegistry.Register(BodyPrefabId, bodyPrefab);
+            }
+
+            GameObject go = RuntimeEntity(name, BodyPrefabId, position, 1);
+            go.AddComponent<Rigidbody>();
             return go;
         }
 
@@ -216,6 +241,63 @@ namespace SpaceGame.EditorTests
             UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
 
             Assert.IsEmpty(WorldSaveStore.EntitiesIn(scene));
+        }
+
+        /// <summary>
+        /// Regression, and the expensive one. A dropped item was filed in the persistent scene,
+        /// which is hydrated before any chunk has streamed in — so it was rebuilt over ground that
+        /// did not exist, fell, and was captured lower on the next save. Every load resumed the fall
+        /// from where the last one ended, and a player's gear ended up tens of thousands of metres
+        /// down. A body with nowhere to land is held instead: nothing is spawned, and the record is
+        /// KEPT so it can be put back once the ground under it loads.
+        /// </summary>
+        [Test]
+        public void Hydrate_HoldsABodyThatFellOutOfTheWorldRatherThanDroppingItBackIn()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject fallen = FallingEntity("dropped gun", new Vector3(10f, -5000f, 4f));
+            string instanceId = fallen.GetComponent<SaveableEntity>().InstanceId;
+
+            store.Dehydrate(ChunkKey, scene);
+
+            Object.DestroyImmediate(fallen);
+            spawned.Remove(fallen);
+
+            store.Hydrate(ChunkKey, scene);
+
+            Assert.IsEmpty(WorldSaveStore.EntitiesIn(scene), "the body was dropped back into the void");
+            Assert.AreEqual(1, store.AwaitingGroundCount, "the record is not being held for ground");
+
+            // The capture that follows must not read "absent from its scene" as "destroyed".
+            store.Dehydrate(ChunkKey, scene);
+            Assert.IsTrue(store.Record.Entities.ContainsKey(instanceId), "the held record was deleted");
+        }
+
+        /// <summary>
+        /// The counterpart, and the reason the rule asks about the body rather than about the
+        /// height. Anything posed by something else — a kinematic mount, a legged rig, a prop with
+        /// no Rigidbody — stays where it is put whether terrain has arrived or not, so holding one
+        /// would only delay it for nothing.
+        /// </summary>
+        [Test]
+        public void Hydrate_RestoresAPosedObjectBelowTheWorldFloor()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject deep = RuntimeEntity("cave prop", "prefab-a", new Vector3(0f, -5000f, 0f), 7);
+
+            store.Dehydrate(ChunkKey, scene);
+
+            Object.DestroyImmediate(deep);
+            spawned.Remove(deep);
+
+            store.Hydrate(ChunkKey, scene);
+
+            SaveableEntity restored = WorldSaveStore.EntitiesIn(scene).FirstOrDefault();
+            Assert.IsNotNull(restored, "a posed object was held back as though it had fallen");
+            spawned.Add(restored.gameObject);
+            Assert.AreEqual(0, store.AwaitingGroundCount);
         }
 
         [Test]

@@ -9,8 +9,8 @@ namespace SpaceGame.EditorTools
 {
     /// <summary>
     /// Authors everything the cryo sprayer's cold is made of: the plume that leaves the nozzle, the
-    /// crystals thrown down it, the mist that hangs behind it, the frost blooming where it lands and
-    /// the vapour blowing off a surface that will not take ice.
+    /// crystals thrown down it, the mist that hangs behind it, the frost blooming on a body it is
+    /// freezing and the vapour blowing off every surface, which takes nothing at all.
     ///
     /// <para>
     /// A script rather than hand-authored YAML for the reason the flamethrower's fire is one: a
@@ -69,7 +69,7 @@ namespace SpaceGame.EditorTools
         private const float CoreLifeMax = 0.6f;
 
         /// <summary>
-        /// Half-angle of the visible plume at the nozzle, in degrees. Narrower than the fifteen
+        /// Half-angle of the visible plume at the nozzle, in degrees. Narrower than the angle
         /// <c>CryoSprayerNozzle</c> opens the parent system to, because that one is driven every
         /// frame by the trigger and these children are not — and because the noise widens the
         /// stream on its own by the time it arrives.
@@ -313,8 +313,8 @@ namespace SpaceGame.EditorTools
         // ── The landing ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Frost taking hold where the plume lands — on a body it is freezing, or on ground that
-        /// will accept a sheet of ice.
+        /// Frost taking hold where the plume lands, which is on a body it is freezing and nowhere
+        /// else: ground is left exactly as the plume found it.
         ///
         /// <para>
         /// Moved to the hit point fifteen times a second by <c>CryoSprayerNozzle</c>, which is why

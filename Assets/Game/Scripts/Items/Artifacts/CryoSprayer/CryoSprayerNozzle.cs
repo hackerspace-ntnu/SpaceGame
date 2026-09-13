@@ -20,11 +20,11 @@ namespace SpaceGame.Items
     /// the same hiss, which is the ordinary <c>Present</c> half of an artifact.
     /// </para>
     /// <para>
-    /// <b>The landing is the readable half.</b> Ice refuses anything that is not liquid or wet
-    /// ground, and a rule with no visible consequence is superstition rather than depth
-    /// (GDC-L1-SYS-0006). So the plume ends in one of two bursts — frost forming, or vapour
-    /// blowing off and leaving nothing — and the player learns where ice sticks by watching it
-    /// rather than by being told.
+    /// <b>The landing is the readable half.</b> The cold takes hold of bodies and of nothing else,
+    /// and a rule with no visible consequence is superstition rather than depth (GDC-L1-SYS-0006).
+    /// So the plume ends in one of two bursts — frost biting into a body, or vapour blowing off
+    /// the ground and leaving nothing behind — and the player learns what the gun is for by
+    /// watching it rather than by being told.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
@@ -38,11 +38,12 @@ namespace SpaceGame.Items
         [Tooltip("Cone half-angle the plume emits into with the valve shut, in degrees.")]
         [SerializeField, Range(0f, 90f)] private float shutConeDegrees = 3f;
 
-        [Tooltip("Cone half-angle with the valve fully open, in degrees. Fifteen: narrower than " +
-                 "the flamethrower's cone, because this is a precision tool. This is the plume " +
-                 "the player SEES, and it must match the cone that freezes — " +
-                 "CryoSprayerArtifact.coneHalfAngle, which warns when the two drift apart.")]
-        [SerializeField, Range(0f, 90f)] private float openConeDegrees = 15f;
+        [Tooltip("Cone half-angle with the valve fully open, in degrees. This is the plume the " +
+                 "player SEES, and it must match the cone that freezes — " +
+                 "CryoSprayerArtifact.coneHalfAngle, which warns when the two drift apart. Wide " +
+                 "enough that a target near the crosshair is inside the spray, because everything " +
+                 "the plume covers now freezes at the same rate.")]
+        [SerializeField, Range(0f, 90f)] private float openConeDegrees = 22f;
 
         /// <summary>
         /// The spread the plume is drawn at, for the artifact to check its own freeze cone against.
@@ -53,14 +54,14 @@ namespace SpaceGame.Items
 
         [Header("Landing")]
         [Tooltip("Frost forming where the plume lands. Played at the hit point while the cold is " +
-                 "biting — on a body it is freezing, or on ground that will take ice.\n\n" +
+                 "biting, which is on a body and nowhere else.\n\n" +
                  "Both landing systems are MOVED to the hit point every sweep, so both must " +
                  "simulate in WORLD space: in local space the particles already in the air are " +
                  "dragged along with the system and the frost smears across the ground.")]
         [SerializeField] private ParticleSystem bite;
 
-        [Tooltip("Vapour blowing off a surface that will not freeze — dry sand, a wall. This is " +
-                 "the refusal, shown before the player has spent anything on it. World simulation " +
+        [Tooltip("Vapour blowing off a surface, which is every surface: ground, a wall, a deck " +
+                 "plate. This is the refusal, shown rather than explained. World simulation " +
                  "space, for the reason above.")]
         [SerializeField] private ParticleSystem blowoff;
 
@@ -160,9 +161,9 @@ namespace SpaceGame.Items
         /// Where the plume is landing and whether the cold is taking hold there.
         ///
         /// <para>
-        /// Three states rather than two: nothing in reach at all, something the cold bites into,
-        /// and something that shrugs it off. The middle and the last are what tell the player where
-        /// ice will stick before they have committed a tank to finding out.
+        /// Three states rather than two: nothing in reach at all, a body the cold bites into, and
+        /// a surface that shrugs it off. The middle and the last are what tell the player that
+        /// this gun is pointed at creatures, before they have committed a tank to finding out.
         /// </para>
         /// </summary>
         public void SetLanding(bool landed, Vector3 point, bool sticking)

@@ -18,6 +18,8 @@ symptoms:
   - "the sun jumps to a different time of day after loading a save"
   - "fog draws over every particle and pane of glass"
   - "distant terrain/objects are missing ahead of me but appear when I turn around"
+  - "Render Graph Execution error: the passed in texture handle does not have a valid descriptor"
+  - "ZBinningJob writes to bins / you must call JobHandle.Complete"
   - "the screen has a round bright middle, or gradients band into rings"
   - "a palette colour looks darker or duller on screen than the value it was authored at"
   - "the quantizer turns a coloured sky or surface flat grey"
@@ -38,7 +40,7 @@ symptoms:
   - "an authored interior fog volume fades out as soon as I step into the room it is in"
   - "high up during the intro descent the skybox still shows ground-level mountains at eye level"
 reads_with: [Persistence, AgentSystem, ArtPipeline]
-updated: 2026-09-07
+updated: 2026-09-13
 ---
 
 # Environment
@@ -136,7 +138,7 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 
 ## Gotchas
 
-- **A fullscreen pass that reads the camera colour must set `requiresIntermediateTexture = true`.** Otherwise URP may resolve post-processing straight to the back buffer, and at `AfterRenderingPostProcessing` `UniversalResourceData.activeColorTexture` *is* the back buffer — a valid handle with **no descriptor**, so `renderGraph.GetTextureDesc(source)` throws `ArgumentException: The passed in texture handle does not have a valid descriptor` and the frame aborts. That abort is what emits the second, misleading error, `InvalidOperationException: The previously scheduled job ZBinningJob writes to ... bins` from `ForwardLights.PreSetup` on the *next* camera: **fix the descriptor error and the ZBinning one goes with it** — it is not a lighting bug. `PastelQuantizePass` sets the flag in its constructor and still returns early on `resourceData.isActiveTargetBackBuffer`.
+- **A fullscreen pass that reads the camera colour must set `requiresIntermediateTexture = true`.** Without it URP is free to render the whole camera straight to the back buffer, and then `UniversalResourceData.activeColorTexture` *is* the back buffer at **every** injection point, not only at `AfterRenderingPostProcessing` — a valid handle with **no descriptor**, so `renderGraph.GetTextureDesc(source)` throws `ArgumentException: The passed in texture handle does not have a valid descriptor` and the frame aborts. That abort is what emits the second, misleading error, `InvalidOperationException: The previously scheduled job ZBinningJob writes to ... bins` from `ForwardLights.PreSetup` on the *next* camera: **fix the descriptor error and the ZBinning one goes with it** — it is not a lighting bug. All five passes here set the flag in their constructors; `PastelQuantizePass` additionally returns early on `resourceData.isActiveTargetBackBuffer`. **The flag is per pass, so a new fullscreen feature does not inherit it** — and the bug only shows on cameras and quality settings that happen to need no intermediate target, which is why the storm could render for months and then throw.
 - **A palette parameter used to be able to change nothing, silently.** The palette was built once in `PastelQuantizePass`'s constructor, so a shape set after that — which is what the Look Lab does — was never read again: no error, no effect. `EnsurePalette` rebuilds on change; `blend` hid the problem because scalars are pushed to the material every frame.
 - **The committed look is guarded by `tools/palette_golden.txt`.** `python3 tools/palette_preview.py --check` compares the built palette against it entry for entry, and against the Python port of the lattice. Retuning `PaletteShape.Default` means regenerating the golden file in the same commit — deliberately, so a look never changes by accident. **It does not cover the ink**, which lives only in HLSL.
 - **Renderer feature install is not a list append.** URP keeps `m_RendererFeatures` *and* a parallel `m_RendererFeatureMap` of instance ids; growing one without the other yields a feature that exists in the asset and never runs. Use `SpaceGame ▸ Environment ▸ Install Volumetric Render Features` ([VolumetricSetup.cs](Assets/Game/Editor/Environment/VolumetricSetup.cs)) — idempotent, and also the repair tool. Its `FindRenderers`/`AddFeature` helpers are `internal` so other installers reuse them; [PastelQuantizeSetup.cs](Assets/Game/Editor/Environment/PastelQuantizeSetup.cs) does. **The map entry must be the sub-asset's persistent local file id** — `AddFeature` once wrote `GetInstanceID()`, a transient id, and URP's validation culled the row on the next reload, leaving the feature as a dangling sub-asset that never runs; it now saves first and writes the id from `TryGetGUIDAndLocalFileIdentifier`.

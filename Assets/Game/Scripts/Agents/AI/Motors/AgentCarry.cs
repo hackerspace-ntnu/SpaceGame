@@ -61,6 +61,30 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// One step of a motor strapped to a body that is still on its mesh, as a SPEED.
+        ///
+        /// <para>
+        /// The mesh remembers nothing. A body being dragged along it has no momentum to keep —
+        /// <c>NavMeshAgent.Move</c> is a distance and the next step starts from rest — so the
+        /// speed a push has built up has to be carried by whoever is asking, which is what this
+        /// accumulates. A body that has been lifted OFF the mesh needs none of it: there the
+        /// velocity is measured back out of how far the body moved (see <see cref="Fall"/>), so
+        /// one step of acceleration is a·dt² and the measurement carries it forward by itself.
+        /// </para>
+        /// <para>
+        /// Capped, and the cap is the honest part. A creature skidding across the sand is the
+        /// booster working; a creature crossing the map in a second is not something anyone can
+        /// read, and it is indistinguishable from the animal despawning.
+        /// </para>
+        /// </summary>
+        public static float ThrustDragSpeed(float speed, float acceleration, float deltaTime,
+                                            float maxSpeed)
+        {
+            return Mathf.Min(Mathf.Max(0f, speed) + Mathf.Max(0f, acceleration) * deltaTime,
+                             maxSpeed);
+        }
+
+        /// <summary>
         /// Has a body at <paramref name="bodyY"/> arrived at the ground at
         /// <paramref name="groundY"/>?
         ///

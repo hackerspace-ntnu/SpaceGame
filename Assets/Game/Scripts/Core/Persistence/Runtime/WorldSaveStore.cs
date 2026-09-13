@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Persistence;
+using SpaceGame.World.Safety;
 
 namespace SpaceGame.Core.Persistence
 {
@@ -61,6 +62,38 @@ namespace SpaceGame.Core.Persistence
         public int UnresolvedCount => unresolved.Count;
 
         /// <summary>
+        /// Below this a record does not say where a player left something. It says where something
+        /// was still falling when the file was written.
+        ///
+        /// Public because <c>FallenItemSweep</c> clears out the records that predate the hold below
+        /// and has to agree with it about what "out of the world" means — two answers to that would
+        /// disagree the first time either moved. Same number as
+        /// <c>UnderTerrainGuard.absoluteFloorY</c>, for the same reason.
+        /// </summary>
+        public const float WorldFloorY = -500f;
+
+        /// <summary>
+        /// How far above the surface a record that fell is put back down. Small: the record's own
+        /// X/Z is where the player dropped the thing — free fall does not move it sideways — so this
+        /// only has to clear the ground, not find a new home.
+        /// </summary>
+        private const float LandingClearance = 0.5f;
+
+        /// <summary>
+        /// Runtime records with nowhere to land yet: the chunk they are over has not streamed in, or
+        /// they are already below the world floor.
+        ///
+        /// Held rather than instantiated, and held rather than dropped — the same bargain
+        /// <see cref="unresolved"/> makes. Nothing is lost while a record waits here, and
+        /// <see cref="LandAwaitingGround"/> retries on every hydrate, so a record lands as soon as
+        /// the ground under it exists.
+        /// </summary>
+        private readonly HashSet<string> awaitingGround = new();
+
+        /// <summary>How many records are waiting for ground to be put back onto.</summary>
+        public int AwaitingGroundCount => awaitingGround.Count;
+
+        /// <summary>
         /// Whether the records are final. Set by <see cref="Seal"/> once the session's teardown
         /// has begun; every capture after that is a no-op.
         ///
@@ -116,6 +149,11 @@ namespace SpaceGame.Core.Persistence
             RemoveDestroyed(authored);
             RestoreAuthored(authored);
             SpawnEntities(sceneKey, scene);
+
+            // Last, and for every scene rather than only this one: the ground a record filed in the
+            // persistent scene is waiting for arrives with some CHUNK, so the pass that puts it down
+            // has to run on hydrates that know nothing about it.
+            LandAwaitingGround();
 
             OnSceneHydrated?.Invoke(sceneKey, scene);
         }
@@ -185,8 +223,9 @@ namespace SpaceGame.Core.Persistence
                 if (record.Scene != sceneKey || seen.Contains(entry.Key)) continue;
 
                 // Failed to spawn rather than ceased to exist. Deleting it here is how a missing
-                // prefab registration became irreversible — see SpawnEntities.
-                if (unresolved.Contains(entry.Key)) continue;
+                // prefab registration became irreversible — see SpawnEntities. A record waiting for
+                // ground is absent for the same kind of reason and is kept for the same reason.
+                if (unresolved.Contains(entry.Key) || awaitingGround.Contains(entry.Key)) continue;
 
                 // Alive somewhere else — it migrated rather than died. The null check matters: a
                 // destroyed object leaves a null behind if its OnDisable never ran.
@@ -428,31 +467,138 @@ namespace SpaceGame.Core.Persistence
                     continue;
                 }
 
-                GameObject instance = UnityEngine.Object.Instantiate(prefab, record.Position, record.Rotation);
-                if (record.HasScale) instance.transform.localScale = record.Scale;
+                // Nothing here to catch it. Held rather than instantiated — see awaitingGround.
+                if (!HasGroundToLandOn(record, prefab))
+                {
+                    awaitingGround.Add(record.InstanceId);
+                    continue;
+                }
 
-                // Into the chunk's own scene, not the active one. Left in the active scene it would
-                // survive that chunk unloading and pile up a duplicate on every reload.
-                if (scene.IsValid() && scene.isLoaded)
-                    SceneManager.MoveGameObjectToScene(instance, scene);
-
-                // Savers before identity and state, and the order is the whole point: Restore hands
-                // each payload to the saver that owns its key, so a saver added afterwards is handed
-                // nothing. A restored mount would come back riderless not because the record was
-                // missing the rider, but because MountSaveable did not exist at the moment the record
-                // was read. The spawn path adds these too — this covers a prefab that gained a saver
-                // since the save was written.
-                SaveablePolicy.EnsureSpawned(instance);
-
-                SaveableEntity saveable = SaveableEntity.EnsureRuntime(instance, record.PrefabId);
-                saveable.AdoptIdentity(record.PrefabId, record.InstanceId);
-
-                // Network-spawn BEFORE the state goes back on, never after — see
-                // SaveNetworking.SpawnIfNetworked for what restoring first cost.
-                SaveNetworking.SpawnIfNetworked(instance);
-
-                saveable.Restore(record.State);
+                SpawnRecord(record, prefab, scene);
             }
+        }
+
+        /// <summary>
+        /// Instantiates one runtime record and puts its state back.
+        ///
+        /// <paramref name="scene"/> is the scene the record belongs to, or <c>default</c> for a
+        /// record being landed late, which goes into the active scene and is moved on by
+        /// <c>WorldStreamer</c>'s membership pass.
+        /// </summary>
+        private static void SpawnRecord(EntityRecord record, GameObject prefab, Scene scene)
+        {
+            GameObject instance = UnityEngine.Object.Instantiate(prefab, record.Position, record.Rotation);
+            if (record.HasScale) instance.transform.localScale = record.Scale;
+
+            // Into the chunk's own scene, not the active one. Left in the active scene it would
+            // survive that chunk unloading and pile up a duplicate on every reload.
+            if (scene.IsValid() && scene.isLoaded)
+                SceneManager.MoveGameObjectToScene(instance, scene);
+
+            // Savers before identity and state, and the order is the whole point: Restore hands
+            // each payload to the saver that owns its key, so a saver added afterwards is handed
+            // nothing. A restored mount would come back riderless not because the record was
+            // missing the rider, but because MountSaveable did not exist at the moment the record
+            // was read. The spawn path adds these too — this covers a prefab that gained a saver
+            // since the save was written.
+            SaveablePolicy.EnsureSpawned(instance);
+
+            SaveableEntity saveable = SaveableEntity.EnsureRuntime(instance, record.PrefabId);
+            saveable.AdoptIdentity(record.PrefabId, record.InstanceId);
+
+            // Network-spawn BEFORE the state goes back on, never after — see
+            // SaveNetworking.SpawnIfNetworked for what restoring first cost.
+            SaveNetworking.SpawnIfNetworked(instance);
+
+            saveable.Restore(record.State);
+        }
+
+        /// <summary>
+        /// Whether this record can be put back where it says, right now.
+        ///
+        /// Only asked of a body that would FALL. Everything else in a save is posed by something —
+        /// a kinematic mount, a legged rig, a prop with no Rigidbody at all — and stays wherever it
+        /// is put whether the terrain has arrived or not, so holding one would only delay it.
+        ///
+        /// The case this exists for is the persistent scene, which is hydrated in
+        /// <c>SaveManager.Start</c> before a single chunk has streamed in. A dropped item filed
+        /// there was rebuilt into empty space and fell out of the world, and the fall was captured
+        /// into the next save, so it resumed from lower down on every load. Dropped items are filed
+        /// under their chunk now (see <c>SaveablePolicy.EnsureSpawned</c>); this is what catches
+        /// everything else, including every record already written that way.
+        /// </summary>
+        private static bool HasGroundToLandOn(EntityRecord record, GameObject prefab)
+        {
+            if (!WouldFall(prefab)) return true;
+
+            // Already out of the world. Wherever this is, it is not where the object was left.
+            if (record.Position.y < WorldFloorY) return false;
+
+            if (TerrainProbe.TryGetTerrainHeight(record.Position, out _)) return true;
+
+            // No terrain here and none owed: an interior, the minigame arena, a test scene. Nothing
+            // is missing, so there is nothing to wait for.
+            return !TerrainProbe.IsInsideStreamedWorld(record.Position);
+        }
+
+        /// <summary>A body physics will pull down if it is spawned with nothing underneath it.</summary>
+        private static bool WouldFall(GameObject prefab)
+        {
+            var body = prefab.GetComponent<Rigidbody>();
+            return body != null && !body.isKinematic;
+        }
+
+        /// <summary>
+        /// Puts down the records that were waiting for ground, now that a scene has loaded.
+        ///
+        /// A record below the world floor is landed on the surface at its own X/Z, which is where
+        /// the player dropped the thing: a fall is straight down, so the horizontal half of the
+        /// record survived it intact. Its momentum does not — that velocity is the fall, not
+        /// anything that happened in play — so the motion payload is dropped and the object comes to
+        /// rest where it should have been all along.
+        /// </summary>
+        private void LandAwaitingGround()
+        {
+            if (awaitingGround.Count == 0) return;
+
+            List<string> landed = null;
+
+            foreach (string id in awaitingGround)
+            {
+                if (!world.Entities.TryGetValue(id, out EntityRecord record) || record == null)
+                {
+                    (landed ??= new List<string>()).Add(id);
+                    continue;
+                }
+
+                // Alive after all — another hydrate spawned it, or it never really left. Building it
+                // again here is the duplicate this whole store exists to avoid.
+                if (SaveableEntity.LiveEntities.TryGetValue(id, out SaveableEntity live) && live != null)
+                {
+                    (landed ??= new List<string>()).Add(id);
+                    continue;
+                }
+
+                if (!SaveablePrefabRegistry.TryGet(record.PrefabId, out GameObject prefab)) continue;
+                if (!TerrainProbe.TryGetTerrainHeight(record.Position, out float terrainY)) continue;
+
+                float surface = terrainY + LandingClearance;
+                if (record.Position.y < surface)
+                {
+                    record.Position = new Vector3(record.Position.x, surface, record.Position.z);
+                    record.State?.Remove(RigidbodySaveable.Key);
+                }
+
+                // No scene: the chunk this belongs in is the one under it, which is not necessarily
+                // the one that just hydrated. It goes into the active scene and WorldStreamer's
+                // membership pass hands it to the right chunk on its next tick.
+                SpawnRecord(record, prefab, default);
+                (landed ??= new List<string>()).Add(id);
+            }
+
+            if (landed == null) return;
+
+            foreach (string id in landed) awaitingGround.Remove(id);
         }
 
         /// <summary>

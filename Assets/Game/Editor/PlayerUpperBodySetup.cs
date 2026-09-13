@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -25,6 +26,18 @@ namespace SpaceGame.EditorTools
         private const string MaskPath = "Assets/Game/Art/Animations/Player/UpperBody.mask";
         private const string LayerName = "Upper Body";
         private const string MaskName = "UpperBody";
+
+        private const string WornLeftMaskPath = "Assets/Game/Art/Animations/Player/WornLeftArm.mask";
+        private const string WornLeftLayerName = "Worn Left";
+        private const string WornLeftMaskName = "WornLeftArm";
+
+        /// <summary>
+        /// The pose parameter of the <see cref="WornLeftLayerName"/> layer. Written by
+        /// <c>PlayerAimRig.LeftArmStyle</c>, which is non-zero only while the layer above is
+        /// already posing for the RIGHT arm's device — the one case a single pose cannot cover.
+        /// </summary>
+        private const string WornLeftStyleParameter = "WornLeftStyle";
+
         /// <summary>
         /// The pose parameter. Written by <c>PlayerAimRig</c> from what is in the hand — or, with
         /// empty hands, from a lit Flashlight Gauntlet, which borrows this same pose rather than
@@ -70,6 +83,7 @@ namespace SpaceGame.EditorTools
 
             EnsureIntParameter(controller, HoldStyleParameter);
             EnsureBoolParameter(controller, HoldMirrorParameter);
+            EnsureIntParameter(controller, WornLeftStyleParameter);
             EnsureIntParameter(controller, ArmRaiseParameter);
             EnsureFloatParameter(controller, AimPitchParameter);
 
@@ -83,23 +97,23 @@ namespace SpaceGame.EditorTools
                 EnsureRaiseStates(controller, layers[index].stateMachine);
                 EnsureMirroredHoldStates(layers[index].stateMachine);
 
-                EditorUtility.SetDirty(controller);
-                AssetDatabase.SaveAssets();
-
                 Debug.Log($"PlayerUpperBodySetup: layer '{LayerName}' already exists at index " +
                           $"{index}. Mask refreshed; hold states left alone; raise and mirrored " +
                           "states ensured.");
-                return;
+            }
+            else
+            {
+                BuildLayer(controller, mask);
+                EnsureRaiseStates(controller, controller.layers[controller.layers.Length - 1].stateMachine);
+                EnsureMirroredHoldStates(controller.layers[controller.layers.Length - 1].stateMachine);
+
+                Debug.Log($"PlayerUpperBodySetup: built '{LayerName}' at index {controller.layers.Length - 1}.");
             }
 
-            BuildLayer(controller, mask);
-            EnsureRaiseStates(controller, controller.layers[controller.layers.Length - 1].stateMachine);
-            EnsureMirroredHoldStates(controller.layers[controller.layers.Length - 1].stateMachine);
+            EnsureWornLeftLayer(controller);
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
-
-            Debug.Log($"PlayerUpperBodySetup: built '{LayerName}' at index {controller.layers.Length - 1}.");
         }
 
         /// <summary>
@@ -139,22 +153,64 @@ namespace SpaceGame.EditorTools
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftHandIK, true);
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightHandIK, true);
 
-            // Named before it is written anywhere. CopySerialized copies the name too, and an
-            // in-memory AvatarMask has none — refreshing the asset therefore blanked it, and Unity
-            // warned that the main object name did not match the filename.
-            mask.name = MaskName;
+            return SaveMask(mask, MaskPath, MaskName);
+        }
 
-            var existing = AssetDatabase.LoadAssetAtPath<AvatarMask>(MaskPath);
+        /// <summary>
+        /// The LEFT arm and nothing else — the mask of the second layer.
+        ///
+        /// <para>
+        /// No Body here, unlike the mask above. This layer only ever runs while the layer beneath
+        /// it is posing the chest for the other arm's device, and a second opinion about the chest
+        /// would fight it: the torso would take the left arm's pose and the right arm would stand
+        /// in a posture its own clip never asked for.
+        /// </para>
+        /// </summary>
+        private static AvatarMask BuildWornLeftMask()
+        {
+            var mask = new AvatarMask();
+
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Root, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Body, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Head, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftLeg, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightLeg, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftArm, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFingers, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFingers, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFootIK, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFootIK, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftHandIK, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightHandIK, false);
+
+            return SaveMask(mask, WornLeftMaskPath, WornLeftMaskName);
+        }
+
+        /// <summary>
+        /// Write a freshly built mask over the asset at <paramref name="path"/>, or create it.
+        ///
+        /// <para>
+        /// The name is set before anything is written. <c>CopySerialized</c> copies the name too,
+        /// and an in-memory AvatarMask has none — refreshing the asset therefore blanked it, and
+        /// Unity warned that the main object name did not match the filename.
+        /// </para>
+        /// </summary>
+        private static AvatarMask SaveMask(AvatarMask mask, string path, string name)
+        {
+            mask.name = name;
+
+            var existing = AssetDatabase.LoadAssetAtPath<AvatarMask>(path);
             if (existing != null)
             {
                 EditorUtility.CopySerialized(mask, existing);
-                existing.name = MaskName;
+                existing.name = name;
                 EditorUtility.SetDirty(existing);
                 AssetDatabase.SaveAssets();
                 return existing;
             }
 
-            AssetDatabase.CreateAsset(mask, MaskPath);
+            AssetDatabase.CreateAsset(mask, path);
             AssetDatabase.SaveAssets();
             return mask;
         }
@@ -370,6 +426,115 @@ namespace SpaceGame.EditorTools
             // patch pass once and will not see these: a raise still outranks a hold, mirrored or
             // not, so both arms do not try to point at once.
             t.AddCondition(AnimatorConditionMode.Equals, 0, ArmRaiseParameter);
+        }
+
+        // ── The left arm's own layer ──────────────────────────────────────────
+        //
+        // The layer above answers ONE ask: a held item, or the pose a working forearm device wants.
+        // A player with a lit torch on one wrist and a powered scanner on the other makes two, and
+        // the right arm's used to win outright — the left arm hung at the side with its lamp
+        // lighting the ground, which is a device reporting its own state wrongly.
+        //
+        // Masked to the left arm alone, so it can carry that arm while the layer beneath carries
+        // the chest and the right arm. Same clips, mirrored, entered on a parameter of its own;
+        // PlayerAimRig.LeftArmStyle is non-zero only in that two-device case, so the two layers
+        // never describe the same limb.
+
+        private static string WornLeftName(string holdState) => "Worn Left " + holdState;
+
+        /// <summary>Idempotent: refreshes the mask, and builds the layer the first time only.</summary>
+        private static void EnsureWornLeftLayer(AnimatorController controller)
+        {
+            AvatarMask mask = BuildWornLeftMask();
+
+            int index = FindLayer(controller, WornLeftLayerName);
+            if (index >= 0)
+            {
+                AnimatorControllerLayer[] existing = controller.layers;
+                existing[index].avatarMask = mask;
+                controller.layers = existing;
+
+                Debug.Log($"PlayerUpperBodySetup: layer '{WornLeftLayerName}' already exists at " +
+                          $"index {index}. Mask refreshed; states left alone.");
+                return;
+            }
+
+            var stateMachine = new AnimatorStateMachine
+            {
+                name = WornLeftLayerName,
+                hideFlags = HideFlags.HideInHierarchy
+            };
+            AssetDatabase.AddObjectToAsset(stateMachine, controller);
+
+            AnimatorState empty = stateMachine.AddState("Empty");
+            stateMachine.defaultState = empty;
+            WornLeftAnyStateTo(stateMachine, empty, 0);
+
+            foreach ((string name, string clip, int style) in HoldStyles)
+            {
+                AnimatorState state = stateMachine.AddState(WornLeftName(name));
+                state.motion = LoadClip(clip);
+
+                // Every hold clip is right-handed — see the mirrored twins above. This layer is
+                // the left arm's, so every state on it is mirrored; there is no unmirrored half
+                // and therefore no bool to pick between them.
+                state.mirror = true;
+                state.writeDefaultValues = true;
+
+                WornLeftAnyStateTo(stateMachine, state, style);
+            }
+
+            var layer = new AnimatorControllerLayer
+            {
+                name = WornLeftLayerName,
+                defaultWeight = 0f,          // PlayerAimRig owns the weight from the first frame.
+                avatarMask = mask,
+                blendingMode = AnimatorLayerBlendingMode.Override,
+                iKPass = true,
+                stateMachine = stateMachine
+            };
+
+            controller.AddLayer(layer);
+            MoveLayerAfter(controller, WornLeftLayerName, LayerName);
+
+            Debug.Log($"PlayerUpperBodySetup: built '{WornLeftLayerName}' after '{LayerName}'.");
+        }
+
+        private static void WornLeftAnyStateTo(AnimatorStateMachine sm, AnimatorState state, int style)
+        {
+            AnimatorStateTransition t = sm.AddAnyStateTransition(state);
+            t.AddCondition(AnimatorConditionMode.Equals, style, WornLeftStyleParameter);
+            t.duration = 0.15f;
+            t.hasExitTime = false;
+            t.hasFixedDuration = true;
+            t.canTransitionToSelf = false;
+        }
+
+        /// <summary>
+        /// Put <paramref name="layerName"/> immediately after <paramref name="afterName"/>.
+        ///
+        /// <para>
+        /// <c>AddLayer</c> appends, and a layer appended to the end would sit above the Glide
+        /// layer — a gliding player's arms are the wingsuit's, and a torch on one wrist must not
+        /// pull one of them out of the glide. Directly above the layer whose limb it is overriding
+        /// and nowhere else.
+        /// </para>
+        /// </summary>
+        private static void MoveLayerAfter(AnimatorController controller, string layerName, string afterName)
+        {
+            var layers = new List<AnimatorControllerLayer>(controller.layers);
+
+            int from = layers.FindIndex(l => l.name == layerName);
+            int after = layers.FindIndex(l => l.name == afterName);
+            if (from < 0 || after < 0) return;
+
+            AnimatorControllerLayer moving = layers[from];
+            layers.RemoveAt(from);
+
+            after = layers.FindIndex(l => l.name == afterName);
+            layers.Insert(after + 1, moving);
+
+            controller.layers = layers.ToArray();
         }
 
         /// <summary>

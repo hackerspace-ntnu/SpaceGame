@@ -37,7 +37,7 @@ namespace SpaceGame.Items
                  "the transform scale and nothing else — the collider grows with it because it is " +
                  "the same number, which is the only reason the shape you see and the shape you " +
                  "stand on cannot drift apart.")]
-        [SerializeField, Min(0.01f)] private float radius = 1.05f;
+        [SerializeField, Min(0.01f)] private float radius = 1.3f;
 
         [Tooltip("How much a blob may fall short of its full radius, as a share of it. DOWNWARD " +
                  "ONLY, and that is not a style choice: the gun measures its catch sweep off the " +
@@ -60,11 +60,18 @@ namespace SpaceGame.Items
                  "radius — see AxisScale for why that cap is load-bearing rather than tidy.")]
         [SerializeField, Range(0f, 0.5f)] private float shapeSquash = 0.38f;
 
-        [Tooltip("Seconds the blob takes to swell to full size after it lands. It grows rather " +
-                 "than appearing, so foam sprayed at your own feet pushes you out gently instead " +
-                 "of launching you — and at three seconds the swell is the effect rather than a " +
-                 "way of hiding a pop, so a mass visibly rises after the jet has moved on.")]
+        [Tooltip("Seconds the blob takes to swell to full size AND to go hard after it lands. It " +
+                 "grows rather than appearing, so foam sprayed at your own feet pushes you out " +
+                 "gently instead of launching you — and until the clock runs out the lump is wet: " +
+                 "it is not solid, nothing stands on it, and it reads a shade darker. Spraying a " +
+                 "ramp is therefore something you do BEFORE you need to climb it.")]
         [SerializeField, Min(0f)] private float growSeconds = 3f;
+
+        [Tooltip("How far down the shading ladder a lump sits while it is still wet, on top of its " +
+                 "own shade bias. This is the only tell that foam is not yet solid, so it is not " +
+                 "decoration: a player who cannot see which part of a mound has set will step onto " +
+                 "one that has not.")]
+        [SerializeField, Range(0f, 0.5f)] private float wetShade = 0.2f;
 
         [Tooltip("How big a blob is before its foam has arrived, as a share of its full radius. " +
                  "Not zero: a SphereCollider at zero scale is degenerate, and a blob that spent a " +
@@ -242,8 +249,73 @@ namespace SpaceGame.Items
             return true;
         }
 
+        /// <summary>
+        /// Push <paramref name="point"/> out to <paramref name="clearance"/> outside the volume
+        /// this lump has COMMITTED to fill, and say whether it was inside at all.
+        ///
+        /// <para>
+        /// This is the other half of <see cref="FoamSettle"/>: falling is what carries a dab down,
+        /// and being ejected from the lumps it lands on is what carries it OUT. Both are needed —
+        /// gravity alone drops a dab through the mound, and the push alone piles it into the same
+        /// leaning column the arc already built.
+        /// </para>
+        /// <para>
+        /// It is the ellipsoid, in the lump's own frame, for the reason <see cref="TryHitCommitted"/>
+        /// gives: a sphere of <see cref="CommittedRadius"/> stands a third of a metre proud of a
+        /// squashed lump on two axes, and a settle relaxing against that would leave a visible gap
+        /// around every flattened lump in the mass.
+        /// </para>
+        /// <para>
+        /// The push is along the ellipsoid's own outward direction rather than along the shortest
+        /// way out, which is the standard cheap approximation and is the RIGHT one here: the exact
+        /// nearest point on an ellipsoid is an iterative solve, and this runs a few hundred times a
+        /// second inside another iteration.
+        /// </para>
+        /// </summary>
+        public bool PushOutOfCommitted(Vector3 point, float clearance, out Vector3 pushed)
+        {
+            pushed = point;
+
+            Vector3 extents = AxisScale * CommittedRadius + Vector3.one * Mathf.Max(0f, clearance);
+            if (extents.x <= 1e-4f || extents.y <= 1e-4f || extents.z <= 1e-4f) return false;
+
+            Quaternion inverse = Quaternion.Inverse(Tumble);
+            Vector3 local = inverse * (point - Centre);
+
+            Vector3 unit = new Vector3(local.x / extents.x, local.y / extents.y, local.z / extents.z);
+
+            float length = unit.magnitude;
+            if (length >= 1f) return false;
+
+            // Dead centre, which a cluster of dabs sharing one landing point can genuinely hit.
+            // Up is the only direction that cannot bury the lump in whatever it landed on; the
+            // fall on the next step is what turns that into a slide rather than a stack.
+            if (length < 1e-4f)
+            {
+                pushed = Centre + Tumble * new Vector3(0f, extents.y, 0f);
+                return true;
+            }
+
+            unit /= length;
+            pushed = Centre + Tumble * new Vector3(unit.x * extents.x, unit.y * extents.y,
+                                                   unit.z * extents.z);
+            return true;
+        }
+
         /// <summary>Seconds since this blob was laid, on whatever clock both machines share.</summary>
         private float Age => Mathf.Max(0f, (float)(Now - bornAt.Value));
+
+        /// <summary>
+        /// How far this lump has SET, 0 the instant its foam lands and 1 once it is hard.
+        ///
+        /// <para>
+        /// It shares <see cref="growSeconds"/> with the swell on purpose rather than carrying a
+        /// clock of its own: the lump is wet exactly as long as it is still moving, which is what
+        /// makes "wait for it to go hard" a thing a player can read off the shape rather than a
+        /// hidden timer (<c>GDC-L1-SYS-0006</c>).
+        /// </para>
+        /// </summary>
+        private float Hardness => growSeconds <= 0f ? 1f : Mathf.Clamp01(Age / growSeconds);
 
         /// <summary>
         /// The clock every machine measures this blob against. The server's, when there is one:
@@ -298,15 +370,12 @@ namespace SpaceGame.Items
             if (surface == null) surface = GetComponentInChildren<Renderer>(true);
             if (shell == null) shell = GetComponent<Collider>();
 
-            ApplyShape();
+            // Wet foam is not solid, so the shell starts OFF and is switched on by ApplyShape when
+            // the lump goes hard. The prefab ships it enabled because that is what it is for the
+            // rest of the lump's life; a blob is only ever wet in the first seconds of it.
+            if (shell != null) shell.enabled = false;
 
-            // Every machine, at the moment the lump appears, and off a query whose inputs are
-            // identical everywhere: the spawn position and the prefab's own radius. Foam does not
-            // shove what it landed on — it holds it — so anything already standing inside a fresh
-            // blob is excused from colliding with it for the blob's whole life. Foam sprayed at
-            // your feet is the case the design flagged: a solid sphere appearing around a capsule
-            // is a launch, and growth alone only softens it.
-            ExcuseBodiesAlreadyInside();
+            ApplyShape();
 
             FoamField.Register(this);
         }
@@ -383,7 +452,43 @@ namespace SpaceGame.Items
                 tumbled = true;
             }
 
+            ApplyHardness();
+
             PaintDissolve(Mathf.Clamp01((age - (total - dissolveSeconds)) / dissolveSeconds));
+        }
+
+        /// <summary>
+        /// Solid or not, off the same clock as the swell.
+        ///
+        /// <para>
+        /// The shell is switched rather than made a trigger, which is the opposite of what
+        /// <see cref="ExcuseBodiesAlreadyInside"/> does and for the opposite reason: that excuses
+        /// ONE body from a lump everybody else still collides with, whereas wet foam is not solid
+        /// to anyone. Dropping out of every raycast and overlap while wet is correct here — nothing
+        /// should be able to stand on, shoot or seat itself against foam that has not set. The one
+        /// thing that must still see a wet lump is the spray arc, and it never used the collider:
+        /// it goes through <see cref="TryHitCommitted"/>, so a mound keeps building on itself while
+        /// every part of it is still soft.
+        /// </para>
+        /// <para>
+        /// The bodies standing in it are excused at the moment it hardens rather than at birth,
+        /// because that is now the moment a solid sphere appears around a capsule — the launch the
+        /// design flagged. A player who walked in while it was wet is caught by the same sweep as
+        /// one who was there when it landed.
+        /// </para>
+        /// </summary>
+        private void ApplyHardness()
+        {
+            if (shell == null) return;
+
+            bool hard = Hardness >= 1f;
+            if (shell.enabled == hard) return;
+
+            shell.enabled = hard;
+
+            // Physics.IgnoreCollision is cleared when a collider is disabled and re-enabled, so
+            // this is asked after the switch rather than kept from an earlier call.
+            if (hard) ExcuseBodiesAlreadyInside();
         }
 
 
@@ -421,9 +526,28 @@ namespace SpaceGame.Items
         /// <summary>How far short of its full radius this blob falls, as a share of it.</summary>
         private float Variance => radiusVariance <= 0f ? 1f : 1f - radiusVariance * Draw(11);
 
-        /// <summary>How far this blob sits off the shading ladder its lighting alone would give it.</summary>
-        private float ShadeBias =>
-            shadeVariance <= 0f ? 0f : (Draw(5) - 0.5f) * 2f * shadeVariance;
+        /// <summary>
+        /// How far this blob sits off the shading ladder its lighting alone would give it: its own
+        /// permanent draw, plus however wet it still is.
+        ///
+        /// <para>
+        /// The wet term is QUANTIZED to eighths, and that is a cost decision rather than a look
+        /// one. <see cref="PaintDissolve"/> skips the write when nothing has moved, and a term
+        /// sliding continuously for three seconds would defeat that for every lump laid in the last
+        /// three seconds — which at this dab rate is most of them. Eight steps is finer than the
+        /// four bands the scalar lands on anyway.
+        /// </para>
+        /// </summary>
+        private float ShadeBias
+        {
+            get
+            {
+                float own = shadeVariance <= 0f ? 0f : (Draw(5) - 0.5f) * 2f * shadeVariance;
+                if (wetShade <= 0f) return own;
+
+                return own - wetShade * (1f - Mathf.Round(Hardness * 8f) / 8f);
+            }
+        }
 
         /// <summary>
         /// The lump's proportions: how far it is squashed per axis, LONGEST AXIS EXACTLY 1.

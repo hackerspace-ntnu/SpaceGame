@@ -4,6 +4,7 @@ using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Diagnostics;
+using SpaceGame.Items;
 using SpaceGame.Presentation;
 using SpaceGame.World;
 
@@ -606,6 +607,11 @@ namespace SpaceGame.Gameplay.Arrival
             {
                 if (flight.Launched || !flight.IsAlive) continue;
 
+                // Before the hull moves, because this is the last frame on which the crew is a
+                // settled number: WaitForCrewAboard has just returned, so everyone who is coming
+                // has claimed a seat, and nothing after this point adds one.
+                StockCrewStores(flight);
+
                 flight.Launched = true;
                 descending++;
 
@@ -722,6 +728,35 @@ namespace SpaceGame.Gameplay.Arrival
 
         private static int ConnectedClients =>
             NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClientsIds.Count : 1;
+
+        /// <summary>
+        /// Fills this hull's gear wall for the crew riding it down: one set of stores per head.
+        ///
+        /// <para>
+        /// The crew count is the flight's OWN <see cref="ArrivalFlight.Claimed"/>, not the session's
+        /// player count, and that is the whole reason this lives here rather than on the wall. In a
+        /// story world the two are the same number; in a versus match they are not — each team
+        /// lands its own hull and a team of one must not be provisioned for the lobby.
+        /// </para>
+        /// <para>
+        /// At least one set. A versus team nobody is on still lands a ship, and a player who joins
+        /// that team afterwards respawns into it (<c>ShipRespawn</c>) — stripping it because the
+        /// roster happened to be empty at launch is a ship that can never be resupplied.
+        /// </para>
+        /// <para>
+        /// Runs on the server, once per world: <see cref="FlyFormation"/> is reached only by an
+        /// arrival that is actually being flown, and a world loaded from a save has
+        /// <see cref="HasArrived"/> set and never flies one. The wall's own contents come back
+        /// through its saver there.
+        /// </para>
+        /// </summary>
+        private static void StockCrewStores(ArrivalFlight flight)
+        {
+            int crew = Mathf.Max(1, flight.Claimed);
+
+            foreach (WallInventory wall in flight.Ship.GetComponentsInChildren<WallInventory>(true))
+                wall.StockForCrew(crew);
+        }
 
         /// <summary>
         /// Walks one hull down its arc. The transform is written on the server alone and reaches

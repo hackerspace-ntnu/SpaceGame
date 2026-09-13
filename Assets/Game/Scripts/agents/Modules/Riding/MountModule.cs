@@ -25,7 +25,8 @@ namespace SpaceGame.Agents
     // Ostrich has a kinematic Rigidbody, no NavMeshAgent and no HealthComponent, so before this it
     // was invisible to the save system entirely. MountSaveable is added from here by SaveablePolicy.
     [DefaultExecutionOrder(1000)]
-    public partial class MountModule : BehaviourModuleBase, IInteractable, IPersistentEntity
+    public partial class MountModule : BehaviourModuleBase, IInteractable, IContextualInteractable,
+                                       IPersistentEntity
     {
         public enum CameraPerspective
         {
@@ -56,6 +57,15 @@ namespace SpaceGame.Agents
                  "IInteractable by walking up from the collider it hit, so otherwise every hull collider " +
                  "becomes a mount point. Use a MountStation on the cockpit control instead.")]
         [SerializeField] private bool mountableByDirectInteraction = true;
+        [Tooltip("How close the player has to stand to the SEAT before mounting is offered, in " +
+                 "metres, measured on the ground plane — horizontal only, height ignored. 0 means " +
+                 "no limit: any collider the look ray reaches offers the seat, which is the old " +
+                 "behaviour and is right for a mount whose whole body is roughly the seat. Set it " +
+                 "on anything large enough that its far side is nowhere near where the rider ends " +
+                 "up. Height is ignored on purpose — a seat on a tall machine's shoulder is metres " +
+                 "above every place a player could ever stand to climb on, so a true 3D distance " +
+                 "could only be satisfied by someone already up there.")]
+        [SerializeField] private float maxMountDistance = 0f;
 
         [Header("Player Components To Toggle")]
         [SerializeField] private bool disablePlayerMovement = true;
@@ -289,6 +299,8 @@ namespace SpaceGame.Agents
         public override string ModuleDescription =>
             "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +
             "• Implements IInteractable — players mount by interacting.\n" +
+            "• maxMountDistance > 0 only offers the seat to a rider standing within that " +
+            "many metres of it, measured on the ground plane.\n" +
             "• Fires Mounted/Dismounted events.\n" +
             "• When allowAISelfMovementWhenMounted = false, disables non-mount IBehaviourModules for the duration.";
 
@@ -383,6 +395,7 @@ namespace SpaceGame.Agents
         {
             base.OnValidate();
             mountCooldown = Mathf.Max(0f, mountCooldown);
+            maxMountDistance = Mathf.Max(0f, maxMountDistance);
             fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
             lookSensitivity = Mathf.Max(0f, lookSensitivity);
             lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
@@ -425,6 +438,107 @@ namespace SpaceGame.Agents
             // path (MountNetworkSync.ApplyMount) already passes null, so this is also what makes
             // the offline and session paths seat a rider identically.
             TryMount(interactor, null);
+        }
+
+        // ─────────── IContextualInteractable ───────────
+        /// <summary>
+        /// Whether THIS player is standing close enough to the seat to be offered it.
+        ///
+        /// <para>
+        /// Split from <see cref="CanInteract()"/> because the two questions have different answers:
+        /// the mount is free to be ridden (a fact about the world) while a particular player is
+        /// still half a body-length away from the place they would end up (a fact about them). The
+        /// <see cref="Interactor"/> asks both before it lights the crosshair, so a refusal here
+        /// takes the prompt away as well as blocking the press.
+        /// </para>
+        /// <para>
+        /// What this closes: <see cref="Interactor"/> resolves an interactable by walking up from
+        /// whatever collider the look ray hit, so on a large entity EVERY collider offers the seat
+        /// from the full length of that ray. On an eighteen-metre machine with one body column
+        /// that put the prompt on screen from any side, several metres out, and pressing it fired
+        /// the rider up onto a shoulder they were nowhere near.
+        /// </para>
+        /// </summary>
+        public bool CanInteract(Interactor interactor) => IsWithinMountRange(interactor);
+
+        /// <summary>
+        /// Horizontal distance from a would-be rider to the seat, against
+        /// <see cref="maxMountDistance"/>. Public so a station or a test can ask the same question
+        /// the crosshair does.
+        ///
+        /// <para>
+        /// HORIZONTAL, and that is the whole design of it. A seat can be metres above every place
+        /// a player could stand — the conjurer's shoulder is sixteen up — so a true 3D distance
+        /// would be unsatisfiable from the ground and the only riders it admitted would be ones
+        /// already aboard. Dropping the vertical leaves the question that actually means
+        /// something: are they standing under it.
+        /// </para>
+        /// <para>
+        /// A null interactor is not refused. Nobody was named, so there is no one to be too far
+        /// away — the same answer <c>DeckBoarding</c> gives, and what keeps a scripted or
+        /// restored mount from being blocked by a rule written for a player at a crosshair.
+        /// </para>
+        /// </summary>
+        public bool IsWithinMountRange(Interactor interactor)
+        {
+            if (maxMountDistance <= 0f || interactor == null)
+                return true;
+
+            Vector3 offset = SeatWorldPosition - RiderPosition(interactor);
+            offset.y = 0f;
+            return offset.sqrMagnitude <= maxMountDistance * maxMountDistance;
+        }
+
+        /// <summary>
+        /// Where a rider taking this seat right now would land — the seat marker with
+        /// <see cref="seatOffset"/> folded in, which is the pose <c>ParentRiderToMount</c> writes.
+        /// </summary>
+        public Vector3 SeatWorldPosition
+        {
+            get
+            {
+                Transform seat = ActiveSeatPoint;
+                return seat ? seat.TransformPoint(seatOffset) : transform.position;
+            }
+        }
+
+        /// <summary>
+        /// The body the interactor belongs to, not the interactor itself: on the player prefab the
+        /// Interactor sits on the root, but a rig that hangs it off the camera would otherwise be
+        /// measured from wherever the head happens to be leaning.
+        /// </summary>
+        private static Vector3 RiderPosition(Interactor interactor)
+        {
+            PlayerMovement body = interactor.GetComponentInParent<PlayerMovement>();
+            return body ? body.transform.position : interactor.transform.position;
+        }
+
+        /// <summary>
+        /// The ring a rider has to stand inside, drawn at their feet rather than at the seat — the
+        /// seat can be sixteen metres over the player's head, and a circle up there tells nobody
+        /// where to walk. Only drawn when the range is limited; an unlimited mount has no ring.
+        /// </summary>
+        private void OnDrawGizmosSelected()
+        {
+            if (maxMountDistance <= 0f)
+                return;
+
+            Vector3 centre = SeatWorldPosition;
+            centre.y = transform.position.y;
+
+            Gizmos.color = new Color(0.3f, 0.9f, 1f, 0.9f);
+            const int segments = 48;
+            Vector3 previous = centre + new Vector3(maxMountDistance, 0f, 0f);
+            for (int i = 1; i <= segments; i++)
+            {
+                float angle = i * Mathf.PI * 2f / segments;
+                Vector3 next = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * maxMountDistance;
+                Gizmos.DrawLine(previous, next);
+                previous = next;
+            }
+
+            // The column the ring is measured from, so a seat out on a shoulder reads as one.
+            Gizmos.DrawLine(centre, SeatWorldPosition);
         }
 
         // ─────────── Suppressor ───────────

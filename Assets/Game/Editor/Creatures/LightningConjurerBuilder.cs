@@ -1,4 +1,4 @@
-﻿// Builds every Unity-side asset the Lightning Conjurer needs, from the exported FBX up.
+// Builds every Unity-side asset the Lightning Conjurer needs, from the exported FBX up.
 //
 // The FBX comes out of Blender via the rig/anim/export scripts kept beside the
 // model in Assets/Game/Art/Models/Creatures/Robotic/LightningConjurer/_Source~/.
@@ -321,6 +321,15 @@ namespace SpaceGame.EditorTools
         /// shins hanging a metre down its side, and nudge them forward so those shins swing past
         /// the front edge of the arm rather than through it.
         private static readonly Vector3 SeatOffset = new Vector3(0f, -0.15f, 0.35f);
+
+        /// How close to the shoulder, on the ground, a player has to stand before the machine
+        /// offers them the seat. Horizontal distance to the seat bone -- see MountModule's
+        /// maxMountDistance for why height is left out of it.
+        ///
+        /// Three metres against a body column of half-width 2.4 m and a bone 3.27 m off the
+        /// centreline: a player up against the left face stands well inside it, one on the right
+        /// face is 5.7 m from the bone and gets nothing.
+        private const float ShoulderBoardingRadius = 3f;
 
         // ---- the arms are solid ------------------------------------------------
         //
@@ -3326,6 +3335,20 @@ namespace SpaceGame.EditorTools
             // cannot point inside one -- the same reason ConjurerCastModule finds StaffTip this way.
             SetString(mso, "seatBone", SeatBone);
             SetProp(mso, "dismountPoint", dismount.transform);
+
+            // How close you have to be standing to be offered the shoulder.
+            //
+            // Without it the seat is offered from anywhere the interaction ray reaches any part of
+            // the machine, and this machine is one 4.8 m body column from the ground to the head --
+            // so every side of it, several metres out, put "ride" on screen and fired the player
+            // sixteen metres up onto a shoulder they were nowhere near.
+            //
+            // Measured horizontally from the seat bone, which sits 3.27 m out from the centreline
+            // on the LEFT and 15.75 m up. So the ring this cuts is a circle on the ground under
+            // the left arm: pressed against that side of the body the rider is well inside it,
+            // stood off the right side they are 5.7 m away and it is closed. Which is the rule
+            // that was wanted -- walk round to the arm you intend to sit on.
+            SetFloat(mso, "maxMountDistance", ShoulderBoardingRadius);
 
             // The one flag that makes this a passenger seat rather than a saddle. Off -- the
             // default -- MountModule disables every other behaviour module for the duration, and

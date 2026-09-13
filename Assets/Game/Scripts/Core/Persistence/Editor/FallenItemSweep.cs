@@ -29,13 +29,19 @@ namespace SpaceGame.Core.Persistence.EditorTools
         /// Below this, a record is not somewhere a player put something — it is something that fell.
         ///
         /// <para>
-        /// The same number <c>UnderTerrainGuard.absoluteFloorY</c> uses to decide a body is stranded
-        /// under the world, and shared for the same reason: two answers to "how far down is off the
-        /// map" would disagree the first time either moved. The orphans this was written for are
+        /// Taken from the store rather than restated here, so this tool and the load-time hold that
+        /// now catches these records cannot disagree about how far down is off the map. Same number
+        /// again as <c>UnderTerrainGuard.absoluteFloorY</c>. The orphans this was written for are
         /// thousands of metres below it, so the margin is not fine.
         /// </para>
+        /// <para>
+        /// Still worth running on an old file even though <c>WorldSaveStore</c> now lands these
+        /// rather than dropping them again: landing a record needs the chunk under it to load, and
+        /// a player who never walks back there carries the whole fallen population in their save
+        /// for the life of the world.
+        /// </para>
         /// </summary>
-        private const float WorldFloorY = -500f;
+        private const float WorldFloorY = WorldSaveStore.WorldFloorY;
 
         [MenuItem("Tools/Save System/Drop Fallen Item Records")]
         public static void Sweep()

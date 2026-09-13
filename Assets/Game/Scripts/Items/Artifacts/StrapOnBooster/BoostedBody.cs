@@ -153,14 +153,19 @@ namespace SpaceGame.Items
             ITowable tow = GetComponentInParent<ITowable>();
             if (tow != null)
             {
-                // One anchor, however many boosters: a tow is a single request, and the machine
-                // decides for itself what a pull costs and when it is over. The combined axis is
+                // One ask, however many boosters: the machine decides for itself what a push is
+                // worth and what its own gait, airframe or NavMesh will take. The combined axis is
                 // the honest reading of two boosters pointing different ways.
+                //
+                // The ACCELERATION, never a point to be pulled towards. A booster has no
+                // destination, so the anchor this used to invent — 60 m out along the thrust — was
+                // a distance the machine was free to read literally, and a NavMesh creature did:
+                // it moved the full 60 m every physics step and was out of the world before the
+                // flame was drawn. See ITowable.RequestThrust.
                 Vector3 combined = CombinedThrust();
                 if (combined.sqrMagnitude < 1e-6f) return;
 
-                tow.RequestTow(tow.TowAttachPoint
-                               + combined.normalized * boosters[0].TowAnchorDistance);
+                tow.RequestThrust(combined);
                 return;
             }
 

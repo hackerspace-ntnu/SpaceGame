@@ -84,7 +84,7 @@ namespace SpaceGame.Items
 
         [Tooltip("Seconds the iris takes to open. Short: the opening is the cue that the pull has " +
                  "started, and a cue that arrives after the effect is a cue nobody reads.")]
-        [SerializeField, Min(0.01f)] private float collarOpenSeconds = 0.18f;
+        [SerializeField, Min(0.01f)] private float collarOpenSeconds = 0.09f;
 
         [Header("Core")]
         [Tooltip("The black core behind the glass — the little black hole the bottle becomes. " +

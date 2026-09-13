@@ -27,7 +27,7 @@ symptoms:
   - "damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled"
   - "the map hologram in the ship shows the world with me off in a corner of it"
 reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics]
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # UI
@@ -96,7 +96,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | `PlayerListView` | [Widgets/PlayerListView.cs](Assets/Game/Scripts/Presentation/UI/Widgets/PlayerListView.cs) | Pause menu's Players tab: name, you/host tags, RTT; rows pooled, ping refreshed once a second. |
 | `CrosshairUI` | [HUD/CrosshairUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/CrosshairUI.cs) | Crosshair + aim hint. **Its hover half has never run** — `playerInteractor` is unassigned on the prefab and `Update` returns on line 1. |
 | `PlayerHints` | [HUD/PlayerHints.cs](Assets/Game/Scripts/Presentation/UI/HUD/PlayerHints.cs) | **Now a static adapter over `SystemMessages`**, not a canvas of its own — same `Show(id, text[, seconds])` / `Hide(id)` API, so every caller is unchanged. Hints post at `Notice` and are drawn by `VisorMessageStack`. See [Visor.md](Visor.md). |
-| `SeatPromptUI` | [HUD/SeatPromptUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/SeatPromptUI.cs) | WHEN the arrival's "Q — exit the ship" hint shows: 3 s after the cutscene ends, 10 s backstop from the seat becoming leavable. **Polled** (`SeatedRider.LocalPlayerMayLeave` + `CutsceneDirector.IsPlaying`), never event-driven — it lives on a HUD that is disabled at exactly the moments the arrival announces things, so an event subscriber missed them and the hint never showed. Draws via `PlayerHints`; `SeatedRider` decides whether the key does anything. |
+| `SeatPromptUI` | [HUD/SeatPromptUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/SeatPromptUI.cs) | WHEN the arrival's "Esc — exit the ship" hint shows: 3 s after the cutscene ends, 10 s backstop from the seat becoming leavable. **Polled** (`SeatedRider.LocalPlayerMayLeave` + `CutsceneDirector.IsPlaying`), never event-driven — it lives on a HUD that is disabled at exactly the moments the arrival announces things, so an event subscriber missed them and the hint never showed. Draws via `PlayerHints`; `SeatedRider` decides whether the key does anything. |
 | `DeathScreenUI` | [HUD/DeathScreenUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/DeathScreenUI.cs) | Death overlay; binds in `OnEnable` and reads current `IsDead`, not just the event. |
 | `InventoryUI` / `InventorySlotUI` | [HUD/InventoryUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/InventoryUI.cs), [HUD/InventorySlotUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/InventorySlotUI.cs) | Four-slot hotbar, built in code (`Slot.prefab` is dead). Clicks are handed to `PackHandController`; the bar never draws a held-item stand-in. |
 | `HelmetHUDController` | [HelmetHUD/HelmetHUDController.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/HelmetHUDController.cs) | The visor root. Builds the `Vitals` / `Annotations` sublayers and spawns the modules; the player's health gauge lives here now. See [Visor.md](Visor.md). |

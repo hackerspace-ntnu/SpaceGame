@@ -62,19 +62,46 @@ namespace SpaceGame.EditorTools
             Material white = EnsureWhiteMaterial();
             if (white == null) return;
 
-            // SceneManager.CreateScene, not EditorSceneManager.NewScene. NewScene refuses outright
-            // while an UNTITLED unsaved scene is open in the editor ("Cannot create a new scene
-            // additively with an untitled scene unsaved") — which is the ordinary state of anybody's
-            // editor after a play session. This route builds the scene beside whatever the user has
-            // open and never touches it.
-            Scene scene = SceneManager.CreateScene(SingularityVoid.SceneName);
+            // EditorSceneManager.NewScene, additively, so whatever the user has open is left alone.
+            // NOT SceneManager.CreateScene: that one throws "This can only be used during play
+            // mode" outright in the editor, which is a builder that logs an exception and leaves
+            // the material behind with no scene, no interior asset and no wiring — exactly the
+            // state this artifact shipped in.
+            //
+            // The exception is an editor sitting on a single untitled scene, which Unity refuses to
+            // create an additive scene alongside. Nothing in that state is worth protecting, so it
+            // is replaced — after checking it is not dirty, which is the only way it could be.
+            Scene previousActive = SceneManager.GetActiveScene();
+
+            bool untitled = SceneManager.sceneCount == 1 && string.IsNullOrEmpty(previousActive.path);
+
+            if (untitled && previousActive.isDirty)
+            {
+                Debug.LogError("[SingularityVoid] The open untitled scene has unsaved changes. " +
+                               "Save or discard it, then run this again.");
+                return;
+            }
+
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,
+                                                      untitled ? NewSceneMode.Single
+                                                               : NewSceneMode.Additive);
 
             BuildContents(scene, white);
             ApplyRenderSettings(scene);
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorSceneManager.CloseScene(scene, removeScene: true);
+
+            // The scene takes its name from the file it was saved into, and three other places
+            // hard-code that name (SingularityVoid.SceneName, the InteriorScene asset, the guard).
+            // A mismatch is a singularity that eats bodies into a scene nothing can load.
+            if (scene.name != SingularityVoid.SceneName)
+                Debug.LogError($"[SingularityVoid] The scene saved as '{scene.name}' but the code " +
+                               $"expects '{SingularityVoid.SceneName}'. {ScenePath} is misnamed.");
+
+            // The last open scene cannot be closed, which is the untitled case above: the void was
+            // created in Single mode and is all there is.
+            if (SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(scene, removeScene: true);
 
             RegisterInBuildSettings();
             InteriorScene interior = EnsureInteriorAsset();

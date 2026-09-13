@@ -1,4 +1,4 @@
-// The thrown bottle, and the three seconds of inward pull it becomes.
+// The thrown bottle, and the second and a half of inward pull it becomes.
 //
 // It is a SPAWNED NETWORK OBJECT rather than a Present() visual, for the reason FoamBlob is: it is a
 // thing in the world that everybody collides with, and the pile it makes is a pile every player has
@@ -109,7 +109,7 @@ namespace SpaceGame.Items
         [SerializeField, Min(0.5f)] private float radius = 8f;
 
         [Tooltip("Seconds the bottle inhales before it lets go.")]
-        [SerializeField, Min(0.1f)] private float inhaleSeconds = 3f;
+        [SerializeField, Min(0.1f)] private float inhaleSeconds = 1.5f;
 
         [Header("Pull")]
         [Tooltip("How fast the bottle drags a body at the very centre, in metres per second. Read " +
@@ -206,26 +206,26 @@ namespace SpaceGame.Items
         [Tooltip("Seconds the sphere takes to overshoot from the radius out to twice it, once the " +
                  "inhale is over. Short: this is a gulp, not a phase — it is the wind-up that says " +
                  "the collapse is coming (GDC-L1-ANIM-0003).")]
-        [SerializeField, Min(0.01f)] private float flareSeconds = 0.25f;
+        [SerializeField, Min(0.01f)] private float flareSeconds = 0.12f;
 
         [Tooltip("Seconds the black sphere takes to fall from its widest to nothing. Everything it " +
                  "holds goes out of the world on the frame this starts, so the collapse is what " +
                  "the disappearance LOOKS like rather than what causes it.")]
-        [SerializeField, Min(0.05f)] private float collapseSeconds = 1f;
+        [SerializeField, Min(0.05f)] private float collapseSeconds = 0.5f;
 
         [Tooltip("Seconds everything stays swallowed with nothing to see. The whole cost of being " +
                  "caught, and deliberately long enough to be a real one — see the Gotchas in the " +
                  "system doc about where this sits on the commitment axis (GDC-L1-FEEL-0008).")]
-        [SerializeField, Min(0f)] private float holdSeconds = 5f;
+        [SerializeField, Min(0f)] private float holdSeconds = 2.5f;
 
         [Tooltip("Seconds the white ball is back for when it spits. A split second: any longer and " +
                  "it reads as a second inhale rather than as the thing letting go.")]
-        [SerializeField, Min(0.02f)] private float spitSeconds = 0.15f;
+        [SerializeField, Min(0.02f)] private float spitSeconds = 0.08f;
 
         [Header("Life")]
         [Tooltip("Seconds the spent bottle lies there after the release before it is despawned. " +
                  "Long enough for the burst to read; short enough that nobody trips over it.")]
-        [SerializeField, Min(0f)] private float spentLingerSeconds = 0.5f;
+        [SerializeField, Min(0f)] private float spentLingerSeconds = 0.25f;
 
         [Header("Parts")]
         [Tooltip("The white nowhere a swallowed body is put — the one interior with no door. " +
@@ -282,7 +282,7 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// The current sweep's answer. Static and reused for the reason every other buffer here is:
-        /// the pull asks this question fifty times a second for three seconds.
+        /// the pull asks this question fifty times a second for a second and a half.
         /// </summary>
         private static readonly List<SweptBody> Reached = new List<SweptBody>(32);
 
@@ -489,6 +489,26 @@ namespace SpaceGame.Items
         private float CollapseEnds => FlareEnds + collapseSeconds;
         private float HoldEnds => CollapseEnds + holdSeconds;
         private float SpitEnds => HoldEnds + spitSeconds;
+
+        /// <summary>
+        /// How long <see cref="StatusKind.Swallowed"/> has to last, measured from the swallow.
+        ///
+        /// <para>
+        /// The swallow is the FIRST frame of <see cref="SingularityPhase.Collapsing"/>, not the
+        /// first frame of the hold, so the flag has to cover the collapse as well — a flag that
+        /// ran out early would leave a body standing in the void measuring exactly what
+        /// <c>SingularityVoidGuard</c> rescues people for, and the guard would haul a player out
+        /// of a singularity that is still holding them.
+        /// </para>
+        /// </summary>
+        private float SwallowedFor => SwallowedSeconds(collapseSeconds, holdSeconds, spitSeconds);
+
+        /// <summary>
+        /// The same figure from the three durations alone, so the one number that has to outlast
+        /// the stay in the void can be tested against <see cref="PhaseAt"/> without a session.
+        /// </summary>
+        public static float SwallowedSeconds(float collapse, float hold, float spit) =>
+            collapse + hold + spit;
 
         /// <summary>
         /// How far through <paramref name="phase"/> the bottle is, 0 to 1. What the shell draws
@@ -932,8 +952,9 @@ namespace SpaceGame.Items
         /// </summary>
         private void Place(Vector3 position, Quaternion rotation)
         {
-            // A settled bottle is asked for the same pose every step for three seconds. Writing it
-            // back each time is a transform change the physics scene has to notice, for nothing.
+            // A settled bottle is asked for the same pose every step for a second and a half.
+            // Writing it back each time is a transform change the physics scene has to notice, for
+            // nothing.
             if (transform.position == position && transform.rotation == rotation) return;
 
             if (body != null && body.isKinematic)
@@ -1224,7 +1245,8 @@ namespace SpaceGame.Items
         /// on falling through the floor it can no longer touch.
         /// </para>
         /// <para>
-        /// The status is given the whole hold PLUS the spit, so a bottle that is despawned mid-hold
+        /// The status is given the collapse, the hold AND the spit (<see cref="SwallowedFor"/>),
+        /// which is everything between this moment and the release, so a bottle despawned mid-hold
         /// — a chunk unloading, a world quit, the budget retiring it — still gives every body back
         /// on its own clock rather than leaving it hidden for the session.
         /// </para>
@@ -1245,7 +1267,7 @@ namespace SpaceGame.Items
                 // decide for the body, so calling it everywhere is correct rather than a race —
                 // and it must land before the move, because the guard that rescues a stranded
                 // player measures exactly "in the void with no flag".
-                StatusReceiver.Of(root)?.Apply(StatusKind.Swallowed, holdSeconds + spitSeconds,
+                StatusReceiver.Of(root)?.Apply(StatusKind.Swallowed, SwallowedFor,
                                                magnitude: 1f, source: transform);
 
                 bool inside = SendToVoid(root);
@@ -1314,7 +1336,7 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// There is no falloff and no sweep. Everything is at the centre by now, which is the whole
-        /// point of the five seconds, so the only question left is which way each one goes — see
+        /// point of the hold, so the only question left is which way each one goes — see
         /// <see cref="SpitVelocity"/>.
         /// </para>
         /// </summary>

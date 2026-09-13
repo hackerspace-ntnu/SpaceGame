@@ -10,12 +10,12 @@
 
 #include "ArtifactSubstance.hlsl"
 
-// Bounded so the array has a fixed size and the loop can unroll. 128 covers one player's full
-// 128-dab budget; past that the uploader is expected to cull by distance rather than to raise
+// Bounded so the array has a fixed size and the loop can unroll. 192 covers one player's full
+// 192-dab budget; past that the uploader is expected to cull by distance rather than to raise
 // this, because the cost is paid by every foam pixel on screen. It is the single most expensive
 // number in this artifact — every entry costs a distance and a normalize on every foam
 // fragment, and raising it again is a profiler question, not a taste one (GDC-L1-PERF-0001).
-#define FOAM_MAX_BLOBS 128
+#define FOAM_MAX_BLOBS 192
 
 // GLOBALS, not per material: every blob shades against the same field, and a per-material
 // copy would be one field per blob. See the header of FoamSurface.shader for the contract.

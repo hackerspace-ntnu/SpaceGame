@@ -147,6 +147,13 @@ namespace SpaceGame.World.Environment
             {
                 this.settings = settings;
                 renderPassEvent = settings.renderPassEvent;
+
+                // The pass reads the camera colour and replaces it, so it cannot run against the
+                // back buffer: that handle carries no descriptor, and sizing the fog and composite
+                // targets from it throws "The passed in texture handle does not have a valid
+                // descriptor" out of RecordRenderGraph. Declaring the requirement makes URP keep an
+                // intermediate colour texture alive instead of rendering to the back buffer.
+                requiresIntermediateTexture = true;
             }
 
             private class PassData

@@ -39,6 +39,11 @@ namespace SpaceGame.EditorTools
 
         private const float StandingSkin = 0.02f;
 
+        // The child PlayerShipBuilder.BuildStructuralCollision mounts the baked hull
+        // proxy under. It is the ship's SKIN, which the standing terminal is allowed
+        // to stand inside of and the crew never touch.
+        private const string HullCollisionRoot = "Collision";
+
         /// <summary>
         /// Metres either side of the deck's centre line that the cabin owes a player to walk in.
         ///
@@ -1138,14 +1143,20 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The standing terminal stands on the cockpit's fore deck with nothing of the ship's
-        /// own inside its box: not the hull's baked fill, not a chair, not another fixture. The
-        /// window it stands in was swept rather than reasoned about (see
-        /// <c>PlayerShipBuilder.StandingTerminalFore</c>); a remodel of the cockpit or the
-        /// terminal that closes it fails here with the intruding collider named.
+        /// The standing terminal stands on the floor with nothing of the ship's FITTINGS inside
+        /// its box: not a chair, not a door leaf, not one of the other four fixtures.
+        ///
+        /// <para>
+        /// The hull is deliberately not in that list. The console stands in line with the gear
+        /// wall (<c>PlayerShipBuilder.BuildStandingTerminal</c>), and a unit whose face is flush
+        /// with the wall's is deeper than the wall is, so its back is inside the skin's baked
+        /// convex fill exactly as the wall's own back is. What still has to be true is that a
+        /// crew member walks into nothing — which is what this guards, along with
+        /// <c>…IsReachedFromTheWalkway</c>.
+        /// </para>
         /// </summary>
         [Test]
-        public void PlayerShip_StandingTerminalStandsOnTheDeckClearOfEverything()
+        public void PlayerShip_StandingTerminalStandsClearOfTheShipsFittings()
         {
             InstantiateShip();
 
@@ -1153,15 +1164,22 @@ namespace SpaceGame.EditorTools
             var box = terminal.GetComponent<BoxCollider>();
             Assert.IsNotNull(box, "The terminal has no collider, so no look-ray can find it.");
 
+            Transform skin = ship.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == HullCollisionRoot);
+            Assert.IsNotNull(skin, "The ship has no '" + HullCollisionRoot + "' object, so this " +
+                                   "test cannot tell the skin the terminal is allowed to sink " +
+                                   "into from the fittings it is not.");
+
             Vector3 centre = box.transform.TransformPoint(box.center);
             Vector3 half = Vector3.Scale(box.size, box.transform.lossyScale) * 0.5f
                            - Vector3.one * StandingSkin;
             Collider[] inside = Ours(Physics.OverlapBox(centre, half, box.transform.rotation, ~0, NotTriggers))
                 .Where(c => !c.transform.IsChildOf(terminal.transform))
+                .Where(c => !c.transform.IsChildOf(skin))
                 .ToArray();
             Assert.IsEmpty(inside.Select(Describe),
-                           "Something of the ship's own is standing inside the terminal — the hull, " +
-                           "a chair, or one of the other fixtures.");
+                           "Something a crew member walks into is standing inside the terminal — " +
+                           "a chair, a door leaf, or one of the other fixtures.");
 
             Vector3 probe = terminal.transform.position + Vector3.up * 0.05f;
             RaycastHit[] under = Ours(Physics.RaycastAll(probe, Vector3.down, 1f, ~0, NotTriggers))
@@ -1172,6 +1190,42 @@ namespace SpaceGame.EditorTools
             float clearance = probe.y - under[0].point.y;
             Assert.That(clearance, Is.InRange(0.0f, 0.10f),
                         $"The terminal's base sits {clearance - 0.05f:0.00} m over the floor under it.");
+        }
+
+        /// <summary>
+        /// The console and the gear wall read as ONE run of fittings: the same face line, and a
+        /// gap between them the size <c>PlayerShipBuilder.StandingTerminalWallGap</c> decides.
+        /// The placement is measured off the wall at build time, so this fails when the pair have
+        /// come apart — a resize of either model, or a fixture moved back onto the deck between
+        /// them.
+        /// </summary>
+        [Test]
+        public void PlayerShip_StandingTerminalStandsInLineWithTheGearWall()
+        {
+            InstantiateShip();
+
+            TerminalConsole terminal = Terminal();
+            PackSurface face = Wall().GetComponentInChildren<PackSurface>(true);
+            Bounds fitting = WallFitting(Wall());
+
+            Renderer[] renderers = terminal.GetComponentsInChildren<Renderer>(true);
+            Assert.IsNotEmpty(renderers, "The terminal has no renderers to measure.");
+            Bounds console = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) console.Encapsulate(renderers[i].bounds);
+
+            // The surface's local Y is its outward normal, pointing INTO the room, so the
+            // side the pair stands on is the other way about.
+            float side = -Mathf.Sign(face.transform.up.x);
+            float wallFaceX = face.ToWorld(face.Size * 0.5f, 0f).x;
+            float consoleFaceX = console.center.x - side * console.extents.x;
+            Assert.AreEqual(wallFaceX, consoleFaceX, 0.05f,
+                            "The console's face is not on the gear wall's face line — the two no " +
+                            "longer read as one run of fittings.");
+
+            float gap = console.min.z - fitting.max.z;
+            Assert.AreEqual(PlayerShipBuilder.StandingTerminalWallGap, gap, 0.05f,
+                            $"The console stands {gap:0.00} m forward of the wall's edge, not the " +
+                            "decided gap.");
         }
 
         /// <summary>

@@ -130,28 +130,6 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// How much of the effect a body standing <paramref name="offAxisDegrees"/> off the aim
-        /// takes: all of it on the crosshair, falling linearly to <paramref name="edge"/> at the
-        /// rim of the cone.
-        ///
-        /// <para>
-        /// This is what keeps a cone from turning a precision tool into a crowd tool. A gun whose
-        /// eighteen-metre cone applied its full effect everywhere inside it would land on
-        /// everything vaguely near the aim at a range where the cone is nine metres across, which
-        /// is a strictly better flamethrower rather than a different weapon (GDC-L1-BAL-0004).
-        /// Falloff keeps the reward for aiming while still answering what the player meant when
-        /// they were a degree off (GDC-L1-FEEL-0003).
-        /// </para>
-        /// </summary>
-        public static float Falloff(float offAxisDegrees, float halfAngleDegrees, float edge)
-        {
-            if (halfAngleDegrees <= 1e-3f) return 1f;
-
-            float t = Mathf.Clamp01(offAxisDegrees / halfAngleDegrees);
-            return Mathf.Lerp(1f, Mathf.Clamp01(edge), t);
-        }
-
-        /// <summary>
         /// Is there a clear line from the apex to <paramref name="point"/>?
         ///
         /// <para>

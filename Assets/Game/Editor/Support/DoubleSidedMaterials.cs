@@ -20,11 +20,16 @@ namespace SpaceGame.EditorTools
 {
     public static class DoubleSidedMaterials
     {
-        private const string GeneratedMaterialFolder = "Assets/Game/Art/Materials/Vehicles";
+        private const string VehicleMaterialFolder = "Assets/Game/Art/Materials/Vehicles";
         private const string DoubleSidedSuffix = " (DoubleSided)";
 
-        /// <summary>Swap every material under <paramref name="model"/> for its double-sided copy.</summary>
-        public static void Apply(Transform model)
+        /// <summary>
+        /// Swap every material under <paramref name="model"/> for its double-sided copy.
+        /// The copies land in <paramref name="folder"/>, which defaults to the vehicle
+        /// folder the first two callers used; pass the asset's own domain folder instead
+        /// when it is not a vehicle.
+        /// </summary>
+        public static void Apply(Transform model, string folder = VehicleMaterialFolder)
         {
             var remap = new Dictionary<Material, Material>();
 
@@ -38,7 +43,7 @@ namespace SpaceGame.EditorTools
                     if (mats[i] == null)
                         continue;
 
-                    Material variant = DoubleSidedCopy(mats[i], remap);
+                    Material variant = DoubleSidedCopy(mats[i], folder, remap);
                     if (variant == mats[i])
                         continue;
 
@@ -51,7 +56,8 @@ namespace SpaceGame.EditorTools
             }
         }
 
-        private static Material DoubleSidedCopy(Material source, Dictionary<Material, Material> cache)
+        private static Material DoubleSidedCopy(Material source, string folder,
+                                                Dictionary<Material, Material> cache)
         {
             if (cache.TryGetValue(source, out Material cached))
                 return cached;
@@ -63,11 +69,11 @@ namespace SpaceGame.EditorTools
                 return source;
             }
 
-            if (!AssetDatabase.IsValidFolder(GeneratedMaterialFolder))
-                AssetDatabase.CreateFolder(System.IO.Path.GetDirectoryName(GeneratedMaterialFolder),
-                                           System.IO.Path.GetFileName(GeneratedMaterialFolder));
+            if (!AssetDatabase.IsValidFolder(folder))
+                AssetDatabase.CreateFolder(System.IO.Path.GetDirectoryName(folder),
+                                           System.IO.Path.GetFileName(folder));
 
-            string path = $"{GeneratedMaterialFolder}/{source.name}{DoubleSidedSuffix}.mat";
+            string path = $"{folder}/{source.name}{DoubleSidedSuffix}.mat";
             Material variant = AssetDatabase.LoadAssetAtPath<Material>(path);
 
             if (variant == null)

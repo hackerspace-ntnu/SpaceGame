@@ -40,7 +40,7 @@ import os
 
 import bmesh
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 LIB_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -83,18 +83,32 @@ def _localise_materials():
     return n
 
 
-def _drop_armatures():
-    """Un-parent meshes from the rig, in place, then delete the rig.
+def _unparent_meshes():
+    """Clear every mesh's parent, in place. Returns how many were unparented.
 
     Reading `matrix_world` before clearing the parent and writing it back after
     is what keeps the mesh where it was; clearing `parent` on its own drops the
     parent's transform and scatters the model.
+
+    Every world matrix is read first, in one pass, and only then are the parents
+    cleared, so one edit cannot invalidate the matrix the next read depends on.
     """
-    for obj in bpy.data.objects:
-        if obj.type == 'MESH' and obj.parent is not None:
-            world = obj.matrix_world.copy()
-            obj.parent = None
-            obj.matrix_world = world
+    bpy.context.view_layer.update()
+    parented = [o for o in bpy.data.objects
+                if o.type == 'MESH' and o.parent is not None]
+    worlds = [o.matrix_world.copy() for o in parented]
+
+    for obj, world in zip(parented, worlds):
+        obj.parent = None
+        obj.matrix_world = world
+
+    bpy.context.view_layer.update()
+    return len(parented)
+
+
+def _drop_armatures():
+    """Un-parent meshes from the rig, in place, then delete the rig."""
+    _unparent_meshes()
     rigs = [o for o in bpy.data.objects if o.type == 'ARMATURE']
     for obj in rigs:
         bpy.data.objects.remove(obj, do_unlink=True)
@@ -231,10 +245,16 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     else:
         print("  dropped %d armature(s); meshes flattened in place" % dropped)
 
+    _write_fbx(dst, types)
+    # Deliberately no save_mainfile: the .blend is the source of truth.
+
+
+def _write_fbx(dst, types, use_selection=False):
+    """The twelve load-bearing flags, in one place. See the module docstring."""
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     bpy.ops.export_scene.fbx(
         filepath=dst,
-        use_selection=False,
+        use_selection=use_selection,
         object_types=types,
         apply_scale_options='FBX_SCALE_NONE',
         axis_forward='-Z',
@@ -249,7 +269,65 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
         embed_textures=False,
     )
     print("  wrote %s (%.1f MB)" % (dst, os.path.getsize(dst) / 1e6))
-    # Deliberately no save_mainfile: the .blend is the source of truth.
+
+
+def export_collections(src, jobs, fix_inverted=False):
+    """Open `src` ONCE and write one FBX per collection named in `jobs`.
+
+    `jobs` is a sequence of `(collection name, destination path)`. This exists
+    for the files that hold a whole CONTACT SHEET of finished models — the forty
+    nomad buildings, the eighteen shade sails — where `export(keep_collection=)`
+    would mean re-opening an 8000-object .blend once per model, and would leave
+    every model standing on its grid square instead of on its own origin.
+
+    Each collection is moved onto the world origin by its `instance_offset` —
+    the point the generators set to the model's ground centre — exported through
+    `use_selection`, and put back.
+
+    Every mesh is unparented first, so each part is moved on its own rather than
+    through a root the exporter is not going to write out.
+
+    **`fix_inverted` is not safe on a contact sheet and this is the wrong place
+    to reach for it.** Measured on `nomad_settlement.blend`: with it on, three of
+    the forty buildings shipped their mirrored kit parts up to 137 m from the
+    model — the .blend reads correct vertex-by-vertex, the FBX does not — and
+    with it off all forty match the source to under 10 mm. Those files share one
+    mesh datablock between as many as 75 objects across several collections,
+    which is the one case `_unmirror`'s copy-on-write does not survive. Fix a
+    mirrored part's winding on the Unity side instead, per renderer.
+    """
+    if not os.path.exists(src):
+        raise SystemExit("No model at %s" % src)
+
+    bpy.ops.wm.open_mainfile(filepath=src)
+    print("  %d mesh(es) unparented" % _unparent_meshes())
+    print("  %d material(s) localised" % _localise_materials())
+    if fix_inverted:
+        unmirrored = _unmirror()
+        print("  un-mirrored %d inside-out object(s)" % len(unmirrored))
+
+    for name, dst in jobs:
+        coll = bpy.data.collections.get(name)
+        if coll is None:
+            raise SystemExit("No collection %r in %s" % (name, src))
+        meshes = [o for o in coll.all_objects if o.type == 'MESH']
+        if not meshes:
+            raise SystemExit("Collection %r holds no mesh" % name)
+
+        offset = Vector(coll.instance_offset)
+        for obj in meshes:
+            obj.location = obj.location - offset
+
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in meshes:
+            obj.select_set(True)
+        bpy.context.view_layer.update()
+        tris = sum(sum(max(0, len(p.vertices) - 2) for p in o.data.polygons) for o in meshes)
+        print("  %s: %d mesh(es), %d tri(s) pre-modifier" % (name, len(meshes), tris))
+        _write_fbx(dst, {'MESH'}, use_selection=True)
+
+        for obj in meshes:
+            obj.location = obj.location + offset
 
 
 def to_unity(v):

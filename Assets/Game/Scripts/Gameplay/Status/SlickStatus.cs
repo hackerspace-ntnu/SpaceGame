@@ -26,16 +26,14 @@ namespace SpaceGame.Gameplay.Status
     [Serializable]
     public sealed class SlickStatus : StatusBehaviour, IGripSource
     {
-        /// <summary>Twenty seconds — the same clock the sprayed ground patch runs.</summary>
+        /// <summary>Twenty seconds, and twice what a freeze is worth: the film outlives it.</summary>
         private const float DefaultDuration = 20f;
 
         public SlickStatus() : base(DefaultDuration) { }
 
-        [Tooltip("Grip left while slicked, as a share of normal. The same figure SlickCoat leaves " +
-                 "on the ground, so a body wearing the film and a body standing on it slide " +
-                 "alike. At 0.03 it can still steer but can barely accelerate or brake, which is " +
-                 "what being covered in frost IS — 0 would be a body that can do nothing at all " +
-                 "about where it is going.")]
+        [Tooltip("Grip left while slicked, as a share of normal. At 0.03 a body can still steer " +
+                 "but can barely accelerate or brake, which is what being covered in frost IS — " +
+                 "0 would be a body that can do nothing at all about where it is going.")]
         [SerializeField, Range(0f, 1f)] private float grip = 0.03f;
 
         /// <summary>

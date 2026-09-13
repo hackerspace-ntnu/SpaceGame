@@ -124,8 +124,9 @@ concurrently. Compile and verify between waves.
 
 **Wave 0.5 — surface coats (1 agent)**
 
-- `surface-core`: `SurfaceCoat.md`. Patches, kinds, expiry, the `Ice` collider, and consumption of
-  the grip seam `status-core` built. Depends on Wave 0; do not parallelise it with Wave 0.
+- `surface-core`: `SurfaceCoat.md`. Patches, kinds, expiry, and consumption of the grip seam
+  `status-core` built. Depends on Wave 0; do not parallelise it with Wave 0. (Historical: `Ice` and
+  its collider were built here and have since been removed with the cryo sprayer's ground coats.)
 
 **Wave 1 — art and shaders (4 agents, parallel)**
 
@@ -202,8 +203,9 @@ These are recorded in the design docs and must be *decided and written down*, no
 - Bottled singularity: what a pull does to a mounted rider — ignore, or route through `ITowable`.
 - Inflator nozzle: whether a skinned rig scales fully (colliders, NavMesh agent radius, stride) or
   visual-plus-proxy only.
-- Cryo sprayer: whether the film's body duration should be shorter than its ground duration. Both
-  are twenty seconds today, and there is still no playtest evidence for two numbers.
+- Cryo sprayer: whether a 22° cone that freezes at one rate everywhere inside it is too strong
+  against a group. The falloff that used to price that in was removed for legibility, and there is
+  no playtest evidence either way yet.
 
 Anything touching game feel, balance or player-facing behaviour consults
 `docs/game-development-constitution/` — pick 1–5 principles, read them in full, cite the IDs.

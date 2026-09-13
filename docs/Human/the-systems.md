@@ -180,11 +180,11 @@ A physical inventory rather than a list: a deployable expedition rig whose seven
 
 ### Building with foam *(FoamGun)*
 
-Hold the trigger and the gun throws a thick, boiling jet of foam at whatever you are pointing at, about fifteen gobs a second. Each one lands, swells, and welds into whatever is already there, so a sweep leaves a single lumpy mass rather than a row of balls — a ramp up a cliff, a plug in a hole, a bridge over a gap. It is loud, wide and hard to aim precisely, and it is meant to be: you are laying material, not placing blocks.
+Hold the trigger and the gun throws a thick, boiling jet of foam at whatever you are pointing at, thirty gobs a second. Each one lands wet, slides off whatever it landed on and runs downhill until the slope will hold it, then swells and welds into whatever is already there. So a sweep leaves a single lumpy mass rather than a row of balls, and holding the trigger on one spot piles up a spreading mound rather than a column — a ramp up a cliff, a plug in a hole, a bridge over a gap. It is loud, wide and hard to aim precisely, and it is meant to be: you are laying material, not placing blocks.
 
 Foam that lands on the ground stands for a minute. Foam that lands on a *person* holds them where they are for ten seconds. That difference is on purpose — a ramp should still be there when you have climbed back down, while being stuck should be a setback rather than a sentence.
 
-The foam keeps swelling for about three seconds after it lands, so a wall you sprayed is still visibly rising while you walk away from it — and a ramp is not quite there the instant you make it.
+The foam keeps swelling for about three seconds after it lands, so a wall you sprayed is still visibly rising while you walk away from it. For those three seconds it is still soft — darker than the foam around it, and you fall straight through it. Spray the ramp ahead of you, not under your feet.
 
 **Worth knowing:** the cartridge under the barrel is the only thing that tells you how much you have left, and the jet cuts out while the trigger is still down when it runs dry. You can only have so much of your own foam standing at once; spray past that and the oldest of it dissolves behind you.
 

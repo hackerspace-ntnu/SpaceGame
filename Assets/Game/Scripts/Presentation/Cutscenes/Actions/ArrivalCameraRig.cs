@@ -66,8 +66,9 @@ namespace SpaceGame.Presentation
     [DisallowMultipleComponent]
     public class ArrivalCameraRig : MonoBehaviour
     {
-        [Tooltip("Degrees per second of view movement per unit of look input.")]
-        [SerializeField] private float lookSensitivity = 180f;
+        [Tooltip("Degrees per second of view movement per unit of look input. Matches the on-foot " +
+                 "PlayerLook scale so the seat does not feel like a different mouse.")]
+        [SerializeField] private float lookSensitivity = 20f;
 
         [Tooltip("Peak camera displacement at full shake, in metres.")]
         [SerializeField] private float maxShakeTranslation = 0.14f;

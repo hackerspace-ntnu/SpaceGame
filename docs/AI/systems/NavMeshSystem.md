@@ -16,8 +16,8 @@ symptoms:
   - "a save-restored creature is on the NavMesh but never moves"
   - "arena spawns are not filtered for reachability"
   - "every agent hovers a few centimetres to half a metre above the ground"
-  - "creatures walk over a frozen or slicked patch as if it were dry sand"
-  - "an NPC on ice turns on the spot for the whole twenty seconds and never gets anywhere"
+  - "creatures walk over a rained-on patch as if it were dry sand"
+  - "an NPC on wet ground turns on the spot and never gets anywhere"
 reads_with: [WorldStreaming, AgentSystem, Locomotion]
 updated: 2026-09-09
 ---

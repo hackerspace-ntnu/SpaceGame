@@ -9,10 +9,10 @@ namespace SpaceGame.Gameplay.Surface
     ///
     /// <para>
     /// Behaviour lives here rather than on <see cref="SurfaceCoatField"/> for the reason
-    /// <c>StatusBehaviour</c> keeps it off <c>StatusReceiver</c>: three kinds with a switch apiece
-    /// is how the field becomes the class that knows about films, ice and rain at once. Here the
-    /// field only knows that a kind has a clock, a footprint and a look. Adding a fourth coat is a
-    /// new enum value, a new class and one field — and nothing in the field changes.
+    /// <c>StatusBehaviour</c> keeps it off <c>StatusReceiver</c>: a kind per branch of a switch is
+    /// how the field becomes the class that knows about rain, films and ice at once. Here the field
+    /// only knows that a kind has a clock, a footprint and a look. Adding a coat is a new enum
+    /// value, a new class and one field — and nothing in the field changes.
     /// </para>
     /// <para>
     /// A behaviour is a plain serializable object held by a concrete field on the field component,
@@ -74,9 +74,9 @@ namespace SpaceGame.Gameplay.Surface
                  "by this kind — which is what every runtime-built surface in this project does, " +
                  "so a coat works without a prefab reference to wire.\n\n" +
                  "Each kind wants its OWN material, and not only for looks: a player about to " +
-                 "step on a patch has to be able to tell ice they can cross from a film they " +
-                 "cannot stand on. Left on the fallback, all three build the same shader with the " +
-                 "same defaults and read alike.")]
+                 "step on a patch has to be able to tell one coat from another. Left on the " +
+                 "fallback, every kind builds the same shader with the same defaults and they " +
+                 "read alike.")]
         [SerializeField] private Material film;
 
         /// <summary>
@@ -109,20 +109,6 @@ namespace SpaceGame.Gameplay.Surface
         public float FadeSeconds => Mathf.Max(0f, fadeSeconds);
 
         /// <summary>
-        /// Is this coat worth a line in the save file?
-        ///
-        /// False for everything that expires inside half a minute — a quicksave taken over a slick
-        /// pool that loaded it back would hand the player a hazard they had already walked past.
-        /// </summary>
-        public virtual bool Saved => false;
-
-        /// <summary>
-        /// Is this coat geometry as well as grip? True gives the patch a collider, which is what
-        /// makes a frozen pool something you can walk across.
-        /// </summary>
-        public virtual bool Standable => false;
-
-        /// <summary>
         /// The shader a film of this kind is drawn with when no material is wired.
         ///
         /// Resolved by name rather than by reference for the reason every other runtime-built
@@ -151,27 +137,5 @@ namespace SpaceGame.Gameplay.Surface
                 return film = new Material(shader) { name = $"Coat {Kind}" };
             }
         }
-
-        /// <summary>
-        /// May a coat of this kind be laid at <paramref name="point"/>?
-        ///
-        /// <para>
-        /// Answered on the machine that decides, before anything is announced, so a refusal costs
-        /// nothing on the wire. <paramref name="colliderLayer"/> is the physics layer a collider
-        /// built for this patch should sit on — the layer of whatever it was laid over, so a slab
-        /// of ice is found by exactly the ground probes that already found the surface it froze.
-        /// </para>
-        /// </summary>
-        public virtual bool CanCoat(Vector3 point, SurfaceCoatField field, out int colliderLayer)
-        {
-            colliderLayer = 0;
-            return true;
-        }
-
-        /// <summary>
-        /// Give <paramref name="patch"/> whatever this kind needs beyond a film — which for two of
-        /// the three kinds is nothing at all.
-        /// </summary>
-        public virtual void Build(SurfaceCoatPatch patch, int colliderLayer) { }
     }
 }

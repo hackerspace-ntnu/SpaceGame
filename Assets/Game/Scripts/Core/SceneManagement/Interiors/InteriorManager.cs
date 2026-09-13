@@ -89,6 +89,25 @@ namespace SpaceGame.Core
         private readonly Dictionary<GameObject, ReturnInfo> returnInfoByOccupant = new();
         private readonly Dictionary<string, int> interiorRefCount = new();
 
+        /// <summary>
+        /// Interiors whose additive load is in flight, and everything waiting on that one load.
+        ///
+        /// Several bodies enter the same interior on the same frame — a singularity swallows
+        /// everything inside its radius at once — and Netcode runs one scene event at a time, so
+        /// only the first call can start. Without this the others would each issue their own load
+        /// of the same scene and end up with two copies of it open.
+        /// </summary>
+        private readonly Dictionary<string, Action<Scene>> pendingInteriorLoads = new();
+
+        /// <summary>
+        /// Interiors whose unload has been issued but whose scene is still open.
+        ///
+        /// The scene still reports <c>isLoaded</c> for the whole of that window, so anyone entering
+        /// during it would be placed in a scene that is about to be destroyed under them. Entry
+        /// waits for the unload to finish instead.
+        /// </summary>
+        private readonly HashSet<string> unloadingInteriors = new();
+
         private Scene persistentScene;
         private PersistentSceneVisibility persistentVisibility;
         private WorldStreamer worldStreamer;
@@ -102,6 +121,12 @@ namespace SpaceGame.Core
                  "Exiting drops the player back where they entered — right inside the entrance volume — so without " +
                  "this lockout a walk-in entrance re-fires instantly and yo-yos them straight back in.")]
         [SerializeField] private float postExitEntranceLockout = 2f;
+
+        [Header("Scene events")]
+        [Tooltip("How long to wait before re-issuing an interior scene load or unload that Netcode rejected with SceneEventInProgress.")]
+        [SerializeField] private float sceneEventRetryDelay = 0.2f;
+        [Tooltip("How long to keep re-issuing a rejected interior scene load or unload before giving up and logging an error.")]
+        [SerializeField] private float sceneEventRetryTimeout = 10f;
 
         /// <summary>Per-occupant real-time stamp until which entrance triggers should treat re-entry as locked out.</summary>
         private readonly Dictionary<GameObject, float> entranceLockoutUntil = new();
@@ -300,8 +325,7 @@ namespace SpaceGame.Core
                 ReturnPin = pin,
             };
 
-            var existing = SceneManager.GetSceneByName(sceneName);
-            if (existing.IsValid() && existing.isLoaded)
+            if (IsInteriorUsable(sceneName, out Scene existing))
             {
                 interiorRefCount[sceneName] = interiorRefCount.GetValueOrDefault(sceneName) + 1;
                 PlaceOccupantAtAnchor(occupant, existing, anchorId);
@@ -564,36 +588,134 @@ namespace SpaceGame.Core
         //  Scene load / unload (Netcode-aware)
         // ─────────────────────────────────────────────
 
+        /// <summary>
+        /// Is <paramref name="sceneName"/> open and safe to put a body into right now?
+        ///
+        /// "Open" is not enough on its own: a scene whose unload has been issued still reports
+        /// itself loaded until Netcode gets round to destroying it, and an occupant placed in one
+        /// goes with it.
+        /// </summary>
+        private bool IsInteriorUsable(string sceneName, out Scene scene)
+        {
+            scene = SceneManager.GetSceneByName(sceneName);
+            return scene.IsValid() && scene.isLoaded && !unloadingInteriors.Contains(sceneName);
+        }
+
         private void LoadInteriorAdditive(string sceneName, Action<Scene> onLoaded)
         {
+            // One load per interior, with everyone who asked for it waiting on the same one. See
+            // pendingInteriorLoads for what a second load of the same scene costs.
+            if (pendingInteriorLoads.TryGetValue(sceneName, out var waiting))
+            {
+                pendingInteriorLoads[sceneName] = waiting + onLoaded;
+                return;
+            }
+            pendingInteriorLoads[sceneName] = onLoaded;
+
             if (Network.IsNetworked)
             {
-                void Handler(SceneEvent evt)
-                {
-                    if (evt.SceneEventType != SceneEventType.LoadEventCompleted) return;
-                    if (evt.SceneName != sceneName) return;
-                    NetworkManager.Singleton.SceneManager.OnSceneEvent -= Handler;
-                    AnnounceLoaded(sceneName, onLoaded);
-                }
-                NetworkManager.Singleton.SceneManager.OnSceneEvent += Handler;
+                StartCoroutine(LoadInteriorRoutine(sceneName));
+                return;
+            }
 
-                var status = NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
-                if (status != SceneEventProgressStatus.Started)
-                {
-                    NetworkManager.Singleton.SceneManager.OnSceneEvent -= Handler;
-                    Debug.LogError($"[InteriorManager] Failed to load interior {sceneName}: {status}");
-                }
-            }
-            else
+            var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (op == null)
             {
-                var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-                if (op == null)
-                {
-                    Debug.LogError($"[InteriorManager] Failed to load interior {sceneName} (offline). Is it in Build Settings?");
-                    return;
-                }
-                op.completed += _ => AnnounceLoaded(sceneName, onLoaded);
+                Debug.LogError($"[InteriorManager] Failed to load interior {sceneName} (offline). Is it in Build Settings?");
+                pendingInteriorLoads.Remove(sceneName);
+                return;
             }
+            op.completed += _ => CompletePendingLoad(sceneName);
+        }
+
+        /// <summary>
+        /// Loads one interior over the session, re-issuing the call for as long as Netcode says it
+        /// is busy.
+        ///
+        /// <para>
+        /// <c>NetworkSceneManager</c> keeps ONE "a scene event is active" flag for the whole
+        /// session, not one per scene, so any scene event anywhere — a streamed chunk loading half
+        /// a kilometre away, another body entering this same interior — rejects this one with
+        /// <c>SceneEventInProgress</c>. That status means "ask again", not "this failed": treated
+        /// as a failure it dropped the load outright, and a body already marked as swallowed was
+        /// left standing in the exterior
+        /// (<c>[InteriorManager] Failed to load interior SingularityVoid: SceneEventInProgress</c>).
+        /// This is the treatment <see cref="WorldStreamer"/> already gives its own chunk loads.
+        /// </para>
+        /// </summary>
+        private IEnumerator LoadInteriorRoutine(string sceneName)
+        {
+            float deadline = Time.unscaledTime + Mathf.Max(sceneEventRetryDelay, sceneEventRetryTimeout);
+            bool completed = false;
+
+            void Handler(SceneEvent evt)
+            {
+                if (evt.SceneEventType != SceneEventType.LoadEventCompleted) return;
+                if (evt.SceneName != sceneName) return;
+                completed = true;
+            }
+
+            // Subscribed before the call is issued, so a completion cannot land between the two.
+            NetworkManager.Singleton.SceneManager.OnSceneEvent += Handler;
+
+            while (true)
+            {
+                // The session can go away under a retry — a host stopping, a client disconnecting.
+                // There is then nothing to load into and nobody to tell.
+                if (NetworkManager.Singleton == null || NetworkManager.Singleton.SceneManager == null)
+                {
+                    pendingInteriorLoads.Remove(sceneName);
+                    yield break;
+                }
+
+                // An unload of this same interior may still be draining. Loading the scene it is
+                // about to destroy would place the occupant in a scene that disappears under them,
+                // so wait it out — the same wait that lets Netcode free its busy flag.
+                if (!unloadingInteriors.Contains(sceneName))
+                {
+                    var status = NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
+                    if (status == SceneEventProgressStatus.Started) break;
+
+                    if (status != SceneEventProgressStatus.SceneEventInProgress)
+                    {
+                        Debug.LogError($"[InteriorManager] Failed to load interior {sceneName}: {status}");
+                        NetworkManager.Singleton.SceneManager.OnSceneEvent -= Handler;
+                        pendingInteriorLoads.Remove(sceneName);
+                        yield break;
+                    }
+                }
+
+                if (Time.unscaledTime >= deadline)
+                {
+                    Debug.LogError($"[InteriorManager] Gave up loading interior {sceneName}: the session stayed busy " +
+                                   $"with other scene events for {sceneEventRetryTimeout:0.#}s.");
+                    NetworkManager.Singleton.SceneManager.OnSceneEvent -= Handler;
+                    pendingInteriorLoads.Remove(sceneName);
+                    yield break;
+                }
+
+                yield return new WaitForSecondsRealtime(sceneEventRetryDelay);
+            }
+
+            while (!completed)
+            {
+                if (NetworkManager.Singleton == null || NetworkManager.Singleton.SceneManager == null)
+                {
+                    pendingInteriorLoads.Remove(sceneName);
+                    yield break;
+                }
+                yield return null;
+            }
+
+            NetworkManager.Singleton.SceneManager.OnSceneEvent -= Handler;
+            CompletePendingLoad(sceneName);
+        }
+
+        /// <summary>Hands a finished interior to everything that was waiting for it, once.</summary>
+        private void CompletePendingLoad(string sceneName)
+        {
+            if (!pendingInteriorLoads.Remove(sceneName, out var onLoaded)) return;
+            AnnounceLoaded(sceneName, onLoaded);
         }
 
         /// <summary>
@@ -622,22 +744,69 @@ namespace SpaceGame.Core
             if (!scene.IsValid() || !scene.isLoaded) return;
 
             string sceneName = scene.name;
+            if (!unloadingInteriors.Add(sceneName)) return;
 
             // Before the unload is issued, not after: everything worth capturing in this cave is
             // about to be destroyed, and a listener that waited for the unload to complete would
             // find nothing left to read.
             OnInteriorWillUnload?.Invoke(sceneName, scene);
 
-            if (Network.IsNetworked)
-                NetworkManager.Singleton.SceneManager.UnloadScene(scene);
-            else
-                SceneManager.UnloadSceneAsync(scene);
+            StartCoroutine(UnloadInteriorRoutine(scene, sceneName));
 
             // Announced on issue rather than on completion. The only thing this says is "stop
             // tracking that scene handle", and the capture that mattered has already happened above;
             // waiting for the async unload would mean carrying a second completion handler through
             // two code paths for no additional truth.
             OnInteriorUnloaded?.Invoke(sceneName);
+        }
+
+        /// <summary>
+        /// Unloads one interior, re-issuing the call for as long as Netcode says it is busy.
+        ///
+        /// The unload is rejected by the same global busy flag a load is — see
+        /// <see cref="LoadInteriorRoutine"/> — and the status was not read at all here, so a
+        /// rejected unload left the interior open for the rest of the session while the save
+        /// system had already been told to stop tracking it.
+        /// </summary>
+        private IEnumerator UnloadInteriorRoutine(Scene scene, string sceneName)
+        {
+            float deadline = Time.unscaledTime + Mathf.Max(sceneEventRetryDelay, sceneEventRetryTimeout);
+
+            while (scene.IsValid() && scene.isLoaded)
+            {
+                if (!Network.IsNetworked)
+                {
+                    SceneManager.UnloadSceneAsync(scene);
+                    break;
+                }
+
+                if (NetworkManager.Singleton == null || NetworkManager.Singleton.SceneManager == null) break;
+
+                var status = NetworkManager.Singleton.SceneManager.UnloadScene(scene);
+                if (status == SceneEventProgressStatus.Started) break;
+
+                if (status != SceneEventProgressStatus.SceneEventInProgress)
+                {
+                    Debug.LogError($"[InteriorManager] Failed to unload interior {sceneName}: {status}");
+                    break;
+                }
+
+                if (Time.unscaledTime >= deadline)
+                {
+                    Debug.LogError($"[InteriorManager] Gave up unloading interior {sceneName}: the session stayed busy " +
+                                   $"with other scene events for {sceneEventRetryTimeout:0.#}s.");
+                    break;
+                }
+
+                yield return new WaitForSecondsRealtime(sceneEventRetryDelay);
+            }
+
+            // Held until the scene is actually gone rather than until the call was accepted: entry
+            // treats a scene in this set as unavailable, and the window that matters is the one
+            // where the scene still exists but is doomed.
+            while (scene.IsValid() && scene.isLoaded) yield return null;
+
+            unloadingInteriors.Remove(sceneName);
         }
 
         // ─────────────────────────────────────────────
@@ -753,8 +922,7 @@ namespace SpaceGame.Core
             Vector3 position = visit.InsidePosition;
             Quaternion rotation = visit.InsideRotation;
 
-            var existing = SceneManager.GetSceneByName(sceneName);
-            if (existing.IsValid() && existing.isLoaded)
+            if (IsInteriorUsable(sceneName, out Scene existing))
             {
                 interiorRefCount[sceneName] = interiorRefCount.GetValueOrDefault(sceneName) + 1;
                 PlaceOccupantAt(occupant, existing, position, rotation);

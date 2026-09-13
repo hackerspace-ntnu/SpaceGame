@@ -16,7 +16,7 @@ namespace SpaceGame.EditorTools
     /// <para>
     /// It is FOAM, and the numbers here are what say so. The clumps are opaque, their silhouettes
     /// are bitten rather than round, and the emission rates are high enough that the stream reads
-    /// as one mass instead of as countable balls — roughly 4200 clumps a second with the froth
+    /// as one mass instead of as countable balls — roughly 6800 clumps a second with the froth
     /// behind it. Thin any of that out, or round the edges back off, and it goes straight back to
     /// looking like a bubble gun.
     /// </para>
@@ -157,13 +157,13 @@ namespace SpaceGame.EditorTools
             // being inaccurate rather than as a mismatch. FoamGunWiringTests holds them together.
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.7f, 2f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(19f, 25f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.20f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.07f, 0.26f);
             main.gravityModifier = new ParticleSystem.MinMaxCurve(1.1f, 1.7f);
             // Rate times longest life. Reached only when spraying at open sky, where nothing kills
-            // a droplet early — a stream that lands is a fraction of it, about 1400 in the air on
+            // a droplet early — a stream that lands is a fraction of it, about 2300 in the air on
             // a level shot. It has to be the full product even so: a system at its ceiling stops
             // emitting, which starves the stream at the BELL rather than trimming its tail.
-            main.maxParticles = 8400;
+            main.maxParticles = 13600;
             main.startColor = Color.white;
 
             // NO ROTATION, on any system here. A sphere impostor is rotation-invariant, so a spin
@@ -172,7 +172,7 @@ namespace SpaceGame.EditorTools
             // lens. That was left over from when these were sphere meshes, and it is what the
             // stray flying discs in the spray turned out to be.
 
-            Rate(jet, 4200f);
+            Rate(jet, 6800f);
             Cone(jet, 6.5f, 0.035f);
 
             // Foam expands as it leaves the pressure — the growth is what makes a stream of
@@ -215,14 +215,14 @@ namespace SpaceGame.EditorTools
             var main = ps.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.95f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(7f, 15f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.10f, 0.34f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.13f, 0.42f);
             // Under the core's fall, not at it: the cloud is the lighter half of the same foam and
             // hangs behind the gobs as the stream droops, which is what gives an arc a silhouette.
             main.gravityModifier = new ParticleSystem.MinMaxCurve(0.5f, 1.1f);
-            main.maxParticles = 2200;
+            main.maxParticles = 2800;
             main.startColor = Color.white;
 
-            Rate(ps, 1800f);
+            Rate(ps, 2900f);
             Cone(ps, 15f, 0.05f);
             Grow(ps, 0.45f, 1.9f);
             Fade(ps, hold: 0.35f);
@@ -249,10 +249,10 @@ namespace SpaceGame.EditorTools
             // Heavier than the core, still: flecks that outrun the stream and drop out of it are
             // what make the jet read as pressure rather than as placement.
             main.gravityModifier = new ParticleSystem.MinMaxCurve(1.7f, 2.4f);
-            main.maxParticles = 900;
+            main.maxParticles = 800;
             main.startColor = Color.white;
 
-            Rate(ps, 420f);
+            Rate(ps, 680f);
             Cone(ps, 13f, 0.03f);
             Splash(ps, bounce: 0.25f, lifetimeLoss: 0.3f);
 

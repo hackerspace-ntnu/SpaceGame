@@ -68,13 +68,6 @@ namespace SpaceGame.Items
         {
             if (copy == null) return;
 
-            // NetworkBehaviours before the plain pass, because NetworkObject is itself a
-            // MonoBehaviour and every NetworkBehaviour on the item requires it. The retry loop
-            // below does get there eventually, but only after Unity has logged a refusal for each
-            // one — ten warnings per pack refresh, which buries anything real. A stowed copy is
-            // scenery; it has no business owning a network identity either way.
-            DestroyAll<Unity.Netcode.NetworkBehaviour>(copy);
-
             DestroyAll<MonoBehaviour>(copy);
             DestroyAll<ParticleSystemRenderer>(copy);
             DestroyAll<ParticleSystem>(copy);
@@ -93,10 +86,13 @@ namespace SpaceGame.Items
             DestroyAll<AudioSource>(copy);
         }
 
-        // Unity refuses to remove a component while another one on the same object declares it as
-        // a requirement, and only logs rather than throwing — so a single pass silently leaves
-        // whichever half of a [RequireComponent] pair it happened to reach first. Repeating until
-        // the count stops falling clears the dependents and then what they were holding.
+        // Unity refuses to remove a component while another one on the same object declares it
+        // as a requirement, and only logs rather than throwing. So each pass removes only the
+        // components nothing else still requires — a NetworkObject goes after the
+        // NetworkBehaviours that name it, a SupplyReservoir after its DockableSupply — and the
+        // next pass takes what they were holding. Destroying in discovery order instead would
+        // still clear the object eventually, but only after Unity had logged a refusal for every
+        // required component on the way, which buries anything real.
         private static void DestroyAll<T>(GameObject root) where T : Component
         {
             int previous = int.MaxValue;
@@ -112,9 +108,53 @@ namespace SpaceGame.Items
                 if (alive == 0 || alive >= previous) return;
                 previous = alive;
 
+                int removed = 0;
                 foreach (T component in found)
-                    if (component != null) Object.DestroyImmediate(component);
+                {
+                    if (component == null || IsRequiredBySibling(component)) continue;
+                    Object.DestroyImmediate(component);
+                    removed++;
+                }
+
+                // A requirement cycle would leave every survivor blocked and spin the loop out
+                // without removing anything. Take the refusal logs over leaving live scripts on
+                // a display copy.
+                if (removed == 0)
+                {
+                    foreach (T component in found)
+                        if (component != null) Object.DestroyImmediate(component);
+                }
             }
         }
+
+        // Whether any surviving component on the same GameObject names this one in a
+        // [RequireComponent]. Requirements are declared by type, so a base type counts: a script
+        // requiring Collider is held up by the BoxCollider sitting next to it.
+        private static bool IsRequiredBySibling(Component component)
+        {
+            Component[] siblings = component.gameObject.GetComponents<Component>();
+
+            foreach (Component sibling in siblings)
+            {
+                if (sibling == null || sibling == component) continue;
+
+                object[] requirements = sibling.GetType()
+                    .GetCustomAttributes(typeof(RequireComponent), inherit: true);
+
+                foreach (object requirement in requirements)
+                {
+                    var required = (RequireComponent)requirement;
+                    if (Names(required.m_Type0, component) ||
+                        Names(required.m_Type1, component) ||
+                        Names(required.m_Type2, component))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool Names(System.Type required, Component component) =>
+            required != null && required.IsInstanceOfType(component);
     }
 }

@@ -1,7 +1,7 @@
 // The bottled singularity: a squat sealed flask you throw, which opens where it lands, inhales
-// everything loose within eight metres for three seconds and then flings the lot back out. It does
-// not know who threw it, and the comedy is entirely in the lack of exemptions — throw it short and
-// you are part of the pile.
+// everything loose within eight metres for a second and a half and then flings the lot back out.
+// It does not know who threw it, and the comedy is entirely in the lack of exemptions — throw it
+// short and you are part of the pile.
 //
 // WHO DOES WHAT.
 //

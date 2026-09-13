@@ -155,6 +155,54 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
+        /// A dab settles ONTO the ground, rather than through it or above it.
+        ///
+        /// <para>
+        /// <c>FoamSettle</c> walks a lump downhill by dropping it and letting whatever it lands in
+        /// push it back out, so both halves fail in silence and in opposite directions. A fall the
+        /// world never stops buries the mound under the terrain it was sprayed onto; a seat that
+        /// does not subtract the lump's own clearance leaves it hovering a radius above the ground,
+        /// which reads as foam refusing to touch anything. Neither throws.
+        /// </para>
+        /// <para>
+        /// Flat ground and no foam, which is the one case with an answer that can be written down:
+        /// the lump rests exactly its clearance above the surface, and it does not wander sideways
+        /// while doing it.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void ADabSettlesOntoTheGroundRatherThanThroughIt()
+        {
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                ground.transform.position = new Vector3(0f, -0.5f, 0f);
+                ground.transform.localScale = new Vector3(40f, 1f, 40f);
+                Physics.SyncTransforms();
+
+                const float radius = 1.3f;
+                const float overlap = 0.4f;
+                float clearance = radius * (1f - overlap);
+
+                Vector3 rest = FoamSettle.Resolve(Vector3.zero, Vector3.up, radius, ~0, null, null,
+                                                  steps: 10, stepShare: 0.35f, overlap: overlap,
+                                                  maxDrop: 44f);
+
+                Assert.AreEqual(clearance, rest.y, 1e-2f,
+                                "a lump laid on flat ground must rest exactly its clearance above " +
+                                "it — lower is foam sunk into the terrain, higher is foam hovering");
+
+                Assert.AreEqual(0f, new Vector2(rest.x, rest.z).magnitude, 1e-2f,
+                                "nothing was pushing this lump sideways, so a slide means the " +
+                                "solve drifts on level ground and every mound will lean");
+            }
+            finally
+            {
+                Object.DestroyImmediate(ground);
+            }
+        }
+
+        /// <summary>
         /// The droplets fly the arc the foam is traced along.
         ///
         /// <para>

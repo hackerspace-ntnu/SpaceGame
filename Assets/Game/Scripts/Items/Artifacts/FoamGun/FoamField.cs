@@ -3,7 +3,7 @@
 // THE INTEGRATION CONTRACT. FoamSurface.shader shades each fragment against the smooth union of
 // its NEIGHBOURS, read from two shader globals that gameplay code has to upload:
 //
-//     float4 _FoamBlobs[128]  xyz = world centre, w = world radius
+//     float4 _FoamBlobs[192]  xyz = world centre, w = world radius
 //     int    _FoamBlobCount
 //
 // With the count at 0 nothing errors, nothing goes black, and every blob simply falls back to its
@@ -11,13 +11,13 @@
 // intersecting spheres is the failure the design named, and it degrades in silence. So the upload
 // is here, on the registry itself, rather than on some component somebody has to remember to place.
 //
-// WHY IT UPLOADS PER CAMERA. The two values are globals, and which 128 of them are worth sending
+// WHY IT UPLOADS PER CAMERA. The two values are globals, and which 192 of them are worth sending
 // depends on where you are looking from — a split screen, a schematic stage and the ship's terminal
 // all render their own camera in one frame. RenderPipelineManager.beginCameraRendering is the same
 // hook PlayerLook already uses to answer a per-camera question, and it hands us the camera rather
 // than making us guess at one (Camera.main is never the player's camera in this project).
 //
-// PAST 128. The nearest 128 to the camera weld; the rest render, and each of those falls back to its
+// PAST 192. The nearest 192 to the camera weld; the rest render, and each of those falls back to its
 // own mesh normal. A distant mass therefore reads as separate balls while the one at your feet is
 // one substance, which is the right way round for a bounded per-fragment cost (GDC-L1-PERF-0004 —
 // the array is the budget, and the shader pays for every entry on every foam pixel).
@@ -40,7 +40,7 @@ namespace SpaceGame.Items
         /// long every time regardless of how many are in use: Unity fixes a global array's size at
         /// the first upload and silently truncates a longer one later.
         /// </summary>
-        public const int MaxBlobs = 128;
+        public const int MaxBlobs = 192;
 
         private static readonly List<FoamBlob> Live = new List<FoamBlob>();
         private static readonly List<FoamBlob> Selected = new List<FoamBlob>(MaxBlobs);
@@ -200,6 +200,58 @@ namespace SpaceGame.Items
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// Push <paramref name="point"/> out of every committed foam volume it sits inside, and say
+        /// where it ends up. One relaxation pass for <see cref="FoamSettle"/>.
+        ///
+        /// <para>
+        /// It is a Gauss-Seidel sweep rather than a simultaneous one: each lump is pushed out of in
+        /// turn, against the position the lump before it left behind. That converges in far fewer
+        /// passes than averaging the pushes, and a settle runs only a handful of passes.
+        /// </para>
+        /// <para>
+        /// Like <see cref="FirstAlong"/> it asks each lump for the volume it has COMMITTED to fill
+        /// rather than the one it occupies right now, and for the same reason: at the dab rate every
+        /// lump a settling dab has to climb over is still a pebble, so relaxing against the current
+        /// colliders would let a whole second of spray settle through the mound and pool on the
+        /// ground under it.
+        /// </para>
+        /// </summary>
+        /// <param name="clearance">
+        /// How far outside a lump's own extents the point must end up — the settling lump's radius,
+        /// less however much the two are allowed to interpenetrate.
+        /// </param>
+        /// <param name="onFoam">
+        /// Was the point inside any lump at all? It is asked separately from "did it move", and the
+        /// difference is what decides whether foam piles or pancakes: a lump that has come to rest
+        /// ON the shoulder of its neighbour is pushed by a hair and then not at all, so a caller
+        /// reading movement concludes it is in open air and drops it to the floor. Every lump laid
+        /// on the mound then ends up at ground level and the mound never gets a second layer.
+        /// </param>
+        public static Vector3 PushOutOfCommitted(Vector3 point, float clearance, out bool onFoam)
+        {
+            onFoam = false;
+
+            for (int i = 0; i < Live.Count; i++)
+            {
+                FoamBlob blob = Live[i];
+
+                // Nulls are swept by Push rather than here, as in FirstAlong: this runs inside a
+                // solve, and a list edited mid-solve is a surprise the caller cannot see.
+                if (blob == null || !blob.isActiveAndEnabled) continue;
+
+                float reach = blob.CommittedRadius + clearance;
+                if ((blob.Centre - point).sqrMagnitude > reach * reach) continue;
+
+                if (!blob.PushOutOfCommitted(point, clearance, out Vector3 pushed)) continue;
+
+                point = pushed;
+                onFoam = true;
+            }
+
+            return point;
         }
 
         private static float SortKey(FoamBlob blob) =>

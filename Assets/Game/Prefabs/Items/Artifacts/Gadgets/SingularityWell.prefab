@@ -9904,7 +9904,7 @@ MonoBehaviour:
   blackenShare: 0.18
   collar: {fileID: 1267221504972181431}
   collarOpenDegrees: 75
-  collarOpenSeconds: 0.18
+  collarOpenSeconds: 0.09
   core: {fileID: 4662163765719925555}
   coreSwell: 2.4
   coreCollapse: 0.15
@@ -9926,7 +9926,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.SingularityWell
   ShowTopMostFoldoutHeaderGroup: 1
   radius: 8
-  inhaleSeconds: 3
+  inhaleSeconds: 1.5
   pullSpeed: 14
   pullEdgeShare: 0.25
   pullCoreFraction: 0
@@ -9952,11 +9952,12 @@ MonoBehaviour:
   sightMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  flareSeconds: 0.25
-  collapseSeconds: 1
-  holdSeconds: 5
-  spitSeconds: 0.15
-  spentLingerSeconds: 0.5
+  flareSeconds: 0.12
+  collapseSeconds: 0.5
+  holdSeconds: 2.5
+  spitSeconds: 0.08
+  spentLingerSeconds: 0.25
+  voidInterior: {fileID: 11400000, guid: b3aa4c5bdf1a048aebd02842c3e16ddd, type: 2}
   shell: {fileID: 6695552449203286017}
   body: {fileID: 0}
 --- !u!1 &6106479930908586657

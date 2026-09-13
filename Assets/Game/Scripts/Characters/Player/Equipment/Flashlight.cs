@@ -19,6 +19,11 @@ namespace SpaceGame.Characters
     /// drives the effects there is only one of.
     /// </para>
     /// </summary>
+    // After PlayerArmAim (950), which swings the arm this lamp is strapped to. Both the shader
+    // globals and the beam's own raycasts are read off this transform, so running before the arm is
+    // aimed pushes LAST frame's direction — a beam that lags the crosshair by a frame while turning,
+    // and probe rays that measured a cone pointing somewhere else.
+    [DefaultExecutionOrder(960)]
     [RequireComponent(typeof(Light))]
     public class Flashlight : MonoBehaviour
     {
@@ -80,7 +85,9 @@ namespace SpaceGame.Characters
             SetEnabled(false);
         }
 
-        private void Update()
+        // LateUpdate, not Update: the lamp hangs off a forearm bone, which the Animator writes
+        // between the two and PlayerArmAim aims after that. Everything here reads this transform.
+        private void LateUpdate()
         {
             // Both of these drive SINGLE-SLOT effects, so only one lamp in the session may run
             // them — see OwnsSingleSlotEffects.

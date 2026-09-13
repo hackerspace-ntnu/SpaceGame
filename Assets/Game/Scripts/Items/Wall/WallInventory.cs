@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
@@ -43,7 +44,95 @@ namespace SpaceGame.Items
 
         private int? wallIndex;
 
+        /// <summary>
+        /// One of each of these per crew member, laid on once when the ship arrives.
+        ///
+        /// <para>
+        /// Separate from <c>PackContainer</c>'s own starting lists because those are a fixed
+        /// manifest — the same gear whoever turns up — and stores are not. A single set of
+        /// consumables split between four players is a party-size difficulty curve nobody
+        /// authored, and four sets for one player is a sink with nothing to spend against
+        /// (<c>GDC-L1-SYS-0008</c>). Per head keeps the flow per player constant at any crew size.
+        /// </para>
+        /// <para>
+        /// On the wall rather than on <c>PackContainer</c>: a backpack has no crew. Wired by
+        /// <c>OxygenGearBuilder</c>, which owns what enters the game and where.
+        /// </para>
+        /// </summary>
+        [Header("Crew stores")]
+        [Tooltip("One of each per crew member aboard on arrival. Fixed stores belong in the " +
+                 "starting item lists above; these scale with the party.")]
+        [SerializeField] private List<InventoryItem> perCrewItems = new();
+
+        /// <summary>
+        /// Whether <see cref="StockForCrew"/> has already run. A wall is stocked exactly once, at
+        /// the arrival that put the ship on the ground, and never again — a second pass would
+        /// double the stores every time the director asked.
+        /// </summary>
+        private bool crewStocked;
+
         private void Awake() => BeginContents();
+
+        // ── Crew stores ──────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Lay on <paramref name="crew"/> of each item in <see cref="perCrewItems"/>, once.
+        /// Answers how many placements were made.
+        ///
+        /// <para>
+        /// <b>Server side only, and new worlds only.</b> The contents are server-authoritative and
+        /// reach every other machine through <see cref="WallInventoryNetwork"/>, so a client that
+        /// stocked itself would show stores nobody else has until the next wire update took them
+        /// away again. And the one caller is the arrival — which does not run in a world loaded
+        /// from a save, where the wall's real contents come back through
+        /// <c>WallInventorySaveable</c> instead.
+        /// </para>
+        /// <para>
+        /// <c>Network.Simulates</c> rather than <c>Network.Server</c>, the rule the saver next door
+        /// records: an editor-launched session has no <c>NetworkManager</c> at all and
+        /// <c>Network.Server</c> is false there.
+        /// </para>
+        /// </summary>
+        public int StockForCrew(int crew)
+        {
+            if (!Network.Simulates(this)) return 0;
+
+            // Marked stocked whatever the number: a hull told "nobody is aboard" has had its one
+            // chance, and leaving the flag down would let a later call fill it after all.
+            if (crewStocked) return 0;
+            crewStocked = true;
+
+            if (crew <= 0 || perCrewItems == null) return 0;
+
+            int stowed = 0;
+
+            foreach (InventoryItem item in perCrewItems)
+            {
+                if (item == null) continue;
+
+                for (int i = 0; i < crew; i++)
+                {
+                    // StowAuthored, not TryStow: this is a manifest being read onto the wall
+                    // rather than a player choosing a face, the same standing the authored lists
+                    // and a restored save have. Every face of a wall is reachable anyway, so the
+                    // two differ only in what they say.
+                    if (StowAuthored(item))
+                    {
+                        stowed++;
+                        continue;
+                    }
+
+                    // Loud, because the failure is invisible in the game: a wall that quietly held
+                    // three tanks for a crew of four is a wall nobody can tell is short.
+                    Debug.LogWarning($"[Wall] No room on '{name}' for {item.itemName} " +
+                                     $"{i + 1} of {crew}. The crew are a set of stores short.",
+                                     this);
+                    break;
+                }
+            }
+
+            return stowed;
+        }
 
         private void OnDestroy() => EndContents();
 

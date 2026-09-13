@@ -38,9 +38,21 @@ namespace SpaceGame.Agents
                  "carry it past the ground it is landing on.")]
         [SerializeField, Min(1f)] private float maxCarryFallSpeed = 30f;
 
+        [Tooltip("Fastest a motor strapped to this body may drag it ALONG the mesh, m/s. A push " +
+                 "steep enough to lift the body off the mesh is not bound by this — once it is in " +
+                 "the air the thrust and the fall settle it between them.")]
+        [SerializeField, Min(0f)] private float maxThrustDragSpeed = 20f;
+
         private bool carried;
         private Vector3 carryVelocity;
         private Vector3 lastCarryPos;
+
+        // The speed a thruster has built up dragging this body along the mesh, and whether one
+        // asked for anything this step. Consumed and cleared in FixedUpdate the way the
+        // ornithopter's tow latch is: a push that stops being asked for stops, and the speed it
+        // built goes with it rather than coasting the creature off across the sand.
+        private float thrustDragSpeed;
+        private bool thrustAsked;
 
         /// <summary>
         /// Was the rope still asking for a LIFT on the last step? A body something is actively
@@ -133,6 +145,64 @@ namespace SpaceGame.Agents
             return true;
         }
 
+        /// <summary>
+        /// A motor strapped to this creature is pushing it at <paramref name="acceleration"/> this
+        /// step.
+        ///
+        /// <para>
+        /// The same two states a rope puts this body in -- carried off the mesh, or dragged along
+        /// it -- reached from the other side. What differs is the ARITHMETIC, and that is the
+        /// whole reason this is not <see cref="RequestTow"/> with a distant anchor: a thruster has
+        /// no destination to hand over, so a thruster that borrows the rope's channel has to
+        /// invent a distance, and the carried branch moves the body by whatever distance it is
+        /// given. A booster asking to be pulled at a point 60 m along its own axis moved the
+        /// creature 60 m every physics step -- 3 km/s, gone from the chunk before the flame was
+        /// drawn, and read by everyone as the animal disappearing on contact.
+        /// </para>
+        /// </summary>
+        public bool RequestThrust(Vector3 acceleration)
+        {
+            NavMeshAgent nav = Agent;
+            if (nav == null) return false;
+
+            // Somebody else's copy, or a leap that already owns the transform. Both answered
+            // exactly as RequestTow answers them, and for the reasons given there.
+            if (selfDriveSuspended) return false;
+            if (isLeaping) return true;
+
+            if (acceleration.sqrMagnitude < 1e-8f) return false;
+
+            float deltaTime = Time.fixedDeltaTime;
+            bool lift = AgentCarry.IsLift(acceleration, carryEnterSlope);
+
+            if (!carried && lift) BeginCarry();
+
+            if (carried)
+            {
+                // One step of ACCELERATION, not of velocity. The carry reads this body's speed
+                // back out of how far it moved (see FixedUpdate), so a step of a·dt² IS an
+                // acceleration of a: the measurement carries it forward as momentum and the next
+                // step adds to it. Handing over a velocity here instead would have that velocity
+                // measured and re-added every step, which is the runaway this method exists to
+                // end.
+                liftedLastStep |= lift;
+                transform.position += acceleration * (deltaTime * deltaTime);
+                return true;
+            }
+
+            // Still on its feet, where there is no momentum to carry: the mesh takes a distance
+            // and forgets it. The speed the push has built lives here instead -- see
+            // AgentCarry.ThrustDragSpeed for why it is bounded.
+            thrustAsked = true;
+            thrustDragSpeed = AgentCarry.ThrustDragSpeed(thrustDragSpeed, acceleration.magnitude,
+                                                         deltaTime, maxThrustDragSpeed);
+
+            if (nav.isActiveAndEnabled && nav.isOnNavMesh)
+                nav.Move(acceleration.normalized * (thrustDragSpeed * deltaTime));
+
+            return true;
+        }
+
         // ─────────── The carry itself ───────────
 
         /// <summary>
@@ -196,6 +266,7 @@ namespace SpaceGame.Agents
             carried = false;
             carryVelocity = Vector3.zero;
             liftedLastStep = false;
+            thrustDragSpeed = 0f;
 
             if (agent == null) return;
 
@@ -211,6 +282,12 @@ namespace SpaceGame.Agents
         // the body moves under its own weight first, the rope corrects the result second.
         private void FixedUpdate()
         {
+            // One step per ask, like the tow. This runs at -100, ahead of everything that pushes,
+            // so a step that arrives with nothing asked since the last one is a thruster that has
+            // stopped -- and the speed it built stops with it.
+            if (!thrustAsked) thrustDragSpeed = 0f;
+            thrustAsked = false;
+
             if (!carried) return;
 
             if (agent == null || selfDriveSuspended)
@@ -225,9 +302,9 @@ namespace SpaceGame.Agents
             bool held = liftedLastStep;
             liftedLastStep = false;
 
-            // Measured, never accumulated. Whatever the rope did to this transform since the last
-            // step IS this body's velocity, so the pull needs no impulse channel of its own and
-            // cannot be counted into the fall twice.
+            // Measured, never accumulated. Whatever moved this transform since the last step IS
+            // this body's velocity, so a rope needs no impulse channel of its own and cannot be
+            // counted into the fall twice.
             //
             // It is also where the hang gets its damping. A kinematic end reports no velocity to
             // the rope (LeashEnd.Velocity reads the Rigidbody, which is not the thing moving here),
@@ -235,11 +312,20 @@ namespace SpaceGame.Agents
             // position. Measuring the fall out of the position instead means each step's upward
             // correction is subtracted from the next step's velocity for free, and a hanging
             // creature settles a couple of centimetres below the rope rather than bouncing on it.
-            carryVelocity = AgentCarry.Fall((transform.position - lastCarryPos) / deltaTime,
+            //
+            // The WHOLE step is measured, the fall's own move included -- which is why the mark is
+            // taken here rather than after the move. Marking it afterwards left the body's own
+            // motion out of the reading, so gravity was re-applied to zero every step and a
+            // released creature came down at 0.36 m/s for ever: maxCarryFallSpeed could not be
+            // reached, and HasLanded's "30 m/s crosses 0.6 m in a step" had nothing to size itself
+            // against. It read as an animal hanging in the sky with no rope on it.
+            Vector3 stepStart = lastCarryPos;
+            lastCarryPos = transform.position;
+
+            carryVelocity = AgentCarry.Fall((transform.position - stepStart) / deltaTime,
                                             Physics.gravity, deltaTime, maxCarryFallSpeed);
 
             transform.position += carryVelocity * deltaTime;
-            lastCarryPos = transform.position;
 
             if (!held) TryLand(deltaTime);
         }

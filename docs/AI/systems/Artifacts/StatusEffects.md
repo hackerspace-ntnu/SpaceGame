@@ -4,7 +4,7 @@ status: implemented
 layer: items
 summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed — owned by the server, presented everywhere"
 consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity]
-updated: 2026-09-09
+updated: 2026-09-13
 ---
 
 # Status effects
@@ -56,7 +56,7 @@ question. This is that system, written once.
 | `Slick` | 20 s | Grip 0.03 of normal. Ropes, lassos and nets slide off. Laid by the cryo sprayer on the first touch, ten seconds longer than the `Frozen` that follows |
 | `Inflated` | While pumped, deflates when not | Scale and mass driven by one signed scalar |
 | `Foamed` | 10 s | Held in place (ragdolled, unlike `Frozen`). Broken early by damage |
-| `Swallowed` | Named by the caller (the singularity's is ~5 s) | A flag and a clock, and nothing else — it does **not** suppress. The body has been moved into an interior by whatever ate it; this is how everything else knows. Never extended by a second source |
+| `Swallowed` | Named by the caller (the singularity's is ~3 s) | A flag and a clock, and nothing else — it does **not** suppress. The body has been moved into an interior by whatever ate it; this is how everything else knows. Never extended by a second source |
 
 **`Swallowed` is the odd one and worth reading before reusing it.** The other five change what a
 body can *do*; this one changes where it *is*, and does so entirely outside the status system — the

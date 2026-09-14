@@ -64,11 +64,36 @@ namespace SpaceGame.EditorTools
         // off it, because it is the same prefab. Ranged artifacts only: NpcItemUseModule fires the
         // held item at a target between minRange and maxRange, and a gauntlet or a scanner in the
         // hand would be raised and "used" at nothing every cooldown.
+        // The same seven the sand nomads roll from (NomadPrefabBuilder): every one has been fired
+        // by an NpcItemUseModule in play. Not the flamethrower or the cryo sprayer, which have not.
         private static readonly string[] HeldWeaponPaths =
         {
             "Assets/Game/Resources/Items/Artifacts/basicgun.asset",
             "Assets/Game/Resources/Items/Artifacts/GravelBlaster.asset",
+            "Assets/Game/Resources/Items/Artifacts/NetGun.asset",
+            "Assets/Game/Resources/Items/Artifacts/LaserStaff.asset",
+            "Assets/Game/Resources/Items/Artifacts/BallLightningWeapon.asset",
+            "Assets/Game/Resources/Items/Artifacts/LightningSpell.asset",
+            "Assets/Game/Resources/Items/Artifacts/DragonBazooka.asset",
         };
+
+        // What a Clanker is carrying HOME (design doc: they hunt artifacts). Bag slot 1, never
+        // drawn, dropped with the gun on death -- so a dead Clanker is worth looting and two dead
+        // Clankers are not the same loot. Half of them carry nothing but the gun.
+        private static readonly string[] CarriedArtifactPaths =
+        {
+            "Assets/Game/Resources/Items/Artifacts/Lantern.asset",
+            "Assets/Game/Resources/Items/Artifacts/StormFlask.asset",
+            "Assets/Game/Resources/Items/Artifacts/SlickCan.asset",
+            "Assets/Game/Resources/Items/Artifacts/AntiGravityPotion.asset",
+            "Assets/Game/Resources/Items/Artifacts/JumpingRod.asset",
+            "Assets/Game/Resources/Items/Artifacts/Flamethrower.asset",
+            "Assets/Game/Resources/Items/Artifacts/CryoSprayer.asset",
+            "Assets/Game/Resources/Items/Artifacts/FoamGun.asset",
+            "Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset",
+            "Assets/Game/Resources/Items/Artifacts/InflatorNozzle.asset",
+        };
+        private const int CarriedArtifactEmptyRolls = 10;
         private const float GunMinRange = 4f;
         private const float GunMaxRange = 28f;
 
@@ -78,8 +103,8 @@ namespace SpaceGame.EditorTools
         /// with a gun that reaches 28 m should see you coming from well past that. Written into
         /// a TargetingProfile asset so it can be tuned in the Inspector and saved by id.
         /// </summary>
-        public const float SightAcquireRange = 80f;
-        public const float SightLoseRange = 100f;
+        public const float SightAcquireRange = 110f;
+        public const float SightLoseRange = 140f;
         public const string TargetingProfilePath = "Assets/Game/ScriptableObjects/Targeting/Clanker.asset";
 
         /// <summary>Animator bool NpcPassenger holds while the Clanker rides a robot horse.</summary>
@@ -93,6 +118,9 @@ namespace SpaceGame.EditorTools
         /// should look them in the eye.
         /// </summary>
         public const float TargetHeight = 3.2f;
+
+        /// <summary>How far a Clanker on foot wanders from where it stood. A band's leader carries the band.</summary>
+        public const float PatrolRadius = 35f;
 
         /// <summary>Patrol pace as a fraction of the run the stride was measured at.</summary>
         public const float WalkFraction = 0.45f;
@@ -244,6 +272,25 @@ namespace SpaceGame.EditorTools
             {
                 Object.DestroyImmediate(instance);
             }
+        }
+
+        /// <summary>
+        /// A random pick into one bag slot. <paramref name="emptyRolls"/> null candidates are
+        /// appended so the roll can come up empty: NpcRandomLoadout treats a null pick as nothing.
+        /// </summary>
+        private static void AddLoadout(GameObject root, string[] paths, int slot, bool equip, int emptyRolls)
+        {
+            var loadout = root.AddComponent<NpcRandomLoadout>();
+            var so = new SerializedObject(loadout);
+            SerializedProperty candidates = so.FindProperty("candidates");
+            InventoryItem[] items = paths.Select(AssetDatabase.LoadAssetAtPath<InventoryItem>).Where(i => i != null).ToArray();
+            if (items.Length < paths.Length)
+                Debug.LogError($"[ClankerBuilder] An artifact in the slot {slot} loadout list is missing.");
+            candidates.arraySize = items.Length + emptyRolls;
+            for (int i = 0; i < items.Length; i++) candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+            SerializedFields.SetInt(so, "slot", slot);
+            so.FindProperty("equipAfterRoll").boolValue = equip;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>Uniform scale that brings the bind pose to <see cref="TargetHeight"/>.</summary>
@@ -504,8 +551,8 @@ namespace SpaceGame.EditorTools
             SetField(brain, "animatorDriver", driver);
 
             var health = root.AddComponent<HealthComponent>();
-            SetInt(health, "maxHealth", 120);
-            SetInt(health, "currentHealth", 120);
+            SetInt(health, "maxHealth", 160);
+            SetInt(health, "currentHealth", 160);
             root.AddComponent<HealthReactionModule>();
 
             var faction = root.AddComponent<EntityFaction>();
@@ -514,7 +561,7 @@ namespace SpaceGame.EditorTools
 
             // A machine watches a wide arc, and a robot cowboy sees a long way across open sand.
             var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", 150f);
+            SetFloat(perception, "fieldOfViewAngle", 170f);
             SetFloat(perception, "eyeHeight", bounds.size.y * 0.9f);
             SetFloat(perception, "memoryDuration", 10f);
             SetInt(perception, "occlusionLayers", LayerMaskOf("Default", "Ground", "Interior"));
@@ -528,7 +575,17 @@ namespace SpaceGame.EditorTools
             // so every one is set explicitly or it ties with the patrol.
             var patrol = root.AddComponent<PatrolModule>();
             SetPriority(patrol, ModulePriority.Fallback);
-            SetFloat(patrol, "patrolRadius", 25f);
+            SetFloat(patrol, "patrolRadius", PatrolRadius);
+            SetFloat(patrol, "minWaitTime", 2f);
+            SetFloat(patrol, "maxWaitTime", 6f);
+
+            // Bands. Inert on the prefab (no id); every placer that puts Clankers down together --
+            // the settlement generator, the squad placer, the town's spawner -- gives the group an
+            // id and makes one of them the leader. The leader patrols; the rest keep formation.
+            var formation = root.AddComponent<FormationModule>();
+            SetPriority(formation, ModulePriority.Social);
+            SetString(formation, "formationId", string.Empty);
+            SetBool(formation, "isLeader", false);
 
             var chase = root.AddComponent<ChaseModule>();
             SetPriority(chase, ModulePriority.Reactive);
@@ -545,7 +602,7 @@ namespace SpaceGame.EditorTools
             if (hand == null) Debug.LogWarning("[ClankerBuilder] No DEF-hand.R bone; the held item falls back to a name search.");
 
             var inventory = root.AddComponent<EntityInventoryComponent>();
-            SetInt(inventory, "inventorySize", 1);
+            SetInt(inventory, "inventorySize", 2);      // the gun, and what it is carrying home
 
             var equipment = root.AddComponent<EntityEquipmentController>();
             if (hand != null) SetField(equipment, "handSocket", hand);
@@ -553,18 +610,8 @@ namespace SpaceGame.EditorTools
             SetBool(equipment, "aimHeldItem", true);
             SetFloat(equipment, "eyeHeight", bounds.size.y * 0.85f);
 
-            var loadout = root.AddComponent<NpcRandomLoadout>();
-            {
-                var so = new SerializedObject(loadout);
-                SerializedProperty candidates = so.FindProperty("candidates");
-                InventoryItem[] items = HeldWeaponPaths.Select(AssetDatabase.LoadAssetAtPath<InventoryItem>).Where(i => i != null).ToArray();
-                if (items.Length < HeldWeaponPaths.Length)
-                    Debug.LogError("[ClankerBuilder] A held-weapon artifact in HeldWeaponPaths is missing.");
-                candidates.arraySize = items.Length;
-                for (int i = 0; i < items.Length; i++) candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
-                SerializedFields.SetInt(so, "slot", 0);
-                so.ApplyModifiedPropertiesWithoutUndo();
-            }
+            AddLoadout(root, HeldWeaponPaths, slot: 0, equip: true, emptyRolls: 0);
+            AddLoadout(root, CarriedArtifactPaths, slot: 1, equip: false, emptyRolls: CarriedArtifactEmptyRolls);
 
             var use = root.AddComponent<NpcItemUseModule>();
             SetPriority(use, ModulePriority.RangedAttack);
@@ -572,7 +619,7 @@ namespace SpaceGame.EditorTools
             SetEnum(use, "trigger", 0);                       // Trigger.TargetInRange
             SetFloat(use, "minRange", GunMinRange);
             SetFloat(use, "maxRange", GunMaxRange);
-            SetFloat(use, "cooldown", 1.2f);
+            SetFloat(use, "cooldown", 0.9f);
             SetInt(use, "burstCount", 1);
             SetFloat(use, "reactionDelay", 0.3f);            // a machine, not a surprised person
             SetFloat(use, "targetHeightOffset", 1.6f);       // chest height on a 3.2 m astronaut

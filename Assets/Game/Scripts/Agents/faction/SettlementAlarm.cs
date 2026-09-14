@@ -8,10 +8,10 @@
 //
 // Two halves, on purpose (INVARIANTS: "server decides, every machine presents"):
 //
-//   DECIDING — which defenders get which target — runs only where Network.Simulates(this) is
-//   true, which for a scene component with no NetworkObject means the server and offline. Agents'
-//   targets are theirs to replicate through the normal body/presentation path, so nothing here
-//   goes on the wire.
+//   DECIDING — which defenders get which target — runs only where Network.Decides is true: the
+//   server, or offline. (Not Network.Simulates: a scene component has no NetworkObject and
+//   Simulates says yes to those on every client.) Agents' targets are theirs to replicate through
+//   the normal body/presentation path, so nothing here goes on the wire.
 //
 //   PRESENTING — the siren — runs on every machine from what every machine already knows: the
 //   registry holds every EntityFaction on every machine and player positions replicate, so each
@@ -89,7 +89,7 @@ namespace SpaceGame.Agents
             if (signal.PlaySiren)
                 Sfx.Play(sirenId, transform.position, sirenSound, GetInstanceID());
 
-            if (state.Raised && intruders.Count > 0 && Network.Simulates(this))
+            if (state.Raised && intruders.Count > 0 && Network.Decides)
                 RallyDefenders();
         }
 

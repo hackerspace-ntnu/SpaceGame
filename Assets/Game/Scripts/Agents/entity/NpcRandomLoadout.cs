@@ -35,6 +35,10 @@ namespace SpaceGame.Agents
         [Tooltip("The inventory slot the pick goes into. Match EntityEquipmentController's " +
                  "starting slot so the item is drawn, not just carried.")]
         [SerializeField] private int slot;
+        [Tooltip("Draw the pick once it lands in the slot. Off for a slot that is loot rather than " +
+                 "a weapon -- the artifact a Clanker is carrying home -- so it stays in the bag and " +
+                 "drops on death without ever replacing the gun in the hand.")]
+        [SerializeField] private bool equipAfterRoll = true;
 
         // Server-written, everyone-read: the item id in `slot`, or empty for nothing.
         private readonly NetworkVariable<FixedString64Bytes> heldId = new(
@@ -90,7 +94,7 @@ namespace SpaceGame.Agents
             if (pick == null) return;
 
             inventory.RestoreSlot(slot, pick);
-            if (equipment != null) equipment.EquipSlot(slot);
+            if (equipAfterRoll && equipment != null) equipment.EquipSlot(slot);
         }
 
         private void PublishSlot(int index, InventorySlot changed)
@@ -122,7 +126,7 @@ namespace SpaceGame.Agents
             if (current != null && current.Item == item) return;
 
             inventory.RestoreSlot(slot, item);
-            if (equipment != null) equipment.EquipSlot(slot);
+            if (equipAfterRoll && equipment != null) equipment.EquipSlot(slot);
         }
     }
 }

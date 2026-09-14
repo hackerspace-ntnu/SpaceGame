@@ -102,7 +102,7 @@ namespace SpaceGame.EditorTools
         // Mounted Clankers (RobotHorseBuilder): robot horses with a Clanker in the saddle, on
         // their own slots so the town always fields this many rather than rolling for them.
         private const string OutriderPrefab = RobotHorseBuilder.OutriderPrefabPath;
-        public const int OutriderCount = 2;
+        public const int OutriderCount = 3;
 
         // Ring radii. The refinery's clearance radius is (87 + padding) / 2 ≈ 47 m and a relay
         // outpost's ≈ 14 m, so the inner ring has to sit past 61 m from the centre; 75 leaves room
@@ -120,8 +120,9 @@ namespace SpaceGame.EditorTools
         /// five on foot plus two mounted pairs (nine faction entities); the cap leaves room for a
         /// few more and replaces the fallen a wave at a time.
         /// </summary>
-        public const int PopulationCap = 14;
-        public const float PopulationInterval = 60f;
+        public const int PopulationCap = 26;
+        public const float PopulationInterval = 45f;
+        public const int PopulationWave = 3;
         private const string OwnerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/RobotFaction.asset";
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
@@ -244,9 +245,9 @@ namespace SpaceGame.EditorTools
             recipe.rockCount = Vector2Int.zero;
 
             recipe.robotPrefabs = GarrisonPrefabs.Select(p => LoadRequired(p, ref ok)).ToArray();
-            recipe.robotGroupCount = new Vector2Int(2, 3);
-            recipe.robotsPerGroup = new Vector2Int(2, 3);
-            recipe.robotGroupSpread = 4f;
+            recipe.robotGroupCount = new Vector2Int(4, 5);
+            recipe.robotsPerGroup = new Vector2Int(3, 4);
+            recipe.robotGroupSpread = 5f;
 
             recipe.outriderPrefabs = new[] { LoadRequired(OutriderPrefab, ref ok) };
             recipe.outriderTotal = OutriderCount;
@@ -491,6 +492,9 @@ namespace SpaceGame.EditorTools
                 },
                 PopulationCap, PopulationInterval,
                 InnerRadius * 0.6f, OuterRadius * 0.9f, OuterRadius + AlarmMargin);
+            var waves = new SerializedObject(population);
+            waves.FindProperty("spawnsPerWave").intValue = PopulationWave;
+            waves.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(population);
             return generator;
         }

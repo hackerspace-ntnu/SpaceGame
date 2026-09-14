@@ -28,12 +28,12 @@ MonoBehaviour:
   rockPlacementAttempts: 8
   robotPrefabs:
   - {fileID: 8281197775659510822, guid: 5154a34b94c64e949ab4b17679e6c330, type: 3}
-  robotGroupCount: {x: 2, y: 3}
-  robotsPerGroup: {x: 2, y: 3}
-  robotGroupSpread: 4
+  robotGroupCount: {x: 4, y: 5}
+  robotsPerGroup: {x: 3, y: 4}
+  robotGroupSpread: 5
   outriderPrefabs:
   - {fileID: 9222632965478916354, guid: 9c48f1b3b7d6a9b4581c2ae1c04ce7a4, type: 3}
-  outriderTotal: 2
+  outriderTotal: 3
   vehiclePrefabs:
   - {fileID: 7526090167333966417, guid: 862f7067c13c7df45a8839b871d28e52, type: 3}
   vehicleTotal: 1

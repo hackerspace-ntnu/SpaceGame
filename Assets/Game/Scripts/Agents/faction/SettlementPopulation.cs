@@ -15,11 +15,16 @@
 //     gone and the town repopulates in the quiet that follows -- which is also when nobody sees
 //     where they came from.
 //
-// Deciding and spawning run only where Network.Simulates(this) is true (the server, and offline);
-// the spawn goes through GameServices.World.Spawn, which puts the new inhabitant on the wire and
-// opts it into the world save under its own prefabId. So the PEOPLE persist and replicate by
-// themselves; this component persists nothing on purpose -- the only state it owns is the clock
-// to the next wave, and a reload re-arming that clock costs one interval, not a population.
+// Deciding and spawning run only where Network.Decides is true (the server, and offline -- not
+// Simulates, which says yes on a client for anything without a NetworkObject and had this
+// spawner refused by World.Spawn 29 times in one session); the spawn goes through
+// GameServices.World.Spawn, which puts the new inhabitant on the wire and opts it into the world
+// save under its own prefabId. So the PEOPLE persist and replicate by themselves; this component
+// persists nothing on purpose -- the only state it owns is the clock to the next wave, and a
+// reload re-arming that clock costs one interval, not a population.
+//
+// A wave is a BAND, not a scatter: its members share a FormationModule id and the first one out
+// leads, so the reinforcements walk the town together the way the generated groups do.
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -74,6 +79,7 @@ namespace SpaceGame.Agents
 
         private SettlementPopulationLogic.State state;
         private SettlementAlarm alarm;
+        private int waveCount;
         private readonly List<EntityFaction> people = new List<EntityFaction>(32);
 
         /// <summary>Everything the builder decides, in one call.</summary>
@@ -97,7 +103,7 @@ namespace SpaceGame.Agents
 
         private void Update()
         {
-            if (!Network.Simulates(this))
+            if (!Network.Decides)
                 return;
 
             EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,
@@ -107,22 +113,37 @@ namespace SpaceGame.Agents
             bool hold = holdWhileAlarmRaised && alarm != null && alarm.IsRaised;
             int wanted = SettlementPopulationLogic.Step(ref state, Population, maxPopulation, spawnsPerWave,
                                                         hold, Time.time, spawnInterval);
+            if (wanted <= 0)
+                return;
+
+            waveCount++;
+            string band = $"{name}/wave{waveCount}";
+            bool leaderPlaced = false;
             for (int i = 0; i < wanted; i++)
-                SpawnOne();
+            {
+                GameObject spawned = SpawnOne();
+                if (spawned == null) continue;
+                if (spawned.TryGetComponent(out FormationModule formation))
+                {
+                    formation.SetFormation(band, leader: !leaderPlaced);
+                    leaderPlaced = true;
+                }
+            }
         }
 
-        private void SpawnOne()
+        private GameObject SpawnOne()
         {
             GameObject prefab = Pick();
             if (prefab == null)
-                return;
+                return null;
             if (!TryFindSpawnPoint(out Vector3 position))
-                return;
+                return null;
 
             Quaternion facing = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             GameObject spawned = GameServices.World.Spawn(prefab, position, facing);
             if (spawned != null)
                 Population++;
+            return spawned;
         }
 
         private GameObject Pick()

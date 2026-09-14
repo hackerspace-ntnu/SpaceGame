@@ -36,6 +36,20 @@ namespace SpaceGame.Core
         /// unnetworked thing has no remote truth to defer to, so every machine simulating its own
         /// copy is the best available answer, and refusing would freeze it solid.
         /// </summary>
+        /// <summary>
+        /// Does this machine decide for things that are not entities -- a settlement's alarm, its
+        /// spawner, a scene rule with no <see cref="NetworkObject"/> of its own?
+        ///
+        /// <para>
+        /// NOT <see cref="Simulates"/>. That answers true on a client for anything without a spawned
+        /// NetworkObject, which is right for a purely local prop and wrong for a rule that spawns or
+        /// targets: the Clanker town's spawner called <c>World.Spawn</c> on a client 29 times in one
+        /// session and was refused every time (2026-09-08), and its alarm handed targets to agents it
+        /// did not own. The server, or nobody but us.
+        /// </para>
+        /// </summary>
+        public static bool Decides => !IsNetworked || Server;
+
         public static bool Simulates(Component entity)
         {
             if (!IsNetworked) return true;

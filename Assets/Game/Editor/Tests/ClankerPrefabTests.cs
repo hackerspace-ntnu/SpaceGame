@@ -118,12 +118,27 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(prefab.GetComponent<EntityEquipmentController>());
             Assert.IsNotNull(prefab.GetComponent<EntityLootTable>(), "what it holds must drop");
 
-            var loadout = prefab.GetComponent<NpcRandomLoadout>();
-            Assert.IsNotNull(loadout);
-            var candidates = new SerializedObject(loadout).FindProperty("candidates");
-            Assert.Greater(candidates.arraySize, 0, "nothing to roll from");
-            for (int i = 0; i < candidates.arraySize; i++)
-                Assert.IsNotNull(candidates.GetArrayElementAtIndex(i).objectReferenceValue, $"candidate {i} is empty");
+            // Two rolls: the gun in the hand (slot 0, every candidate real, drawn) and the artifact
+            // it is carrying home (slot 1, some candidates deliberately empty, never drawn).
+            NpcRandomLoadout[] loadouts = prefab.GetComponents<NpcRandomLoadout>();
+            Assert.AreEqual(2, loadouts.Length, "a gun to fire and an artifact to loot");
+            Assert.AreEqual(2, new SerializedObject(prefab.GetComponent<EntityInventoryComponent>()).FindProperty("inventorySize").intValue);
+
+            var gun = new SerializedObject(loadouts.Single(l => new SerializedObject(l).FindProperty("slot").intValue == 0));
+            var guns = gun.FindProperty("candidates");
+            Assert.GreaterOrEqual(guns.arraySize, 5, "a variety of guns");
+            for (int i = 0; i < guns.arraySize; i++)
+                Assert.IsNotNull(guns.GetArrayElementAtIndex(i).objectReferenceValue, $"gun candidate {i} is empty");
+            Assert.IsTrue(gun.FindProperty("equipAfterRoll").boolValue, "the gun is drawn");
+
+            var carried = new SerializedObject(loadouts.Single(l => new SerializedObject(l).FindProperty("slot").intValue == 1));
+            var artifacts = carried.FindProperty("candidates");
+            Assert.GreaterOrEqual(artifacts.arraySize, 10, "a variety of artifacts, some of them nothing");
+            Assert.IsFalse(carried.FindProperty("equipAfterRoll").boolValue, "the artifact stays in the bag");
+
+            var formation = prefab.GetComponent<FormationModule>();
+            Assert.IsNotNull(formation, "placers put Clankers into bands");
+            Assert.IsEmpty(new SerializedObject(formation).FindProperty("formationId").stringValue, "inert until a placer names the band");
 
             var socket = new SerializedObject(prefab.GetComponent<EntityEquipmentController>()).FindProperty("handSocket").objectReferenceValue as Transform;
             Assert.IsNotNull(socket, "hand socket unset");

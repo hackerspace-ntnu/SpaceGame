@@ -30,6 +30,12 @@ namespace SpaceGame.Agents
         [SerializeField] private LayerMask occlusionLayers;
         [Tooltip("Fallback eye elevation when no eyeTransform is assigned.")]
         [SerializeField] private float eyeHeight = 1.6f;
+        [Tooltip("Where on a target the sight line is aimed when the target has no collider on its " +
+                 "root, in metres above its origin. Every character's origin is at its FEET, on the " +
+                 "ground, and a ray aimed at the ground grazes every rise of terrain on the way and " +
+                 "ends inside the ground itself -- which is how the Clankers came to see a player only " +
+                 "at arm's length. A target with a root collider is aimed at that collider's centre.")]
+        [SerializeField] private float targetAimHeight = 1f;
 
         [Header("Memory")]
         [Tooltip("How long the entity remembers the last known position after losing sight.")]
@@ -134,13 +140,25 @@ namespace SpaceGame.Agents
         // LoS from the eye only — no FOV, no memory update. Use for passive "could we shoot them if we aimed?" checks.
         public bool HasLineOfSight(Transform target) => HasLineOfSightFrom(EyePosition, target);
 
+        /// <summary>
+        /// The point on <paramref name="target"/> a sight line is aimed at: the centre of its root
+        /// collider, or targetAimHeight above its origin. Never the origin itself, which is on the
+        /// ground (see the field).
+        /// </summary>
+        public Vector3 AimPointOf(Transform target)
+        {
+            if (target.TryGetComponent(out Collider body))
+                return body.bounds.center;
+            return target.position + Vector3.up * targetAimHeight;
+        }
+
         // LoS from an arbitrary origin (e.g. a weapon muzzle). Ignores hits on self and the target itself.
         public bool HasLineOfSightFrom(Vector3 origin, Transform target)
         {
             if (!target)
                 return false;
 
-            Vector3 toTarget = target.position - origin;
+            Vector3 toTarget = AimPointOf(target) - origin;
             float distance = toTarget.magnitude;
             if (distance < 1e-4f)
                 return true;
@@ -217,6 +235,7 @@ namespace SpaceGame.Agents
         {
             fieldOfViewAngle = Mathf.Clamp(fieldOfViewAngle, 1f, 360f);
             eyeHeight = Mathf.Max(0f, eyeHeight);
+            targetAimHeight = Mathf.Max(0f, targetAimHeight);
             memoryDuration = Mathf.Max(0f, memoryDuration);
             spotNoiseRadius = Mathf.Max(0f, spotNoiseRadius);
         }

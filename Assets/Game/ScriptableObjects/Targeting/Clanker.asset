@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.TargetingProfile
   <ID>k__BackingField: c125b118374d3f346956d23cee9be9cc
   relationship: 2
-  acquisitionRange: 80
-  loseRange: 100
+  acquisitionRange: 110
+  loseRange: 140
   reevaluateInterval: 0.5
   memoryDuration: 10
   requireLineOfSightToAcquire: 1

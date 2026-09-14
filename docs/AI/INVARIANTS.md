@@ -21,7 +21,8 @@ derived from input travel **in the message** — never recompute them on the rec
 
 **Why.** `Camera.main` on the server is the *host's* camera, and `NetAuthority` switches off remote drivers, so a suppressed driver never runs
 the code that spawns its own effect. Gate on `Simulates`, not `IsServer` — but on an unspawned held item `Simulates` is true everywhere, so
-there ask about the owner.
+there ask about the owner. A **scene rule** with no `NetworkObject` at all — a settlement's alarm or spawner — gets the same "true everywhere",
+so those gate on `Network.Decides` (server or offline) instead.
 
 **How it fails.** Every client's shot and every NPC's barrel follow the host's head; a remote turret fires with no muzzle flash.
 

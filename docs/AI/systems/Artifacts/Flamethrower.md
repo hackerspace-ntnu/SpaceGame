@@ -1,15 +1,18 @@
 ---
 artifact: Flamethrower
-status: design
+status: shipped
 authority: Server
 continuous: true
 uses: [StatusEffects, SupplyCharge]
-updated: 2026-09-07
+updated: 2026-09-08
 ---
 
 # Flamethrower (design)
 
-Not implemented. Design only. Read [../Artifacts.md](../Artifacts.md) first.
+**Shipped.** This page is the original brief and is kept for the reasoning behind the decisions.
+For what the code actually does, read [Flamethrower](../Flamethrower.md) — it is the governing doc,
+and where this page and that one disagree, that one is right. Read [../Artifacts.md](../Artifacts.md)
+first.
 
 A held lance that throws a continuous cone of fire. What it touches keeps burning after the flame
 moves on. The second reference continuous item alongside the Laser Staff, and the reason

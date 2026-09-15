@@ -8,6 +8,7 @@
 //     tells everyone. This keeps two players from mounting the same animal on the same frame.
 //   • Ownership of the mount transfers to the rider so their SteerModule can drive it and have the
 //     resulting motion replicate through the mount's NetworkTransform. On dismount it goes back.
+//     A mount with no SteerModule — a passenger seat — keeps its owner: see MountModule.RiderDrives.
 //   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat.
 //     Cameras, look input and steering are the local rider's alone — MountModule.RiderIsLocal.
 //
@@ -63,6 +64,34 @@ namespace SpaceGame.Agents
         private const int DismountCarriesPosition = 1;
 
         private int mountIndex = -1;
+
+        /// <summary>
+        /// Whether taking THIS seat should hand the vehicle over.
+        ///
+        /// <para>
+        /// Ownership is per-<c>NetworkObject</c>, and a hull carries every one of its seats on one:
+        /// PlayerShip has four. So a rule of "the last person to sit down owns the ship" is not a
+        /// rule about driving at all. A passenger dropping into a chair took the whole hull off the
+        /// pilot, and <c>NetAuthority</c> on the pilot's machine then did exactly what it is for —
+        /// disabled the drivers and made the body kinematic — so the pilot's steering went nowhere,
+        /// on a hull nobody else was steering either. The ship simply stopped moving the moment a
+        /// second player sat down, with nothing in the console.
+        /// </para>
+        /// <para>
+        /// The same question matters for an AI mount for a second reason. <c>AgentAuthority</c>
+        /// gates the whole module stack on ownership, so handing a client an ostrich moves its
+        /// targeting, its combat and its transform onto the machine of whoever sat down on it — a
+        /// passenger's PC would be deciding who the robot fires lightning at.
+        /// </para>
+        /// <para>
+        /// Answered by <see cref="MountModule.RiderDrives"/>, which is the seat's own
+        /// <see cref="SteerModule"/> test asked once at Awake rather than per seating. That module
+        /// IS the rider's controls, and it requires a <c>MountModule</c> on its own GameObject, so
+        /// this is exact rather than a heuristic. A machine with a single mount is unaffected:
+        /// that mount is its helm.
+        /// </para>
+        /// </summary>
+        private bool SeatDrivesTheVehicle => mount != null && mount.RiderDrives;
 
         /// <summary>
         /// Which mount on this entity we are — the <see cref="NetArg.A"/> of every message this
@@ -334,11 +363,12 @@ namespace SpaceGame.Agents
 
             // Hand the mount to the rider so their local SteerModule input moves it and the motion
             // replicates outward from them. Without this the rider steers a body they don't own and
-            // the server's NetworkTransform overwrites it every tick.
+            // the server's NetworkTransform overwrites it every tick. Only for a seat that steers —
+            // see SeatDrivesTheVehicle for the ship a passenger used to stop dead by sitting down.
             NetworkObject mountObject = GetComponentInParent<NetworkObject>();
             NetworkObject riderNet = riderObject != null ? riderObject.GetComponent<NetworkObject>() : null;
 
-            if (Network.IsNetworked && mountObject != null && riderNet != null
+            if (SeatDrivesTheVehicle && Network.IsNetworked && mountObject != null && riderNet != null
                 && mountObject.IsSpawned && mountObject.OwnerClientId != riderNet.OwnerClientId)
             {
                 mountObject.ChangeOwnership(riderNet.OwnerClientId);
@@ -374,8 +404,11 @@ namespace SpaceGame.Agents
 
             ApplyDismount();
 
+            // Only the seat that took the vehicle gives it back. A passenger standing up used to
+            // hand the hull to the server out from under a pilot who was still steering it, which
+            // is the same stall as the mount side and needs no second player to reproduce.
             NetworkObject mountObject = GetComponentInParent<NetworkObject>();
-            if (Network.IsNetworked && mountObject != null && mountObject.IsSpawned
+            if (SeatDrivesTheVehicle && Network.IsNetworked && mountObject != null && mountObject.IsSpawned
                 && mountObject.OwnerClientId != NetworkManager.ServerClientId)
             {
                 mountObject.ChangeOwnership(NetworkManager.ServerClientId);

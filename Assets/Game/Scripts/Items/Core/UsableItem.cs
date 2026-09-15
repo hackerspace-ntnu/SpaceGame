@@ -139,7 +139,12 @@ namespace SpaceGame.Items
 
             if (!CanUse()) return;
 
+            useCancelled = false;
             Use();
+
+            // A use that changed nothing costs nothing. See CancelUse.
+            if (useCancelled) return;
+
             currentUses++;
 
             // Check if we've reached max uses
@@ -148,6 +153,26 @@ namespace SpaceGame.Items
                 OnMaxUsesReached();
             }
         }
+
+        /// <summary>
+        /// Set by <see cref="CancelUse"/> for the length of one <see cref="Use"/> call.
+        /// </summary>
+        private bool useCancelled;
+
+        /// <summary>
+        /// Spend no charge for this use: call it from <see cref="Use"/> on a path that changed
+        /// nothing in the world.
+        ///
+        /// <para>
+        /// Aimed items need this and <see cref="RefundUse"/> cannot serve, because the counter is
+        /// incremented *after* <see cref="Use"/> returns — a refund from inside would be undone by
+        /// that increment, and on the very first press it would leave the item one charge worse off
+        /// than it started. A press that missed the ground, hit nothing in range, or arrived after
+        /// the target had gone must not cost a charge; the alternative is an item that eats its
+        /// ammunition on the clicks that did nothing, which reads as the item being broken.
+        /// </para>
+        /// </summary>
+        protected void CancelUse() => useCancelled = true;
 
         /// <summary>
         /// Every machine: play the use. Sound always, plus whatever <see cref="Present"/> draws.

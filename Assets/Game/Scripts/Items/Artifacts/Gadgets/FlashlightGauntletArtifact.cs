@@ -12,10 +12,12 @@ namespace SpaceGame.Items
     /// <see cref="Flashlight"/> component itself is unchanged and still does all three of its
     /// layers — the URP spot, the long-throw shader globals and the beam volume — but it now hangs
     /// on this prefab's <c>Emitter</c>, at the mouth of the horn, instead of under the player's
-    /// Main Camera. So the beam points where the *arm* points, which is the whole reason to wear a
-    /// lamp on your wrist and the cost of it: the light and the crosshair are no longer the same
-    /// direction, and the Point Down/Level/Up clips that raise a firing arm move the beam with
-    /// them. That was chosen deliberately over a camera-aimed cone (2026-09-03).
+    /// Main Camera. The beam still leaves along the ARM; what changed on 2026-09-13 is that the arm
+    /// is now POINTED. <see cref="PlayerArmAim"/> swings the shoulder and elbow so the lamp converges
+    /// on what the player is looking at, so the light and the crosshair are the same direction again
+    /// without the lamp going back on the camera — you still see a wrist torch swing, and it lights
+    /// what you are looking at (2026-09-13, replacing the deliberately forearm-aimed beam of
+    /// 2026-09-03).
     /// </para>
     ///
     /// <para>
@@ -61,9 +63,9 @@ namespace SpaceGame.Items
         [SerializeField] private Color bulbLit = new(3.2f, 2.85f, 2.2f);
 
         [Tooltip("The pose the body takes while the torch is LIT. This is the same pose the body " +
-                 "uses to hold an item, which is what the arm needs anyway: forearm up and " +
-                 "forward, pitching with the look, so the beam goes where you are looking. " +
-                 "OneHanded is the ordinary item pose; Relaxed carries it lower.")]
+                 "uses to hold an item, and it is the SHAPE only — where the arm ends up pointing " +
+                 "is PlayerArmAim's answer, laid on top of this. OneHanded is the ordinary item " +
+                 "pose; Relaxed carries it lower.")]
         [SerializeField] private ItemGrip.HoldStyle litPose = ItemGrip.HoldStyle.OneHanded;
 
         private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
@@ -71,6 +73,7 @@ namespace SpaceGame.Items
         private MaterialPropertyBlock bulbPaint;
         private PlayerViewNetwork view;
         private PlayerAimRig aimRig;
+        private PlayerArmAim armAim;
 
         /// <summary>State key for the switch. Written into save files — never rename.</summary>
         private const string LitKey = "on";
@@ -111,6 +114,14 @@ namespace SpaceGame.Items
 
             aimRig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
 
+            // The lamp itself is the pointer: what has to end up facing the crosshair is the thing
+            // the beam leaves along, not the bone it is strapped to, and the seat's rotation between
+            // the two is exactly the offset nobody should have to type. Registered once here rather
+            // than switched with the lamp — the arm is aimed only while the pose layer is carrying
+            // it, which is already the torch's on/off state.
+            armAim = holder != null ? holder.GetComponent<PlayerArmAim>() : null;
+            if (armAim != null && lamp != null) armAim.SetPointer(WornOn, lamp.transform);
+
             ShowLit(lamp != null && lamp.IsOn);
         }
 
@@ -128,6 +139,9 @@ namespace SpaceGame.Items
             // holding a pose for a lamp that is no longer there.
             ShowLit(false);
             aimRig = null;
+
+            if (armAim != null && lamp != null) armAim.ClearPointer(WornOn, lamp.transform);
+            armAim = null;
         }
 
         /// <summary>Owner-side. The lamp is this player's own; nobody else decides its state.</summary>
@@ -200,7 +214,9 @@ namespace SpaceGame.Items
         /// The beam leaves along the forearm, so an arm hanging at the player's side lights their
         /// boots — the pose is what makes the lamp usable. It is the body's ordinary held-item
         /// pose rather than one of its own: the forearm ends up where a held item's would, which
-        /// is exactly where the beam wants it.
+        /// is exactly where the beam wants it. Where it points from there is
+        /// <see cref="PlayerArmAim"/>'s, and it follows this: the arm is aimed only while this pose
+        /// is the one the body is carrying, so switching off drops the arm AND the aim together.
         /// </para>
         /// <para>
         /// Only while LIT, which is the user's call and a good one — switching off puts the arm
@@ -218,7 +234,7 @@ namespace SpaceGame.Items
         {
             if (aimRig == null) return;
 
-            aimRig.SetTorchStyle(WornOn, lit ? litPose : ItemGrip.HoldStyle.None);
+            aimRig.SetWornStyle(WornOn, lit ? litPose : ItemGrip.HoldStyle.None);
         }
 
         private void PaintBulb(bool lit)

@@ -463,7 +463,7 @@ namespace SpaceGame.Items
         /// </summary>
         private void DrawBolt(Vector3 point)
         {
-            if (look != null) look.Flash();
+            if (look != null) look.Flash(point);
 
             if (boltSound != SfxId.None)
                 Sfx.Play(boltSound, boltOrigin != null ? boltOrigin.position : transform.position);

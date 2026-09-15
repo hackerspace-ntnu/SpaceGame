@@ -632,6 +632,12 @@ namespace SpaceGame.Gameplay
             if (entity == null || matchEnded) yield break;
 
             entity.SetActive(true);
+
+            // Ropes, nets and conditions come off before the move, not after: a leash left tied
+            // across a respawn teleport hauls the body back towards where it died. RespawnRelease
+            // is the same seam PlayerRespawn uses, so the two respawns let go of the same things.
+            RespawnRelease.Everything(entity);
+
             MoveTo(entity, RandomSpawnPosition(teamIndex));
 
             // ResetToFull, not Heal(maxHealth): overkill damage leaves currentHealth

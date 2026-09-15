@@ -19,6 +19,7 @@ symptoms:
   - "bots on opposite teams refuse to fight each other"
   - "I died in versus and respawned in the enemy team's ship"
   - "respawning put me on open sand at the world's starting coordinates instead of back in my ship"
+  - "I respawned still roped, still under the net, or still on fire"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
 updated: 2026-09-07
 ---
@@ -37,6 +38,7 @@ Two unrelated match families — **Versus** (team PvP in the streamed world, eve
 - Everything decisive is **server-side**. The only replicated per-player mode state is `PlayerIdentity.Team` (server-write); the leaderboard is pushed wholesale by RPC.
 - Two spawn paths: VS resolves a seat inside its team's ship via [`VersusShipSpawner`](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.cs); everything else goes through [`SpawnManager`](Assets/Game/Scripts/Gameplay/Game/Spawning/SpawnManager.cs) + [`SpawnPoint`](Assets/Game/Scripts/Gameplay/Game/Spawning/SpawnPoint.cs). `MatchManager` collects its own spawn points, scene-scoped, and does not use `SpawnManager`.
 - **The rule of respawn: you come back inside your ship** — in VS, your TEAM's ship, never any other hull. [`ShipRespawn`](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) resolves the pose (VS: `VersusShipSpawner.TryClaimRespawnPose`; story: the crew hull's `ShipSeat` dismount points); `SpawnManager`'s spawn-point/open-ground path is the fallback for a world with no ship in it.
+- **A respawn lets go of everything holding the body, and death does not.** [`RespawnRelease.Everything`](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) cuts every rope on the player (leash, lasso, grapple), takes them out of the net they are under, unties a hogtie and clears every status condition — run by both respawn paths, on the deciding machine, immediately **before** the move. A corpse stays roped and netted on purpose: dragging a body somewhere is a thing players do.
 - [`Game.Mode`](Assets/Game/Scripts/Gameplay/Game/State/Game.cs) (`Singleplayer`/`Multiplayer`) and [`GameManager`](Assets/Game/Scripts/Gameplay/Game/State/GameManager.cs) belong to the **story run** (timer + `WinGame` → win scene), not to VS or the arena.
 - Team identity is one integer everywhere: index into `VersusRules.Names`, into the team colour array, and into the ship layout.
 
@@ -60,6 +62,7 @@ Two unrelated match families — **Versus** (team PvP in the streamed world, eve
 | `ShipSpawnLayout` | [Versus/Core/ShipSpawnLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/ShipSpawnLayout.cs) | `Ring`, `SeatRing`, `TryPointForTeam`, `TryValidateExplicit` |
 | `VersusShipSpawner` | [Versus/Runtime/VersusShipSpawner.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.cs) + [.Seats.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.Seats.cs) | One ship per team via `GameServices.World.Spawn`, team livery, `TryClaimSeat` (match start, seat marker pose) / `TryClaimRespawnPose` (respawn, the seat's standing `DismountPoint`) |
 | `ShipRespawn` | [Game/Spawning/ShipRespawn.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) | Static resolver: a dead player comes back inside their own ship — team ship in VS, the crew hull otherwise; refuses rather than pick a wrong hull |
+| `RespawnRelease` | [Game/Spawning/RespawnRelease.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) | `Everything(body)`: `CuttableRopes.CutEveryRopeOn` + `SnareCatch.Holding(...).FreeEverywhere` + `Hogtie.Untie` + `StatusReceiver.ClearAll`. Called by `PlayerRespawn` and `MatchManager`, before the teleport |
 | `ShipGrounding` / `ShipSeat` | [Versus/Runtime/](Assets/Game/Scripts/Gameplay/Versus/Runtime) | Heightmap-first ground probe, raised onto anything standing on the terrain when it is a HULL being landed (`TryResolveLandingSurface` — see [PlayerShip](PlayerShip.md)); seat markers (ordered, component not name) |
 | `RankLayout` | [Versus/Core/RankLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankLayout.cs) | Lobby rank geometry: seat spacing, 4-wide seat wrap, **4-wide team wrap on a shared half-pitch lattice**, team gap, two-axis camera fit, eye lift |
 | `RankGrounding` | [Versus/Core/RankGrounding.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankGrounding.cs) | Drops the flat seats onto the ground through an injected probe; reports the height spread the camera frames |

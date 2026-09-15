@@ -331,6 +331,17 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Whether this cable is on <paramref name="body"/>.
+        ///
+        /// <para>
+        /// The swinger and nobody else: a grapple's far end is a point in the world rather than a
+        /// thing — <c>CurrentAnchor</c> returns a position — so the only body a live cable is
+        /// attached to is the one holding the other end of it.
+        /// </para>
+        /// </summary>
+        public bool Binds(GameObject body) => _isGrappling && body != null && owner == body;
+
+        /// <summary>
         /// Cut the cable, from the server, for a swing that is not the server's to end.
         ///
         /// <para>

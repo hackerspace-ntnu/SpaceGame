@@ -403,7 +403,9 @@ namespace SpaceGame.Core
         // sharing one net id in A.
         //
         //   Snared      server → everyone. Target = the captive, A = net id.
-        //   SnareFreed  server → everyone. A = net id; Target = 0 for the whole net.
+        //   SnareFreed  server → everyone. A = net id; Target = one captive to let just them out —
+        //               what a respawn sends, so a net holding two people survives one of them
+        //               coming back — and Target = 0 to tear the whole net down.
         //
         // Broadcast to All rather than Others, and both handlers act only when the state differs,
         // so a machine that missed one is corrected by the next — the idempotence rule
@@ -607,31 +609,32 @@ namespace SpaceGame.Core
         // nothing.
         public const ushort CoatBroken = 112;
 
-        // ── Containment ──
-        // An entity folded into a carried item and let back out. The capture itself is contested,
-        // and that contest is the net gun's meter reused unchanged — Snared / SnareStruggled /
-        // SnareFreed above — so nothing new is needed for the struggle.
+        // ── The lightning conjurer's cast ──
+        // Both server → everyone, on the CONJURER's relay, and both exist for the same reason:
+        // NetAuthority switches AgentController off on every machine that is only watching, so a
+        // remote conjurer never runs ConjurerCastModule and never reaches the two lines that
+        // would have shown the attack. Motion and the walk cycle arrive on their own — the
+        // NetworkTransform carries the body and AgentAnimatorDriver measures it — but a discrete
+        // effect nobody ran has to be told.
         //
-        // What is new is the moment the fight ends and the body stops existing as a body. The
-        // server serialises the entity to the same record the world save writes, despawns it, and
-        // puts the record in the container item's ItemState.
-
-        /// <summary>
-        /// Server -> everyone, on the CAPTIVE's relay: "the fight is over, you are going in".
-        ///
-        /// Sent before the despawn so every machine can play the fold-in on a body it can still
-        /// see. Target on the message is the CONTAINER, so a peer knows what to play it into.
-        /// </summary>
-        public const ushort Contained = 115;
-
-        /// <summary>
-        /// Server -> everyone: a captive has been let out. Target is the container.
-        ///
-        /// The entity's own arrival replicates as an ordinary spawn; this carries only the
-        /// presentation and the fact that the container is empty again, so a peer does not have to
-        /// infer an uncorking from a spawn that could have come from anywhere. P is the point the
-        /// captor aimed at.
-        /// </summary>
-        public const ushort Released = 116;
+        // Two messages rather than one because the cast is four seconds long and its two halves
+        // land four seconds apart: the wind-up has to start when the server starts winding up,
+        // and the bolt has to land when the server says it landed. One message plus a local timer
+        // on each peer would drift, and a peer that joined mid-cast would never start it at all.
+        //
+        //   ConjurerCast     Target = the VICTIM, so each peer's ground warning can follow it
+        //                    locally instead of being told where it is every frame; P = where the
+        //                    strike is aimed at the moment the cast begins, and the whole of the
+        //                    answer when the aim is committed up front or the victim cannot be
+        //                    resolved.
+        //   ConjurerStruck   P = where the bolt earths, in world space.
+        //
+        // Nothing carries the AIM LOCK, and that is deliberate: every machine begins the wind-up
+        // on the same frame from ConjurerCast and freezes its own mark after the same authored
+        // delay. The one number that has to be exact — where the bolt actually landed — comes back
+        // authoritatively in ConjurerStruck, so a cosmetic ring a frame out of step on a peer is
+        // not worth a packet per frame to prevent.
+        public const ushort ConjurerCast   = 113; // server → everyone: begin the wind-up
+        public const ushort ConjurerStruck = 114; // server → everyone: draw the bolt at P
     }
 }

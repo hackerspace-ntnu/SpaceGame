@@ -43,9 +43,13 @@ that needs.
 
 ## Poly budget
 
-320 triangles. 24 live blobs per player, several players spraying, is the first
-performance question this artifact raises (`GDC-L1-PERF-0004`), and the answer
-is that a sphere whose entire surface is a shader does not need vertices.
+1280 triangles. It was 320 on the reasoning that a sphere whose entire surface
+is a shader does not need vertices — true of the SHADING and false of the
+OUTLINE, which is the one thing a shader cannot round off. A lump is about a
+metre across and is stood on at arm's length, where 320 triangles read as a
+visible polygon. Live blobs per player, several players spraying, is still the
+first performance question this artifact raises (`GDC-L1-PERF-0004`) — but it
+is a fill and draw-call question, and 642 vertices a lump is not what answers it.
 
 ## Shader channels
 
@@ -94,10 +98,18 @@ MATS = ["Mat_Paint_White_Arctic"]
 # from the transform and from `_FoamBlobs[].w`; baking 0.45 into the mesh would
 # put the silhouette where the analytic union is not.
 UNIT = 1.0
-SUBDIV = 3              # 320 triangles. `create_icosphere` counts the
-                        # icosahedron itself as subdivision 1, so this is two
-                        # rounds of splitting: at 2 the facets read as the
-                        # silhouette, at 4 it costs 1280 for no visible gain.
+SUBDIV = 4              # 1280 triangles. `create_icosphere` counts the
+                        # icosahedron itself as subdivision 1, so this is three
+                        # rounds of splitting.
+                        #
+                        # This was 3 (320 triangles), and it was raised for the
+                        # SILHOUETTE. The surface is entirely shader, so the
+                        # triangles buy no shading at all - but they ARE the
+                        # outline, and the outline is the one thing a shader
+                        # cannot round off. A lump is about a metre across and
+                        # is stood on at arm's length, where 320 triangles read
+                        # as a visible polygon rather than as a ball. 1280
+                        # halves the edge length and settles it.
 
 
 def circle_noise(seed, k=9):

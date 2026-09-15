@@ -112,7 +112,7 @@ namespace SpaceGame.EditorTools.Portals
         /// <summary>The hose's numbers, mirroring PortalGunItem's serialized defaults.
         ///
         /// These MUST match, and not approximately. The droplets are an ordinary ParticleSystem
-        /// under Unity's own gravity, and PortalJet integrates the same parabola in C# to decide
+        /// under Unity's own gravity, and SprayArc integrates the same parabola in C# to decide
         /// where the paint lands. Same start speed, same gravity modifier, same lifetime means the
         /// stream you watch and the stream that paints are the one curve. Drift them apart and the
         /// paint lands somewhere the player never saw the water go.</summary>
@@ -464,7 +464,7 @@ namespace SpaceGame.EditorTools.Portals
             main.loop = true;
             main.playOnAwake = false;
 
-            // The three numbers that have to agree with PortalJet, exactly. See the constants.
+            // The three numbers that have to agree with SprayArc, exactly. See the constants.
             main.startSpeed = JetSpeed;
             main.gravityModifier = JetGravity;
             main.startLifetime = JetFlightTime;
@@ -503,7 +503,7 @@ namespace SpaceGame.EditorTools.Portals
             //
             // Small, and symmetric about zero on purpose: this is what breaks the stream into
             // separate gobs instead of a smooth tube of particles, and a mean of zero is what keeps
-            // the cloud centred on the parabola PortalJet actually paints along.
+            // the cloud centred on the parabola SprayArc actually paints along.
             velocity.x = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f);
             velocity.y = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f);
             velocity.z = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f);

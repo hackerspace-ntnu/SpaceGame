@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using SpaceGame.Core;
@@ -9,6 +10,7 @@ using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Persistence;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace SpaceGame.Tests
 {
@@ -926,6 +928,135 @@ namespace SpaceGame.Tests
             Assert.AreEqual(1f,
                             unauthored.GetComponentInChildren<PackSurface>(true).DisplayScale,
                             1e-6f);
+        }
+
+        // ── Crew stores ─────────────────────────────────────────────────────
+
+        /// <summary>Author the per-head manifest the arrival reads.</summary>
+        private static void PerCrew(WallInventory wall, params InventoryItem[] items) =>
+            typeof(WallInventory).GetField("perCrewItems", Hidden)
+                                 .SetValue(wall, new List<InventoryItem>(items));
+
+        /// <summary>
+        /// One set of stores per head, so a crew of four does not split the crew of one's supplies.
+        ///
+        /// The count is the whole point of the feature; a wall that laid on a fixed pile whatever
+        /// the crew size is what this replaced.
+        /// </summary>
+        [Test]
+        public void StoresAreLaidOnOncePerCrewMember()
+        {
+            WallInventory wall = Wall();
+            InventoryItem tank = Item("tank");
+
+            PerCrew(wall, tank);
+
+            Assert.AreEqual(3, wall.StockForCrew(3));
+            Assert.AreEqual(3, wall.Layout.Placements.Count,
+                            "three crew, three sets of stores — each one its own placement.");
+        }
+
+        /// <summary>
+        /// A wall is stocked exactly once. The arrival launches one formation, but a flight is
+        /// reachable from more than one exit and a second pass would double every ship's stores
+        /// without a word.
+        /// </summary>
+        [Test]
+        public void AWallIsStockedOnlyOnce()
+        {
+            WallInventory wall = Wall();
+            PerCrew(wall, Item("tank"));
+
+            Assert.AreEqual(2, wall.StockForCrew(2));
+            Assert.AreEqual(0, wall.StockForCrew(2), "the second pass must lay on nothing.");
+            Assert.AreEqual(2, wall.Layout.Placements.Count);
+        }
+
+        /// <summary>
+        /// A hull told nobody is aboard is still stocked — it has had its one chance. The clamp to
+        /// at least one set is the ARRIVAL's decision and belongs there; the wall does what it is
+        /// told, and a wall that quietly filled itself anyway would hide a crew count of zero.
+        /// </summary>
+        [Test]
+        public void ACrewOfNobodyGetsNothingAndDoesNotGetASecondChance()
+        {
+            WallInventory wall = Wall();
+            PerCrew(wall, Item("tank"));
+
+            Assert.AreEqual(0, wall.StockForCrew(0));
+            Assert.AreEqual(0, wall.Layout.Placements.Count);
+            Assert.AreEqual(0, wall.StockForCrew(4),
+                            "the wall has already been asked; a later call must not fill it.");
+        }
+
+        /// <summary>
+        /// The stores stop at the edge of the face rather than silently going missing, and the
+        /// shortfall is reported rather than swallowed.
+        /// </summary>
+        [Test]
+        public void AWallWithNoRoomLeftStopsAndSaysSo()
+        {
+            // Two cells square is what an item with no prefab measures, so a face two cells across
+            // holds exactly one row of them.
+            WallInventory wall = Wall(new Vector2(M(0.18f), M(0.18f)));
+            PerCrew(wall, Item("tank"));
+
+            LogAssert.Expect(LogType.Warning, new Regex("No room on"));
+
+            Assert.AreEqual(1, wall.StockForCrew(4),
+                            "one fits; the other three have nowhere to go.");
+        }
+
+        /// <summary>
+        /// The shipped wall's two lists, as <c>OxygenGearBuilder.RouteIntoTheGame</c> writes them:
+        /// the battery is a machine part and there is one, the tank is a store and there is one per
+        /// head. A tank left in BOTH lists is the migration half-done, and it reads as one spare
+        /// bottle too many at every crew size rather than as a broken build.
+        /// </summary>
+        [Test]
+        public void TheShippedGearWallCarriesOneBatteryAndATankPerCrewMember()
+        {
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Prefabs/Items/Equipment/InventoryWall.prefab");
+
+            Assert.IsNotNull(prefab, "no gear wall prefab to measure.");
+
+            var wall = prefab.GetComponent<WallInventory>();
+            Assert.IsNotNull(wall, "the gear wall prefab has no WallInventory on its root.");
+
+            List<InventoryItem> fixedStores = Authored(wall, "startingMainItems");
+            List<InventoryItem> perCrew = Authored(wall, "perCrewItems");
+
+            Assert.That(Names(fixedStores), Has.Member("Battery"),
+                        "without a battery in the fixed manifest the oxygen plant can never be " +
+                        "powered, and nothing else in the world carries one.");
+            Assert.That(Names(fixedStores), Has.No.Member("Oxygen Tank"),
+                        "a tank in the fixed manifest is ON TOP of the per-crew count — run " +
+                        "Tools/SpaceGame/Items/Build Oxygen Gear, which takes it out.");
+            Assert.That(Names(perCrew), Has.Member("Oxygen Tank"),
+                        "the crew's spare air is per head; without this the arrival lays on " +
+                        "nothing at all.");
+        }
+
+        private static List<InventoryItem> Authored(WallInventory wall, string field)
+        {
+            var info = typeof(PackContainer).GetField(field, Hidden)
+                       ?? typeof(WallInventory).GetField(field, Hidden);
+
+            Assert.IsNotNull(info, "no '" + field + "' to read — if it was renamed, rename it here " +
+                                   "too, because the seam it guards has not gone anywhere.");
+
+            return (List<InventoryItem>)info.GetValue(wall) ?? new List<InventoryItem>();
+        }
+
+        private static List<string> Names(List<InventoryItem> items)
+        {
+            var names = new List<string>();
+
+            foreach (InventoryItem item in items)
+                if (item != null) names.Add(item.itemName);
+
+            return names;
         }
 
         private static string JsonConvert(object state) =>

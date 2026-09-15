@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Core;
 using SpaceGame.Gameplay.Ragdoll;
 
 namespace SpaceGame.Items
@@ -191,7 +192,7 @@ namespace SpaceGame.Items
         /// Only the authority ever pushes or reads these — see <see cref="Struggled"/> and
         /// <see cref="Advance"/> — but the list is kept aligned on every machine regardless, so
         /// "these two lists are the same length" is a claim that needs no per-machine reasoning.
-        /// It is mutated in exactly the three places <see cref="captives"/> is.
+        /// It is mutated in exactly the places <see cref="captives"/> is, and nowhere else.
         /// </para>
         /// <para>
         /// A parallel list rather than a dictionary keyed by the captive, because a destroyed
@@ -267,6 +268,32 @@ namespace SpaceGame.Items
 
         /// <summary>Everything currently held. The artifact reads this to broadcast.</summary>
         public IReadOnlyList<GameObject> Captives => captives;
+
+        /// <summary>
+        /// Every net alive on this machine.
+        ///
+        /// <para>
+        /// A net is otherwise only reachable through the <c>SnareReceiver</c> of the player who
+        /// fired it, which is the right way round for everything the net gun itself does and the
+        /// wrong way round for the one question asked from outside: which net, if any, has hold of
+        /// THIS body. A respawn knows the body and nothing about who shot it. Same shape and same
+        /// reason as <c>Leash.All</c>.
+        /// </para>
+        /// </summary>
+        public static IReadOnlyList<SnareCatch> All => LiveNets;
+
+        private static readonly List<SnareCatch> LiveNets = new List<SnareCatch>();
+
+        /// <summary>The net holding <paramref name="body"/>, or null. A body can only be in one.</summary>
+        public static SnareCatch Holding(GameObject body)
+        {
+            if (body == null) return null;
+
+            for (int i = 0; i < LiveNets.Count; i++)
+                if (LiveNets[i] != null && LiveNets[i].captives.Contains(body)) return LiveNets[i];
+
+            return null;
+        }
 
         /// <summary>
         /// The player whose gun put this net in the world, or null offline-in-a-test.
@@ -515,6 +542,69 @@ namespace SpaceGame.Items
 
             struggles[index].Push();
             return true;
+        }
+
+        /// <summary>
+        /// Let one captive out, leaving the net and everybody else under it exactly as they are.
+        ///
+        /// <para>
+        /// What a respawn uses, and the reason it is not <see cref="Tear"/>: a net that caught two
+        /// people must not fall apart because one of them came back in their ship. Run on every
+        /// machine off <c>NetMsg.SnareFreed</c> naming that body, the mirror of the per-captive
+        /// <c>Snared</c> that put them here.
+        /// </para>
+        /// <para>
+        /// The meter leaves at the same index as the body, which is what keeps
+        /// <see cref="struggles"/> aligned with <see cref="captives"/> — the invariant
+        /// <see cref="PruneCaptives"/> exists to hold.
+        /// </para>
+        /// </summary>
+        /// <returns>True when this net was holding them.</returns>
+        public bool Release(GameObject body)
+        {
+            if (body == null) return false;
+
+            int index = captives.IndexOf(body);
+            if (index < 0) return false;
+
+            if (body.TryGetComponent(out SnaredBody snared)) snared.Release(transform);
+            if (body.TryGetComponent(out SnareTether tether)) tether.Release(transform);
+
+            captives.RemoveAt(index);
+            struggles.RemoveAt(index);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Let one captive out on every machine. The deciding machine's call.
+        ///
+        /// <para>
+        /// <see cref="Release"/> on its own frees this machine's copy only, which would leave the
+        /// captive lying limp under a net on every other screen. So the release travels as the
+        /// per-captive <c>NetMsg.SnareFreed</c> — the mirror of the <c>Snared</c> that put them
+        /// here, on the same shooter's relay and for the same reason: <c>SnareReceiver</c>, its
+        /// only listener, lives on the shooter.
+        /// </para>
+        /// <para>
+        /// Sent to All rather than Others so this machine frees its own copy through the handler
+        /// every peer runs, host included. A net whose shooter has despawned has nobody left to
+        /// tell and is released locally instead — this machine's copy freed and a peer's left to
+        /// the net's own failsafe, the limitation <c>SnareReceiver.OnDisable</c> documents.
+        /// </para>
+        /// </summary>
+        public void FreeEverywhere(GameObject body)
+        {
+            if (body == null || !captives.Contains(body)) return;
+
+            if (shooter == null)
+            {
+                Release(body);
+                return;
+            }
+
+            NetMessaging.NetSendTo(shooter, NetMsg.SnareFreed,
+                                   new NetArg(a: NetId).With(body), NetTo.All);
         }
 
         public void ReleaseAll()
@@ -1343,7 +1433,13 @@ namespace SpaceGame.Items
         /// A chunk unloading under a live net must not leave its captives hobbled forever, so this
         /// releases on the way out rather than trusting the rot timer to get there first.
         /// </summary>
-        private void OnDisable() => ReleaseAll();
+        private void OnEnable() => LiveNets.Add(this);
+
+        private void OnDisable()
+        {
+            LiveNets.Remove(this);
+            ReleaseAll();
+        }
 
         private void OnDestroy() => meshBuilder?.Dispose();
     }

@@ -19,18 +19,19 @@ symptoms:
   - "the zoom camera parks inside the cabinet or looks at the ceiling"
   - "the key strip on the terminal renders pink"
   - "the terminal stands on the deck but pressing a tab does nothing"
+  - "the terminal stands in the cockpit instead of beside the gear wall"
 reads_with: [ShipSchematic, InteractionSystem, PlayerShip, Multiplayer, Backpack, Oxygen]
-updated: 2026-09-07
+updated: 2026-09-12
 ---
 
 # Terminal
 
-The standing terminal in the lander's cockpit: a leaning cassette-futurism CRT cabinet the crew
-walk up to and **right-click**. A camera flies from their eye to a seat in front of the glass,
-the cursor comes free, and the glass shows one of three pages — a live 3D drawing of the hull
-whose missing modules glow red and can be turned, zoomed and pointed at; a status readout; a GPS
-readout with a crew radar — which the operator flips with the tabs or the keys 1-3. Esc, right
-mouse again, or reaching for WASD hands everything back.
+The standing terminal on the lander's main deck, in line with the gear wall: a leaning
+cassette-futurism CRT cabinet the crew walk up to and **right-click**. A camera flies from their eye
+to a seat in front of the glass, the cursor comes free, and the glass shows one of three pages — a
+live 3D drawing of the hull whose missing modules glow red and can be turned, zoomed and pointed at;
+a status readout; a GPS readout with a crew radar — flipped with the tabs or the keys 1-3. Esc,
+right mouse again, or reaching for WASD hands everything back.
 
 **Scope:** [`Gameplay/Terminal/`](Assets/Game/Scripts/Gameplay/Terminal) (console, session, camera, telemetry, the pure geometry and text), [`Presentation/UI/World/Terminal/`](Assets/Game/Scripts/Presentation/UI/World/Terminal) (the screen), [`StandingTerminalBuilder`](Assets/Game/Editor/Environment/StandingTerminalBuilder.cs). The SHIP page's 3D hull is its own system: [ShipSchematic.md](ShipSchematic.md).
 **Related:** [InteractionSystem.md](InteractionSystem.md) (the press), [PlayerShip.md](PlayerShip.md) (where it stands), [Backpack.md](Backpack.md) (the `FocusCamera` base it shares with the pack and body screens), [ArtPipeline.md](ArtPipeline.md) (the model).
@@ -116,18 +117,17 @@ standing alone in a chunk it is unnetworked and every machine keeps its own page
 
 The two-process autotest ([Testing.md](Testing.md)) has a terminal step
 ([`AutotestRunner.Terminal.cs`](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.Terminal.cs)):
-the client asks the replicated terminal for page 2, presses it and lets go; the host watches each
-land (`CLIENT_TERMINAL_PAGE_SEEN == HOST_TERMINAL_PAGE == 2`, `HOST_TERMINAL_OCCUPIED` then
-`…RELEASED`). `CLIENT_TERMINAL_SESSION_OPEN` may be false in a headless player — the zoom-in needs
-an eye to fly from, and the claim is only sent once the session opened, so a false there explains a
-false occupancy without indicting the wire.
+the client asks the replicated terminal for page 2, presses it and lets go; the host watches each land
+(`CLIENT_TERMINAL_PAGE_SEEN == HOST_TERMINAL_PAGE == 2`, `HOST_TERMINAL_OCCUPIED` then `…RELEASED`).
+`CLIENT_TERMINAL_SESSION_OPEN` may be false in a headless player — the zoom-in needs an eye to fly
+from, and the claim is only sent once the session opened, so a false there explains a false
+occupancy without indicting the wire.
 
 ## Persistence
 
-Nothing. The page, the operator and the schematic's framing are session state, not world state, and
-every page is derived — what the SHIP page shows is saved by the ship's rack, not here. The prefab
-therefore carries no saver; `PlayerShipBuilder.StripNestedSavers` still runs on the nested instance
-in case the wiring policy ever changes its mind.
+Nothing. The page, the operator and the schematic's framing are session state, and every page is
+derived — what the SHIP page shows is saved by the ship's rack. The prefab carries no saver;
+`PlayerShipBuilder.StripNestedSavers` still runs on the nested instance in case that changes.
 
 ## Gotchas
 
@@ -136,24 +136,26 @@ in case the wiring policy ever changes its mind.
   touching the SHIP page.
 - **Scale 1.0 in the ship, on purpose**, where every other fixture nests at `CrewFixtureScale` 1.7x:
   its glass leans back 24° to face an eye ABOVE it, and at 1.7x it would stand above the crew's
-  2.45 m eye with the lean facing away. Do not "fix" it to match.
-- **It stands in the cockpit, not on the main deck**, whose ribs are full and whose aft end is the
-  doorway. The fore deck's starboard side between the chair pairs is the one clear 0.78 x 0.9 m run
-  with standing room, swept on the built ship 2026-09-05 (z 2.4-5.8 at x 2.4-2.6), guarded by
-  `PlayerShip_StandingTerminalStandsOnTheDeckClearOfEverything` / `…IsReachedFromTheWalkway`.
+  2.45 m eye, lean facing away. Do not "fix" it.
+- **Its placement is measured off the GEAR WALL, not off a deck**: `BuildStandingTerminal` takes the
+  wall `BuildInventoryWall` returns, face on the wall's grid plane, aft edge `StandingTerminalWallGap`
+  (0.60 m) forward of the wall's forward edge — forward, because aft of the wall is the bay doorway.
+- **Its back is inside the hull skin on purpose**, in the fill the wall's back is tucked into: flush
+  with that face, it is the deeper of the two. So `…StandsClearOfTheShipsFittings` excludes the
+  ship's `Collision` child and guards only what a crew walks into.
 - **The screen plate is the one thing the builder finds by name** (`Mesh_CrtMonitor_Kiosk_Screen`).
   Rename it in Blender and the build stops, loudly. Everything else is measured.
 - **The model's origin is not its floor** — the `.blend` has it mid-cabinet, so the builder lifts
   the model until its lowest renderer point is y = 0.
 - **A world-space canvas's tabs are only clickable through its event camera.** With
-  `canvas.worldCamera` null `GraphicRaycaster` finds nothing; the session sets it to the focus camera
-  and clears it on exit — leaving it on would let a free cursor click a terminal nobody is at.
+  `canvas.worldCamera` null `GraphicRaycaster` finds nothing; the session sets it to the focus camera and
+  clears it on exit — leaving it on would let a free cursor click a terminal nobody is at.
 - **The key strip left Blender with no material**, and a submesh with none imports drawing pink.
-  `PatchMissingMaterials` gives such renderers `Mat_Metal_Steel_Dark (DoubleSided)` and logs the
-  count — expect 1 until the strip gets a palette material.
+  `PatchMissingMaterials` gives such renderers `Mat_Metal_Steel_Dark (DoubleSided)` and logs the count —
+  expect 1 until the strip gets a palette material.
 - **The exits are read raw** (`Keyboard.current`, `Mouse.current`), like the pack's: entering the
   scope disables `PlayerInputManager`, so no action fires. The entry frame is skipped, or the
-  right-click that opened the session would close it in the same gesture.
+  right-click that opened it would close it in the same gesture.
 - **Only one `FocusCamera` may hold the eye** — the base class dismisses the incumbent. The session
   still refuses to open over any `GameplayMenuScope` owner (pack, body screen, pause, chat).
 
@@ -163,11 +165,10 @@ in case the wiring policy ever changes its mind.
 2. **A new page**: add its name to `TerminalConsole.PageNames` and bump `PageCount`; build its root
    and widgets in `StandingTerminalBuilder.BuildScreen`; add the fields to `TerminalScreen` and fill
    them in `Present`; add a key in `TerminalFocusSession.PageKey`. Compose its text in `ShipTelemetry`.
-3. **A new readout**: add the field to `TelemetrySnapshot`, read it in `ShipTelemetrySource.Read` from
-   something already replicated, compose it in `ShipTelemetry`.
+3. **A new readout**: add the field to `TelemetrySnapshot`, read it in `ShipTelemetrySource.Read` from something already replicated, compose it in `ShipTelemetry`.
 4. **Another screen prop** (a desk monitor, the scanner's wrist display — `ItemScannerScreenBuilder`,
-   [Artifacts.md](Artifacts.md)): a builder reusing `ScreenPlane`, `WorldCanvasBuilder` (which owns
-   the phosphor palette every screen shares) and `TerminalScreen`; `TerminalConsole` only if shared.
-5. **Verify on a client and after a reload**: the page must follow the operator on the other
-   machine, "In use" must clear when they leave, and the fixture must stand where it was built after
-   a load (the hull's record places it; nothing of its own is saved).
+   [Artifacts.md](Artifacts.md)): a builder reusing `ScreenPlane`, `WorldCanvasBuilder` (the phosphor
+   palette every screen shares) and `TerminalScreen`; `TerminalConsole` only if shared.
+5. **Verify on a client and after a reload**: the page must follow the operator on the other machine,
+   "In use" must clear when they leave, and the fixture must stand where it was built after a load
+   (the hull's record places it; nothing of its own is saved).

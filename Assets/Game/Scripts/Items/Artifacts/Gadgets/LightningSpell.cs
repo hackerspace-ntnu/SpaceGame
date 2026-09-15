@@ -73,16 +73,12 @@ namespace SpaceGame.Items
         protected override void Use()
         {
             Vector3 strike = UseArg.P;
-            if (strike == Vector3.zero || damage <= 0 || damageRadius <= 0f) return;
+            if (strike == Vector3.zero) return;
 
-            Vector3 ground = strike - Vector3.up * spawnHeightOffset;
-
-            // Colliders are not creatures: a body is several of them, and billing each would
-            // multiply the damage by however many limbs happened to be inside the radius. That
-            // rule now lives in RadiusDamage, which every blast in the game shares.
-            RadiusDamage.Apply(ground, damageRadius, damageMask, damage,
-                               owner != null ? owner.transform : transform,
-                               damagesCaster ? null : owner != null ? owner.transform : null);
+            LightningStrike.Damage(strike - Vector3.up * spawnHeightOffset,
+                                   damage, damageRadius, damageMask,
+                                   owner != null ? owner.gameObject : gameObject,
+                                   damagesCaster);
         }
 
         protected override void Present()
@@ -96,7 +92,8 @@ namespace SpaceGame.Items
                 return;
             }
 
-            Instantiate(lightningVFXPrefab, strike, Quaternion.Euler(90f, 0f, 0f));
+            LightningStrike.Present(lightningVFXPrefab, strike,
+                                    strike - Vector3.up * spawnHeightOffset);
         }
 
         private void OnValidate()

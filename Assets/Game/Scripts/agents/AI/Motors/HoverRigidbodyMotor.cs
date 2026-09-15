@@ -68,6 +68,13 @@ namespace SpaceGame.Agents
                  "hovering at ride height.")]
         [SerializeField] private bool restWhenParked;
 
+        [Tooltip("How fast a parked hull rights itself, in degrees/sec. A driven hull is held flat " +
+                 "every physics step; a parked one is held by nothing, and FreezeRotation only " +
+                 "preserves whatever attitude it already has. So a hull left pitched — by an " +
+                 "interrupted descent, a restored save, a teleport — keeps that pitch for ever, and " +
+                 "a tilted deck is one the crew slide off. 0 leaves the attitude alone.")]
+        [SerializeField, Min(0f)] private float parkedLevelRate = 45f;
+
         // What the AI channel last asked for. Applied on the physics clock, not when it arrives.
         private MoveIntent pendingIntent = MoveIntent.Idle();
         private Vector3? currentDestination;
@@ -275,6 +282,52 @@ namespace SpaceGame.Agents
         public static RigidbodyConstraints ParkedConstraints(RigidbodyConstraints authored) =>
             authored | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
 
+        /// <summary>
+        /// One step of a parked hull righting itself: the same yaw, no pitch and no roll, reached at
+        /// no more than <paramref name="maxDegrees"/> of turn.
+        ///
+        /// <para>
+        /// Pure so the fact worth asserting — a parked hull ends level and keeps the heading it was
+        /// parked on — can be asserted without a physics scene. The rate exists rather than a snap
+        /// because a wreck that flicks upright in one frame reads as a glitch, and because anybody
+        /// standing on the deck is carried by that rotation.
+        /// </para>
+        /// </summary>
+        public static Quaternion LevelStep(Quaternion current, float maxDegrees)
+        {
+            Quaternion level = Quaternion.Euler(0f, current.eulerAngles.y, 0f);
+            return maxDegrees <= 0f
+                ? current
+                : Quaternion.RotateTowards(current, level, maxDegrees);
+        }
+
+        /// <summary>
+        /// Keep a parked hull flat.
+        ///
+        /// <para>
+        /// The driven path writes the attitude every physics step, "whether or not anything steered
+        /// this step", for exactly this reason: this hull is walked around inside. Parking used to
+        /// return before that write, which made the parked state the one place a tilt could survive
+        /// — and <c>FreezeRotation</c> is no help, because it stops physics CHANGING the attitude,
+        /// not physics being unable to correct one. A pitch left over from an interrupted descent, a
+        /// restored save or a teleport therefore stood for the rest of the session, with the crew
+        /// sliding off their own deck and nothing in the console.
+        /// </para>
+        /// </summary>
+        private void HoldParkedAttitude()
+        {
+            // A kinematic hull is somebody else's to pose — the descent's, or a remote machine's.
+            // MoveRotation on it would fight whatever is writing the transform.
+            if (parkedLevelRate <= 0f || body.isKinematic)
+                return;
+
+            Quaternion stepped = LevelStep(body.rotation, parkedLevelRate * Time.fixedDeltaTime);
+            if (stepped == body.rotation)
+                return;
+
+            body.MoveRotation(stepped);
+        }
+
         public void NudgeDestination(Vector3 offset)
         {
             if (!currentDestination.HasValue)
@@ -323,7 +376,10 @@ namespace SpaceGame.Agents
                     headingValid = false;
             }
             if (parked)
+            {
+                HoldParkedAttitude();
                 return;
+            }
 
             float deltaTime = Time.fixedDeltaTime;
 

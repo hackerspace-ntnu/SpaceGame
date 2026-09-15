@@ -8,10 +8,11 @@
 //
 // Two halves, on purpose (INVARIANTS: "server decides, every machine presents"):
 //
-//   DECIDING — which defenders get which target — runs only where Network.Decides is true: the
-//   server, or offline. (Not Network.Simulates: a scene component has no NetworkObject and
-//   Simulates says yes to those on every client.) Agents' targets are theirs to replicate through
-//   the normal body/presentation path, so nothing here goes on the wire.
+//   DECIDING — which defenders get which target — runs on the server, and offline: Network.Decides.
+//   NOT Network.Simulates(this): that answers about THIS object, and a settlement root is scenery
+//   with no NetworkObject, so it says yes on every client and every client rallies its own
+//   defenders. Agents' targets are theirs to replicate through the normal body/presentation
+//   path, so nothing here goes on the wire.
 //
 //   PRESENTING — the siren — runs on every machine from what every machine already knows: the
 //   registry holds every EntityFaction on every machine and player positions replicate, so each
@@ -64,6 +65,7 @@ namespace SpaceGame.Agents
         private float scanTimer;
         private readonly List<EntityFaction> intruders = new List<EntityFaction>(16);
         private readonly List<EntityFaction> defenders = new List<EntityFaction>(32);
+
 
         private void OnEnable()
         {

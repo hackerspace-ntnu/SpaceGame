@@ -39,6 +39,11 @@ namespace SpaceGame.EditorTools
 
         private const float StandingSkin = 0.02f;
 
+        // The child PlayerShipBuilder.BuildStructuralCollision mounts the baked hull
+        // proxy under. It is the ship's SKIN, which the standing terminal is allowed
+        // to stand inside of and the crew never touch.
+        private const string HullCollisionRoot = "Collision";
+
         /// <summary>
         /// Metres either side of the deck's centre line that the cabin owes a player to walk in.
         ///
@@ -477,6 +482,81 @@ namespace SpaceGame.EditorTools
                 "The other three chairs each seat their occupant in a seat of their own.");
             CollectionAssert.DoesNotContain(seats, helm,
                 "A passenger chair answers with the hull's own module, so sitting down flies the ship.");
+        }
+
+        /// <summary>
+        /// The deck takes the crew with it.
+        /// </summary>
+        /// <remarks>
+        /// A hull moved by transform writes imparts no friction and no momentum to a body resting on
+        /// it, so anybody standing in the cabin is left behind as the deck slides out from under
+        /// them. That is every machine except the one driving — <c>NetAuthority</c> makes the hull
+        /// kinematic on a client and <c>ClientNetworkTransform</c> then writes its pose — and it was
+        /// invisible for as long as the only person aboard was the pilot, who is parented into their
+        /// seat. Unbound, the carrier builds its own box round the whole ship instead and carries
+        /// the sand beside it.
+        /// </remarks>
+        [Test]
+        public void PlayerShip_TheDeckCarriesWhoeverIsStandingOnIt()
+        {
+            InstantiateShip();
+
+            WalkerPlatformCarrier carrier = ship.GetComponent<WalkerPlatformCarrier>();
+            Assert.IsNotNull(carrier, "No WalkerPlatformCarrier on the hull — the deck sails out "
+                                      + "from under anybody standing on it on every machine but the pilot's.");
+
+            var volume = new SerializedObject(carrier).FindProperty("carryVolume")
+                .objectReferenceValue as Collider;
+            Assert.IsNotNull(volume, "The carrier names no carry volume, so it falls back to a box "
+                                     + "round the whole ship.");
+            Assert.AreSame(ship.transform, volume.transform.root, "The carry volume is not on this hull.");
+
+            // The same box the breathable air and the sandstorm shelter are cut from: it is already
+            // the answer to "is this body inside the ship", and a second one drawn from the same
+            // decks would drift from it the first time either was tuned.
+            Assert.IsInstanceOf<BoxCollider>(volume, "The carry volume is the breathable-air box.");
+            var box = (BoxCollider)volume;
+            Vector3 centre = ship.transform.InverseTransformPoint(box.transform.TransformPoint(box.center));
+
+            Bounds shelter = new SerializedObject(ship.GetComponent<SandstormShelter>())
+                .FindProperty("localVolume").boundsValue;
+            Assert.Less(Vector3.Distance(shelter.center, centre), 0.01f,
+                "The carry volume has drifted off the interior the rest of the ship measures.");
+        }
+
+        /// <summary>
+        /// Only the helm may take the hull.
+        /// </summary>
+        /// <remarks>
+        /// Ownership is per-NetworkObject and all four seats ride on one, so "the last person to sit
+        /// down owns the ship" is not a rule about driving. A passenger dropping into a chair took
+        /// the hull off the pilot; <c>NetAuthority</c> on the pilot's machine then did exactly what
+        /// it is for — disabled the drivers, made the body kinematic — and the ship stopped moving
+        /// the moment a second player sat down, for everybody, with nothing in the console.
+        /// <para>
+        /// <c>MountNetworkSync</c> now asks whether its own seat steers, and a seat steers if it has
+        /// a <c>SteerModule</c>. That answer is only as good as the prefab: a second SteerModule on
+        /// a chair would put the hull back in the hands of whoever sat in it last. This is the guard
+        /// on that, and it is the reason PlayerShip is the only prefab in the project carrying more
+        /// than one <c>MountNetworkSync</c>.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public void PlayerShip_OnlyTheHelmSeatTakesOwnershipOfTheHull()
+        {
+            InstantiateShip();
+
+            MountNetworkSync[] syncs = ship.GetComponentsInChildren<MountNetworkSync>(true);
+            Assert.AreEqual(4, syncs.Length, "One seat channel per chair: the helm and three chairs.");
+
+            MountNetworkSync[] steering = syncs.Where(s => s.GetComponent<SteerModule>() != null).ToArray();
+            Assert.AreEqual(1, steering.Length,
+                "Exactly one seat may hand the hull over on mount, but these would: "
+                + string.Join(", ", steering.Select(s => s.name)));
+
+            Assert.AreSame(ship.GetComponent<MountModule>(), steering[0].GetComponent<MountModule>(),
+                "The seat that takes the hull is not the module SteerModule drives, so the owner "
+                + "would be somebody with no controls.");
         }
 
         /// <summary>
@@ -1063,14 +1143,20 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The standing terminal stands on the cockpit's fore deck with nothing of the ship's
-        /// own inside its box: not the hull's baked fill, not a chair, not another fixture. The
-        /// window it stands in was swept rather than reasoned about (see
-        /// <c>PlayerShipBuilder.StandingTerminalFore</c>); a remodel of the cockpit or the
-        /// terminal that closes it fails here with the intruding collider named.
+        /// The standing terminal stands on the floor with nothing of the ship's FITTINGS inside
+        /// its box: not a chair, not a door leaf, not one of the other four fixtures.
+        ///
+        /// <para>
+        /// The hull is deliberately not in that list. The console stands in line with the gear
+        /// wall (<c>PlayerShipBuilder.BuildStandingTerminal</c>), and a unit whose face is flush
+        /// with the wall's is deeper than the wall is, so its back is inside the skin's baked
+        /// convex fill exactly as the wall's own back is. What still has to be true is that a
+        /// crew member walks into nothing — which is what this guards, along with
+        /// <c>…IsReachedFromTheWalkway</c>.
+        /// </para>
         /// </summary>
         [Test]
-        public void PlayerShip_StandingTerminalStandsOnTheDeckClearOfEverything()
+        public void PlayerShip_StandingTerminalStandsClearOfTheShipsFittings()
         {
             InstantiateShip();
 
@@ -1078,15 +1164,22 @@ namespace SpaceGame.EditorTools
             var box = terminal.GetComponent<BoxCollider>();
             Assert.IsNotNull(box, "The terminal has no collider, so no look-ray can find it.");
 
+            Transform skin = ship.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == HullCollisionRoot);
+            Assert.IsNotNull(skin, "The ship has no '" + HullCollisionRoot + "' object, so this " +
+                                   "test cannot tell the skin the terminal is allowed to sink " +
+                                   "into from the fittings it is not.");
+
             Vector3 centre = box.transform.TransformPoint(box.center);
             Vector3 half = Vector3.Scale(box.size, box.transform.lossyScale) * 0.5f
                            - Vector3.one * StandingSkin;
             Collider[] inside = Ours(Physics.OverlapBox(centre, half, box.transform.rotation, ~0, NotTriggers))
                 .Where(c => !c.transform.IsChildOf(terminal.transform))
+                .Where(c => !c.transform.IsChildOf(skin))
                 .ToArray();
             Assert.IsEmpty(inside.Select(Describe),
-                           "Something of the ship's own is standing inside the terminal — the hull, " +
-                           "a chair, or one of the other fixtures.");
+                           "Something a crew member walks into is standing inside the terminal — " +
+                           "a chair, a door leaf, or one of the other fixtures.");
 
             Vector3 probe = terminal.transform.position + Vector3.up * 0.05f;
             RaycastHit[] under = Ours(Physics.RaycastAll(probe, Vector3.down, 1f, ~0, NotTriggers))
@@ -1097,6 +1190,42 @@ namespace SpaceGame.EditorTools
             float clearance = probe.y - under[0].point.y;
             Assert.That(clearance, Is.InRange(0.0f, 0.10f),
                         $"The terminal's base sits {clearance - 0.05f:0.00} m over the floor under it.");
+        }
+
+        /// <summary>
+        /// The console and the gear wall read as ONE run of fittings: the same face line, and a
+        /// gap between them the size <c>PlayerShipBuilder.StandingTerminalWallGap</c> decides.
+        /// The placement is measured off the wall at build time, so this fails when the pair have
+        /// come apart — a resize of either model, or a fixture moved back onto the deck between
+        /// them.
+        /// </summary>
+        [Test]
+        public void PlayerShip_StandingTerminalStandsInLineWithTheGearWall()
+        {
+            InstantiateShip();
+
+            TerminalConsole terminal = Terminal();
+            PackSurface face = Wall().GetComponentInChildren<PackSurface>(true);
+            Bounds fitting = WallFitting(Wall());
+
+            Renderer[] renderers = terminal.GetComponentsInChildren<Renderer>(true);
+            Assert.IsNotEmpty(renderers, "The terminal has no renderers to measure.");
+            Bounds console = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) console.Encapsulate(renderers[i].bounds);
+
+            // The surface's local Y is its outward normal, pointing INTO the room, so the
+            // side the pair stands on is the other way about.
+            float side = -Mathf.Sign(face.transform.up.x);
+            float wallFaceX = face.ToWorld(face.Size * 0.5f, 0f).x;
+            float consoleFaceX = console.center.x - side * console.extents.x;
+            Assert.AreEqual(wallFaceX, consoleFaceX, 0.05f,
+                            "The console's face is not on the gear wall's face line — the two no " +
+                            "longer read as one run of fittings.");
+
+            float gap = console.min.z - fitting.max.z;
+            Assert.AreEqual(PlayerShipBuilder.StandingTerminalWallGap, gap, 0.05f,
+                            $"The console stands {gap:0.00} m forward of the wall's edge, not the " +
+                            "decided gap.");
         }
 
         /// <summary>

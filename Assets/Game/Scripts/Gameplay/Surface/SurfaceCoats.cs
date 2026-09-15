@@ -1,8 +1,8 @@
 // The one thing the rest of the game talks to about coats.
 //
-// The Slick Can, the Cryo Sprayer and the Storm Flask are consumers of this facade and know nothing
-// about the field, the patches, the messages or the save record. Laying a new kind of coat, or a new
-// way to lay one, is a call to one function here — that is the whole reason it exists.
+// The Storm Flask is a consumer of this facade and knows nothing about the field, the patches or
+// the messages. Laying a new kind of coat, or a new way to lay one, is a call to one function here —
+// that is the whole reason it exists.
 //
 // Every query answers sensibly with no field, no session and no coats: full grip, bare ground, and a
 // spray that quietly does nothing. A scene with no surface coats in it is not a broken scene.
@@ -35,17 +35,13 @@ namespace SpaceGame.Gameplay.Surface
         /// <c>Use()</c> and nothing from <c>Present()</c>.
         /// </para>
         /// <para>
-        /// It is also false when the kind refuses the surface — ice sprayed on dry sand — so a
-        /// caller that wants to know before it fires asks <see cref="CanCoat"/>.
-        /// </para>
-        /// <para>
         /// Spraying the same kind onto ground it is already on GROWS and REFRESHES that patch
         /// rather than laying a second one, which is what lets a held spray run at fifteen ticks a
         /// second without carpeting a chunk.
         /// </para>
         /// </summary>
         /// <param name="radius">Footprint in metres, or 0 for the kind's own dab size.</param>
-        /// <param name="seconds">Lifetime, or 0 for the kind's own — which for ice is forever.</param>
+        /// <param name="seconds">Lifetime, or 0 for the kind's own.</param>
         /// <returns>True when a coat was laid or refreshed.</returns>
         public static bool Spray(SurfaceCoatKind kind, Vector3 point, float radius = 0f,
                                  float seconds = 0f)
@@ -61,24 +57,11 @@ namespace SpaceGame.Gameplay.Surface
         }
 
         /// <summary>
-        /// Would a coat of <paramref name="kind"/> stick at <paramref name="point"/>? Ice is the
-        /// only kind that ever says no, and it says no to anything that is not liquid or wet.
-        ///
-        /// For an item that wants to show the player what its spray is about to do before they
-        /// commit to it (GDC-L1-SYS-0006) — a rule with no visible consequence is superstition.
-        /// </summary>
-        public static bool CanCoat(SurfaceCoatKind kind, Vector3 point)
-        {
-            SurfaceCoatField field = SurfaceCoatField.Instance;
-            return field != null && field.CanCoat(kind, point);
-        }
-
-        /// <summary>
-        /// End every coat covering <paramref name="point"/> within <paramref name="radius"/> — ice
-        /// smashed, ground dried out. The deciding machine's call; returns how many it ended.
+        /// End every coat covering <paramref name="point"/> within <paramref name="radius"/> —
+        /// ground dried out. The deciding machine's call; returns how many it ended.
         ///
         /// <paramref name="kind"/> narrows it to one coat, which is usually what a caller means: a
-        /// hammer breaks the ice it was swung at and has nothing to say about the puddle under it.
+        /// fire dries the ground it was lit on and has nothing to say about anything else there.
         /// </summary>
         public static int Break(Vector3 point, float radius, SurfaceCoatKind? kind = null)
         {

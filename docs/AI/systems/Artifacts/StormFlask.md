@@ -1,15 +1,18 @@
 ---
 artifact: StormFlask
-status: design
+status: implemented
 authority: Server
 continuous: false
 uses: [StatusEffects, SurfaceCoat, LightningSpell]
-updated: 2026-09-07
+updated: 2026-09-09
 ---
 
 # Storm flask (design)
 
-Not implemented. Design only. Read [../Artifacts.md](../Artifacts.md) first.
+**Implemented.** This page is the original brief and is kept for the reasoning behind the
+decisions. For what the code and the two shaders actually do, read
+[StormFlask](../StormFlask.md) — it is the governing doc, and where this page and that one
+disagree, that one is right. Read [../Artifacts.md](../Artifacts.md) first.
 
 Uncork it and a cloud forms over the point you aimed at. It rains for 30 s and throws bolts at
 whatever is tallest underneath. It has no idea who you are.
@@ -66,6 +69,10 @@ with light moving in it. Moving parts: the stopper pops on use, and the core vis
 cloud forms. The cloud is the real art asset — a small, flat, angry disc of vapour with rain
 streaking out of it, readable from the ground at 50 m so nobody wanders under one by accident. No
 hold pose; it is a bottle.
+
+The cloud shipped as a painted surface first and is a raymarched VOLUME now, for the reason
+[StormFlask](../StormFlask.md) records: a painted lens has one depth per pixel, so nothing inside it
+can move past anything else, and it slides like a decal when you walk under it.
 
 ## Risks
 

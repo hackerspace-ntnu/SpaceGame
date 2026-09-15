@@ -1,4 +1,4 @@
-// The thrown bottle, and the three seconds of inward pull it becomes.
+// The thrown bottle, and the second and a half of inward pull it becomes.
 //
 // It is a SPAWNED NETWORK OBJECT rather than a Present() visual, for the reason FoamBlob is: it is a
 // thing in the world that everybody collides with, and the pile it makes is a pile every player has
@@ -34,6 +34,14 @@
 // creature takes Knockdown or Leap, and a loose body takes a mass-scaled impulse — the same three
 // routes, and the same ragdoll path, as every other blast in the game.
 //
+// THE THROWER IS SKIPPED BY THE FLIGHT, AND ONLY BY THE FLIGHT. The bottle is born in a fist,
+// inside a capsule half a metre across, so a landing trace that cannot skip them stops on the first
+// step of every throw — and a sweep that STARTS overlapping reports distance 0 with its hit point
+// left at the origin, so the bottle does not land at the thrower's feet, it opens at the world
+// origin. The net gun and the sucker puncher each carry the same exclusion for the same reason. It
+// buys the thrower nothing once the bottle is down: the pull and the fling have no exemptions,
+// including for them, which is the whole joke.
+//
 // IT IS NOT SAVED, and that is load-bearing rather than an omission. A bottle mid-effect is three
 // seconds of world state; a save taken during it loads with the bottle spent and everything at
 // rest. The prefab therefore must NOT carry a non-kinematic Rigidbody, a HealthComponent, a
@@ -44,21 +52,43 @@ using System.Collections.Generic;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay.Status;
 using Unity.Netcode;
 using UnityEngine;
 
 namespace SpaceGame.Items
 {
-    /// <summary>Where a thrown bottle is in its short life.</summary>
+    /// <summary>
+    /// Where a thrown bottle is in its short life.
+    ///
+    /// <para>
+    /// Six moments rather than three, because the effect is read entirely off the sphere and each
+    /// of these is a different thing the sphere is saying (GDC-L1-ANIM-0003 — the animation IS the
+    /// state, and a phase nobody can see is a phase that did not happen). They are DERIVED from one
+    /// stamp and a run of durations, so no machine has a phase of its own to get wrong.
+    /// </para>
+    /// </summary>
     public enum SingularityPhase
     {
         /// <summary>In the air, on its closed-form arc, not yet open.</summary>
         Flying,
 
-        /// <summary>Open and pulling everything loose within reach toward itself.</summary>
+        /// <summary>Open and pulling. The white sphere grows from nothing out to the full radius.</summary>
         Inhaling,
 
-        /// <summary>It has let go. Everything is on its way out and the bottle is finished.</summary>
+        /// <summary>The last gulp: the sphere overshoots to twice the radius. Still pulling.</summary>
+        Flaring,
+
+        /// <summary>The sphere goes black and falls in on itself, taking everything it holds.</summary>
+        Collapsing,
+
+        /// <summary>Nothing to see. Everything it swallowed is out of the world.</summary>
+        Held,
+
+        /// <summary>The white ball snaps back for an instant and throws the lot out.</summary>
+        Spitting,
+
+        /// <summary>Over. The bottle lies there for a moment and is taken away.</summary>
         Spent,
     }
 
@@ -79,7 +109,7 @@ namespace SpaceGame.Items
         [SerializeField, Min(0.5f)] private float radius = 8f;
 
         [Tooltip("Seconds the bottle inhales before it lets go.")]
-        [SerializeField, Min(0.1f)] private float inhaleSeconds = 3f;
+        [SerializeField, Min(0.1f)] private float inhaleSeconds = 1.5f;
 
         [Header("Pull")]
         [Tooltip("How fast the bottle drags a body at the very centre, in metres per second. Read " +
@@ -99,25 +129,18 @@ namespace SpaceGame.Items
         [SerializeField, Range(0f, 1f)] private float pullCoreFraction = 0f;
 
         [Header("Release")]
-        [Tooltip("Outward speed at the centre when the knot lets go. Repulsor-class on purpose: " +
-                 "this is the same launch the thundergun hands out, and reading them against each " +
-                 "other is how a player learns what being thrown looks like.")]
-        [SerializeField, Min(0f)] private float flingSpeed = 48f;
+        [Tooltip("Outward speed everything leaves at. There is no falloff any more and there is " +
+                 "nothing left to fall off ACROSS: the release does not sweep a sphere, it throws " +
+                 "the pile the bottle is already holding, and every one of them is at the centre. " +
+                 "Well above the repulsor's launch on purpose — the spit is the payoff for a hold " +
+                 "nobody watching could do anything about (GDC-L1-FEEL-0004).")]
+        [SerializeField, Min(0f)] private float flingSpeed = 62f;
 
         [Tooltip("Upward tilt of every fling, degrees. Load-bearing: vertical velocity is the half " +
                  "PlayerMovement never deletes, and while the victim is still RISING it holds on " +
                  "to the horizontal half too (PlayerMovement.ShouldEndCarry). Too small a tilt and " +
                  "the fling is deleted on the tick it is applied.")]
         [SerializeField] private float flingUpwardTilt = 30f;
-
-        [Tooltip("Fraction of the radius thrown at undiminished speed. Zero on purpose: this IS a " +
-                 "detonation centred on the point of contact, which is the case RepulsorBlast " +
-                 "documents a zero core for.")]
-        [SerializeField, Range(0f, 1f)] private float flingCoreFraction = 0f;
-
-        [Tooltip("Fling strength at the rim relative to the centre. A body that was barely caught " +
-                 "is barely thrown.")]
-        [SerializeField, Range(0f, 1f)] private float flingEdgeFalloff = 0.5f;
 
         [Tooltip("How far off true the release fans bodies out, in degrees. Zero throws a clean " +
                  "radial star, which reads as a diagram rather than as a knot letting go.")]
@@ -179,12 +202,38 @@ namespace SpaceGame.Items
                  "way into the terrain, so a body the bottle cannot see is a body it cannot hold.")]
         [SerializeField] private LayerMask sightMask = ~0;
 
+        [Header("Swallow")]
+        [Tooltip("Seconds the sphere takes to overshoot from the radius out to twice it, once the " +
+                 "inhale is over. Short: this is a gulp, not a phase — it is the wind-up that says " +
+                 "the collapse is coming (GDC-L1-ANIM-0003).")]
+        [SerializeField, Min(0.01f)] private float flareSeconds = 0.12f;
+
+        [Tooltip("Seconds the black sphere takes to fall from its widest to nothing. Everything it " +
+                 "holds goes out of the world on the frame this starts, so the collapse is what " +
+                 "the disappearance LOOKS like rather than what causes it.")]
+        [SerializeField, Min(0.05f)] private float collapseSeconds = 0.5f;
+
+        [Tooltip("Seconds everything stays swallowed with nothing to see. The whole cost of being " +
+                 "caught, and deliberately long enough to be a real one — see the Gotchas in the " +
+                 "system doc about where this sits on the commitment axis (GDC-L1-FEEL-0008).")]
+        [SerializeField, Min(0f)] private float holdSeconds = 2.5f;
+
+        [Tooltip("Seconds the white ball is back for when it spits. A split second: any longer and " +
+                 "it reads as a second inhale rather than as the thing letting go.")]
+        [SerializeField, Min(0.02f)] private float spitSeconds = 0.08f;
+
         [Header("Life")]
         [Tooltip("Seconds the spent bottle lies there after the release before it is despawned. " +
                  "Long enough for the burst to read; short enough that nobody trips over it.")]
-        [SerializeField, Min(0f)] private float spentLingerSeconds = 0.5f;
+        [SerializeField, Min(0f)] private float spentLingerSeconds = 0.25f;
 
         [Header("Parts")]
+        [Tooltip("The white nowhere a swallowed body is put — the one interior with no door. " +
+                 "Wired by Tools > SpaceGame > World > Build Singularity Void, which generates " +
+                 "the scene and this asset together. Unset, the bottle still eats but the bodies " +
+                 "are only hidden where they stood.")]
+        [SerializeField] private InteriorScene voidInterior;
+
         [Tooltip("The collar, the core and the effects. Found in children when unset.")]
         [SerializeField] private SingularityShell shell;
 
@@ -215,6 +264,27 @@ namespace SpaceGame.Items
         /// and pulling each of them would drag the thing by its collider count.
         /// </summary>
         private static readonly HashSet<GameObject> Swept = new HashSet<GameObject>();
+
+        /// <summary>One body the bottle has reach of and line to: what it is, and where.</summary>
+        private readonly struct SweptBody
+        {
+            public readonly Collider Hit;
+            public readonly GameObject Root;
+            public readonly Vector3 At;
+
+            public SweptBody(Collider hit, GameObject root, Vector3 at)
+            {
+                Hit = hit;
+                Root = root;
+                At = at;
+            }
+        }
+
+        /// <summary>
+        /// The current sweep's answer. Static and reused for the reason every other buffer here is:
+        /// the pull asks this question fifty times a second for a second and a half.
+        /// </summary>
+        private static readonly List<SweptBody> Reached = new List<SweptBody>(32);
 
         /// <summary>Every well standing on this machine, oldest first. See <see cref="CountFor"/>.</summary>
         private static readonly List<SingularityWell> Live = new List<SingularityWell>();
@@ -253,6 +323,26 @@ namespace SpaceGame.Items
             Vector3.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         /// <summary>
+        /// The <c>NetworkObjectId</c> of whoever threw this, or 0 offline and in a test.
+        ///
+        /// <para>
+        /// Replicated because the flight trace is not the server's alone: every machine runs it so
+        /// the throw is drawn without waiting for a round trip, and every machine therefore has to
+        /// know whose body to trace straight through. See the file header for what happens to a
+        /// machine that does not.
+        /// </para>
+        /// <para>
+        /// An id rather than a <c>NetworkObjectReference</c>: it is the same lookup either way, and
+        /// a primitive asks nothing of the generated network serializers. It is written in
+        /// <see cref="Begin"/> alongside the launch stamp, so it arrives in the SAME delta as
+        /// <see cref="launchedAt"/> — which is what makes that variable's guard at the top of
+        /// <see cref="Fly"/> enough to stop a client tracing before it knows who to skip.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<ulong> throwerNetId = new(
+            0ul, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+        /// <summary>
         /// Where this machine's own trace stopped the bottle, before the server's word arrived.
         ///
         /// <para>
@@ -265,13 +355,69 @@ namespace SpaceGame.Items
         private Vector3 predictedRest;
         private bool predicted;
 
-        /// <summary>The release, once. Server-side, like the fling it performs.</summary>
-        private bool released;
+        /// <summary>
+        /// The thrower's root on THIS machine, resolved from <see cref="throwerNetId"/>. Null until
+        /// the stamp arrives, and null for good on a machine that cannot see them — which is
+        /// harmless, because a body that machine has not spawned is not one its trace can stop on.
+        /// </summary>
+        private Transform throwerRoot;
+
+        /// <summary>Whether the thrower has already been excused from this bottle's colliders.</summary>
+        private bool excused;
 
         /// <summary>
-        /// Who threw this, on the machine that decided to. Deliberately not replicated: the only
-        /// question it answers is whose live wells to retire when they exceed their budget, and
-        /// that is the server's question alone. It buys the thrower nothing — the pull has no
+        /// Everything this bottle has swallowed, on THIS machine.
+        ///
+        /// <para>
+        /// Kept rather than swept for again at the release, and that is not an optimisation: a
+        /// swallowed body has no colliders switched on, so an overlap at the moment of the spit
+        /// would find an empty sphere and throw nothing. What went in is the only record of what
+        /// comes out.
+        /// </para>
+        /// <para>
+        /// Every machine keeps its own, because every machine has its own half of the work — the
+        /// veil over a prop that carries no <c>StatusReceiver</c> is local, and only the server
+        /// throws anything.
+        /// </para>
+        /// </summary>
+        private readonly List<Taken> swallowed = new List<Taken>();
+
+        /// <summary>
+        /// One swallowed body, and which of the two ways it went.
+        ///
+        /// <para>
+        /// The split is not a preference, it is what the interior system can carry. A body with a
+        /// <c>NetworkObject</c> can be moved into the void, because the move replicates and every
+        /// machine follows it. Chunk scenery has none — every machine owns its own copy and no
+        /// message names it — so the server moving its copy would leave every other machine looking
+        /// at a crate that is still there. Those are hidden in place instead, which is the same
+        /// limitation the pull already ships for the same bodies.
+        /// </para>
+        /// </summary>
+        private readonly struct Taken
+        {
+            public readonly GameObject Root;
+            public readonly bool Inside;
+
+            public Taken(GameObject root, bool inside)
+            {
+                Root = root;
+                Inside = inside;
+            }
+        }
+
+        /// <summary>The swallow and the spit, once each. Latched per machine, not per server.</summary>
+        private bool ate;
+        private bool spat;
+
+        /// <summary>
+        /// Who threw this, as the machine that decided knows them. Set only there: the question it
+        /// answers is whose live wells to retire when they exceed their budget, and that is the
+        /// server's question alone. Every OTHER machine learns the thrower through
+        /// <see cref="throwerNetId"/> instead, because the flight trace needs them and the budget
+        /// does not.
+        ///
+        /// It buys the thrower nothing once the bottle is down — the pull and the fling have no
         /// exemptions, including for them.
         /// </summary>
         public GameObject Thrower { get; private set; }
@@ -304,14 +450,87 @@ namespace SpaceGame.Items
         /// Derived, never stored. A machine that joins halfway through reads the same phase off the
         /// same two stamps as everyone else, with nothing to catch up on.
         /// </summary>
-        private SingularityPhase Phase
+        private SingularityPhase Phase =>
+            openedAt.Value <= 0d
+                ? SingularityPhase.Flying
+                : PhaseAt(OpenAge, inhaleSeconds, flareSeconds, collapseSeconds, holdSeconds,
+                          spitSeconds);
+
+        /// <summary>
+        /// Which phase an OPEN bottle is in, <paramref name="openAge"/> seconds after it opened.
+        ///
+        /// <para>
+        /// Static and given every duration, so the one thing about this artifact that every machine
+        /// has to agree on can be tested without a session, a physics scene or a clock. A bottle
+        /// still in the air is not covered here — that is the one phase decided by whether the
+        /// server has stamped an opening at all, rather than by elapsed time.
+        /// </para>
+        /// <para>
+        /// The boundaries are running totals rather than five independent stamps, so retuning any
+        /// one duration moves everything after it and no gap can open between two of them.
+        /// </para>
+        /// </summary>
+        public static SingularityPhase PhaseAt(float openAge, float inhale, float flare,
+                                               float collapse, float hold, float spit)
         {
-            get
-            {
-                if (openedAt.Value <= 0d) return SingularityPhase.Flying;
-                return OpenAge < inhaleSeconds ? SingularityPhase.Inhaling : SingularityPhase.Spent;
-            }
+            if (openAge < inhale) return SingularityPhase.Inhaling;
+            if (openAge < inhale + flare) return SingularityPhase.Flaring;
+            if (openAge < inhale + flare + collapse) return SingularityPhase.Collapsing;
+            if (openAge < inhale + flare + collapse + hold) return SingularityPhase.Held;
+            if (openAge < inhale + flare + collapse + hold + spit) return SingularityPhase.Spitting;
+
+            return SingularityPhase.Spent;
         }
+
+        // The run of boundaries, each measured from the moment the bottle opened. Written as
+        // running totals rather than as five independent stamps so that retuning any one duration
+        // moves everything after it and nothing can be left describing a gap.
+        private float FlareEnds => inhaleSeconds + flareSeconds;
+        private float CollapseEnds => FlareEnds + collapseSeconds;
+        private float HoldEnds => CollapseEnds + holdSeconds;
+        private float SpitEnds => HoldEnds + spitSeconds;
+
+        /// <summary>
+        /// How long <see cref="StatusKind.Swallowed"/> has to last, measured from the swallow.
+        ///
+        /// <para>
+        /// The swallow is the FIRST frame of <see cref="SingularityPhase.Collapsing"/>, not the
+        /// first frame of the hold, so the flag has to cover the collapse as well — a flag that
+        /// ran out early would leave a body standing in the void measuring exactly what
+        /// <c>SingularityVoidGuard</c> rescues people for, and the guard would haul a player out
+        /// of a singularity that is still holding them.
+        /// </para>
+        /// </summary>
+        private float SwallowedFor => SwallowedSeconds(collapseSeconds, holdSeconds, spitSeconds);
+
+        /// <summary>
+        /// The same figure from the three durations alone, so the one number that has to outlast
+        /// the stay in the void can be tested against <see cref="PhaseAt"/> without a session.
+        /// </summary>
+        public static float SwallowedSeconds(float collapse, float hold, float spit) =>
+            collapse + hold + spit;
+
+        /// <summary>
+        /// How far through <paramref name="phase"/> the bottle is, 0 to 1. What the shell draws
+        /// itself from, and the only number it is given besides the phase.
+        /// </summary>
+        private float ProgressIn(SingularityPhase phase)
+        {
+            float age = OpenAge;
+
+            return phase switch
+            {
+                SingularityPhase.Inhaling => Share(age, 0f, inhaleSeconds),
+                SingularityPhase.Flaring => Share(age, inhaleSeconds, flareSeconds),
+                SingularityPhase.Collapsing => Share(age, FlareEnds, collapseSeconds),
+                SingularityPhase.Held => Share(age, CollapseEnds, holdSeconds),
+                SingularityPhase.Spitting => Share(age, HoldEnds, spitSeconds),
+                _ => 0f,
+            };
+        }
+
+        private static float Share(float age, float from, float length) =>
+            length <= 0f ? 1f : Mathf.Clamp01((age - from) / length);
 
         // Statics survive a world unload, a return to the menu and — with Enter Play Mode Options
         // on, which they are here — play mode itself. A list still holding last session's destroyed
@@ -321,6 +540,7 @@ namespace SpaceGame.Items
         {
             Live.Clear();
             Swept.Clear();
+            Reached.Clear();
         }
 
         /// <summary>
@@ -361,7 +581,7 @@ namespace SpaceGame.Items
         /// <param name="throwSeed">The owner's roll. Decides the release's scatter and nothing else.</param>
         public void Begin(GameObject thrower, Vector3 origin, Vector3 velocity, int throwSeed)
         {
-            Thrower = thrower;
+            StampThrower(thrower);
 
             launchOrigin.Value = origin;
             launchVelocity.Value = velocity;
@@ -396,23 +616,69 @@ namespace SpaceGame.Items
             if (!Live.Contains(this)) Live.Add(this);
         }
 
-        private void OnDisable() => Live.Remove(this);
+        /// <summary>
+        /// <b>Give everything back before going.</b> A well can end at any moment that is not the
+        /// spit — the budget retires it, its chunk unloads, the world is quit under it — and a body
+        /// this one hid and froze would otherwise stay invisible and kinematic for the rest of the
+        /// session with nothing left alive that knows why.
+        ///
+        /// The status half needs nothing here: it carries its own expiry, which is exactly why the
+        /// swallow hands it one that covers the whole hold.
+        /// </summary>
+        private void OnDisable()
+        {
+            Live.Remove(this);
 
+            BodyVeil.Abandon(this);
+            CarriedBody.Abandon(this);
+
+            // The void has no door, so a body left in it is left in it for the session. Every path
+            // that ends a well without a spit reaches here — retired over budget, chunk unloaded,
+            // world quit — and the flag's own expiry is what covers the paths that do not (a
+            // machine torn down mid-hold), through SingularityVoidGuard.
+            if (!Network.Simulates(this) || InteriorManager.Instance == null) return;
+
+            for (int i = 0; i < swallowed.Count; i++)
+                if (swallowed[i].Inside && swallowed[i].Root != null)
+                    InteriorManager.Instance.ExitInterior(swallowed[i].Root);
+        }
+
+        // Every case past Flying re-places the bottle and then does its phase's work. The
+        // later phases deliberately RE-RUN the earlier ones' latched steps rather than assuming
+        // they have happened: a machine that stalls for a frame can step from Flaring straight
+        // into Held, and a swallow that only ran in Collapsing would then never run at all.
         private void FixedUpdate()
         {
-            switch (Phase)
-            {
-                case SingularityPhase.Flying:
-                    Fly();
-                    break;
+            SingularityPhase phase = Phase;
 
+            if (phase == SingularityPhase.Flying)
+            {
+                Fly();
+                return;
+            }
+
+            Place(centre.Value, RestingRotation);
+
+            switch (phase)
+            {
                 case SingularityPhase.Inhaling:
-                    Place(centre.Value, RestingRotation);
+                case SingularityPhase.Flaring:
                     Inhale();
                     break;
 
+                case SingularityPhase.Collapsing:
+                case SingularityPhase.Held:
+                    Swallow();
+                    break;
+
+                case SingularityPhase.Spitting:
+                    Swallow();
+                    Spit();
+                    break;
+
                 case SingularityPhase.Spent:
-                    Place(centre.Value, RestingRotation);
+                    Swallow();
+                    Spit();
                     Finish();
                     break;
             }
@@ -427,11 +693,8 @@ namespace SpaceGame.Items
             if (shell == null) return;
 
             SingularityPhase phase = Phase;
-            float progress = phase == SingularityPhase.Inhaling
-                ? Mathf.Clamp01(OpenAge / inhaleSeconds)
-                : 0f;
 
-            shell.Show(phase, progress);
+            shell.Show(phase, ProgressIn(phase), radius);
         }
 
         // ── Flight ─────────────────────────────────────────────────────────────
@@ -450,6 +713,10 @@ namespace SpaceGame.Items
         private void Fly()
         {
             if (launchedAt.Value <= 0d) return;
+
+            // Before the trace, never after: the whole point of knowing the thrower is that the
+            // very first step of the sweep starts inside them.
+            ResolveThrower();
 
             float step = Time.fixedDeltaTime;
             float now = FlightAge;
@@ -497,9 +764,9 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// Swept rather than sampled: the throw covers a third of a metre per physics step, and a
-        /// point test would drop it through a floor. The bottle's own colliders are excluded — asked
-        /// of the COLLIDER's transform, not the hit's, because <c>RaycastHit.transform</c> is the
-        /// rigidbody's and over anything with one that is its root.
+        /// point test would drop it through a floor. Which of the sweep's hits count is
+        /// <see cref="IsLandingHit"/>'s question, and the two it throws out are the two this
+        /// artifact shipped broken on.
         /// </para>
         /// </summary>
         private bool TryFindLanding(Vector3 from, Vector3 to, out Vector3 landing)
@@ -520,7 +787,7 @@ namespace SpaceGame.Items
             for (int i = 0; i < count; i++)
             {
                 RaycastHit hit = FlightHits[i];
-                if (hit.collider == null || hit.collider.transform.IsChildOf(transform)) continue;
+                if (!IsLandingHit(hit.collider, hit.distance, transform, throwerRoot)) continue;
                 if (hit.distance >= nearest) continue;
 
                 nearest = hit.distance;
@@ -530,6 +797,129 @@ namespace SpaceGame.Items
 
             return found;
         }
+
+        /// <summary>
+        /// Is one hit from the flight sweep somewhere the bottle has actually landed?
+        ///
+        /// <para>
+        /// The bottle's own colliders are excluded, and so is the thrower's whole body — skipped by
+        /// ROOT, so a capsule, an arm and a ragdoll bone all resolve to the same person. Both are
+        /// asked of the COLLIDER's transform rather than the hit's, because
+        /// <c>RaycastHit.transform</c> is the rigidbody's and over anything carrying one that is
+        /// its root.
+        /// </para>
+        /// <para>
+        /// A hit at zero distance is refused, and that is the other half of the same defect. A
+        /// sweep that STARTS inside a collider reports distance 0 and leaves its hit point at the
+        /// origin — Vector3.zero, which is a place in the world and not this bottle's. Read as a
+        /// landing it opens the singularity at the world origin, several kilometres from anybody.
+        /// A step that begins already overlapping is not a landing; the next step decides.
+        /// </para>
+        /// <para>
+        /// Static, and handed everything it needs, so the two exclusions this artifact was broken
+        /// by can be tested without a physics scene or a live session.
+        /// </para>
+        /// </summary>
+        /// <param name="thrower">The thrower's root, or null on a machine that cannot see them.</param>
+        public static bool IsLandingHit(Collider hit, float distance, Transform bottle,
+                                        Transform thrower)
+        {
+            if (hit == null || distance <= 0f) return false;
+
+            Transform at = hit.transform;
+
+            if (bottle != null && at.IsChildOf(bottle)) return false;
+            if (thrower != null && at.IsChildOf(thrower)) return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Record whose throw this is, on the machine that decided it and for every other.
+        /// </summary>
+        private void StampThrower(GameObject thrower)
+        {
+            Thrower = thrower;
+
+            AdoptThrower(thrower != null ? thrower.transform.root : null);
+
+            NetworkObject netObj = thrower != null
+                ? thrower.GetComponentInParent<NetworkObject>()
+                : null;
+
+            // Only a SPAWNED object has an id anybody else can resolve. Offline there is nobody to
+            // tell, and the adoption above has already done the only work the stamp has to do on a
+            // single machine.
+            if (netObj != null && netObj.IsSpawned) throwerNetId.Value = netObj.NetworkObjectId;
+        }
+
+        /// <summary>
+        /// Pick the thrower up from the replicated stamp, on a machine that did not throw it.
+        /// Asked once per step of the flight, and stops asking the moment it has an answer.
+        /// </summary>
+        private void ResolveThrower()
+        {
+            if (throwerRoot != null || throwerNetId.Value == 0ul) return;
+
+            NetworkManager manager = NetworkManager.Singleton;
+            if (manager == null || manager.SpawnManager == null) return;
+
+            if (manager.SpawnManager.SpawnedObjects.TryGetValue(throwerNetId.Value,
+                                                                out NetworkObject netObj) &&
+                netObj != null)
+            {
+                AdoptThrower(netObj.transform.root);
+            }
+        }
+
+        private void AdoptThrower(Transform root)
+        {
+            if (root == null || throwerRoot == root) return;
+
+            throwerRoot = root;
+            ExcuseThrower();
+        }
+
+        /// <summary>
+        /// Stop the bottle shoving the person who threw it.
+        ///
+        /// <para>
+        /// The well is solid and carries no Rigidbody, which makes it a STATIC collider — and it is
+        /// born inside the thrower's capsule. PhysX resolves that overlap by moving the only body
+        /// that can move, so without this every throw punts the thrower sideways.
+        /// </para>
+        /// <para>
+        /// <c>Physics.IgnoreCollision</c> rather than a trigger or a disabled collider, which is
+        /// the call FoamBlob already made and for the same reason: the bottle still has to be solid
+        /// to everybody else, and a collider that is switched off drops out of every raycast,
+        /// spherecast and overlap in the game as well as out of contacts. Disabled colliders are
+        /// passed over because Unity refuses the pair and logs an error for it — a live player's
+        /// ragdoll bones are exactly that.
+        /// </para>
+        /// </summary>
+        private void ExcuseThrower()
+        {
+            if (excused || throwerRoot == null) return;
+            excused = true;
+
+            Collider[] mine = GetComponentsInChildren<Collider>(true);
+            Collider[] theirs = throwerRoot.GetComponentsInChildren<Collider>(true);
+
+            for (int i = 0; i < mine.Length; i++)
+            {
+                if (!IsLiveCollider(mine[i])) continue;
+
+                for (int j = 0; j < theirs.Length; j++)
+                {
+                    if (!IsLiveCollider(theirs[j])) continue;
+
+                    Physics.IgnoreCollision(mine[i], theirs[j], true);
+                }
+            }
+        }
+
+        private static bool IsLiveCollider(Collider collider) =>
+            collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
 
         /// <summary>
         /// How the bottle stands once it is down: upright, turned back the way it came, so the
@@ -562,8 +952,9 @@ namespace SpaceGame.Items
         /// </summary>
         private void Place(Vector3 position, Quaternion rotation)
         {
-            // A settled bottle is asked for the same pose every step for three seconds. Writing it
-            // back each time is a transform change the physics scene has to notice, for nothing.
+            // A settled bottle is asked for the same pose every step for a second and a half.
+            // Writing it back each time is a transform change the physics scene has to notice, for
+            // nothing.
             if (transform.position == position && transform.rotation == rotation) return;
 
             if (body != null && body.isKinematic)
@@ -591,18 +982,13 @@ namespace SpaceGame.Items
         private void Inhale()
         {
             Vector3 origin = Mouth;
-
-            int count = Physics.OverlapSphereNonAlloc(origin, radius, Caught, catchMask,
-                                                      QueryTriggerInteraction.Ignore);
-
-            Swept.Clear();
+            int count = SweepInto(origin);
 
             for (int i = 0; i < count; i++)
             {
-                Collider hit = Caught[i];
-                if (!IsCatchable(hit, origin, out GameObject root, out Vector3 at)) continue;
+                SweptBody caught = Reached[i];
 
-                Vector3 toCentre = origin - at;
+                Vector3 toCentre = origin - caught.At;
                 float distance = toCentre.magnitude;
 
                 // Already in the knot. There is no direction left to pull it in, and normalising
@@ -613,8 +999,36 @@ namespace SpaceGame.Items
                                                                         pullCoreFraction,
                                                                         pullEdgeShare);
 
-                Drag(hit, root, toCentre / distance, speed, origin);
+                Drag(caught.Hit, caught.Root, toCentre / distance, speed, origin);
             }
+        }
+
+        /// <summary>
+        /// Everything the bottle can reach and see right now, one entry per body, into
+        /// <see cref="Reached"/>. Returns how many.
+        ///
+        /// <para>
+        /// Shared by the pull and the swallow so the two provably agree about who is caught: a body
+        /// the bottle could not hold must not be one it eats, and the day those two answers are
+        /// written apart is the day a crate is swallowed from behind a wall.
+        /// </para>
+        /// </summary>
+        private int SweepInto(Vector3 origin)
+        {
+            int count = Physics.OverlapSphereNonAlloc(origin, radius, Caught, catchMask,
+                                                      QueryTriggerInteraction.Ignore);
+
+            Swept.Clear();
+            Reached.Clear();
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!IsCatchable(Caught[i], origin, out GameObject root, out Vector3 at)) continue;
+
+                Reached.Add(new SweptBody(Caught[i], root, at));
+            }
+
+            return Reached.Count;
         }
 
         /// <summary>
@@ -803,14 +1217,7 @@ namespace SpaceGame.Items
         private void Finish()
         {
             if (!Network.Simulates(this)) return;
-
-            if (!released)
-            {
-                released = true;
-                Fling();
-            }
-
-            if (OpenAge < inhaleSeconds + spentLingerSeconds) return;
+            if (OpenAge < SpitEnds + spentLingerSeconds) return;
 
             // Despawned, never hidden: a collider that is switched off drops out of every raycast
             // and overlap in the game, so a "finished" bottle would still be something the aim, the
@@ -819,39 +1226,184 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// One outward frame. Server-side, and routed through <see cref="BlastPush"/> so a player,
-        /// a creature and a crate each take the fling by the route their own authority allows — the
-        /// same three routes, and the same ragdoll path, as every other blast in the game.
+        /// The gulp: take everything the bottle is holding out of the world, once.
+        ///
+        /// <para>
+        /// <b>Every machine runs this, and the split inside it is by TARGET, exactly as the pull's
+        /// is.</b> A body carrying a <see cref="StatusReceiver"/> — every player, creature, robot
+        /// and vehicle in the game — is swallowed by having <see cref="StatusKind.Swallowed"/>
+        /// applied to it: the flag replicates on its own relay, and every machine hides that body
+        /// off the flag. <c>Apply</c> refuses on a machine that does not decide for the body, so
+        /// calling it on all of them is correct and not a race.
+        /// </para>
+        /// <para>
+        /// A body carrying no receiver — a crate, a barrel, a rock a chunk placed — is hidden by
+        /// each machine for itself, because that is what those objects ARE: chunk scenery has no
+        /// NetworkObject, so there is nobody to be told and every machine already owns its own copy.
+        /// The one that simulates additionally freezes it, through the same
+        /// <c>CarriedBody</c> the seats and the terrain guard use, so a swallowed crate does not go
+        /// on falling through the floor it can no longer touch.
+        /// </para>
+        /// <para>
+        /// The status is given the collapse, the hold AND the spit (<see cref="SwallowedFor"/>),
+        /// which is everything between this moment and the release, so a bottle despawned mid-hold
+        /// — a chunk unloading, a world quit, the budget retiring it — still gives every body back
+        /// on its own clock rather than leaving it hidden for the session.
+        /// </para>
         /// </summary>
-        private void Fling()
+        private void Swallow()
         {
-            Vector3 origin = Mouth;
+            if (ate) return;
+            ate = true;
 
-            int count = Physics.OverlapSphereNonAlloc(origin, radius, Caught, catchMask,
-                                                      QueryTriggerInteraction.Ignore);
-
-            Swept.Clear();
+            int count = SweepInto(Mouth);
 
             for (int i = 0; i < count; i++)
             {
-                Collider hit = Caught[i];
-                if (!IsCatchable(hit, origin, out GameObject root, out Vector3 at)) continue;
+                GameObject root = Reached[i].Root;
+                if (root == null) continue;
 
-                // aimBias 0 and no core: a sphere is a detonation centred on the point of contact,
-                // which is the case RepulsorBlast documents both of those for. Vector3.up as the
-                // "aim" is what a body standing exactly on the bottle is thrown along, and straight
-                // up is the right answer for one.
-                Vector3 fling = RepulsorBlast.DirectedFling(origin, Vector3.up, at, radius,
-                                                            flingSpeed, flingUpwardTilt,
-                                                            flingCoreFraction, flingEdgeFalloff,
-                                                            aimBias: 0f);
+                // The flag first, and on every machine. Apply refuses on a machine that does not
+                // decide for the body, so calling it everywhere is correct rather than a race —
+                // and it must land before the move, because the guard that rescues a stranded
+                // player measures exactly "in the void with no flag".
+                StatusReceiver.Of(root)?.Apply(StatusKind.Swallowed, SwallowedFor,
+                                               magnitude: 1f, source: transform);
 
-                fling = SingularityMath.Scatter(seed.Value, fling, scatterDegrees, scatterLobes);
+                bool inside = SendToVoid(root);
+                swallowed.Add(new Taken(root, inside));
+
+                if (inside) continue;
+
+                BodyVeil.Hide(root, this);
+
+                if (Network.Simulates(this)) CarriedBody.Hold(root, this);
+            }
+        }
+
+        /// <summary>
+        /// Put one body in the white room, if it is the kind of body that can go.
+        ///
+        /// <para>
+        /// Server-side: scene membership is session state, and <c>InteriorManager</c> says so
+        /// itself. It routes a player through their own <c>PlayerInteriorTransit</c> and moves
+        /// anything else directly, so this is one call for a player, a creature and a dropped item
+        /// alike.
+        /// </para>
+        /// </summary>
+        /// <returns>True when the body actually went — false means it is hidden in place instead.</returns>
+        private bool SendToVoid(GameObject root)
+        {
+            if (!Network.Simulates(this)) return CanEnterVoid(root);
+
+            if (voidInterior == null)
+            {
+                Debug.LogWarning("[BottledSingularity] No void interior is wired, so bodies are " +
+                                 "only hidden rather than taken anywhere. Run Tools > SpaceGame > " +
+                                 "World > Build Singularity Void.", this);
+                return false;
+            }
+
+            if (InteriorManager.Instance == null || !CanEnterVoid(root)) return false;
+
+            InteriorManager.Instance.EnterInterior(root, voidInterior);
+            return true;
+        }
+
+        /// <summary>
+        /// Can this body be moved between scenes in a way every machine will follow?
+        ///
+        /// <para>
+        /// Offline the question does not arise — there is one machine and it owns everything. In a
+        /// session it is exactly "does it carry a <c>NetworkObject</c>": that is what makes the
+        /// move replicate, and a body without one is a body each machine holds its own private copy
+        /// of. Answered the same way on every machine so that the server's decision and a client's
+        /// bookkeeping cannot disagree about which bodies went.
+        /// </para>
+        /// </summary>
+        private static bool CanEnterVoid(GameObject root) =>
+            !Network.IsNetworked || root.GetComponentInParent<NetworkObject>() != null;
+
+        /// <summary>
+        /// The spit: give everything back and throw it, once.
+        ///
+        /// <para>
+        /// The same halves as <see cref="Swallow"/>, undone in the same order — the status is
+        /// cleared for the bodies that took one, the veil and the freeze are lifted for the bodies
+        /// this machine hid itself — and then the SERVER alone throws, through
+        /// <see cref="BlastPush"/>, so a player, a creature and a crate each leave by the route
+        /// their own authority allows.
+        /// </para>
+        /// <para>
+        /// There is no falloff and no sweep. Everything is at the centre by now, which is the whole
+        /// point of the hold, so the only question left is which way each one goes — see
+        /// <see cref="SpitVelocity"/>.
+        /// </para>
+        /// </summary>
+        private void Spit()
+        {
+            if (spat) return;
+            spat = true;
+
+            bool decides = Network.Simulates(this);
+
+            for (int i = 0; i < swallowed.Count; i++)
+            {
+                GameObject root = swallowed[i].Root;
+                if (root == null) continue;
+
+                // Out of the room BEFORE the flag is dropped. The guard's whole question is "in the
+                // void with no singularity holding you", so clearing first would leave a one-frame
+                // window in which every swallowed player looks stranded.
+                if (swallowed[i].Inside)
+                {
+                    if (decides) InteriorManager.Instance?.ExitInterior(root);
+                }
+                else
+                {
+                    BodyVeil.Show(root, this);
+                    if (decides) CarriedBody.Release(root, this);
+                }
+
+                StatusReceiver.Of(root)?.Clear(StatusKind.Swallowed);
+
+                if (!decides) continue;
+
+                // Asked AFTER the veil is lifted, because a veiled body's colliders are switched
+                // off and BlastPush is handed a collider. This is the same ordering the swallow
+                // has in reverse, and it is the reason the two halves sit in one file.
+                Collider hit = root.GetComponentInChildren<Collider>();
+                Vector3 fling = SpitVelocity(i);
 
                 BlastPush.Apply(hit, root, fling, flingSpeed,
                                 BlastPush.Leap.Proportional(leapDistance, leapHeight, leapDuration),
                                 itemMassReference, itemMassScaleRange, Knock);
             }
+        }
+
+        /// <summary>
+        /// Which way the <paramref name="index"/>th swallowed body leaves.
+        ///
+        /// <para>
+        /// A release from a single point has no geometry to take a direction from — everything is
+        /// in the same place — so the fan is made rather than measured. The golden angle spreads
+        /// any number of bodies evenly around the compass instead of clumping the way
+        /// <c>index / count</c> does at the small counts this actually sees, and
+        /// <see cref="SingularityMath.Scatter"/> then breaks the regularity so the burst does not
+        /// read as a diagram. Both are pure functions of the index and the replicated seed, so this
+        /// stays as reproducible as the rest of the artifact even though only the server calls it.
+        /// </para>
+        /// </summary>
+        private Vector3 SpitVelocity(int index)
+        {
+            const float GoldenAngle = 137.507764f;
+
+            Vector3 direction = Quaternion.AngleAxis(index * GoldenAngle, Vector3.up) *
+                                Quaternion.AngleAxis(-flingUpwardTilt, Vector3.right) *
+                                Vector3.forward;
+
+            return SingularityMath.Scatter(seed.Value + index, direction * flingSpeed,
+                                           scatterDegrees, scatterLobes);
         }
 
         /// <summary>

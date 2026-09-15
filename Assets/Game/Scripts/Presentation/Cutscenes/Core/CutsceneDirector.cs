@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using SpaceGame.Characters;
+using SpaceGame.Diagnostics;
 
 namespace SpaceGame.Presentation
 {
@@ -16,6 +17,12 @@ namespace SpaceGame.Presentation
 
         public event Action<Cutscene> OnCutsceneStarted;
         public event Action<Cutscene> OnCutsceneEnded;
+
+        // What the running cutscene took, held on the director rather than in the routine's
+        // locals so EndCutscene can give it back from outside the routine — which is the only
+        // place left to give it back from once the routine has died.
+        private Cutscene playing;
+        private PlayerController lockedPlayer;
 
         private void Awake()
         {
@@ -53,7 +60,12 @@ namespace SpaceGame.Presentation
                 return false;
             }
 
-            StartCoroutine(RunCutscene(cutscene, subject));
+            // Guarded with EndCutscene as the teardown, and that is load-bearing rather than
+            // tidy: a cutscene that dies mid-play leaves IsPlaying true forever, which refuses
+            // every later cutscene, keeps the player in cutscene mode with no controls, and
+            // leaves the bars across the screen.
+            StartCoroutine(Fault.Coroutine(
+                this, "CutsceneDirector.RunCutscene", RunCutscene(cutscene, subject), EndCutscene));
             return true;
         }
 
@@ -65,12 +77,15 @@ namespace SpaceGame.Presentation
             if (player == null)
             {
                 Debug.LogError("[CutsceneDirector] No PlayerController for cutscene subject; aborting cutscene.");
-                IsPlaying = false;
+                EndCutscene();
                 yield break;
             }
 
             Camera cam = player.PlayerCamera;
             var ctx = new CutsceneContext(player, cam, subject != null ? subject : player.gameObject);
+
+            lockedPlayer = player;
+            playing = cutscene;
 
             player.EnterCutsceneMode();
             LetterboxOverlay.Instance.ShowBarsAsync(0.4f);
@@ -95,10 +110,35 @@ namespace SpaceGame.Presentation
                 yield return current;
             }
 
-            player.ExitCutsceneMode();
-            LetterboxOverlay.Instance.HideBarsAsync(0.4f);
+            EndCutscene();
+        }
+
+        /// <summary>
+        /// Gives back everything a cutscene took: the player's controls, the bars and the flag.
+        ///
+        /// <para>
+        /// The tail of <see cref="RunCutscene"/> and its teardown, so the two can never disagree.
+        /// Idempotent and safe before the cutscene got as far as taking the screen — the abort
+        /// path reaches it too, and reaches it with nothing to hand back but the flag.
+        /// </para>
+        /// </summary>
+        private void EndCutscene()
+        {
+            if (!IsPlaying) return;
             IsPlaying = false;
-            OnCutsceneEnded?.Invoke(cutscene);
+
+            if (lockedPlayer != null) lockedPlayer.ExitCutsceneMode();
+            lockedPlayer = null;
+
+            // Null when the cutscene never started: no bars were shown and OnCutsceneStarted never
+            // fired, so announcing an end nobody was told about would be a lie to every listener.
+            if (playing == null) return;
+
+            Cutscene finished = playing;
+            playing = null;
+
+            LetterboxOverlay.Instance.HideBarsAsync(0.4f);
+            OnCutsceneEnded?.Invoke(finished);
         }
 
         /// <summary>

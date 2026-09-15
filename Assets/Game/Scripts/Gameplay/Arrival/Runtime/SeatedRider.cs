@@ -636,10 +636,10 @@ namespace SpaceGame.Gameplay.Arrival
 
             CatchUpOnLaunch();
 
-            // Q gets you out of the chair — it is what the recovery hint teaches — and Escape
-            // still works because it is the key that gets you off every mount in the game. Read
-            // here rather than from the UI because the seat owns standing up; the prompt only
-            // draws what this will answer.
+            // Escape gets you out of the chair — it is what the recovery hint teaches, and it is
+            // the key that gets you off every mount in the game — and Q still works as a second
+            // way out. Read here rather than from the UI because the seat owns standing up; the
+            // prompt only draws what this will answer.
             //
             // Gated on the shared menu scope, or Escape would mean two things at once: the chat
             // box and the settings fields both use it for "never mind", and closing one of those

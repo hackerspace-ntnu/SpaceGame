@@ -9,9 +9,9 @@
 // is exactly what happens when one of them is a client that joined halfway through.
 //
 // The pull falloff and the outward fling are DELIBERATELY not here: they are RepulsorBlast's
-// DistanceFalloff and DirectedFling, unchanged. A sphere with an inward sign for three seconds and
-// then one outward frame is the repulsor's cone with two dials turned, and a second copy of that
-// trig is the drift this file would cause rather than prevent.
+// DistanceFalloff and DirectedFling, unchanged. A sphere with an inward sign for a second and a
+// half and then one outward frame is the repulsor's cone with two dials turned, and a second copy
+// of that trig is the drift this file would cause rather than prevent.
 using UnityEngine;
 
 namespace SpaceGame.Items

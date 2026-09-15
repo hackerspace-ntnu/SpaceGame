@@ -25,28 +25,42 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _ChurnScale: 3.2
-    - _ChurnSpeed: 0.25
-    - _CoreBias: 0.55
-    - _Density: 0.92
-    - _EdgeRagged: 0.18
-    - _EdgeSoftness: 0.12
+    - _Anisotropy: 0.42
+    - _BellyShadow: 0.1
+    - _BellyWeight: 0.75
+    - _BodyRadius: 0.9
+    - _BodyTop: 0.28
+    - _BoltReach: 9
+    - _ChurnScale: 3.4
+    - _Coverage: 0.62
+    - _CrownStart: 0.35
+    - _Density: 2.2
+    - _Exposure: 0.8
+    - _Extinction: 0.55
     - _Flash: 0
-    - _FlashSpread: 0.45
     - _Form: 1
+    - _LightSteps: 3
+    - _MaxOpacity: 0.97
     - _MeshToUnit: 100
-    - _RainColumns: 34
-    - _RainDensity: 16
-    - _RainOpacity: 0.85
-    - _RainSpeed: 1.5
-    - _RainTaper: 0.35
-    - _RainWidth: 0.22
+    - _RimStart: 0.45
+    - _SkyGain: 0.7
+    - _Spin: 0.35
+    - _SpinCore: 1.8
+    - _Steps: 28
+    - _SunGain: 4
+    - _SunStep: 0.8
+    - _Updraft: 0.13
+    - _Warp: 0.34
+    - _WarpDrift: 0.16
+    - _WarpScale: 1.5
     m_Colors:
-    - _BandCore: {r: 0.188, g: 0.188, b: 0.188, a: 1}
-    - _BandMid: {r: 0.275, g: 0.31, b: 0.412, a: 1}
-    - _BandRim: {r: 0.439, g: 0.475, b: 0.588, a: 1}
+    - _BandCore: {r: 0.18799996, g: 0.18799996, b: 0.18799996, a: 1}
+    - _BandCrown: {r: 0.71, g: 0.741, b: 0.835, a: 1}
+    - _BandDeep: {r: 0.27499998, g: 0.30999997, b: 0.41199994, a: 1}
+    - _BandLit: {r: 0.5759999, g: 0.62, b: 0.7369999, a: 1}
+    - _BandMid: {r: 0.43899998, g: 0.47499996, b: 0.58799994, a: 1}
+    - _BoltPoint: {r: 0, g: 0, b: 0, a: 0}
     - _FlashColor: {r: 0.898, g: 0.941, b: 0.984, a: 1}
-    - _RainDark: {r: 0.322, g: 0.4, b: 0.475, a: 1}
-    - _RainLight: {r: 0.451, g: 0.549, b: 0.643, a: 1}
+    - _SkyColor: {r: 0.741, g: 0.816, b: 0.898, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

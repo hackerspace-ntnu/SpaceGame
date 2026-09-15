@@ -19,6 +19,7 @@ library root is not on sys.path:
 
 import math
 import os
+import re
 import random
 import sys
 
@@ -632,3 +633,105 @@ def report():
               % (o.name, n, *o.dimensions))
     print("  TOTAL TRIS: %d" % total)
     return total
+
+
+# --------------------------------------------------------------------------
+# Kit assembly - placing copies of appended component parts
+#
+# Extracted from models/buildings/nomad_settlement.py when the tent set needed
+# the same three helpers. A generator that appends parts and scatters copies of
+# them wants exactly this: measure the group, work out one transform that lands
+# its anchor where you want it, and stamp copies that share the source's mesh
+# datablock so a hundred placements cost one mesh.
+# --------------------------------------------------------------------------
+
+def bbox(objs, pre=None):
+    """World bounding box of a group, optionally seen through a pre-rotation."""
+    pre = pre or Matrix.Identity(4)
+    pts = [pre @ (o.matrix_world @ Vector(c)) for o in objs for c in o.bound_box]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts),
+                 min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts),
+                 max(p.z for p in pts)))
+    return lo, hi
+
+
+def group_size(srcs, pre_z=0.0):
+    lo, hi = bbox(srcs, Matrix.Rotation(math.radians(pre_z), 4, 'Z'))
+    return hi - lo
+
+
+def place_delta(srcs, target, k=1.0, rz=0.0, rx=0.0, pre_z=0.0,
+                anchor="center", pivot=None):
+    """Transform that carries a source group's anchor onto `target`.
+
+    anchor "center" uses the group's bounding-box centre, "base" its centre in
+    XY but its floor in Z, "axis" the centre of `pivot` in XY - which is how a
+    radially symmetric part finds the axis it was modelled around when the group
+    also holds something off-centre - and "origin" the pivot object's own
+    origin, the only anchor that works for a partial ring, whose bounding-box
+    centre is nowhere near its centre of curvature. "foot" is the centre of the
+    part's lowest slice - where it stands - which is what a pole, stake or crate
+    wants when its box centre is thrown off by a brace or an outrigger.
+
+    `k` is a uniform factor, or a 3-sequence for a per-axis one. Per-axis
+    scaling distorts a modelled bevel, so keep it for slabs, bands and
+    foundations and scale anything with a corner radius uniformly.
+    """
+    pre = Matrix.Rotation(math.radians(pre_z), 4, 'Z')
+    lo, hi = bbox(srcs, pre)
+    a = (lo + hi) * 0.5
+    if anchor == "base":
+        a.z = lo.z
+    elif anchor == "axis":
+        plo, phi = bbox([pivot], pre)
+        a.x, a.y = (plo.x + phi.x) * 0.5, (plo.y + phi.y) * 0.5
+        a.z = lo.z
+    elif anchor == "origin":
+        p = pre @ pivot.matrix_world.translation
+        a.x, a.y, a.z = p.x, p.y, lo.z
+    elif anchor == "foot":
+        # Where the part actually STANDS, not where its box is centred. An
+        # awning pole carries an outrigger brace, so its bounding-box centre is
+        # 0.23 m off its shaft, and anchoring on the box plants the pole beside
+        # the thing it is supposed to hold up.
+        pts = [pre @ (o.matrix_world @ v.co)
+               for o in (srcs if pivot is None else [pivot])
+               if o.type == 'MESH' for v in o.data.vertices]
+        if pts:
+            cut = lo.z + 0.12 * max(1e-4, hi.z - lo.z)
+            base = [p for p in pts if p.z <= cut] or pts
+            a.x = sum(p.x for p in base) / len(base)
+            a.y = sum(p.y for p in base) / len(base)
+        a.z = lo.z
+    return (Matrix.Translation(target)
+            @ Matrix.Rotation(rz, 4, 'Z')
+            @ Matrix.Rotation(rx, 4, 'X')
+            @ (Matrix.Diagonal((k[0], k[1], k[2], 1.0))
+               if hasattr(k, "__len__") else Matrix.Scale(k, 4))
+            @ Matrix.Translation(-a)
+            @ pre)
+
+
+def stamp(srcs, delta, coll, prefix, bag):
+    """Copy a source group into `coll`, transformed by `delta`.
+
+    Copies share their source's mesh datablock, so a town full of the same
+    window costs one mesh, not hundreds. Returns what it made, so the caller can
+    measure where the parts actually landed instead of estimating.
+    """
+    made = []
+    for s in srcs:
+        o = s.copy()
+        # Some kit parts are named `Cube.004`, with no type prefix to strip and
+        # a numeric tail of their own. Fold the dot away: a copy must not look
+        # like something Blender auto-suffixed, or the save guard trips on a
+        # name that was always spelled that way.
+        tail = s.name.split("_", 1)[1] if "_" in s.name else s.name
+        tail = re.sub(r"\.(\d{3})$", r"\1", tail)
+        o.name = "%s_%s" % (prefix, tail)
+        o.matrix_world = delta @ s.matrix_world
+        coll.objects.link(o)
+        bag.append(o)
+        made.append(o)
+    return made

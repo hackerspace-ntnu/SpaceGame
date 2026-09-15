@@ -18,10 +18,11 @@ symptoms:
   - "a leash gauntlet ties an unlimited number of people and costs nothing"
   - "a rope pickup appears at a tied body every time a tie ends, out of nothing"
   - "a tied player who dies stays roped and the leash is gone for good"
+  - "I respawned still hogtied"
   - "a player loaded from a save cannot move and nothing in the log says why"
   - "a hogtied player cuts their own ropes off by clicking their own body"
 reads_with: [LeashSystem, Artifacts, Combat, Multiplayer, BodyEquipment, PlayerCharacter]
-updated: 2026-09-06
+updated: 2026-09-09
 ---
 
 # Hogtie
@@ -80,6 +81,7 @@ Nothing leaks in by another door either: `RigidbodySaveable` writes motion and e
 - **The tie is slow because its pool is deep, not because its multiplier is small.** At the net's own multiplier of 2 a 120 s tie already breaks in 44.6 s. 1.96 against 2.00 is a rounding difference — retune `HoldSeconds`, never the multiplier.
 - **`Deplete()`, never `maxUses`.** The leash is authored `maxUses: -1` and must stay unlimited, or every click that missed, dropped a rope or untied one would consume it as readily as the one that tied somebody up.
 - **`Use()` cannot re-derive whether the tie took.** It reads a flag set by the `Present` one call earlier on the same machine. Asking the target whether it is tied would spend a rope for somebody else's tie that landed between the aim and the press.
+- **A respawn unties too, and it is not redundant.** Death already unties through `Hogtie`'s own `OnDeath` hook, so the respawn call in [`RespawnRelease.Everything`](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) is a null check on the ordinary path. It is there for the tie that outlives a death that never happened — a body revived by anything other than dying first — and `Untie` is idempotent by its first line, so the two cannot fight.
 - **A tied body that dies is untied at once.** The ragdoll adapters already drop every claim on death — that is what stops a permanently un-evictable `RagdollBudget` slot — but nothing there knows about the ropes, so without `Hogtie`'s own `OnDeath` hook the pool drains a corpse for two minutes and the rope never comes back.
 - **A knockdown timer cannot expire out from under a tie.** `PlayerRagdoll.Update`'s `if (IsHeld) return;` sits *above* the `downUntil` check, and `ReleaseHold` clears `downUntil`, so a body tied while knocked flat stays down and recovers on the next settled frame after the ropes come off.
 - **`OnDisable` releases locally and says nothing.** A broadcast has no relay left to leave from and a rope spawned at a departing object lands in a chunk nobody is loading — so a body destroyed while tied loses its rope. The same trade `SnareReceiver.OnDisable` documents.

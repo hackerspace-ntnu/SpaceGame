@@ -168,8 +168,30 @@ namespace SpaceGame.Locomotion
 
             int free = count - 1;
 
-            // The last joint sits one tip-length back from the contact, along the surface normal.
-            Vector2 tipJoint = sole + normal2 * g.Pitch[count - 1].Length;
+            // The last joint sits one tip-length back from the contact, along the surface normal
+            // TURNED BY HOWEVER FAR THE REST POSE HOLDS IT OFF THAT NORMAL.
+            //
+            // Placing it on the bare normal is a rig assumption, not a fact: it says the last pitch
+            // segment stands vertical when the sole is flat, which is only true of a DIGITIGRADE
+            // leg -- one standing on its toe, contact directly under the last joint. Every rig in
+            // this project was authored that way (ostrich -89.1 deg, humanoid -90.0, crab -91.0,
+            // crawler -90.0) so the assumption went unnoticed and unwritten.
+            //
+            // A PLANTIGRADE foot breaks it. Its ankle sits behind the middle of a sole that reaches
+            // forward, so the segment leans; the conjurer's leans 33.6 degrees. Forcing that segment
+            // upright does not lay the sole flat, it rotates the whole foot by the difference and
+            // leaves the machine permanently up on its toes -- and makes the knee and hip
+            // compensate for a foot that is never where the rest pose says it should be.
+            //
+            // `restLean` is zero exactly when the segment already stands up, so this is a no-op on
+            // all four rigs above and reduces to the old line for them.
+            float restLean = g.Pitch[count - 1].RestAngle + Mathf.PI * 0.5f;
+            float leanCos = Mathf.Cos(restLean);
+            float leanSin = Mathf.Sin(restLean);
+            Vector2 stand = new Vector2(normal2.x * leanCos - normal2.y * leanSin,
+                                        normal2.x * leanSin + normal2.y * leanCos);
+
+            Vector2 tipJoint = sole + stand * g.Pitch[count - 1].Length;
 
             bool reachBound = false;
             bool freeBound = false;

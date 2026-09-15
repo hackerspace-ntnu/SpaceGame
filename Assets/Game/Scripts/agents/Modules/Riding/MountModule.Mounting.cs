@@ -9,6 +9,40 @@ namespace SpaceGame.Agents
 {
     public partial class MountModule
     {
+        /// <summary>
+        /// The mount this machine's own player is riding, or null.
+        ///
+        /// <para>
+        /// A static because there is exactly one local player and the alternative — sweeping every
+        /// MountModule in a streamed world twice a second — is not affordable. Read by
+        /// <c>InputRestoreGuard</c> (which must not hand controls back to a rider who is legitimately
+        /// riding) and by <c>MountGuard</c> (which forces a dismount when this points at something
+        /// that no longer exists).
+        /// </para>
+        /// <para>
+        /// Deliberately NOT cleared on destroy. A mount destroyed under its rider leaves this holding
+        /// a Unity-null, which is precisely the broken state <c>MountGuard</c> looks for; clearing it
+        /// would hide the failure rather than fix it.
+        /// </para>
+        /// </summary>
+        public static MountModule LocalRiderMount { get; private set; }
+
+        /// <summary>
+        /// Forgets the local rider's mount without unwinding anything.
+        ///
+        /// Only for <c>MountGuard</c>, and only for the case where the mount object is already
+        /// destroyed — there is nothing left to dismount from, and holding the dead reference is what
+        /// keeps <c>InputRestoreGuard</c> from handing the player their controls back.
+        /// </summary>
+        public static void ClearLocalRiderMount() => LocalRiderMount = null;
+
+        /// <summary>
+        /// Statics survive play-mode exit here, so without this the second play session starts
+        /// believing the first session's player is still mounted.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetLocalRiderMount() => LocalRiderMount = null;
+
         public bool CanMount(Interactor interactor) =>
             IsAvailableForMount && interactor != null && interactor.GetComponentInParent<PlayerMovement>() != null;
 
@@ -38,6 +72,11 @@ namespace SpaceGame.Agents
             InitializeMountedViewState();
             ApplyPerspective(defaultPerspective);
             lastMountChangeTime = Time.time;
+
+            // Before the event, so a listener that asks whether the local player is riding gets the
+            // finished answer rather than the one from a moment ago.
+            if (RiderIsLocal) LocalRiderMount = this;
+
             Mounted?.Invoke(playerMovement);
             return true;
         }
@@ -182,6 +221,8 @@ namespace SpaceGame.Agents
             {
                 dismounting = false;
             }
+
+            if (LocalRiderMount == this) LocalRiderMount = null;
         }
 
         private void DismountInternal()
@@ -271,6 +312,7 @@ namespace SpaceGame.Agents
             CarriedBody.Abandon(this);
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
+            suppressedModules.Clear();
             ownRigidbodyConstraintsCaptured = false;
             ClearMountedReferences();
             activeSeatPoint = seatPoint;

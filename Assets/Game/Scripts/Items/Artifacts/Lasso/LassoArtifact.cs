@@ -1099,6 +1099,27 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Whether this rope is on <paramref name="body"/>: the hand holding it counts as much as
+        /// the thing it caught, so a thrower who respawns drops the rope they are still paying out.
+        ///
+        /// <para>
+        /// The far end is the same one every other method here resolves — the caught Rigidbody if
+        /// there is one, the transform otherwise — and it is matched with <c>IsChildOf</c> rather
+        /// than by reference, because a catch anchors on the body it found, which on a downed
+        /// player is a ragdoll bone rather than the root anybody would name.
+        /// </para>
+        /// </summary>
+        public bool Binds(GameObject body)
+        {
+            if (!_isLassoed || body == null) return false;
+            if (owner == body) return true;
+
+            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+
+            return root != null && root.IsChildOf(body.transform);
+        }
+
+        /// <summary>
         /// Cut. Identical to the rope tearing under strain, which already has a sound, a release on
         /// every machine and a creature that gets its legs back — see <see cref="JudgeTension"/>.
         /// </summary>

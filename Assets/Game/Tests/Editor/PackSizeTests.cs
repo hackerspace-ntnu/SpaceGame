@@ -175,6 +175,31 @@ namespace SpaceGame.Tests
             "backed off the cell boundary its 0.301 m WIDTH crosses at 0.2326 — 2 x 3 = 6 cells. " +
             "GauntletReseat.RuinScannerPackSize carries the same number and rewrites the prefab";
 
+        /// <summary>
+        /// Why the flamethrower's hand size ran away from its mat size on 2026-09-09.
+        ///
+        /// <para>
+        /// The gun was asked to be twice as big in the hand — 0.90 m to 1.80 m, which puts it
+        /// above the anchor and above the laser staff, the biggest thing anyone holds. Nothing
+        /// about the pack was asked for, and following the hand there would have cost it both of
+        /// the frames it is stowed and dropped in: at 1.80 the mat draws it 1.89 m, longer than
+        /// <c>LongGoods</c> (1.701 m) which is the longest face the rig has, so the item would
+        /// have become unstowable outright; and <see cref="ItemWorldScale"/> would have laid it
+        /// in the sand at 3.43 m, a gun longer than the player's ship is wide.
+        /// </para>
+        /// <para>
+        /// So <c>packSize</c> is pinned at the 0.90 the hand used to carry, which is exactly the
+        /// mat and world size the item already had — the enlargement reaches the hand and nothing
+        /// else. That is the whole point of the asymmetry this file guards.
+        /// </para>
+        /// </summary>
+        private const string FlamethrowerWhy =
+            "enlarged to 1.80 m in the HAND on 2026-09-09, twice its old 0.90 and above the " +
+            "anchor. The mat and the sand deliberately did not follow: at 1.80 it measures " +
+            "1.89 m on the mat, longer than the rig's longest face (LongGoods, 1.701 m), so it " +
+            "would fit nowhere at all, and ItemWorldScale would drop it in the sand at 3.43 m. " +
+            "0.90 is what it was drawn at in both frames before the change";
+
         /// <summary>Metres of slop when matching an authored value.</summary>
         private const float Slack = 1e-3f;
 
@@ -200,6 +225,17 @@ namespace SpaceGame.Tests
             new(Gadgets + "Lasso.prefab", 0.60f, 0.36f,
                 "a coil of rope, and at hand size it lay on the mat as long as a sidearm"),
 
+            // The roster's usual rule, applied to the smallest thrown thing in the game. Listed
+            // rather than left to follow the hand because the hand's bracket is inflated for a
+            // 3 m astronaut and the mat is in true-world metres.
+            new(Gadgets + "BottledSingularity.prefab", 0.50f, 0.36f,
+                "a 0.195 m flask carried at the Gadget bracket's 0.50 m, which is 2.6x life " +
+                "size because the astronaut's hand is roughly 1.7x a human's — following " +
+                "holdSize drew it 0.525 m on the mat for 5 x 6 = 30 of the rig's 255 cells, for " +
+                "a bottle you palm. 0.36 is the roster's usual rule exactly: 0.195 rounded up to " +
+                "the next 0.09 m webbing pitch plus a cell. It draws 0.378 m for 3 x 4 = 12 " +
+                "cells and stands on the mat rather than lying down, so its height costs nothing"),
+
             // The one worn gauntlet that does not go on the mat at the size the artist built.
             // Its holdSize stays 0: nothing here touches how it sits on the arm.
             new(Gadgets + "RuinScanner.prefab", 0f, 0.225f, ScannerWhy),
@@ -207,6 +243,8 @@ namespace SpaceGame.Tests
             // ── The oxygen plant's three supplies ─────────────────────────────────────────
             new(Supplies + "OxygenTank.prefab", 0.90f, 0.50f, BottleWhy),
             new(Supplies + "Battery.prefab", 0.90f, 0.63f, CellWhy),
+
+            new(Gadgets + "Flamethrower.prefab", 1.80f, 0.90f, FlamethrowerWhy),
 
             // The second gun to leave the bracket, and for the same reason. "Guns stay at the
             // anchor on the mat, because big gear goes on the rack with overhang" was the rule
@@ -338,3 +376,5 @@ namespace SpaceGame.Tests
         }
     }
 }
+
+

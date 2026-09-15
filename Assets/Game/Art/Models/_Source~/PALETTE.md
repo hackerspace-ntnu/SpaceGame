@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**55 material(s)** across 10 categor(ies).
+**58 material(s)** across 10 categor(ies).
 
 ## Emissive
 
@@ -27,6 +27,9 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Fabric_Canvas_Sand` | `#F4BD62` | 0.88 | 0.0 | Sun-soaked golden-sand pack canvas: the expedition rig's boards, pouches and soft luggage. Warmer and brighter than Wing_Beige; fabric counterpart to Mat_Hide_Sand_Pale, which is creature skin, not cloth. |
 | `Mat_Fabric_Flag_Bleached` | `#D8D2C2` | 0.9 | 0.0 | Off-white sun-bleached flag and pennant cloth, awnings, sun shades. Much lighter than Canvas_Faded, which is dirty webbing. |
 | `Mat_Fabric_Rope_Hemp` | `#B89968` | 0.92 | 0.0 | Twisted natural-fibre rope: lariat coils, lashings, tow lines, rigging. Warmer and lighter than Mat_Fabric_Canvas_Faded, which is dirty grey webbing rather than laid rope. |
+| `Mat_Fabric_Sail_Orange` | `#E2711D` | 0.9 | 0.0 | Saturated orange sailcloth: nomad shade-sail canopies. Nothing in the palette was close - Mat_Fabric_Wing_Ochre is the sun-cured dusty version at #C98551 and reads washed out at sail scale, Mat_Paint_Safety_Orange is enamel on steel, and Mat_Emissive_Portal_Orange is a light source. Pairs with Sail_Red, Sail_White and Tarp_Azure as the camp's four sail colours. |
+| `Mat_Fabric_Sail_Red` | `#C62F2A` | 0.9 | 0.0 | Saturated red sailcloth: nomad shade-sail canopies. Forced past Mat_Paint_Lacquer_Vermilion (deltaE 4.4), which is wet glossy lacquer at roughness 0.28 on the dragon bazooka - the same hue, but it reads as varnished metal, not cloth, and a sail needs roughness 0.9. Mat_Paint_Warn_Red is a dark stencil enamel. Replaces the retired pastel Mat_Fabric_Tarp_Rose. |
+| `Mat_Fabric_Sail_White` | `#F0EFEA` | 0.9 | 0.0 | Clean bright white sailcloth: nomad shade-sail canopies. Mat_Fabric_Flag_Bleached (#D8D2C2, deltaE 11.8) is the sun-killed version and is deliberately washed out; a pitched sail needs a white that still reads white in full sun. Mat_Paint_White_Arctic is enamel on steel at metallic 0.2. |
 | `Mat_Fabric_Seat_Ochre` | `#8A5A2B` | 0.85 | 0.0 | Crew seat upholstery - cracked ochre vinyl, matches the hull family. |
 | `Mat_Fabric_Tarp_Azure` | `#3E9AD0` | 0.9 | 0.0 | Saturated azure tarpaulin: shade sails and awnings pitched over field workspaces. The only strong colour note on a desert outpost, and nothing in the palette was within deltaE 20. Mat_Fabric_Flag_Bleached is its sun-killed counterpart. |
 | `Mat_Fabric_Wing_Beige` | `#CBB68E` | 0.88 | 0.0 | Sun-cured beige sailcloth stretched over wing blade frames. The ornithopter's primary wing surface - warmer and dirtier than Flag_Bleached, lighter than Canvas_Faded. |
@@ -67,7 +70,10 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Metal_Copper_Oxide` | `#4E8C7A` | 0.6 | 0.8 | Verdigris pipework and coil windings - coolant runs, reactor plumbing, old wiring conduit. |
 | `Mat_Metal_Gold_Leaf` | `#E0B33A` | 0.26 | 1.0 | Bright polished gold leaf: the dragon head's horns, fangs, brow ridge, whisker wire and the tube's ceremonial banding. Mat_Metal_Brass_Tarnished (#9C7B3F, roughness 0.45) is scavenged machine brass - dull, dark and deliberately cheap-looking - and using it here made the dragon read as plumbing. Gold has to out-shine the vermilion it sits on or the ornament disappears at arm's length. |
 | `Mat_Metal_HullRust_Orange` | `#764E2A` | 0.72 | 0.15 | (existing) Primary hull skin of the RV ship - oxidised orange-brown steel. Main exterior body colour. |
+| `Mat_Metal_Patina_Khaki` | `#BFA070` | 0.8 | 0.6 | Pale khaki-brown weathering on metal: dust bonded onto old steel, the light end of a grey/green/brown weathering ramp. The warm note that reads against Mat_Metal_Steel_Worn (neutral grey) and Mat_Metal_Copper_Oxide (verdigris green) on the same object. Distinct from Mat_Hide_Dune_Tan, which is creature hide at metallic 0, and from the rust family, which is oxidised orange rather than dust-toned. |
+| `Mat_Metal_Rust_Deep` | `#4E3418` | 1.0 | 0.4 | Near-black pitted corrosion: the dark end of the rust ramp. Recesses, undersides, ground-splash zones and anywhere water sits. The shadow value that lets Mat_Metal_Rust_Heavy and Mat_Metal_Rust_Pale read as a weathered surface rather than a flat repaint. |
 | `Mat_Metal_Rust_Heavy` | `#9A5D1D` | 1.0 | 0.5 | (existing) Deep corrosion: weld-on repair patches, streak damage, exhaust scorching, rotted panel edges. |
+| `Mat_Metal_Rust_Pale` | `#C6884A` | 0.85 | 0.35 | Sun-bleached flaked rust: the light end of the corrosion ramp. Upper surfaces and sun-facing plate on weathered machines, where oxide has powdered and lost its metallic sheen. Lighter and less metallic than Mat_Metal_Rust_Heavy; the two are meant to be used together on one object set, not chosen between. |
 | `Mat_Metal_Steel_Dark` | `#3A3E42` | 0.45 | 1.0 | Machined mechanism metal: brackets, bolts, hydraulic rams, engine internals, tool bodies. |
 | `Mat_Metal_Steel_Worn` | `#7A7D80` | 0.55 | 1.0 | Bare structural steel: frames, ribs, beams, hinge barrels, exposed load-bearing parts. |
 

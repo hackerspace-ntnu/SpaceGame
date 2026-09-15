@@ -20,8 +20,13 @@ symptoms:
   - "a second copy of the ship stands inside the first after every load, and the count doubles each time"
   - "the same creature stands in one chunk ten times over after an hour of play, and the copies survive a reload"
   - "a pickup placed in a chunk is stacked ten deep at its authored spot"
+  - "carried or worn items duplicate in the world, one more copy after every load"
+  - "copies of my gear are falling below the terrain at thousands of metres down"
+  - "items I left lying on the ground are not caught by the terrain when I load the world, they just fall for ever"
+  - "a save file's item records sit at y = -30000 and get deeper on every load"
+  - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer]
-updated: 2026-09-05
+updated: 2026-09-12
 ---
 
 # Persistence / Save-Load
@@ -46,7 +51,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Type | File | Role |
 |---|---|---|
 | `SaveManager` | [Runtime/SaveManager.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveManager.cs) | Front door. Owns both stores, autosave timer, quit save, global savers, deferred passes, streaming subscriptions |
-| `WorldSaveStore` | [Runtime/WorldSaveStore.cs](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSaveStore.cs) | `Hydrate`/`Dehydrate` per scene; `Compact`; `RecordDestroyed`; holds unresolvable records in `unresolved` |
+| `WorldSaveStore` | [Runtime/WorldSaveStore.cs](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSaveStore.cs) | `Hydrate`/`Dehydrate` per scene; `Compact`; `RecordDestroyed`; holds unresolvable records in `unresolved` and groundless ones in `awaitingGround` (`WorldFloorY` = -500) |
 | `PlayerSaveService` | [Runtime/PlayerSaveService.cs](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveService.cs) | profile → `PlayerRecord`; `Bind`/`Unbind`/`CaptureAll`; raises `PlayerBound` |
 | `SaveableEntity` | [Runtime/SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs) | `prefabId`/`instanceId`/`authored`/`SaveScope`; `LiveEntities`; `Capture`/`Restore`/`NotifyLoadComplete` |
 | `SaveablePolicy` | [Runtime/SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) | `NeedsSaving` / `Ensure` / `EnsureSpawned` / `EnsureScene` — the single opt-in + auto-wiring rule |
@@ -85,8 +90,9 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 2. `RestoreGlobals` stages every global payload; a saver registering later is served (once) in `RegisterGlobalSaver`.
 3. Subscribe `WorldStreamer.OnChunkLoaded/WillUnload/Unloaded` and the three identical `InteriorManager` events.
 4. `Start`: `Hydrate(SceneKey.Persistent, this scene)` by hand — no streaming event ever fires for it, and every Pin'd `SceneTracked` entity lives there. Then `SaveNewWorld()` writes the file immediately.
-5. Per scene `Hydrate`: `EnsureScene` (wire unwired) → `RemoveDestroyed` → `RestoreAuthored` (`SaveTeleport.Move` then `entity.Restore`) → `SpawnEntities` (Instantiate → `MoveGameObjectToScene` → `EnsureSpawned` → `EnsureRuntime` → `AdoptIdentity` → `Restore` → `SpawnIfNetworked`) → `OnSceneHydrated`.
-6. Player: `PlayerSaveSync` (owner) → `ClaimProfileServerRpc` → `PlayerSaveService.Bind` → place, restore, `NotifyLoadComplete`, then raise `PlayerBound` → `SaveManager.RunWorldDeferredPass()`.
+5. Per scene `Hydrate`: `EnsureScene` (wire unwired) → `RemoveDestroyed` → `RestoreAuthored` (`SaveTeleport.Move` then `entity.Restore`) → `SpawnEntities` (`HasGroundToLandOn` → `SpawnRecord`: Instantiate → `MoveGameObjectToScene` → `EnsureSpawned` → `EnsureRuntime` → `AdoptIdentity` → `SpawnIfNetworked` → `Restore`) → `LandAwaitingGround` → `OnSceneHydrated`.
+6. **A record with nothing under it is held, not instantiated.** `HasGroundToLandOn` only asks about a prefab with a non-kinematic `Rigidbody` — everything else is posed by something and stays where it is put — and holds it when the record is below `WorldFloorY`, or when `TerrainProbe` can sample no terrain at its position while `IsInsideStreamedWorld` says some is owed. `LandAwaitingGround` retries the held set on *every* hydrate (the ground arrives with some chunk, not with the scene the record is filed in), puts a record below the surface back on it at its own X/Z, and drops that record's `rigidbody` payload — that velocity is the fall, not play.
+7. Player: `PlayerSaveSync` (owner) → `ClaimProfileServerRpc` → `PlayerSaveService.Bind` → place, restore, `NotifyLoadComplete`, then raise `PlayerBound` → `SaveManager.RunWorldDeferredPass()`.
 
 **Save** (`SaveManager.Save`): static `SaveManager.Capturing` fires first — the pre-capture hook for a system mid-sequence to normalise what it is doing so the file records an end state (`ArrivalDirector` grounds a mid-descent hull here; handlers are synchronous and must not save) — then `BuildDocument` → `playerService.CaptureAll()` + `worldStore.DehydrateLoaded()` + persistent scene + `Compact()` + `CaptureGlobals`. Serialize on the main thread, `Task.Run` the write (synchronous for quit/exit, which *waits out* an in-flight write rather than standing down). Guards: `WouldDowngradeFormat`, `WouldDiscardAllPlayers`. Triggers: 300 s timer (retries in ≤15 s after a refusal), `OnApplicationQuit`, `SaveManager.SaveOnExit()` (menu return), F5, `SaveNewWorld`.
 
@@ -101,6 +107,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 - **Server-only.** Every hydrate/dehydrate/save handler early-returns on `Network.IsNetworked && !Network.Server`. Singleplayer is a host of one, so the host path is the only path that ever writes.
 - Clients get world state through normal replication; a client F5 is refused with an explanation, and a client F9 is refused because reloading the scene would drop it out of the session.
 - Restored objects go through `SaveNetworking.SpawnIfNetworked`, which checks `NetworkConfig.Prefabs.NetworkPrefabOverrideLinks` for `PrefabIdHash` **itself** — NGO does not throw for an unregistered server-side dynamic spawn, the *client* silently fails to construct it.
+- **`SpawnIfNetworked` runs before `Restore`, not after.** A saver that puts a child back — `EntityEquipmentSaveable` (the NPC's weapon), `MountSaveable` (the rider) — attaches an object whose prefab carries a NetworkObject, and NGO refuses to spawn a root that already has one nested under it. Both restore sites (`WorldSaveStore.SpawnEntities`, `Captivity.Rebuild`) spawn first for this reason.
 - Player pose is owner-authoritative, so placement goes through `PlayerSaveService.Bind` (skipped for the host, already placed), never a server teleport.
 - `SaveablePrefabRegistry` folds in the NetworkManager prefab list lazily on the first cache miss — scanning at load time races NetworkManager's `Awake`.
 
@@ -123,10 +130,13 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 
 | Trap | Silent symptom | Correct move |
 |---|---|---|
+| Letting a runtime-spawned world object stay in the **persistent scene** | Its record is filed under `persistent`, which is hydrated in `SaveManager.Start` **before any chunk exists**. A body with gravity is rebuilt over nothing, falls, and is captured lower by the next save — so every load resumes the fall. Dropped items reached y = -30000 this way, four generations deep, with nothing logged | A thing that lies in the world belongs to the chunk it lies in: `SceneTracked` with `Migrate` and `keepChunksLoaded: false`, which `SaveablePolicy.EnsureSpawned` now gives every pickup. `WorldSaveStore.HasGroundToLandOn` is the failsafe under it, and lands the records already written that way |
 | Reading a payload by probing `JObject` tokens | `StackOverflowException` in `Vector3.normalized` | `state.ToObject<State>(SaveSerializer.Serializer)` |
 | `CaptureState` returning a bare list/int/string | Key dropped (error logged, capture survives) — see [StateBag.Set](Assets/Game/Scripts/Core/Persistence/Format/StateBag.cs#L44) | Wrap in a public-field struct |
 | Ignoring the `state == null` branch of `RestoreState` | Stale value re-applied after a save that stored nothing | null means "restore defaults"; clear pending refs too |
 | Resolving a `SaveRef` in `RestoreState` | Rider never re-seated; second player's mount empty forever | Resolve in `OnLoadComplete`, consume only on success |
+| Leaving a `SaveableEntity` on a copy that is carried rather than lying in the world | The carried thing is captured **inside its carrier** and re-spawned as a loose root object at that pose on the next hydrate — one more copy per load, each falling further than the last | `CaptureScene` walks `GetComponentsInChildren` from every scene ROOT, so a saveable nested under a player, a vehicle or a fixture is a world record. Take it off the copy (`EquipItemSocket.Sanitize`) or `DisownToExternal()` it |
+| Restoring an entity's state *before* network-spawning it | `Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects` from `NetworkSpawnManager.AuthorityLocalSpawn`, once per affected entity, and the entity stays host-only. Restore is what nests the child: `EntityEquipmentSaveable` puts the NPC's weapon back in its hand and every item prefab ships a NetworkObject. A chunk with five armed Clankers logged it five times on hydrate. NGO **logs** this rather than throwing, so the `try/catch` around `Spawn()` never sees it | Network-spawn between `AdoptIdentity` and `Restore`. A child attached to an already-spawned root is just an unspawned child — which is what a held item is at runtime anyway |
 | Treating `OnLoadComplete` as once-only | State re-applied over a world that moved on | Idempotent — it fires per player bind and per late chunk |
 | Restoring pose with `transform.position` | Object snaps back within a frame | The record's pose is applied for you via `SaveTeleport.Move` |
 | Persisting `isKinematic` | Loaded player cannot walk (quit-time autosave captures the body after netcode teardown) | Never save engine-owned flags; `RigidbodySaveable` returns null for a kinematic body |

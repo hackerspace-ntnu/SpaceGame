@@ -1,8 +1,8 @@
 // How frozen one body looks, on one machine.
 //
-// It owns nothing about being frozen except the LOOK. Helplessness is FrozenStatus and
-// StatusReactionModule, the shatter is FrozenStatus, the ten seconds are FrozenStatus, and the
-// creature's reaction is StatusReactionModule. This is the rime, the pose and the plinth.
+// It owns nothing about being frozen except the LOOK. Helplessness is FrozenStatus, read off
+// StatusReceiver.Suppressed by AgentController and by BodyHold, and the ten seconds are
+// FrozenStatus's own. This is the rime, the pose and the plinth.
 //
 // EVERY MACHINE HAS ITS OWN. The build-up is derived, not replicated: the sprayer's aim ray reaches
 // the owner, the server and every peer on the ordinary hold stream, so every machine traces the same
@@ -125,6 +125,9 @@ namespace SpaceGame.Items
         {
             if (Frozen || seconds <= 0f) return;
 
+            // chilledUntil is what tells this body it is still standing in vapour, and it is the
+            // SPAN of the sweep rather than anything derived from it: a window shorter than the
+            // sweep interval lets the thaw run between two sweeps on the very body being sprayed.
             chilledUntil = Time.time + seconds;
             chill = Mathf.Clamp01(chill + (freezeSeconds > 0f ? seconds / freezeSeconds : 1f));
 

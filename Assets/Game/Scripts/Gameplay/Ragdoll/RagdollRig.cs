@@ -971,6 +971,8 @@ namespace SpaceGame.Gameplay.Ragdoll
             // structural rule above cannot see it. The renderer names its own bones; take them.
             foreach (SkinnedMeshRenderer renderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
+                if (IsAttachment(renderer)) continue;
+
                 Transform[] rigBones = renderer.bones;
                 if (rigBones == null) continue;
 
@@ -994,11 +996,46 @@ namespace SpaceGame.Gameplay.Ragdoll
             };
         }
 
-        private static void Flatten(Transform node, List<Transform> into)
+        /// <summary>
+        /// Every transform this body is made of.
+        ///
+        /// <para>
+        /// <b>Subtrees marked <see cref="SpaceGame.Items.BodyAttachment"/> are skipped whole.</b>
+        /// Worn and held gear is parented onto the skeleton, so from the hierarchy alone it looks
+        /// exactly like a bone: a node that draws nothing with geometry beneath it, which is the
+        /// rule <see cref="RagdollSkeleton.SelectRigNodes"/> selects on. On a player wearing the
+        /// jetpack with the pack shouldered, nine of fourteen candidates were gear — the jetpack's
+        /// root and models, and the pack's four flap hinges — so death gave the jetpack a joint and
+        /// simulated the pack's flaps as limbs. Gear cut here is not lost: it stays parented to the
+        /// bone it hangs off and rides that bone, which is what it did while the body was alive.
+        /// </para>
+        /// </summary>
+        private void Flatten(Transform node, List<Transform> into)
         {
             into.Add(node);
-            for (int i = 0; i < node.childCount; i++) Flatten(node.GetChild(i), into);
+
+            for (int i = 0; i < node.childCount; i++)
+            {
+                Transform child = node.GetChild(i);
+                if (child.GetComponent<SpaceGame.Items.BodyAttachment>() != null) continue;
+
+                Flatten(child, into);
+            }
         }
+
+        /// <summary>
+        /// Whether this renderer belongs to something the body is carrying rather than to the body.
+        ///
+        /// <para>
+        /// The two skinned passes reach for renderers with <c>GetComponentsInChildren</c> rather
+        /// than through the flattened hierarchy, so skipping a subtree in <see cref="Flatten"/> does
+        /// not hide it from them. <c>Select</c> takes its candidates straight from the importance
+        /// map, so a bone that only ever appeared through a skinned renderer is still selectable —
+        /// which is how a worn wingsuit could put its own bones in the wearer's ragdoll.
+        /// </para>
+        /// </summary>
+        private bool IsAttachment(Component part) =>
+            part != null && SpaceGame.Items.BodyAttachment.Covers(part.transform, transform);
 
         /// <summary>
         /// How much of the creature each bone is, in cubic metres.
@@ -1027,6 +1064,8 @@ namespace SpaceGame.Gameplay.Ragdoll
 
             foreach (SkinnedMeshRenderer renderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
+                if (IsAttachment(renderer)) continue;
+
                 Mesh mesh = renderer.sharedMesh;
                 Transform[] rigBones = renderer.bones;
                 if (mesh == null || rigBones == null || rigBones.Length == 0) continue;
@@ -1062,6 +1101,11 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 Mesh mesh = filter.sharedMesh;
                 if (mesh == null) continue;
+
+                // Already covered by the index lookup below — a skipped subtree is not in it — but
+                // said out loud, because the index is an implementation detail of the flatten and
+                // this rule is not.
+                if (IsAttachment(filter)) continue;
                 if (!rig.Index.TryGetValue(filter.transform, out int node)) continue;
 
                 int carrier = rig.Carrier[node];

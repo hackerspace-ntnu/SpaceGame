@@ -4,6 +4,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 using SpaceGame.World;
 using SpaceGame.Teleporting;
 
@@ -23,8 +24,12 @@ namespace SpaceGame.Agents
     // Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(NavMeshAgent))]
-    public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor,
-                                     IRiderControllable, ISelfDrivingMotor, ITeleportAware
+    // Partial: the rope-carry state lives in NavMeshAgentMotor.Carry.cs, the way the ornithopter's
+    // replication does. It is a self-contained state with its own clock and its own tunables, and
+    // this file is long enough already.
+    public partial class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
+                                             IMountLeapMotor, IRiderControllable, ISelfDrivingMotor,
+                                             ITeleportAware, ITowable
     {
         [Header("Navigation")]
         [SerializeField] private NavMeshAgent agent;
@@ -44,6 +49,14 @@ namespace SpaceGame.Agents
 
         [Header("Facing")]
         [SerializeField] private float faceRotateSpeed = 8f;
+
+        [Header("Grip")]
+        [Tooltip("Least share of its authored acceleration this agent keeps on frictionless " +
+                 "ground. A coat never reports zero grip, and this is the second floor under " +
+                 "that: an agent whose acceleration reached zero could never leave the patch it " +
+                 "is standing on, which turns twenty seconds of sliding into twenty seconds of " +
+                 "nothing (GDC-L1-BAL-0004).")]
+        [SerializeField, Range(0.005f, 1f)] private float minGripAcceleration = 0.02f;
 
         [Header("Mounted Jump")]
         [SerializeField] private bool enableMountedJump = true;
@@ -80,6 +93,7 @@ namespace SpaceGame.Agents
         private float defaultStoppingDistance;
         private float defaultSpeed;
         private float defaultBaseOffset;
+        private float defaultAcceleration;
         private float jumpElapsed = -1f;
         private float jumpCooldownTimer;
 
@@ -204,6 +218,7 @@ namespace SpaceGame.Agents
             defaultStoppingDistance = agent.stoppingDistance;
             defaultSpeed = agent.speed;
             defaultBaseOffset = agent.baseOffset;
+            defaultAcceleration = agent.acceleration;
             agent.autoBraking = false;
 
             // Only disable if the NavMesh isn't ready here yet — WorldStreamer will re-enable us
@@ -231,6 +246,7 @@ namespace SpaceGame.Agents
             jumpElapsed = -1f;
             leapCooldownTimer = 0f;
             isLeaping = false;
+            carried = false;
         }
 
         // ── Save/restore ──────────────────────────────────────────────────────────
@@ -336,6 +352,14 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // And during a carry, where a rope drives it instead. Same reason, same shape: the
+            // agent's own navigation is switched off and something else owns the pose until the
+            // body is back on the mesh. See NavMeshAgentMotor.Carry.cs.
+            if (carried)
+            {
+                return;
+            }
+
             if (!agent.isOnNavMesh)
             {
                 TrySnapToNavMesh(deltaTime);
@@ -343,6 +367,8 @@ namespace SpaceGame.Agents
             }
 
             NoteNavMeshFound();
+
+            ApplyGroundGrip();
 
             // Rider is driving this frame via ApplyRiderInput — don't re-interpret a MoveIntent.
             if (riderDriveFrame == Time.frameCount)
@@ -536,7 +562,7 @@ namespace SpaceGame.Agents
             jumpCooldownTimer = mountedJumpCooldown;
         }
 
-        public bool IsAirborne => jumpElapsed >= 0f || isLeaping;
+        public bool IsAirborne => jumpElapsed >= 0f || isLeaping || carried;
 
         public bool IsLeapAvailable => enableMountedLeap && !isLeaping && leapCooldownTimer <= 0f;
         public bool IsLeaping => isLeaping;
@@ -596,6 +622,38 @@ namespace SpaceGame.Agents
         {
             leapStart = move.Point(leapStart);
             leapEnd = move.Point(leapEnd);
+        }
+
+        /// <summary>
+        /// Let the ground have its say about how fast this agent can change what it is doing.
+        ///
+        /// <para>
+        /// The same question the player's own movement asks and the same one a legged rig asks, so
+        /// a frosted ramp is slippery for a creature, a mount and the player standing between them
+        /// alike (GDC-L1-SYS-0005) — and it is what makes the cryo sprayer's film mean anything to
+        /// an NPC, which is otherwise the one mover in this game that walks over a coat as if it
+        /// were sand.
+        /// </para>
+        /// <para>
+        /// <b>Acceleration only. The turn rate is never touched.</b> Grip is what a foot can push
+        /// against, so it scales how fast a velocity can change and nothing else: the agent keeps
+        /// its top speed, overshoots its destination and cannot brake, which is what a frictionless
+        /// surface IS. Slowing its angular speed as well would be an agent that cannot follow its
+        /// path around a corner — stuck, not sliding, and stuck for as long as the coat lasts. That
+        /// is the same reason <c>LeggedLocomotion.ApplyGroundGrip</c> leaves the yaw channel alone.
+        /// </para>
+        /// <para>
+        /// Asked only from here, which is downstream of the on-NavMesh, not-leaping and not-carried
+        /// gates: a body being flown along a rope or through a leap arc is not standing on the
+        /// patch below it.
+        /// </para>
+        /// </summary>
+        private void ApplyGroundGrip()
+        {
+            float grip = Mathf.Max(GroundGrip.For(gameObject, agent.nextPosition),
+                                   minGripAcceleration);
+
+            agent.acceleration = defaultAcceleration * grip;
         }
 
         private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)
@@ -850,6 +908,11 @@ namespace SpaceGame.Agents
         private void OnDisable()
         {
             this.NetOff(NetMsg.Leap, OnLeapRequested);
+
+            // Before the restores below, which put updateRotation back: a carry has updatePosition
+            // off as well, and a body streamed out mid-hoist would otherwise come back with the
+            // agent unable to move it at all.
+            AbandonCarry();
 
             if (agent)
             {

@@ -41,6 +41,7 @@ namespace SpaceGame.Gameplay.Status
         [SerializeField] private SlickStatus slick = new SlickStatus();
         [SerializeField] private InflatedStatus inflated = new InflatedStatus();
         [SerializeField] private FoamedStatus foamed = new FoamedStatus();
+        [SerializeField] private SwallowedStatus swallowed = new SwallowedStatus();
 
         [Header("Body")]
         [Tooltip("What the Inflated condition scales. Leave empty to scale this object itself, " +
@@ -139,6 +140,73 @@ namespace SpaceGame.Gameplay.Status
             body != null ? body.GetComponentInParent<StatusReceiver>() : null;
 
         /// <summary>
+        /// The receiver <paramref name="body"/> should carry a condition through, creating one
+        /// where the body is the sort of thing that can carry one at all. Null for world geometry.
+        ///
+        /// <para>
+        /// Every continuous artifact reaches with a mask of <c>~0</c>, so without this rule the
+        /// first sweep across a dune puts a receiver on the terrain chunk and freezes or ignites a
+        /// square kilometre of ground as one body. The line is drawn at bodies rather than at world
+        /// geometry — anything alive, anything loose, and anything somebody authored a receiver
+        /// onto — and it is drawn once, here, because a flame and a plume of vapour that disagreed
+        /// about what counts as a body would be two rules to keep in step.
+        /// </para>
+        /// <para>
+        /// Safe to call on every machine and meant to be called that way: a receiver the server
+        /// invented alone is a body that burns or freezes for the server and nobody else, because
+        /// the status arrives on that body's own relay and a relay with nothing subscribed drops it
+        /// without a word.
+        /// </para>
+        /// </summary>
+        public static StatusReceiver EnsureOnBody(GameObject body)
+        {
+            StatusReceiver existing = Of(body);
+            if (existing != null) return existing;
+
+            return IsBody(body) ? Ensure(body) : null;
+        }
+
+        /// <summary>
+        /// Anything alive, and anything loose enough to be knocked about. Those two between them
+        /// are every creature, every player, every mount and every prop, and neither is true of a
+        /// terrain chunk or a wall.
+        /// </summary>
+        public static bool IsBody(GameObject body) =>
+            body != null &&
+            (body.GetComponentInParent<HealthComponent>() != null ||
+             body.GetComponentInParent<Rigidbody>() != null);
+
+        /// <summary>
+        /// Is this body under a condition that stops it acting at all — frozen solid, or set in
+        /// foam?
+        ///
+        /// <para>
+        /// The one answer both halves of "helpless" are derived from: <c>StatusReactionModule</c>
+        /// starves a creature's brain with it, <c>AgentController</c> refuses to run any module at
+        /// all while it holds, and <see cref="BodyHold"/> takes a player's body with it. It is read
+        /// every frame and never stored, so a machine that missed the start of a condition still
+        /// reaches the right answer on its next frame and nothing has to be undone if it never
+        /// hears the end.
+        /// </para>
+        /// <para>
+        /// Which kinds suppress is the KIND's own answer (<see cref="StatusBehaviour.Suppresses"/>),
+        /// not a list kept here — a receiver with a list of conditions it knows the meaning of is
+        /// the switch over kinds this class exists to avoid.
+        /// </para>
+        /// </summary>
+        public bool Suppressed
+        {
+            get
+            {
+                for (int i = 0; i < active.Length; i++)
+                    if (active[i].Running && Behaviours[i] != null && Behaviours[i].Suppresses)
+                        return true;
+
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Is <paramref name="body"/> under <paramref name="kind"/> right now?
         ///
         /// The shape every caller outside this system wants — a catch that has to slide off a
@@ -205,6 +273,11 @@ namespace SpaceGame.Gameplay.Status
             StatusBehaviour behaviour = BehaviourFor(kind);
             if (behaviour == null) return;
 
+            // The kind's own veto, asked before anything is sent. A continuous source re-applies
+            // its condition several times a second, and a kind that must not be extended that way
+            // says so once here instead of every caller remembering to ask.
+            if (!behaviour.CanApply(this, Has(kind))) return;
+
             sources[(int)kind] = source;
 
             Announce(kind, seconds > 0f ? seconds : behaviour.DefaultSeconds, magnitude);
@@ -219,6 +292,22 @@ namespace SpaceGame.Gameplay.Status
             if (!Decides || !Has(kind)) return;
 
             Announce(kind, 0f, 0f);
+        }
+
+        /// <summary>
+        /// End every condition on this body — what a respawn asks for. A player who stands back up
+        /// in their ship is not still on fire, and nothing here expires on death by itself.
+        ///
+        /// <para>
+        /// One announcement per running condition rather than one that means "all of them", because
+        /// a machine that missed one of these is corrected by nothing: the wire carries the kind,
+        /// and a clear that named no kind would have to be a fourth thing <c>StatusSet</c> means.
+        /// A body carries at most a handful of conditions and a respawn is not a per-frame event.
+        /// </para>
+        /// </summary>
+        public void ClearAll()
+        {
+            for (int i = 0; i < active.Length; i++) Clear((StatusKind)i);
         }
 
         private void OnEnable() => EnsureSubscribed();
@@ -422,6 +511,7 @@ namespace SpaceGame.Gameplay.Status
                 Slot(slick);
                 Slot(inflated);
                 Slot(foamed);
+                Slot(swallowed);
                 return behaviours;
             }
         }
@@ -438,9 +528,16 @@ namespace SpaceGame.Gameplay.Status
 
         /// <summary>
         /// The object a body's conditions belong on: the one its messages are addressed to, which
-        /// is its NetworkObject — falling back to its Rigidbody and then to the object itself for
-        /// anything that has neither. Deliberately not <c>transform.root</c>: a prop parented under
-        /// a chunk scene's root would put its conditions on the chunk.
+        /// is its NetworkObject — falling back to its Rigidbody, then to whatever holds its health,
+        /// and last to the object itself. Deliberately not <c>transform.root</c>: a prop parented
+        /// under a chunk scene's root would put its conditions on the chunk.
+        ///
+        /// <para>
+        /// Health is in that list because a creature is not always a Rigidbody: a NavMesh animal
+        /// with a collider per limb and none of the other two would otherwise take a receiver on
+        /// whichever LEG was sprayed, so it would wear a coat of ice per limb and a condition
+        /// applied to one leg would be invisible to anything asking the body.
+        /// </para>
         /// </summary>
         private static GameObject RootOf(GameObject part)
         {
@@ -448,7 +545,10 @@ namespace SpaceGame.Gameplay.Status
             if (networked != null) return networked.gameObject;
 
             Rigidbody body = part.GetComponentInParent<Rigidbody>();
-            return body != null ? body.gameObject : part;
+            if (body != null) return body.gameObject;
+
+            HealthComponent health = part.GetComponentInParent<HealthComponent>();
+            return health != null ? health.gameObject : part;
         }
     }
 }

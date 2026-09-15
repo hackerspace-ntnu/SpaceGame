@@ -15,7 +15,6 @@ GameObject:
   - component: {fileID: 5820174963310482277}
   - component: {fileID: -3328959335672301551}
   - component: {fileID: 5789852136957963805}
-  - component: {fileID: 2038833292845337973}
   - component: {fileID: 790853505601134990}
   m_Layer: 0
   m_Name: NetworkGameManager
@@ -133,18 +132,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.SessionSnapshot
   ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &2038833292845337973
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4215243703015739838}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d0a7604ee988489eb19975d2967b075, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SurfaceCoatSaveable
 --- !u!114 &790853505601134990
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,31 +144,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63bf3947ec47743a8a31c2c11014c212, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Surface.SurfaceCoatField
-  slick:
-    seconds: 20
-    radius: 1.2
-    grip: 0.05
-    verticalReach: 0.35
-    fadeSeconds: 2
-    film: {fileID: 2100000, guid: 29b8c4d16ea35f70b1c2d3e4f5061728, type: 2}
-  ice:
-    seconds: 0
-    radius: 1.5
-    grip: 0.03
-    verticalReach: 0.35
-    fadeSeconds: 2
-    film: {fileID: 2100000, guid: 6ae2f81592d7936b4f5061728394a5bc, type: 2}
-    liquidLayers:
-      serializedVersion: 2
-      m_Bits: 16
-    surfaceMask:
-      serializedVersion: 2
-      m_Bits: 4294967295
-    probeLift: 0.3
-    probeDepth: 0.6
-    wetGroundFreezes: 1
-    slabThickness: 0.12
-    slabLayer: -1
   wet:
     seconds: 8
     radius: 4

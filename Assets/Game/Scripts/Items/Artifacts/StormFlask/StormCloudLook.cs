@@ -1,18 +1,23 @@
 // How a storm is drawn, and the only place this artifact talks to a shader.
 //
-// TWO NUMBERS, ONE MATERIAL, TWO OBJECTS. StormCloud.shader shades the cloud body and the rain veil
-// from one material — the mesh is a unit cloud in object space, geometry at y >= 0 is the body and
-// geometry at y < 0 is the veil, and the two are separate objects so the transform can give them
-// different scales. Both therefore have to be told the same two values:
+// TWO NUMBERS, TWO MATERIALS, TWO OBJECTS. StormCloud.shader draws the body and StormVeil.shader
+// draws the rain column; they are separate volumes with separate bounds, and separate objects so
+// the transform can give them different scales. Both are told the same two values:
 //
 //     _Form   0..1  how much of the storm exists. It multiplies the alpha of BOTH halves, so one
 //                   value gathers and disperses the whole storm rather than leaving rain hanging
 //                   under nothing.
 //     _Flash  0..1  one pulse per bolt, decayed here.
 //
-// THROUGH A PROPERTY BLOCK, NEVER THROUGH THE MATERIAL. The material is shared by the two halves and
-// by every other storm in the world: renderer.material would clone it per object, and
-// renderer.sharedMaterial would put one cloud's flash on every cloud on the map.
+// AND ONE VECTOR THE CLOUD HALF ALONE READS. `_BoltPoint` is where the last bolt earthed, in
+// WORLD space, so StormCloud.shader can light the volume from a point inside itself instead of
+// brightening the whole disc at once. Painted through the same block as the two floats, and
+// painted onto the veil as well: a property a shader does not declare is ignored, and one code
+// path that paints everything is cheaper to keep true than two that each know their own half.
+//
+// THROUGH A PROPERTY BLOCK, NEVER THROUGH THE MATERIAL. Each material is shared by every storm in
+// the world: renderer.material would clone it per object, and renderer.sharedMaterial would put one
+// cloud's flash on every cloud on the map.
 //
 // IT DECIDES NOTHING. The form comes from the cloud's replicated clock and the flash from a
 // replicated strike, so two machines watching one storm are drawing the same two numbers rather than
@@ -27,9 +32,9 @@ namespace SpaceGame.Items
     [DisallowMultipleComponent]
     public sealed class StormCloudLook : MonoBehaviour
     {
-        [Tooltip("The cloud body and the rain veil. Both are painted, because both read _Form and " +
-                 "_Flash off the same material. Every renderer under this object is used when left " +
-                 "empty, which is the right answer however the model is split.")]
+        [Tooltip("The cloud body and the rain veil. Both are painted, because both shaders read " +
+                 "_Form and _Flash. Every renderer under this object is used when left empty, " +
+                 "which is the right answer however the model is split.")]
         [SerializeField] private Renderer[] surfaces;
 
         [Tooltip("How long one bolt's flash takes to fade, in seconds. Short: it is a strike, not " +
@@ -42,6 +47,7 @@ namespace SpaceGame.Items
 
         private static readonly int FormId = Shader.PropertyToID("_Form");
         private static readonly int FlashId = Shader.PropertyToID("_Flash");
+        private static readonly int BoltPointId = Shader.PropertyToID("_BoltPoint");
 
         private MaterialPropertyBlock block;
 
@@ -79,8 +85,15 @@ namespace SpaceGame.Items
         /// </summary>
         public void SetForm(float form) => Paint(FormId, Mathf.Clamp01(form), ref drawnForm);
 
-        /// <summary>A bolt has just left the cloud: light it from inside.</summary>
-        public void Flash() => flashLeft = flashSeconds;
+        /// <summary>
+        /// A bolt has just left the cloud: light it from inside, from where it earthed.
+        /// </summary>
+        /// <param name="strikePoint">Where the bolt landed, in world space.</param>
+        public void Flash(Vector3 strikePoint)
+        {
+            flashLeft = flashSeconds;
+            PaintVector(BoltPointId, strikePoint);
+        }
 
         private void Update()
         {
@@ -110,6 +123,27 @@ namespace SpaceGame.Items
 
                 surface.GetPropertyBlock(block);
                 block.SetFloat(propertyId, value);
+                surface.SetPropertyBlock(block);
+            }
+        }
+
+        /// <summary>
+        /// Push one vector into every surface. Unguarded, unlike <see cref="Paint"/>: it is
+        /// written once per bolt rather than once per frame, so there is nothing to save.
+        /// </summary>
+        private void PaintVector(int propertyId, Vector4 value)
+        {
+            if (surfaces == null) return;
+
+            block ??= new MaterialPropertyBlock();
+
+            for (int i = 0; i < surfaces.Length; i++)
+            {
+                Renderer surface = surfaces[i];
+                if (surface == null) continue;
+
+                surface.GetPropertyBlock(block);
+                block.SetVector(propertyId, value);
                 surface.SetPropertyBlock(block);
             }
         }

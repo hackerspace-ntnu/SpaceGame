@@ -8,8 +8,9 @@ namespace SpaceGame.Gameplay.Status
     ///
     /// <para>
     /// The same "cannot act" the Frozen condition asks for, and asked for through the same two
-    /// routes — <see cref="BodyHold"/> for a player, a derived idle intent from
-    /// <c>StatusReactionModule</c> for a creature. What is different is the way out: being stuck is
+    /// routes — <see cref="BodyHold"/> for a player, a derived idle intent for a creature, both
+    /// read off <see cref="StatusReceiver.Suppressed"/>. What is different is the way out: being
+    /// stuck is
     /// meant to be a setback rather than a sentence, so a hit ends it early and anyone nearby can
     /// give it (GDC-L1-BAL-0004 — a bad spot the player can be helped out of is counterplay; one
     /// they can only wait out is not).
@@ -30,6 +31,9 @@ namespace SpaceGame.Gameplay.Status
         private readonly BodyHold hold = new BodyHold();
 
         public override StatusKind Kind => StatusKind.Foamed;
+
+        /// <summary>A body set in foam does nothing at all until it breaks free.</summary>
+        public override bool Suppresses => true;
 
         public override void OnApplied(StatusReceiver body)
         {

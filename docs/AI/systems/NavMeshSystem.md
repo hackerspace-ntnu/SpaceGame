@@ -16,8 +16,10 @@ symptoms:
   - "a save-restored creature is on the NavMesh but never moves"
   - "arena spawns are not filtered for reachability"
   - "every agent hovers a few centimetres to half a metre above the ground"
+  - "creatures walk over a rained-on patch as if it were dry sand"
+  - "an NPC on wet ground turns on the spot and never gets anywhere"
 reads_with: [WorldStreaming, AgentSystem, Locomotion]
-updated: 2026-09-07
+updated: 2026-09-09
 ---
 
 # NavMesh
@@ -35,6 +37,7 @@ One NavMesh for the whole streamed world, baked at author time into a single ass
 - **Bake mirrors the runtime.** The baker snaps each chunk's `Terrain` to its grid X/Z (mirroring `WorldStreamer.CacheTerrainForChunk`) and calls `TerrainFeatureSpawner.SpawnBaked()` before collecting, then discards those edits. Skip either and the mesh is silently offset from the ground.
 - **Staleness is enforced at build time.** [WorldNavMeshStaleness](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) compares each chunk's `AssetDatabase.GetAssetDependencyHash` against the stamp recorded at bake; `WorldNavMeshBuildCheck : IPreprocessBuildWithReport` throws `BuildFailedException` when they differ.
 - **Caves are separate surfaces**, not part of the world mesh — see Gotchas.
+- **The ground gets a say.** `NavMeshAgentMotor.ApplyGroundGrip` asks [GroundGrip](Assets/Game/Scripts/Gameplay/Grip/GroundGrip.cs) what the surface under the agent is worth and scales `agent.acceleration` by it, so a [SurfaceCoat](Artifacts/SurfaceCoat.md) patch slows how fast an NPC can change velocity without touching its top speed — it overshoots and cannot brake. **Acceleration only, never `angularSpeed`:** an agent that cannot turn cannot follow its path off the patch, which is stuck rather than sliding. Same reason `LeggedLocomotion.ApplyGroundGrip` leaves yaw alone.
 - **Two motor families:** [NavMeshAgentMotor](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) drives a real `NavMeshAgent`; [LeggedDriver](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) has no agent component and only calls `NavMesh.CalculatePath` (the legs own the transform).
 
 ## Agent types & areas
@@ -106,6 +109,8 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 
 ## Gotchas
 
+- **A coat only reaches an NPC through its motor.** `GroundGrip` is a registry that must be *asked*; nothing pushes an agent. `NavMeshAgentMotor` asks once per `Tick`, downstream of the on-NavMesh, not-leaping and not-carried gates — a body being flown along a rope or through a leap arc is not standing on the patch below it. A motor that never asks walks over frost as if it were sand, which is exactly how the sprayed film used to read for every NPC in the game.
+- **Zero acceleration is a latch, not a slide.** `minGripAcceleration` floors what grip can take away. An agent whose acceleration reached zero could never leave the patch it is standing on, and twenty seconds of sliding would become twenty seconds of nothing (GDC-L1-BAL-0004).
 - **A creature hand-placed in a chunk scene used to bake in as a hole in its own mesh.** The baker kept every kinematic body as scenery, and every NavMesh creature here *is* a kinematic body with a solid collider — so the six patrol robots in the Clanker settlement each carved a robot-shaped hole exactly where they would spawn (2026-09-07: no mesh within 0.35 m of any robot, mesh everywhere around them). `WorldNavMeshBaker.IsBakeable` now refuses any collider under a `NavMeshAgent`; `WorldNavMeshBakerSourceTests` pins it. A walker driven by something other than `NavMeshAgent` (a `LeggedDriver`) is still baked if it is kinematic and sits in a chunk scene — none does today.
 - **The baked mesh sits above the ground, and by a varying amount.** Measured over 1384 samples on
   six terrains: mean +0.264 m, median +0.257, p25 +0.199, p75 +0.321, p95 +0.480, max +0.600, min

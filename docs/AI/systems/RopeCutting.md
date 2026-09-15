@@ -53,8 +53,8 @@ registry the day it is drawn, and the staff needs no change when it does.
 
 | Type | File | Role |
 | --- | --- | --- |
-| `ICuttableRope` | [ICuttableRope.cs](Assets/Game/Scripts/Items/Artifacts/Ropes/ICuttableRope.cs) | `AppendSpan` (world polyline, or nothing when the rope is not out) and `Cut` |
-| `CuttableRopes` | [CuttableRopes.cs](Assets/Game/Scripts/Items/Artifacts/Ropes/CuttableRopes.cs) | `Register` / `Unregister` / `All`, `CutAlong(from, to, radius)`, and the pure `SegmentDistanceSq` |
+| `ICuttableRope` | [ICuttableRope.cs](Assets/Game/Scripts/Items/Artifacts/Ropes/ICuttableRope.cs) | `AppendSpan` (world polyline, or nothing when the rope is not out), `Binds(body)` (is this rope on that body, either end) and `Cut` |
+| `CuttableRopes` | [CuttableRopes.cs](Assets/Game/Scripts/Items/Artifacts/Ropes/CuttableRopes.cs) | `Register` / `Unregister` / `All`, `CutAlong(from, to, radius)`, `CutEveryRopeOn(body)`, and the pure `SegmentDistanceSq` |
 | `LaserStaffArtifact` | [LaserStaffArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/LaserStaffArtifact.cs) | The only cutter. `ropeCutRadius` (0.15 m; zero disables), called from `CutRopes` beside `TickDamage` |
 
 The three implementations, each keeping its own break path:
@@ -65,6 +65,10 @@ The three implementations, each keeping its own break path:
 | [`LassoArtifact`](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoArtifact.cs) | hand → attach point, while `_isLassoed` | `SendRope(LassoVerb.Snapped)` — identical to tearing under strain | `Listen`, beside the net registration |
 | [`GrapplingHookArtifact`](Assets/Game/Scripts/Items/Artifacts/Gadgets/GrapplingHookArtifact.cs) | hand → `RopeEnd`, while `_isGrappling` | broadcasts `GrappleVerb.Off` on the swinger's channel, then `StopGrapple` | `Listen`, beside the net registration |
 
+`Binds`, per rope: a leash answers `Restrains` (either anchor `IsChildOf` the body); a lasso answers
+the holder **or** the caught body; a grapple answers the swinger alone, because its far end is a
+point in the world rather than a thing.
+
 ## Flows
 
 1. The staff's `Update` traces the beam on every machine, exactly as before.
@@ -74,6 +78,11 @@ The three implementations, each keeping its own break path:
    of its segments against the beam segment with `SegmentDistanceSq`. Ropes inside the radius are
    collected, **not cut yet**.
 4. Every collected rope is then cut, once, and announces the parting itself.
+
+A respawn is the second caller, and it asks the other question:
+[`RespawnRelease.Everything`](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) calls
+`CutEveryRopeOn(body)`, which gathers by `Binds` rather than by geometry and then cuts the same way.
+Ropes are gathered before any is cut there too, for the same enumeration reason.
 
 ## Multiplayer
 
@@ -115,6 +124,9 @@ never a state of its own.
   grapple's `Cut` calls `StopGrapple` itself after sending. On a host the inline dispatch has already
   run it and the call is the no-op its first line is written to be. `Leash.Snap` and the lasso's
   request handler both do their local work before announcing, so neither needs this.
+- **A rope has no idea anybody died.** Nothing in any of these three systems watches health, which is
+  right — a corpse being dragged by a rope is a thing players do. The one moment it stops being right
+  is a respawn, and that is `RespawnRelease`'s job, not a rope's.
 - **The beam segment starts at the muzzle, not at `_rayOrigin`.** The trace begins at the holder's
   camera and the beam is drawn from the fist. Cutting along the ray would part ropes level with the
   holder's head that the visible arc never touched.

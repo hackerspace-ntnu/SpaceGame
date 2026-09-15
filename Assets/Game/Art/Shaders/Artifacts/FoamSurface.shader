@@ -66,9 +66,19 @@ Shader "SpaceGame/Artifacts/FoamSurface"
         _Backlight    ("Backlight Bleed", Range(0, 1))   = 0.4
 
         [Header(Bubbles)]
-        _BubbleScale     ("Bubble Scale (per m)", Range(1, 40)) = 11
-        _BubbleDepth     ("Bubble Depth",         Range(0, 1))  = 0.45
-        _BubbleSharpness ("Triplanar Sharpness",  Range(1, 16)) = 4
+        // Cells, not blotches. The scale is the bubble PITCH in metres: 14 per metre is a 7 cm
+        // bubble, which is the size that still reads as a bubble on a metre lump at the range
+        // foam is looked at from.
+        _BubbleScale     ("Bubble Scale (per m)", Range(1, 40)) = 14
+        // How far a bubble domes the normal, at its steepest — which is at the wall, because
+        // the tilt is ramped by the distance to the crown. Reached only at the wall, so this is
+        // a peak rather than an average: the middle of a bubble is always near-flat, which is
+        // what a dome is.
+        _BubbleDepth     ("Bubble Depth",         Range(0, 1))  = 0.7
+        // The dark wall between bubbles, subtracted from the shading scalar before the snap so
+        // a seam lands a whole band down. This is the single strongest "that is foam" cue there
+        // is — a mass of pale domes with no seams between them is polystyrene.
+        _BubbleShade     ("Bubble Seam Shade",    Range(0, 1))  = 0.4
 
         [Header(Merging)]
         _WeldRadius ("Weld Radius (m)", Range(0.01, 1.5)) = 0.35
@@ -76,6 +86,10 @@ Shader "SpaceGame/Artifacts/FoamSurface"
         [Header(Expiry)]
         _Dissolve       ("Dissolve",        Range(0, 1))   = 0
         _DissolveMargin ("Dissolve Margin", Range(0, 0.5)) = 0.05
+
+        [Header(Per blob variation)]
+        // Set per blob from a property block, never authored here. See FoamSurface.hlsl.
+        _ShadeBias ("Shade Bias", Range(-0.5, 0.5)) = 0
     }
 
     SubShader
@@ -133,10 +147,11 @@ Shader "SpaceGame/Artifacts/FoamSurface"
             {
                 Varyings OUT;
                 VertexPositionInputs positions = GetVertexPositionInputs(IN.positionOS.xyz);
+
                 OUT.positionCS = positions.positionCS;
                 OUT.positionWS = positions.positionWS;
                 OUT.normalWS   = TransformObjectToWorldNormal(IN.normalOS);
-                OUT.fogFactor  = ComputeFogFactor(positions.positionCS.z);
+                OUT.fogFactor  = ComputeFogFactor(OUT.positionCS.z);
                 return OUT;
             }
 
@@ -145,18 +160,24 @@ Shader "SpaceGame/Artifacts/FoamSurface"
                 float3 geometricNormal = normalize(IN.normalWS);
                 float3 viewDirWS = normalize(GetWorldSpaceViewDir(IN.positionWS));
 
-                float bubbles = FoamBubbles(IN.positionWS, geometricNormal);
-                FoamDissolveClip(bubbles);
+                SubstanceCellField cells = FoamCells(IN.positionWS);
+                FoamDissolveClip(cells);
 
                 float3 normalWS = FoamWeldedNormal(IN.positionWS, geometricNormal);
 
-                // The bubble field perturbs the welded normal rather than replacing it: the
-                // roughness is what stops the mass reading as blown plastic, and applying it
-                // after the weld lets it ride over the fillet instead of being smoothed away
-                // by it. Bent along the view direction by the field's own value, which at
-                // this scale is indistinguishable from a real derivative once the result has
-                // been banded into four flats — and costs no extra taps.
-                normalWS = normalize(normalWS + (bubbles - 0.5) * _BubbleDepth * viewDirWS);
+                // The bubbles, domed onto whatever that left. `uphill` points at the crown of the
+                // cell this fragment sits on, so subtracting it tilts the normal away from that
+                // crown. A real gradient, unlike the view-space swing this replaced, so the bumps
+                // hold still when the camera moves.
+                //
+                // SCALED BY `wall`, AND THAT FACTOR IS THE WHOLE DIFFERENCE BETWEEN A DOME AND A
+                // FACET. `uphill` is a unit vector: a distance field has slope 1 everywhere, so
+                // using it raw tilts every fragment in a cell by the SAME angle and only varies
+                // the direction — which is a cone, not a dome. Lit by one light and snapped to
+                // four bands, a cone lands entirely on one band and the lump comes out as one
+                // flat plate per bubble. Multiplying by the distance to the crown makes the
+                // profile a paraboloid instead: zero tilt at the crown, steepest at the wall.
+                normalWS = normalize(normalWS - cells.uphill * (_BubbleDepth * cells.wall));
 
                 float4 shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
                 Light mainLight = GetMainLight(shadowCoord);
@@ -189,7 +210,20 @@ Shader "SpaceGame/Artifacts/FoamSurface"
                        * pow(saturate(dot(-mainLight.direction, viewDirWS)), 3.0)
                        * SubstanceFresnel(normalWS, viewDirWS, 1.0);
 
-                float3 colour = SubstanceLadder4(shade,
+                // The wall between two bubbles, darkened. Light entering a foam gets out again
+                // from the crown of a bubble and does not from the crevice three of them make,
+                // so the seams are where the shape of the surface is actually readable — a
+                // field of pale domes with no seams is polystyrene. Subtracted BEFORE the snap
+                // like everything else here, so a seam lands a whole band down rather than
+                // being averaged away into the band its bubble is on.
+                shade -= _BubbleShade * smoothstep(0.3, 0.95, cells.wall);
+
+                // This blob's own place on the ladder, so a mass of them is not one flat
+                // moulded shape. Added to the scalar BEFORE the snap, which is the same
+                // discipline as everything above it — move the value, never composite after.
+                shade += _ShadeBias;
+
+                float3 colour = SubstanceLadder4(saturate(shade),
                     _BandShadow.rgb, _BandLower.rgb, _BandUpper.rgb, _BandLit.rgb);
 
                 colour = MixFog(colour, IN.fogFactor);
@@ -227,21 +261,23 @@ Shader "SpaceGame/Artifacts/FoamSurface"
                 float3 normalOS   : NORMAL;
             };
 
+            // The normal is a LOCAL here, not a varying: the fragment only clips, and the cell
+            // field it clips against is a function of world position alone.
             struct ShadowVaryings
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
-                float3 normalWS   : TEXCOORD1;
             };
 
             ShadowVaryings ShadowVert(ShadowAttributes IN)
             {
                 ShadowVaryings OUT;
                 OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
-                OUT.normalWS   = TransformObjectToWorldNormal(IN.normalOS);
+
+                float3 normalWS = TransformObjectToWorldNormal(IN.normalOS);
 
                 float4 positionCS = TransformWorldToHClip(
-                    ApplyShadowBias(OUT.positionWS, OUT.normalWS, _LightDirection));
+                    ApplyShadowBias(OUT.positionWS, normalWS, _LightDirection));
             #if UNITY_REVERSED_Z
                 positionCS.z = min(positionCS.z, UNITY_NEAR_CLIP_VALUE);
             #else
@@ -253,7 +289,7 @@ Shader "SpaceGame/Artifacts/FoamSurface"
 
             half4 ShadowFrag(ShadowVaryings IN) : SV_Target
             {
-                FoamDissolveClip(FoamBubbles(IN.positionWS, normalize(IN.normalWS)));
+                FoamDissolveClip(FoamCells(IN.positionWS));
                 return 0;
             }
             ENDHLSL
@@ -279,32 +315,32 @@ Shader "SpaceGame/Artifacts/FoamSurface"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "FoamSurface.hlsl"
 
+            // No NORMAL: this pass writes depth and clips, and the cell field it clips against is
+            // a function of world position alone. The shadow pass still reads one, for the bias.
             struct DepthAttributes
             {
                 float4 positionOS : POSITION;
-                float3 normalOS   : NORMAL;
             };
 
             struct DepthVaryings
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
-                float3 normalWS   : TEXCOORD1;
             };
 
             DepthVaryings DepthVert(DepthAttributes IN)
             {
                 DepthVaryings OUT;
                 VertexPositionInputs positions = GetVertexPositionInputs(IN.positionOS.xyz);
+
                 OUT.positionCS = positions.positionCS;
                 OUT.positionWS = positions.positionWS;
-                OUT.normalWS   = TransformObjectToWorldNormal(IN.normalOS);
                 return OUT;
             }
 
             half4 DepthFrag(DepthVaryings IN) : SV_Target
             {
-                FoamDissolveClip(FoamBubbles(IN.positionWS, normalize(IN.normalWS)));
+                FoamDissolveClip(FoamCells(IN.positionWS));
                 return 0;
             }
             ENDHLSL

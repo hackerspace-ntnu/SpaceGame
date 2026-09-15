@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 
 namespace SpaceGame.Items
 {
@@ -41,6 +42,12 @@ namespace SpaceGame.Items
         /// that.
         /// </summary>
         public const float HoldKeepAliveInterval = 0.2f;
+
+        // Two sites, not one, and that is the point of this change. Presentation and effect fail
+        // independently: a broken muzzle flash must not stop the shot, and a broken shot must not
+        // stop everyone else seeing the flash. One shared site would quarantine both together.
+        private const string PresentSite = "UseChannel.Present";
+        private const string EffectSite  = "UseChannel.Effect";
 
         private readonly Component host;
         private readonly GearArea area;
@@ -113,16 +120,24 @@ namespace SpaceGame.Items
 
             // The owner describes the use — chiefly where they aimed, which is knowable only here.
             var arg = new NetArg { A = UseSlotCode.Encode(slot()) };
+
+            // OnRequestUse is NOT barriered. It writes the aim into the message every other machine
+            // will act on, so a half-filled NetArg is worse than no use at all — this one must
+            // abort rather than degrade.
             usable.OnRequestUse(ref arg);
 
             // Presented immediately, always, so no item ever feels like it is waiting for a reply.
-            usable.PlayUse(Holder, arg);
-            Presented?.Invoke();
+            NetArg presented = arg;
+            if (Fault.Run(usable, PresentSite, () => usable.PlayUse(Holder, presented)))
+                Presented?.Invoke();
 
             // An owner-authoritative tool is ours to run, right now — its effect is this player's
             // own body, which already replicates through the transform they own.
             if (usable.Authority == UseAuthority.Owner)
-                usable.TryUse(Holder, arg);
+            {
+                NetArg effect = arg;
+                Fault.Run(usable, EffectSite, () => usable.TryUse(Holder, effect));
+            }
 
             // Either way the server hears about it, because only the server can reach the peers.
             host.NetToServer(NetMsg.UseItem, arg);
@@ -262,7 +277,10 @@ namespace SpaceGame.Items
             if (Stale(arg)) return;
 
             if (usable.Authority == UseAuthority.Server)
-                usable.TryUse(Holder, arg);
+            {
+                NetArg effect = arg;
+                Fault.Run(usable, EffectSite, () => usable.TryUse(Holder, effect));
+            }
 
             // Everyone except the machine that already presented it locally.
             host.NetToOthers(NetMsg.ItemUsed, arg, except: sender);
@@ -274,8 +292,9 @@ namespace SpaceGame.Items
             UsableItem usable = item();
             if (usable == null) return;
 
-            usable.PlayUse(Holder, arg);
-            Presented?.Invoke();
+            NetArg presented = arg;
+            if (Fault.Run(usable, PresentSite, () => usable.PlayUse(Holder, presented)))
+                Presented?.Invoke();
         }
 
         /// <summary>Server side: the same shape as <see cref="OnUseRequested"/>, per tick.</summary>

@@ -22,8 +22,8 @@ symptoms:
   - "the crosshair says nothing at all in front of the ship's inventory wall"
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
-reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal]
-updated: 2026-09-06
+reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics]
+updated: 2026-09-09
 ---
 
 # Interaction
@@ -91,7 +91,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `ArticulatedPartInteraction` | [Vehicles/Parts/ArticulatedPartInteraction.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPartInteraction.cs) | Toggles a group of hinged parts via `NetMsg.PartToggle`. |
 | `SpaceshipLaunchInteract` | [Spaceship/SpaceshipLaunchInteract.cs](Assets/Game/Scripts/Spaceship/SpaceshipLaunchInteract.cs) | Launches the ship; `NetLatch` (`ILatchHost`). |
 | `InteriorEntrance` | [Core/SceneManagement/Interiors/InteriorEntrance.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorEntrance.cs) | `InteriorManager.EnterInterior`, unless lock-out is active. |
-| `CaveExitCover` | [World/…/CaveExitCover.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveExitCover.cs) | Leaves the cave (also a walk-in volume). |
+| `CaveExitCover` | [World/…/CaveExitCover.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveExitCover.cs) | Leaves the cave (also a walk-in volume). Exits whichever body `InteriorManager.ResolveOccupant` names — a rider's press-E leaves on the **mount's** record. |
 
 ## Flows
 
@@ -155,6 +155,7 @@ All five are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persis
 - **Right mouse is shared with the UI map and with the lasso.** `UI/RightClick` is bound to the same physical button and stays enabled during play, so a lasso rope reels in on the same press that interacts. Harmless in practice — interact does nothing without a hovered target — but a new right-mouse gameplay verb has to reckon with it rather than assume the button is free.
 - **`CrosshairUI.playerInteractor` is unassigned** on `PlayerHUD.prefab`, so hover-brightening has never run. `VisorReticle` resolves off its own parent chain instead (`GameplayMenuScope.FindLocalPlayer`) — **not** `FindFirstObjectByType<Interactor>()`, which in a session with two players binds an arbitrary body and describes what a stranger is looking at.
 - **The type name is the label of last resort, and it shows.** With no `InteractionPrompt` authored anywhere, a class named for its plumbing is a class the player meets by that name: `ArticulatedPartInteraction` on the ship's doors reads "Articulated Part". Fix it where the information already lives — implement `IInteractionReadout` on the component — rather than by adding the first `InteractionPrompt` in the project.
+- **The interaction barrier is on the TARGET, not on the `Interactor`.** `Interact` and `SecondaryInteract` run inside `Fault.Run(target, …)`, so a broken door costs the player that door — after 5 throws in 10 s the door's own component is disabled — rather than their ability to interact with anything ever again. An `IInteractable` that is not a `Component` is called unguarded, because there is nothing to quarantine. See [Diagnostics](Diagnostics.md).
 - **A readout on the player must not cast.** `ICrosshairReadout.TryReadCrosshair` is called from the HUD's `LateUpdate`; the implementer resolves its aim in its own `Update` and only reports. `WallAimController` publishes last in `Update`, *after* `ShowPlacement` has snapped the uv, so the readout names the cell the press will use rather than the pixel under the crosshair.
 
 ## Extending

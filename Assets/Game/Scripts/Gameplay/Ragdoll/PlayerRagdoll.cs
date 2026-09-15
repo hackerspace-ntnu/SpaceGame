@@ -314,6 +314,46 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
+        /// Take the body without laying it down: input, look and movement stop, the body is pinned
+        /// where it stands, and the skeleton keeps the pose it was in.
+        ///
+        /// <para>
+        /// The freeze's hold, and the one hold in this game that must not go through the ragdoll.
+        /// A body frozen solid reads as a statue only while it keeps the pose it was caught in, and
+        /// <see cref="HoldDown"/> would replace that with a heap on the sand and move the camera
+        /// out of the helmet to watch it. Everything else about the claim is identical — the same
+        /// claim set, the same release, the same refusal for a body a seat is already carrying —
+        /// so a captive who is netted AND frozen is held once and stands up once.
+        /// </para>
+        /// <para>
+        /// The collider stays on, unlike a limp hold: a statue is something the world can still
+        /// bump into, and switching it off would let bodies walk through the player standing there.
+        /// </para>
+        /// </summary>
+        /// <returns>
+        /// True once the body is held. False means the hold did not take — the player is dead, or
+        /// something else is already carrying them — and the caller must not treat them as held.
+        /// </returns>
+        public bool HoldStanding(object holder)
+        {
+            if (holder == null || dead) return false;
+
+            if (IsHeld)
+            {
+                holders.Add(holder);
+                return true;
+            }
+
+            // The same refusal HoldDown makes, and for the same reason: a rider is parented into
+            // the saddle, and a body pinned in one is a body the mount drags about.
+            if (IsCarried) return false;
+
+            holders.Add(holder);
+            Suspend(standing: true);
+            return true;
+        }
+
+        /// <summary>
         /// Give up one claim. The player stands up only once the LAST one is given up — the same
         /// rule <see cref="CarriedBody.Release"/> follows, and for the same reason: a net that rots
         /// off a hogtied captive must not untie them.
@@ -395,7 +435,11 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         // ── Handing the body over and back ────────────────────────────────────
 
-        private void Suspend()
+        /// <param name="standing">
+        /// Keep the body on its feet: the collider stays on and the camera stays in the helmet,
+        /// because nothing is going to go limp under it. See <see cref="HoldStanding"/>.
+        /// </param>
+        private void Suspend(bool standing = false)
         {
             if (suspended) return;
             suspended = true;
@@ -404,7 +448,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // else — mounted, mid-cutscene, or dead — and restoring a blanket "enabled" would hand
             // control back to a body that was never supposed to have it.
             colliderWasEnabled = bodyCollider != null && bodyCollider.enabled;
-            if (bodyCollider != null) bodyCollider.enabled = false;
+            if (bodyCollider != null && !standing) bodyCollider.enabled = false;
 
             if (body != null)
             {
@@ -428,7 +472,11 @@ namespace SpaceGame.Gameplay.Ragdoll
             // death freeze documents the same trap.
             if (controller != null && controller.Input != null) controller.Input.enabled = false;
 
-            DetachCamera();
+            // Only a body that is about to go limp needs the camera out of its skull. A held-
+            // standing body keeps the pose it had, so the helmet stays where the eye already is —
+            // and detaching it there would leave an unparented camera looking at the inside of a
+            // head this component had just un-hidden.
+            if (!standing) DetachCamera();
         }
 
         private void Restore()

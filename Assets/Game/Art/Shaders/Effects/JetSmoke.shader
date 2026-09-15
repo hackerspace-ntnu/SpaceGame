@@ -16,8 +16,8 @@ Shader "SpaceGame/Effects/JetSmoke"
     Properties
     {
         _Color     ("Tint",  Color) = (0.34, 0.33, 0.32, 1)
-        _Softness  ("Edge Softness", Range(0.01, 1)) = 0.55
-        _Density   ("Density",       Range(0, 2))    = 0.85
+        _Softness  ("Edge Softness", Range(0.01, 1)) = 0.75
+        _Density   ("Density",       Range(0, 2))    = 0.7
 
         // The bite out of the edge. Zero is a clean disc, which reads as a bubble; a little of this
         // is what makes it read as smoke rather than as a sphere.

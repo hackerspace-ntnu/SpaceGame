@@ -4,6 +4,7 @@ layer: world
 summary: Sprayable one-way-pair apertures you walk through, replicated as messages rather than networked entities
 paths:
   - Assets/Game/Scripts/Portals/
+  - Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs
   - Assets/Game/Art/Shaders/Portal/
 symptoms:
   - "walking into a portal does nothing and no trigger ever fires"
@@ -20,7 +21,7 @@ symptoms:
   - "paint lands somewhere the stream of droplets was never seen to go"
   - "the spray visibly misses the portal it is opening"
 reads_with: [SceneTransitions, Artifacts, Combat]
-updated: 2026-09-07
+updated: 2026-09-09
 ---
 
 # Portals
@@ -50,14 +51,14 @@ Sprayable one-way-pair apertures: a plane you walk through, replicated as messag
 | `PortalStencil` / `PortalDab` | [PortalStencil.cs](Assets/Game/Scripts/Portals/PortalStencil.cs) | Pure C#, no MonoBehaviour. `Contains`, `Fits`, `Bounds`, `ClampInside`, `WriteShaderData`. Testable without a scene. |
 | `PortalPlacement` / `NonPortalable` | [PortalPlacement.cs](Assets/Game/Scripts/Portals/PortalPlacement.cs) | Static `Fit(hit, size, viewForward, mask, …) → Result`. Shooter-only; the result travels verbatim. |
 | `PortalGunItem` | [PortalGunItem.cs](Assets/Game/Scripts/Portals/PortalGunItem.cs) | A `ToolItem` on the ordinary Use/Present + hold-stream split. Owner authority. |
-| `PortalJet` | [PortalJet.cs](Assets/Game/Scripts/Portals/PortalJet.cs) | Static ballistic `Sample` / `Trace` (20 chords) / `TryAimAt` (the flat launch that reaches a point). Particles must match its speed + gravity **and be pointed the way it traces**. 24 m/s: ~32 m lobbed, ~10 m level. |
+| `SprayArc` | [SprayArc.cs](Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs) | Static ballistic `Sample` / `Trace` (20 chords, optionally blind to a self + carrier pair) / `TryAimAt` (the flat launch that reaches a point). **Shared with the foam gun**, which is why it lives under `Gameplay/Ballistics` rather than here. Particles must match its speed + gravity **and be pointed the way it traces**. 24 m/s: ~32 m lobbed, ~10 m level. |
 | `PortalSplat` | [PortalSplat.cs](Assets/Game/Scripts/Portals/PortalSplat.cs) | One quad of exhaust paint, ~0.5 s. Seed is `SeedFor(point)` (cm-quantised hash), so every machine draws the same splash. |
 
 ## Flows
 
 1. **Shot.** `OnRequestUse` (owner) picks the barrel via `PortalPair.ChooseSprayBarrel(aimPoint, growMargin, out grow)` — starting on your own paint tops that aperture up, anywhere else takes `PeekBarrel()` (an **empty** barrel always wins over plain alternation). `CommitBarrel` fires at the press, not at the landing.
-2. **Jet.** `PortalJet.Trace` follows the parabola; `flightTime` delays the landing. `PortalPlacement.Fit` probes outward for the surface's edges and slides the opening wholly onto the wall, or fizzles.
-3. **Droplets.** `PortalGunItem.AimJet` (LateUpdate, every machine, only while spraying) turns the emitter to the launch direction: the live aim on the owner, `PortalJet.TryAimAt(muzzle, lastAim, …)` on a peer. Matching the particle system's speed/gravity/lifetime to the C# constants buys the right *curve* and says nothing about which way it is thrown.
+2. **Jet.** `SprayArc.Trace` follows the parabola; `flightTime` delays the landing. `PortalPlacement.Fit` probes outward for the surface's edges and slides the opening wholly onto the wall, or fizzles.
+3. **Droplets.** `PortalGunItem.AimJet` (LateUpdate, every machine, only while spraying) turns the emitter to the launch direction: the live aim on the owner, `SprayArc.TryAimAt(muzzle, lastAim, …)` on a peer. Matching the particle system's speed/gravity/lifetime to the C# constants buys the right *curve* and says nothing about which way it is thrown.
 4. **Paint.** `Present`/`PresentHold` on **every** machine: `PortalPair.LayDab` → `Portal.AddStroke` (interpolated arithmetically, never by probing) → `Portal.ConformToSurface`. **The shape never goes on the wire** — each tick carries one point and the owner's affordability verdict; every machine replays the same gesture.
 5. **Sweep.** `Portal.LateUpdate` → `PublishSurfaceState` (also outside play mode) → `TickConformRetry` → `AdvanceTraversal` → `SweepVolume` + `StepCrossings`.
 6. **Crossing (two modes).** `Crossed`: `previous.Side > 0 && current <= 0`, travel > `minimumCrossingSpeed`, and the **segment/plane intersection** inside the aperture (margin 0.25). `Touching` (the contact pull): still in front, has stopped closing, within `HalfDepthAlong(normal) + PullReach(0.25)` — this is what carries NavMeshAgents and legged machines, which never drive their centre past a wall.
@@ -90,7 +91,7 @@ N/A for the gun's apertures — a portal's lifetime is 20 s and nothing writes o
 - **`PortalRim`'s `_Radius` is a GAP measured in stroke radii, not a normalised fraction.** The property changed meaning when the shaders went metric and `PortalRim_Primary.mat` kept the 0.62 it was born with — so the halo was drawn 0.62 x the dab radius *clear* of the opening: two thirds of a metre of bare wall between the hole and its own outline, which is what "the portal and the outline do not line up" turned out to be. `PortalContentBuilder` writes `_Radius`, `_Thickness` and `_Crawl` on every run for exactly that reason; a `.mat` is not a safe place for a number whose meaning can change.
 - **The crawling edge has one definition, `PortalStencilCrawl` in [PortalStencil.hlsl](Assets/Game/Art/Shaders/Portal/PortalStencil.hlsl).** Surface and halo both call it with their own `_Crawl`, which the builder writes from one constant. The halo used to roll its own noise at its own frequency, so the ring shimmered around an outline the hole did not have.
 - **Matching the droplets' speed and gravity to the trace is only half of it — the emitter has to be POINTED, too.** The jet is a world-space ParticleSystem parented to the muzzle, so left alone it throws along the gun's own forward; the gun sits in a fist rotated to the grip frame ([Inventory.md](Inventory.md)), tens of degrees off the look axis, while `Trace` paints along the aim ray. The stream visibly left the horn in one direction and the hole opened in another. `AimJet` turns it every `LateUpdate` while spraying — after the look and the hold pose have moved. `PortalGunWiringTests.TheDropletsFlyTheArcThePaintIsTracedAlong` guards the three numbers and could never have seen this: nothing owned the direction.
-- **A peer may not read its holder's aim.** `AimProvider.GetAimRay` falls back to the body's forward on a remote player — no pitch at all — so a peer aims its droplets with `PortalJet.TryAimAt` at the landing point the message carried instead. `TryAimAt` returns the FLAT of the two arcs; a straight line to a lobbed landing is not the curve the droplets fly.
+- **A peer may not read its holder's aim.** `AimProvider.GetAimRay` falls back to the body's forward on a remote player — no pitch at all — so a peer aims its droplets with `SprayArc.TryAimAt` at the landing point the message carried instead. `TryAimAt` returns the FLAT of the two arcs; a straight line to a lobbed landing is not the curve the droplets fly.
 - **The jet is measured against `Physics.gravity`, which is 18 in this project, not 9.81.** Every reach figure in the sources used to be an Earth calculation: "about 17 m lobbed" was a stream that actually made 9, which is why the sprayer could not paint the far side of a room. Recompute, never copy.
 - **Never move a portal's transform laterally to follow paint.** `ConformToSurface` moves along the normal only; lateral origin is what `TransferFrom` is built on, and shifting it drags the exit out from under whoever is mid-crossing.
 - `ConformToSurface` and `GatherHostSurfaces` must reject `attachedRigidbody != null` and `CharacterController` — otherwise a body standing in front of the paint reads as a bulge and shoves the aperture metres off the wall.

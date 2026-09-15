@@ -34,7 +34,7 @@ symptoms:
   - "the name and prompt move around the screen while I am reading them"
   - "the interact prompt sits above the target instead of under the crosshair"
 reads_with: [UI, Combat, PlayerCharacter, Multiplayer, InteractionSystem]
-updated: 2026-09-06
+updated: 2026-09-12
 ---
 
 # Visor
@@ -150,7 +150,7 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 - **The visor root must stay active at every detail level.** It owns the sublayers, so a controller that deactivated itself could not switch them back on. `HelmetOverlayVisibility` switches the two children and never the root — the same reason it lives on the canvas root rather than on what it toggles.
 - **`VisorSway` must reset its offset in `OnDisable`.** Left where it was, a layer switched off mid-turn comes back shifted to one side; and a stale rotation makes the first frame after re-enabling read as an enormous turn.
 - **Deleting `HealthUI` is not finished until the authored objects go too.** `PlayerHUD.prefab` carries `Health` / `HealthBar` / `HealthText` / `maxHealthText` as authored children. Leaving them draws a second, dead health bar in the old warm palette beside the new gauge.
-- **The message surfaces are NOT children of the visor canvas, and must not become them.** `VisorMessageStack` and `VisorWarningBanner` are self-instantiating `DontDestroyOnLoad` overlays because the arrival announces things at exactly the moments the player's whole HUD is switched off — `SeatPromptUI`'s "Q — exit the ship" hint would never be seen otherwise. **H** therefore reaches them by calling `SetShown`, not by deactivating a parent.
+- **The message surfaces are NOT children of the visor canvas, and must not become them.** `VisorMessageStack` and `VisorWarningBanner` are self-instantiating `DontDestroyOnLoad` overlays because the arrival announces things at exactly the moments the player's whole HUD is switched off — `SeatPromptUI`'s "Esc — exit the ship" hint would never be seen otherwise. **H** therefore reaches them by calling `SetShown`, not by deactivating a parent.
 - **The warning banner stays visible at the Vitals detail level.** Turning the markers off is not consent to stop being told the suit is failing.
 - **LiberationSans has no warning triangle.** The banner's mark is ASCII `!` / `!!` on purpose; a glyph the font lacks renders as literally nothing, so the severity mark would silently vanish. Same rule as the "no glyph spinners" gotcha in [UI.md](UI.md).
 - **A `BreathableVolume` being disabled or streamed out raises no `OnTriggerExit`.** `BreathableVolume.OnDisable` calls `SuitOxygen.ForgetVolume` for exactly that reason: without it a player standing in a chunk that unloads keeps the shelter for ever and never breathes their own supply again.

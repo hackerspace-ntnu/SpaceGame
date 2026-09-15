@@ -59,6 +59,7 @@ using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Vehicles
@@ -324,7 +325,12 @@ namespace SpaceGame.Vehicles
             // scene opened straight from the editor, has no business there, and the DuneFoil prefab
             // is instantiated and stepped by EditMode tests.
             if (Network.IsNetworked && !Network.Server && isActiveAndEnabled)
-                StartCoroutine(AskForStateWhenConnected());
+                // No teardown: the ask claims nothing and holds nothing — it is a late joiner's
+                // question, and a station whose question died reads as free, which is the state
+                // it already had. Releasing here would be wrong twice over: this path only runs
+                // on a client, and the release is the server's to decide.
+                StartCoroutine(Fault.Coroutine(
+                    this, "VehicleStation.AskForState", AskForStateWhenConnected()));
         }
 
         protected virtual void OnDisable()

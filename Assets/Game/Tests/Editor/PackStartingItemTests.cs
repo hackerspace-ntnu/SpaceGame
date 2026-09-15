@@ -43,8 +43,13 @@ namespace SpaceGame.Tests
 
                 foreach (PackContainer container in prefab.GetComponentsInChildren<PackContainer>(true))
                 {
-                    Check(container, "startingStrapItems", path, offenders);
-                    Check(container, "startingMainItems", path, offenders);
+                    Check(container, typeof(PackContainer), "startingStrapItems", path, offenders);
+                    Check(container, typeof(PackContainer), "startingMainItems", path, offenders);
+
+                    // A wall's per-head stores ride the same seam and are laid on the same way, so
+                    // an item authored there from outside Resources is lost on the same first take.
+                    if (container is WallInventory)
+                        Check(container, typeof(WallInventory), "perCrewItems", path, offenders);
                 }
             }
 
@@ -55,13 +60,14 @@ namespace SpaceGame.Tests
                         string.Join("\n  ", offenders));
         }
 
-        private static void Check(PackContainer container, string fieldName, string prefabPath,
-                                  List<string> offenders)
+        private static void Check(PackContainer container, System.Type declaringType,
+                                  string fieldName, string prefabPath, List<string> offenders)
         {
-            var field = typeof(PackContainer).GetField(fieldName, Hidden);
+            var field = declaringType.GetField(fieldName, Hidden);
             Assert.That(field, Is.Not.Null,
-                        $"PackContainer no longer has a '{fieldName}' — update this test to sweep "
-                        + "whatever replaced it, because the seam it guards has not gone anywhere.");
+                        $"{declaringType.Name} no longer has a '{fieldName}' — update this test to "
+                        + "sweep whatever replaced it, because the seam it guards has not gone "
+                        + "anywhere.");
 
             var items = (List<InventoryItem>)field.GetValue(container);
             if (items == null) return;

@@ -15,7 +15,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "30d22075093d1d35dfb0091c1c7550e9ad948577"
+      "hash": "4ce7dd3cc54e37e2ed6dc59cb5a047f3dccb3f50"
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
@@ -163,14 +163,13 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.netcode.gameobjects": {
-      "version": "2.9.1",
+      "version": "file:com.unity.netcode.gameobjects",
       "depth": 0,
-      "source": "registry",
+      "source": "embedded",
       "dependencies": {
-        "com.unity.transport": "2.6.0",
-        "com.unity.nuget.mono-cecil": "1.11.4"
-      },
-      "url": "https://packages.unity.com"
+        "com.unity.nuget.mono-cecil": "1.11.4",
+        "com.unity.transport": "2.6.0"
+      }
     },
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.6",

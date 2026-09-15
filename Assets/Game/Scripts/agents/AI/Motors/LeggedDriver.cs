@@ -237,6 +237,22 @@ namespace SpaceGame.Agents
             return true;
         }
 
+        /// <summary>
+        /// Something strapped to this machine is pushing it at <paramref name="acceleration"/>.
+        ///
+        /// <para>
+        /// A walker has one speed and it belongs to the gait, so a thruster sets a DIRECTION and
+        /// nothing else: the drag below is capped at <see cref="TopSpeed"/> exactly as a rope's
+        /// is. Legs cannot step faster than they step, and a body dragged past its own gait skates
+        /// (Invariant I4's other half). So a booster on an ostrich hauls it flat out for as long
+        /// as it burns rather than launching it, which is the machine's answer and not the item's
+        /// (GDC-L1-SYS-0002).
+        /// </para>
+        /// </summary>
+        public bool RequestThrust(Vector3 acceleration)
+            => acceleration.sqrMagnitude >= 1e-8f
+               && RequestTow(TowAttachPoint + acceleration * Time.fixedDeltaTime);
+
         public bool HasReachedDestination =>
             !destination.HasValue || FlatDistanceTo(destination.Value) <= EffectiveStopDistance;
 

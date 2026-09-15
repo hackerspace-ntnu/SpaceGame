@@ -111,8 +111,16 @@ namespace SpaceGame.Items
 
             GameObject instance = Instantiate(bracerPrefab, forearm);
             instance.name = $"Bracer ({slot})";
+            EquipItemSocket.Sanitize(instance);
+            BodyAttachment.Mark(instance);
+
             ForearmSeat.Apply(instance, forearm, hand.Socket, hand.GripRotation,
                               slot == BodySlot.LeftGauntlet, fit);
+
+            // The same guard the gauntlets get. The bracer prefab is pure geometry today, so none
+            // of this is load-bearing yet — but it is seated by the same arithmetic, on the same
+            // bone, and it is the one piece of gear every player wears for the whole session.
+            WornAnchor.Pin(instance, forearm);
             return true;
         }
 

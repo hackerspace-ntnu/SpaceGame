@@ -23,9 +23,10 @@ symptoms:
   - "the rope is drawn in a wood texture, smeared once along its whole length"
   - "the loop on the end of the rope is a hard perfect circle and looks unrealistic"
   - "the rope stops dead in the middle of the loop instead of joining it"
+  - "I respawned still lassoed, or still holding a rope on a creature half a world away"
   - "a laser beam through a live lasso rope does nothing"
 reads_with: [Artifacts, LeashSystem, Multiplayer, Persistence, AgentSystem, RopeCutting]
-updated: 2026-09-07
+updated: 2026-09-09
 ---
 
 # Lasso
@@ -121,6 +122,7 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 - **`LassoRope.Simulate` pins its ends outside the substep loop as well as inside.** The substep is a fixed 90 Hz, so a frame drawn faster than that runs none at all and leaves the ends where the last one put them. That was invisible while the far end was a slow-moving head; it is a visible gap between rope and loop now that the far end is a knot on something turning at 620°/s.
 - **`Show(start, start)` stacks every node on one point** with zero-length segments the solver cannot give a direction to. Seed along the aim.
 - **Slack, not span, is the shape of a rope.** `FlightSlack` must stay well outside `Straighten`'s 0.9–1.0 band or the cable is snapped onto the chord every substep and the throw draws as a straight line. `ThrownRopeTrailsInACurve` and `RopeStaysSmoothWhileBeingThrown` pin both halves; either is trivial to satisfy alone by breaking the other.
+- **A respawn drops the rope, at either end.** `LassoArtifact.Binds` answers for the holder as well as the catch, so a thrower who respawns lets go and a caught player who respawns is let go of — `RespawnRelease.Everything` → `CuttableRopes.CutEveryRopeOn` → the same `LassoVerb.Snapped` a rope tearing under strain sends. A throw still in the AIR binds nobody, exactly as it appends no span.
 - **A release with no orientation is a cancel, not a throw.** `EndHold(send: false)` delivers a `default` NetArg on unequip, disable and death; `arg.HasOrientation` is the test.
 - **Never `agent.enabled = false`.** `SuspendSelfDrive()`/`ResumeSelfDrive()` *record* whether the agent was enabled, which matters because `Awake` parks an agent that wakes before a NavMesh exists under it.
 - **`AgentController.Motor` is null outside play mode** (resolved in `Awake`, which `AddComponent` does not raise in edit mode). `LassoTether.Bind` falls back to `GetComponentInParent<ISelfDrivingMotor>()` or every EditMode test silently fails to take hold.

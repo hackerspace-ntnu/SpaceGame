@@ -49,6 +49,33 @@ namespace SpaceGame.Gameplay.Status
         public float DefaultSeconds => seconds;
 
         /// <summary>
+        /// Does this condition stop the body acting at all while it runs?
+        ///
+        /// <para>
+        /// The kind's own answer, because "helpless" is what the condition MEANS and not something
+        /// each body is authored to agree with. Everything that has to know — the creature brain,
+        /// the player's body hold — reads it through <see cref="StatusReceiver.Suppressed"/> every
+        /// frame and writes nothing, so a body cannot be left suppressed by a condition that has
+        /// already ended.
+        /// </para>
+        /// </summary>
+        public virtual bool Suppresses => false;
+
+        /// <summary>
+        /// May this condition be applied to <paramref name="body"/> right now? Asked on the
+        /// deciding machine only, before anything is announced.
+        ///
+        /// <para>
+        /// The default answer is yes, including while the condition is already running — that is
+        /// the refresh every continuous source relies on. A kind that must not be extended by the
+        /// source holding it there says so here rather than in each of its callers; see
+        /// <see cref="BurningStatus"/>, where a fire is worth its own duration once.
+        /// </para>
+        /// </summary>
+        /// <param name="running">Whether the condition is already on this body.</param>
+        public virtual bool CanApply(StatusReceiver body, bool running) => true;
+
+        /// <summary>
         /// The condition just started. Not called on a refresh — a body is burning or it is not,
         /// and a jet of flame held on a target must not restart the effect fifteen times a second.
         /// </summary>

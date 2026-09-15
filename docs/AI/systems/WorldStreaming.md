@@ -12,16 +12,19 @@ symptoms:
   - "a chunk never loads and the player falls through the world"
   - "client join fails with Scene Hash N does not exist in the HashToBuildIndex table"
   - "an NPC vanishes for clients when its old chunk unloads but the host still has it"
+  - "a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes"
   - "streaming stops dead — no chunk ever loads or unloads again after one error"
   - "a NavMesh or map bake silently skips chunks"
   - "chunks never unload, or a caravan drags loaded chunks around with it"
+  - "chunks stay loaded around every spot where somebody dropped something"
   - "a position 16 km out reads as terrain in the corner of the world"
   - "after the crash-landing intro the player walks and steers but never falls"
   - "loading takes a minute or two with several players when it takes seconds alone"
   - "the loading screen says still waiting on player spawn after 30s while chunks keep loading"
+  - "a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing"
   - "the host is the last player to spawn and misses the crew gather"
 reads_with: [TerrainGeneration, Persistence, SceneTransitions, NavMeshSystem]
-updated: 2026-09-02
+updated: 2026-09-12
 ---
 
 # World Streaming
@@ -38,7 +41,7 @@ Server-authoritative additive loading of chunk scenes around moving anchors, plu
 - Chunk geometry is pure maths in [ChunkGrid](Assets/Game/Scripts/World/Streaming/Grid/ChunkGrid.cs) — origin, chunkSize, dimensions. Coordinates are `Vector2Int (x, y)` where `y` maps to world **z**.
 - **Anchors** pull chunks in: every connected client's `PlayerObject`, every `RegisterTrackedTransform`, and every [SceneTracked](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) with `keepChunksLoaded`. Each requires a `(2*loadRadius+1)²` box, plus a second box at `PredictAhead(pos, velocity, streamLookaheadSeconds)`.
 - "Required" is decided by `TryGetStreamingCoord`, not `Contains`. Outside the grid but within `offWorldDistance` (2000 m) clamps to the nearest edge chunk and keeps it loaded; beyond that (the minigame arena, ~16.5 km east) the anchor holds nothing.
-- Unload is grace-timed (`unloadGracePeriod`, 10 s) and blocked while any non-`Despawn` `SceneTracked` sits in the chunk (radius-0 anchor).
+- Unload is grace-timed (`unloadGracePeriod`, 10 s) and blocked while a `Pin` or `Migrate` `SceneTracked` sits in the chunk (radius-0 anchor). `Despawn` and `Release` do not block it: the first is meant to die with its chunk, the second is captured into the save record on the way out and rebuilt when the chunk returns. That is why dropped items are `Release` — the radius-0 pin is otherwise permanent, so every spot anyone had ever put something down would hold its chunk resident for the rest of the session.
 - All scene ops go through one sequential queue — NGO permits one scene event at a time. `Update` ticks the queue at 0.5 s (`updateInterval`) and paces it against [ChunkActivationQueue](Assets/Game/Scripts/World/Streaming/Core/ChunkActivationQueue.cs): no new load while a chunk is still building.
 - Loaded ≠ built. Terrain features defer their GameObject+MeshCollider construction into `ChunkActivationQueue` under a ms budget (`chunkActivationBudgetMs`, 2 ms). Player spawns wait on `WhenChunkContentBuilt`, not on the scene event — and that wait is gated on the activation queue **alone**, never on the operation queue (see Gotchas).
 - A preload waits for every chunk it asked for that is not yet `Loaded`, **including one somebody else is already loading** (`EnqueueLoad` attaches the callback to the in-flight op via `loadListeners`, answered by `FinishLoad` on success or failure). Six players preloading one spawn area all wait for it.
@@ -52,7 +55,7 @@ Server-authoritative additive loading of chunk scenes around moving anchors, plu
 | `WorldStreamingConfig` | [Core/WorldStreamingConfig.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamingConfig.cs) | ScriptableObject: grid, tunables, `ConfigId` (asset GUID), `ChunkInfo[]` |
 | `ChunkInfo` (struct) | same file | `gridCoord`, `sceneName`, `scenePath`, `worldBounds`, `hasTerrain` |
 | `ChunkGrid` (struct) | [Grid/ChunkGrid.cs](Assets/Game/Scripts/World/Streaming/Grid/ChunkGrid.cs) | Pure geometry; `ToCoord` clamps, `TryGetStreamingCoord`/`DistanceOutside`/`PredictAhead`, and `WindowAround` for the chunks a view of a given span centred on a position covers (Gotchas) |
-| `SceneTracked` | [Core/SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) | `Pin`/`Migrate`/`Despawn` + `keepChunksLoaded`; also `IPersistentEntity` |
+| `SceneTracked` | [Core/SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) | `Pin`/`Migrate`/`Release`/`Despawn` + `keepChunksLoaded`; also `IPersistentEntity`. Added at runtime to every pickup by `SaveablePolicy.EnsureSpawned` |
 | `ChunkActivationQueue` | [Core/ChunkActivationQueue.cs](Assets/Game/Scripts/World/Streaming/Core/ChunkActivationQueue.cs) | Static budgeted work queue; self-drains via `ChunkActivationRunner` |
 | `WorldNavMeshProvider` | [NavMesh/WorldNavMeshProvider.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) | Adds the pre-baked [WorldNavMeshAsset](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshAsset.cs); no runtime bake |
 | `UnderTerrainGuard` | [Safety/Core/UnderTerrainGuard.cs](Assets/Game/Scripts/World/Safety/Core/UnderTerrainGuard.cs) | Owner-side failsafe; holds a body still while ground is owed, bounded then recovers |
@@ -85,7 +88,7 @@ Config vs disk: **48 declared / 48 on disk** (main), **8 / 8** (Ferdinand). All 
 3. `UnloadEventCompleted` → drop terrain cache, state `NotLoaded`, refresh neighbours, `OnChunkUnloaded`.
 
 **Entity crosses a chunk boundary**
-1. `UpdateSceneMembership` (same 0.5 s tick) walks the static `SceneTracked` registry and computes `ResolveDesiredScene`: `Pin` → the streamer's own persistent scene; `Migrate` → the loaded scene at `WorldToChunkCoord(pos)`, else stay put; `Despawn` → stay put.
+1. `UpdateSceneMembership` (same 0.5 s tick) walks the static `SceneTracked` registry and computes `ResolveDesiredScene`: `Pin` → the streamer's own persistent scene; `Migrate` and `Release` → the loaded scene at `WorldToChunkCoord(pos)`, else stay put; `Despawn` → stay put. An entity `InteriorManager.IsInsideInterior` reports as inside is **skipped entirely** — its scene belongs to the interior for the length of the visit, and both policies would otherwise drag it back out ([SceneTransitions](SceneTransitions.md)).
 2. Non-root objects are skipped — Unity rejects `MoveGameObjectToScene` on a child, and a rider parented to a mount follows it anyway.
 3. `MoveTracked` moves the server copy, then announces it: dynamically-spawned NetworkObjects are handled by NGO's `SceneMigrationSynchronization`; **in-scene-placed** ones are explicitly excluded by NGO, so `MigrateObjectRpc(networkObjectId, sceneName)` is sent to non-servers. No NetworkObject at all → one-shot `WarnUnreplicatedOnce`.
 4. Clients apply by `NetworkObjectId` + scene **name** (handles are per-process). Unresolvable announcements park in `pendingMigrations` and retry every client `Update`; `ReplayMigrationsTo` replays the session's whole migration set to each late joiner.
@@ -95,7 +98,7 @@ Config vs disk: **48 declared / 48 on disk** (main), **8 / 8** (Ferdinand). All 
 - Only the server runs streaming. A client's `Update` does exactly one thing: `DrainPendingMigrations`. Chunk state dictionaries are empty on clients forever — never ask `IsChunkLoadedAt` there; ask `IsInsideWorldGrid` (which also honours `hasTerrain`).
 - Chunk loads are NGO scene events, so client scenes arrive asynchronously and *after* the server's. `UnderTerrainGuard.IsAwaitingGround` exists for exactly this window.
 - NGO matches scenes by a hash of the **build-settings path**, case-sensitively. Folder-casing drift between machines produces `Scene Hash N does not exist in the HashToBuildIndex table` on client join. Chunk scenes must stay in build settings and keep the on-disk casing.
-- [NetworkGameManager](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs) waits for `IsReady`, calls `PreloadChunksAroundPositions(spawnPositions)`, and only spawns players in the callback; [LoadingScreenUI](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) waits on `InitialChunksLoaded`.
+- [NetworkGameManager](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs) waits for `IsReady`, calls `PreloadChunksAroundPositions(spawnPositions)`, and only spawns players in the callback; [LoadingScreenUI](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) waits on `InitialChunksLoaded` **on the server only**. `initialChunksLoaded` is set by the load bookkeeping, so like the chunk state dictionaries above it is false on a client forever — a client's overlay waits on `TerrainProbe` under its own player instead, gated by `IsInsideWorldGrid` so a terrainless place reads as ready and not as still loading.
 - **Every chunk load is a scene event every client must finish before the next can start**, so with N players the cost of a load is the slowest client's, serialised. The count of loads is therefore the lever: anything that pulls chunks in that nobody will stand on (a body two kilometres up) is a join delay for everyone. `SuspendAnchor` exists for exactly that.
 
 ## Persistence
@@ -123,6 +126,7 @@ Detail lives in [Persistence.md](Persistence.md); the streaming contract is:
 - **Pre-opened chunk scenes are adopted, not ignored.** `InitializeChunkStates` calls `AdoptLoadedChunk` for anything already open (common when editing chunks additively), which also fires `OnChunkLoaded` so persistence still hydrates them.
 - **A preload's callback waits for its own content, not for the world to go quiet.** `FlushContentCallbacks` used to also require `operationQueue` empty and no operation in progress — and in a six-player arrival that queue never emptied: five crew already seated were pulling chunks in around themselves, every load refilled the activation queue, and the host's spawn callback (first in, its four chunks long since built) sat behind twenty of somebody else's loads. Seen as `[LoadingScreen] Still waiting on player spawn after 30s` on a world that was ready, and the host seated last, after the crew-gather timeout. The flush now runs **before** `ProcessNextOperation` in `Update` and is gated on `ChunkActivationQueue.PendingCount == 0` alone.
 - **A second preload of the same area used to skip the wait.** `PreloadChunksAroundPositions` only counted `NotLoaded` chunks, so every caller after the first found them `Loading`, was told there was nothing to load, and went looking for ground that was not there yet. Now anything not `Loaded` is waited for, through `loadListeners`.
+- **NGO's own migration path is patched, and the package is embedded because of it.** Dynamically-spawned NetworkObjects are migrated by NGO, not by `MigrateObjectRpc` (step 3 above). Upstream `NetworkSceneManager.MigrateNetworkObjectsIntoScenes` dereferenced `networkObject.gameObject` with no null check: the client captures that reference when the `ObjectSceneChanged` message is read, and the object can be destroyed later in the same frame — a chunk unload, or a despawn — before the migration runs in `PostLateUpdate`. The throw is caught, but the `try` wraps the whole loop, so the rest of that frame's migrations are dropped and cleared, and *those* objects stay in their old scene on that client and die when it unloads while the server keeps them. Upstream's prune runs after the migration and only covers `LocalClientId` entries, so it never catches migrations announced by another peer. Netcode now lives in `Packages/com.unity.netcode.gameobjects` with a `SPACEGAME PATCH` guard — see [Packages/PATCHES.md](Packages/PATCHES.md) before upgrading it.
 - **`SceneEventInProgress` is not an error.** NGO's busy flag is global; the retry path is load-bearing. Never "fix" it by dequeuing the next op.
 - **Domain-reload-off leaks the activation queue.** `ChunkActivationQueue` clears itself via `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]`; anything else static in this subsystem must do the same.
 - **`SnapAgentsToNavMesh` re-enables agents.** `NavMeshAgentMotor.Awake` disables its own agent when no mesh is under it and relies on this to switch it back on. Nothing else keeps that promise.

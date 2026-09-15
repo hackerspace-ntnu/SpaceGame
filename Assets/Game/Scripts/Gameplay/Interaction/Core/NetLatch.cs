@@ -21,6 +21,7 @@ using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 
 namespace SpaceGame.Gameplay
 {
@@ -187,7 +188,14 @@ namespace SpaceGame.Gameplay
             // the same thing — and it keeps a whole class of hosts out of the coroutine machinery:
             // an EditMode test, or a scene opened straight from the editor, has no business there.
             if (Network.IsNetworked && !Network.Server && owner.isActiveAndEnabled)
-                askRoutine = owner.StartCoroutine(AskWhenConnected());
+                // `owner` rather than `this`: a NetLatch is a plain field on a component, not a
+                // Component itself, and it borrows its owner's coroutines.
+                //
+                // No teardown: the latch's own state is already "not answered", which is the
+                // correct reading after a failed ask. The barrier is here so a throw does not
+                // leave askRoutine pointing at a coroutine that is never going to complete.
+                askRoutine = owner.StartCoroutine(
+                    Fault.Coroutine(owner, "NetLatch.Ask", AskWhenConnected()));
         }
 
         /// <summary>

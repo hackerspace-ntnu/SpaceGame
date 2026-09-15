@@ -592,12 +592,19 @@ namespace SpaceGame.World
             }
 
             // Chunks that contain a tracker which would be destroyed by the unload (Pin/Migrate)
-            // get pinned even if they're outside the load radius. Despawn-policy trackers don't pin.
-            // Without this guard a Migrate'd vehicle could still get yanked out from under itself
-            // if it idled at the very edge of a chunk for the grace period.
+            // get pinned even if they're outside the load radius. Without this guard a Migrate'd
+            // vehicle could still get yanked out from under itself if it idled at the very edge of a
+            // chunk for the grace period.
+            //
+            // Despawn and Release trackers do not pin, for opposite reasons: a Despawn'd one is
+            // meant to die with its chunk, and a Release'd one is captured into the save record on
+            // the way out and rebuilt when the chunk returns. Release exists because this pin is
+            // otherwise permanent — every place a player had ever dropped something would hold its
+            // chunk resident for the rest of the session.
             foreach (var entity in s_trackedEntities)
             {
                 if (entity.Policy == SceneTracked.UnloadPolicy.Despawn) continue;
+                if (entity.Policy == SceneTracked.UnloadPolicy.Release) continue;
                 AddAnchor(requiredChunks, entity.TrackedTransform, 0);
             }
 
@@ -772,6 +779,14 @@ namespace SpaceGame.World
 
             foreach (var entity in s_trackedEntities)
             {
+                // A body that walked into an interior is not in the exterior world at all, and its
+                // scene belongs to InteriorManager for the length of the visit. Without this the
+                // two passes fight each other every tick: Pin drags a mount straight back out of
+                // the cave it just carried its rider into, and Migrate hands it to whichever chunk
+                // happens to sit under the interior's world-origin coordinates.
+                if (InteriorManager.Instance != null && InteriorManager.Instance.IsInsideInterior(entity.gameObject))
+                    continue;
+
                 Scene desired = ResolveDesiredScene(entity);
                 if (!desired.IsValid() || !desired.isLoaded) continue;
 
@@ -949,6 +964,7 @@ namespace SpaceGame.World
                     return persistentScene;
 
                 case SceneTracked.UnloadPolicy.Migrate:
+                case SceneTracked.UnloadPolicy.Release:
                 {
                     var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
                     if (loadedScenes.TryGetValue(coord, out var scene) && scene.IsValid() && scene.isLoaded)

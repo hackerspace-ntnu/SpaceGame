@@ -96,15 +96,21 @@ best template for a new creature builder.
 
    | Temperament | Faction | Rows in `GlobalRelationships.asset` | Extra |
    |---|---|---|---|
-   | Attacks on sight | `RobotFaction`, `BountyHunterFaction`, or a new one | `Hostile` toward `PlayerFaction` | combat modules |
-   | Peaceful until hurt | `FaunaFaction` (or a new empty one) | **none** — `FaunaFaction.asset` appears in zero rows; adding one "for completeness" makes every creature of that faction attack on sight | `ProvocationModule`, with `leashRange` ≤ `AgentTargeting.loseRange` |
-   | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward the player — change or reuse deliberately | — |
+   | Attacks on sight | `ClankerFaction`, `OutlawFaction`, or a new one | Clankers need none — `defaultStance = Hostile` covers every people-faction, including ones added later. Outlaws have one `Hostile` row toward `HumansFaction` | combat modules |
+   | Peaceful until hurt | `FaunaFaction` (or a new empty one) | **none, and leave `defaultStance` at `Neutral`** — Fauna's only rows are the two `Neutral` ones the Clankers use to stay off the animals. Adding a `Hostile` row "for completeness", or a `Hostile` default, makes every creature of that faction attack on sight | `ProvocationModule`, with `leashRange` ≤ `AgentTargeting.loseRange` |
+   | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward `HumansFaction` — change or reuse deliberately | — |
    | Afraid of the player | any | see below | `FleeModule` |
+
+   **`defaultStance` is the checkbox, not the rows.** It is the stance toward any faction the table
+   has no row for: `Hostile` if **either** side says so, `Allied` only if **both** do, else
+   `Neutral`. Only `ClankerFaction` sets it, and a row always beats it — which is exactly how
+   "Clankers shoot people but ignore animals" is expressed. Leave it `Neutral` for anything new
+   unless the whole point of the faction is that it is everyone's enemy.
 
    `FleeModule` resolves its own threat by **relationship**, not by "the player": it uses
    `fleeFromRelationship` (default `Hostile`) against `EntityTargetRegistry`. For a creature that
    should flee the player and nothing else, give it its own `FactionDefinition` with a single
-   `Hostile` row toward `PlayerFaction` and add **no** chase or combat module — `AgentTargeting`
+   `Hostile` row toward `HumansFaction` and add **no** chase or combat module — `AgentTargeting`
    acquires the player, and with only `FleeModule` above `WanderModule` on the ladder the creature
    runs. Setting `fleeFromRelationship = Neutral` instead makes it flee every neutral entity in the
    world, including other creatures.
@@ -321,7 +327,7 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Symptom | Cause | Fix |
 |---|---|---|
 | Creature never notices anything, no errors | No `EntityFaction`, or no relationship table assigned | Add both; `EntityFaction.Ensure(go, faction, table)` on spawn paths |
-| Every "peaceful" creature attacks on sight | A relationship row was added for its faction | Peaceful = **zero rows** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
+| Every "peaceful" creature attacks on sight | A relationship row was added for its faction, or its `defaultStance` is not `Neutral` | Peaceful = **zero rows and a `Neutral` default** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
 | Creature chases A, shoots B, backs away from C | A module resolved its own target | Read `context.Targeting` |
 | Everything below one module never runs | That module returns `MoveIntent.Idle()` while merely waiting | Return `null` |
 | A script-added module is ignored | `Reset()` is not called for `AddComponent`; priority stayed 0 and tied with wander | Set `priority` explicitly |
@@ -338,6 +344,7 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | A spawner's group duplicates on load | Its members were also captured by the world save | `SaveableEntity.DisownToExternal()` — see `spacegame-persistence` |
 | Vehicle carrying the creature climbs into the sky | Its ground probe hit the non-kinematic rider | Skip hits whose `attachedRigidbody` is non-kinematic; layer masks do not work here (the player is on layer 0) |
 | An agent with two `AgentTargeting` components | `[RequireComponent]` already added one before the builder did | Guard with `GetComponent<AgentTargeting>() == null` |
+| A mounted NPC rides up and never attacks | Its brain is off — it is a passenger | `NpcPassenger` takes the rider's *feet* (`AgentController.RidesAsPassenger` + `NavMeshAgent`/motors), never the `AgentController`. Do not arm the animal instead: a mount carries, the rider shoots |
 
 ## Cross-references
 

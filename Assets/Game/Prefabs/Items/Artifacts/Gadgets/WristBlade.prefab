@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 6188059083774445427}
   - component: {fileID: 1857186157784611042}
   - component: {fileID: 6198925609742532243}
+  - component: {fileID: -5575716750263393426}
   m_Layer: 0
   m_Name: WristBlade
   m_TagString: Untagged
@@ -342,6 +343,18 @@ MonoBehaviour:
   hitId: 209
   stabTrigger: Stab
   stabSeconds: 1.2
+--- !u!114 &-5575716750263393426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 16963009660134417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &49507224156158827
 GameObject:
   m_ObjectHideFlags: 0

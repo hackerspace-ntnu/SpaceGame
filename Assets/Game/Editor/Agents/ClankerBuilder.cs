@@ -56,7 +56,7 @@ namespace SpaceGame.EditorTools
         public const string PrefabPath = "Assets/Game/Prefabs/Agents/Robots/Clanker.prefab";
         private const string MaterialDir = "Assets/Game/Art/Materials/Characters";
 
-        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/RobotFaction.asset";
+        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
         // What a Clanker carries: a real InventoryItem, rolled at spawn by NpcRandomLoadout, held
         // and fired through EntityEquipmentController + NpcItemUseModule -- the sand nomads' path,
@@ -94,8 +94,15 @@ namespace SpaceGame.EditorTools
             "Assets/Game/Resources/Items/Artifacts/InflatorNozzle.asset",
         };
         private const int CarriedArtifactEmptyRolls = 10;
-        private const float GunMinRange = 4f;
-        private const float GunMaxRange = 28f;
+        /// <summary>
+        /// The band the Clanker's held gun fires in. Public because a Clanker is not always the
+        /// thing that chooses where it stands — a mounted one is carried into range by its horse,
+        /// and <c>RobotHorseBuilder</c> picks the outrider's standoff against these two numbers.
+        /// </summary>
+        public const float GunMinRange = 4f;
+
+        /// <inheritdoc cref="GunMinRange"/>
+        public const float GunMaxRange = 28f;
 
         /// <summary>
         /// How far a Clanker spots a person, and how far one can get before it gives up. The

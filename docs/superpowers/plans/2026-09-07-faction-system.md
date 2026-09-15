@@ -12,6 +12,34 @@
 
 ---
 
+## Where this actually is — verified against the repo 2026-09-15
+
+The checkboxes below drifted from the code. Re-read by grep, **the phases were not done in plan
+order**, and the cheap foundation everything else reads was skipped:
+
+| Phase | State | Evidence |
+| --- | --- | --- |
+| **A** Mock Clanker settlement | **done** bar the play/client check | `ClankerSettlementBuilder.cs`, `ClankerSettlement.asset`, generated into `Chunk_7_3` |
+| **0** Data hygiene | **not started** | `PlayerFaction`, `NPCFaction` *and* `RobotFaction` all still read `factionName: Robots`; nothing renamed; no `FactionAssetTests` |
+| **1** `defaultStance` + resolver | **not started** | `FactionDefinition` has no `defaultStance` and still `debugColor`; no `FactionRelations.Resolve` |
+| **2** Alerts | **2.1 done, 2.2 partial** | `AlertBroadcaster` queries `EntityTargetRegistry` for allies, `receiverLayers`/`alliedOnly` gone, `AlertReceiverModule` routes through `Provoke`, `ProvocationModule` re-broadcasts behind `announce`, `AlertChainTests`. **But** `NomadPrefabBuilder` adds only `AlertBroadcaster` + `AlertReceiverModule` — no `NoiseReceiverModule`, no `AlertResponseSaveable`, no `NoiseInvestigationSaveable` |
+| **3** Goodwill + aggression meters | **not started** | no `AggressionMath`, `GoodwillMath`, `FactionGoodwillLedger`, `MenaceSensor` |
+| **4** Rosters and tribes | **not started** | no `FactionRoster`, no `Rosters/` folder, no Mechanics/Sky faction, no `TerritoryZone` |
+| **5** NPC worn gear, Sky flight | **not started** | no `EntityBodyEquipment`, no `NpcFlightModule` |
+| **6** Clankers | **6.1 + 6.2 done, 6.3 not started** | Clanker imported with `THIRD_PARTY_NOTICES.md`, `ClankerBuilder.cs`, `Clanker.prefab`, `Clanker.asset` targeting profile, `ClankerSquadPlacer`, settlement garrison + 3 outriders. `Rosters/Clankers.asset` waits on Phase 4. No `ScavengeModule` |
+| **7** Legibility | **not started** | no `FactionReadout` |
+| **8** Docs | **not started** | no `docs/AI/systems/Factions.md` |
+
+Not in the plan at all, and shipped: the **robot horse** (`RobotHorseBuilder`), which builds the wild
+Fauna `RobotHorse` and the Clanker-ridden `ClankerOutrider` the settlement fields. Its rule —
+**a mount carries, the rider shoots; no horse can attack anything** — is in
+[AgentSystem.md](../../AI/systems/AgentSystem.md) and [Vehicles.md](../../AI/systems/Vehicles.md).
+
+**Suggested next step: Phase 0, then Phase 1.** They are a day's work between them, nothing else in
+the plan is blocked on anything else, and Phases 3, 4 and 7 all read `defaultStance` and
+`FactionRelations.Resolve`. Doing them now also stops three factions from sharing the display name
+"Robots", which is what makes any faction bug in play unreadable today.
+
 ## Before you start
 
 - **Branch.** Work is on `Feat/factions` (already checked out). One PR per phase; each phase leaves `main` shippable.

@@ -2,7 +2,7 @@
 //
 // The exemption is a single per-entity opt-out layered on top of the faction answer, and it is
 // deliberately narrow: the player on the conjurer's shoulder is still a hostile member of
-// PlayerFaction to every other robot in the world. The tests here pin both halves of that — the
+// HumansFaction to every other robot in the world. The tests here pin both halves of that — the
 // carrier cannot see them, and everybody else still can — because the failure modes point in
 // opposite directions. Too narrow and the machine turns round and fights its own passenger; too
 // broad and riding a robot is a cloaking device.
@@ -25,8 +25,8 @@ namespace SpaceGame.EditorTools
     public class PassengerSeatTests
     {
         private const string FactionDir = "Assets/Game/ScriptableObjects/Factions/Core";
-        private const string RobotPath = FactionDir + "/RobotFaction.asset";
-        private const string PlayerPath = FactionDir + "/PlayerFaction.asset";
+        private const string ClankerPath = FactionDir + "/ClankerFaction.asset";
+        private const string HumansPath = FactionDir + "/HumansFaction.asset";
         private const string TablePath = FactionDir + "/GlobalRelationships.asset";
         private const string ConjurerPath = "Assets/Game/Prefabs/Agents/creatures/LightningConjurer.prefab";
 
@@ -101,11 +101,11 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Carrier_CannotSeeThePassengerItIsCarrying()
         {
-            EntityFaction robot = Entity("Conjurer", RobotPath);
-            EntityFaction player = Entity("Player", PlayerPath);
+            EntityFaction robot = Entity("Conjurer", ClankerPath);
+            EntityFaction player = Entity("Player", HumansPath);
 
             Assert.Contains(player, HostilesSeenBy(robot),
-                "Precondition: RobotFaction is Hostile toward PlayerFaction in GlobalRelationships, " +
+                "Precondition: ClankerFaction is Hostile toward HumansFaction in GlobalRelationships, " +
                 "so an un-ridden conjurer must see the player. If this fails the relationship table " +
                 "changed and the rest of these tests are asserting on nothing.");
 
@@ -120,9 +120,9 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Exemption_IsScopedToTheOneCarrier()
         {
-            EntityFaction carrier = Entity("Carrier", RobotPath);
-            EntityFaction bystander = Entity("OtherRobot", RobotPath);
-            EntityFaction player = Entity("Player", PlayerPath);
+            EntityFaction carrier = Entity("Carrier", ClankerPath);
+            EntityFaction bystander = Entity("OtherRobot", ClankerPath);
+            EntityFaction player = Entity("Player", HumansPath);
 
             carrier.Ignore(player);
 
@@ -134,8 +134,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Dismounting_MakesTheRiderVisibleAgain()
         {
-            EntityFaction robot = Entity("Conjurer", RobotPath);
-            EntityFaction player = Entity("Player", PlayerPath);
+            EntityFaction robot = Entity("Conjurer", ClankerPath);
+            EntityFaction player = Entity("Player", HumansPath);
 
             robot.Ignore(player);
             robot.StopIgnoring(player);
@@ -148,8 +148,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void DisablingTheCarrier_ForgetsWhatItWasOverlooking()
         {
-            EntityFaction robot = Entity("Conjurer", RobotPath);
-            EntityFaction player = Entity("Player", PlayerPath);
+            EntityFaction robot = Entity("Conjurer", ClankerPath);
+            EntityFaction player = Entity("Player", HumansPath);
 
             robot.Ignore(player);
             Call(robot, "OnDisable");
@@ -179,8 +179,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ForceTarget_RefusesAnExemptEntity()
         {
-            EntityFaction robot = Entity("Conjurer", RobotPath);
-            EntityFaction player = Entity("Player", PlayerPath);
+            EntityFaction robot = Entity("Conjurer", ClankerPath);
+            EntityFaction player = Entity("Player", HumansPath);
             AgentTargeting targeting = Targeting(robot);
 
             robot.Ignore(player);
@@ -195,8 +195,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ForgetIgnored_DropsATargetAcquiredBeforeTheRiderSatDown()
         {
-            EntityFaction robot = Entity("Conjurer", RobotPath);
-            EntityFaction player = Entity("Player", PlayerPath);
+            EntityFaction robot = Entity("Conjurer", ClankerPath);
+            EntityFaction player = Entity("Player", HumansPath);
             AgentTargeting targeting = Targeting(robot);
 
             targeting.ForceTarget(player.transform);
@@ -279,7 +279,7 @@ namespace SpaceGame.EditorTools
             spawned.Add(go);
 
             faction = go.AddComponent<EntityFaction>();
-            faction.SetFaction(Load<FactionDefinition>(RobotPath), Load<FactionRelationshipTable>(TablePath));
+            faction.SetFaction(Load<FactionDefinition>(ClankerPath), Load<FactionRelationshipTable>(TablePath));
             targeting = go.AddComponent<AgentTargeting>();
             mount = go.AddComponent<MountModule>();
             PassengerSeat seat = go.AddComponent<PassengerSeat>();
@@ -297,7 +297,7 @@ namespace SpaceGame.EditorTools
 
             go.AddComponent<HealthComponent>();
             faction = go.AddComponent<EntityFaction>();
-            faction.SetFaction(Load<FactionDefinition>(PlayerPath), Load<FactionRelationshipTable>(TablePath));
+            faction.SetFaction(Load<FactionDefinition>(HumansPath), Load<FactionRelationshipTable>(TablePath));
             go.AddComponent<PlayerMovement>();
             var interactor = go.AddComponent<Interactor>();
 
@@ -370,7 +370,7 @@ namespace SpaceGame.EditorTools
             spawned.Add(go);
 
             var faction = go.AddComponent<EntityFaction>();
-            faction.SetFaction(Load<FactionDefinition>(RobotPath), Load<FactionRelationshipTable>(TablePath));
+            faction.SetFaction(Load<FactionDefinition>(ClankerPath), Load<FactionRelationshipTable>(TablePath));
             go.AddComponent<AgentTargeting>();
             MountModule mount = go.AddComponent<MountModule>();
             WanderModule module = go.AddComponent<WanderModule>();
@@ -402,7 +402,7 @@ namespace SpaceGame.EditorTools
             spawned.Add(go);
 
             var faction = go.AddComponent<EntityFaction>();
-            faction.SetFaction(Load<FactionDefinition>(RobotPath), Load<FactionRelationshipTable>(TablePath));
+            faction.SetFaction(Load<FactionDefinition>(ClankerPath), Load<FactionRelationshipTable>(TablePath));
             go.AddComponent<AgentTargeting>();
             MountModule mount = go.AddComponent<MountModule>();
             WanderModule module = go.AddComponent<WanderModule>();

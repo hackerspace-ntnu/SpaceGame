@@ -14570,6 +14570,7 @@ GameObject:
   - component: {fileID: 318152717647789169}
   - component: {fileID: 2346103631732733737}
   - component: {fileID: 8170380834968856445}
+  - component: {fileID: 8864583938415787395}
   m_Layer: 0
   m_Name: FlameGauntlet
   m_TagString: Untagged
@@ -14944,6 +14945,18 @@ MonoBehaviour:
   fadeTime: 0.18
   aimSmoothing: 22
   holdTimeout: 0.5
+--- !u!114 &8864583938415787395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906167443239047506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &4801942268136073699
 GameObject:
   m_ObjectHideFlags: 0

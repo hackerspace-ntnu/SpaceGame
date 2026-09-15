@@ -39,7 +39,7 @@ namespace SpaceGame.EditorTools
         private const string FactionDir =
             "Assets/Game/ScriptableObjects/Factions/Core";
         private const string WildlifePath = FactionDir + "/WildlifeFaction.asset";
-        private const string PlayerPath = FactionDir + "/PlayerFaction.asset";
+        private const string HumansPath = FactionDir + "/HumansFaction.asset";
         private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
 
         // Movement speeds, in metres per second, for a 4.3 m animal standing
@@ -333,17 +333,17 @@ namespace SpaceGame.EditorTools
                 EnsureFolder(FactionDir);
                 wildlife = ScriptableObject.CreateInstance<FactionDefinition>();
                 wildlife.factionName = "Wildlife";
-                wildlife.debugColor = new Color(0.85f, 0.70f, 0.27f);
+                wildlife.hudColor = new Color(0.85f, 0.70f, 0.27f);
                 AssetDatabase.CreateAsset(wildlife, WildlifePath);
                 Debug.Log($"Created {WildlifePath}");
             }
 
-            var player = AssetDatabase.LoadAssetAtPath<FactionDefinition>(PlayerPath);
+            var player = AssetDatabase.LoadAssetAtPath<FactionDefinition>(HumansPath);
             var table = AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(
                 RelationshipsPath);
             if (player == null || table == null)
             {
-                Debug.LogWarning("PlayerFaction or GlobalRelationships missing — " +
+                Debug.LogWarning("HumansFaction or GlobalRelationships missing — " +
                                  "the Vrescal will read as Neutral until a " +
                                  "Wildlife/Player pair exists.");
                 return wildlife;

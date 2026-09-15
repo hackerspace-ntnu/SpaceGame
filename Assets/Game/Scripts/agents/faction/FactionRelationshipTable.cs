@@ -104,7 +104,38 @@ namespace SpaceGame.Agents
 
             return lookup.TryGetValue(Key(a, b), out FactionRelationship relationship)
                 ? relationship
-                : FactionRelationship.Neutral;
+                : DefaultBetween(a, b);
+        }
+
+        /// <summary>
+        /// What two factions are to each other when the table has no row for them (design §3.2
+        /// step 3).
+        ///
+        /// <para>
+        /// Deliberately computed on the cache MISS rather than folded into the index. The index is
+        /// built from the authored rows and invalidated by their count; a default is a property of
+        /// the two <see cref="FactionDefinition"/> assets, which can be edited in the Inspector
+        /// without the row list changing at all — baking it in would serve a stale answer until
+        /// somebody happened to add a row.
+        /// </para>
+        /// <para>
+        /// <b>Hostile is unilateral; Allied is not.</b> Either side calling the other an enemy makes
+        /// it a fight, because a faction that shoots on sight gets shot back at whatever the victim
+        /// thinks. Friendship needs both, because nobody is your ally merely by saying so — and one
+        /// faction declaring itself everyone's friend must not quietly disarm the whole world.
+        /// </para>
+        /// </summary>
+        private static FactionRelationship DefaultBetween(FactionDefinition a, FactionDefinition b)
+        {
+            if (a.defaultStance == FactionRelationship.Hostile ||
+                b.defaultStance == FactionRelationship.Hostile)
+                return FactionRelationship.Hostile;
+
+            if (a.defaultStance == FactionRelationship.Allied &&
+                b.defaultStance == FactionRelationship.Allied)
+                return FactionRelationship.Allied;
+
+            return FactionRelationship.Neutral;
         }
 
         private void BuildLookup()

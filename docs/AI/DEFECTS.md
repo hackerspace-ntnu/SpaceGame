@@ -30,7 +30,7 @@ Recorded 2026-09-01 during the full documentation pass.
 | `CameraShakeIntensity` is not reset | It is missing from `GameSettings.ResetToDefaults`. | [CoreServices](systems/CoreServices.md) |
 | Fast enter-play-mode is a no-op | `m_EnterPlayModeOptionsEnabled: 1` with `m_EnterPlayModeOptions: 0` — enabled, but neither reload is actually disabled. | [ProjectConfig](systems/ProjectConfig.md) |
 | Arena NavMesh filtering is dead code | `MatchManager`'s island filtering runs against arena content that no longer exists. | [NavMesh](systems/NavMeshSystem.md) |
-| `EntitySystemSetup.cs` is a stale comment-only file | It still names six `EntityProfile_*` variants that were deleted. | [EntitySystem](systems/EntitySystem.md) |
+| `PatrolRobot 2.prefab` has no builder | Its faction was moved from Humans to Clankers by a one-off `SerializedObject` edit (2026-09-15) because no editor script owns the four `PatrolRobot` prefabs. Nothing will put it back if someone re-authors them by hand. They are slated for deletion once Clankers are client-verified (faction plan Task 6.2). | [AgentSystem](systems/AgentSystem.md) |
 
 ## Correctness
 

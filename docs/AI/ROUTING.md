@@ -30,6 +30,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | _zverify reports a clash in the assembled model that the component file it came from never showed | [ArtPipeline](systems/ArtPipeline.md) |
 | _zverify reports dozens of clashes in a component file that holds several variations | [ArtPipeline](systems/ArtPipeline.md) |
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
+| a background Cycles render of a small file fails with Error: out of memory | [ArtPipeline](systems/ArtPipeline.md) |
 | a bevelled bezel has a chamfer groove running across its face at every corner | [ArtPipeline](systems/ArtPipeline.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a blob is visibly bigger than the area that caught the player inside it | [FoamGun](systems/FoamGun.md) |
@@ -48,6 +49,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a charge written into a slot never reaches the owning client | [SupplyCharge](systems/SupplyCharge.md) |
 | a chest item ends up on the small of the back instead of the sternum | [BodyEquipment](systems/BodyEquipment.md) |
 | a chunk never loads and the player falls through the world | [WorldStreaming](systems/WorldStreaming.md) |
+| a Clanker rides up to me on its horse and then just sits there | [AgentSystem](systems/AgentSystem.md) |
+| a clash check comes back clean and the part is visibly buried in the model | [ArtPipeline](systems/ArtPipeline.md) |
+| a clash checker reports hundreds of overlaps against the hull, decks or cage | [ArtPipeline](systems/ArtPipeline.md) |
+| a clash checker says an object is inside a shape that is nowhere near it | [ArtPipeline](systems/ArtPipeline.md) |
 | a client fails to join with 'Scene Hash N does not exist in the HashToBuildIndex table | [Scenes](systems/Scenes.md) |
 | a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData | [Multiplayer](systems/Multiplayer.md) |
 | a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes | [WorldStreaming](systems/WorldStreaming.md) |
@@ -93,6 +98,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a fast or lightly-charged throw passes straight through a thin target and reports a miss | [Lasso](systems/Lasso.md) |
 | a feature stopped working mid-session and the chat says it was switched off | [Diagnostics](systems/Diagnostics.md) |
 | a filled bottle is refused by the backpack that took the empty one | [Oxygen](systems/Oxygen.md) |
+| a fitted collider comes out as a slab the size of the whole model | [ArtPipeline](systems/ArtPipeline.md) |
 | a flat ground apron appears around a generated rock | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a fleeing creature walks toward the thing it is running from | [AgentSystem](systems/AgentSystem.md) |
 | a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0) | [EditorTooling](systems/EditorTooling.md) |
@@ -154,9 +160,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a MeshCollider I added is missing from the bake and nothing errors | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a mid-air quicksave reloads standing still in the sky | [Wingsuit](systems/Wingsuit.md) |
 | a mid-air save reloads with the ornithopter falling out of the sky | [Ornithopter](systems/Ornithopter.md) |
+| a model ships local materials although every generator links from the palette | [ArtPipeline](systems/ArtPipeline.md) |
 | a module I just resized no longer fits the backpack rack at any angle | [PlayerShip](systems/PlayerShip.md) |
 | a mount carries its rider into a cave and the rider still sees the exterior's lighting | [SceneTransitions](systems/SceneTransitions.md) |
 | a mount that walked into a cave cannot walk back out of it | [SceneTransitions](systems/SceneTransitions.md) |
+| a mounted NPC never fights back and can be shot off its animal at leisure | [Vehicles](systems/Vehicles.md) |
 | a mounted ostrich vanishes out from under its rider on the other machine | [Locomotion](systems/Locomotion.md) |
 | a moving NPC keeps nine chunks loaded around itself | [EntitySystem](systems/EntitySystem.md) |
 | a moving part of a held item snaps out of place the moment the item is switched on | [Artifacts](systems/Artifacts.md) |
@@ -227,6 +235,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a save file's item records sit at y = -30000 and get deeper on every load | [Persistence](systems/Persistence.md) |
 | a save-restored creature is on the NavMesh but never moves | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a saved world comes back with a singularity still open in it | [BottledSingularity](systems/BottledSingularity.md) |
+| a scaled ladder reaches the right height but its rungs are metres apart | [ArtPipeline](systems/ArtPipeline.md) |
 | a scene I did not touch opens with a missing-prefab placeholder after I deleted an item | [Inventory](systems/Inventory.md) |
 | a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
 | a seated player's head stays turned after they stand up | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -348,6 +357,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
 | editing a script while the game is running kills my camera and controls for the rest of the session | [PlayerCharacter](systems/PlayerCharacter.md) |
+| editing palette.blend does not change a model that uses those materials | [ArtPipeline](systems/ArtPipeline.md) |
 | EntityProfile_RobotPhil / _DesertRat is referenced but does not exist | [EntitySystem](systems/EntitySystem.md) |
 | equipping or unequipping a gauntlet keeps selecting the chest or back item | [BodyEquipment](systems/BodyEquipment.md) |
 | Esc right after pressing B leaves no camera enabled at all | [Backpack](systems/Backpack.md) |
@@ -392,6 +402,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | gliding into a cliff at full speed costs nothing | [Wingsuit](systems/Wingsuit.md) |
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
 | hauling somebody on a rope overheats the pack much sooner than flying alone | [Jetpack](systems/Jetpack.md) |
+| headless Blender dies rendering a preview with EXCEPTION_ACCESS_VIOLATION in nvoglv64.dll | [ArtPipeline](systems/ArtPipeline.md) |
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
 | holding W does the same thing whether I look up or down | [Jetpack](systems/Jetpack.md) |
 | how do I actually prove this works on a client and not just the host | [Testing](systems/Testing.md) |
@@ -465,6 +476,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | loot drops all over again every time I load the world | [AgentSystem](systems/AgentSystem.md) |
 | loot drops or the enrage fires again every time I load the world | [Combat](systems/Combat.md) |
 | menu buttons do not click when MainMenu is entered directly | [audio](systems/audio.md) |
+| mirroring a part to the other side of a vehicle flips it end for end instead | [ArtPipeline](systems/ArtPipeline.md) |
 | moving a half-used item through the gear screen refilled it | [BodyEquipment](systems/BodyEquipment.md) |
 | moving a tank across the pack mat emptied it | [SupplyCharge](systems/SupplyCharge.md) |
 | my [Rpc] method never runs on the other machine | [Multiplayer](systems/Multiplayer.md) |
@@ -500,6 +512,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
 | one pod vectors and the other one does not | [Jetpack](systems/Jetpack.md) |
 | one press seated the player in all four ship chairs at once | [Vehicles](systems/Vehicles.md) |
+| one prop type turns out to be a quarter of a model's whole triangle count | [ArtPipeline](systems/ArtPipeline.md) |
 | one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
 | one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
@@ -535,6 +548,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | re-running a generator script destroyed hand edits that existed only in the .blend | [ArtPipeline](systems/ArtPipeline.md) |
 | rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload | [Ornithopter](systems/Ornithopter.md) |
 | rebuilding the wing pack makes the folded craft stowable on the back panels | [Ornithopter](systems/Ornithopter.md) |
+| ReferenceError: StructRNA of type Material has been removed | [ArtPipeline](systems/ArtPipeline.md) |
 | remote copies of the creature slide along with their feet still | [AgentSystem](systems/AgentSystem.md) |
 | Render Graph Execution error: the passed in texture handle does not have a valid descriptor | [Environment](systems/Environment.md) |
 | Render Graph Execution error: The passed in texture handle does not have a valid descriptor | [Environment](systems/Environment.md) |
@@ -561,6 +575,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | state resets to prefab defaults after I save, quit and load the world | [Persistence](systems/Persistence.md) |
 | steering under the wing is far slower than turning my head on foot | [Wingsuit](systems/Wingsuit.md) |
 | stirrup irons or buckles float on the flank with nothing joining them to a strap | [Saddles](systems/Saddles.md) |
+| straps or bands stand off the top of a squashed gas bag or barrel they should be clamping | [ArtPipeline](systems/ArtPipeline.md) |
 | streaming stops dead — no chunk ever loads or unloads again after one error | [WorldStreaming](systems/WorldStreaming.md) |
 | surface detail I dialled up does not show in the meshed feature | [TerrainGeneration](systems/TerrainGeneration.md) |
 | switching the torch on changes nothing about how the body stands | [Flashlight](systems/Flashlight.md) |
@@ -729,6 +744,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the heat gauge never appears, or fills toward danger instead of emptying | [Jetpack](systems/Jetpack.md) |
 | the highlighted cell on the gear wall is not the one under the crosshair, or its board is bigger than the grid drawn on it | [Backpack](systems/Backpack.md) |
 | the horizon rolls when I bank and it makes me ill | [Wingsuit](systems/Wingsuit.md) |
+| the horse kicks me instead of the Clanker riding it shooting me | [AgentSystem](systems/AgentSystem.md) |
 | the host can pick 8 teams of 12 in a 24-seat lobby | [GameModes](systems/GameModes.md) |
 | the host is the last player to spawn and misses the crew gather | [WorldStreaming](systems/WorldStreaming.md) |
 | the impact gob bursts before the foam arrives | [FoamGun](systems/FoamGun.md) |
@@ -830,6 +846,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the plant's lamp is dark with a power cell fitted, or lit with none | [Oxygen](systems/Oxygen.md) |
 | the player build fails with BuildFailedException about the world NavMesh | [NavMeshSystem](systems/NavMeshSystem.md) |
 | the player comes out of a ceiling portal lying down in mid-air | [Portals](systems/Portals.md) |
+| the player falls through a stretch of deck that is visibly plated | [ArtPipeline](systems/ArtPipeline.md) |
 | the player falls through foam they just sprayed | [FoamGun](systems/FoamGun.md) |
 | the player ship, or a dropped item, is in a timer autosave but gone from the file after I stop play mode in the editor | [Persistence](systems/Persistence.md) |
 | the player standing on the deck is read as ground and the walker climbs into the sky | [Vehicles](systems/Vehicles.md) |
@@ -1408,4 +1425,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1028 symptoms, 354 paths, 55 docs -->
+<!-- 1045 symptoms, 354 paths, 55 docs -->

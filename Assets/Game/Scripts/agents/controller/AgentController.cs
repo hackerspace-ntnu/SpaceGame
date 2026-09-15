@@ -77,6 +77,24 @@ namespace SpaceGame.Agents
         /// </summary>
         public bool SimulatesHere => authority == null || authority.SimulatedHere;
 
+        /// <summary>
+        /// Is this agent riding on something else as cargo? Set by <see cref="NpcPassenger"/> when
+        /// it seats a body and cleared when it puts one down; nothing else may write it.
+        ///
+        /// <para>
+        /// Deliberately a flag on the controller rather than the controller being switched off,
+        /// which is what seating used to do. "Cannot walk" and "cannot act" are different states —
+        /// the same distinction <see cref="StatusReceiver.Suppressed"/> draws one line above — and
+        /// collapsing them is what made every mounted NPC in the game harmless.
+        /// </para>
+        /// <para>
+        /// Not saved, and it must not be: it is a reading of where this body currently is, and
+        /// <see cref="NpcPassenger"/> re-derives it the moment it seats anybody. See the note on
+        /// <c>simulating</c> above for the same argument.
+        /// </para>
+        /// </summary>
+        public bool RidesAsPassenger { get; set; }
+
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
         // The phase is why a crowd does not march in step. It is randomised per agent in Awake, so a
@@ -130,6 +148,23 @@ namespace SpaceGame.Agents
             if (!RefreshAuthority())
             {
                 TickPresentation(deltaTime);
+                return;
+            }
+
+            // Cargo on something else. Its feet are not its own — NpcPassenger has parented it into
+            // a saddle and switched its motor off — so no movement module and no motor may run, and
+            // the presentation context is the honest one: asking a parked motor for its velocity
+            // reads a stale zero as a measurement.
+            //
+            // The side-effect channel still runs, and that is the whole point of the distinction: a
+            // module that claims no movement claims nothing the carrier owns, so a rider can still
+            // see, acquire and shoot from the saddle. Before this, seating an NPC switched its whole
+            // brain off and a mounted gunman was scenery.
+            if (RidesAsPassenger)
+            {
+                if (status == null || !status.Suppressed)
+                    TickSideEffectModules(BuildPresentationContext(), deltaTime);
+
                 return;
             }
 
@@ -283,7 +318,8 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// The context a watching machine can honestly fill in.
+        /// The context a machine that is not driving this body can honestly fill in — a watcher, or
+        /// the authority for a body that is riding as cargo (<see cref="RidesAsPassenger"/>).
         ///
         /// A separate method rather than a flag on <see cref="BuildContext"/>, because the two are
         /// not the same query with an option: this one may not touch the motor (it has been parked,
@@ -334,17 +370,26 @@ namespace SpaceGame.Agents
         /// <summary>One site name for every module, so a creature's quarantines are per component.</summary>
         private const string ModuleSite = "AgentModule.Tick";
 
+        /// <summary>
+        /// Attacks, audio, the gun in the NPC's hand: everything that claims no movement. Ticked
+        /// unconditionally, and separately from <see cref="EvaluateModules"/>, because a body that
+        /// may not walk may still act — see <see cref="RidesAsPassenger"/>.
+        /// </summary>
+        private void TickSideEffectModules(in AgentContext context, float deltaTime)
+        {
+            if (sideEffectModules == null)
+                return;
+
+            foreach (IBehaviourModule module in sideEffectModules)
+            {
+                if (module.IsActive)
+                    RunModule(module, in context, deltaTime);
+            }
+        }
+
         private MoveIntent EvaluateModules(in AgentContext context, float deltaTime)
         {
-            // Always tick side-effect modules (attacks, audio, etc.) — they never produce a MoveIntent.
-            if (sideEffectModules != null)
-            {
-                foreach (IBehaviourModule module in sideEffectModules)
-                {
-                    if (module.IsActive)
-                        RunModule(module, in context, deltaTime);
-                }
-            }
+            TickSideEffectModules(in context, deltaTime);
 
             // First movement module to return non-null wins this frame.
             if (movementModules != null)

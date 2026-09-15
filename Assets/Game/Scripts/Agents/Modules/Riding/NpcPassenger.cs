@@ -8,9 +8,14 @@
 //
 // So this is the other model: a mounted NPC is ONE agent, not two. The mount is the agent — it has
 // the motor, the NavMeshAgent, the formation slot, the task. The rider is a passenger: parented to
-// the saddle with its own drivers switched off, along for the journey. Half the agents, no
+// the saddle with its own MOVEMENT switched off, along for the journey. Half the agents, no
 // arbitration between a rider's AI and its mount's, and the rider is still a full NPC the moment it
 // gets off.
+//
+// Movement, and only movement. A passenger keeps its eyes and its trigger finger: it acquires its
+// own targets and fires its own gun from the saddle (AgentController.RidesAsPassenger). That split
+// is the whole reason a mount is not a weapon — an outrider's horse carries and an outrider's
+// Clanker shoots, and neither does the other's job.
 //
 // Online, only the authority seats anyone. Netcode then carries the whole arrangement by itself:
 // it replicates the rider's spawn, it replicates the parenting, and NetAuthority switches the
@@ -78,9 +83,13 @@ namespace SpaceGame.Agents
         private bool ownsRider;
 
         // What was switched off to make them a passenger, so exactly that much can be switched back
-        // on. Recording rather than re-deriving matters: a rider whose AgentController was already
+        // on. Recording rather than re-deriving matters: a rider whose NavMeshAgent was already
         // disabled by something else must not be handed a working one by dismounting.
         private readonly List<Behaviour> suppressed = new();
+
+        // The brains put into passenger mode, kept for the same reason and separately from the list
+        // above: this is a flag on a component that stays ENABLED, not a component switched off.
+        private readonly List<AgentController> carried = new();
         private bool riderWasKinematic;
         private Rigidbody riderBody;
 
@@ -163,12 +172,12 @@ namespace SpaceGame.Agents
         /// A rider who is hurt, or killed, gets off.
         ///
         /// <para>
-        /// A passenger's brain is switched off — that is what makes them a passenger — so a seated
-        /// rider cannot chase, cannot fight, cannot even turn round. Being shootable and unable to
-        /// answer is worse than being invulnerable: it reads as a broken enemy rather than a
-        /// peaceful one. Getting off is what makes them an NPC again, and every module that decides
-        /// what a provoked nomad does about it is already on the prefab and already listening to
-        /// the same damage.
+        /// A passenger can shoot back, but it cannot move: where it goes is the animal's decision,
+        /// and an animal has its own reasons to be somewhere. So a rider under fire is a rider that
+        /// cannot take cover, cannot close and cannot break off — it can only sit in the saddle and
+        /// trade. Getting off is what gives it those verbs back, and every module that decides what
+        /// a provoked nomad does with them is already on the prefab and already listening to the
+        /// same damage.
         /// </para>
         /// <para>
         /// Death matters separately because <c>HealthReactionModule</c> kills by switching the
@@ -397,6 +406,16 @@ namespace SpaceGame.Agents
         /// not a trader.
         /// </para>
         /// <para>
+        /// And deliberately not the brain either, which is what this used to do. Switching off the
+        /// <see cref="AgentController"/> stopped the rider walking, but it also stopped it seeing,
+        /// acquiring and shooting: every mounted NPC in the game was an ornament that could be shot
+        /// off its animal at leisure, and the only way a Clanker outrider could threaten anybody was
+        /// for the HORSE to trample them. The controller is told it is cargo instead
+        /// (<see cref="AgentController.RidesAsPassenger"/>), which starves the movement channel and
+        /// the motor and leaves the side-effect channel — the gun — running. Where the rider goes is
+        /// the animal's business; what it shoots is still its own.
+        /// </para>
+        /// <para>
         /// And deliberately not their colliders, which is what this used to do. A collider is not
         /// only how a body pushes the world about; it is how the world finds the body at all.
         /// Raycasts, overlap sweeps and the interaction probe all pass straight through a disabled
@@ -410,9 +429,14 @@ namespace SpaceGame.Agents
         private void Suppress(GameObject rider)
         {
             suppressed.Clear();
+            carried.Clear();
 
             foreach (AgentController controller in rider.GetComponentsInChildren<AgentController>(true))
-                Disable(controller);
+            {
+                if (controller == null || controller.RidesAsPassenger) continue;
+                controller.RidesAsPassenger = true;
+                carried.Add(controller);
+            }
 
             foreach (NavMeshAgent agent in rider.GetComponentsInChildren<NavMeshAgent>(true))
                 Disable(agent);
@@ -473,9 +497,13 @@ namespace SpaceGame.Agents
             {
                 foreach (Behaviour behaviour in suppressed)
                     if (behaviour != null) behaviour.enabled = true;
+
+                foreach (AgentController controller in carried)
+                    if (controller != null) controller.RidesAsPassenger = false;
             }
 
             suppressed.Clear();
+            carried.Clear();
 
             if (riderBody != null)
             {

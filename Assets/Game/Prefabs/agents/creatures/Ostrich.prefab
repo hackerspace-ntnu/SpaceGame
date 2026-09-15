@@ -103,6 +103,8 @@ GameObject:
   - component: {fileID: 1543822454575726187}
   - component: {fileID: 613497110962547155}
   - component: {fileID: 4862729303251889873}
+  - component: {fileID: 5577107525782346992}
+  - component: {fileID: 8535173819671937647}
   m_Layer: 0
   m_Name: Ostrich
   m_TagString: Untagged
@@ -269,9 +271,11 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 3987795919156751077}
+  seatBone: 
   seatOffset: {x: 0, y: -0.4, z: 0}
   dismountPoint: {fileID: 3680777552004377387}
   mountableByDirectInteraction: 1
+  maxMountDistance: 0
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
@@ -802,9 +806,9 @@ MonoBehaviour:
   burning:
     seconds: 5
     damagePerSecond: 4
+    reigniteDelay: 3
   frozen:
     seconds: 10
-    shatterDamage: 25
   slick:
     seconds: 20
     grip: 0.03
@@ -817,6 +821,8 @@ MonoBehaviour:
   foamed:
     seconds: 10
     breakDamage: 10
+  swallowed:
+    seconds: 6
   inflationTarget: {fileID: 7910077900827871769}
 --- !u!114 &4862729303251889873
 MonoBehaviour:
@@ -839,6 +845,32 @@ MonoBehaviour:
     Response: 2
   - Kind: 4
     Response: 2
+--- !u!114 &5577107525782346992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: acfac6dcc51034e60915d44e81aa5710, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &8535173819671937647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
 --- !u!1001 &7659642805198663154
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -931,30 +963,30 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6833416867555028066, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 214067957135823683}
     - targetCorrespondingSourceObject: {fileID: 7443210140209077411, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7758931217643635354}
-    - targetCorrespondingSourceObject: {fileID: 305344946521387649, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2765657938440936361}
-    - targetCorrespondingSourceObject: {fileID: -3080077724994671743, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 433625251830526130}
     - targetCorrespondingSourceObject: {fileID: 5521433059848791077, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9055883532741729904}
-    - targetCorrespondingSourceObject: {fileID: 1960403634503915922, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 6833416867555028066, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6565821221016642246}
-    - targetCorrespondingSourceObject: {fileID: -9034925269200279409, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
+      addedObject: {fileID: 214067957135823683}
+    - targetCorrespondingSourceObject: {fileID: -3080077724994671743, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3116781185761181932}
+      addedObject: {fileID: 433625251830526130}
     - targetCorrespondingSourceObject: {fileID: 3692767814021943427, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5368997752741417287}
+    - targetCorrespondingSourceObject: {fileID: -9034925269200279409, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3116781185761181932}
+    - targetCorrespondingSourceObject: {fileID: 305344946521387649, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2765657938440936361}
+    - targetCorrespondingSourceObject: {fileID: 1960403634503915922, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6565821221016642246}
   m_SourcePrefab: {fileID: 100100000, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
 --- !u!1 &938750536780443985 stripped
 GameObject:

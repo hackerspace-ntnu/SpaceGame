@@ -5,6 +5,8 @@
 //   an agent speed that disagrees with the blend tree's Run threshold skates the feet;
 //   an outrider on the Fauna side patrols the Clankers' town as a peaceful animal;
 //   an outrider with no NpcPassenger, or one whose rider is not the Clanker, rides empty;
+//   an attack module on either horse makes transport into a weapon (see the builder's header);
+//   an outrider that stops outside its rider's gun band carries him somewhere he cannot shoot;
 //   a SaveableEntity with no prefab id vanishes on load.
 using System.Linq;
 using NUnit.Framework;
@@ -83,6 +85,47 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(outrider.GetComponent<PatrolModule>());
             Assert.IsNotNull(outrider.GetComponent<AlertReceiverModule>(), "an outrider answers the town's alerts");
             Assert.IsNotNull(outrider.GetComponent<AlertBroadcaster>());
+        }
+
+        /// <summary>
+        /// A horse is transport. Neither one may carry anything that deals damage, on either side
+        /// of the fight — the rider's gun is the only weapon an outrider has.
+        /// </summary>
+        [Test]
+        public void NeitherHorseCanAttackAnything()
+        {
+            foreach (GameObject horse in new[] { wild, outrider })
+            {
+                Assert.IsEmpty(horse.GetComponentsInChildren<CloseCombatModule>(true),
+                               $"{horse.name} must not kick or trample — the rider does the fighting");
+                Assert.IsEmpty(horse.GetComponentsInChildren<AgentRangedCombatModule>(true), horse.name);
+                Assert.IsEmpty(horse.GetComponentsInChildren<NpcItemUseModule>(true),
+                               $"{horse.name} carries no weapon of its own");
+                Assert.IsEmpty(horse.GetComponentsInChildren<FightOrFlightModule>(true),
+                               $"{horse.name} has no fight branch to turn to — it only runs");
+            }
+
+            // The wild horse must not pursue either: a Fauna animal that chases and cannot strike
+            // follows the player about forever doing nothing, which reads as broken rather than shy.
+            Assert.IsNull(wild.GetComponent<ChaseModule>(), "a frightened horse runs, it does not follow");
+            Assert.IsNotNull(wild.GetComponent<FleeModule>());
+        }
+
+        /// <summary>
+        /// The outrider's whole job is to put its rider somewhere the rider's gun works. Stop short
+        /// of ClankerBuilder.GunMinRange and the Clanker holds fire at point-blank; stop beyond
+        /// GunMaxRange and it never opens up at all.
+        /// </summary>
+        [Test]
+        public void TheOutriderStopsInsideItsRidersGunBand()
+        {
+            var chase = outrider.GetComponent<ChaseModule>();
+            Assert.IsNotNull(chase, "the outrider has to close the distance for its rider");
+
+            float stop = new SerializedObject(chase).FindProperty("chaseStopDistance").floatValue;
+            Assert.AreEqual(RobotHorseBuilder.ChaseStopDistance, stop, 1e-3f);
+            Assert.Greater(stop, ClankerBuilder.GunMinRange, "the rider would be inside its own minimum range");
+            Assert.Less(stop, ClankerBuilder.GunMaxRange, "the rider would be parked out of range of everything");
         }
 
         [Test]

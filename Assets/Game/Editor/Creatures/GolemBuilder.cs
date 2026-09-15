@@ -322,7 +322,7 @@ namespace SpaceGame.EditorTools
             EnsureFolder(FactionDir);
             fauna = ScriptableObject.CreateInstance<FactionDefinition>();
             fauna.factionName = "Fauna";
-            fauna.debugColor = new Color(0.42f, 0.78f, 0.45f);
+            fauna.hudColor = new Color(0.42f, 0.78f, 0.45f);
             AssetDatabase.CreateAsset(fauna, FaunaPath);
             Debug.Log($"Created {FaunaPath} — peaceful by having no row in " +
                       "GlobalRelationships. Do not add one.");

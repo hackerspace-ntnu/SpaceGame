@@ -95,7 +95,7 @@ namespace SpaceGame.EditorTools
         private const string MidRingPrefab = StructureDir + "/Industrial/MiningRigDerelict.prefab";
 
         // The Clanker itself (ClankerBuilder). Until 2026-09-07 the garrison was the PatrolRobot
-        // family standing in; "PatrolRobot 2" was never used because it ships on PlayerFaction
+        // family standing in; "PatrolRobot 2" was never used because it ships on HumansFaction
         // (design doc §2.2) and would have garrisoned the town on the players' side.
         private static readonly string[] GarrisonPrefabs = { ClankerBuilder.PrefabPath };
 
@@ -123,7 +123,7 @@ namespace SpaceGame.EditorTools
         public const int PopulationCap = 26;
         public const float PopulationInterval = 45f;
         public const int PopulationWave = 3;
-        private const string OwnerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/RobotFaction.asset";
+        private const string OwnerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
         [MenuItem("Tools/SpaceGame/Settlements/Build Mock Clanker Settlement")]

@@ -112,7 +112,7 @@ namespace SpaceGame.EditorTools
         // host start fail with "An item with the same key has already been added. Key: 7".
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
         private const string AnimatorPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
-        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/NPCFaction.asset";
+        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/SandTribeFaction.asset";
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
         // The walking staff he carries and fights with. Built by
@@ -303,6 +303,7 @@ namespace SpaceGame.EditorTools
                 ConfigureFaction(root);
                 ConfigureWatch(root);
                 ConfigureAlerts(root);
+                ConfigureHearing(root);
                 if (recipe.CarriesStaff) AttachStaff(model);
                 ConfigureCombat(root, recipe);
                 ConfigureProvocation(root);
@@ -747,17 +748,21 @@ namespace SpaceGame.EditorTools
                 "SpaceGame.Agents.IdleLookAroundModule",
                 // Turns to face you when you walk up, before you press anything. Reused rather
                 // than written: WatchModule already is "stop and face whoever is inside this
-                // radius", and its Neutral default is exactly what NPCFaction is toward the
+                // radius", and its Neutral default is exactly what SandTribeFaction is toward the
                 // player. See ConfigureWatch.
                 "SpaceGame.Agents.WatchModule",
                 "SpaceGame.Agents.AlertBroadcaster",
                 "SpaceGame.Agents.AlertReceiverModule",
+                // Ears. A caravan strung out along a dune loses line of sight constantly, so the
+                // alert radius alone leaves the far half of it standing about while the near half
+                // fights. See ConfigureHearing for which noises mean what.
+                "SpaceGame.Agents.NoiseReceiverModule",
                 // Lets DialogInteraction stop him and turn him to face whoever is talking.
                 "SpaceGame.Agents.InteractionFocusModule",
             };
 
             // He is peaceful, so the attack modules never claim a frame — they do nothing at all
-            // without a target, and NPCFaction is Neutral toward the player so AgentTargeting
+            // without a target, and SandTribeFaction is Neutral toward the player so AgentTargeting
             // never acquires one. ProvocationModule is what hands him a target, and only after
             // someone hits him. See ConfigureProvocation.
             //
@@ -809,6 +814,10 @@ namespace SpaceGame.EditorTools
                 // every agent here. Without it the creature reloads having forgotten who it was
                 // fighting — which now includes forgetting that it was provoked at all.
                 "SpaceGame.Core.Persistence.AgentStateSaveable",
+                // AlertResponseSaveable and NoiseInvestigationSaveable are deliberately NOT listed:
+                // SaveablePolicy adds a saver for each of the two modules above during
+                // WireSaveables, the same way ProvocationSaveable and CombatCadenceSaveable already
+                // arrive here. Listing them as well would be a second place to keep in step.
                 "SpaceGame.World.Safety.UnderTerrainGuard",
             });
 
@@ -1177,6 +1186,42 @@ namespace SpaceGame.EditorTools
                 SetFloat(so, "alertDuration", 12f);
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
+        }
+
+        /// <summary>
+        /// What a nomad does about a noise he did not see the cause of.
+        ///
+        /// <para>
+        /// The two masks are deliberately different, because the two noises mean different things
+        /// to a peaceful man. A <b>gunshot</b> is a thing to go and look at — it may be a hunt, or
+        /// another caravan, or nothing to do with him — so it moves him, and no more. A tribesman
+        /// <b>crying out in pain</b> is not ambiguous: he knows that voice, and
+        /// <c>NoiseReceiverModule</c>'s aggro branch already refuses to turn him on an ally, so the
+        /// only thing he can take it as is somebody attacking his people.
+        /// </para>
+        /// <para>
+        /// This is the other half of <see cref="ConfigureAlerts"/>, and it is the half that covers
+        /// the caravan strung out along a dune: the alert radius is 35 m of clear line, and a
+        /// column on the march is regularly longer than that.
+        /// </para>
+        /// </summary>
+        private static void ConfigureHearing(GameObject root)
+        {
+            var ears = FindComponent(root, "SpaceGame.Agents.NoiseReceiverModule");
+            if (ears == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No NoiseReceiverModule; a nomad shot out of " +
+                                 "sight of the rest of the caravan will die without anyone coming.");
+                return;
+            }
+
+            var so = new SerializedObject(ears);
+            // Literal masks for the same reason the component list is strings: this file names no
+            // agent type directly, so it still compiles while that assembly is mid-edit.
+            SetInt(so, "priority", 18);         // ModulePriority.Reactive - 2
+            SetEnum(so, "investigateOn", 1 << 4);   // NoiseTypeMask.Gunshot
+            SetEnum(so, "aggroOn", 1 << 2);         // NoiseTypeMask.Hurt
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void ConfigureWatch(GameObject root)

@@ -146,6 +146,12 @@ namespace SpaceGame.EditorTools
             // points into `root`, and a destroyed Transform throws on `.name`, not returns null.
             string rigName = armature.name;
 
+            // This builder overwrites the prefab wholesale, so the faction has to be put back on by
+            // the same pass that owns it for the five crawler-like prefabs nobody generates —
+            // otherwise a rebuild silently drops it and the crawler goes back to being invisible to
+            // every targeting module in the game.
+            EntityFactionWiring.Ensure(root, System.IO.Path.GetFileNameWithoutExtension(PrefabPath));
+
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);

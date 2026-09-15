@@ -181,7 +181,7 @@ namespace SpaceGame.EditorTools
         /// instead when somebody is standing on a ledge.
         private const float TelegraphGroundProbe = 8f;
         private const string FactionDir = "Assets/Game/ScriptableObjects/Factions/Core";
-        private const string RobotFactionPath = FactionDir + "/RobotFaction.asset";
+        private const string ClankerFactionPath = FactionDir + "/ClankerFaction.asset";
         private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
 
         /// How close a player must come before the creature wakes up, in metres.
@@ -2919,16 +2919,16 @@ namespace SpaceGame.EditorTools
         /// Ferdinand_Test_world does not.
         private static void WireBrain(GameObject root)
         {
-            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(RobotFactionPath);
+            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(ClankerFactionPath);
             var table = AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(RelationshipsPath);
             if (faction == null || table == null)
             {
                 Debug.LogError("[LightningConjurer] Faction assets missing; the creature will " +
-                               "never acquire a target. Expected " + RobotFactionPath + " and " +
+                               "never acquire a target. Expected " + ClankerFactionPath + " and " +
                                RelationshipsPath + ".");
             }
 
-            // RobotFaction is already Hostile toward PlayerFaction in GlobalRelationships.asset,
+            // ClankerFaction is already Hostile toward HumansFaction in GlobalRelationships.asset,
             // so no new row is needed and none should be added -- that table is global, and a
             // row added here changes every robot in the game.
             var entityFaction = root.AddComponent<EntityFaction>();

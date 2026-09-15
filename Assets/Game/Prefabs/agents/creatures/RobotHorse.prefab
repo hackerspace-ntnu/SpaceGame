@@ -378,12 +378,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
   agent: {fileID: 8178084754679555691}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.20433994
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 3
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.8
   mountedJumpDuration: 0.55
@@ -393,6 +398,7 @@ MonoBehaviour:
   mountedLeapSampleRadius: 6
   riderTurnSpeed: 120
   riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
 --- !u!114 &1852424507450100261
@@ -412,6 +418,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.4
   measuredRunSpeed: 3.5
+  strideEndPhases: []
 --- !u!114 &3308354917202776282
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -506,6 +513,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 641
   eyeHeight: 3.348
+  targetAimHeight: 1
   memoryDuration: 8
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
@@ -567,7 +575,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
   profile: {fileID: 0}
-  relationship: 2
+  relationship: 0
   acquisitionRange: 35
   loseRange: 45
   requireLineOfSightToAcquire: 1
@@ -580,7 +588,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1182037371659996694}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2dd9811b69a34a4c83ca0e719373f3b, type: 3}
   m_Name: 
@@ -686,7 +694,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1182037371659996694}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 43eff2e021982408cbdc8668fb5d941c, type: 3}
   m_Name: 
@@ -946,7 +954,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1182037371659996694}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f5143ff601f504c72995e51afbceb9fe, type: 3}
   m_Name: 
@@ -954,9 +962,11 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 0}
+  seatBone: 
   seatOffset: {x: 0, y: 1.6359999, z: -0.208}
   dismountPoint: {fileID: 0}
   mountableByDirectInteraction: 1
+  maxMountDistance: 0
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: FlameGauntlet
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: 90cddc793b9b24b47a6b58e7e62b1929
+  itemName: Flame Gauntlet
+  itemPrefab: {fileID: 3906167443239047506, guid: ef5501e60bdf00b4296824d9249dd219, type: 3}
+  icon: {fileID: 21300000, guid: 914b5b03bbbcc414086befdb3eca4906, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 1

@@ -135,6 +135,12 @@ namespace SpaceGame.Items
         [Header("Presentation")]
         [Tooltip("Steam vented at the gland when the ram fires. Assigned by the builder.")]
         [SerializeField] private ParticleSystem steamBurst;
+        [Tooltip("Trigger on the wearer's animator for the arm's punch, played on the Upper Body " +
+                 "layer through PlayerAimRig. Built by Tools > SpaceGame > Player > Build Gestures. " +
+                 "Empty for no gesture.")]
+        [SerializeField] private string punchTrigger = "Punch";
+        [Tooltip("Seconds the gesture holds the arm layer up: the clip's length.")]
+        [SerializeField] private float punchSeconds = 0.8f;
         [Tooltip("RepulsorShockwave-shader material for the ground ring — the same wave the " +
                  "repulsor draws, because it is the same event. Assigned by the builder.")]
         [SerializeField] private Material ringMaterial;
@@ -152,6 +158,7 @@ namespace SpaceGame.Items
         private float ramHold;
         private Vector3[] ramRest;
         private PlayerLook look;
+        private PlayerAimRig aimRig;
         private float fovKickUntil = float.NegativeInfinity;
         private bool fovKickArmed;
 
@@ -236,6 +243,8 @@ namespace SpaceGame.Items
             // punch that only animates on contact reads as an input the game ignored.
             FireRam(connected);
             if (steamBurst != null) steamBurst.Play();
+            // The whole upper body throws the punch, on every machine, like the ram.
+            if (aimRig != null) aimRig.PlayGesture(punchTrigger, punchSeconds, WornOn);
 
             if (!connected) return;
 
@@ -428,6 +437,7 @@ namespace SpaceGame.Items
         {
             base.OnEquipped(holder);
             look = holder != null ? holder.GetComponent<PlayerLook>() : null;
+            aimRig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
             CaptureRamRest();
             SetRamOffset(0f);
         }
@@ -440,6 +450,7 @@ namespace SpaceGame.Items
             if (fovKickArmed && look != null) look.SetFovOffset(0f);
             fovKickArmed = false;
             look = null;
+            aimRig = null;
 
             ramStart = float.NegativeInfinity;
             SetRamOffset(0f);

@@ -636,5 +636,10 @@ namespace SpaceGame.Core
         // not worth a packet per frame to prevent.
         public const ushort ConjurerCast   = 113; // server → everyone: begin the wind-up
         public const ushort ConjurerStruck = 114; // server → everyone: draw the bolt at P
+
+        // ── Emotes ──
+        // A gesture with no item behind it: /wave and its siblings. On the PLAYER's relay.
+        //   A = index into PlayerEmotes.Table.
+        public const ushort Emote = 115; // server → everyone
     }
 }

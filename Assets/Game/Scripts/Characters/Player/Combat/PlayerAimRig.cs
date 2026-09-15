@@ -108,6 +108,10 @@ namespace SpaceGame.Characters
         // layer is otherwise only raised by holding an item or by a gauntlet firing.
         private float gestureTimer;
 
+        // Which arm the running gesture plays on, when the gesture said. Null means the hold
+        // pose's own rule (PoseMirrored). Lives only as long as gestureTimer does.
+        private bool? gestureMirror;
+
         private float raiseLeftT;
         private float raiseRightT;
 
@@ -266,12 +270,24 @@ namespace SpaceGame.Characters
         /// fired from outside plays a clip on a layer weighted 0 and nothing appears.
         /// </para>
         /// </summary>
-        public void PlayGesture(string trigger, float seconds = 0f)
+        public void PlayGesture(string trigger, float seconds = 0f) => PlayGesture(trigger, seconds, null);
+
+        /// <summary>
+        /// As above, on a named arm. An aimed gesture (the wrist blade's stab, the puncher's
+        /// punch) belongs to the forearm its device is worn on, which is not what
+        /// <see cref="PoseMirrored"/> says when a second device is worn on the other arm; the
+        /// device knows its arm (<c>UsableItem.WornOn</c>) and says so here. The mirror bool is
+        /// written now, on the frame the trigger is raised — the Any State transition reads it on
+        /// that frame — and held for the gesture's length over the per-frame rewrite in Update.
+        /// </summary>
+        public void PlayGesture(string trigger, float seconds, ItemGrip.Hand? arm)
         {
             if (animator == null || animator.runtimeAnimatorController == null) return;
             if (string.IsNullOrEmpty(trigger)) return;
 
             gestureTimer = Mathf.Max(gestureTimer, seconds > 0f ? seconds : defaultGestureSeconds);
+            gestureMirror = arm.HasValue ? arm.Value == ItemGrip.Hand.Left : (bool?)null;
+            animator.SetBool(holdMirrorHash, gestureMirror ?? PoseMirrored);
             animator.SetBool(gesturingHash, true);
             animator.SetTrigger(trigger);
         }
@@ -398,7 +414,8 @@ namespace SpaceGame.Characters
             // The mirror is a second parameter rather than more values of the first, so every hold
             // style gets a left-armed twin without the enum growing a mirrored half.
             animator.SetInteger(holdStyleHash, (int)PoseStyle);
-            animator.SetBool(holdMirrorHash, PoseMirrored);
+            if (gestureTimer <= 0f) gestureMirror = null;
+            animator.SetBool(holdMirrorHash, gestureMirror ?? PoseMirrored);
             animator.SetBool(gesturingHash, gestureTimer > 0f);
 
             // The raise is a state on the same layer — three pointing clips blended on the look

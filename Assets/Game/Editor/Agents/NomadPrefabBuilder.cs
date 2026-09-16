@@ -92,20 +92,6 @@ namespace SpaceGame.EditorTools
             ClothWindScale = 0.35f,
         };
 
-        // What a sand nomad may be carrying. Ranged artifacts only: NpcItemUseModule fires the
-        // held item at a target between minRange and maxRange, so a gauntlet or a scanner in the
-        // hand would be raised and "used" at nothing every cooldown.
-        private static readonly string[] WeaponArtifactPaths =
-        {
-            "Assets/Game/Resources/Items/Artifacts/basicgun.asset",
-            "Assets/Game/Resources/Items/Artifacts/GravelBlaster.asset",
-            "Assets/Game/Resources/Items/Artifacts/NetGun.asset",
-            "Assets/Game/Resources/Items/Artifacts/LaserStaff.asset",
-            "Assets/Game/Resources/Items/Artifacts/BallLightningWeapon.asset",
-            "Assets/Game/Resources/Items/Artifacts/LightningSpell.asset",
-            "Assets/Game/Resources/Items/Artifacts/DragonBazooka.asset",
-        };
-
         private const string ClothMaterialFolder = "Assets/Game/Art/Materials/Characters";
         // Lower-case `world`, exactly as the folder is on disk and in build settings. Opened under
         // any other casing the scene is a second, differently-named entry to Unity: left open into
@@ -1367,18 +1353,24 @@ namespace SpaceGame.EditorTools
                 var candidates = so.FindProperty("candidates");
                 if (candidates != null)
                 {
-                    var items = WeaponArtifactPaths
-                        .Select(AssetDatabase.LoadAssetAtPath<InventoryItem>)
-                        .Where(item => item != null)
-                        .ToArray();
-                    if (items.Length < WeaponArtifactPaths.Length)
-                        Debug.LogWarning("[NomadPrefabBuilder] Some weapon artifacts in " +
-                                         "WeaponArtifactPaths do not exist; the roll draws from " +
-                                         $"{items.Length} instead of {WeaponArtifactPaths.Length}.");
-
-                    candidates.arraySize = items.Length;
-                    for (int i = 0; i < items.Length; i++)
-                        candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+                    // The roster owns the weapon list (rosters spec §4.5). Baked rather than read at
+                    // runtime so a hand-placed nomad works standalone; RosterAssetTests fails if the
+                    // bake and the roster ever differ.
+                    var roster = AssetDatabase.LoadAssetAtPath<FactionRoster>(RosterAuthoring.SandRosterPath);
+                    if (roster == null)
+                    {
+                        Debug.LogError($"[NomadPrefabBuilder] No roster at {RosterAuthoring.SandRosterPath}; " +
+                                       "run Tools/SpaceGame/Agents/Author Sand Tribe Roster first. The " +
+                                       "nomads are built unarmed.");
+                        candidates.arraySize = 0;
+                    }
+                    else
+                    {
+                        InventoryItem[] items = roster.handItems.Where(item => item != null).ToArray();
+                        candidates.arraySize = items.Length;
+                        for (int i = 0; i < items.Length; i++)
+                            candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+                    }
                 }
                 SetInt(so, "slot", 0);
                 so.ApplyModifiedPropertiesWithoutUndo();

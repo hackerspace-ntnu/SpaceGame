@@ -175,12 +175,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
   agent: {fileID: 593152697647890150}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.38095242
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 5.5
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
@@ -190,6 +195,7 @@ MonoBehaviour:
   mountedLeapSampleRadius: 6
   riderTurnSpeed: 120
   riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
 --- !u!114 &6420493384716112828
@@ -209,6 +215,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 3.5
+  strideEndPhases: []
 --- !u!114 &6443890683680437741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -296,14 +303,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64661caed1f864fa9aac312ff41b3e53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.PerceptionModule
-  fieldOfViewAngle: 150
+  fieldOfViewAngle: 180
   movingFovBonus: 0
   eyeTransform: {fileID: 0}
   occlusionLayers:
     serializedVersion: 2
     m_Bits: 641
   eyeHeight: 1.35
-  memoryDuration: 7
+  targetAimHeight: 1
+  headAimHeight: 1.6
+  headInset: 0.15
+  memoryDuration: 12
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
@@ -421,8 +431,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
   profile: {fileID: 0}
   relationship: 2
-  acquisitionRange: 35
-  loseRange: 45
+  acquisitionRange: 80
+  loseRange: 110
   requireLineOfSightToAcquire: 1
   proximityAcquireRange: 4
   drawGizmos: 1
@@ -815,9 +825,9 @@ MonoBehaviour:
   burning:
     seconds: 5
     damagePerSecond: 4
+    reigniteDelay: 3
   frozen:
     seconds: 10
-    shatterDamage: 25
   slick:
     seconds: 20
     grip: 0.03
@@ -830,6 +840,8 @@ MonoBehaviour:
   foamed:
     seconds: 10
     breakDamage: 10
+  swallowed:
+    seconds: 6
   inflationTarget: {fileID: 3409940362326970144}
 --- !u!114 &6249329507384394805
 MonoBehaviour:

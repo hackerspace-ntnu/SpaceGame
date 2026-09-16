@@ -13,6 +13,10 @@
 // NOT deferred. The restore needs nothing that does not exist yet — no ground, no chunk, no other
 // object — and it has to land BEFORE any agent can target this player, which binding already
 // guarantees. A deferred restore would leave a returning outlaw briefly welcome.
+//
+// The restore also hands the war tier to WarPartyDirector (rosters spec §7), so escalation survives
+// a quit during a party's cooldown. RestoreRow raises no event, so a restored AtWar band does not
+// open a war here — the director reconciles it into one on its next decision.
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
@@ -42,6 +46,14 @@ namespace SpaceGame.Core.Persistence
             /// HostileOnSight would come back Wary and be forgiven over a loading screen.
             /// </summary>
             public GoodwillBand band;
+
+            /// <summary>
+            /// How far this tribe's war with this player had escalated (rosters spec §7). Saved here,
+            /// beside the band it belongs to, because between war parties it lives only in the
+            /// director's memory — and a reload that reset it would send scouts after a player who had
+            /// already beaten two parties. Appended 2026-09-16; older saves read 0.
+            /// </summary>
+            public int warTier;
         }
 
         public struct State
@@ -63,17 +75,21 @@ namespace SpaceGame.Core.Persistence
 
             if (!TryGetProfile(out string profileId)) return null;
 
+            WarPartyDirector director = WarPartyDirector.Instance;
+
             var standings = new List<Standing>();
             foreach ((FactionDefinition faction, string id, float value, GoodwillBand band) in ledger.All())
             {
                 if (id != profileId || faction == null || string.IsNullOrEmpty(faction.ID)) continue;
 
-                // A row sitting at neutral says exactly what a missing row says. Skipping it keeps
-                // a save from growing an entry per tribe per player who has never met either.
-                if (Mathf.Approximately(value, GoodwillMath.Neutral) && band == GoodwillBand.Wary)
+                int warTier = director != null ? director.WarTierFor(faction, profileId) : 0;
+
+                // A row sitting at neutral with no war says exactly what a missing row says. Skipping it
+                // keeps a save from growing an entry per tribe per player who has never met either.
+                if (Mathf.Approximately(value, GoodwillMath.Neutral) && band == GoodwillBand.Wary && warTier == 0)
                     continue;
 
-                standings.Add(new Standing { factionId = faction.ID, value = value, band = band });
+                standings.Add(new Standing { factionId = faction.ID, value = value, band = band, warTier = warTier });
             }
 
             if (standings.Count == 0) return null;
@@ -96,6 +112,8 @@ namespace SpaceGame.Core.Persistence
             State restored = state.ToObject<State>(SaveSerializer.Serializer);
             if (restored.standings == null) return;
 
+            WarPartyDirector director = WarPartyDirector.Instance;
+
             foreach (Standing standing in restored.standings)
             {
                 FactionDefinition faction = Registry<FactionDefinition>.Get(standing.factionId);
@@ -105,6 +123,7 @@ namespace SpaceGame.Core.Persistence
                 if (faction == null) continue;
 
                 ledger.RestoreRow(faction, profileId, standing.value, standing.band);
+                if (director != null) director.RestoreWarTier(faction, profileId, standing.warTier);
             }
 
             ApplyAbsence(ledger, restored.capturedUtcTicks);

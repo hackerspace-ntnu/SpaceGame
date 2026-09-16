@@ -93,19 +93,18 @@ def sack(p, base, rng, size=1.0, lying=False):
             bulge = k * r * (1.0 + 0.08 * math.sin(a * 2 + yaw))
             prof.append((bulge * math.cos(a), bulge * math.sin(a) * 0.82))
         rings.append((w * h, prof))
-    faces = p.loft(rings, axis='Z', mat=mat)
+    before = set(p.bm.verts)
+    p.loft(rings, axis='Z', mat=mat)
     lift = Matrix.Translation(base + Vector((0, 0, r * 0.82 * (1.0 if lying else 0.0))))
-    _transform(p, faces, lift @ rot)
+    # By vertex set, not by the faces `loft` returns: those are an index slice of
+    # the whole mesh, and it reaches back into pieces drawn before this sack -
+    # which then got flung metres across the pile by this sack's transform.
+    for v in set(p.bm.verts) - before:
+        v.co = lift @ rot @ v.co
     neck = lift @ rot @ Vector((0, 0, 0.84 * h))
     p.torus(neck, 0.07 * size, 0.022, maj_seg=8, min_seg=4, mat=ROPE)
     tuft = lift @ rot @ Vector((0, 0, 0.95 * h))
     p.cyl(tuft, 0.06 * size, 0.1 * size, seg=6, mat=mat, radius_top=0.1 * size)
-
-
-def _transform(p, faces, m):
-    verts = {v for f in faces for v in f.verts}
-    for v in verts:
-        v.co = m @ v.co
 
 
 def bale(p, base, rng, yaw=0.0):

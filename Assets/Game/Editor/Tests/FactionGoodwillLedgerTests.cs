@@ -183,10 +183,10 @@ namespace SpaceGame.EditorTools
             Move(sand, PlayerA, -50f);
             Move(sky, PlayerB, 30f);
 
-            ledger.DecayAll(10f);   // ten in-game hours at the default 2/hour
+            ledger.DecayAll(10f);   // ten in-game hours at the default 0.5/hour
 
-            Assert.AreEqual(-30f, ledger.ValueFor(sand, PlayerA), 1e-3f);
-            Assert.AreEqual(10f, ledger.ValueFor(sky, PlayerB), 1e-3f);
+            Assert.AreEqual(-45f, ledger.ValueFor(sand, PlayerA), 1e-3f);
+            Assert.AreEqual(25f, ledger.ValueFor(sky, PlayerB), 1e-3f);
         }
 
         [Test]
@@ -198,7 +198,7 @@ namespace SpaceGame.EditorTools
             int calls = 0;
             ledger.BandChanged += (f, p, a, b) => calls++;
 
-            ledger.DecayAll(10f);   // -45 -> -25, past the -30 hysteresis edge
+            ledger.DecayAll(40f);   // -45 -> -25 at the tuned 0.5/hour, past the -30 hysteresis edge
 
             Assert.AreEqual(GoodwillBand.Wary, ledger.BandFor(sand, PlayerA),
                             "a war can be waited out — the brake on the design's positive loop");
@@ -245,6 +245,43 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(2, all.Count);
             Assert.IsTrue(all.Any(r => r.Faction == sand && r.ProfileId == PlayerA));
             Assert.IsTrue(all.Any(r => r.Faction == sky && r.ProfileId == PlayerB));
+        }
+
+        // ── Credit ────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void Credit_MovesTowardPeace_AndCanEndAWar()
+        {
+            Move(sand, PlayerA, -85f);
+            Assert.AreEqual(GoodwillBand.AtWar, ledger.BandFor(sand, PlayerA));
+
+            ledger.Credit(sand, PlayerA, 30f);
+
+            Assert.AreEqual(-55f, ledger.ValueFor(sand, PlayerA), 0.001f);
+            Assert.AreEqual(GoodwillBand.HostileOnSight, ledger.BandFor(sand, PlayerA));
+        }
+
+        [Test]
+        public void Credit_TwoDefeats_EndTheWarToo()
+        {
+            Move(sand, PlayerA, -85f);
+
+            ledger.Credit(sand, PlayerA, 12f);
+            Assert.AreEqual(GoodwillBand.AtWar, ledger.BandFor(sand, PlayerA), "-73 is inside the sticky edge");
+
+            ledger.Credit(sand, PlayerA, 12f);
+            Assert.AreEqual(GoodwillBand.HostileOnSight, ledger.BandFor(sand, PlayerA));
+        }
+
+        [Test]
+        public void Credit_IgnoresNonPositiveAmounts()
+        {
+            Move(sand, PlayerA, -50f);
+
+            ledger.Credit(sand, PlayerA, 0f);
+            ledger.Credit(sand, PlayerA, -10f);
+
+            Assert.AreEqual(-50f, ledger.ValueFor(sand, PlayerA), 0.001f);
         }
 
         // ── Being hunted by association ────────────────────────────────────────────

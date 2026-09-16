@@ -24,13 +24,19 @@ namespace SpaceGame.Agents
         /// </para>
         /// </summary>
         /// <param name="context">Logged as the object to select when a spawn fails.</param>
+        /// <param name="beforeSpawn">
+        /// Runs on the new instance after Instantiate and BEFORE the network spawn — the only moment
+        /// where anything read in <c>OnNetworkSpawn</c> (a seeded loadout roll) can still be set.
+        /// </param>
         public static GameObject Create(GameObject prefab, Vector3 position, Quaternion rotation,
-                                        UnityEngine.Object context = null)
+                                        UnityEngine.Object context = null,
+                                        Action<GameObject> beforeSpawn = null)
         {
             if (prefab == null) return null;
 
             GameObject instance = UnityEngine.Object.Instantiate(prefab, position, rotation);
             DisownFromWorldSave(instance);
+            beforeSpawn?.Invoke(instance);
 
             if (!Network.IsNetworked || !Network.Server) return instance;
             if (!instance.TryGetComponent(out NetworkObject netObj) || netObj.IsSpawned) return instance;

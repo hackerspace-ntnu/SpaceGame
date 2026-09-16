@@ -497,9 +497,9 @@ namespace SpaceGame.EditorTools
 
             // -- senses and behaviour ---------------------------------------
             var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", 150f);   // eyes set wide
+            SetFloat(perception, "fieldOfViewAngle", VisionBaseline.MinFieldOfView);
             SetFloat(perception, "eyeHeight", 1.35f);
-            SetFloat(perception, "memoryDuration", 7f);
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             // Left unset this warns every spawn and treats line-of-sight as always
             // clear. These are the three layers PerceptionModule falls back to.
             SetInt(perception, "occlusionLayers",

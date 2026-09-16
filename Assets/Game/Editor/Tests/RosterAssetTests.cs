@@ -10,8 +10,6 @@ namespace SpaceGame.EditorTools
 {
     public class RosterAssetTests
     {
-        private const string SandFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/SandTribeFaction.asset";
-
         // Nomad.prefab is excluded: its recipe (NomadPrefabBuilder.Nomad) sets RandomWeapon = false
         // -- he carries the walking staff instead -- so he was never built with an NpcRandomLoadout
         // and has nothing for this test to check.
@@ -36,7 +34,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void SandFaction_PointsAtItsRoster()
         {
-            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(SandFactionPath);
+            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(RosterAuthoring.SandFactionPath);
             Assert.AreSame(Sand, faction.roster);
             Assert.AreSame(faction, Sand.faction);
         }

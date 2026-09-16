@@ -47,12 +47,16 @@ MATS = sw.MATS + ["Mat_Metal_Steel_Worn"]    # 12 bare pulley sheaves and hooks
 STEEL = len(sw.MATS)
 HOOK_Z = 1.1                 # hook height above the deck; the load hangs below it
 VARIANTS = ("TimberJib", "ScrapDerrick", "Davit", "Sheerlegs")
-FOOTPRINT = {                # (x0, y0, x1, y1) on the deck, for placement collision
-    "TimberJib": (-1.6, -1.2, 0.8, 1.2),
-    "ScrapDerrick": (-2.4, -1.1, 0.9, 1.1),
-    "Davit": (-0.45, -0.45, 0.45, 0.45),
-    "Sheerlegs": (-3.2, -1.5, 0.4, 1.5),
+# What a placement should collide with on the deck: (x0, y0, x1, y1) boxes, each
+# FOOTPRINT_H tall. Sheerlegs are two: the legs at the edge and the cleat
+# inboard, with only rope between them.
+FOOTPRINTS = {
+    "TimberJib": ((-1.6, -1.2, 0.8, 1.2),),
+    "ScrapDerrick": ((-2.4, -1.1, 0.9, 1.1),),
+    "Davit": ((-0.45, -0.45, 0.45, 0.45),),
+    "Sheerlegs": ((-0.4, -1.5, 0.4, 1.5), (-3.2, -0.3, -2.6, 0.5)),
 }
+FOOTPRINT_H = 1.2
 REACH = {"TimberJib": 4.2, "ScrapDerrick": 5.0, "Davit": 2.2, "Sheerlegs": 2.6}
 
 

@@ -26,7 +26,7 @@ symptoms:
   - "a save file's item records sit at y = -30000 and get deeper on every load"
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer]
-updated: 2026-09-12
+updated: 2026-09-16
 ---
 
 # Persistence / Save-Load
@@ -77,10 +77,10 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Pose & motion | `Transform`(transform) `Rigidbody`(rigidbody, velocity only) `MotorState`(motor) `LeggedGait`(gait) `ArticulatedParts`(parts, keyed by hierarchy path) |
 | Vitals & kit | `Health`(health, 0 HP *is* dead) `HealthReaction` `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` |
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Cover`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
-| Agent routine | `Patrol` `BasePatrol` `Wander` `AirWander` `WanderBehaviour` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan group) |
+| Agent routine | `Patrol` `BasePatrol` `Wander` `AirWander` `WanderBehaviour` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret`ᴰ `WeaponMount` |
 | World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
-| Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` |
+| Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` `FactionGoodwill`(factionGoodwill — one `Standing{value,band,warTier}` per tracked faction; `warTier` appended 2026-09-16 so a tribe's war escalation survives a quit mid-cooldown, older saves read 0) |
 | Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `HerdState`(herds) `Leash`(leashes)ᴰ |
 
 ## Flows

@@ -196,7 +196,7 @@ if (go.GetComponent<ProvocationModule>() != null && go.GetComponent<ProvocationS
 | `DuneFoilSaveable` | `dunefoil` | `SailRig` |
 | `OrnithopterSaveable` | `ornithopter` | `OrnithopterFlightMotor` (deferred; relaunches in-flight craft) |
 | `PlayerInventorySaveable` / `BackpackSaveable` | `inventory` / `backpack` | player prefab (PATH C) |
-| `FactionGoodwillSaveable` | `factionGoodwill` | player prefab (PATH C). One player's slice of `FactionGoodwillLedger`. Saves the **band as well as the value** — hysteresis makes the band a function of its own history, so recomputing it forgives a player over a loading screen — and a UTC timestamp, so an absence decays once on restore |
+| `FactionGoodwillSaveable` | `factionGoodwill` | player prefab (PATH C). One player's slice of `FactionGoodwillLedger`. Saves the **band as well as the value** — hysteresis makes the band a function of its own history, so recomputing it forgives a player over a loading screen — a UTC timestamp so an absence decays once on restore, and per faction a `warTier` (appended 2026-09-16, older saves read 0) so a tribe's war escalation survives a quit mid-cooldown: `WarPartyDirector.RestoreWarTier` seeds `WarBook` from it before the director reconciles any restored `AtWar` band into a live war |
 | `NpcWorldSaveable` | `npcworld` | `NpcWorldSim` — one record per group, not per member |
 | `GameStateSaveable` | `gameState` | registered by hand (PATH D) |
 

@@ -222,29 +222,94 @@ the view that happened to be open.
 `sky_city_export.py` → `Assets/Game/Art/Models/Environment/Structures/sky_city.fbx`
 → [`SkyCityBuilder`](../../../../Editor/Environment/SkyCityBuilder.cs)
 (`Tools > Environment > Build Sky City Prefab`) →
-`Assets/Game/Prefabs/Environment/Structures/SkyCity.prefab`. Re-running the
-builder after a re-export rebuilds the prefab in place.
+`Assets/Game/Prefabs/Environment/Structures/SkyCity.prefab` and its hull meshes in
+`SkyCity_CollisionHulls.asset`. Re-running the builder after a re-export rebuilds
+both in place; [`SkyCityPrefabTests`](../../../../Editor/Tests/SkyCityPrefabTests.cs)
+checks the result.
 
-**Measured in-engine 2026-09-15**, not taken from the source: root `lossyScale`
-1.000, 109 renderers, 281,976 triangles, world size 30.06 × 52.74 × 125.04 m,
-45 box + 3 convex colliders, zero negative-scale renderers. Ray tests confirm
-the promenade is solid at y = 0 for its whole length on both sides, the clear
-lane is unobstructed to 2.2 m at all 38 sampled points, and the cage closes to
-about 2.7 m of headroom inboard — the gradient the layout was designed around.
+**What the export ships and drops.** It splits `COL_SkyCity` into one object per
+convex island (`COL_SkyCity_####`), turns each `LAD_SkyCity_##` marker's custom
+properties into `_Top` and `_Exit` child empties (FBX custom properties do not
+reach Unity without a postprocessor), and drops the hidden stamp sources, the
+emptied gangway and everything more than 50 m off the centreline - the escort
+vessels, which ship on their own (below).
 
-Collision comes from two places, and the reason is the model's own shape: the
-primary structure is nine **merged** meshes each spanning the whole ship, so a
-per-renderer box over `Mesh_SkyCity_Decks` is a 22 × 112 m slab hanging in the
-air. Five walkable volumes are authored by hand in the builder from this file's
-constants; the kit parts, which are one renderer each, go through a name rule
-table exactly as `BuildingPrefabBuilder` does. Splitting the structure objects
-in `sky_city.py` would let the rule table do all of it — worth doing if those
-meshes are ever revisited.
+**Collision - three sources, all checked in Blender first.**
+
+| Source | Colliders | Why |
+|---|---|---|
+| `COL_SkyCity_####` islands | an axis-aligned 8-corner island → BoxCollider; anything else → convex MeshCollider on a saved hull | every floor, stair ramp, railing, wall, house, tower and footprint `sky_city_traversal` authors |
+| Renderer rules | gas bags → convex hull; cage, cradles, old deck, stern gear → non-convex mesh; crate stacks and stern handrails → box | their own shape is the right collision |
+| Nothing | cloth, rope, washing, lamps, flags, outriggers, and everything the islands cover | listed as rules, so a new name is reported, not silently skipped |
+
+`sky_city_traversal.MESH_COLLIDED` and `BOX_COLLIDED` mirror the renderer rules,
+so the Blender route check walks exactly what Unity collides with. The first time
+they were mirrored, the lanes failed: the cage's ring frames curve down over the
+lanes' inner edge to head height, and houses collided as world-aligned boxes
+reached 0.8 m into the lanes' outer edge. Houses now collide as boxes turned with
+them, and the lanes' walking lines are found, like the walkways'. The outriggers
+stay uncollided because their rigging runs through the castle's rooms.
+
+**Measured in-engine 2026-09-16:** root scale 1, 310 renderers, 1,216,518
+triangles; 645 island colliders (449 box, 196 convex hull, every hull saved) plus
+13 box, 3 convex and 4 mesh from the rules; no renderer left unmatched. A Blender
+point `(x, y, z)` arrives at Unity `(-x, z, -y)` - ladder 01's foot, Blender
+`(-2.3, -15.25, 0)`, is Unity `(2.30, 0, 15.25)`. Every ladder's exit has floor
+under it at exactly its step-off height (19.68 at both shafts, 5.42 at the castle
+terrace, 2.54-4.67 on the roofs), and a 0.45 m capsule clears both keel crossings
+end to end.
+
+## The fleet - 2026-09-17
+
+The user built three smaller ships beside the city in this file, out past
+x = 50: a three-bag caged **freighter** with a gondola, a single-bag **skiff**
+with sails and a lantern tower, and a single-bag **tug** with twin engine pods.
+The city is the flagship; the others are their own ships that keep company with
+it.
+
+**Scale.** They were assembled from the city's parts at the city's scale, so the
+freighter was half the flagship's length. `sky_fleet_export.py` shrinks each by
+`VESSEL_SCALE` = 0.5 about its own centre, in the export only - the `.blend` keeps
+the user's full-size originals. Crew-scale parts shrink too (rails, doors), so
+these are ships to see and to land on, not yet ships to walk.
+
+**Export.** A vessel is *found*, not listed: every mesh beyond 50 m of the
+centreline is grouped with whatever its bounds touch (within 3 m), and each ship
+is picked out by one object only it contains. A part added to a ship ships with
+it. The freighter's hull block (`Cube`) had no material and is painted palette
+white, as it looks in Blender. Output: `Environment/Structures/SkyFleet/`
+`sky_freighter.fbx` (12 parts), `sky_skiff.fbx` (10), `sky_tug.fbx` (11).
+
+**Unity.** [`SkyFleetBuilder`](../../../../Editor/Environment/SkyFleetBuilder.cs)
+(`Tools > Environment > Build Sky Fleet Prefabs`, after the city) makes one prefab
+per ship in `Prefabs/Environment/Structures/SkyFleet/` and
+`SkyCityFleet.prefab`, which nests `SkyCity.prefab` - not a copy - with the three
+round it. Collision is by renderer rule through the same
+`StaticPropBuilder.ApplyFits` the city uses: bags, cabin, prow and lantern tower
+convex; cage, engine ducts and gondola deck mesh; the freighter's hull block a
+box; sails, flags and outriggers nothing.
+
+| Ship | Size (m) | Colliders | Held at (Unity, from the city's origin) |
+|---|---|---|---|
+| SkyFreighter | 36.2 x 15.2 x 31.5 | 1 box, 5 convex, 4 mesh | (78, 26, -8), yaw 8 - high, starboard |
+| SkySkiff | 31.0 x 13.3 x 21.3 | 3 convex, 2 mesh | (-80, 8, 38), yaw -12 - forward, port |
+| SkyTug | 31.0 x 21.2 x 23.9 | 3 convex, 3 mesh | (-78, -14, -40), yaw 20 - low astern, port |
+
+The city's *drawn* reach is x -49..46 (sails and outriggers), not its deck's
++/-20, and the first placement, cleared against the deck, overlapped all three.
+The builder warns on overlap and
+[`SkyFleetPrefabTests`](../../../../Editor/Tests/SkyFleetPrefabTests.cs) fails on
+it. Static geometry: no NetworkObject, no saver.
+
+**Triangle count is the thing to watch.** 1.2 million, four times the first
+city: the walkways (200 k) and the castle interior (168 k) are mostly rope
+lashings and railings, then street life (88 k) and lane railings (72 k). The
+prefab has one cull LODGroup and no decimated meshes; if frame time suffers,
+lighter lashings in `scrap_walkway` are the first cut.
 
 **It holds no runtime state**, so there is nothing to network and nothing to
-persist: it is authored static content addressed by identity, like the other
-structure prefabs. When `TerritoryZone` lands it plugs in via `owner` with no
-change to the prefab; there is no `SkyFaction.asset` yet.
+persist: it is authored static content, like the other structure prefabs. The
+ladders are data only until the game can climb.
 
 ## Gotchas for anyone editing this
 
@@ -289,44 +354,174 @@ change to the prefab; there is no `SkyFaction.asset` yet.
 - The airscrew blades are modelled stopped, at one fixed angle.
 - **No LOD meshes.** The prefab gets a single-level cull `LODGroup`, like the
   five building prefabs, because no decimated variants were authored.
-- **The prefab does not yet have the traversal pass.** `SkyCityBuilder` still
-  uses its hand-authored walkable boxes, which predate both the user's edits and
-  the pass below. It has to be reworked to build colliders from `COL_` objects
-  before the prefab is rebuilt.
 - **Unreachable on purpose:** the underwalks (no stairs, cluttered under-deck),
   the prow lookout (raised by the user to z ≈ 3.1 with the pod over it), and
-  the escort ships at x ≈ 87, which `sky_city_export.py` would still export.
+  the escort ships at x ≈ 87, which `sky_city_export.py` would still export -
+  as it would the hidden stamp sources in `Coll_SkyCity_TraversalSources`.
 
 ## Traversal pass — 2026-09-16
 
 The `.blend` has been hand-edited since this date, so `sky_city.py` is no longer
-run as a generator. `sky_city_traversal.py` makes it walkable instead. Run it in
-live Blender. It is safe to re-run: it owns what it builds, and before changing
-one of the user's meshes it stores a `<object>__pre_traversal` backup and
-restores from it on each run. It refuses to touch an object that was edited by
-hand after its last run.
+run as a generator. [`sky_city_traversal.py`](sky_city_traversal.py) makes it
+walkable instead, run inside live Blender, together with
+[`sky_city_street.py`](sky_city_street.py). It is safe to re-run: it owns what
+it builds, rebuilds every mesh it changed from a `<object>__pre_traversal`
+backup, and refuses to touch anything hand-edited since its last run.
+`run(discard_edits=True)` rebuilds the pieces it made even if they were edited -
+only when the user has said to; edits to the user's own objects always stop it.
 
-- **No ladders.** `Movement` has no climb and no step-up, and landing from more
-  than about 1.3 m hurts. Every ladder became a stair with smooth ramp
-  collision at 27.2°.
-- **Collision is authored, not derived.** `COL_SkyCity` (`Coll_SkyCity_Collision`,
-  wireframe, never rendered) holds 8-vert boxes and 6-vert ramps. Bounds boxes
-  cannot be used: catwalk bounds reach the rail tops, and the houses' shared
-  mesh has struts that run down to the keel.
-- **Built:** the bow castle, hollow (ground floor, first floor with the pod,
-  an inner stair, doors on the flanks and aft), a stair tower up to the crown
-  gantry, gantry loops and lookouts, a ramp to the stern terrace and pods,
-  stairs up to all four skywalks, and walkways out to x = 17 on both sides.
-- **Sail slots.** The user's hanging bow sails pass through the walkway at
-  y −40.7…−38.3, so each walkway has a railed slot there. To starboard you walk
-  round it on the inboard side. To port a house fills that side, so the forward
-  part of the walkway is reached through the castle instead.
-- **Verification** (`verify()`, run at the end) walks 19 routes against the
-  collision: floor under the feet, slope under 35°, 2.1 m headroom, 0.45 m side
-  clearance, and never inside a solid. A ray-only check passed routes that went
-  straight through walls. Check it with routes that ought to fail (through a
-  wall, off the edge, through a sail slot) before you trust a pass.
-- **Hash after `view_layer.update()`.** `matrix_world` is stale until then, so
+### The first pass was rejected, and why
+
+It made everything reachable and looked "way too industrious and modern": one
+continuous steel slab down each side, square steel stairs, a steel stair tower
+up the castle's flank, square loops round the gantry's towers, a lamp on every
+fifth post. The user liked the first sky city's jankiness - things feeling
+alive and put together - and wanted it rusty and worn. The second pass keeps
+every route and redraws everything in the tribe's own kit.
+
+### What the second pass builds
+
+| Where | What | From |
+|---|---|---|
+| Both sides, castle to stern piers | 20-30 small platforms a side: planks, rusted plate, grating or scrap; each its own width, railing and props; planks thrown over the gaps | [`scrap_walkway`](../../components/structural/scrap_walkway.py) |
+| Loading bays, on jetties in the gaps between houses | four cranes, each a different build, with goods on the hook | [`cargo_crane`](../../components/mechanical/cargo_crane.py) |
+| On the jetties, and stock in the castle | sacks, bales, chests, rugs, cans, a trade scale | [`trade_goods`](../../components/props/trade_goods.py) |
+| Inside the castle | a starboard stair to the first floor; a switchback core through the first and second floors to the roof; patchwork floors; lanterns; stock | `scrap_walkway`, `trade_goods` |
+| Castle roof | a timber stair to a landing wrapped round the gantry's forward end | `scrap_walkway` |
+| Crown gantry | the lantern and dome galleries widened and opened; a new gallery round the dish; two plank balconies; patches over the deck; the gantry repainted with rust | surgery, `scrap_walkway` |
+| Skywalks, stern | scrap stairs to all four skywalks, rusted pipe stern supports, a ramp to the stern terrace | `scrap_walkway` |
+
+With the street pass below, 51 routes and ladder checks pass `verify()`, and
+the negative controls - through the sail slot, off an edge, into a house,
+through a crane, through the castle's front wall, into a stairwell, off a
+landing, through a tower, over a gallery rail, off a balcony, into the keel
+truss, through a street wall, off a roof terrace, through the porch rail - all
+fail as they must.
+
+**Platforms are small** because the user cut them down by hand and asked for
+exactly that: each reaches 2-3 m past the old deck edge, and only as far as it
+must - past the furthest-out house by `HOUSE_CLEARANCE`, under a skywalk and its
+stair, and out to a jetty where a crane stands. The walkways' walking lines are
+not written by hand any more: `walkway_routes` walks down each side at 0.25 m
+steps, takes the standable point nearest the outer rail, and joins it only by a
+leg that passes the same `check_segment` the verifier uses. Where no leg passes,
+the line breaks; the run prints how much of each side the stretches cover (about
+90 of 99 m: the breaks are the sail slots, the crane jetties' footprints and a
+house to port).
+
+### Why it is laid out the way it is
+
+- **Stairs carry every route; ladders are extra.** `Movement` has no climb and
+  no step-up, and landing from more than about 1.3 m hurts, so every route a
+  player needs today is a stair on a smooth ramp at 27.2°. The ladders the street
+  pass adds are for climbing logic that does not exist yet - see below.
+- **The castle core runs across the castle, in its aft third.** The pod bolted
+  to the castle's front fills the upper floors' forward centre and the second
+  floor is only 7 m deep, so a switchback along the length does not fit. Across
+  the width it does: the upper flight of one storey arrives beside the foot of
+  the lower flight of the next, so the climb is one zig-zag. A plank spine
+  between the flights runs floor to ceiling.
+- **The galleries were too narrow to walk.** The lantern's was 0.87 m and the
+  dome's 0.95 m, both under the 1.0 m capsule. Their railings are pushed out to
+  4.15 m and 5.4 m radius and carved open where the gantry runs in. A fitting on
+  the dome's gallery floor was moved against the tower wall - anywhere else on
+  the ring it blocks the lap.
+- **The walkway has a slot where each hanging bow sail passes through it.** To
+  starboard you walk round it inboard; to port a house fills that strip, so the
+  forward part is reached through the castle.
+
+### Changed on the user's objects (all restorable from the backups)
+
+`BowCastle` (hollow), `Cage`, `Decks`, `Climbs`, `Gantry` (openings, the port
+half of one cross-frame, rust by island), the gantry's lantern and dome
+(galleries), and `Gangway_Catwalk_Bridge` - **emptied**: moving the castle left
+it lying across the second floor at floor height, wholly inside the castle's
+footprint, joining nothing, and with the storey hollow its railings crossed the
+room and the stairwell. Two props were moved out of the castle's walls.
+
+### Collision
+
+`COL_SkyCity` in `Coll_SkyCity_Collision` holds every collider as a convex
+island: 8-vertex axis-aligned boxes (for BoxColliders) and ramps, walls, gallery
+sectors and n-gon prisms (for convex MeshColliders). Bounds boxes cannot be
+used: catwalk bounds reach the rail tops, the houses' shared mesh has struts to
+the keel, and a leaning, sagging railing has no useful bounds at all.
+
+### Lessons
+
+- **A ray-only route check passes routes through walls.** Add a point-in-solid
+  test, and prove the checker with routes that must fail before trusting a pass.
+- **Hash after `view_layer.update()`.** `matrix_world` is stale until then, and
   the pass flagged its own objects as hand-edited.
-- `BVHTree.FromObject` works in local space. To test clashes between objects,
-  build the BVH from world-space vertices.
+- **`BVHTree.FromObject` works in local space.** Clash tests between objects
+  need a BVH built from world-space vertices.
+- **`Part._absorb` returned the wrong faces** whenever the mesh already held
+  geometry - see the ArtPipeline gotcha. Found because a sack's body transform
+  flung earlier sacks four metres out of the cargo net.
+- **A route crossing a thin railing head-on passed.** A 0.1 m wall falls between
+  0.25 m samples, and the side rays look sideways. `check_segment` now also casts
+  ahead to the next sample. Found by a negative control walking off the porch.
+- **Probe points on the capsule's rim step over a railing.** Clearance is tested
+  with rays, not points - the walkway line finder picked spots 0.3 m from a
+  skywalk stair's rail until it did.
+
+## Street pass - 2026-09-16
+
+The user's next request: paths between the two lanes, "more life ... almost like
+a favela street", fix the buildings with messed-up geometry, and ladders "where
+you might want to go ... ladder logic later". [`sky_city_street.py`](sky_city_street.py),
+called from the traversal run:
+
+| What | How |
+|---|---|
+| **Crossings** | The lanes run either side of the keel's open truss, and nothing bridged it (the collision had an invisible floor there). Where two bags meet (y -14.6 and 16.45) there is 7.6 m of headroom: a plank bridge each, railed. The lanes' inner edges are railed everywhere else, and the castle's aft door opens onto a porch. |
+| **Ladders** | A rusted ladder up a clear shaft beside each join to a landing on the crown gantry (the shafts were found by search: columns clear 0.55 m round from deck to gantry); timber ladders up the street walls onto the four box shacks' roof terraces; one up the castle's aft wall onto its first terrace. |
+| **Houses** | See below. |
+| **Street life** | Street walls of patched pastel and rusted plate, with doors, lit windows and flower boxes; washing, string lights and cables strung between walls, along the lane poles and over the sidewalks; canopies, blade signs, stalls, stoves, stools, plants and birdcages; rooftop terraces with washing, plants and dishes. From [`street_life`](../../components/props/street_life.py). |
+
+### The houses
+
+The shanties come from `shanty_addon`, which models every one of them to hang on
+a host wall: its mounting face is x = 0 and it projects into +X. The city stood
+them on the open deck with that face to the lane, so the lane saw bare grey weld
+pads, a lean-to roof leaning on nothing and brackets reaching for a hull that was
+not there. On top of that:
+
+- `Shanty_Box` and `Shanty_Awning` meshes in the city had been **stretched** - a
+  bracket reaching 7 m inboard and 4.8 m under the deck, a guy line 13 m long.
+  Both are restored from the library's intact meshes.
+- **The lean-to's roof was built tilted the wrong way.** `build_leanto` rotated
+  the sheets by `-ang` about Y, lifting their outer ends, so the roof climbed
+  away from the wall and cut through both gables. The city's copies are turned
+  back in place (and the generator record now reads `+ang`); the library's
+  `shanty_addon.blend` still has the old tilt.
+- Seven shanties stand 0.45-1.35 m above the deck. With the stretched brackets
+  gone they get **stilts** - posts and a cross-brace.
+- Two stood a metre inside a neighbour and were moved along the ship
+  (`HOUSE_MOVES`).
+- Every shanty gets a **host wall** - its street face. The water tank up on the
+  stern terrace is left as it was.
+
+A box shack whose roof is a terrace records the roof's height as
+`sky_city_walkable_roof` on the house object; its collision box stops there, so
+the roof is floor rather than the inside of a solid.
+
+### Ladders, for the climbing logic to come
+
+Every ladder is drawn plumb (`scrap_walkway.ladder`), collides only as its two
+rails, and is recorded as an empty in `Coll_SkyCity_Ladders`:
+
+| `LAD_SkyCity_##` | |
+|---|---|
+| location | the ladder's foot, centre of the rail line |
+| local +Y | toward the climber |
+| `climb_top_z` | the height a climber steps off at |
+| `exit` | the world point they step off onto |
+| `ladder_name` | e.g. `Shaft01`, `Roof_Home02_Shanty_Box`, `CastleTerrace` |
+
+Export them with FBX custom properties on. Every ladder top is a gap of
+`LADDER_W` (0.7 m) in a railing or behind the ladder's own grab rails - narrower
+than the 1.0 m capsule, so until climbing exists a ladder is not a hole to fall
+through. `ladder_checks` asserts each ladder's climb column is clear and its
+exit is floor.
+

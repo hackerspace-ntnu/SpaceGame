@@ -21,7 +21,7 @@ namespace SpaceGame.Agents
     /// </summary>
     public enum GoodwillBand
     {
-        /// <summary>Hostile on sight, and their caravans route toward your last known position.</summary>
+        /// <summary>Hostile on sight, and a war party is sent after you (WarPartyDirector); ordinary caravans shoot on sight but keep travelling.</summary>
         AtWar,
 
         /// <summary>Resolves Hostile: they acquire you on sight, the way Wildlife already does.</summary>
@@ -45,8 +45,9 @@ namespace SpaceGame.Agents
     [Serializable]
     public struct GoodwillThresholds
     {
-        [Tooltip("At or below this, the tribe hunts this player. Their caravans route toward where " +
-                 "they last saw them.")]
+        [Tooltip("At or below this, the tribe hunts this player: a WarPartyDirector-raised party is " +
+                 "sent after them. Ordinary caravans of this tribe still shoot on sight but keep " +
+                 "travelling.")]
         public float atWar;
 
         [Tooltip("At or below this, members acquire this player on sight.")]

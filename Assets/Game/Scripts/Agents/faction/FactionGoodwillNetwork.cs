@@ -18,6 +18,7 @@ using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
@@ -97,6 +98,45 @@ namespace SpaceGame.Agents
             if (faction == null) return;
 
             Ledger.SetMirroredBand(faction, (GoodwillBand)band);
+        }
+
+        /// <summary>
+        /// Server side. Tell this player something about their war.
+        ///
+        /// Deliberately NOT <see cref="Send"/>'s rule. Send skips the owner because the host holds the
+        /// rows already; a notice is an event with nothing to hold, so skipping the host would mean
+        /// the host is never told a party is coming (rosters spec §6). Posted here when this machine
+        /// is that player — the host, or offline where nothing is spawned — and sent to them otherwise.
+        /// </summary>
+        public void Notify(FactionDefinition tribe, WarNotice notice)
+        {
+            if (Ledger == null) return;
+
+            int index = Ledger.IndexOf(tribe);
+            if (index < 0) return;
+
+            if (!IsSpawned || IsOwner)
+            {
+                PresentNotice(index, notice);
+                return;
+            }
+
+            NoticeRpc(index, (int)notice, RpcTarget.Single(OwnerClientId, RpcTargetUse.Temp));
+        }
+
+        [Rpc(SendTo.SpecifiedInParams)]
+        private void NoticeRpc(int tribeIndex, int notice, RpcParams rpcParams) =>
+            PresentNotice(tribeIndex, (WarNotice)notice);
+
+        private void PresentNotice(int tribeIndex, WarNotice notice)
+        {
+            // Unknown index: an older client against a newer server. Say nothing rather than name the
+            // wrong tribe.
+            FactionDefinition tribe = Ledger?.TribeAt(tribeIndex);
+            if (tribe == null) return;
+
+            (string id, string text, MessageSeverity severity) = WarNoticeText.For(notice, tribe);
+            SystemMessages.Post(id, text, severity);
         }
 
         /// <summary>

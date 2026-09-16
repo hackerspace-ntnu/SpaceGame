@@ -97,7 +97,7 @@ namespace SpaceGame.Agents
         [Header("Recovery")]
         [Tooltip("Points shed per in-game hour, toward zero from either side. The brake on the " +
                  "damage-begets-hostility loop (design §3.4): a war has to be able to be waited out.")]
-        [SerializeField] private float decayPerGameHour = 2f;
+        [SerializeField] private float decayPerGameHour = 0.5f;
 
         [Tooltip("Real seconds per in-game hour, used only when no DayNightCycle is live — a test " +
                  "scene, or the arena. Normally read from the cycle's own cycleDuration / 24.")]
@@ -368,7 +368,7 @@ namespace SpaceGame.Agents
         // ── Writing ───────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Something happened to <paramref name="victimFaction"/> and a player did it.
+        /// Something happened to <paramref name="victim"/> and a player did it.
         ///
         /// <paramref name="magnitude"/> means whatever <paramref name="kind"/> says: the fraction of
         /// max health for a <see cref="GoodwillEvent.Hit"/>, and 1 for everything else.
@@ -379,11 +379,16 @@ namespace SpaceGame.Agents
         /// world is NPC on NPC.
         /// </para>
         /// </summary>
-        public void Report(FactionDefinition victimFaction, EntityFaction attacker,
-                           GoodwillEvent kind, float magnitude = 1f)
+        public void Report(EntityFaction victim, EntityFaction attacker, GoodwillEvent kind, float magnitude = 1f)
         {
-            if (!Network.Decides || attacker == null) return;
+            if (!Network.Decides || victim == null || attacker == null) return;
             if (!TryGetProfile(attacker.gameObject, out string profileId)) return;
+
+            // Fighting off a war party is not a fresh offence (rosters spec §5.4). Hits as well as
+            // kills: every hit costs points, so exempting only kills would still push a defender deeper.
+            if (IsSelfDefence(victim, attacker, profileId)) return;
+
+            FactionDefinition victimFaction = victim.Faction;
 
             float delta = DeltaFor(kind, magnitude);
             if (Mathf.Approximately(delta, 0f)) return;
@@ -395,6 +400,39 @@ namespace SpaceGame.Agents
             // friend of theirs is not. Both are a fraction of the original, so a single shot cannot
             // move the whole map.
             SpreadToOthers(victimFaction, profileId, delta);
+        }
+
+        /// <summary>
+        /// Amends that no attacker performed — a war party resolved (rosters spec §5.3), later a quest.
+        /// Runs through the same hysteresis, spread and BandChanged as any other event.
+        /// </summary>
+        public void Credit(FactionDefinition faction, string profileId, float amount)
+        {
+            if (!Network.Decides || amount <= 0f) return;
+
+            Move(faction, profileId, amount);
+            SpreadToOthers(faction, profileId, amount);
+        }
+
+        /// <summary>
+        /// Is <paramref name="attacker"/> exempt because <paramref name="victim"/>'s war party was
+        /// hunting them, or somebody on their side? Rosters spec §5.4.
+        /// </summary>
+        private static bool IsSelfDefence(EntityFaction victim, EntityFaction attacker, string attackerProfileId)
+        {
+            if (!victim.TryGetComponent(out GroupMembership membership) || membership.Group == null)
+                return false;
+
+            string quarry = membership.Group.QuarryProfileId;
+            if (string.IsNullOrEmpty(quarry)) return false;
+
+            FactionDefinition quarrySide = null;
+            PlayerSaveService players = SaveManager.Instance?.Players;
+            if (players != null && players.TryGetBoundPlayer(quarry, out GameObject quarryBody)
+                && quarryBody.TryGetComponent(out EntityFaction quarryFaction))
+                quarrySide = quarryFaction.Faction;
+
+            return SelfDefenceRules.IsExempt(quarry, quarrySide, attackerProfileId, attacker.Faction);
         }
 
         private float DeltaFor(GoodwillEvent kind, float magnitude) => kind switch

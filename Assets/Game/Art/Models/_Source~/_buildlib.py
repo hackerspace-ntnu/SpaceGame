@@ -178,12 +178,16 @@ class Part:
         mesh = bpy.data.meshes.new("_scratch")
         bm2.to_mesh(mesh)
         bm2.free()
-        self.bm.faces.ensure_lookup_table()
-        n_before = len(self.bm.faces)
+        # The new faces are found by set difference, not by index. `from_mesh`
+        # into a non-empty bmesh does not append in order: slicing from the old
+        # face count returned mostly EARLIER faces (1 of 6 right, measured
+        # 2026-09-16), so lofts, prisms, tubes and tori tagged their material
+        # onto whatever was drawn before them, and callers transforming the
+        # returned faces flung earlier parts across the model.
+        before = set(self.bm.faces)
         self.bm.from_mesh(mesh)
-        self.bm.faces.ensure_lookup_table()
         bpy.data.meshes.remove(mesh)
-        return self._tag(self.bm.faces[n_before:], mat)
+        return self._tag([f for f in self.bm.faces if f not in before], mat)
 
     # -- primitives --------------------------------------------------------
 
@@ -434,8 +438,12 @@ class Part:
                  and e.calc_face_angle(0.0) > math.radians(angle)]
         if not edges:
             return
+        # material=-1 takes each chamfer's material from its neighbours. Left at
+        # its default the chamfers all get slot 0, which painted every bevelled
+        # edge in the library its model's FIRST material (measured 2026-09-16:
+        # a black cable in `street_life` came out three-quarters red).
         bmesh.ops.bevel(self.bm, geom=edges, offset=width, segments=segments,
-                        profile=0.5, affect='EDGES', clamp_overlap=True)
+                        profile=0.5, affect='EDGES', clamp_overlap=True, material=-1)
 
     def finish(self, name, coll, origin=(0, 0, 0)):
         """Emit the object. `origin` is in the space the geometry was built in

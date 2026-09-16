@@ -238,6 +238,12 @@ Outlaw bounty hunters are unchanged: they chase whoever they see and still respo
 With the default thresholds (enter `AtWar` at −80, leave above −70) a player at −85 is out of war
 after **one Caught** (−55) or **two Defeated** (−73, then −61).
 
+**Playtest tuning, 2026-09-17:** wars were ending far too soon, so `caughtCredit` dropped 30 → 15
+and `defeatedCredit` 12 → 4 (§9). With the new values a player at −85 is *not* out of war after one
+Caught (−70, still inside the sticky `AtWar` edge) — it now takes a Caught plus at least one
+Defeated, or several Defeated on their own, to get back out. See the tuning brief:
+`.superpowers/sdd/2026-09-16-rosters-and-war-parties/tuning-brief.md`.
+
 ### 5.4 Self-defence
 
 Hits **and** kills on a war-party member are **not reported** to the ledger when the attacker is:
@@ -331,16 +337,19 @@ All serialized on the director or the roster; nothing here is final.
 
 | Tunable | Default | Where |
 |---|---|---|
-| `partyCooldown` | 180 s | director |
+| `partyCooldown` | 60 s (was 180 s; playtest tuning 2026-09-17) | director |
 | `campSearchRadius` | 1000 m | director |
 | `fallbackDistance` | staging distance + 100 m | director |
-| `stagingMargin` | 50 m | director |
+| `stagingMargin` | 30 m (was 50 m; playtest tuning 2026-09-17) | director |
 | `maxPursuitDistance` | 1500 m | director |
-| `trailInterval` | 60 s | director |
-| `trailFuzz` | 80 m | director |
-| `caughtCredit` | +30 | director |
-| `defeatedCredit` | +12 | director |
+| `trailInterval` | 10 s (was 60 s; playtest tuning 2026-09-17) | director |
+| `trailFuzz` | 30 m (was 80 m; playtest tuning 2026-09-17) | director |
+| `caughtCredit` | +15 (was +30; playtest tuning 2026-09-17) | director |
+| `defeatedCredit` | +4 (was +12; playtest tuning 2026-09-17) | director |
 | `maxTier` | 2 | derived: `warPartyTiers.Length − 1` |
+
+`FactionGoodwillLedger.decayPerGameHour` also dropped 2 → 0.5 in the same pass (design
+§3.4/faction-system-design.md), for the same "wars end too soon" feedback.
 
 ## 10. Out of scope, recorded for later
 

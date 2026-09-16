@@ -141,7 +141,8 @@ namespace SpaceGame.Agents
 
             (Vector3 position, Quaternion rotation) = SeatPose(null);
 
-            GameObject rider = NpcSpawn.Create(riderPrefab, position, rotation, this);
+            GameObject rider = NpcSpawn.Create(riderPrefab, position, rotation, this,
+                                               spawned => GroupMembership.StampRider(gameObject, spawned));
             ownsRider = true;
             SeatInternal(rider);
             return rider;

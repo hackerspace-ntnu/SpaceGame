@@ -6,7 +6,9 @@ using System;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
@@ -23,6 +25,10 @@ namespace SpaceGame.EditorTools
 
         private const string CharacterDir = "Assets/Game/Prefabs/Agents/Characters";
         private const string NomadOstrichPath = "Assets/Game/Prefabs/Agents/Caravan/NomadOstrich.prefab";
+
+        public const string SandWarPartyTemplateId = "sand-war-party";
+        private const string WorldScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
+        private const string OutlawFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/OutlawFaction.asset";
 
         private static readonly string[] SandPeople =
         {
@@ -100,6 +106,92 @@ namespace SpaceGame.EditorTools
 
             Debug.Log($"[RosterAuthoring] Wrote {SandRosterPath}: {roster.members.Length} members, " +
                       $"{roster.handItems.Length} hand items, {roster.warPartyTiers.Length} tiers.", roster);
+        }
+
+        /// <summary>
+        /// Gives the caravans their tribe and adds the Sand War Party template. Copies the sand nomads'
+        /// formation; members and tasks are emptied because a war party's people come from its tier.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Wire War Party Templates")]
+        public static void WireWorldSim()
+        {
+            var sand = Load<FactionDefinition>(SandFactionPath);
+            var outlaws = Load<FactionDefinition>(OutlawFactionPath);
+            if (sand == null || outlaws == null) return;
+
+            WithWorldSim(sim =>
+            {
+                var so = new SerializedObject(sim);
+                SerializedProperty templates = so.FindProperty("templates");
+
+                int sandNomads = -1, warParty = -1;
+                for (int i = 0; i < templates.arraySize; i++)
+                {
+                    SerializedProperty template = templates.GetArrayElementAtIndex(i);
+                    string id = template.FindPropertyRelative("id").stringValue;
+
+                    if (id == "nomad-caravan" || id == "sand-nomads")
+                        template.FindPropertyRelative("tribe").objectReferenceValue = sand;
+                    if (id == "bounty-hunters")
+                        template.FindPropertyRelative("tribe").objectReferenceValue = outlaws;
+                    if (id == "sand-nomads") sandNomads = i;
+                    if (id == SandWarPartyTemplateId) warParty = i;
+                }
+
+                if (warParty < 0)
+                {
+                    if (sandNomads < 0)
+                    {
+                        Debug.LogError("[RosterAuthoring] No 'sand-nomads' template to copy the formation from.");
+                        return;
+                    }
+
+                    templates.GetArrayElementAtIndex(sandNomads).DuplicateCommand();
+                    warParty = sandNomads + 1;
+                }
+
+                SerializedProperty party = templates.GetArrayElementAtIndex(warParty);
+                party.FindPropertyRelative("id").stringValue = SandWarPartyTemplateId;
+                party.FindPropertyRelative("displayName").stringValue = "Sand War Party";
+                party.FindPropertyRelative("tribe").objectReferenceValue = sand;
+                party.FindPropertyRelative("runtimeOnly").boolValue = true;
+                party.FindPropertyRelative("bountyHunters").boolValue = true;
+                party.FindPropertyRelative("useStartPosition").boolValue = false;
+                party.FindPropertyRelative("travelSpeed").floatValue = 3f;
+                party.FindPropertyRelative("members").arraySize = 0;
+                party.FindPropertyRelative("tasks").arraySize = 0;
+
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                if (sim.GetComponent<WarPartyDirector>() == null)
+                    sim.gameObject.AddComponent<WarPartyDirector>();
+            });
+        }
+
+        /// <summary>
+        /// Open the world scene additively if needed, edit its NpcWorldSim, save, and leave the editor as
+        /// it was found — the same dance NomadPrefabBuilder.AddSandNomadCaravan does, for the same reasons.
+        /// </summary>
+        private static void WithWorldSim(Action<NpcWorldSim> edit)
+        {
+            Scene scene = SceneManager.GetSceneByPath(WorldScenePath);
+            bool alreadyOpen = scene.IsValid() && scene.isLoaded;
+            if (!alreadyOpen) scene = EditorSceneManager.OpenScene(WorldScenePath, OpenSceneMode.Additive);
+
+            NpcWorldSim sim = scene.GetRootGameObjects()
+                .Select(g => g.GetComponentInChildren<NpcWorldSim>(true))
+                .FirstOrDefault(s => s != null);
+
+            if (sim == null)
+                Debug.LogError($"[RosterAuthoring] No NpcWorldSim in {WorldScenePath}.");
+            else
+            {
+                edit(sim);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+
+            if (!alreadyOpen) EditorSceneManager.CloseScene(scene, true);
         }
 
         private static RosterMember Member(RosterRole role, GameObject prefab) =>

@@ -31,10 +31,10 @@ namespace SpaceGame.Agents
         [SerializeField] private FactionRelationship relationship = FactionRelationship.Hostile;
         [Tooltip("Candidates beyond this are never scored. Automatically widened at Awake to cover " +
                  "the agent's own longest weapon range.")]
-        [SerializeField] private float acquisitionRange = 35f;
+        [SerializeField] private float acquisitionRange = VisionBaseline.MinAcquisitionRange;
         [Tooltip("An acquired target is dropped past this distance. Kept above acquisitionRange so " +
                  "targets don't flicker at the boundary.")]
-        [SerializeField] private float loseRange = 45f;
+        [SerializeField] private float loseRange = VisionBaseline.MinLoseRange;
         [Tooltip("Require field-of-view + line-of-sight to acquire. Turn off for arena modes where " +
                  "everyone is expected to know where everyone else is.")]
         [SerializeField] private bool requireLineOfSightToAcquire = true;
@@ -116,7 +116,7 @@ namespace SpaceGame.Agents
         }
 
         // Matches TargetingProfile.memoryDuration's own default.
-        private const float FallbackMemoryDuration = 6f;
+        private const float FallbackMemoryDuration = VisionBaseline.MinMemory;
 
         // ── Internals ─────────────────────────────────────────────────────────────
         private TargetingProfile settings;

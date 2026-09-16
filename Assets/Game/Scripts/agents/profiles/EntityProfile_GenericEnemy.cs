@@ -33,10 +33,10 @@ namespace SpaceGame.Agents
         public float herdSpeed = 1f;
 
         [Header("Detection")]
-        public float detectRange = 18f;
-        public float loseTargetRange = 28f;
-        public float fieldOfViewAngle = 130f;
-        public float memoryDuration = 6f;
+        public float detectRange = VisionBaseline.MinAcquisitionRange;
+        public float loseTargetRange = VisionBaseline.MinLoseRange;
+        public float fieldOfViewAngle = VisionBaseline.MinFieldOfView;
+        public float memoryDuration = VisionBaseline.MinMemory;
         public LayerMask occlusionLayers;
 
         [Header("Attack")]

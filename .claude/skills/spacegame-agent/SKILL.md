@@ -123,7 +123,13 @@ best template for a new creature builder.
     serialized default of `Fallback (0)` and ties with wander.
 11. **Perception** — `PerceptionModule` for FOV/LoS; set `occlusionLayers` explicitly.
     `AlertBroadcaster` + `AlertReceiverModule` for pack alerts; `NoiseEmitter` +
-    `NoiseReceiverModule` for hearing.
+    `NoiseReceiverModule` for hearing. **Vision must meet `VisionBaseline`** (180° cone, 80 m
+    acquire, 110 m lose, 12 s memory) or `VisionBaselineTests` fails: write
+    `VisionBaseline.MinFieldOfView` / `MinMemory` in the builder rather than a narrower literal
+    (wider is fine — prey animals use 210–220°), then run `Tools/SpaceGame/Agents/Wire Vision
+    Baseline`. A creature that deliberately sees less (a stationary boss whose range *is* its
+    trigger) goes in `VisionBaselineWiring.Exempt` with a comment saying why. Any new visibility
+    raycast passes `QueryTriggerInteraction.Ignore` — the project hits triggers by default.
 12. **Animation parameters** (NavMesh creatures) — a controller in
     `Assets/Game/Art/Animations/Creatures/` carrying exactly `SpeedX`, `SpeedY`, `FallSpeed`,
     `IsGrounded`, `IsImmobalized` *(sic)*, `IsAiming`, plus whatever triggers the combat and health
@@ -148,6 +154,20 @@ best template for a new creature builder.
     - A hand-placed instance in a chunk scene under `Assets/Game/Scenes/world/Chunks/`.
 17. **Verify in play**: it wanders; it acquires only what it should; the feet do not slide; the
     walk/run blend matches the motor; it dies, drops loot once, and despawns.
+
+## Rosters and war parties
+
+Adding a new tribe end to end — its `FactionRoster`, people, war parties and caravans — is a
+repeatable job with its own skill: **[spacegame-tribe](../spacegame-tribe/SKILL.md)**.
+
+- A member's `role` draws a prefab from the tribe's `FactionRoster` when `NpcGroupMemberSpec.prefab`
+  is left empty; a `runtimeOnly` template (`bountyHunters`, `tribe` set) is never seeded at startup —
+  `WarPartyDirector` creates one when a tribe goes `AtWar`, and without one in `NpcWorldSim.templates`
+  it logs "no war-party template" and no party ever comes.
+- **Never hand-edit a nomad's `NpcRandomLoadout.candidates`** — baked from the roster's `handItems`
+  by `NomadPrefabBuilder`; run the roster-authoring menu first, then the tribe's builder (it bakes
+  `roster.handItems` and errors without the roster).
+- Full model, flows and gotchas: [AgentSystem.md](../../../docs/AI/systems/AgentSystem.md).
 
 ## Module quick reference
 

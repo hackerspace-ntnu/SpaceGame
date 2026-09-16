@@ -370,7 +370,7 @@ namespace SpaceGame.EditorTools
             profile.relationship = FactionRelationship.Hostile;
             profile.acquisitionRange = SightAcquireRange;
             profile.loseRange = SightLoseRange;
-            profile.memoryDuration = 10f;
+            profile.memoryDuration = VisionBaseline.MinMemory;
             profile.requireLineOfSightToAcquire = true;
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();
@@ -568,9 +568,9 @@ namespace SpaceGame.EditorTools
 
             // A machine watches a wide arc, and a robot cowboy sees a long way across open sand.
             var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", 170f);
+            SetFloat(perception, "fieldOfViewAngle", VisionBaseline.MinFieldOfView);
             SetFloat(perception, "eyeHeight", bounds.size.y * 0.9f);
-            SetFloat(perception, "memoryDuration", 10f);
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             SetInt(perception, "occlusionLayers", LayerMaskOf("Default", "Ground", "Interior"));
 
             AgentTargeting targeting = root.GetComponent<AgentTargeting>();

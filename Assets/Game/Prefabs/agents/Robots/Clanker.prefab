@@ -174,12 +174,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
   agent: {fileID: 8340622751846123365}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.45
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
@@ -209,6 +214,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 3.4197447
+  strideEndPhases: []
 --- !u!114 &3543508850138772917
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -310,7 +316,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64661caed1f864fa9aac312ff41b3e53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.PerceptionModule
-  fieldOfViewAngle: 170
+  fieldOfViewAngle: 180
   movingFovBonus: 0
   eyeTransform: {fileID: 0}
   occlusionLayers:
@@ -318,7 +324,9 @@ MonoBehaviour:
     m_Bits: 641
   eyeHeight: 2.8799996
   targetAimHeight: 1
-  memoryDuration: 10
+  headAimHeight: 1.6
+  headInset: 0.15
+  memoryDuration: 12
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
@@ -614,6 +622,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityLootTable
   lootEntries: []
   dropInventoryContents: 1
+  dropOnDespawn: 0
 --- !u!114 &1084883587522938649
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -677,6 +686,16 @@ MonoBehaviour:
   leashRange: 140
   calmDownDelay: 45
   damageThreshold: 0
+  aggressionSettings:
+    hitGain: 1200
+    allyHurtGain: 40
+    gunshotGain: 15
+    menaceGainPerSecond: 20
+    menaceRange: 12
+    menaceDelay: 1.5
+    trespassGainPerSecond: 10
+    calmRate: 10
+    attackAt: 100
   drawGizmos: 1
 --- !u!114 &4632979689564017669
 MonoBehaviour:

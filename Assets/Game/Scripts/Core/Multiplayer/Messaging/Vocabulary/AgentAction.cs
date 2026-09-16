@@ -22,5 +22,12 @@ namespace SpaceGame.Core
         /// precisely the thing the meter exists to prevent.
         /// </summary>
         public const int Band = 2;
+
+        /// <summary>
+        /// A war party's first sight of the player it is hunting: a shout from the tribe's roster
+        /// <c>hostileLines</c>, index in <see cref="NetArg.B"/>. The index, not the text, so the
+        /// message stays small and every machine reads the line from its own copy of the roster.
+        /// </summary>
+        public const int WarCry = 3;
     }
 }

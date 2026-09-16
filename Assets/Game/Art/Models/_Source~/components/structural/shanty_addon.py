@@ -155,17 +155,21 @@ def build_leanto(coll, mats):
 
     # The roof plane, made of overlapping corrugated sheets.
     ang = math.atan2(high - low, reach)
+    # +ang about Y drops the outer (+X) end. This read -ang until 2026-09-16,
+    # which tilted the roof UP from the wall and through both gable walls; the
+    # .blend this built still has that tilt, and `sky_city_street` corrects its
+    # placed copies. Fixed here so the record matches what the roof should be.
     for i in range(5):
         y = -wide / 2 + 0.25 + i * (wide - 0.5) / 4.0
         p.box((reach / 2.0, y, (high + low) / 2.0 + 0.06),
               (reach / math.cos(ang), (wide - 0.5) / 4.0 + 0.06, 0.07),
               RUST if i % 2 else HULL,
-              rot=Matrix.Rotation(-ang, 4, 'Y'))
+              rot=Matrix.Rotation(ang, 4, 'Y'))
     for i in range(9):                          # corrugation ribs
         t = (i + 0.5) / 9.0
         p.box((reach * t, 0, high - (high - low) * t + 0.12),
               (0.06, wide - 0.4, 0.05), DARK,
-              rot=Matrix.Rotation(-ang, 4, 'Y'))
+              rot=Matrix.Rotation(ang, 4, 'Y'))
 
     for s in (-1, 1):                           # end walls, cut to the slope
         patchwork(p, 0.10, s * (wide / 2 - 0.09), s * (wide / 2), 0.0, low,

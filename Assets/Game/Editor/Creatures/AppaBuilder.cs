@@ -685,7 +685,7 @@ namespace SpaceGame.EditorTools
             var perception = root.AddComponent<PerceptionModule>();
             SetFloat(perception, "fieldOfViewAngle", 220f);   // prey animal, eyes wide apart
             SetFloat(perception, "eyeHeight", 2.3f * Scale);
-            SetFloat(perception, "memoryDuration", 8f);
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             // Left unset this is Nothing, which makes every line-of-sight test
             // succeed through walls; PerceptionModule falls back to these three
             // at runtime and warns once per spawn asking to be told explicitly.
@@ -784,7 +784,7 @@ namespace SpaceGame.EditorTools
             if (root.GetComponent<AgentTargeting>() == null)
                 root.AddComponent<AgentTargeting>();
 
-            // The leash matches AgentTargeting's own loseRange. Holding a grudge
+            // The leash stays inside AgentTargeting's own loseRange. Holding a grudge
             // further out than targeting will retain means re-asserting and
             // dropping it on alternate frames.
             var provocation = root.AddComponent<ProvocationModule>();

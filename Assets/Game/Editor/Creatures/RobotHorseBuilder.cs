@@ -507,9 +507,9 @@ namespace SpaceGame.EditorTools
 
             // -- senses ----------------------------------------------------------------
             var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", design.Wild ? 220f : 170f);
+            SetFloat(perception, "fieldOfViewAngle", design.Wild ? 220f : VisionBaseline.MinFieldOfView);
             SetFloat(perception, "eyeHeight", HeadHeight * Scale);
-            SetFloat(perception, "memoryDuration", 8f);
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             SetInt(perception, "occlusionLayers", LayerMaskOf("Default", "Ground", "Interior"));
 
             var ears = root.AddComponent<NoiseReceiverModule>();

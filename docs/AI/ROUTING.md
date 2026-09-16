@@ -43,6 +43,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a builder's collider query says everything is already in the right place and nothing moves | [EditorTooling](systems/EditorTooling.md) |
 | a burning crate takes damage but shows no flames at all | [Flamethrower](systems/Flamethrower.md) |
 | a captive unties themselves by walking to the far knot and clicking there | [LeashSystem](systems/LeashSystem.md) |
+| a caravan comes back with different guns after walking out of range | [AgentSystem](systems/AgentSystem.md) |
 | a caught creature can never be let out again once it has been reeled in | [Lasso](systems/Lasso.md) |
 | a cave regenerates on Start and stalls play mode for seconds | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a charge is right on the host and wrong on every client | [SupplyCharge](systems/SupplyCharge.md) |
@@ -66,6 +67,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a collider a builder added is on the prefab but nothing ever hits it | [EditorTooling](systems/EditorTooling.md) |
 | a component I added to PlayerShip.prefab by hand disappeared after a rebuild | [PlayerShip](systems/PlayerShip.md) |
 | a continuous item only affects what the crosshair is exactly on, and its visible spray does nothing | [Artifacts](systems/Artifacts.md) |
+| a convex collider rebuilt from an imported mesh fills the gap between two boxes that only touched at a corner | [ArtPipeline](systems/ArtPipeline.md) |
 | a coroutine threw once and that feature never worked again for the rest of the session | [Diagnostics](systems/Diagnostics.md) |
 | a creature built from several meshes blows apart when it dies, while single-mesh ones fall fine | [Combat](systems/Combat.md) |
 | a creature disappears for clients when it walks into another chunk | [EntitySystem](systems/EntitySystem.md) |
@@ -148,6 +150,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a lit shaft hangs in the air with the lamp switched off | [Flashlight](systems/Flashlight.md) |
 | a lit torch and a powered scanner, one per wrist, and only the right arm comes up | [Flashlight](systems/Flashlight.md) |
 | a lobby control looks enabled but does nothing while a request is in flight | [Lobby](systems/Lobby.md) |
+| a lofted, prism or torus part takes its material from something drawn before it, or moving it moves other parts | [ArtPipeline](systems/ArtPipeline.md) |
 | a lump hangs in mid-air off the edge of a ledge | [FoamGun](systems/FoamGun.md) |
 | a lump is laid on the player's own body or on the machine they are riding | [FoamGun](systems/FoamGun.md) |
 | a lump of foam is faceted and looks like a low-poly rock | [FoamGun](systems/FoamGun.md) |
@@ -246,6 +249,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
 | a settlement's spawner logs Spawn called on a client and nothing appears | [AgentSystem](systems/AgentSystem.md) |
 | a shader compiles clean, reports isSupported and zero messages, and still draws as the magenta error shader | [StormFlask](systems/StormFlask.md) |
+| a shanty addon stood on open ground shows a bare grey slab, and its lean-to roof cuts through its own walls | [ArtPipeline](systems/ArtPipeline.md) |
 | a singularity opened at the world origin instead of where I threw it | [BottledSingularity](systems/BottledSingularity.md) |
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
 | a small fitting swells and starts clashing with neighbours after the bevel width was raised | [ArtPipeline](systems/ArtPipeline.md) |
@@ -262,6 +266,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a torso item is worn rotated to a random angle | [BodyEquipment](systems/BodyEquipment.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
+| a war party stops at an old position and never follows me again | [AgentSystem](systems/AgentSystem.md) |
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a worn item is scaled to the size of the model it is carried as | [BodyEquipment](systems/BodyEquipment.md) |
 | a worn model came out lying on its face, or rotated ninety degrees | [BodyEquipment](systems/BodyEquipment.md) |
@@ -303,6 +308,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an item was placed but cannot be picked up again | [Placeables](systems/Placeables.md) |
 | an item's charge resets when I scroll one hotbar slot and back | [SupplyCharge](systems/SupplyCharge.md) |
 | an item, faction or targeting asset never turns up in Registry<T>.Get | [CoreServices](systems/CoreServices.md) |
+| an NPC behind a waist-high wall never sees me standing there | [AgentSystem](systems/AgentSystem.md) |
 | an NPC holding an item slides along in a frozen gun-aim pose, legs not moving, with a valid avatar | [Inventory](systems/Inventory.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
 | an NPC on wet ground turns on the spot and never gets anywhere | [NavMeshSystem](systems/NavMeshSystem.md) |
@@ -365,6 +371,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Esc right after pressing B leaves no camera enabled at all | [Backpack](systems/Backpack.md) |
 | Esc will not leave the terminal while a schematic module is selected | [ShipSchematic](systems/ShipSchematic.md) |
 | every agent hovers a few centimetres to half a metre above the ground | [NavMeshSystem](systems/NavMeshSystem.md) |
+| every bevelled edge of a model is painted the model's first material - a black cable comes out red | [ArtPipeline](systems/ArtPipeline.md) |
 | every bubble in the spray is the same colour and the same brightness | [FoamGun](systems/FoamGun.md) |
 | every client's shot follows the host's crosshair instead of their own aim | [Artifacts](systems/Artifacts.md) |
 | every creature and NPC hovers a hand's width above the sand | [AgentSystem](systems/AgentSystem.md) |
@@ -468,6 +475,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | items multiply in the world: one more copy of each carried piece after every load | [Inventory](systems/Inventory.md) |
 | joining fails with 409 'player is already a member of the lobby | [Lobby](systems/Lobby.md) |
 | jump heights and ballistic arcs are wrong — gravity here is -18, not -9.81 | [ProjectConfig](systems/ProjectConfig.md) |
+| killing the war party hunting me still costs goodwill | [AgentSystem](systems/AgentSystem.md) |
 | L does nothing and there is no torch at all | [Flashlight](systems/Flashlight.md) |
 | legacy Input.GetKey compiles fine but throws at runtime | [ProjectConfig](systems/ProjectConfig.md) |
 | letting go of Space parks me in the air instead of dropping me | [Jetpack](systems/Jetpack.md) |
@@ -505,10 +513,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | no item works while I am flying, or every item fires at the sand under the craft | [Ornithopter](systems/Ornithopter.md) |
 | no prompt appears on the control I am looking at | [InteractionSystem](systems/InteractionSystem.md) |
 | no sound plays for the client but the host hears it | [audio](systems/audio.md) |
+| no war party ever comes although a tribe is at war | [AgentSystem](systems/AgentSystem.md) |
+| nomads knocked off their mounts are left standing in the desert after the caravan walks away | [AgentSystem](systems/AgentSystem.md) |
 | nothing on screen says which key opens the pack once it is on the ground | [Backpack](systems/Backpack.md) |
 | nothing on the pack says where the oxygen bottle is supposed to go | [Backpack](systems/Backpack.md) |
 | nothing on the pack says where the oxygen bottle is supposed to go | [Oxygen](systems/Oxygen.md) |
+| NPCs cannot see me from outside the ship | [AgentSystem](systems/AgentSystem.md) |
 | NPCs cannot walk on a rock or mesa I just generated | [TerrainGeneration](systems/TerrainGeneration.md) |
+| NPCs only notice me when I stand right in front of them | [AgentSystem](systems/AgentSystem.md) |
 | one broken creature behaviour stopped the creature moving at all | [Diagnostics](systems/Diagnostics.md) |
 | one material kept its texture through export and the others silently lost theirs | [ArtPipeline](systems/ArtPipeline.md) |
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
@@ -1046,6 +1058,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | two players' visors both announce OXYGEN CRITICAL when only one is low | [Visor](systems/Visor.md) |
 | two ropes on one object hold it far more firmly than one does | [LeashSystem](systems/LeashSystem.md) |
 | two sites on the body screen light up at each other's outline thickness | [BodyEquipment](systems/BodyEquipment.md) |
+| two war parties hunt one player after loading | [AgentSystem](systems/AgentSystem.md) |
 | tying my rope to a rock or a hull makes the jetpack far more powerful | [Jetpack](systems/Jetpack.md) |
 | tying somebody up freezes them on my screen and they walk around on theirs | [Hogtie](systems/Hogtie.md) |
 | typecheck.py prints 'No errors.' but the Editor still shows compile errors | [Testing](systems/Testing.md) |
@@ -1428,4 +1441,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1048 symptoms, 354 paths, 55 docs -->
+<!-- 1061 symptoms, 354 paths, 55 docs -->

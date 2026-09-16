@@ -261,7 +261,7 @@ namespace SpaceGame.Agents
             EntityFaction killer = source.GetComponentInParent<EntityFaction>();
             if (killer == null || killer.transform == transform) return;
 
-            ledger.Report(mine.Faction, killer, GoodwillEvent.Kill);
+            ledger.Report(mine, killer, GoodwillEvent.Kill);
         }
 
         private void HandleDeath()

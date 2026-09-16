@@ -62,6 +62,12 @@ DECK_STYLES = ("planks", "plate", "grating", "scrap")
 RAIL_STYLES = ("rope", "pipe", "sheet", "net")
 STAIR_STYLES = ("timber", "scrap")
 RISER = 0.2                  # drawn step height; the collision is a smooth ramp
+PLANK_T = 0.055              # deck plank thickness
+LADDER_W = 0.7               # between rails: narrower than the 1.0 m capsule, so a gap
+                             # left for a ladder in a railing is not a gap to fall through
+RUNG_PITCH = 0.3
+GRAB = 1.1                   # rails carried above the top rung, to hold stepping off
+STANDOFF = 0.25              # rail to wall
 POST_GAP = (1.5, 2.1)        # railing post spacing, drawn per bay
 
 
@@ -165,9 +171,11 @@ def _planks(p, x0, y0, x1, y1, z, rng, across):
         if rng.random() < 0.125 and e1 - e0 > 1.6:
             e1 -= rng.uniform(0.25, 0.6)
         drop = rng.uniform(0.0, 0.015)
-        center = pt(a + w / 2, (e0 + e1) / 2, z - 0.03 - drop)
+        # 55 mm, not 60: the sky city's old cantilevered scraps top out at
+        # exactly 60 mm under the walkway, and a plank bottom there z-fights.
+        center = pt(a + w / 2, (e0 + e1) / 2, z - PLANK_T / 2 - drop)
         d = pt(1.0, 0.0, 0.0) - pt(0.0, 0.0, 0.0)
-        obox(p, center, (e1 - e0, w - rng.uniform(0.02, 0.05), 0.06), Vector((d.x, d.y, 0)), mat,
+        obox(p, center, (e1 - e0, w - rng.uniform(0.02, 0.05), PLANK_T), Vector((d.x, d.y, 0)), mat,
              yaw=math.radians(rng.uniform(-1.2, 1.2)))
         a += w
 
@@ -370,6 +378,47 @@ def stair(p, foot, d, width, rise, style, rng, rails=(True, True), rail_rise=Non
         railing(p, (a.x, a.y), (b.x, b.y), a.z, style_r, rng, z_b=a.z + rr)
 
 
+def ladder(p, foot, top_z, facing, rng, style="timber", width=None):
+    """A straight vertical ladder whose rails stand on `foot` (x, y, z, the
+    centre of the rail line) and rise GRAB above `top_z`, the height a climber
+    steps off at. `facing` points from the ladder toward the climber.
+
+    Straight and plumb on purpose, however scrappy the rungs: a ladder is a
+    gameplay route, and whatever climbing logic comes later wants a line.
+    Stand-off brackets reach back from the rails every few metres, to whatever
+    the ladder is fixed to.
+    """
+    foot = Vector(foot)
+    f = Vector((facing[0], facing[1], 0.0)).normalized()
+    s = f.cross(UP)
+    w = LADDER_W if width is None else width
+    height = top_z - foot.z + GRAB
+    timber = style == "timber"
+    for sx in (-1, 1):
+        base = foot + s * (sx * w / 2)
+        top = base + UP * height
+        if timber:
+            strut(p, base, top, 0.08, 0.06, TIMBER)
+        else:
+            pole(p, base, top, 0.04, rng.choice((RUST, RUST_DEEP)), seg=8)
+        z = 2.5
+        while z < height - 0.5:
+            strut(p, base + UP * z, base + UP * z - f * STANDOFF, 0.05, 0.05, DARK)
+            z += rng.uniform(2.5, 3.5)
+    z = RUNG_PITCH
+    while z < top_z - foot.z + 0.05:
+        c = foot + UP * z
+        if timber:
+            obox(p, c, (w + 0.1, 0.05, 0.05), f, rng.choices((TIMBER, PLY, RUST), (0.8, 0.12, 0.08))[0],
+                 yaw=math.radians(rng.uniform(-2, 2)))
+            if rng.random() < 0.3:
+                for sx in (-1, 1):
+                    lashing(p, c + s * (sx * w / 2), 0.05, turns=2)
+        else:
+            pole(p, c - s * (w / 2), c + s * (w / 2), 0.022, rng.choice((RUST, DARK, RUST_PALE)), seg=6)
+        z += RUNG_PITCH
+
+
 # ---------------------------------------------------------------------------
 # Lights and props
 # ---------------------------------------------------------------------------
@@ -433,6 +482,9 @@ def build():
     for style in STAIR_STYLES:
         emit("ScrapStair_" + style.capitalize(),
              lambda p, rng, s=style: stair(p, (0.0, 0.0, 0.0), (0.0, 5.45), 1.4, 2.8, s, rng))
+    for style in ("timber", "rust"):
+        emit("ScrapLadder_" + style.capitalize(),
+             lambda p, rng, s=style: ladder(p, (0.0, 0.0, 0.0), 4.0, (0.0, -1.0), rng, style=s))
     emit("ScrapLantern_Bracket",
          lambda p, rng: (strut(p, (0, 0, 0), (0, 0, 1.2), 0.1, 0.1, TIMBER),
                          bracket_lantern(p, (0, 0, 1.2), (1, 0), rng)))

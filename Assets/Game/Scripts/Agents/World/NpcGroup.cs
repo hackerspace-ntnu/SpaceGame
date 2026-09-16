@@ -22,6 +22,9 @@ namespace SpaceGame.Agents
                  "NpcPassenger — the mount is the agent and the rider goes along for the ride.")]
         public GameObject prefab;
 
+        [Tooltip("Used only when prefab is empty: the prefab is drawn from the template tribe's roster.")]
+        public RosterRole role;
+
         [Tooltip("This member sets the group's route. Exactly one member of a group should lead; " +
                  "if none does, the first spawned takes it.")]
         public bool isLeader;
@@ -40,6 +43,15 @@ namespace SpaceGame.Agents
 
         [Tooltip("Shown in debug and in chatter about the group.")]
         public string displayName = "Caravan";
+
+        [Tooltip("The tribe this group belongs to. Members take its faction, and roles draw from its " +
+                 "roster. Leave empty for groups that are not a tribe's (Outlaws have no roster but " +
+                 "still set this so their members are stamped).")]
+        public FactionDefinition tribe;
+
+        [Tooltip("Never seeded at startup; only created at runtime (war parties). Kept in this list so " +
+                 "a saved runtime group can always find its template on load.")]
+        public bool runtimeOnly;
 
         public NpcGroupMemberSpec[] members;
 
@@ -101,7 +113,43 @@ namespace SpaceGame.Agents
         public bool HasLead;
         public float LeadAge;
 
+        /// <summary>Which prefabs and weapons this group draws. Same seed, same people, after every refold.</summary>
+        public int RosterSeed;
+
+        /// <summary>The profile this war party is hunting. Empty for every group that is not one.</summary>
+        public string QuarryProfileId = string.Empty;
+
+        /// <summary>War-party escalation tier: which row of the roster's warPartyTiers it spawns.</summary>
+        public int Tier;
+
+        public bool IsWarParty => !string.IsNullOrEmpty(QuarryProfileId);
+
+        // Runtime only, never saved. Counted by GroupMembership while the group is spawned and reset on
+        // every spawn, which is why a folded party cannot be "defeated": nobody can reach it.
+        [NonSerialized] public int FightersSpawned;
+        [NonSerialized] public int FightersDead;
+
+        /// <summary>
+        /// A war party with no member left and no fighter standing, dismounted riders included
+        /// (WarPartyRules.IsWipedOut). It never re-spawns; the director resolves it. Saved
+        /// (Record.wipedOut), so a party wiped out just before a save does not respawn at full
+        /// strength on load — the director sees it Defeated instead.
+        /// </summary>
+        public bool WipedOut;
+
+        /// <summary>Released while somebody could see it: removed the moment it folds, never popped out of view.</summary>
+        [NonSerialized] public bool DisbandWhenFolded;
+
+        /// <summary>First sight of the quarry since this spawn has been announced.</summary>
+        [NonSerialized] public bool QuarrySeenThisSpawn;
+
         [NonSerialized] public readonly List<GameObject> Live = new();
+
+        /// <summary>
+        /// Everyone stamped a fighter this spawn (GroupMembership), on foot or seated. Not Live: a rider
+        /// who dismounts belongs to no mount any more, and only this list still knows they are ours.
+        /// </summary>
+        [NonSerialized] public readonly List<GameObject> Fighters = new();
 
         public Vector3 Heading => HasGoal ? Flat(GoalPosition - Position).normalized : Vector3.forward;
 
@@ -165,6 +213,16 @@ namespace SpaceGame.Agents
             public Vector3 lead;
             public bool hasLead;
             public float leadAge;
+
+            // Appended 2026-09-16 (rosters spec §4.2). Older saves read 0, null, 0: no seed (ApplyRecord
+            // keeps the group's own), not a war party, tier 0.
+            public int rosterSeed;
+            public string quarryProfileId;
+            public int tier;
+
+            // Appended 2026-09-16 (rosters spec, review fix round 1). Older saves read false: a party
+            // that was mid-fight when an old save was written comes back alive, same as it always did.
+            public bool wipedOut;
         }
 
         public Record ToRecord() => new Record
@@ -181,6 +239,10 @@ namespace SpaceGame.Agents
             lead = Lead,
             hasLead = HasLead,
             leadAge = LeadAge,
+            rosterSeed = RosterSeed,
+            quarryProfileId = QuarryProfileId,
+            tier = Tier,
+            wipedOut = WipedOut,
         };
 
         public void ApplyRecord(in Record record)
@@ -195,6 +257,12 @@ namespace SpaceGame.Agents
             Lead = record.lead;
             HasLead = record.hasLead;
             LeadAge = record.leadAge;
+            // 0 is what an older save reads. Taking it would re-seed a caravan once and save that back
+            // for good, so the group keeps the seed it was created with (its id's StableHash).
+            if (record.rosterSeed != 0) RosterSeed = record.rosterSeed;
+            QuarryProfileId = record.quarryProfileId ?? string.Empty;
+            Tier = Mathf.Max(0, record.tier);
+            WipedOut = record.wipedOut;
         }
     }
 }

@@ -599,7 +599,7 @@ namespace SpaceGame.EditorTools
             var perception = root.AddComponent<PerceptionModule>();
             SetFloat(perception, "fieldOfViewAngle", 210f);   // prey eyes, set wide
             SetFloat(perception, "eyeHeight", 0.97f * Scale);         // measured: head bone
-            SetFloat(perception, "memoryDuration", 5f);
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             // Left unset this mask reads as Nothing, line-of-sight always
             // succeeds, and PerceptionModule warns once per spawn while
             // falling back to these same three layers. Setting it explicitly

@@ -222,8 +222,7 @@ namespace SpaceGame.Agents
             // the persistent scene has loaded, and none of those are errors.
             if (TryGetComponent(out EntityFaction mine))
             {
-                FactionGoodwillLedger.Instance?.Report(
-                    mine.Faction, attacker, GoodwillEvent.Hit, fraction);
+                FactionGoodwillLedger.Instance?.Report(mine, attacker, GoodwillEvent.Hit, fraction);
             }
 
             if (amount < damageThreshold)

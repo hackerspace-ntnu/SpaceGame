@@ -170,6 +170,34 @@ namespace SpaceGame.Agents
         /// </summary>
         private string Resolve(string line) => NpcSpeechTokens.Resolve(line, taskModule);
 
+        /// <summary>
+        /// Say <paramref name="line"/> now, outside the idle rotation. Answers whether it was said.
+        ///
+        /// <para>
+        /// For a line the world has a REASON for at this instant — the aggression telegraph's
+        /// warning, which is worthless three seconds late. It therefore skips the interval and the
+        /// silent-while-fighting rule, both of which exist to stop ambient chatter being annoying,
+        /// and keeps the two that stop lines colliding: the global cooldown, so six nomads warning
+        /// you at once produce one line rather than six, and never talking over a conversation the
+        /// player is actually having.
+        /// </para>
+        /// <para>
+        /// Deliberately not "say this no matter what". A warning that overwrites the dialogue box
+        /// mid-sentence is a worse bug than a warning that is missed.
+        /// </para>
+        /// </summary>
+        public bool TrySayNow(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            if (Time.time < nextGlobalSpeakTime) return false;
+
+            NpcDialogPopupUI popup = NpcDialogPopupUI.Instance;
+            if (popup == null || popup.IsVisible || popup.IsQuestionActive) return false;
+
+            Speak(Resolve(line));
+            return true;
+        }
+
         private void Speak(string line)
         {
             nextGlobalSpeakTime = Time.time + Mathf.Max(0f, globalCooldown);

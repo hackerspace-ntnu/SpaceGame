@@ -49,27 +49,48 @@ namespace SpaceGame.Core.Persistence
             /// walking away and waiting it out has to keep working across a reload.
             /// </summary>
             public float calmingFor;
+
+            /// <summary>
+            /// The aggression meter, 0-100. **Appended** — an older save has no such field and
+            /// deserializes it as 0, which reads as "calm", which is what every save written before
+            /// the meter existed meant.
+            ///
+            /// Worth saving separately from the grudge because the interesting states are the ones
+            /// BELOW a grudge: a nomad you have spent twenty seconds making wary is a different
+            /// animal from one you have never met, and losing that on a reload hands the player back
+            /// a camp they had already half-provoked.
+            /// </summary>
+            public float aggression;
         }
 
         private SaveRef pendingAggressor;
         private float pendingCalmingFor;
+        private float pendingAggression;
         private bool hasPending;
 
         public object CaptureState()
         {
-            if (Provocation == null || !Provocation.IsProvoked) return null;
+            if (Provocation == null) return null;
 
-            SaveRef aggressor = SaveRef.From(Provocation.Aggressor);
+            // A creature that is neither fighting nor wound up is in the state a missing entry
+            // already means. Writing a row per calm creature would put one in the save file for
+            // every animal in the world.
+            if (!Provocation.IsProvoked && Provocation.Aggression <= 0f) return null;
+
+            // Whoever the anger is pointed at: the aggressor in a fight, the provoker on the way up.
+            SaveRef aggressor = SaveRef.From(
+                Provocation.IsProvoked ? Provocation.Aggressor : Provocation.Provoker);
 
             // An aggressor nothing can describe — an unsaved scene object, or something already
-            // destroyed — leaves no grudge worth recording. Storing the timer alone would restore a
-            // calm-down clock with nothing to calm down from.
-            if (!aggressor.IsSet) return null;
+            // destroyed — leaves no grudge worth recording. The meter is still worth keeping: a
+            // wound-up creature that has forgotten who wound it up is wound up all the same.
+            if (!aggressor.IsSet && Provocation.IsProvoked) return null;
 
             return new State
             {
                 aggressor = aggressor,
                 calmingFor = Provocation.CalmingFor,
+                aggression = Provocation.Aggression,
             };
         }
 
@@ -78,16 +99,27 @@ namespace SpaceGame.Core.Persistence
             hasPending = false;
             pendingAggressor = SaveRef.None;
             pendingCalmingFor = 0f;
+            pendingAggression = 0f;
 
             // No entry means the creature was at peace when the world was saved, and
             // ProvocationModule.OnEnable already resets to exactly that. Nothing to undo.
             if (state == null) return;
 
             State restored = state.ToObject<State>(SaveSerializer.Serializer);
-            if (!restored.aggressor.IsSet) return;
 
+            pendingAggression = restored.aggression;
             pendingAggressor = restored.aggressor;
             pendingCalmingFor = restored.calmingFor;
+
+            // A meter with nobody attached still restores — the creature comes back wound up and
+            // cools down from where it was, which is what a player who spent a minute menacing a
+            // camp and then quit should find when they come back.
+            if (!restored.aggressor.IsSet)
+            {
+                if (pendingAggression > 0f) Provocation.RestoreAggression(pendingAggression, null);
+                return;
+            }
+
             hasPending = true;
         }
 
@@ -101,7 +133,14 @@ namespace SpaceGame.Core.Persistence
             if (!pendingAggressor.TryResolve(out GameObject aggressor)) return;
 
             hasPending = false;
-            Provocation.RestoreGrudge(aggressor.transform, pendingCalmingFor);
+
+            // A full meter is a grudge, and the grudge path is the one with teeth — it hands the
+            // target to AgentTargeting and re-asserts it every frame. Anything below the top is
+            // just a reading, and must NOT re-announce itself on the loading screen.
+            if (pendingAggression >= AggressionMath.Max)
+                Provocation.RestoreGrudge(aggressor.transform, pendingCalmingFor);
+            else
+                Provocation.RestoreAggression(pendingAggression, aggressor.transform);
         }
     }
 }

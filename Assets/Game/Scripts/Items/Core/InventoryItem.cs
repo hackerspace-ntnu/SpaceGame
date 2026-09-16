@@ -58,6 +58,19 @@ namespace SpaceGame.Items
                  "on the back and deployed on a double tap of jump. Worn kinds are inert in the hotbar.")]
         public EquipKind equipKind = EquipKind.Hand;
 
+        [Tooltip("Does holding this read as a threat to an NPC?\n\n" +
+                 "Tick it for things that are unmistakably a weapon when they are pointed at you — " +
+                 "guns, staves, the bazooka, the flamethrower. Leave it off for everything else, " +
+                 "which is most of the item list: tools, placeables, ship parts, potions and " +
+                 "supplies.\n\n" +
+                 "GAUNTLETS ARE NEVER MENACING, whatever they do. A gauntlet is gear you are " +
+                 "wearing rather than something you have drawn, so a wrist blade and a grappling " +
+                 "hook are no more threatening than a torch.\n\n" +
+                 "Read by MenaceSensor, which needs this AND a shot fired in the last few seconds " +
+                 "before it reports anything: holding a gun is not a threat, having just fired one " +
+                 "while squared up at somebody is.")]
+        public bool menacing;
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

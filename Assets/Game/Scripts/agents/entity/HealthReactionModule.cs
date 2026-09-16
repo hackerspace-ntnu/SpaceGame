@@ -229,6 +229,41 @@ namespace SpaceGame.Agents
             return path;
         }
 
+        /// <summary>
+        /// Tell the tribe's ledger who killed one of theirs.
+        ///
+        /// <para>
+        /// Below the <c>IsRestoring</c> guard in <see cref="HandleDeath"/>, and that placement is
+        /// the whole point: <c>HealthComponent</c> re-raises <c>OnDeath</c> for every corpse the
+        /// world loads, so reporting above it would charge the player for the same murder on every
+        /// reload until the tribe was permanently at war with them.
+        /// </para>
+        /// <para>
+        /// A mount or vehicle killed out from under a tribe member is design §3.4's `MountKill` and
+        /// is NOT reported here: the animal is Fauna, so its own faction keeps no ledger, and
+        /// knowing whose mount it was needs the roster ownership Phase 4 adds. Recorded rather than
+        /// faked — attributing it to whatever faction happened to be nearby would be worse than not
+        /// attributing it at all.
+        /// </para>
+        /// </summary>
+        private void ReportKillToLedger()
+        {
+            FactionGoodwillLedger ledger = FactionGoodwillLedger.Instance;
+            if (ledger == null || health == null) return;
+
+            if (!TryGetComponent(out EntityFaction mine) || !ledger.Tracks(mine.Faction)) return;
+
+            Transform source = health.LastDamageSource;
+            if (source == null) return;
+
+            // Attributed to the entity, not the collider or the projectile that carried the
+            // reference — the same climb ProvocationModule makes, and for the same reason.
+            EntityFaction killer = source.GetComponentInParent<EntityFaction>();
+            if (killer == null || killer.transform == transform) return;
+
+            ledger.Report(mine.Faction, killer, GoodwillEvent.Kill);
+        }
+
         private void HandleDeath()
         {
             // A save being loaded, not a kill. Everything below is a consequence of dying — a sound,
@@ -240,6 +275,8 @@ namespace SpaceGame.Agents
                 ApplyDeadState(immediate: true);
                 return;
             }
+
+            ReportKillToLedger();
 
             if (!string.IsNullOrEmpty(dieAnimTrigger) && animator)
                 animator.SetTrigger(dieAnimTrigger);

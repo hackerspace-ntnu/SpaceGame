@@ -476954,7 +476954,7 @@
         "objects": [
           "Mesh_SkyCity_Outriggers",
           "Mesh_SkyCity_SailStbd_LateenSail_Main",
-          "Mesh_SkyCity_SailPort_LateenSail_Patched"
+          "Mesh_SkyCity_SailPort_LateenSail_PatchedPort"
         ],
         "children": []
       },
@@ -476966,6 +476966,8 @@
           "Mesh_SkyCity_Decks",
           "Mesh_SkyCity_Cradles",
           "Mesh_SkyCity_Prow",
+          "Mesh_SkyCity_BowCastle",
+          "Mesh_SkyCity_SternBlock",
           "Mesh_SkyCity_SternGear",
           "Mesh_SkyCity_Gantry",
           "Mesh_SkyCity_Climbs"
@@ -477063,9 +477065,6 @@
           "Mesh_SkyCity_Flag05_MastRig_Pennant",
           "Mesh_SkyCity_Flood01_FloodlightBank_Single",
           "Mesh_SkyCity_Flood02_FloodlightBank_Single",
-          "Mesh_SkyCity_Helm_ControlCab_Compact",
-          "Mesh_SkyCity_HelmGlassS_WindowBank_Porthole",
-          "Mesh_SkyCity_HelmGlassP_WindowBank_Shuttered",
           "Mesh_SkyCity_Dish_SensorCupola_Dish",
           "Mesh_SkyCity_Dome_SensorCupola_Dome",
           "Mesh_SkyCity_Beacon_SensorCupola_Lantern",
@@ -477080,21 +477079,21 @@
         "type": "MESH",
         "location": [
           0.0,
-          -28.0,
-          10.4447
+          -30.0,
+          10.4987
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.1214,
+          1.1214,
+          1.1214
         ],
         "collections": [
           "Coll_SkyCity_Lift"
         ],
         "dimensions": [
-          13.9044,
-          24.9212,
-          12.254
+          15.5928,
+          27.9474,
+          13.742
         ],
         "vertices": 1656,
         "polygons": 1384,
@@ -477117,17 +477116,17 @@
           10.0
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.0461,
+          1.0461,
+          1.0461
         ],
         "collections": [
           "Coll_SkyCity_Lift"
         ],
         "dimensions": [
-          15.2022,
-          27.9212,
-          15.2022
+          15.9023,
+          29.2071,
+          15.9023
         ],
         "vertices": 1872,
         "polygons": 1670,
@@ -477146,21 +477145,21 @@
         "type": "MESH",
         "location": [
           0.0,
-          28.0,
+          30.0,
           10.0
         ],
         "scale": [
-          1.0,
-          1.0,
-          1.0
+          1.0972,
+          1.0972,
+          1.0972
         ],
         "collections": [
           "Coll_SkyCity_Lift"
         ],
         "dimensions": [
-          14.2897,
-          25.9212,
-          14.2897
+          15.679,
+          28.4414,
+          15.679
         ],
         "vertices": 1264,
         "polygons": 1126,
@@ -477218,7 +477217,7 @@
         "type": "MESH",
         "location": [
           0.96,
-          -41.7,
+          -47.0,
           0.0
         ],
         "scale": [
@@ -477251,7 +477250,7 @@
         "type": "MESH",
         "location": [
           0.96,
-          44.0,
+          48.0,
           0.0
         ],
         "scale": [
@@ -477280,6 +477279,46 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_SkyCity_BowCastle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SkyCity_Structure"
+        ],
+        "dimensions": [
+          18.7,
+          25.1293,
+          24.7793
+        ],
+        "vertices": 5028,
+        "polygons": 5418,
+        "materials": [
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Wood_Timber_Silvered",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
         "name": "Mesh_SkyCity_Cage",
         "type": "MESH",
         "location": [
@@ -477296,12 +477335,12 @@
           "Coll_SkyCity_Structure"
         ],
         "dimensions": [
-          17.1218,
+          17.42,
           100.34,
           18.811
         ],
-        "vertices": 5256,
-        "polygons": 5694,
+        "vertices": 6840,
+        "polygons": 7410,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -477337,11 +477376,11 @@
         ],
         "dimensions": [
           25.89,
-          86.185,
+          95.485,
           25.5
         ],
-        "vertices": 6264,
-        "polygons": 6786,
+        "vertices": 4104,
+        "polygons": 4446,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -477376,12 +477415,12 @@
           "Coll_SkyCity_Structure"
         ],
         "dimensions": [
-          16.1529,
-          69.26,
-          17.0597
+          16.8538,
+          73.26,
+          17.1099
         ],
-        "vertices": 3600,
-        "polygons": 3894,
+        "vertices": 4048,
+        "polygons": 4388,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -477420,8 +477459,8 @@
           116.4765,
           11.7263
         ],
-        "vertices": 6406,
-        "polygons": 6794,
+        "vertices": 19126,
+        "polygons": 20234,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -477444,7 +477483,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          44.0,
+          40.0,
           19.7
         ],
         "scale": [
@@ -477483,7 +477522,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          35.9815,
+          30.9815,
           19.9444
         ],
         "scale": [
@@ -477521,9 +477560,9 @@
         "name": "Mesh_SkyCity_Flag01_MastRig_Flag",
         "type": "MESH",
         "location": [
-          2.7658,
+          -1.2571,
           -42.0584,
-          17.8934
+          19.7
         ],
         "scale": [
           1.2024,
@@ -477556,9 +477595,9 @@
         "name": "Mesh_SkyCity_Flag02_MastRig_Pennant",
         "type": "MESH",
         "location": [
-          -2.4666,
-          -15.2952,
-          17.8934
+          1.5563,
+          -19.2952,
+          19.7
         ],
         "scale": [
           1.5936,
@@ -477591,9 +477630,9 @@
         "name": "Mesh_SkyCity_Flag03_MastRig_Pennant",
         "type": "MESH",
         "location": [
-          3.7251,
-          6.6907,
-          17.6738
+          -0.8415,
+          4.6907,
+          19.7
         ],
         "scale": [
           1.4818,
@@ -477626,9 +477665,9 @@
         "name": "Mesh_SkyCity_Flag04_MastRig_Flag",
         "type": "MESH",
         "location": [
-          -3.5669,
-          31.9576,
-          17.5499
+          1.2655,
+          25.9576,
+          19.7
         ],
         "scale": [
           1.2123,
@@ -477661,9 +477700,9 @@
         "name": "Mesh_SkyCity_Flag05_MastRig_Pennant",
         "type": "MESH",
         "location": [
-          0.6266,
-          46.2339,
-          18.4
+          -0.5234,
+          44.2339,
+          19.7
         ],
         "scale": [
           1.3101,
@@ -477765,8 +477804,8 @@
         "type": "MESH",
         "location": [
           -6.0,
-          44.0,
-          5.2122
+          -49.0,
+          10.8122
         ],
         "scale": [
           1.0,
@@ -477811,11 +477850,11 @@
         ],
         "dimensions": [
           8.4475,
-          89.84,
+          101.0728,
           4.4926
         ],
-        "vertices": 3660,
-        "polygons": 3922,
+        "vertices": 4206,
+        "polygons": 4506,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -477830,113 +477869,6 @@
           "Mat_Emissive_Amber",
           "Mat_Glass_Canopy_Tinted",
           "Mat_Fabric_Canvas_Faded"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SkyCity_Helm_ControlCab_Compact",
-        "type": "MESH",
-        "location": [
-          0.0,
-          -47.1669,
-          0.0
-        ],
-        "scale": [
-          1.05,
-          1.05,
-          1.05
-        ],
-        "collections": [
-          "Coll_SkyCity_Town"
-        ],
-        "dimensions": [
-          8.1364,
-          7.9453,
-          6.3262
-        ],
-        "vertices": 1892,
-        "polygons": 1985,
-        "materials": [
-          "Mat_Paint_Coral_Faded",
-          "Mat_Metal_HullRust_Orange",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Neutral_Slate_Dark",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Paint_Hull_Bleached",
-          "Mat_Emissive_Amber",
-          "Mat_Metal_Copper_Oxide",
-          "Mat_Paint_Warn_Red"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SkyCity_HelmGlassP_WindowBank_Shuttered",
-        "type": "MESH",
-        "location": [
-          -3.52,
-          -44.0,
-          4.49
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SkyCity_Town"
-        ],
-        "dimensions": [
-          3.26,
-          0.84,
-          4.68
-        ],
-        "vertices": 640,
-        "polygons": 674,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Metal_HullRust_Orange",
-          "Mat_Metal_Chrome_Scuffed"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Mesh_SkyCity_HelmGlassS_WindowBank_Porthole",
-        "type": "MESH",
-        "location": [
-          3.5011,
-          -47.0853,
-          4.39
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_SkyCity_Town"
-        ],
-        "dimensions": [
-          2.3707,
-          1.0179,
-          4.1756
-        ],
-        "vertices": 1212,
-        "polygons": 1210,
-        "materials": [
-          "Mat_Metal_Steel_Worn",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Glass_Canopy_Tinted",
-          "Mat_Metal_Rust_Heavy",
-          "Mat_Metal_HullRust_Orange",
-          "Mat_Metal_Chrome_Scuffed"
         ],
         "modifiers": []
       },
@@ -478660,12 +478592,12 @@
           "Coll_SkyCity_Structure"
         ],
         "dimensions": [
-          8.86,
-          112.3,
-          5.094
+          9.035,
+          112.775,
+          5.1008
         ],
-        "vertices": 5312,
-        "polygons": 5688,
+        "vertices": 13040,
+        "polygons": 14060,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -479510,12 +479442,12 @@
           "Coll_SkyCity_Rig"
         ],
         "dimensions": [
-          28.5238,
-          58.0568,
-          30.3726
+          60.7324,
+          36.1056,
+          22.7017
         ],
-        "vertices": 1076,
-        "polygons": 1124,
+        "vertices": 1520,
+        "polygons": 1572,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -479970,25 +479902,25 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_SkyCity_SailPort_LateenSail_Patched",
+        "name": "Mesh_SkyCity_SailPort_LateenSail_PatchedPort",
         "type": "MESH",
         "location": [
-          -13.5,
-          -10.1571,
-          1.6834
+          -9.1,
+          -10.0,
+          10.0
         ],
         "scale": [
-          -1.45,
-          -1.45,
-          -1.45
+          0.88,
+          0.88,
+          0.88
         ],
         "collections": [
           "Coll_SkyCity_Rig"
         ],
         "dimensions": [
-          3.3675,
-          22.765,
-          37.3382
+          2.0437,
+          13.816,
+          22.6604
         ],
         "vertices": 3064,
         "polygons": 3138,
@@ -480007,22 +479939,22 @@
         "name": "Mesh_SkyCity_SailStbd_LateenSail_Main",
         "type": "MESH",
         "location": [
-          13.5,
-          -10.1569,
-          1.683
+          9.1,
+          -10.0,
+          10.0
         ],
         "scale": [
-          1.45,
-          1.45,
-          1.45
+          0.88,
+          0.88,
+          0.88
         ],
         "collections": [
           "Coll_SkyCity_Rig"
         ],
         "dimensions": [
-          3.0053,
-          24.215,
-          40.2379
+          1.8239,
+          14.696,
+          24.4202
         ],
         "vertices": 2551,
         "polygons": 2587,
@@ -480108,6 +480040,46 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_SkyCity_SternBlock",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SkyCity_Structure"
+        ],
+        "dimensions": [
+          17.0,
+          17.0826,
+          29.6148
+        ],
+        "vertices": 3915,
+        "polygons": 4169,
+        "materials": [
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Wood_Timber_Silvered",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
         "name": "Mesh_SkyCity_SternGear",
         "type": "MESH",
         "location": [
@@ -480125,11 +480097,11 @@
         ],
         "dimensions": [
           25.9898,
-          17.8,
+          15.6629,
           10.4048
         ],
-        "vertices": 1800,
-        "polygons": 1844,
+        "vertices": 1488,
+        "polygons": 1506,
         "materials": [
           "Mat_Paint_Hazard_Yellow",
           "Mat_Metal_Steel_Worn",
@@ -480838,7 +480810,6 @@
       "Mat_Glass_Canopy_Tinted",
       "Mat_Metal_Brass_Tarnished",
       "Mat_Metal_Chrome_Scuffed",
-      "Mat_Metal_Copper_Oxide",
       "Mat_Metal_HullRust_Orange",
       "Mat_Metal_Rust_Heavy",
       "Mat_Metal_Rust_Pale",
@@ -480847,7 +480818,6 @@
       "Mat_Neutral_Black_Matte",
       "Mat_Neutral_Slate_Dark",
       "Mat_Paint_Blue_Station",
-      "Mat_Paint_Coral_Faded",
       "Mat_Paint_Hazard_Yellow",
       "Mat_Paint_Hull_Bleached",
       "Mat_Paint_Olive_Deep",

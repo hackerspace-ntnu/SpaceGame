@@ -39,7 +39,13 @@ namespace SpaceGame.Agents
         /// leaving from wherever its own divergent brain happened to be pointing.
         /// </para>
         /// </summary>
-        public static void Broadcast(Component agent, int action, Vector3 origin, Vector3 direction)
+        /// <param name="detail">
+        /// Optional second number for actions that carry one — <see cref="AgentAction.Band"/> puts
+        /// the new aggression band here. Attacks leave it at zero; it rides in
+        /// <see cref="NetArg.B"/>, which they do not use.
+        /// </param>
+        public static void Broadcast(Component agent, int action, Vector3 origin, Vector3 direction,
+                                     int detail = 0)
         {
             if (agent == null) return;
 
@@ -56,6 +62,7 @@ namespace SpaceGame.Agents
             if (!Network.Server) return;
 
             NetArg arg = Describe(action, origin, direction, agent.transform.rotation);
+            arg.B = detail;
 
             // Others, never All. This machine already drew the attack as part of performing it, and
             // NetRelay's Others filters the sender out of its own broadcast on arrival — so the

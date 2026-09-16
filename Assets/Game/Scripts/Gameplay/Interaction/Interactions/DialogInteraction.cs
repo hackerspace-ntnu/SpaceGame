@@ -151,10 +151,25 @@ namespace SpaceGame.Gameplay
             if (TryGetComponent(out AgentTargeting targeting) && targeting.IsFightingWith(other))
                 return true;
 
-            return TryGetComponent(out ProvocationModule provocation)
-                   && provocation.IsProvoked
-                   && provocation.Aggressor != null
-                   && provocation.Aggressor.root == other.root;
+            if (!TryGetComponent(out ProvocationModule provocation))
+                return false;
+
+            if (provocation.IsProvoked)
+            {
+                return provocation.Aggressor != null
+                       && provocation.Aggressor.root == other.root;
+            }
+
+            // Drawn counts as fighting even though no blow has been struck. An NPC standing with his
+            // weapon up, having just told you it is your last warning, must not also be offering to
+            // chat: the prompt would flatly contradict the pose, and a player who can talk their way
+            // out of a levelled gun has no reason to read the telegraph at all.
+            //
+            // Wary deliberately does NOT count. Being looked at warily is exactly the moment talking
+            // to somebody should still be possible — that is the way out the meter is offering.
+            return provocation.Band >= AggressionBand.Drawn
+                   && provocation.Provoker != null
+                   && provocation.Provoker.root == other.root;
         }
 
         public bool CanInteract()

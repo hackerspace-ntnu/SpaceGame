@@ -6,6 +6,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
 using SpaceGame.Core.Persistence.EditorTools;
 using SpaceGame.Items;
 using SpaceGame.Presentation;
@@ -48,8 +49,8 @@ namespace SpaceGame.EditorTools
             public bool CarriesStaff;
 
             /// <summary>
-            /// A weapon drawn at random from <see cref="WeaponArtifactPaths"/> at spawn, held in
-            /// the right hand and fired when provoked. Mutually exclusive with the staff.
+            /// A weapon drawn at random from the Sand Tribe roster's <c>handItems</c> at spawn,
+            /// held in the right hand and fired when provoked. Mutually exclusive with the staff.
             /// </summary>
             public bool RandomWeapon;
 
@@ -304,6 +305,7 @@ namespace SpaceGame.EditorTools
                 ConfigureWatch(root);
                 ConfigureAlerts(root);
                 ConfigureHearing(root);
+                ConfigureTelegraph(root);
                 if (recipe.CarriesStaff) AttachStaff(model);
                 ConfigureCombat(root, recipe);
                 ConfigureProvocation(root);
@@ -757,6 +759,13 @@ namespace SpaceGame.EditorTools
                 // alert radius alone leaves the far half of it standing about while the near half
                 // fights. See ConfigureHearing for which noises mean what.
                 "SpaceGame.Agents.NoiseReceiverModule",
+                // Notices a gun pointed at him, and shows what he thinks about it. The two halves
+                // of the aggression meter: MenaceSensor supplies the one input the player is
+                // actively making, AggressionTelegraphModule is the only reason any of it is
+                // legible. Deliberately absent from the Clanker and Outlaw builders — their stance
+                // is Hostile, so they never climb the meter and a robot cowboy does not warn you.
+                "SpaceGame.Agents.MenaceSensor",
+                "SpaceGame.Agents.AggressionTelegraphModule",
                 // Lets DialogInteraction stop him and turn him to face whoever is talking.
                 "SpaceGame.Agents.InteractionFocusModule",
             };
@@ -1222,6 +1231,40 @@ namespace SpaceGame.EditorTools
             SetEnum(so, "investigateOn", 1 << 4);   // NoiseTypeMask.Gunshot
             SetEnum(so, "aggroOn", 1 << 2);         // NoiseTypeMask.Hurt
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The two modules that turn the aggression meter into something the player can read.
+        ///
+        /// Priorities set by hand, as everywhere else in this builder: AddComponent does not run
+        /// Reset, so a script-added module keeps priority 0 and ties with WanderModule — a nomad
+        /// who is supposed to be standing his ground with his gun up would wander off mid-threat,
+        /// and win or lose that coin toss on a different frame each time.
+        /// </summary>
+        private static void ConfigureTelegraph(GameObject root)
+        {
+            var sensor = FindComponent(root, "SpaceGame.Agents.MenaceSensor");
+            if (sensor != null)
+            {
+                var so = new SerializedObject(sensor);
+                SetInt(so, "priority", 22);                 // ModulePriority.RangedAttack; side-effect
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            var telegraph = FindComponent(root, "SpaceGame.Agents.AggressionTelegraphModule");
+            if (telegraph == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No AggressionTelegraphModule; the nomad will " +
+                                 "go from ignoring you to shooting you with nothing in between.");
+                return;
+            }
+
+            var telegraphSo = new SerializedObject(telegraph);
+            // Above WatchModule (Ambient, 10), below the reactive modules: a nomad being menaced
+            // looks at the person menacing him rather than at whoever last walked past, and still
+            // yields the frame the moment there is an actual fight to run.
+            SetInt(telegraphSo, "priority", 12);
+            telegraphSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void ConfigureWatch(GameObject root)

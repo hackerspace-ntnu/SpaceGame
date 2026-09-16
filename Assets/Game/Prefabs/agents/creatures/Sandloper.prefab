@@ -207,6 +207,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4979652162556454809}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1650530464596609212}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2622177851503113640}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6383576929369345763}
   m_SourcePrefab: {fileID: 100100000, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
 --- !u!95 &176337004500388985 stripped
 Animator:
@@ -300,12 +309,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
   agent: {fileID: 4323444541838615247}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.2413493
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 9
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
@@ -315,6 +329,7 @@ MonoBehaviour:
   mountedLeapSampleRadius: 6
   riderTurnSpeed: 120
   riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
 --- !u!114 &6073845140653462437
@@ -334,6 +349,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 3.5
+  strideEndPhases: []
 --- !u!114 &2942734442224939726
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -428,6 +444,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 641
   eyeHeight: 1.94
+  targetAimHeight: 1
   memoryDuration: 5
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
@@ -512,9 +529,11 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 0}
+  seatBone: 
   seatOffset: {x: 0, y: 1.209, z: -0.15}
   dismountPoint: {fileID: 0}
   mountableByDirectInteraction: 1
+  maxMountDistance: 0
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
@@ -589,6 +608,7 @@ MonoBehaviour:
   rootPosition: {x: 0, y: 1.1, z: -0.15}
   rootEuler: {x: 0, y: 0, z: 0}
   compensateBoneScale: 1
+  startSaddled: 0
   mount: {fileID: 614546361279212061}
   saddleItem: {fileID: 11400000, guid: 3ca09569478b425428c436405fe3b2eb, type: 2}
   dropRadius: 2.4
@@ -851,9 +871,9 @@ MonoBehaviour:
   burning:
     seconds: 5
     damagePerSecond: 4
+    reigniteDelay: 3
   frozen:
     seconds: 10
-    shatterDamage: 25
   slick:
     seconds: 20
     grip: 0.03
@@ -866,6 +886,8 @@ MonoBehaviour:
   foamed:
     seconds: 10
     breakDamage: 10
+  swallowed:
+    seconds: 6
   inflationTarget: {fileID: 7640608676881219498}
 --- !u!114 &7655477926058837577
 MonoBehaviour:
@@ -888,11 +910,6 @@ MonoBehaviour:
     Response: 2
   - Kind: 4
     Response: 2
---- !u!4 &7640608676881219498 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -5111575511331140030, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
-  m_PrefabInstance: {fileID: 5987795445852680680}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &3020230541060143036
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -944,3 +961,80 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &1650530464596609212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c6ec310cb4245338056b26c04d3d64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.ClientNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &2622177851503113640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &6383576929369345763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 224ea88323b7644c2a480ebc564c8756, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!4 &7640608676881219498 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5111575511331140030, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+  m_PrefabInstance: {fileID: 5987795445852680680}
+  m_PrefabAsset: {fileID: 0}

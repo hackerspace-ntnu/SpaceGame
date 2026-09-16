@@ -196,6 +196,7 @@ if (go.GetComponent<ProvocationModule>() != null && go.GetComponent<ProvocationS
 | `DuneFoilSaveable` | `dunefoil` | `SailRig` |
 | `OrnithopterSaveable` | `ornithopter` | `OrnithopterFlightMotor` (deferred; relaunches in-flight craft) |
 | `PlayerInventorySaveable` / `BackpackSaveable` | `inventory` / `backpack` | player prefab (PATH C) |
+| `FactionGoodwillSaveable` | `factionGoodwill` | player prefab (PATH C). One player's slice of `FactionGoodwillLedger`. Saves the **band as well as the value** — hysteresis makes the band a function of its own history, so recomputing it forgives a player over a loading screen — and a UTC timestamp, so an absence decays once on restore |
 | `NpcWorldSaveable` | `npcworld` | `NpcWorldSim` — one record per group, not per member |
 | `GameStateSaveable` | `gameState` | registered by hand (PATH D) |
 

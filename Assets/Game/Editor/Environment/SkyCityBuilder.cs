@@ -130,18 +130,48 @@ namespace SpaceGame.EditorTools
             new Walkable
             {
                 Name = "Collision_Gantry",
-                Centre = new Vector3(0f, 19.61f, -1.15f),
-                Size = new Vector3(2.6f, 0.18f, 89.7f),
-                Note = "crown walkway; Blender z=19.7, y -43.7..46",
+                Centre = new Vector3(0f, 19.61f, 0f),
+                Size = new Vector3(2.6f, 0.18f, 100f),
+                Note = "crown walkway; Blender z=19.7, y -50..50",
+            },
+            // The two end structures, each a stepped stack. One box per storey:
+            // a single box over either would be a solid slab where the steps
+            // cut back, and the roofs are walkable - both ladders to the crown
+            // gantry start on them.
+            new Walkable
+            {
+                Name = "Collision_BowCastle_0",
+                Centre = new Vector3(0f, 2.5f, 51.5f),
+                Size = new Vector3(17.6f, 5.4f, 14.0f),
+                Note = "plated lower storey; Blender y -58.5..-44.5, z -0.2..5.2",
             },
             new Walkable
             {
-                Name = "Collision_EngineHouse",
-                Centre = new Vector3(0f, 2.0f, -50f),
-                Size = new Vector3(7.2f, 4.4f, 8.0f),
-                Note = "stern engine house; Blender y=50, z=2. The rest of "
-                     + "SternGear (pylons, ducts, rudder) is left uncollided - "
-                     + "its merged bounds span 26 m of mostly empty air.",
+                Name = "Collision_BowCastle_1",
+                Centre = new Vector3(0f, 7.9f, 51.7f),
+                Size = new Vector3(14.8f, 5.4f, 11.2f),
+                Note = "second storey; Blender z 5.2..10.6",
+            },
+            new Walkable
+            {
+                Name = "Collision_BowCastle_2",
+                Centre = new Vector3(0f, 13.55f, 51.7f),
+                Size = new Vector3(10.8f, 5.9f, 7.6f),
+                Note = "bridge storey, roof at y=16.5 carries the forward ladder",
+            },
+            new Walkable
+            {
+                Name = "Collision_SternBlock_0",
+                Centre = new Vector3(0f, 3.4f, -49.5f),
+                Size = new Vector3(16.0f, 7.2f, 10.0f),
+                Note = "lower storey; Blender y 44.5..54.5, z -0.2..7.0",
+            },
+            new Walkable
+            {
+                Name = "Collision_SternBlock_1",
+                Centre = new Vector3(0f, 9.25f, -49.3f),
+                Size = new Vector3(12.4f, 4.5f, 7.6f),
+                Note = "upper storey, roof at y=11.5 carries the aft ladder",
             },
         };
 
@@ -166,7 +196,9 @@ namespace SpaceGame.EditorTools
             new Rule { Match = "Mesh_SkyCity_Keel", Fit = Fit.None, Note = "-> Collision_Keel" },
             new Rule { Match = "Mesh_SkyCity_Prow", Fit = Fit.None, Note = "-> Collision_Prow" },
             new Rule { Match = "Mesh_SkyCity_Gantry", Fit = Fit.None, Note = "-> Collision_Gantry" },
-            new Rule { Match = "Mesh_SkyCity_SternGear", Fit = Fit.None, Note = "-> Collision_EngineHouse" },
+            new Rule { Match = "Mesh_SkyCity_SternGear", Fit = Fit.None, Note = "pylons, ducts, rudder - 26 m of mostly empty air" },
+            new Rule { Match = "Mesh_SkyCity_BowCastle", Fit = Fit.None, Note = "-> Collision_BowCastle_*" },
+            new Rule { Match = "Mesh_SkyCity_SternBlock", Fit = Fit.None, Note = "-> Collision_SternBlock_*" },
             new Rule { Match = "Mesh_SkyCity_Cage", Fit = Fit.None, Note = "overhead ring frames" },
             new Rule { Match = "Mesh_SkyCity_Cradles", Fit = Fit.None, Note = "bag saddles, overhead" },
             new Rule { Match = "Mesh_SkyCity_Outriggers", Fit = Fit.None, Note = "sail booms and rigging" },
@@ -179,7 +211,6 @@ namespace SpaceGame.EditorTools
 
             // Solid things to bump into.
             new Rule { Match = "Mesh_SkyCity_Home", Fit = Fit.Box, Note = "dwelling" },
-            new Rule { Match = "Mesh_SkyCity_Helm", Fit = Fit.Box, Note = "helm cab" },
             new Rule { Match = "Mesh_SkyCity_Dome", Fit = Fit.Box, Note = "sensor dome" },
             new Rule { Match = "Mesh_SkyCity_Dish", Fit = Fit.Box, Note = "dish mast" },
             new Rule { Match = "Mesh_SkyCity_Beacon", Fit = Fit.Box, Note = "forward beacon" },
@@ -197,7 +228,6 @@ namespace SpaceGame.EditorTools
             new Rule { Match = "Mesh_SkyCity_Lamp", Fit = Fit.None, Note = "lantern" },
             new Rule { Match = "Mesh_SkyCity_Flood", Fit = Fit.None, Note = "floodlight" },
             new Rule { Match = "Mesh_SkyCity_Boarding", Fit = Fit.None, Note = "ladder, non-blocking" },
-            new Rule { Match = "Mesh_SkyCity_HelmGlass", Fit = Fit.None, Note = "glazing inside the cab box" },
         };
 
         // Anything unmatched gets nothing and is NAMED in the report, so a

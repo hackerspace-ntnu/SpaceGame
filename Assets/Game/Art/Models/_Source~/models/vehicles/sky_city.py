@@ -1,5 +1,12 @@
 """models/vehicles/sky_city - the Sky Tribe's floating home.
 
+HAND-EDITED SINCE 2026-09-16. `sky_city.blend` carries the user's own work
+and this script no longer reproduces it. Do NOT delete the .blend and re-run
+this - every early iteration of the model was made exactly that way, which
+was safe only while the file held nothing but generated geometry. Edit the
+.blend in place (Blender MCP), and treat everything below as the record of
+how the first version was built.
+
 The faction design calls for it and nothing had been built: "Sky Tribe... they
 live in floating vehicles in the sky (not created yet - backlog)". This is that
 vehicle. It is not a ship with people on it; it is a place people live that
@@ -98,7 +105,21 @@ CAGE_R, CAGE_Z = 8.4, 10.0   # the cage the gas bags hang in
 RING_Y = [-50.0, -40.0, -30.0, -20.0, -10.0, 0.0,
           10.0, 20.0, 30.0, 40.0, 50.0]
 STRINGER_A = [0.0, 60.0, 120.0, 180.0, -60.0, -120.0]   # degrees about the axis
-BAG_Y = [-28.0, 0.0, 28.0]
+# The bags are scaled UP at placement to nearly fill the cage, and spaced so
+# they nearly touch each other - both as in the reference photograph.
+#
+# The ceiling on the radius is not the cage's 8.4 m centreline but the inner
+# face of its 0.34 m members, at 8.23 m, less the 0.16 m that the bags' own ribs
+# and straps stand proud: anything over about 8.05 m pushes a rib through a
+# stringer. 7.85 / 7.95 / 7.90 keeps 0.12 m of air and still leaves the three
+# bags fractionally different, which is the point of them.
+#
+# Scaling is uniform, so it lengthens them too - which is what closes the gaps
+# from 3.5 m to ~1.2 m. BAG_Y widens to +/-30 to keep the END COLLARS apart:
+# each bag's fittings reach ~1 m past its loft, and at the old +/-28 spacing the
+# scaled collars interpenetrated by 1.56 m.
+BAG_Y = [-30.0, 0.0, 30.0]
+BAG_K = [7.85 / 7.0, 7.95 / 7.6, 7.90 / 7.2]   # Patched, Banded, Plain
 GANTRY_Z = CAGE_Z + CAGE_R + 1.3     # 19.7 - the lookout route over the bags
 GANTRY_HW = 1.3
 RAIL_H = 1.10                # matches components/structural/handrail
@@ -120,13 +141,62 @@ SKYWALKS = [(-40.0, 1, 2.6), (-40.0, -1, 3.8),
             (34.0, 1, 3.2), (34.0, -1, 4.4)]
 UNDERWALK_X, UNDERWALK_Z = 6.0, -5.8
 UNDERWALKS = [(-30.0, 1), (0.0, -1), (24.0, 1)]
-SAIL_X, SAIL_Y, SAIL_Z = 13.5, -10.0, 1.2
-SAIL_RAKE = math.radians(18.0)
-SAIL_K = 1.45                # 26 m of component luff becomes 38 m of ship sail
-# The only two stations where a centreline climb is clear of both the gas bags
-# and the helm cab: a 2.6 m window between the cab's aft face (y = -43.0) and
-# the first bag's nose (y = -40.5), and the open deck aft of the last bag.
-LADDER_Y = (-41.7, 44.0)
+# The sails spread OUTBOARD, one off each flank, rather than standing vertical.
+#
+# They are stepped on the cage's beam stringers at x = 8.4, z = 10 - not on the
+# deck. A sail rooted at deck level and angled outboard passes through the
+# dwellings, which reach 8.9 m tall at x = 9.6; springing it from the cage's
+# widest point clears the whole town by two metres and reads as a wing off the
+# hull's shoulder rather than a mast growing out of somebody's roof.
+#
+# The component is built luff-up, so the spar is turned onto +X by rotating the
+# SOURCE OBJECT about Y before stamping - `place_delta` offers rz and rx but no
+# ry, and pre-rotating the source is cheaper than widening its signature.
+# SAIL_X is 9.1, not the cage's own 8.4: a spar butt on the stringer centreline
+# reaches x = 8.12, and the scaled bags' ribs stand to 8.11. The bracket bridges
+# the 0.7 m out from the cage.
+SAIL_X, SAIL_Y, SAIL_Z = 9.1, -10.0, CAGE_Z
+SAIL_RISE = math.radians(22.0)   # outboard tip lifted this far above horizontal
+SAIL_K = 0.88                # 26 m of component luff becomes a 22.9 m spar,
+                             # for a 57 m span across both wings
+# The two end structures. Scaled bags fill 85 m of a 112 m deck, so there are
+# about 10 m at each end for a block, and both faces are set to clear the
+# nearest bag's nose or tail by ~0.3 m: bag 1 reaches y = -43.97 and bag 3
+# reaches y = +44.22.
+CASTLE_Y0, CASTLE_Y1 = BOW - 2.5, -44.5      # -58.5 .. -44.5, overhanging the stem
+CASTLE_HW, CASTLE_TOP = 8.8, DECK + 16.5
+BLOCK_Y0, BLOCK_Y1 = 44.5, STERN - 1.5       # 44.5 .. 54.5
+BLOCK_HW, BLOCK_TOP = 8.0, DECK + 11.5
+
+# The storeys, declared once. `bow_castle` and `stern_block` build from these,
+# `register_solids` turns them into the volumes a prop foot may land in, and the
+# Unity collision table mirrors them box for box.
+#
+# They are per-storey and not one box per structure for a reason the raycast
+# found: each step cuts back, so a point over the structure's FOOTPRINT is not
+# necessarily over its ROOF. The forward gantry ladder was authored to start on
+# the top roof at z = 16.5 at y = -47, where the top storey has already ended at
+# -47.9 - it began 5.9 m above the second storey and nothing said so.
+# (zlo, zhi, half-width, y0, y1, skin)
+CASTLE_STEPS = (
+    (DECK - 0.2, DECK + 5.2, CASTLE_HW, CASTLE_Y0, CASTLE_Y1, "plate"),
+    (DECK + 5.2, DECK + 10.6, CASTLE_HW - 1.4, CASTLE_Y0 + 1.2,
+     CASTLE_Y1 - 1.6, "paint"),
+    (DECK + 10.6, CASTLE_TOP, CASTLE_HW - 3.4, CASTLE_Y0 + 3.0,
+     CASTLE_Y1 - 3.4, "paint"),
+)
+BLOCK_STEPS = (
+    (DECK - 0.2, DECK + 7.0, BLOCK_HW, BLOCK_Y0, BLOCK_Y1, "paint"),
+    (DECK + 7.0, BLOCK_TOP, BLOCK_HW - 1.8, BLOCK_Y0 + 1.0, BLOCK_Y1 - 1.4,
+     "paint"),
+)
+
+# The climbs to the crown gantry start on the two end structures' roofs, not on
+# the deck. With the bags at full size there is no window on the centreline
+# between them for a 19.7 m ladder to pass through - and a six-metre climb off a
+# roof you already walked up to is better architecture than a ladder up a wall.
+LADDER_Y = (-49.5, 48.0)
+LADDER_Z = (CASTLE_TOP, BLOCK_TOP)
 LADDER_H = 3.39              # one `Mesh_Handrail_Ladder`, unscaled
 
 MATS = [
@@ -151,6 +221,59 @@ MATS = [
 # ---------------------------------------------------------------------------
 # Small shared geometry helpers
 # ---------------------------------------------------------------------------
+
+# Every raking prop registers the end that is supposed to BEAR on something, and
+# `assert_feet_supported` checks each one against the ship's solid structure.
+#
+# This exists because the first pass hung twenty-four props under the ship
+# attached to nothing: their feet were at (SIDE_OUT, z = -2.4..-3.4), and the
+# lowest real structure at x = 11.2 is the gallery bracket at z = -0.34. Nothing
+# reports that - a beam is perfectly happy to start in mid-air - and it reads at
+# a glance in any view from below, which is how the user found it.
+FEET = []
+
+# Volumes a prop foot may legitimately land in: the keel girder, the deck slab
+# and its brackets, and the two end structures.
+SOLID = []
+
+
+def register_solids():
+    SOLID[:] = [
+        ("keel girder", -KEEL_HW - 0.3, KEEL_HW + 0.3, BOW, STERN,
+         KEEL_BOT - 0.2, DECK + 0.1),
+        ("deck and brackets", -SIDE_OUT - 0.2, SIDE_OUT + 0.2, BOW, STERN,
+         DECK - 0.55, DECK + 0.1),
+        ("cage", -CAGE_R - 0.4, CAGE_R + 0.4, BOW, STERN,
+         CAGE_Z - CAGE_R - 0.4, CAGE_Z + CAGE_R + 0.4),
+    ]
+    # One volume PER STOREY, not one per structure. A single box over a stepped
+    # block says a point is supported anywhere in its footprint, including over
+    # the part where the step has cut back and there is only sky.
+    for name, steps in (("bow castle", CASTLE_STEPS),
+                        ("stern block", BLOCK_STEPS)):
+        for i, (zlo, zhi, w, a, b, _) in enumerate(steps):
+            SOLID.append(("%s storey %d" % (name, i), -w, w, a, b,
+                          zlo - 0.15, zhi + 0.15))
+
+
+def foot(p, a, b, w, h, mat):
+    """A raking member whose FIRST point must bear on real structure."""
+    FEET.append(Vector(a))
+    return beam(p, a, b, w, h, mat)
+
+
+def assert_feet_supported():
+    bad = []
+    for f in FEET:
+        if not any(xlo <= f.x <= xhi and ylo <= f.y <= yhi and zlo <= f.z <= zhi
+                   for _, xlo, xhi, ylo, yhi, zlo, zhi in SOLID):
+            bad.append(tuple(round(c, 2) for c in f))
+    if bad:
+        raise SystemExit(
+            "%d raking prop feet land in open air: %s"
+            % (len(bad), bad[:8]))
+    print("  %d prop feet, all on structure: OK" % len(FEET))
+
 
 def beam(p, a, b, w, h, mat):
     """A box member between two points, rolled so `h` is its vertical-ish axis."""
@@ -223,6 +346,28 @@ def keel(coll, mats):
                  0.20, 0.20, STEEL)
         beam(p, (-KEEL_HW, y0, KEEL_BOT), (KEEL_HW, y0 + 8.0, KEEL_BOT),
              0.18, 0.18, STEEL)
+    # Bare steel X-bracing across every second bay of both flanks, with a gusset
+    # plate at each node. This is the metal the ship reads as metal: the keel's
+    # own members are painted, the town above is timber, and until these went in
+    # there was nothing in the middle that looked like engineering.
+    for sx in (-1, 1):
+        for i in range(int((STERN - BOW) / 8.0)):
+            y0 = BOW + i * 8.0
+            if i % 2:
+                continue
+            for a, b in (((y0, KEEL_BOT + 0.4), (y0 + 8.0, DECK - 0.6)),
+                         ((y0, DECK - 0.6), (y0 + 8.0, KEEL_BOT + 0.4))):
+                beam(p, (sx * (KEEL_HW + 0.18), a[0], a[1]),
+                     (sx * (KEEL_HW + 0.18), b[0], b[1]), 0.26, 0.17, STEEL)
+            for yy, zz in ((y0, KEEL_BOT + 0.4), (y0, DECK - 0.6),
+                           (y0 + 8.0, KEEL_BOT + 0.4), (y0 + 8.0, DECK - 0.6)):
+                p.box((sx * (KEEL_HW + 0.22), yy, zz), (0.10, 1.25, 1.25),
+                      STEEL)
+                p.rivets((sx * (KEEL_HW + 0.30), yy - 0.45, zz),
+                         (sx * (KEEL_HW + 0.30), yy + 0.45, zz), 4,
+                         radius=0.05, height=0.035, axis='X', mat=DARK)
+            p.box((sx * (KEEL_HW + 0.22), y0 + 4.0, (KEEL_BOT + DECK) / 2),
+                  (0.10, 1.5, 1.5), RUST)
     # Scavenged plate patched over the girder where something tore through it.
     for _ in range(26):
         y = rng.uniform(BOW + 4, STERN - 4)
@@ -242,12 +387,23 @@ def cage(coll, mats):
     """
     p = Part(mats)
     seg = 16
-    for y in RING_Y:
+    for ri, y in enumerate(RING_Y):
+        # Every third frame is bare steel - a ring replaced at some point and
+        # never repainted. It breaks a 100 m run of one yellow into something
+        # that reads as maintained metalwork.
+        skin = STEEL if ri % 3 == 1 else YELLOW
         pts = [cage_pt(360.0 * i / seg, y) for i in range(seg)]
         for a, b in zip(pts, pts[1:] + pts[:1]):
             if a.z < DECK + 0.4 and b.z < DECK + 0.4:
                 continue          # the keel occupies the bottom of the ring
-            beam(p, a, b, 0.34, 0.34, YELLOW)
+            beam(p, a, b, 0.34, 0.34, skin)
+        # A gusset where each stringer crosses this frame.
+        for ang in STRINGER_A:
+            g = cage_pt(ang, y)
+            if g.z < DECK + 0.4:
+                continue
+            p.box((g.x, y, g.z), (0.62, 0.10, 0.62), STEEL,
+                  rot=Matrix.Rotation(math.radians(ang), 4, 'Y'))
         for ang in (-150.0, -30.0):      # legs down onto the keel girder
             f = cage_pt(ang, y)
             beam(p, f, (math.copysign(KEEL_HW, f.x), y, DECK - 0.2),
@@ -286,10 +442,26 @@ def decks(coll, mats):
                 beam(p, (sx * KEEL_HW, y, DECK - 1.9),
                      (sx * SIDE_OUT, y, DECK - 0.34), 0.13, 0.13, STEEL)
         # The clear lane - continuous, plated, orange-edged. The path.
+        #
+        # STEEL, not ply: this is the inherited hull's own deck and it has to
+        # read as the industrial half of the ship. The nomad timber starts
+        # outboard of the orange edge strip, where the tribe built.
         p.box((sx * (SIDE_IN + LANE_OUT) / 2, 0.0, DECK - 0.12),
-              (LANE_OUT - SIDE_IN, STERN - BOW, 0.20), PLY)
+              (LANE_OUT - SIDE_IN, STERN - BOW, 0.20), STEEL)
         p.box((sx * LANE_OUT, 0.0, DECK - 0.05), (0.22, STERN - BOW, 0.10),
               ORANGE)
+        # Two longitudinal steel stringers under the lane, and a riveted strake
+        # along the girder's shoulder - the plated language the keel is in.
+        for dx in (SIDE_IN + 0.9, LANE_OUT - 0.9):
+            beam(p, (sx * dx, BOW, DECK - 0.36), (sx * dx, STERN, DECK - 0.36),
+                 0.22, 0.34, STEEL)
+        p.box((sx * (KEEL_HW + 0.06), 0.0, DECK - 0.95),
+              (0.12, STERN - BOW, 1.30), HULLRUST)
+        for i in range(34):
+            y0 = BOW + i * 3.3
+            p.rivets((sx * (KEEL_HW + 0.14), y0, DECK - 0.45),
+                     (sx * (KEEL_HW + 0.14), y0 + 2.9, DECK - 0.45), 5,
+                     radius=0.05, height=0.04, axis='X', mat=DARK)
         # Outboard strip, laid in patches with gaps left in it.
         y = BOW
         while y < STERN:
@@ -301,26 +473,41 @@ def decks(coll, mats):
                       rng.choice((PLY, PLY, STEEL, TIMBER)))
             y += run + rng.uniform(0.0, 1.6)
         # Platforms cantilevered past the edge, on raking props.
+        #
+        # The prop's FOOT lands on the keel girder's lower longeron, not at
+        # (SIDE_OUT, -2.6). There is nothing at x = 11.2 below z = -0.34 - the
+        # gallery bracket is the lowest thing out there - so the first version
+        # of this rake started in mid-air, and fourteen of them hung under the
+        # ship attached to nothing. A prop has to reach real structure.
         for _ in range(7):
             y = rng.uniform(BOW + 8, STERN - 12)
             w, ln = rng.uniform(2.2, 3.6), rng.uniform(2.6, 4.4)
             cx = sx * (SIDE_OUT + w / 2)
             p.box((cx, y, DECK - 0.14), (w, ln, 0.16), TIMBER)
-            beam(p, (sx * SIDE_OUT, y, DECK - 2.6),
-                 (cx + sx * w / 2, y, DECK - 0.20), 0.14, 0.14, TIMBER)
+            foot(p, (sx * KEEL_HW, y, KEEL_BOT + 0.5),
+                 (cx + sx * w / 2, y, DECK - 0.20), 0.16, 0.16, STEEL)
+            # A timber knee off the gallery bracket's underside at z = -0.34,
+            # which is the lowest real structure at the deck edge.
+            foot(p, (sx * SIDE_OUT, y, DECK - 0.34),
+                 (cx + sx * w / 2, y, DECK - 0.20), 0.13, 0.13, TIMBER)
     # Brackets and raking props carrying the hanging walkways. Built here rather
     # than with the catwalks themselves so that a span always has something
     # under it - a walkway hung on nothing is the single thing that most makes
     # a structure read as unfinished rather than as jury-rigged.
     for y, sx, z in SKYWALKS:
+        # Steel out-riggers off the deck edge, with the walkway's timber laid
+        # on them - the same division as everywhere else on the ship: the
+        # structure is the hull's, the surface is the tribe's.
         for dy in (-2.9, 0.0, 2.9):
             beam(p, (sx * SIDE_OUT, y + dy, DECK + z - 0.22),
                  (sx * (SKYWALK_X + 1.0), y + dy, DECK + z - 0.22),
-                 0.16, 0.26, TIMBER)
+                 0.16, 0.26, STEEL)
+        # The rake carrying them lands on the keel girder, not at
+        # (SIDE_OUT, -2.4), which is open air - see the cantilever props above.
         for dy in (-2.9, 2.9):
-            beam(p, (sx * SIDE_OUT, y + dy, DECK - 2.4),
+            foot(p, (sx * KEEL_HW, y + dy, KEEL_BOT + 0.5),
                  (sx * (SKYWALK_X + 0.6), y + dy, DECK + z - 0.28),
-                 0.15, 0.15, TIMBER)
+                 0.17, 0.17, STEEL)
         # A hand line strung along the outboard side of the span.
         rope(p, (sx * (SKYWALK_X + 1.0), y - 3.1, DECK + z + RAIL_H + 0.1),
              (sx * (SKYWALK_X + 1.0), y + 3.1, DECK + z + RAIL_H + 0.1),
@@ -329,7 +516,7 @@ def decks(coll, mats):
     # bottom longeron rather than the deck edge.
     for y, sx in UNDERWALKS:
         for dy in (-2.9, 0.0, 2.9):
-            beam(p, (sx * KEEL_HW, y + dy, KEEL_BOT),
+            foot(p, (sx * KEEL_HW, y + dy, KEEL_BOT),
                  (sx * (UNDERWALK_X + 1.0), y + dy, UNDERWALK_Z - 0.2),
                  0.15, 0.15, STEEL)
             rope(p, (sx * KEEL_HW, y + dy, KEEL_BOT + 0.3),
@@ -358,7 +545,10 @@ def cradles(coll, mats):
     saddle under the slack one sits lower than the saddle under the fat one.
     """
     p = Part(mats)
-    for y, r in zip(BAG_Y, (7.0, 7.6, 7.2)):
+    # Radii are the SCALED ones. The cradle is sized per bag, so it has to track
+    # BAG_K - hardcoding the component's own 7.0/7.6/7.2 here would leave every
+    # saddle sitting a metre inside the bag it is meant to carry.
+    for y, r in zip(BAG_Y, [a * b for a, b in zip((7.0, 7.6, 7.2), BAG_K)]):
         for dy in (-6.5, 6.5):
             seg = 16
             pts = [cage_pt(180.0 + 180.0 * i / seg, y + dy, r + 0.35)
@@ -373,45 +563,57 @@ def cradles(coll, mats):
             for ang in (56.0, 124.0):
                 rope(p, cage_pt(ang, y + dy, r + 0.30),
                      cage_pt(ang, y + dy, CAGE_R - 0.2), radius=0.09)
-        # The saddle the bag rests in.
+        # The saddle the bag rests in - steel bearers, with timber packing laid
+        # on top of them where the cloth actually touches.
         for i in range(9):
             a = 200.0 + 140.0 * i / 8
             f = cage_pt(a, y, r + 0.30)
-            beam(p, (f.x, y - 6.5, f.z), (f.x, y + 6.5, f.z), 0.18, 0.18,
+            beam(p, (f.x, y - 6.5, f.z), (f.x, y + 6.5, f.z), 0.20, 0.20,
+                 STEEL)
+            g = cage_pt(a, y, r + 0.44)
+            beam(p, (g.x, y - 6.2, g.z), (g.x, y + 6.2, g.z), 0.13, 0.09,
                  TIMBER)
     p.bevel(width=0.03, segments=1)
     return p.finish("Mesh_SkyCity_Cradles", coll)
 
 
 def outriggers(coll, mats):
-    """The two sail booms projecting past the deck edge, and their stays.
+    """The wing roots the sails step on, and their standing rigging.
 
-    The sails are mounted outboard of the promenade on purpose: sheeted over
-    the deck they would sweep the one continuous walking route on the ship.
+    Steel, and bolted to the cage rather than to the deck. The sails spread
+    outboard from the cage's beam stringers at x = 8.4, z = 10, which is the
+    only place on the ship a 23 m spar can start and still clear the dwellings
+    below it - they reach 8.9 m at x = 9.6.
     """
     p = Part(mats)
+    tip_x = SAIL_X + 22.9 * math.cos(SAIL_RISE)
+    tip_z = SAIL_Z + 22.9 * math.sin(SAIL_RISE)
     for sx in (-1, 1):
-        root = Vector((sx * KEEL_HW, SAIL_Y, DECK - 0.4))
-        tip = Vector((sx * (SAIL_X + 0.6), SAIL_Y, DECK - 0.1))
-        beam(p, root, tip, 0.52, 0.62, YELLOW)
-        for dy in (-3.4, 3.4):
-            beam(p, (sx * KEEL_HW, SAIL_Y + dy, DECK - 0.4), tuple(tip),
-                 0.26, 0.30, STEEL)
-        beam(p, (sx * SIDE_OUT, SAIL_Y, DECK - 3.4), tuple(tip), 0.24, 0.24,
-             STEEL)
-        p.cyl((sx * SAIL_X, SAIL_Y, DECK + 0.5), 0.62, 1.5, 'Z', seg=8,
+        root = Vector((sx * SAIL_X, SAIL_Y, SAIL_Z))
+        # A short steel stub bracket clamped round the stringer, and the
+        # A-frame that spreads the sail's pull into two ring frames.
+        p.cyl((sx * (SAIL_X - 0.55), SAIL_Y, SAIL_Z), 0.72, 2.6, 'X', seg=10,
               mat=DARK)
-        p.torus((sx * SAIL_X, SAIL_Y, DECK + 1.15), 0.68, 0.10, axis='Z',
-                maj_seg=8, min_seg=5, mat=RUST)
-        # Standing rigging: masthead back to the hull and out to the cage.
-        head = Vector((sx * SAIL_X, SAIL_Y - 27.0 * math.sin(SAIL_RAKE),
-                       SAIL_Z + 27.0 * math.cos(SAIL_RAKE)))
-        rope(p, head, (sx * SIDE_OUT, SAIL_Y + 22.0, DECK - 0.2), steps=4,
-             sag=0.5, radius=0.08)
-        rope(p, head, (sx * SIDE_OUT, BOW + 10.0, DECK - 0.2), steps=4,
-             sag=0.4, radius=0.08)
-        rope(p, head, tuple(cage_pt(90.0 if sx > 0 else 90.0, SAIL_Y + 6.0)),
-             steps=3, sag=0.3, radius=0.07)
+        for dy in (-1.2, 1.2):
+            p.torus((sx * (SAIL_X + 0.25), SAIL_Y + dy, SAIL_Z), 0.78, 0.12,
+                    axis='X', maj_seg=10, min_seg=6, mat=RUST)
+        for dy in (-10.0, 10.0):
+            beam(p, tuple(root), tuple(cage_pt(0.0, SAIL_Y + dy)),
+                 0.30, 0.34, STEEL)
+            beam(p, tuple(root), tuple(cage_pt(-45.0, SAIL_Y + dy * 0.5)),
+                 0.26, 0.28, STEEL)
+        # Kicking strut down onto the keel girder - the one member that carries
+        # the sail's lift into the hull rather than into the cage.
+        foot(p, (sx * KEEL_HW, SAIL_Y, KEEL_BOT + 0.6), tuple(root),
+             0.34, 0.38, YELLOW)
+        # Standing rigging: the spar tip braced fore, aft and down.
+        head = Vector((sx * tip_x, SAIL_Y, tip_z))
+        rope(p, head, tuple(cage_pt(70.0, SAIL_Y + 18.0)), steps=4, sag=0.6,
+             radius=0.09)
+        rope(p, head, tuple(cage_pt(70.0, SAIL_Y - 18.0)), steps=4, sag=0.6,
+             radius=0.09)
+        rope(p, head, (sx * SIDE_OUT, SAIL_Y, DECK - 0.2), steps=4, sag=0.8,
+             radius=0.09)
     p.bevel(width=0.03, segments=1)
     return p.finish("Mesh_SkyCity_Outriggers", coll)
 
@@ -458,24 +660,123 @@ def prow(coll, mats):
     return p.finish("Mesh_SkyCity_Prow", coll)
 
 
-def stern_gear(coll, mats):
-    """Rudder fin, two ducted airscrews on pylons, and the engine house.
+def bow_castle(coll, mats):
+    """The slab-sided block that stands over the bow, and its crane derrick.
 
-    The aft landmark, and the only part of the ship that is unambiguously a
-    vehicle rather than a town.
+    The reference has a tall yellow multi-deck superstructure forward, rising
+    well above the hull line with open deck edges and a lattice boom angled up
+    over the stem. Without it the bow reads thin - a 125 m ship tapering to a
+    lookout platform and nothing else - and the silhouette has no answer to the
+    stern's mass.
+
+    All the hull's own language: plate, rivets, hazard paint, steel railings.
+    The tribe did not build this and it does not look as though they did.
     """
     p = Part(mats)
-    # Engine house on the keel.
-    p.box((0, STERN - 6.0, DECK + 2.0), (7.2, 8.0, 4.4), HULLRUST)
-    p.box((0, STERN - 6.0, DECK + 4.3), (7.6, 8.4, 0.35), STEEL)
+    y0, y1 = CASTLE_Y0, CASTLE_Y1
+    hw, top = CASTLE_HW, CASTLE_TOP
+
+    # Three stepped storeys, each narrower and shorter than the one below, so
+    # the block reads as built up rather than extruded.
+    # The lowest storey is bare plated steel, not hazard yellow: it is the part
+    # that takes the weather and it grounds the yellow mass above it.
+    for zlo, zhi, w, a, b, kind in CASTLE_STEPS:
+        p.slab((-w, a, zlo), (w, b, zhi), HULLRUST if kind == "plate" else YELLOW)
+        # Deck lip and rail round each storey top.
+        p.slab((-w - 0.55, a - 0.55, zhi), (w + 0.55, b + 0.55, zhi + 0.22),
+               STEEL)
+        for sx in (-1, 1):
+            for dy in range(int((b - a) / 2.1) + 1):
+                yy = a + dy * 2.1
+                p.box((sx * (w + 0.42), yy, zhi + 0.8), (0.08, 0.08, 1.15),
+                      STEEL)
+            beam(p, (sx * (w + 0.42), a, zhi + 1.35),
+                 (sx * (w + 0.42), b, zhi + 1.35), 0.07, 0.07, STEEL)
+        # Riveted strake and a band of rust down each flank.
+        for sx in (-1, 1):
+            p.box((sx * (w + 0.07), (a + b) / 2, (zlo + zhi) / 2 + 0.4),
+                  (0.14, (b - a) * 0.94, 0.85), HULLRUST)
+            p.rivets((sx * (w + 0.16), a + 0.8, (zlo + zhi) / 2 + 0.4),
+                     (sx * (w + 0.16), b - 0.8, (zlo + zhi) / 2 + 0.4), 9,
+                     radius=0.055, height=0.04, axis='X', mat=DARK)
+    # Glazing: a bridge window band wrapping the forward face and both corners.
+    p.slab((-hw + 3.6, y0 + 2.8, DECK + 11.6), (hw - 3.6, y0 + 3.1, top - 1.2),
+           GLASS)
     for sx in (-1, 1):
-        p.box((sx * 3.7, STERN - 6.0, DECK + 2.2), (0.30, 6.4, 2.6), GLASS)
-        p.louvres((sx * 3.0, STERN - 2.2, DECK + 0.6),
-                  (sx * 3.6, STERN - 2.0, DECK + 3.4), 6, axis='Y', mat=DARK)
+        p.slab((sx * (hw - 3.5), y0 + 3.0, DECK + 11.6),
+               (sx * (hw - 3.8), y1 - 3.8, top - 1.2), GLASS)
+    # Vents and machinery on the lower flanks.
+    for sx in (-1, 1):
+        p.louvres((sx * (hw - 0.1), y0 + 4.2, DECK + 0.6),
+                  (sx * (hw + 0.2), y0 + 8.4, DECK + 4.2), 7, axis='Y',
+                  mat=DARK)
+        # Exposed steel frame on the plated storey - stanchions and a girt, so
+        # the block reads as a structure that was clad rather than a solid.
+        for i in range(6):
+            yy = y0 + 1.0 + i * ((y1 - y0 - 2.0) / 5.0)
+            p.box((sx * (hw + 0.22), yy, DECK + 2.5), (0.30, 0.34, 5.0), STEEL)
+        beam(p, (sx * (hw + 0.22), y0 + 0.8, DECK + 4.9),
+             (sx * (hw + 0.22), y1 - 0.8, DECK + 4.9), 0.36, 0.30, STEEL)
+        beam(p, (sx * (hw + 0.22), y0 + 0.8, DECK + 0.4),
+             (sx * (hw + 0.22), y1 - 0.8, DECK + 0.4), 0.36, 0.26, STEEL)
+    p.greeble((-hw + 1.5, y1 - 3.2, top), (hw - 1.5, y1 - 0.6, top + 1.1),
+              12, seed=SEED + 7, scale=(0.5, 1.5), mat=STEEL)
+    castle_derrick(p, y0, top, stay_to=(0.0, y1 - 1.0, top + 1.2))
+    p.bevel(width=0.03, segments=1)
+    return p.finish("Mesh_SkyCity_BowCastle", coll)
+
+
+def castle_derrick(p, y0, top, stay_to):
+    """The lattice boom heeled on the castle roof and angled out over the stem.
+
+    Shared with `sky_city_traversal`, which rebuilds the castle hollow. `stay_to`
+    is where the back stay is made fast: the solid castle anchored it at its aft
+    greeble, which on the hollow castle is open terrace, not roof.
+    """
+    heel = Vector((0.0, y0 + 4.0, top + 0.9))
+    head = Vector((0.0, BOW - 12.0, top + 7.0))
+    d = (head - heel).normalized()
+    side = Vector((1.0, 0.0, 0.0))
+    up = d.cross(side).normalized()
+    for su in (-1, 1):
+        for ss in (-1, 1):
+            a = heel + side * (ss * 0.95) + up * (su * 0.95)
+            b = head + side * (ss * 0.42) + up * (su * 0.42)
+            beam(p, tuple(a), tuple(b), 0.17, 0.17, YELLOW)
+    n = 9
+    for i in range(n + 1):
+        t = i / n
+        c = heel.lerp(head, t)
+        w = 0.95 - 0.53 * t
+        for ss in (-1, 1):
+            beam(p, tuple(c + side * (ss * w) - up * w),
+                 tuple(c + side * (ss * w) + up * w), 0.11, 0.11, STEEL)
+        beam(p, tuple(c - side * w + up * w), tuple(c + side * w + up * w),
+             0.11, 0.11, STEEL)
+        if i < n:
+            e = heel.lerp(head, (i + 1) / n)
+            beam(p, tuple(c - side * w - up * w),
+                 tuple(e + side * (0.95 - 0.53 * (i + 1) / n) - up * w),
+                 0.09, 0.09, STEEL)
+    p.cyl(tuple(head), 0.95, 0.5, 'X', seg=12, mat=RUST)
+    p.torus(tuple(head), 0.95, 0.14, axis='X', maj_seg=12, min_seg=6, mat=DARK)
+    rope(p, tuple(head), stay_to, steps=3, sag=0.4, radius=0.09)
+    rope(p, tuple(head + Vector((0, 0, -0.9))), (0.0, BOW - 4.6, DECK + 0.6),
+         steps=3, sag=0.5, radius=0.07)
+
+
+def stern_gear(coll, mats):
+    """Rudder fin and the two ducted airscrews on their pylons.
+
+    The engine house that used to sit here is gone: `stern_block` is the
+    architecture now, and a second box inside it was just a box inside a box.
+    What remains is the machinery that hangs off the block's aft face.
+    """
+    p = Part(mats)
     # Airscrew pylons and ducts.
     for sx in (-1, 1):
         hub = Vector((sx * 9.4, STERN + 2.6, DECK + 5.4))
-        beam(p, (sx * 3.4, STERN - 4.0, DECK + 1.2), tuple(hub), 0.62, 0.72,
+        beam(p, (sx * 3.4, BLOCK_Y1 - 1.0, DECK + 1.2), tuple(hub), 0.62, 0.72,
              YELLOW)
         beam(p, (sx * SIDE_OUT, STERN - 8.0, DECK - 0.3), tuple(hub),
              0.26, 0.26, STEEL)
@@ -489,10 +790,12 @@ def stern_gear(coll, mats):
             a = math.radians(38 + 90 * i)
             p.box(tuple(hub + Vector((math.cos(a) * 1.9, 0.0,
                                       math.sin(a) * 1.9))),
-                  (0.42, 0.34, 3.5), TIMBER,
+                  (0.42, 0.34, 3.5), STEEL,
                   rot=Matrix.Rotation(a + math.pi / 2, 4, 'Y')
                   @ Matrix.Rotation(math.radians(22), 4, 'Z'))
-    # Rudder: fin on the centreline, hinged on a post.
+    # Rudder: a steel-framed fin with canvas panels laced into it, hinged on a
+    # post. Framed rather than a plain sheet - the frame is what makes it read
+    # as a control surface instead of a flag.
     p.cyl((0, STERN + 1.6, DECK + 3.0), 0.44, 9.0, 'Z', seg=8, mat=DARK)
     p.loft([(STERN + 1.4, [(-0.30, DECK + 0.4), (0.30, DECK + 0.4),
                            (0.30, DECK + 7.4), (-0.30, DECK + 7.4)]),
@@ -501,7 +804,10 @@ def stern_gear(coll, mats):
            axis='Y', mat=CANVAS)
     for dz in (1.0, 3.0, 5.0, 7.0):
         beam(p, (0, STERN + 1.4, DECK + dz), (0, STERN + 7.4, DECK + dz),
-             0.10, 0.10, TIMBER)
+             0.12, 0.12, STEEL)
+    for dy in (2.6, 4.4, 6.2):
+        beam(p, (0, STERN + dy, DECK + 0.6), (0, STERN + dy, DECK + 7.2),
+             0.11, 0.11, STEEL)
     p.bevel(width=0.03, segments=1)
     return p.finish("Mesh_SkyCity_SternGear", coll)
 
@@ -530,12 +836,15 @@ def climbs(coll, mats):
     the hanging walkways, and the drops through the deck to the under-keel runs.
     """
     p = Part(mats)
-    for y in LADDER_Y:
-        ladder(p, 1.3, y, DECK, GANTRY_Z)
-        # A back guard on the long climbs, which are 19.7 m over open deck.
+    for y, z0 in zip(LADDER_Y, LADDER_Z):
+        # The base is registered so `assert_feet_supported` checks it against
+        # the per-storey volumes: a ladder starting over a roof that is not
+        # there is the same defect as a prop starting in mid-air.
+        FEET.append(Vector((1.3, y, z0)))
+        ladder(p, 1.3, y, z0, GANTRY_Z)
         for s in (-1, 1):
-            p.box((1.3 + s * 0.66, y + 0.42, (DECK + GANTRY_Z) / 2),
-                  (0.06, 0.06, GANTRY_Z - DECK), DARK)
+            p.box((1.3 + s * 0.66, y + 0.42, (z0 + GANTRY_Z) / 2),
+                  (0.06, 0.06, GANTRY_Z - z0), DARK)
     for y, sx, z in SKYWALKS:
         ladder(p, sx * 12.6, y, DECK, DECK + z + RAIL_H)
     for y, sx in UNDERWALKS:
@@ -545,6 +854,102 @@ def climbs(coll, mats):
     return p.finish("Mesh_SkyCity_Climbs", coll)
 
 
+def stern_block(coll, mats):
+    """The aft superstructure: a plated block closed by a big domed end cap.
+
+    The reference's stern is a yellow mass with a dark rounded cap and a thicket
+    of masts and dishes on top of it. `stern_gear` already builds the machinery
+    - engine house, pylons, airscrews, rudder - and this is the architecture
+    that machinery hangs off, which is what was missing.
+
+    The dome is a lofted hemisphere on the same 16 facets as everything else,
+    so it reads as plated rather than as a sphere primitive.
+    """
+    p = Part(mats)
+    y0, y1 = BLOCK_Y0, BLOCK_Y1
+    hw, top = BLOCK_HW, BLOCK_TOP
+
+    for zlo, zhi, w, a, b, _ in BLOCK_STEPS:
+        p.slab((-w, a, zlo), (w, b, zhi), YELLOW)
+    p.slab((-hw - 0.5, y0 - 0.5, DECK + 7.0), (hw + 0.5, y1 + 0.5,
+           DECK + 7.24), STEEL)
+    for sx in (-1, 1):
+        p.box((sx * (hw + 0.07), (y0 + y1) / 2, DECK + 3.2),
+              (0.14, (y1 - y0) * 0.92, 1.5), HULLRUST)
+        p.rivets((sx * (hw + 0.16), y0 + 1.2, DECK + 3.2),
+                 (sx * (hw + 0.16), y1 - 1.2, DECK + 3.2), 11,
+                 radius=0.055, height=0.04, axis='X', mat=DARK)
+        p.louvres((sx * (hw - 0.1), y0 + 1.2, DECK + 0.4),
+                  (sx * (hw + 0.2), y0 + 5.0, DECK + 3.0), 6, axis='Y',
+                  mat=DARK)
+        p.slab((sx * (hw - 0.2), y0 + 6.0, DECK + 4.2),
+               (sx * (hw - 0.45), y1 - 1.5, DECK + 6.2), GLASS)
+
+    # The domed cap closing the aft face - a quarter-round lofted on the
+    # section's own facet count, not a UV sphere.
+    seg, rings = 16, 7
+    secs = []
+    for i in range(rings + 1):
+        t = i / rings
+        a = t * math.pi / 2
+        k = math.cos(a)
+        secs.append((y1 + 6.4 * math.sin(a),
+                     [(hw * 0.92 * k * math.cos(2 * math.pi * j / seg),
+                       DECK + 3.4 + hw * 0.86 * k
+                       * math.sin(2 * math.pi * j / seg))
+                      for j in range(seg)]))
+    # Plated steel, not matte black. The reference's cap is dark, but at this
+    # size a black hemisphere reads as a hole punched in the stern rather than
+    # as a pressure end - and the ask was for more metal, not less.
+    p.shade(p.loft(secs, axis='Y', mat=STEEL, cap=True), smooth=False)
+    for i in (1, 3, 5):
+        t = i / rings
+        a = t * math.pi / 2
+        p.torus((0.0, y1 + 6.4 * math.sin(a), DECK + 3.4),
+                hw * 0.92 * math.cos(a) + 0.12, 0.18, axis='Y', maj_seg=seg,
+                min_seg=6, mat=RUST)
+    # Meridian straps over the cap, between the hoops.
+    for j in range(0, seg, 2):
+        ang = 2 * math.pi * j / seg
+        pts = []
+        for i in range(rings + 1):
+            a = (i / rings) * math.pi / 2
+            k = math.cos(a)
+            pts.append(Vector((hw * 0.94 * k * math.cos(ang),
+                               y1 + 6.5 * math.sin(a),
+                               DECK + 3.4 + hw * 0.88 * k * math.sin(ang))))
+        for u, v in zip(pts, pts[1:]):
+            if (v - u).length > 0.05:
+                beam(p, tuple(u), tuple(v), 0.16, 0.16, DARK)
+
+    # Mast cluster on the block roof: a lattice stub, spreaders and whips.
+    # Stepped aft of y = 49 so it clears the crown gantry, which ends at 50.
+    base = Vector((0.0, y1 - 2.2, top))
+    for ss in (-1, 1):
+        for su in (-1, 1):
+            beam(p, tuple(base + Vector((ss * 0.8, su * 0.8, 0.0))),
+                 tuple(base + Vector((ss * 0.34, su * 0.34, 9.0))),
+                 0.13, 0.13, STEEL)
+    for i in range(5):
+        z = top + 1.4 + i * 1.75
+        w = 0.8 - 0.46 * (i / 4.0)
+        for ss in (-1, 1):
+            beam(p, (ss * w, base.y - w, z), (ss * w, base.y + w, z),
+                 0.09, 0.09, STEEL)
+            beam(p, (-w, base.y + ss * w, z), (w, base.y + ss * w, z),
+                 0.09, 0.09, STEEL)
+    for sx in (-1, 1):
+        beam(p, (0.0, base.y, top + 6.2), (sx * 4.6, base.y, top + 7.0),
+             0.10, 0.10, STEEL)
+        p.cyl((sx * 4.6, base.y, top + 8.4), 0.055, 2.8, 'Z', seg=5, mat=DARK)
+        rope(p, (sx * 4.6, base.y, top + 7.0), (sx * 2.2, y1 - 1.0, top),
+             steps=2, sag=0.25, radius=0.05)
+    p.cyl((0.0, base.y, top + 11.4), 0.075, 4.8, 'Z', seg=6, mat=DARK)
+    p.cyl((0.0, base.y, top + 13.9), 0.16, 0.30, 'Z', seg=8, mat=LAMP)
+    p.bevel(width=0.03, segments=1)
+    return p.finish("Mesh_SkyCity_SternBlock", coll)
+
+
 def gantry(coll, mats):
     """The lookout route over the top of the bags, on the cage's crown.
 
@@ -552,9 +957,9 @@ def gantry(coll, mats):
     deliberately unpleasant - it is a place to go and look, not a second street.
     """
     p = Part(mats)
-    # Reaches past the end bags to the two ladder stations, which are the only
-    # places on the centreline where a climb is not inside a gas bag.
-    y0, y1 = LADDER_Y[0] - 2.0, LADDER_Y[1] + 2.0
+    # Reaches over both end structures to the two ladder stations on their
+    # roofs. Ends at +-50, which keeps it clear of the stern block's mast.
+    y0, y1 = LADDER_Y[0] - 3.0, LADDER_Y[1] + 2.0
     p.box((0, (y0 + y1) / 2, GANTRY_Z - 0.09), (GANTRY_HW * 2, y1 - y0, 0.14),
           STEEL)
     n = int((y1 - y0) / 2.2)
@@ -593,7 +998,6 @@ KIT = {
         "Mesh_HabCapsule_Pod", "Mesh_HabCapsule_Short"],
     "components/structural/cabin_module.blend": [
         "Mesh_CabinModule_Habitat", "Mesh_CabinModule_Workshop"],
-    "components/structural/control_cab.blend": ["Mesh_ControlCab_Compact"],
     "components/structural/sensor_cupola.blend": [
         "Mesh_SensorCupola_Dish", "Mesh_SensorCupola_Dome",
         "Mesh_SensorCupola_Lantern"],
@@ -607,8 +1011,6 @@ KIT = {
         "Mesh_Awning_Sagging", "Mesh_Awning_Torn", "Mesh_Awning_LeanTo"],
     "components/structural/mast_rig.blend": [
         "Mesh_MastRig_Pennant", "Mesh_MastRig_Flag"],
-    "components/structural/window_bank.blend": [
-        "Mesh_WindowBank_Porthole", "Mesh_WindowBank_Shuttered"],
     "components/props/supply_crate.blend": [
         "Mesh_Crate_Large", "Mesh_Crate_Stack", "Mesh_Crate_Open",
         "Mesh_Crate_Long"],
@@ -637,11 +1039,12 @@ def put(src, names, coll, prefix, bag, target, k=1.0, rz=0.0, rx=0.0,
 
 def place_envelopes(src, coll, bag):
     """Three bags, biggest amidships where the lift is wanted."""
-    for i, (y, name) in enumerate(zip(
-            BAG_Y, ("Mesh_GasEnvelope_Patched", "Mesh_GasEnvelope_Banded",
-                    "Mesh_GasEnvelope_Plain"))):
+    for i, (y, k, name) in enumerate(zip(
+            BAG_Y, BAG_K,
+            ("Mesh_GasEnvelope_Patched", "Mesh_GasEnvelope_Banded",
+             "Mesh_GasEnvelope_Plain"))):
         put(src, name, coll, "Mesh_SkyCity_Bag%d" % (i + 1), bag,
-            (0.0, y, CAGE_Z), anchor="center")
+            (0.0, y, CAGE_Z), k=k, anchor="center")
 
 
 def mirror_x_source(obj, name, into):
@@ -674,17 +1077,37 @@ def mirror_x_source(obj, name, into):
 
 
 def place_sails(src, coll, bag, hidden):
-    """One sail each side, on the outriggers, raked forward.
+    """One sail spread outboard off each flank, stepped on the cage stringers.
 
     Starboard carries the working white suit, port the red spare - the two sides
     of the rig deliberately do not match.
+
+    The component is authored luff-up (+Z) with its foot running aft (+Y). A
+    rotation about Y lays the spar over onto +X, so `Ry(90 - SAIL_RISE)` points
+    it outboard and lifts the tip; the foot stays aft either way, because Y is
+    the rotation axis. That rotation goes onto the SOURCE object's matrix, which
+    `stamp` multiplies through - `place_delta` has no ry of its own.
     """
-    put(src, "Mesh_LateenSail_Main", coll, "Mesh_SkyCity_SailStbd", bag,
-        (SAIL_X, SAIL_Y, SAIL_Z), k=SAIL_K, rx=SAIL_RAKE, anchor="origin")
-    src["__port_sail"] = mirror_x_source(
-        src["Mesh_LateenSail_Patched"], "Mesh_LateenSail_PatchedPort", hidden)
-    put(src, "__port_sail", coll, "Mesh_SkyCity_SailPort", bag,
-        (-SAIL_X, SAIL_Y, SAIL_Z), k=SAIL_K, rx=SAIL_RAKE, anchor="origin")
+    # Stamped with an explicit delta rather than through `place_delta`. Its
+    # "origin" anchor takes x and y from the object's origin but z from the
+    # bounding box FLOOR, which on a sail laid over onto its side is the bottom
+    # of the cloth, not the tack - the sail would ride up by half its own span.
+    # Here the tack IS the object origin, so the transform is exactly
+    # translate-after-scale-after-the-rotation the source already carries.
+    rise = math.pi / 2 - SAIL_RISE
+
+    def step(obj, key, prefix, target, spin):
+        obj.matrix_world = Matrix.Rotation(spin, 4, 'Y')
+        src[key] = obj
+        delta = Matrix.Translation(Vector(target)) @ Matrix.Scale(SAIL_K, 4)
+        bl.stamp([obj], delta, coll, prefix, bag)
+
+    step(src["Mesh_LateenSail_Main"], "Mesh_LateenSail_Main",
+         "Mesh_SkyCity_SailStbd", (SAIL_X, SAIL_Y, SAIL_Z), rise)
+    step(mirror_x_source(src["Mesh_LateenSail_Patched"],
+                         "Mesh_LateenSail_PatchedPort", hidden),
+         "__port_sail", "Mesh_SkyCity_SailPort",
+         (-SAIL_X, SAIL_Y, SAIL_Z), -rise)
 
 
 # (kind, y, side, x, rz-degrees, scale) for the dwellings. Written out rather
@@ -807,14 +1230,17 @@ def place_town(src, coll, bag):
                   "Mesh_Lantern_Handle"],
             coll, "Mesh_SkyCity_Lamp%02d" % (i + 1), bag,
             (sx * rng.uniform(5.0, 6.4), y, DECK + 2.5), k=1.9)
-    # Pennants and flags on the cage crown - read from a long way off.
-    for i, (y, ang) in enumerate([(-42.0, 70.0), (-16.0, 110.0), (6.0, 66.0),
-                                  (32.0, 116.0), (46.0, 90.0)]):
-        f = cage_pt(ang, y)
+    # Pennants and flags along the crown gantry rail - read from a long way off.
+    #
+    # They used to stand on the cage crown at 66-116 degrees. Once the bags were
+    # scaled up to fill the cage, the crown IS the bag: a flagstaff there sits
+    # inside 182 vertices of gas envelope. The gantry is 1.8 m above the fattest
+    # bag and is the only high perch left.
+    for i, y in enumerate((-42.0, -20.0, 4.0, 26.0, 44.0)):
         put(src, rng.choice(("Mesh_MastRig_Pennant", "Mesh_MastRig_Flag")),
             coll, "Mesh_SkyCity_Flag%02d" % (i + 1), bag,
-            (f.x, f.y, f.z), k=rng.uniform(1.1, 1.6),
-            rz=rng.uniform(0, math.pi * 2))
+            ((1.15 if i % 2 else -1.15), y, GANTRY_Z),
+            k=rng.uniform(1.1, 1.6), rz=rng.uniform(0, math.pi * 2))
     # Floodlights on the aft apron, pointed at the landing area.
     for i, sx in enumerate((-1, 1)):
         put(src, "Mesh_FloodlightBank_Single", coll,
@@ -824,23 +1250,23 @@ def place_town(src, coll, bag):
 
 
 def place_fittings(src, coll, bag):
-    """Helm, sensors and the glazing that tells a player where the crew is."""
-    put(src, "Mesh_ControlCab_Compact", coll, "Mesh_SkyCity_Helm", bag,
-        (0.0, BOW + 9.0, DECK), k=1.05)
-    put(src, "Mesh_WindowBank_Porthole", coll, "Mesh_SkyCity_HelmGlassS", bag,
-        (3.6, BOW + 9.0, DECK + 1.6), rz=math.radians(90))
-    put(src, "Mesh_WindowBank_Shuttered", coll, "Mesh_SkyCity_HelmGlassP", bag,
-        (-3.6, BOW + 12.0, DECK + 1.6), rz=math.radians(-90))
+    """Sensors and glazing.
+
+    The `control_cab` helm that used to stand at BOW + 9 is gone: `bow_castle`
+    is the bridge now, and a 7.7 m cab parked inside a 17 m block was the thing
+    making the bow read thin in the first place.
+    """
     put(src, "Mesh_SensorCupola_Dish", coll, "Mesh_SkyCity_Dish", bag,
-        (0.0, 44.0, GANTRY_Z), k=2.4)
+        (0.0, 40.0, GANTRY_Z), k=2.4)
     put(src, "Mesh_SensorCupola_Dome", coll, "Mesh_SkyCity_Dome", bag,
-        (0.0, 36.0, GANTRY_Z), k=1.1)
+        (0.0, 31.0, GANTRY_Z), k=1.1)
     put(src, "Mesh_SensorCupola_Lantern", coll, "Mesh_SkyCity_Beacon", bag,
         (0.0, -38.0, GANTRY_Z), k=1.0)
-    # The gangway: the one span that crosses the keel, over the aft apron where
-    # the deck is otherwise empty. Landing here is the only reason to cross.
+    # The gangway: the one span that crosses the ship, laid across the bow
+    # castle's second-storey roof. The aft apron it used to sit on is now the
+    # stern block.
     put(src, "Mesh_Catwalk_Bridge", coll, "Mesh_SkyCity_Gangway", bag,
-        (0.0, 44.0, DECK + 3.4))
+        (0.0, CASTLE_Y1 - 4.5, DECK + 9.0))
 
 
 # ---------------------------------------------------------------------------
@@ -870,10 +1296,12 @@ def place_fittings(src, coll, bag):
 
 ENV_TIP, ENV_POWER = 0.17, 0.40     # must match components/structural/gas_envelope
 ENV_PROUD = 0.16                    # ribs and straps standing off the skin
-# (centre y, length, radius, squash, sag) in placement order.
-BAG_SPEC = [(BAG_Y[0], 23.0, 7.0, 0.88, 0.45),
-            (BAG_Y[1], 26.0, 7.6, 1.00, 0.00),
-            (BAG_Y[2], 24.0, 7.2, 1.00, 0.00)]
+# (centre y, length, radius, squash, sag) in placement order, with BAG_K
+# applied - the bags are scaled at placement, so the component's own numbers
+# would describe a shape a metre smaller than the one in the model.
+BAG_SPEC = [(BAG_Y[0], 23.0 * BAG_K[0], 7.0 * BAG_K[0], 0.88, 0.45 * BAG_K[0]),
+            (BAG_Y[1], 26.0 * BAG_K[1], 7.6 * BAG_K[1], 1.00, 0.00),
+            (BAG_Y[2], 24.0 * BAG_K[2], 7.2 * BAG_K[2], 1.00, 0.00)]
 
 
 def in_bag(p, margin=0.10):
@@ -972,6 +1400,7 @@ def build():
     # holding a local `Mat_Metal_Steel_Worn` that the palette never reaches, and
     # `link_materials` hands it back without complaint. Linking first means the
     # appended copies arrive suffixed and `dedupe_materials` folds them away.
+    register_solids()
     bl.link_materials(MATS)
 
     hidden = bl.collection("Coll_PartSource")
@@ -992,7 +1421,8 @@ def build():
     lift = bl.collection("Coll_SkyCity_Lift")
     rig = bl.collection("Coll_SkyCity_Rig")
 
-    for fn in (keel, cage, decks, cradles, prow, stern_gear, gantry, climbs):
+    for fn in (keel, cage, decks, cradles, prow, bow_castle, stern_block,
+               stern_gear, gantry, climbs):
         fn(structure, mats)
     outriggers(rig, mats)
 
@@ -1014,6 +1444,7 @@ def build():
 
     assert_bags_clear()
     assert_no_mirrors()
+    assert_feet_supported()
     lo, hi = bl.bbox([o for o in bpy.data.objects if o.type == 'MESH'])
     bl.report()
     print("  ENVELOPE: %.1f x %.1f x %.1f m  (objects: %d)"
@@ -1022,4 +1453,7 @@ def build():
     bl.save(out)
 
 
-build()
+# Guarded so `sky_city_traversal.py` can import this file for its geometry helpers
+# and constants. Running it as a generator is retired - see the header.
+if __name__ == "__main__":
+    build()

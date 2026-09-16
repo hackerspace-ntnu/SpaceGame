@@ -6,6 +6,13 @@ created yet — backlog, §8)"* — and nothing had been built.
 
 Built 2026-09-15. This is a record of decisions, not a proposal.
 
+> **Hand-edited by the user from 2026-09-16.** The `.blend` is now the only
+> source of truth and `sky_city.py` no longer reproduces it. Never delete it to
+> regenerate. Edit it in place; re-running `sky_city_export.py` and
+> `SkyCityBuilder` is still safe, because neither writes to the `.blend` - but
+> if the hand edits moved the decks, end structures or gantry, the authored
+> collision volumes in the builder must be re-measured against them.
+
 ---
 
 ## What it is
@@ -18,16 +25,17 @@ else built the lattice** — hazard yellow, riveted, rectilinear — and the tri
 moved into it. Painted steel below, cloth and timber above and outboard, and the
 two languages never blend.
 
-**Envelope**
+**Envelope** (revised 2026-09-16 — see "Second pass" below)
 
 | | |
 |---|---|
-| overall | 30.1 × 125.0 × 52.7 m |
+| overall | 62.1 × 132.7 × 35.9 m |
 | hull without sails or rudder | 22.4 × 116.0 × 21.0 m |
+| sail span, wingtip to wingtip | 57 m |
 | promenade | 6.8 m wide each side, 104 m long, walking surface z = 0 |
 | clear walking lane | x 4.2 → 7.0, both sides, unobstructed end to end |
 | headroom under the cage | 10.0 m at the outboard rail, 2.7 m at the keel |
-| triangles | 282,008 across 109 objects |
+| triangles | 330,782 across 108 objects |
 
 Authoring frame is the library convention — **−Y forward, +X starboard, +Z up**
 — origin on the keel centreline at the promenade's walking surface.
@@ -47,6 +55,56 @@ walking inboard you duck and walking outboard opens to sky. That gradient is
 what makes the deck read as a street with an edge, without a sign saying so.
 
 ---
+
+## Second pass — 2026-09-16
+
+Six changes against the reference photograph, after the first pass was reviewed.
+
+1. **The bags fill the cage.** They were 7.0/7.6/7.2 m inside an 8.4 m cage and
+   read as loose in it. Scaled at placement (`BAG_K`) to 7.85/7.95/7.90. The
+   ceiling is not the cage's centreline but the **inner face of its 0.34 m
+   members at 8.23 m**, less the 0.16 m the bags' own ribs stand proud — over
+   about 8.05 m a rib pushes through a stringer. Uniform scaling lengthens them
+   too, which is what closes the gaps from 3.5 m to ~1.2 m; `BAG_Y` widened to
+   ±30 because the scaled **end collars** would otherwise interpenetrate by
+   1.56 m, and the collars reach ~1 m past the loft the radius is measured on.
+2. **A bow castle and a stern block.** The reference has a commanding mass at
+   each end and the model had a 7.7 m `control_cab` forward and a box aft. Both
+   are new bespoke parts in the hull's plated language — `bow_castle` is three
+   stepped storeys and a lattice derrick over the stem, `stern_block` is a
+   plated block closed by a 16-facet domed cap with a mast cluster on it. The
+   `control_cab` helm and `stern_gear`'s engine house are **gone**: a cab parked
+   inside a 17 m block was what made the bow read thin, and a box inside a box
+   is just a box.
+3. **The sails spread outboard.** Turned from vertical onto ±X at a 22° rise,
+   stepped on the cage's beam stringers at x = 9.1, z = 10 — **not** on the
+   deck. A sail rooted at deck level and angled outboard passes straight through
+   the dwellings, which reach 8.9 m at x = 9.6. `SAIL_K` drops 1.45 → 0.88, for
+   a 22.9 m spar and a 57 m span. The component is authored luff-up, so the
+   spar is laid over by rotating the **source object** about Y before stamping —
+   `place_delta` has rz and rx but no ry.
+4. **Twenty-four props that held nothing up.** The cantilever-platform rakes,
+   the skywalk rakes and the sail stays all had their feet at x = ±11.2 below
+   the deck, where the lowest real structure is the gallery bracket at z =
+   −0.34. They hung in open air. All now land on the keel girder's lower
+   longeron, and `assert_feet_supported` fails the build if a registered foot
+   is outside the declared solid volumes.
+5. **More metal.** Steel X-bracing with riveted gusset plates across every
+   second bay of both keel flanks (the single biggest change to how the ship
+   reads); the promenade lane is steel plate rather than ply, on two
+   longitudinal stringers, with a riveted strake up the girder shoulder; every
+   third cage ring is bare steel with gussets where the stringers cross; the
+   bag saddles, skywalk outriggers, airscrew blades and rudder frame are steel;
+   the stern dome is plated steel with meridian straps. The timber stays where
+   the tribe built — shanty decking, cantilever platforms, rails, saddle
+   packing.
+6. **Two knock-on moves the assertions caught.** The gantry ladders were on the
+   centreline at deck level; with the bags at full size there is no window
+   between them, so both climbs now start on the end structures' roofs
+   (`LADDER_Z`) — better architecture anyway, six metres off a roof you already
+   walked up to. And the flags stood on the cage crown, which **is** the bag
+   now: `assert_bags_clear` found 182 vertices of flagstaff inside one. They
+   moved to the crown gantry.
 
 ## Decomposition
 
@@ -138,6 +196,13 @@ the view that happened to be open.
   strip the dwellings stand on. Now rejection-sampled against the dwelling list.
 - **A ladder scaled in Z to reach the gantry.** `k=(1,1,5.81)` spreads the rungs
   to 1.9 m apart. Stack copies, or build it — never scale a ladder.
+- **A beam is perfectly happy to start in mid-air.** Twenty-four raking props
+  were drawn from `(SIDE_OUT, −2.4…−3.4)` to the thing they were supposed to
+  carry, and nothing at x = ±11.2 goes below z = −0.34. Nothing errors, nothing
+  clashes, and `_zverify` has no opinion — an unsupported member is not a
+  z-fight. It is only visible from below, which is not an angle a generator
+  author looks at. `foot()` and `assert_feet_supported()` exist because the
+  user found this, not the toolchain.
 - **Three materials that the palette could not reach.** `bpy.data.materials` is
   keyed on name *and* library, so a **local and a linked material can share a
   name with no suffix on either** — and `append` makes everything local. The
@@ -224,5 +289,44 @@ change to the prefab; there is no `SkyFaction.asset` yet.
 - The airscrew blades are modelled stopped, at one fixed angle.
 - **No LOD meshes.** The prefab gets a single-level cull `LODGroup`, like the
   five building prefabs, because no decimated variants were authored.
-- **Nothing is walkable outboard of x = 11.2.** The seven cantilevered timber
-  platforms per side are set dressing over the void — see `SkyCityBuilder`.
+- **The prefab does not yet have the traversal pass.** `SkyCityBuilder` still
+  uses its hand-authored walkable boxes, which predate both the user's edits and
+  the pass below. It has to be reworked to build colliders from `COL_` objects
+  before the prefab is rebuilt.
+- **Unreachable on purpose:** the underwalks (no stairs, cluttered under-deck),
+  the prow lookout (raised by the user to z ≈ 3.1 with the pod over it), and
+  the escort ships at x ≈ 87, which `sky_city_export.py` would still export.
+
+## Traversal pass — 2026-09-16
+
+The `.blend` has been hand-edited since this date, so `sky_city.py` is no longer
+run as a generator. `sky_city_traversal.py` makes it walkable instead. Run it in
+live Blender. It is safe to re-run: it owns what it builds, and before changing
+one of the user's meshes it stores a `<object>__pre_traversal` backup and
+restores from it on each run. It refuses to touch an object that was edited by
+hand after its last run.
+
+- **No ladders.** `Movement` has no climb and no step-up, and landing from more
+  than about 1.3 m hurts. Every ladder became a stair with smooth ramp
+  collision at 27.2°.
+- **Collision is authored, not derived.** `COL_SkyCity` (`Coll_SkyCity_Collision`,
+  wireframe, never rendered) holds 8-vert boxes and 6-vert ramps. Bounds boxes
+  cannot be used: catwalk bounds reach the rail tops, and the houses' shared
+  mesh has struts that run down to the keel.
+- **Built:** the bow castle, hollow (ground floor, first floor with the pod,
+  an inner stair, doors on the flanks and aft), a stair tower up to the crown
+  gantry, gantry loops and lookouts, a ramp to the stern terrace and pods,
+  stairs up to all four skywalks, and walkways out to x = 17 on both sides.
+- **Sail slots.** The user's hanging bow sails pass through the walkway at
+  y −40.7…−38.3, so each walkway has a railed slot there. To starboard you walk
+  round it on the inboard side. To port a house fills that side, so the forward
+  part of the walkway is reached through the castle instead.
+- **Verification** (`verify()`, run at the end) walks 19 routes against the
+  collision: floor under the feet, slope under 35°, 2.1 m headroom, 0.45 m side
+  clearance, and never inside a solid. A ray-only check passed routes that went
+  straight through walls. Check it with routes that ought to fail (through a
+  wall, off the edge, through a sail slot) before you trust a pass.
+- **Hash after `view_layer.update()`.** `matrix_world` is stale until then, so
+  the pass flagged its own objects as hand-edited.
+- `BVHTree.FromObject` works in local space. To test clashes between objects,
+  build the BVH from world-space vertices.

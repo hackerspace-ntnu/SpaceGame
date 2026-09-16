@@ -47,6 +47,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a cave regenerates on Start and stalls play mode for seconds | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a charge is right on the host and wrong on every client | [SupplyCharge](systems/SupplyCharge.md) |
 | a charge written into a slot never reaches the owning client | [SupplyCharge](systems/SupplyCharge.md) |
+| a charged shot is audible on other machines but no orb is ever drawn | [Combat](systems/Combat.md) |
 | a chest item ends up on the small of the back instead of the sternum | [BodyEquipment](systems/BodyEquipment.md) |
 | a chunk never loads and the player falls through the world | [WorldStreaming](systems/WorldStreaming.md) |
 | a Clanker rides up to me on its horse and then just sits there | [AgentSystem](systems/AgentSystem.md) |
@@ -261,6 +262,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a torso item is worn rotated to a random angle | [BodyEquipment](systems/BodyEquipment.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
+| a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a worn item is scaled to the size of the model it is carried as | [BodyEquipment](systems/BodyEquipment.md) |
 | a worn model came out lying on its face, or rotated ninety degrees | [BodyEquipment](systems/BodyEquipment.md) |
 | after a cutscene the camera stays at chest height instead of the head | [Cutscenes](systems/Cutscenes.md) |
@@ -577,6 +579,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | stirrup irons or buckles float on the flank with nothing joining them to a strap | [Saddles](systems/Saddles.md) |
 | straps or bands stand off the top of a squashed gas bag or barrel they should be clamping | [ArtPipeline](systems/ArtPipeline.md) |
 | streaming stops dead — no chunk ever loads or unloads again after one error | [WorldStreaming](systems/WorldStreaming.md) |
+| support beams under a model that are not connected to anything | [ArtPipeline](systems/ArtPipeline.md) |
 | surface detail I dialled up does not show in the meshed feature | [TerrainGeneration](systems/TerrainGeneration.md) |
 | switching the torch on changes nothing about how the body stands | [Flashlight](systems/Flashlight.md) |
 | taking the gauntlet off leaves a light burning on someone's arm | [Flashlight](systems/Flashlight.md) |
@@ -1425,4 +1428,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1045 symptoms, 354 paths, 55 docs -->
+<!-- 1048 symptoms, 354 paths, 55 docs -->

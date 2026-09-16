@@ -325,6 +325,7 @@ GameObject:
   - component: {fileID: 114649344}
   - component: {fileID: 114649343}
   - component: {fileID: 114649342}
+  - component: {fileID: 114649346}
   m_Layer: 0
   m_Name: NpcWorldSim
   m_TagString: Untagged
@@ -612,6 +613,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &114649346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 114649341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3d84f991ddee7f4aa55a0f686059d7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionGoodwillLedger
+  tribes:
+  - {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  crewFaction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
+  relationships: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+  thresholds:
+    atWar: -80
+    hostileOnSight: -40
+    friendly: 20
+    allied: 60
+    hysteresis: 10
+  hitCostMin: 2
+  hitCostMax: 10
+  killCost: 25
+  mountKillCost: 15
+  clankerKilledCredit: 3
+  tradeCredit: 5
+  hostileSpread: 0.2
+  alliedSpread: 0.4
+  decayPerGameHour: 2
+  fallbackSecondsPerGameHour: 100
+  huntSpillRadius: 200
 --- !u!1 &118567313
 GameObject:
   m_ObjectHideFlags: 0

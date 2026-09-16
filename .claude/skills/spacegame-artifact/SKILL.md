@@ -152,6 +152,34 @@ namespace SpaceGame.Items
 | Damage | `NetDamage.Apply(GameObject target, int amount, Transform source)` |
 | Spawn into the world | `GameServices.World.Spawn(prefab, pos, rot)` |
 | Sound | `SfxId` + `Sfx.Play(id, position, overrideRef, sourceKey)` |
+| Does an NPC read it as a weapon | `InventoryItem.menacing` — see below |
+
+## Is the new item a weapon? Tick `menacing`
+
+`InventoryItem.menacing` is what tells an NPC that the thing in your hand is a weapon. Tick it if
+the item is **unmistakably a weapon when it is pointed at you** — guns, staves, the bazooka, the
+flamethrower, the cryo sprayer. Leave it off for everything else, which is most of the list: tools,
+placeables, ship parts, potions, supplies, ship modules.
+
+**A gauntlet is never menacing, whatever it does.** A gauntlet is gear you are wearing rather than
+something you have drawn, so the wrist blade and the flame gauntlet read no differently from a
+torch. Same for anything worn on the back.
+
+There is no way to derive this, which is why it is authored: **"weapon" is not a C# class here.**
+Only two of the seven guns an NPC can roll (`BasicGun`, `BallLightningWeapon`) are `Weapon`
+subclasses — the rest are ordinary `UsableItem` artifacts — so `held is Weapon` calls a bazooka
+harmless. Add the item to the list in
+[`MenacingItemTests`](Assets/Game/Editor/Tests/MenacingItemTests.cs) with a one-line reason, or the
+test fails; that list is the review surface an authored flag needs so it does not drift one prefab
+at a time.
+
+**What reads it.** `MenaceSensor` on a tribe member, which needs the flag **and** a shot fired
+nearby in the last few seconds before it feeds the aggression meter. Holding a gun near somebody is
+not a threat; having just fired one while squared up at them is. That second condition exists
+because **this game has no aim button** — the verbs are Move, Look, Jump, Crouch, Dash, Interact,
+Drop and the hotbar — so "pointing a weapon at someone" has to be built out of verbs that exist.
+Without it, the trigger would be "holds anything and looks at you", which is exactly what you do to
+*talk* to somebody.
 
 ## Common mistakes
 

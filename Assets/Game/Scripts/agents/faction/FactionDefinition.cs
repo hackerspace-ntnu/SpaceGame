@@ -52,6 +52,10 @@ namespace SpaceGame.Agents
         [FormerlySerializedAs("debugColor")]
         public Color hudColor = Color.white;
 
+        [Tooltip("This faction's people, if it is a tribe. Empty for Humans, Outlaws, Clankers and " +
+                 "animals — only a tribe fields caravans and war parties from a roster.")]
+        public FactionRoster roster;
+
         /// <summary>
         /// Self-registration, so the save system can look a faction up by the id it stored. Runs when
         /// the asset is loaded, which is whenever anything referencing it is.

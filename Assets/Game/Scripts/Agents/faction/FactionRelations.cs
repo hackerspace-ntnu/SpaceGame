@@ -7,7 +7,8 @@
 //                 its faction thinks of yours, and only yours: its neighbours are unaffected
 //                 until an AlertBroadcaster tells them.
 //   2. GOODWILL — this faction, about that PLAYER. A tribe you have been shooting turns on you
-//                 while leaving your crewmate alone. Phase 3; the hook is here and answers null.
+//                 while leaving your crewmate alone — unless they are standing next to you, which
+//                 is the one place the per-player rule bends (FactionGoodwillLedger.BandForEntity).
 //   3. STANCE   — this faction, about that faction. The authored table, plus each side's
 //                 defaultStance for pairs nobody wrote a row for.
 //
@@ -72,17 +73,45 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// What this faction's goodwill meter toward <paramref name="other"/>'s player says, or
-        /// null if goodwill has nothing to say about this pair.
+        /// What <paramref name="self"/>'s faction currently thinks of the PLAYER behind
+        /// <paramref name="other"/>, or null if goodwill has nothing to say about this pair.
         ///
         /// <para>
-        /// Phase 3 fills this in from <c>FactionGoodwillLedger</c>. Until then it answers null,
-        /// which means "no opinion — ask the table", so the layer is inert rather than absent:
-        /// every caller already goes through it and nothing has to be rewired later.
+        /// Null is the common answer and means "no opinion — ask the table": there is no ledger
+        /// (offline test, arena), this faction keeps none (Clankers, Outlaws), or the other side is
+        /// not a player. Only the two extreme bands override the authored stance; Friendly opens
+        /// trade and dialogue without changing who shoots whom, which is why it is not here.
+        /// </para>
+        /// <para>
+        /// Asked in BOTH directions, so a nomad hunting you and your own visor agree about it. The
+        /// ledger answers the same row either way round.
         /// </para>
         /// </summary>
         private static FactionRelationship? ResolveGoodwill(EntityFaction self, EntityFaction other)
         {
+            FactionGoodwillLedger ledger = FactionGoodwillLedger.Instance;
+            if (ledger == null) return null;
+
+            // Which side is the tribe and which is the player. A tribe keeps no opinion of another
+            // tribe here — that is the table's business — so exactly one side may be tracked.
+            if (ledger.Tracks(self.Faction) && !ledger.Tracks(other.Faction))
+                return FromBand(ledger.BandForEntity(self.Faction, other));
+
+            if (ledger.Tracks(other.Faction) && !ledger.Tracks(self.Faction))
+                return FromBand(ledger.BandForEntity(other.Faction, self));
+
+            return null;
+        }
+
+        /// <summary>
+        /// The two bands that change who shoots whom. Everything between them leaves the authored
+        /// stance alone.
+        /// </summary>
+        private static FactionRelationship? FromBand(GoodwillBand band)
+        {
+            if (GoodwillMath.IsHostile(band)) return FactionRelationship.Hostile;
+            if (band == GoodwillBand.Allied) return FactionRelationship.Allied;
+
             return null;
         }
     }

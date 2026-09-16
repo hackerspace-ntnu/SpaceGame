@@ -48,8 +48,16 @@ namespace SpaceGame.Agents
         [SerializeField] private float calmDownDelay = 60f;
 
         [Tooltip("Ignore damage below this. Set above 0 for creatures that should shrug off " +
-                 "chip damage — a fall, a scrape — rather than turning on the world for 1 HP.")]
+                 "chip damage — a fall, a scrape — rather than turning on the world for 1 HP.\n\n" +
+                 "A floor under hitGain, not a replacement for it: damage that clears this still " +
+                 "only moves the meter by what it is worth.")]
         [SerializeField] private int damageThreshold = 0;
+
+        [Header("Aggression")]
+        [Tooltip("What this agent's temperament is worth in points. The per-tribe flavour lives " +
+                 "entirely in these numbers — a nomad who forgives a gunshot, an outlaw who " +
+                 "notices an aimed gun from further off.")]
+        [SerializeField] private AggressionSettings aggressionSettings = AggressionSettings.Default;
 
         [Header("Debug")]
         [SerializeField] private bool drawGizmos = true;
@@ -61,6 +69,67 @@ namespace SpaceGame.Agents
         // Seconds the aggressor has been outside the leash. Zero whenever they are inside it.
         public float CalmingFor { get; private set; }
 
+        /// <summary>
+        /// How close this agent is to fighting, in [0, 100]. Read by the telegraph; the player
+        /// never sees the number, only the band it falls in.
+        /// </summary>
+        public float Aggression => aggression;
+
+        /// <summary>Which band <see cref="Aggression"/> falls in for THIS agent's temperament.</summary>
+        public AggressionBand Band => AggressionMath.BandFor(aggression, aggressionSettings.attackAt);
+
+        public AggressionSettings Settings => aggressionSettings;
+
+        /// <summary>
+        /// Who the meter is filling up because of, before it is full enough to be a grudge.
+        ///
+        /// Separate from <see cref="Aggressor"/> on purpose: an agent that is merely wary has not
+        /// picked a fight with anybody, and handing this to AgentTargeting would be exactly the
+        /// binary behaviour the meter replaces. It is who the telegraph looks at, and who
+        /// <see cref="Provoke"/> is called with if the meter fills.
+        /// </summary>
+        public Transform Provoker => provoker;
+
+        /// <summary>
+        /// Raised when the band changes, with the band just left and the one just entered. The
+        /// telegraph listens; nothing else should need to.
+        /// </summary>
+        public event System.Action<AggressionBand, AggressionBand> BandChanged;
+
+        /// <summary>
+        /// Who this agent last heard fire a shot, and when (<c>Time.time</c>). Answers
+        /// "somebody is shooting around here and it was them".
+        ///
+        /// <para>
+        /// Recorded here rather than on the shooter because it is a fact about what THIS agent
+        /// witnessed: the gunshot arrives through <c>NoiseReceiverModule</c>, which already has a
+        /// radius and already refuses to count an ally, so an agent over the ridge never heard it
+        /// and has no business acting on it. A flag on the player would be heard by the whole map.
+        /// </para>
+        /// </summary>
+        public Transform LastGunshotFrom { get; private set; }
+
+        /// <inheritdoc cref="LastGunshotFrom"/>
+        public float LastGunshotTime { get; private set; } = float.NegativeInfinity;
+
+        /// <summary>
+        /// Did this agent hear <paramref name="who"/> fire within the last <paramref name="within"/>
+        /// seconds? Matched at the root, because a shot is attributed through whatever child
+        /// carried it.
+        /// </summary>
+        public bool HeardGunshotFrom(Transform who, float within)
+        {
+            if (who == null || LastGunshotFrom == null)
+                return false;
+
+            return LastGunshotFrom.root == who.root
+                   && Time.time - LastGunshotTime <= within;
+        }
+
+        private float aggression;
+        private Transform provoker;
+        private AggressionBand band;
+
         private AgentTargeting targeting;
         private HealthComponent health;
         private Transform aggressor;
@@ -69,6 +138,9 @@ namespace SpaceGame.Agents
         // by the Forget() below whenever the restore lands while the object is disabled — which is
         // the ordinary case for an entity whose chunk is hydrated before it is switched on.
         private bool restoredGrudge;
+
+        // Same latch, for a restore that carried only a meter reading and no grudge.
+        private bool restoredAggression;
 
         private void Awake()
         {
@@ -90,10 +162,18 @@ namespace SpaceGame.Agents
             // Neutral toward everything, so AgentTargeting.Reevaluate can never re-acquire the player
             // on its own, and this component is the only thing that would have re-asserted the target.
             // The grudge is now persisted (ProvocationSaveable), and this must not throw it away.
-            if (restoredGrudge)
+            // The same latch covers a restored METER, for the same reason and a milder symptom:
+            // a nomad you had made wary before quitting would otherwise come back calm, because
+            // the restore routinely lands while the object is still disabled.
+            if (restoredGrudge || restoredAggression)
+            {
                 restoredGrudge = false;
+                restoredAggression = false;
+            }
             else
+            {
                 Forget();
+            }
 
             if (health != null)
                 health.OnDamage += HandleDamage;
@@ -107,7 +187,7 @@ namespace SpaceGame.Agents
 
         private void HandleDamage(int amount)
         {
-            if (amount < damageThreshold || health == null)
+            if (health == null)
                 return;
 
             // A save being replayed, not a punch. HealthComponent re-raises OnDamage while
@@ -129,7 +209,100 @@ namespace SpaceGame.Agents
             if (resolved == transform)
                 return;                      // self-inflicted; nothing to be angry at
 
-            Provoke(resolved);
+            int maxHealth = Mathf.Max(1, health.GetMaxHealth);
+            float fraction = amount / (float)maxHealth;
+
+            // The tribe's ledger, before the personal threshold below. Deliberately: `damageThreshold`
+            // is about whether THIS agent shrugs the hit off, and a tribe notices you shooting its
+            // people whether or not the individual you shot was bothered. The ledger has its own
+            // floor (GoodwillMath's perHitMin), so a scratch still costs reputation — which is what
+            // stops a player whittling a camp down for free.
+            //
+            // Null-conditional: there is no ledger offline in a test scene, in the arena, or before
+            // the persistent scene has loaded, and none of those are errors.
+            if (TryGetComponent(out EntityFaction mine))
+            {
+                FactionGoodwillLedger.Instance?.Report(
+                    mine.Faction, attacker, GoodwillEvent.Hit, fraction);
+            }
+
+            if (amount < damageThreshold)
+                return;
+
+            // Being hit is now one input among several rather than the only one, but it is by far
+            // the heaviest: hitGain is set so a solid hit fills the meter on its own, which keeps
+            // the behaviour this component had before it had a meter at all.
+            AddAggression(AggressionInput.Hit, fraction, resolved);
+        }
+
+        /// <summary>
+        /// Something happened that this agent might take badly. <paramref name="magnitude"/> means
+        /// whatever <paramref name="input"/> says it means — a fraction of max health for a hit,
+        /// seconds for menace and trespass, a count for gunshots and hurt allies.
+        ///
+        /// <para>
+        /// Reaching <c>attackAt</c> calls <see cref="Provoke"/> and everything from there is
+        /// unchanged: the target goes to AgentTargeting, the leash holds it, the calm-down clock
+        /// runs, the alert goes out. The meter is only the road up to that.
+        /// </para>
+        /// <para>
+        /// <paramref name="from"/> is remembered as the <see cref="Provoker"/> even well below the
+        /// top, because the telegraph has to look at somebody — but it is deliberately NOT handed
+        /// to AgentTargeting until the meter is full. A wary nomad has not picked a fight.
+        /// </para>
+        /// </summary>
+        public void AddAggression(AggressionInput input, float magnitude, Transform from)
+        {
+            // Already fighting. The grudge rules own the agent from here — adding to a full meter
+            // would do nothing, and re-running the crossing below would re-announce the alert.
+            // Nothing below matters to an agent that is already shooting back, the gunshot record
+            // included: MenaceSensor stands down the moment the meter is full.
+            if (IsProvoked)
+                return;
+
+            // Recorded before the early-out below, and whatever the gain works out to: the fact
+            // that somebody was shooting near here is worth knowing even from an agent with
+            // gunshotGain turned down to nothing, because MenaceSensor reads it.
+            if (input == AggressionInput.Gunshot && from != null)
+            {
+                LastGunshotFrom = from;
+                LastGunshotTime = Time.time;
+            }
+
+            float delta = AggressionMath.Gain(input, magnitude, aggressionSettings);
+            if (delta <= 0f)
+                return;
+
+            if (from != null && from != transform)
+                provoker = from;
+
+            aggression = AggressionMath.Apply(aggression, delta);
+            RaiseBandChanged();
+
+            if (Band != AggressionBand.Grudge)
+                return;
+
+            // The meter filled. Who it filled because of is the best answer available; an agent
+            // pushed over the edge by a noise with nobody to blame stays at the top of the meter
+            // and waits, rather than attacking whoever it happens to see next.
+            if (TargetResolution.IsViable(provoker))
+                Provoke(provoker);
+        }
+
+        /// <summary>
+        /// Fire <see cref="BandChanged"/> if the band moved. Held in a field rather than recomputed
+        /// by every listener so the edge is raised exactly once — a bark on a level rather than on
+        /// an edge is a bark every frame.
+        /// </summary>
+        private void RaiseBandChanged()
+        {
+            AggressionBand now = Band;
+            if (now == band)
+                return;
+
+            AggressionBand previous = band;
+            band = now;
+            BandChanged?.Invoke(previous, now);
         }
 
         /// <summary>
@@ -156,7 +329,16 @@ namespace SpaceGame.Agents
 
             bool newAggressor = aggressor != target;
             aggressor = target;
+            provoker = target;
             CalmingFor = 0f;
+
+            // Whatever route got here — a hit, a full meter, an ally's alert, a restore — the agent
+            // is now fighting, so the meter reads full. Without this a Provoke that skipped the
+            // meter (an alert, a scripted event) would leave it at zero and the telegraph would
+            // show a calm agent in the middle of a gunfight.
+            aggression = AggressionMath.Max;
+            RaiseBandChanged();
+
             targeting.ForceTarget(target);
 
             if (announce && newAggressor && TryGetComponent(out AlertBroadcaster broadcaster))
@@ -190,6 +372,31 @@ namespace SpaceGame.Agents
             restoredGrudge = true;
         }
 
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Sets the meter without raising <see cref="BandChanged"/>: the bands are what the
+        /// telegraph barks and postures on, and an agent that was merely wary when you quit must
+        /// come back wary silently rather than greeting the loading screen with a threat. The
+        /// listener reads the band on enable instead.
+        /// </para>
+        /// <para>
+        /// Only for an agent that is NOT provoked — a restored grudge goes through
+        /// <see cref="RestoreGrudge"/>, which fills the meter itself.
+        /// </para>
+        /// </summary>
+        public void RestoreAggression(float value, Transform from)
+        {
+            if (IsProvoked)
+                return;
+
+            aggression = Mathf.Clamp(value, 0f, AggressionMath.Max);
+            provoker = from;
+            band = Band;
+            restoredAggression = true;
+        }
+
         /// <summary>Drop the grudge and go back to being peaceful.</summary>
         public void Forget()
         {
@@ -197,13 +404,32 @@ namespace SpaceGame.Agents
                 targeting.ClearTarget();
 
             aggressor = null;
+            provoker = null;
             CalmingFor = 0f;
+
+            // Empty the meter too, or the creature that just forgot you is still reading full and
+            // the next point of anything at all puts it straight back into a fight.
+            aggression = 0f;
+            RaiseBandChanged();
         }
 
         private void Update()
         {
             if (aggressor == null)
+            {
+                // Forgiveness, and only while below the top: above it the leash rule applies
+                // instead, because a creature you are standing on top of must not calm down on a
+                // timer. That is the same split the grudge always had, now with a slope under it.
+                if (aggression > 0f)
+                {
+                    aggression = AggressionMath.Cool(aggression, Time.deltaTime, aggressionSettings.calmRate);
+                    if (aggression <= 0f)
+                        provoker = null;
+                    RaiseBandChanged();
+                }
+
                 return;
+            }
 
             // Killed, despawned, or retired from the registry. Nothing to chase and nothing to
             // come back into range, so run the clock out rather than holding a dead grudge —
@@ -245,6 +471,18 @@ namespace SpaceGame.Agents
             leashRange = Mathf.Max(1f, leashRange);
             calmDownDelay = Mathf.Max(0f, calmDownDelay);
             damageThreshold = Mathf.Max(0, damageThreshold);
+
+            // A zero attackAt is a creature that is permanently at the top of its own meter, which
+            // reads in play as one that attacks on sight for no reason anybody can see.
+            aggressionSettings.attackAt = Mathf.Clamp(aggressionSettings.attackAt, 1f, AggressionMath.Max);
+            aggressionSettings.hitGain = Mathf.Max(0f, aggressionSettings.hitGain);
+            aggressionSettings.allyHurtGain = Mathf.Max(0f, aggressionSettings.allyHurtGain);
+            aggressionSettings.gunshotGain = Mathf.Max(0f, aggressionSettings.gunshotGain);
+            aggressionSettings.menaceGainPerSecond = Mathf.Max(0f, aggressionSettings.menaceGainPerSecond);
+            aggressionSettings.menaceRange = Mathf.Max(0f, aggressionSettings.menaceRange);
+            aggressionSettings.menaceDelay = Mathf.Max(0f, aggressionSettings.menaceDelay);
+            aggressionSettings.trespassGainPerSecond = Mathf.Max(0f, aggressionSettings.trespassGainPerSecond);
+            aggressionSettings.calmRate = Mathf.Max(0f, aggressionSettings.calmRate);
         }
 
         private void OnDrawGizmosSelected()

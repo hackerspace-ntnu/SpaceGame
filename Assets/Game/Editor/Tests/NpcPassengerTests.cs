@@ -38,9 +38,9 @@ namespace SpaceGame.Tests
             (Transform root, Transform seat) = NewMountRig();
 
             (Vector3 local, Quaternion localRotation) =
-                NpcPassenger.SeatPoseIn(root, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
+                NpcSeating.SeatPoseIn(root, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
             (Vector3 world, Quaternion worldRotation) =
-                NpcPassenger.SeatPoseIn(null, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
+                NpcSeating.SeatPoseIn(null, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
 
             Assert.That(Vector3.Distance(root.TransformPoint(local), world), Is.LessThan(1e-4f),
                 "Netcode will not parent a rider to the seat marker itself, so the marker's offset " +
@@ -55,8 +55,8 @@ namespace SpaceGame.Tests
             (Transform root, Transform seat) = NewMountRig();
             root.SetPositionAndRotation(new Vector3(913f, 27f, -455f), Quaternion.Euler(0f, 214f, 0f));
 
-            (Vector3 local, _) = NpcPassenger.SeatPoseIn(root, seat, Vector3.down, Vector3.zero);
-            (Vector3 world, _) = NpcPassenger.SeatPoseIn(null, seat, Vector3.down, Vector3.zero);
+            (Vector3 local, _) = NpcSeating.SeatPoseIn(root, seat, Vector3.down, Vector3.zero);
+            (Vector3 world, _) = NpcSeating.SeatPoseIn(null, seat, Vector3.down, Vector3.zero);
 
             Assert.That(Vector3.Distance(root.TransformPoint(local), world), Is.LessThan(1e-3f),
                 "Caravans live kilometres from the origin — a fold that only holds at the origin " +
@@ -133,6 +133,24 @@ namespace SpaceGame.Tests
             Assert.IsFalse(agent.enabled,
                 "This rider's pathing was already switched off by something else. Dismounting must " +
                 "not hand them a working agent it never took.");
+        }
+
+        [Test]
+        public void DismountingHandsTheBodyBackAsItWas()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var body = rider.AddComponent<Rigidbody>();
+            body.isKinematic = false;
+            body.useGravity = true;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+
+            passenger.Seat(rider);
+            passenger.Dismount();
+
+            Assert.IsFalse(body.isKinematic);
+            Assert.IsTrue(body.useGravity, "a rider handed back weightless walks on air");
+            Assert.AreEqual(RigidbodyInterpolation.Interpolate, body.interpolation);
         }
 
         [Test]

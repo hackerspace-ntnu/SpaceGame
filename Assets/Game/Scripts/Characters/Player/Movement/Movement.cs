@@ -128,6 +128,13 @@ namespace SpaceGame.Characters
             }
         }
 
+        /// <summary>
+        /// The body's own capsule — the authored one, or the first under the player when none is.
+        /// Ask this rather than searching: the ragdoll puts more capsules on the bones.
+        /// </summary>
+        public CapsuleCollider BodyCapsule =>
+            playerCollider != null ? playerCollider : GetComponentInChildren<CapsuleCollider>();
+
         /// <summary>Whether the player was on the ground as of the last physics step.</summary>
         public bool IsOnGround => wasGrounded;
 
@@ -256,7 +263,7 @@ namespace SpaceGame.Characters
             // on CLOSING speed by the suit itself, so letting the fall table charge for it too
             // would bill one landing twice. See WingsuitFlight.CheckForLanding for why the edge is
             // still consumed correctly on the frame the glide ends.
-            if (!tethered && !gliding) HandleFallDamage(grounded);
+            if (!tethered && !gliding && !climbing) HandleFallDamage(grounded);
 
             // Under a wing this component is a passenger. Everything above still runs — the probe,
             // the grounded edge, the animator below — and only the two things the wing owns are
@@ -264,7 +271,7 @@ namespace SpaceGame.Characters
             // an early return at the top of FixedUpdate: that is what DisableGroundSnap does, and
             // a player with no grounded state and no animator updates for the whole flight is the
             // bug the tether was written to stop repeating.
-            if (gliding)
+            if (gliding || climbing)
             {
                 lastYVelocity = rb.linearVelocity.y;
                 wasGrounded = grounded;
@@ -389,6 +396,21 @@ namespace SpaceGame.Characters
 
         /// <summary>See <see cref="SetGliding"/>. Owner-side only; nothing replicates it.</summary>
         private bool gliding;
+
+        /// <summary>
+        /// True while a ladder owns this body — <c>LadderClimber</c>. Treated exactly as a glide is:
+        /// the climber writes all three axes with gravity off, so this component writes none of
+        /// them, bills no fall damage for the slide down, and keeps the probe and the animator
+        /// running. It also steps aside for Jump, which on a ladder means "climb", not "leap".
+        /// The climber is the only thing that knows when it let go, and must clear it.
+        /// </summary>
+        public void SetClimbing(bool value) => climbing = value;
+
+        /// <summary>Whether a ladder currently owns this body.</summary>
+        public bool IsClimbing => climbing;
+
+        /// <summary>See <see cref="SetClimbing"/>. Owner-side only; nothing replicates it.</summary>
+        private bool climbing;
 
         /// <summary>
         /// Outward normal of whatever the ground probe last found, or up when it found nothing.
@@ -666,7 +688,7 @@ namespace SpaceGame.Characters
             // merely tidiness: the leg jump is 7 m/s and it SETS the vertical axis, so pressing it
             // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
             // a smaller number and the player would go lower for having timed it well.
-            if (bouncing)
+            if (bouncing || climbing)
             {
                 return;
             }
@@ -720,7 +742,7 @@ namespace SpaceGame.Characters
 
         private bool IsGrounded()
         {
-            CapsuleCollider colliderToUse = playerCollider != null ? playerCollider : GetComponentInChildren<CapsuleCollider>();
+            CapsuleCollider colliderToUse = BodyCapsule;
             if (colliderToUse == null)
             {
                 Vector3 rayOrigin = transform.position;

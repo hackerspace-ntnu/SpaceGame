@@ -4,8 +4,11 @@
 //   collision islands that never became colliders, or whose source meshes still render;
 //   a convex hull saved in memory only, so the MeshCollider ships with no mesh;
 //   the lattice given a convex hull, which fills the lanes it stands over;
-//   a ladder marker without its step-off points, or whose exit is not floor.
+//   a ladder marker without its step-off points, or whose exit is not floor;
+//   a ladder the player's own capsule cannot climb, or cannot step off.
 using System.Linq;
+using SpaceGame.Characters;
+using SpaceGame.Gameplay;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -19,6 +22,14 @@ namespace SpaceGame.EditorTools
         private const int Ladders = 7;
         private const float FloorTolerance = 0.3f;
         private const float ProbeHeight = 1.0f;
+
+        // A capsule this much thinner than the player's is what the column is checked with, so a
+        // rail the body only brushes is not reported as a wall.
+        private const float BrushTolerance = 0.05f;
+
+        // How far the step-off may start inside a collider. Unity's depenetration clears this within a
+        // physics step; ladder 05's exit sits 0.10 m under Bag1's flank.
+        private const float ExitOverlapTolerance = 0.15f;
 
         private GameObject prefab;
 
@@ -95,6 +106,79 @@ namespace SpaceGame.EditorTools
             finally
             {
                 Object.DestroyImmediate(city);
+            }
+        }
+
+        [Test]
+        public void ThePlayerCanClimbEveryLadderAndStepOffAtTheTop()
+        {
+            var player = AssetDatabase.LoadAssetAtPath<GameObject>(LadderClimberWiring.PlayerPrefabPath);
+            var climber = player.GetComponent<LadderClimber>();
+            Assert.IsNotNull(climber, "Tools > SpaceGame > Player > Wire Ladder Climber");
+            float standoff = new SerializedObject(climber).FindProperty("standoff").floatValue;
+            float lift = new SerializedObject(climber).FindProperty("stepOffLift").floatValue;
+            float mantle = new SerializedObject(climber).FindProperty("mantleReach").floatValue;
+            // World size: the player's capsule sits on a transform stretched 1.5 in Y, so the
+            // authored 2 m capsule is a 3 m body.
+            CapsuleCollider capsule = player.GetComponent<PlayerMovement>().BodyCapsule;
+            Vector3 scale = capsule.transform.lossyScale;
+            float bodyRadius = capsule.radius * Mathf.Max(scale.x, scale.z);
+            float radius = bodyRadius - BrushTolerance;
+            float height = capsule.height * scale.y;
+
+            GameObject city = Object.Instantiate(prefab);
+            try
+            {
+                Physics.SyncTransforms();
+                foreach (Ladder ladder in city.GetComponentsInChildren<Ladder>(true))
+                {
+                    Assert.IsTrue(ladder.IsValid, ladder.name);
+                    Vector3 toward = ladder.TowardClimber;
+                    Vector3 line = ladder.Foot + toward * standoff;
+                    Assert.IsTrue(ladder.Contains(line + Vector3.up * lift), $"{ladder.name}: its climbing line is outside its volume");
+
+                    // The climb up to where the climber steps over the top on meeting something: from
+                    // feet on the deck to feet a body height plus a floor's thickness below the step-off.
+                    // Anything above that is climbed over, not climbed into.
+                    float highestFeet = Mathf.Max(ladder.Foot.y + lift, ladder.TopHeight - height - mantle);
+                    Vector3 low = line + Vector3.up * (lift + bodyRadius);
+                    Vector3 high = new Vector3(line.x, highestFeet + height - bodyRadius, line.z);
+                    Collider[] blocking = Physics.OverlapCapsule(low, high, radius, ~0, QueryTriggerInteraction.Ignore);
+                    Assert.IsEmpty(blocking.Select(c => c.name), $"{ladder.name}: the climb is blocked below its top");
+
+                    AssertRoomToStepOff(ladder, capsule, bodyRadius, height, lift);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(city);
+            }
+        }
+
+        private static void AssertRoomToStepOff(Ladder ladder, CapsuleCollider player, float radius, float height, float lift)
+        {
+            var probe = new GameObject("StepOffProbe").AddComponent<CapsuleCollider>();
+            try
+            {
+                probe.radius = radius;
+                probe.height = height;
+                Vector3 centre = ladder.ExitPoint + Vector3.up * (lift + height * 0.5f);
+                Physics.SyncTransforms();
+                Vector3 spine = Vector3.up * (height * 0.5f - radius);
+                foreach (Collider c in Physics.OverlapCapsule(centre - spine, centre + spine, radius, ~0,
+                                                              QueryTriggerInteraction.Ignore))
+                {
+                    if (c == probe) continue;
+                    bool inside = Physics.ComputePenetration(probe, centre, Quaternion.identity,
+                                                             c, c.transform.position, c.transform.rotation,
+                                                             out _, out float depth);
+                    Assert.IsFalse(inside && depth > ExitOverlapTolerance,
+                                   $"{ladder.name}: steps off {depth:F2} m into {c.name}");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(probe.gameObject);
             }
         }
     }

@@ -36,6 +36,19 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void APartyStillInItsVessel_IsNeverAbandoned_HoweverFarItsHomeSite()
+        {
+            // Raised at the Sky City 1.6 km from its quarry: abandoning it on the next step would mean a
+            // Sky war never reaches anyone standing far from the city. Play showed the catch-up alone does
+            // not save it when the quarry is moving.
+            var city = new Vector3(3704f, 228f, 1182f);
+            var quarry = new Vector3(2100f, 270f, 1300f);
+
+            Assert.IsFalse(WarPartyRules.ShouldAbandon(city, quarry, 1500f, inFlight: true));
+            Assert.IsTrue(WarPartyRules.ShouldAbandon(city, quarry, 1500f, inFlight: false), "dropped off, it walks and can lose you");
+        }
+
+        [Test]
         public void CatchUp_JumpsToTheStandoff_AlongThePath()
         {
             var players = new List<Vector3> { Vector3.zero };

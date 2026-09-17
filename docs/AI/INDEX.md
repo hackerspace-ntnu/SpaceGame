@@ -54,6 +54,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | [Combat](systems/Combat.md) | Health, damage, weapons, projectiles, death and ragdolls through one server-decided damage pipeline | [Artifacts](systems/Artifacts.md), [AgentSystem](systems/AgentSystem.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md) |
 | [EntitySystem](systems/EntitySystem.md) | How a GameObject becomes an entity — identity, save opt-in, and following the streaming grid between chunks | [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [WorldStreaming](systems/WorldStreaming.md), [Vehicles](systems/Vehicles.md) |
 | [Flashlight](systems/Flashlight.md) | The torch: a worn forearm gauntlet whose lamp is a URP spot, long-throw shader globals and a beam volume | [PlayerCharacter](systems/PlayerCharacter.md), [BodyEquipment](systems/BodyEquipment.md), [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Environment](systems/Environment.md) |
+| [Ladders](systems/Ladders.md) | Ladder volumes, and the LadderClimber that climbs, slides down and steps off them | [PlayerCharacter](systems/PlayerCharacter.md), [ArtPipeline](systems/ArtPipeline.md), [Wingsuit](systems/Wingsuit.md) |
 | [Locomotion](systems/Locomotion.md) | Procedural legged walking: one LeggedLocomotion base plus four policy objects per creature or walker | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [Persistence](systems/Persistence.md) |
 | [PlayerCharacter](systems/PlayerCharacter.md) | The astronaut the player drives: rigidbody movement, first-person look, stances, upper-body rig, suit, death | [Persistence](systems/Persistence.md), [Inventory](systems/Inventory.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md), [Wingsuit](systems/Wingsuit.md) |
 
@@ -138,4 +139,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 55 system docs, 6 redirects -->
+<!-- 56 system docs, 6 redirects -->

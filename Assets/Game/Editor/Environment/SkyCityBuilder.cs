@@ -36,9 +36,20 @@
 //     already covers get no collider, by listed rule, not by omission.
 //
 // LADDERS -- LAD_SkyCity_## transforms are kept under Ladders, each with a _Top
-// child (where a climber steps off) and an _Exit child (the floor they step
-// onto). The game has no climbing yet; these are the data it will read. The
-// rails collide, and every ladder top is a 0.7 m gap, narrower than the player.
+// child (where a climber steps off), an _Exit child (the floor they step onto)
+// and a Ladder component, which LadderClimber on the player climbs - from the
+// bottom, or from the top by walking into the gap its rails leave.
+//
+// SCALE -- the city is modelled, and route-checked in Blender, at 1 unit = 1 m,
+// and ships at Scale on the prefab root. The route check's player is a 2.0 m
+// capsule with 2.1 m of headroom; the real player is 3.0 m tall (a 2 m capsule
+// on a transform stretched 1.5 in Y, see PlayerCharacter.md), so every ceiling
+// the check passed has to grow by at least 3.0 / 2.1 = 1.43. Everything scales
+// with it, colliders and ladder markers included. Scaling only widens what the
+// check passed, with one cost: every lip between surfaces grows by the same
+// factor (the player has no step-up). Ladder-top gaps (0.7 m modelled) end up
+// wider than the 1.0 m-wide player, which is why a Ladder can be taken hold of
+// from the top.
 //
 // Multiplayer / persistence -- static scene geometry with no state: no
 // NetworkObject, no saver. See StaticPropBuilder.MarkStatic.
@@ -67,6 +78,9 @@ namespace SpaceGame.EditorTools
         public const string LadderTop = "_Top";
         public const string LadderExit = "_Exit";
         private const string RootName = "SkyCity";
+
+        /// <summary>Uniform scale on the prefab root. See SCALE above for its upper bound.</summary>
+        public const float Scale = 1.5f;
 
         // Points of one island closer than this are one corner: Blender writes a
         // box's corners exactly, and the import splits them per face.
@@ -164,6 +178,7 @@ namespace SpaceGame.EditorTools
                 Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
                 StaticPropBuilder.BuildLodGroup(root, renderers, LodCullRatio);
                 StaticPropBuilder.MarkStatic(root);
+                root.transform.localScale = Vector3.one * Scale;
 
                 StaticPropBuilder.EnsureFolder(
                     System.IO.Path.GetDirectoryName(PrefabPath).Replace('\\', '/'));
@@ -173,7 +188,7 @@ namespace SpaceGame.EditorTools
                     .Select(r => r.GetComponent<MeshFilter>())
                     .Where(mf => mf != null && mf.sharedMesh != null)
                     .Sum(mf => mf.sharedMesh.triangles.Length / 3);
-                report.AppendLine($"  {renderers.Length} renderers, {tris} tris");
+                report.AppendLine($"  {renderers.Length} renderers, {tris} tris, root scale {Scale}");
                 report.AppendLine(
                     $"  collision islands: {islands.Boxes} box + {islands.Hulls} convex hull" +
                     (islands.Degenerate > 0 ? $", {islands.Degenerate} DEGENERATE skipped" : ""));
@@ -324,10 +339,13 @@ namespace SpaceGame.EditorTools
                 .ToList();
             foreach (Transform ladder in ladders)
             {
-                if (ladder.Find(ladder.name + LadderTop) == null || ladder.Find(ladder.name + LadderExit) == null)
+                Transform top = ladder.Find(ladder.name + LadderTop);
+                Transform exit = ladder.Find(ladder.name + LadderExit);
+                if (top == null || exit == null)
                     throw new System.InvalidOperationException(
                         $"{ladder.name} has no {LadderTop}/{LadderExit} child - re-export with sky_city_export.py.");
                 ladder.SetParent(group, true);
+                ladder.gameObject.AddComponent<SpaceGame.Gameplay.Ladder>().Configure(top, exit);
             }
             return ladders.Count;
         }

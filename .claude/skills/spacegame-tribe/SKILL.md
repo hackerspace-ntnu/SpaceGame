@@ -43,9 +43,10 @@ all: every hit and kill on its people is silently ignored, and it can never reac
 ## 3. `FactionRoster`
 
 One roster per tribe, `Assets/Game/ScriptableObjects/Factions/Rosters/<Tribe>.asset`, built by a new
-menu method in [RosterAuthoring.cs](../../../Assets/Game/Editor/Agents/RosterAuthoring.cs) modelled
-on `AuthorSandRoster` — copy it, point it at the new faction and prefabs, keep it idempotent
-(overwrites what it owns, nothing else). It sets:
+menu method in [RosterAuthoring.cs](../../../Assets/Game/Editor/Agents/RosterAuthoring.cs) that builds
+the tribe's `members` and tiers and hands them to the shared `AuthorRoster(...)` — see
+`AuthorSandRoster` and `AuthorSkyRoster`; do not copy the body. It is idempotent (overwrites what it
+owns, nothing else). The roster it writes has:
 
 - **`members`** — one `RosterMember { role, prefab, weight }` per person/mount. `role = Rider` means
   `prefab` is the **mount**, carrying an `NpcPassenger` — the same convention caravan templates use;
@@ -68,13 +69,14 @@ and running `RosterValidation.Problems(roster)` — log every problem, same as `
 
 ## 4. Bake weapons into the prefab, and never break the builder's chain
 
-The tribe's prefab builder (copy `NomadPrefabBuilder.BuildSandNomads`) bakes `roster.handItems` into
+The tribe's prefab builder (`NomadPrefabBuilder.BuildArmedNomads` + `RegisterBuiltNomads`, as
+`BuildSandNomads`/`BuildSkyNomads` use them) bakes `roster.handItems` into
 each random-weapon member's `NpcRandomLoadout.candidates` — this is **generated**, never hand-edited;
 `RosterAssetTests`-style tests fail the moment the two arrays disagree (§7), and a rebuild overwrites
 the prefab wholesale regardless.
 
 **The build is a chain, and it must run to the end.** `BuildSandNomads` builds every prefab, then
-calls `NetworkPrefabRegistrar.SyncMenu()` → `WireSaveables()` → `RagdollWiring.WirePrefabs()`. An
+calls `NetworkPrefabRegistrar.Sync(out _, out _)` → `WireSaveables()` → `RagdollWiring.WirePrefabs()` (`RegisterBuiltNomads`). Never `SyncMenu()` from a builder: it ends in a modal dialog that parks the rest of the chain until a human clicks OK. A second tribe reusing existing bodies adds recipes rather than a builder — `NomadPrefabBuilder.SkyNomads` is the Sand FBX with its own `FactionPath`, `RosterPath`, `DialogLines` and `ClothPalette` (whose `MaterialPrefix` must differ, or it recolours the first tribe's cloth). On a fresh tribe build → author roster → build again: the roster validates the prefabs' baked faction, the prefabs bake the roster's hand items. An
 interrupted run (editor reload, exception, a Unity crash mid-build) that stops before the last two
 steps leaves finished-looking prefabs with **no savers and no `RagdollRig`** — seen this way in this
 session. `AgentController`/`AgentGoal` are auto-added in `Awake` so they are not usually at risk, but
@@ -157,6 +159,24 @@ seen only on the host is not finished, and persistence fails silently.
 - [ ] The first-sight war cry (`hostileLines`) is heard on the client as well as the host.
 - [ ] `git grep` the save JSON for the tribe's `factionId` under `factionGoodwill` and for its
       war-party group under `npcworld` after the checks above, to confirm both actually wrote.
+
+## 9. A home settlement (optional)
+
+A tribe with a town gets `WorldSiteMarker` (`SiteKind.Home`), `SettlementAlarm` and
+`SettlementPopulation` on the town root, wired by a builder — `ClankerSettlementBuilder.PlaceGenerator`
+(a town inside a chunk scene) or [SkyCitySettlementWiring](../../../Assets/Game/Editor/Environment/SkyCitySettlementWiring.cs)
+(a structure outside them). Three `SettlementPopulation` options decide whether it works:
+
+- **The town is not in a chunk scene** (placed in `persistentScene`, like the Sky City) → set
+  `keepGroundChunksLoaded`, or every reload spawns a second population beside the restored one.
+- **Its NavMesh is in pieces** (roofs, decks, ledges) → point `reachableFrom` at a Transform on the
+  walkable part, and build its people with `NomadRecipe.WanderReachableOnly` (or set
+  `WanderModule.onlyReachableDestinations`) so they do not wander to the railings.
+- **It must look lived-in on arrival** → `initialWaves` / `initialWaveInterval`.
+
+Verify in play: count the tribe's agents inside `countRadius`, check each with
+`NavMeshReach.CanWalk` from the anchor, save, reload the same world, and count again — the number
+must not grow.
 
 ## Related
 

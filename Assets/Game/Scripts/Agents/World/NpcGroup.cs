@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Vehicles;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -31,6 +32,85 @@ namespace SpaceGame.Agents
 
         [Min(1)]
         public int count = 1;
+    }
+
+    /// <summary>
+    /// How a group that flies to its work gets there: a vessel from its tribe's fleet, chosen by how
+    /// many ride in it. No vessel set, and the group walks like any other.
+    /// </summary>
+    [Serializable]
+    public class NpcGroupTransport
+    {
+        [Tooltip("The vessel for a party that fits its seats (its VesselSeats capacity).")]
+        public GameObject smallVessel;
+
+        [Tooltip("The vessel for a party too big for the small one.")]
+        public GameObject largeVessel;
+
+        [Tooltip("Metres per second while the group is a record still on its way in the vessel. " +
+                 "Match the vessel's cruise speed. Once dropped off, the template's travelSpeed applies.")]
+        public float travelSpeed = 28f;
+
+        [Tooltip("The registered site (by name, any kind, airborne or not) the vessels fly out from " +
+                 "and return to.")]
+        public string homeSiteName = WorldSite.SkyCityName;
+
+        [Tooltip("Metres between the dock slots vessels park at around the home site, so two parked " +
+                 "hulls never overlap. Keep it at least twice the largest vessel's footprint radius.")]
+        [Min(1f)]
+        public float dockSpacing = 45f;
+
+        public bool Flies => smallVessel != null || largeVessel != null;
+
+        /// <summary>
+        /// The party is off the vessel: nobody is left aboard, the hull was shot down, or it is gone.
+        /// A run that ended with riders still seated (no landing site anywhere) is not a delivery.
+        /// </summary>
+        public static bool IsDelivered(bool vesselExists, bool wrecked, int aboard) =>
+            !vesselExists || wrecked || aboard <= 0;
+
+        /// <summary>Back home with its party still aboard, parked long enough: fly the drop again.</summary>
+        public static bool ShouldRelaunch(bool runDone, bool wrecked, int aboard, float parkedFor, float retryDelay) =>
+            runDone && !wrecked && aboard > 0 && parkedFor >= retryDelay;
+
+        /// <summary>
+        /// Where the vessel in <paramref name="slot"/> parks: slot 0 over the home site, then rings of
+        /// 6, 12, 18… slots at <paramref name="spacing"/>, 2×, 3×… out. Every slot is at least
+        /// <paramref name="spacing"/> from every other.
+        /// </summary>
+        public static Vector3 DockPoint(Vector3 home, int slot, float spacing)
+        {
+            if (slot <= 0) return home;
+
+            int ring = 1, first = 1;
+            while (slot >= first + 6 * ring)
+            {
+                first += 6 * ring;
+                ring++;
+            }
+
+            float angle = (slot - first) * 360f / (6 * ring);
+            return home + Quaternion.Euler(0f, angle, 0f) * Vector3.forward * (ring * spacing);
+        }
+
+        /// <summary>The lowest dock slot nobody holds.</summary>
+        public static int FirstFreeDock(ICollection<int> taken)
+        {
+            int slot = 0;
+            while (taken.Contains(slot)) slot++;
+            return slot;
+        }
+
+        /// <summary>The small vessel when <paramref name="riders"/> fit its seats, else the large one; whichever exists.</summary>
+        public GameObject VesselFor(int riders)
+        {
+            if (smallVessel == null) return largeVessel;
+            if (largeVessel == null) return smallVessel;
+
+            return smallVessel.TryGetComponent(out VesselSeats seats) && riders <= seats.Capacity
+                ? smallVessel
+                : largeVessel;
+        }
     }
 
     /// <summary>An authored group: what it is made of and what it does with its time.</summary>
@@ -72,6 +152,10 @@ namespace SpaceGame.Agents
         [Tooltip("This group hunts players. It roams looking for you rather than working sites, and " +
                  "heads for your last known position when it loses you.")]
         public bool bountyHunters;
+
+        [Tooltip("Set a vessel to fly the group in: it spawns aboard, is dropped off near its goal, and " +
+                 "walks from there. Empty for a group that walks all the way.")]
+        public NpcGroupTransport transport = new NpcGroupTransport();
 
         [Tooltip("How the group arranges itself on the move.")]
         public FormationShape formation = new FormationShape
@@ -136,6 +220,25 @@ namespace SpaceGame.Agents
         /// strength on load — the director sees it Defeated instead.
         /// </summary>
         public bool WipedOut;
+
+        /// <summary>
+        /// A group with a transport has been dropped off and goes on foot from now on. False while it is
+        /// still on its way in: folded it travels at the transport's speed, and it spawns aboard a
+        /// vessel. Saved (Record.delivered), so a party that landed before a save does not fly in again.
+        /// </summary>
+        public bool Delivered;
+
+        /// <summary>The vessel flying this group in, or flying home after dropping it off. Runtime only.</summary>
+        [NonSerialized] public GameObject Transport;
+
+        /// <summary>The prefab <see cref="Transport"/> was spawned from: a parked hull is only reused for its own kind.</summary>
+        [NonSerialized] public GameObject TransportPrefab;
+
+        /// <summary>The dock slot <see cref="Transport"/> parks at around its home site; -1 with no vessel.</summary>
+        [NonSerialized] public int TransportDock = -1;
+
+        /// <summary>Seconds <see cref="Transport"/> has sat home with its riders still aboard.</summary>
+        [NonSerialized] public float TransportParkedFor;
 
         /// <summary>Released while somebody could see it: removed the moment it folds, never popped out of view.</summary>
         [NonSerialized] public bool DisbandWhenFolded;
@@ -223,6 +326,10 @@ namespace SpaceGame.Agents
             // Appended 2026-09-16 (rosters spec, review fix round 1). Older saves read false: a party
             // that was mid-fight when an old save was written comes back alive, same as it always did.
             public bool wipedOut;
+
+            // Appended 2026-09-17 (sky tribe plan, Task 7). Older saves read false: a party with a
+            // transport flies in again; one without never reads it.
+            public bool delivered;
         }
 
         public Record ToRecord() => new Record
@@ -243,6 +350,7 @@ namespace SpaceGame.Agents
             quarryProfileId = QuarryProfileId,
             tier = Tier,
             wipedOut = WipedOut,
+            delivered = Delivered,
         };
 
         public void ApplyRecord(in Record record)
@@ -263,6 +371,7 @@ namespace SpaceGame.Agents
             QuarryProfileId = record.quarryProfileId ?? string.Empty;
             Tier = Mathf.Max(0, record.tier);
             WipedOut = record.wipedOut;
+            Delivered = record.delivered;
         }
     }
 }

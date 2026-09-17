@@ -75,6 +75,15 @@ namespace SpaceGame.Agents
         // Failing towards "solid geometry blocks sight" is the far less surprising default.
         private static readonly string[] FallbackOcclusionLayerNames = { "Default", "Ground", "Interior" };
 
+        /// <summary>
+        /// Solid geometry as vision understands it. Anything else that asks "is there world here" —
+        /// a sky vessel probing for ground and headroom — uses this rather than its own layer list.
+        /// </summary>
+        public static LayerMask SolidGeometryLayers => solidGeometryLayers ??= LayerMask.GetMask(FallbackOcclusionLayerNames);
+
+        // Layer names are project settings and never change at runtime; resolved on first use.
+        private static LayerMask? solidGeometryLayers;
+
         // Shared rather than one list per agent: HeadPointOf fills and consumes it in one call.
         private static readonly List<Collider> colliderBuffer = new List<Collider>(8);
 
@@ -85,7 +94,7 @@ namespace SpaceGame.Agents
 
             if (occlusionLayers == 0)
             {
-                occlusionLayers = LayerMask.GetMask(FallbackOcclusionLayerNames);
+                occlusionLayers = SolidGeometryLayers;
                 Debug.LogWarning(
                     $"{name}: PerceptionModule.occlusionLayers is Nothing — line-of-sight would always " +
                     $"succeed. Falling back to [{string.Join(", ", FallbackOcclusionLayerNames)}]. " +

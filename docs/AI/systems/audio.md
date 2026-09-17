@@ -19,7 +19,7 @@ symptoms:
   - "I have an mp3 or wav and need it played by a creature or a prop"
   - "an NPC's chatter mutes every other NPC of the same kind"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
-updated: 2026-09-05
+updated: 2026-09-17
 ---
 
 # Audio
@@ -60,7 +60,7 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 - **73 entries — one per non-`None` `SfxId`.** Groups: Player 100s, Weapons 200s, Impacts 300s, NPC/entity 400s, Interaction 500s, Wings 600s, Ship/vehicle 700s, Ambience 800s, UI 900s, Portals 1000s.
 - Those 73 slots resolve to only **18 distinct FMOD events** (plus `event:/Music/TestSong` used directly by `AudioManager.PlayTestMusic` = 19 shipped events total). Heaviest reuse: `SFX/Wham` ×9, `SFX/ElectricHum` ×9, `UI/No` ×8, `SFX/Slurp` ×7, `SFX/Antigravity` ×7.
 - **No FMOD Studio project.** [`FMODStudioSettings.asset`](Assets/Plugins/FMOD/Resources/FMODStudioSettings.asset) has `ImportType: 0` (single bank folder), `TargetAssetPath: FMODBanks`, and **no `SourceProjectPath`** — the `.fspro` that built these banks is not in the repo. Banks are the compiled `.bank` files in [`Assets/Game/Audio/`](Assets/Game/Audio) and `Assets/StreamingAssets/` (Master, Master.strings, SFX, UI, Music). New events cannot be authored until a `.fspro` exists.
-- **A new sound can only arrive as a Unity `AudioClip`.** Since events cannot be authored, the escape hatch is an inspector-pinned clip that beats the catalog id — the same shape as the pinned `EventReference` override, one layer further out. `FightOrFlightModule.roarClip` is the first: assigned, it plays through a lazily-built 3D `AudioSource` and the `SfxId` is ignored; empty, nothing changes. Build the `AudioSource` in code rather than authoring it on the prefab, so a creature with no clip never carries a dead one and the 3D settings cannot be half-set. This is the second documented exception after `SandstormAudio`, and unlike that one it **is** the pattern to copy until a `.fspro` exists.
+- **A new sound arrives as a FILE under `StreamingAssets/Audio`, played by [`SfxFile`](Assets/Game/Scripts/Audio/SfxFile.cs) through FMOD's Core API.** Events cannot be authored, and a Unity `AudioClip` is no way out: `ProjectSettings/AudioManager.asset` has `m_DisableAudio: 1` and no gameplay scene has a Unity `AudioListener`, so an `AudioSource` is silent with no error. `SfxFile.Play(file, position, volume, minDistance, maxDistance)` returns false when it could not play, so a caller can fall back to an `SfxId`. Examples: `FightOrFlightModule.roarFile` (`appa_roar.mp3`), `StormWard.pulseFile` (`storm_ward_pulse.ogg`, Kenney CC0 — every downloaded file gets a `THIRD_PARTY_NOTICES.md` (repo root) entry).
 - [`Assets/Game/Audio/GUIDs.txt`](Assets/Game/Audio/GUIDs.txt) is the authoritative manifest of everything the banks contain: 5 banks, 5 busses, **19 events**, and one parameter (`parameter:/Floor`). Read it before assuming an event exists.
 - Every entry carries a `note` string; stand-in mappings are marked there, so `grep` the asset to find them. Per-slot event/cooldown/distance/volume values are in the asset — read it, do not mirror it here.
 - Roughly **37 inspector `EventReference` assignments** still sit in prefabs/scenes and override the catalog for those components.
@@ -108,7 +108,7 @@ Volumes only, and not via the save system: [`GameSettings`](Assets/Game/Scripts/
 - **Distance cull needs a listener.** With `StudioListener.ListenerCount == 0` the cull is *skipped*, not forced — everything plays. The listener rides [`Main Camera.prefab`](Assets/Game/Prefabs/Camera/Main%20Camera.prefab).
 - **Loops leak on the untested teardown path.** `OnDisable` (scene unload) and `OnDestroy` (despawn) are different exits; `AudioLoop` handles both — copy that shape.
 - **Duplicate ids in the catalog** are a warning, not an error: first entry wins. `OnValidate` clamps and invalidates the lookup.
-- **[`SandstormAudio`](Assets/Game/Scripts/World/Environment/Sandstorm/Effects/SandstormAudio.cs) is a plain Unity `AudioSource` + `AudioLowPassFilter`, on purpose** — a 2D continuous loop driven by one number, which would need an FMOD project to author properly. It is the documented exception, not a pattern to copy.
+- **[`SandstormAudio`](Assets/Game/Scripts/World/Environment/Sandstorm/Effects/SandstormAudio.cs) is a plain Unity `AudioSource` + `AudioLowPassFilter`, on purpose** — a 2D continuous loop driven by one number, which would need an FMOD project to author properly. With Unity audio disabled project-wide it is, on that evidence, **inaudible in the shipped game** (see `SfxFile`'s header) — not a pattern to copy.
 
 ## Extending — add a new sound
 

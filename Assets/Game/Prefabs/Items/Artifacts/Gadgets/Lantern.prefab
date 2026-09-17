@@ -113,7 +113,7 @@ GameObject:
   - component: {fileID: 2058892598719488786}
   - component: {fileID: 5106652337568809824}
   - component: {fileID: 3253416467898124340}
-  - component: {fileID: 8120565660177531909}
+  - component: {fileID: 1540371494114159863}
   m_Layer: 0
   m_Name: Lantern
   m_TagString: Untagged
@@ -180,7 +180,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 0
+  SceneMigrationSynchronization: 1
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -417,7 +417,7 @@ MonoBehaviour:
   placedPrefab: {fileID: 7073937156331823205, guid: 1c0e00b2f80346349b980e83d000a676, type: 3}
   maxGroundAngle: 35
   faceAwayFromPlacer: 1
---- !u!114 &8120565660177531909
+--- !u!114 &1540371494114159863
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

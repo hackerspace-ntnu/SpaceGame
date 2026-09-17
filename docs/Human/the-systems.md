@@ -122,6 +122,12 @@ The suited figure the player drives: walking, sprinting, crouching, jumping, fir
 
 **Worth knowing:** anything hung on the camera — a torch, an attached prop — is invisible to every other player, because the whole camera is switched off on remote copies.
 
+### Climbing ladders *(Ladders)*
+
+Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump held goes up, back goes down, and letting go of everything makes you slide slowly down rather than fall. At the top you step off onto the floor behind it on your own; from the top, walking off into the gap the ladder leaves catches you on the ladder to climb down. A hard sideways push lets go. There is no climbing animation yet.
+
+**Worth knowing:** the player is 3 m tall, so their head reaches the floor at the top of a ladder a whole body height before their feet do — the climb steps you over that lip rather than stopping you under it.
+
 ### Creatures, NPCs and turrets *(AgentSystem)*
 
 Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.

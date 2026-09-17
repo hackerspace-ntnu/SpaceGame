@@ -85,6 +85,32 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void AWardReachesACellOnlyWhereItsFeatheredSandDoes()
+        {
+            // Sand ends at radius + feather = 150; a 40 m ward reaches it from under 190 m away.
+            Assert.IsTrue(StormShape.ReachesCircle(Cell(), new Vector2(189f, 0f), 40f));
+            Assert.IsFalse(StormShape.ReachesCircle(Cell(), new Vector2(191f, 0f), 40f));
+            // Agrees with the density: just inside the feather there is sand, so any ward reaches it.
+            Assert.Greater(StormShape.HorizontalDensity(Cell(), new Vector2(149f, 0f)), 0f);
+            Assert.IsTrue(StormShape.ReachesCircle(Cell(), new Vector2(149f, 0f), 0.01f));
+        }
+
+        [Test]
+        public void AWardReachesAnUnboundedWallFromAnywhereAlongItsFront()
+        {
+            Assert.IsTrue(StormShape.ReachesCircle(Wall(), new Vector2(5000f, 180f), 40f));
+            Assert.IsFalse(StormShape.ReachesCircle(Wall(), new Vector2(5000f, 200f), 40f));
+        }
+
+        [Test]
+        public void AWardMissesABoundedWallPastItsEnd()
+        {
+            StormFootprint wall = Wall(lateralExtent: 300f);
+            Assert.IsTrue(StormShape.ReachesCircle(wall, new Vector2(380f, 0f), 40f));
+            Assert.IsFalse(StormShape.ReachesCircle(wall, new Vector2(400f, 0f), 40f));
+        }
+
+        [Test]
         public void SandFillsHolesBelowTheBase()
         {
             // Standing in a canyon must not be a way out of a storm.

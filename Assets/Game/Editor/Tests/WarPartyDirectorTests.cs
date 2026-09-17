@@ -21,6 +21,7 @@ namespace SpaceGame.EditorTools
         private NpcWorldSim sim;
         private WarPartyDirector director;
         private FactionDefinition sand;
+        private NpcGroupTemplate template;
 
         [SetUp]
         public void SetUp()
@@ -53,7 +54,7 @@ namespace SpaceGame.EditorTools
             var simGo = new GameObject("Sim");
             junk.Add(simGo);
             sim = simGo.AddComponent<NpcWorldSim>();
-            var template = new NpcGroupTemplate { id = "sand-war-party", tribe = sand, runtimeOnly = true, bountyHunters = true };
+            template = new NpcGroupTemplate { id = "sand-war-party", tribe = sand, runtimeOnly = true, bountyHunters = true };
             typeof(NpcWorldSim).GetField("templates", Private).SetValue(sim, new[] { template });
             Invoke(sim, "Awake");
 
@@ -112,6 +113,33 @@ namespace SpaceGame.EditorTools
             War war = AtWarWithAParty();
 
             Assert.AreEqual(700f, sim.FindGroup(war.PartyGroupId).Position.x, 0.01f);
+        }
+
+        [Test]
+        public void Raise_AFlyingParty_StartsAtItsHomeSite_WhateverKindAndHowFar()
+        {
+            GameObject vessel = new GameObject("Vessel");
+            junk.Add(vessel);
+            template.transport = new NpcGroupTransport { smallVessel = vessel, homeSiteName = "Sky City" };
+            WorldSiteRegistry.Register(SiteKind.Camp, new Vector3(700f, 0f, 0f), 10f, "Camp");
+            WorldSiteRegistry.Register(SiteKind.Home, new Vector3(3970f, 228f, 1025f), 100f, "Sky City", airborne: true);
+
+            War war = AtWarWithAParty();
+
+            Assert.AreEqual(new Vector3(3970f, 228f, 1025f), sim.FindGroup(war.PartyGroupId).Position);
+        }
+
+        [Test]
+        public void Raise_AFlyingParty_WithNoHomeSite_FallsBackLikeAnyParty()
+        {
+            GameObject vessel = new GameObject("Vessel");
+            junk.Add(vessel);
+            template.transport = new NpcGroupTransport { smallVessel = vessel, homeSiteName = "Sky City" };
+
+            War war = AtWarWithAParty();
+            Vector3 position = sim.FindGroup(war.PartyGroupId).Position;
+
+            Assert.AreEqual(250f + 30f + 100f, new Vector2(position.x, position.z).magnitude, 0.5f);
         }
 
         [Test]

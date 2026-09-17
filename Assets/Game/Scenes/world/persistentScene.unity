@@ -379,6 +379,12 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3650, y: 100, z: 1620}
     bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 5
@@ -456,6 +462,12 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3700, y: 100, z: 1560}
     bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -475,6 +487,37 @@ MonoBehaviour:
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
     bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 3.5
+      LaneSpacing: 2.4
+      LateralJitter: 1
+      LongitudinalJitter: 1.3
+      DriftAmplitude: 0.8
+      DriftRate: 0.07
+  - id: sky-war-party
+    displayName: Sky War Party
+    tribe: {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+    runtimeOnly: 1
+    members: []
+    tasks: []
+    travelSpeed: 3
+    startNearSite: 1
+    useStartPosition: 0
+    startPosition: {x: 3700, y: 100, z: 1560}
+    bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 3975991240799448283, guid: 94f134b4aed0e0247ac1302ad4cd3e11, type: 3}
+      largeVessel: {fileID: 7321445808256780902, guid: 0d35522efcaf99f46a0cd122b9941333, type: 3}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -502,6 +545,12 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3480, y: 100, z: 1740}
     bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3
@@ -561,6 +610,12 @@ MonoBehaviour:
     useStartPosition: 0
     startPosition: {x: 3480, y: 100, z: 1740}
     bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3
@@ -574,6 +629,8 @@ MonoBehaviour:
   spawnSampleDistance: 25
   tickInterval: 1
   playerRefreshInterval: 2
+  transportRetryDelay: 15
+  dockReuseRadius: 150
   leadLifetime: 180
   hunterRoamRadius: 900
   logGroupEvents: 1
@@ -607,6 +664,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionGoodwillLedger
   tribes:
   - {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  - {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
   crewFaction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   relationships: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
   thresholds:
@@ -1062,7 +1120,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3970.3208
+      value: 3704
       objectReference: {fileID: 0}
     - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1070,7 +1128,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1025
+      value: 1182
       objectReference: {fileID: 0}
     - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2371,6 +2429,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   catalog: {fileID: 11400000, guid: 1a13b401bc0164b51be070a92077c20b, type: 2}
   maxConcurrent: 3
+  suppressionFadeSeconds: 2
 --- !u!1 &1236054300
 GameObject:
   m_ObjectHideFlags: 0

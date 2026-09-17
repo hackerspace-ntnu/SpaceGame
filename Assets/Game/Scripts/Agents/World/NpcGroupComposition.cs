@@ -21,6 +21,12 @@ namespace SpaceGame.Agents
 
     public static class NpcGroupComposition
     {
+        /// <summary>
+        /// Whether a planned member boards the group's vessel. Every drawn member does today; one that
+        /// travels another way is left out here, and so is neither counted for the vessel nor seated.
+        /// </summary>
+        public static bool Rides(PlannedMember member) => member.Prefab != null;
+
         public static List<PlannedMember> Resolve(NpcGroup group, NpcGroupTemplate template)
         {
             var plan = new List<PlannedMember>();

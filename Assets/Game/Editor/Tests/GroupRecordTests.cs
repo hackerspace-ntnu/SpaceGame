@@ -33,6 +33,7 @@ namespace SpaceGame.EditorTools
                 QuarryProfileId = "p1",
                 Tier = 2,
                 WipedOut = true,
+                Delivered = true,
             };
 
             JObject json = JObject.FromObject(group.ToRecord(), SaveSerializer.Serializer);
@@ -46,6 +47,7 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(2, restored.Tier);
             Assert.IsTrue(restored.IsWarParty);
             Assert.IsTrue(restored.WipedOut, "a party wiped out just before the save must not respawn on load");
+            Assert.IsTrue(restored.Delivered, "a party already dropped off comes back on foot, not in a vessel");
         }
 
         [Test]
@@ -63,6 +65,7 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(0, group.Tier);
             Assert.IsFalse(group.IsWarParty);
             Assert.IsFalse(group.WipedOut);
+            Assert.IsFalse(group.Delivered, "an older save's party has not been dropped off");
         }
 
         [Test]

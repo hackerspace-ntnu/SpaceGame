@@ -5,6 +5,9 @@ summary: One author-time bake of the whole world into a single asset, added at r
 paths:
   - Assets/Game/Scripts/World/Streaming/NavMesh/
   - Assets/Game/Settings/WorldNavMesh.asset
+  - Assets/Game/Settings/SkyCityNavMesh.asset
+  - Assets/Game/Editor/Environment/SkyCityNavMeshBaker.cs
+  - Assets/Game/Scripts/agents/Modules/Movement/WanderModule.cs
   - Assets/Game/Scripts/agents/AI/Motors/
   - ProjectSettings/NavMeshAreas.asset
 symptoms:
@@ -17,14 +20,17 @@ symptoms:
   - "arena spawns are not filtered for reachability"
   - "every agent hovers a few centimetres to half a metre above the ground"
   - "creatures walk over a rained-on patch as if it were dry sand"
+  - "an NPC spawned on the sky city has no NavMesh under it"
+  - "sky city NPCs stand on roofs or gas bags they can never leave"
+  - "sky nomads walk to a railing and stand there staring up at a roof"
   - "an NPC on wet ground turns on the spot and never gets anywhere"
 reads_with: [WorldStreaming, AgentSystem, Locomotion]
-updated: 2026-09-09
+updated: 2026-09-17
 ---
 
 # NavMesh
 
-One NavMesh for the whole streamed world, baked at author time into a single asset and added to the runtime with one `NavMesh.AddNavMeshData` call; nothing bakes at runtime.
+One NavMesh for the whole streamed world, baked at author time into a single asset and added to the runtime with one `NavMesh.AddNavMeshData` call; nothing bakes at runtime. Walkable structures outside the chunk scenes (the Sky City fleet) get their own small bake, added at the structure's transform.
 
 **Scope:** `Assets/Game/Scripts/World/Streaming/NavMesh/`, `ProjectSettings/NavMeshAreas.asset`, `Assets/Game/Settings/WorldNavMesh.asset`, `Assets/Game/Scripts/agents/AI/Motors/`
 **Related:** [WorldStreaming.md](WorldStreaming.md) · [Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) · [.claude/skills/spacegame-agent/SKILL.md](.claude/skills/spacegame-agent/SKILL.md)
@@ -37,6 +43,7 @@ One NavMesh for the whole streamed world, baked at author time into a single ass
 - **Bake mirrors the runtime.** The baker snaps each chunk's `Terrain` to its grid X/Z (mirroring `WorldStreamer.CacheTerrainForChunk`) and calls `TerrainFeatureSpawner.SpawnBaked()` before collecting, then discards those edits. Skip either and the mesh is silently offset from the ground.
 - **Staleness is enforced at build time.** [WorldNavMeshStaleness](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) compares each chunk's `AssetDatabase.GetAssetDependencyHash` against the stamp recorded at bake; `WorldNavMeshBuildCheck : IPreprocessBuildWithReport` throws `BuildFailedException` when they differ.
 - **Caves are separate surfaces**, not part of the world mesh — see Gotchas.
+- **So is the Sky City.** `SkyCityFleet` stands in `persistentScene`, which the world bake never scans. [SkyCityNavMeshBaker](Assets/Game/Editor/Environment/SkyCityNavMeshBaker.cs) bakes the fleet prefab's collision **in prefab space** into [SkyCityNavMesh.asset](Assets/Game/Settings/SkyCityNavMesh.asset) (a bare `NavMeshData`, ~130 KB), with the world bake's settings and layer mask read from `WorldNavMesh.asset` and its collider filter/mapping (`WorldNavMeshBaker.IsBakeable` / `TryColliderToSource`). [StaticNavMeshData](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) on the fleet prefab root adds it at the instance's position and rotation, so moving the fleet in the scene needs no re-bake.
 - **The ground gets a say.** `NavMeshAgentMotor.ApplyGroundGrip` asks [GroundGrip](Assets/Game/Scripts/Gameplay/Grip/GroundGrip.cs) what the surface under the agent is worth and scales `agent.acceleration` by it, so a [SurfaceCoat](Artifacts/SurfaceCoat.md) patch slows how fast an NPC can change velocity without touching its top speed — it overshoots and cannot brake. **Acceleration only, never `angularSpeed`:** an agent that cannot turn cannot follow its path off the patch, which is stuck rather than sliding. Same reason `LeggedLocomotion.ApplyGroundGrip` leaves yaw alone.
 - **Two motor families:** [NavMeshAgentMotor](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) drives a real `NavMeshAgent`; [LeggedDriver](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) has no agent component and only calls `NavMesh.CalculatePath` (the legs own the transform).
 
@@ -72,12 +79,15 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 | `WorldNavMeshBakeSettings` | same file | Serialized bake inputs (deliberately not a raw `NavMeshBuildSettings`) |
 | `WorldNavMeshProvider` | [WorldNavMeshProvider.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) | `AddNavMeshData` on enable; `LogError` (never a silent fallback) if unassigned |
 | `WorldNavMeshBaker` | [Editor/WorldNavMeshBaker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) | `World/Streaming/Bake World NavMesh` menu item; asset path `Assets/Game/Settings/WorldNavMesh.asset` |
+| `StaticNavMeshData` | [StaticNavMeshData.cs](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) | `AddNavMeshData(data, transform.position, transform.rotation)` on enable, remove on disable; `LogError` if unassigned. No scale |
+| `SkyCityNavMeshBaker` | [Editor/Environment/SkyCityNavMeshBaker.cs](Assets/Game/Editor/Environment/SkyCityNavMeshBaker.cs) | `World/Streaming/Bake Sky City NavMesh`; bakes `SkyCityFleet.prefab` into `Assets/Game/Settings/SkyCityNavMesh.asset` and puts `StaticNavMeshData` on the fleet root |
 | `WorldNavMeshStaleness` / `WorldNavMeshBuildCheck` | [Editor/WorldNavMeshStaleness.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) | `World/Streaming/Check World NavMesh Is Current`; fails the player build when stale |
 | `WorldStreamer.SnapAgentsToNavMesh` | [WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) (~L1229) | Re-enables + `Warp`s a loaded chunk's agents onto the mesh |
 | `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) | `IMovementMotor` over `NavMeshAgent`; `[DefaultExecutionOrder(-100)]` |
 | `LeggedDriver` | [LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Path-only consumer: `NavMesh.CalculatePath`, no `NavMeshAgent` |
 | `DeferredNavMeshWarp` | [DeferredNavMeshWarp.cs](Assets/Game/Scripts/Core/Persistence/Runtime/DeferredNavMeshWarp.cs) | Retries a save-restore `Warp` for 10 s, sample radius 4 m |
 | `CaveSpawner` | [CaveSpawner.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveSpawner.cs) | Own `NavMeshSurface`; `SpawnBaked()` adds a pre-baked `NavMeshData` instance |
+| `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `MatchManager`, `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` all call it |
 | `MatchManager` / `SpawnReachability` | [MatchManager.cs](Assets/Game/Scripts/Gameplay/Minigame/Runtime/MatchManager.cs), [SpawnReachability.cs](Assets/Game/Scripts/Gameplay/Minigame/Core/SpawnReachability.cs) | Snaps arena spawns to the mesh, keeps only the largest mutually-pathable group |
 
 ## Flows
@@ -87,6 +97,11 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 2. `World/Streaming/Bake World NavMesh`. Config comes from `WorldNavMesh.asset.config`; with two `WorldStreamingConfig` assets present (`WorldStreamingConfig`, `FerdinandWorldStreamingConfig`) it refuses to guess.
 3. Opens all 48 chunks additively → aligns terrain → `SpawnBaked()` features → `Physics.SyncTransforms()` → collects → `BuildNavMeshData` → writes the `NavMeshData` sub-asset, stamps, source count.
 4. Closes with `removeScene: true`, discarding the scaffolding.
+
+**Bake the Sky City (editor only)**
+1. `World/Streaming/Bake Sky City NavMesh` (or `Tools/Environment/Build Sky Fleet Prefabs`, which ends by calling it). No scenes need closing: it reads the fleet prefab with `LoadPrefabContents`.
+2. Refuses if `WorldNavMesh.asset` is missing (it is the settings source) or the fleet root is scaled.
+3. Collects every bakeable collider (686 today, all `Default` layer) with the root at the origin → builds into the existing asset with `UpdateNavMeshData`, so its GUID and the prefab's reference survive → adds/points `StaticNavMeshData` on the fleet root, saving the prefab only if that changed.
 
 **Chunk load**
 1. Chunk scene loads (`AdoptLoadedChunk` / `OnOfflineSceneLoaded` / NGO `LoadEventCompleted`).
@@ -101,11 +116,11 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 
 ## Multiplayer
 
-Yes — every machine has the identical mesh. `WorldNavMeshProvider` is a plain scene component in `persistentScene`, and the baked data ships in the build, so host and client both `AddNavMeshData` the same bytes locally; nothing about the NavMesh is replicated. Pathing runs wherever the agent simulates: `AgentController`/motor ticks are gated by `NetAuthority`, so the **server** paths NPCs and clients see replicated transforms. `MatchManager` spawn reachability is server-side. A client never disagrees about the mesh, only about who is allowed to drive an agent along it.
+Yes — every machine has the identical mesh. `WorldNavMeshProvider` is a plain scene component in `persistentScene`, and the baked data ships in the build, so host and client both `AddNavMeshData` the same bytes locally (`StaticNavMeshData` on the Sky City fleet likewise runs on every machine); nothing about the NavMesh is replicated. Pathing runs wherever the agent simulates: `AgentController`/motor ticks are gated by `NetAuthority`, so the **server** paths NPCs and clients see replicated transforms. `MatchManager` spawn reachability is server-side. A client never disagrees about the mesh, only about who is allowed to drive an agent along it.
 
 ## Persistence
 
-The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNavMesh.asset](Assets/Game/Settings/WorldNavMesh.asset) (~36 MB, binary-serialized, `NavMeshData` stored as a sub-asset named `WorldNavMeshData`). Cave bakes live beside their scene in `CaveBakes/seed_NNNN_NavMesh.asset`. Nothing NavMesh-related is written to a save file. Save/load interacts with it only through `DeferredNavMeshWarp`, which retries a restored agent's `Warp` until the mesh is reachable rather than falling through to a raw transform write (which moves the GameObject but not the agent's internal position — a silently non-moving creature).
+The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNavMesh.asset](Assets/Game/Settings/WorldNavMesh.asset) (~36 MB, binary-serialized, `NavMeshData` stored as a sub-asset named `WorldNavMeshData`). Cave bakes live beside their scene in `CaveBakes/seed_NNNN_NavMesh.asset`. The Sky City mesh is [Assets/Game/Settings/SkyCityNavMesh.asset](Assets/Game/Settings/SkyCityNavMesh.asset) (~130 KB). Nothing NavMesh-related is written to a save file. Save/load interacts with it only through `DeferredNavMeshWarp`, which retries a restored agent's `Warp` until the mesh is reachable rather than falling through to a raw transform write (which moves the GameObject but not the agent's internal position — a silently non-moving creature).
 
 ## Gotchas
 
@@ -129,10 +144,16 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 - **`NavMeshAgentMotor.Awake` disables its own agent** when `SamplePosition` finds nothing within `navMeshSnapDistance` (6 m), on the promise that `WorldStreamer.SnapAgentsToNavMesh` re-enables it. Nothing else keeps that promise — an agent spawned outside a streamed chunk scene, or in a scene the streamer does not own, stays dead for the session with no error.
 - **Bake settings diverge from project settings** (60°/0.8 vs 45°/0.75). A `NavMeshAgent` inspector preview or an editor `NavMeshSurface` bake uses the *project* numbers and will not match what ships.
 
+- **The Sky City mesh is many islands, and most are unreachable.** Measured 2026-09-17: 9 644 m² of mesh in ~120 welded islands; the connected region under both promenades is ~3 300 m² (both lanes, the crossings, the ground-level decks). The rest — the y≈23–39 gantry/roof/tower decks reached by ladders (which are player-only data, no `NavMeshLink`), house roofs, gas-bag tops (convex hulls under the 60° slope limit) and the escort ships' decks (~190 m²) — are islands an agent spawned on can never leave. Anything sampling random points on the city must filter them through `NavMeshReach.CanWalk`: the city's `SettlementPopulation` spawns only where its `PromenadeAnchor` reaches, and the sky nomads wander with `onlyReachableDestinations` (measured in play 2026-09-17: 16/16 residents and every walking destination on the promenade region, before and after a save/reload) — see [AgentSystem.md](AgentSystem.md).
+- **On an islanded NavMesh a random wander point is a railing, not a walk.** `SamplePosition` happily returns a roof or gas-bag top beside the Sky City promenades (44 % of a sky nomad's 10 m wander picks, measured); the agent gets a partial path, walks to the nearest edge of its own island, reports arrival and stands there. `WanderModule.onlyReachableDestinations` refuses any point `NavMeshReach.CanWalk` does not reach from the agent; `NomadRecipe.WanderReachableOnly` sets it on the four sky nomads and the sky soldier (off everywhere else, since it refuses every point for an agent that is off the mesh). With `onlyReachableDestinations` on, `TryPickDestination` can fail every one of its `maxSampleAttempts` on a bad frame (an agent off the mesh, or boxed in by islands, refuses every candidate); `Tick` backs off to `minWaitTime` on that failure instead of re-rolling next frame, so a permanently-stuck agent costs one NavMesh query per wait interval, not one per frame.
+- **A city-only rebuild leaves the Sky City mesh stale, silently.** `Build Sky Fleet Prefabs` re-bakes; `Build Sky City Prefab` alone does not, and nothing checks. **Follow-up (not built):** a `WorldNavMeshBuildCheck`-style staleness stamp for `SkyCityNavMesh.asset` (dependency hash of `SkyCityFleet.prefab`).
+- **`StaticNavMeshData` ignores scale.** `AddNavMeshData` takes position and rotation only; a scaled fleet instance would walk on a mesh of the wrong size. The baker refuses a scaled prefab root; a scaled scene instance is not checked.
+
 ## Extending
 
 1. **Add walkable geometry:** give it a non-trigger collider (or `Terrain`) on an included layer, no non-kinematic `Rigidbody`, mesh read/write enabled if it is a `MeshCollider`. Put it in a chunk scene listed in the config, or spawn it from a `TerrainFeatureSpawner` with a baked mesh.
 2. **Re-bake:** close all chunk scenes → `World/Streaming/Bake World NavMesh` → read the report (source count, features spawned, any `WITHOUT baked meshes`) → commit `Assets/Game/Settings/WorldNavMesh.asset`.
 3. **Verify:** `World/Streaming/Check World NavMesh Is Current` must say up to date, and the console must show `[WorldNavMeshProvider] world NavMesh live (N sources, ...)` on play.
 4. **Add a second agent type** (none exists today): create it in `Navigation > Agents`, then (a) set `m_AgentTypeID` on the prefabs' `NavMeshAgent`, (b) bake a *second* `WorldNavMeshAsset` for it — `WorldNavMeshBaker.AssetPath` is a `const` single path, so it must be parameterised first, (c) add a second `WorldNavMeshProvider` instance, (d) extend `WorldNavMeshBuildCheck` to cover it. Until all four are done, an agent with a non-zero type ID has no mesh and `Awake` will disable it silently.
-5. **Change bake tuning:** edit the fields on `WorldNavMesh.asset` in the Inspector (not the project agent settings) and re-bake. Halving `voxelSize` roughly quadruples bake time and asset size.
+5. **Give another off-chunk structure a NavMesh:** follow `SkyCityNavMeshBaker` — collect the prefab's colliders with `WorldNavMeshBaker.IsBakeable`/`TryColliderToSource` at the origin, bake with `WorldNavMesh.asset`'s settings, and put `StaticNavMeshData` on the unscaled prefab root from code.
+6. **Change bake tuning:** edit the fields on `WorldNavMesh.asset` in the Inspector (not the project agent settings) and re-bake. Halving `voxelSize` roughly quadruples bake time and asset size.

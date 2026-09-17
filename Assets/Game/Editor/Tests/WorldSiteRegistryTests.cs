@@ -89,6 +89,28 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void AirborneSitesAreSkippedByGroundSearchesButFindableByName()
+        {
+            // The Sky City is Home and 228 m up. A ground errand's kind-scoped search must never
+            // land on it — that reads as an NPC walking underneath the city forever — but something
+            // that already knows the place by name (a war party told to head for it) must still
+            // find it.
+            WorldSiteRegistry.Register(SiteKind.Home, new Vector3(0f, 200f, 0f), 50f, "Sky City", airborne: true);
+            WorldSiteRegistry.Register(SiteKind.Home, new Vector3(10f, 0f, 0f), 5f, "Ground Camp");
+
+            Assert.IsTrue(WorldSiteRegistry.TryFindNearest(SiteKind.Home, Vector3.zero, 1000f, out WorldSite nearest));
+            Assert.AreEqual("Ground Camp", nearest.Name, "TryFindNearest must not hand a ground errand an airborne site");
+
+            Assert.IsFalse(WorldSiteRegistry.TryFindRandom(SiteKind.Home, Vector3.zero, 1f, out _),
+                "with the ground camp out of range, the airborne one must not be offered instead");
+
+            Assert.IsTrue(WorldSiteRegistry.TryFindByName("Sky City", out WorldSite found),
+                "a by-name lookup must still find an airborne site");
+            Assert.AreEqual(SiteKind.Home, found.Kind);
+            Assert.IsTrue(found.Airborne);
+        }
+
+        [Test]
         public void ClearEmptiesEverything()
         {
             WorldSiteRegistry.Register(SiteKind.Home, Vector3.zero, 5f, "camp");

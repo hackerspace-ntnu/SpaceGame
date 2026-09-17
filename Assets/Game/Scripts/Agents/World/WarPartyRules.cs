@@ -80,8 +80,12 @@ namespace SpaceGame.Agents
 
         public static float StagingDistance(float spawnRadius, float margin) => spawnRadius + Mathf.Max(0f, margin);
 
-        public static bool ShouldAbandon(Vector3 party, Vector3 quarry, float maxPursuit) =>
-            FlatDistance(party, quarry) > maxPursuit;
+        /// <summary>
+        /// Too far from its quarry to go on. Never while <paramref name="inFlight"/>: a party still in its
+        /// vessel set out from its home site, however far that is, and is caught up or flown in from there.
+        /// </summary>
+        public static bool ShouldAbandon(Vector3 party, Vector3 quarry, float maxPursuit, bool inFlight = false) =>
+            !inFlight && FlatDistance(party, quarry) > maxPursuit;
 
         /// <summary>No player is within <paramref name="staging"/> of <paramref name="point"/>.</summary>
         public static bool IsUnobserved(Vector3 point, IReadOnlyList<Vector3> players, float staging)

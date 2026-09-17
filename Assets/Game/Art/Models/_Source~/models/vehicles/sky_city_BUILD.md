@@ -250,7 +250,27 @@ reached 0.8 m into the lanes' outer edge. Houses now collide as boxes turned wit
 them, and the lanes' walking lines are found, like the walkways'. The outriggers
 stay uncollided because their rigging runs through the castle's rooms.
 
-**Measured in-engine 2026-09-16:** root scale 1, 310 renderers, 1,216,518
+**Scale (2026-09-17).** The route check above walks a 2.0 m capsule under 2.1 m of
+headroom, but the game's player is **3.0 m tall** (a 2 m capsule on a transform
+stretched 1.5 in Y). At 1 unit = 1 m every ceiling was lower than the player, which is
+why the lanes and doors were too tight in play. The prefab root ships at
+`SkyCityBuilder.Scale` = **1.5**: 2.1 x 1.5 = 3.15 m of headroom. The model and the
+Blender check stay at 1.0. Costs: every lip between surfaces grows 1.5x (the player has
+no step-up), and each ladder-top gap becomes 1.05 m, wider than the 1.0 m-wide player -
+so ladders can be taken hold of from the top ([Ladders.md](../../../../../../../docs/AI/systems/Ladders.md)).
+First shipped at 1.3 on the 2 m assumption; corrected the same day. The fleet's escort
+stations are written in the city's modelled metres and held at `Position x Scale`, so
+they move out with it.
+
+**Ladders in play.** Each `LAD_SkyCity_##` carries a `Ladder`. On a 3 m body the head
+meets the top floor before the feet reach the step-off on ladders 03, 04 and 07, so the
+climber steps over the lip when blocked within a body height of the top;
+`SkyCityPrefabTests.ThePlayerCanClimbEveryLadderAndStepOffAtTheTop` checks every column
+below that with the real capsule and every step-off (ladder 05's exit is 0.10 m inside
+Bag1's hull, cleared by depenetration).
+
+**Measured in-engine 2026-09-16** (numbers below are modelled metres; multiply by
+Scale for world size): root scale 1, 310 renderers, 1,216,518
 triangles; 645 island colliders (449 box, 196 convex hull, every hull saved) plus
 13 box, 3 convex and 4 mesh from the rules; no renderer left unmatched. A Blender
 point `(x, y, z)` arrives at Unity `(-x, z, -y)` - ladder 01's foot, Blender
@@ -291,9 +311,9 @@ box; sails, flags and outriggers nothing.
 
 | Ship | Size (m) | Colliders | Held at (Unity, from the city's origin) |
 |---|---|---|---|
-| SkyFreighter | 36.2 x 15.2 x 31.5 | 1 box, 5 convex, 4 mesh | (78, 26, -8), yaw 8 - high, starboard |
-| SkySkiff | 31.0 x 13.3 x 21.3 | 3 convex, 2 mesh | (-80, 8, 38), yaw -12 - forward, port |
-| SkyTug | 31.0 x 21.2 x 23.9 | 3 convex, 3 mesh | (-78, -14, -40), yaw 20 - low astern, port |
+| SkyFreighter | 36.2 x 15.2 x 31.5 | 1 box, 5 convex, 4 mesh | (78, 26, -8) x Scale, yaw 8 - high, starboard |
+| SkySkiff | 31.0 x 13.3 x 21.3 | 3 convex, 2 mesh | (-80, 8, 38) x Scale, yaw -12 - forward, port |
+| SkyTug | 31.0 x 21.2 x 23.9 | 3 convex, 3 mesh | (-78, -14, -40) x Scale, yaw 20 - low astern, port |
 
 The city's *drawn* reach is x -49..46 (sails and outriggers), not its deck's
 +/-20, and the first placement, cleared against the deck, overlapped all three.

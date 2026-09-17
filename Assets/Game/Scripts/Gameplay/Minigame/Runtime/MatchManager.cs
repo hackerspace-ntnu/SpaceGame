@@ -7,6 +7,7 @@ using Random = UnityEngine.Random;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Presentation;
+using SpaceGame.World;
 
 namespace SpaceGame.Gameplay
 {
@@ -196,7 +197,7 @@ namespace SpaceGame.Gameplay
                 return positions;
 
             var reachable = SpawnReachability.LargestConnectedGroup(onMesh.Count,
-                (a, b) => CanPathBetween(onMesh[a], onMesh[b]));
+                (a, b) => NavMeshReach.CanWalk(onMesh[a], onMesh[b]));
 
             var kept = new List<Vector3>(reachable.Count);
             foreach (int index in reachable)
@@ -210,13 +211,6 @@ namespace SpaceGame.Gameplay
             }
 
             return kept;
-        }
-
-        private static bool CanPathBetween(Vector3 from, Vector3 to)
-        {
-            var path = new NavMeshPath();
-            return NavMesh.CalculatePath(from, to, NavMesh.AllAreas, path)
-                   && path.status == NavMeshPathStatus.PathComplete;
         }
 
         private void SpawnBots()

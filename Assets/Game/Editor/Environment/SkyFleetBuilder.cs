@@ -15,6 +15,12 @@
 // bags and hulls are convex; the cage, the engines' ducts and the gondola decks
 // are mesh colliders, because a hull fills what they are open around.
 //
+// NavMesh -- the build ends by re-baking the fleet's NavMesh, which also puts
+// StaticNavMeshData back on the fleet root. See SkyCityNavMeshBaker.
+//
+// Settlement -- and then re-wires the root as the Sky Tribe's home (site marker, alarm,
+// population), which the from-scratch save also drops. See SkyCitySettlementWiring.
+//
 // Multiplayer / persistence -- static scene geometry with no state, like the
 // city: no NetworkObject, no saver. See StaticPropBuilder.MarkStatic.
 using System.Linq;
@@ -33,24 +39,30 @@ namespace SpaceGame.EditorTools
         private const string FleetRootName = "SkyCityFleet";
 
         // One cull level, as on the city.
-        private const float LodCullRatio = 0.02f;
+        internal const float LodCullRatio = 0.02f;
 
         public struct Vessel
         {
             public string Name;
             public string Fbx;
-            /// <summary>Where the fleet prefab holds it, relative to the city's origin.</summary>
+            /// <summary>
+            /// Where it keeps station, relative to the city's origin, in the city's own modelled
+            /// metres. The fleet holds it at <see cref="HeldAt"/>, so rescaling the city moves the
+            /// escorts out with it and they never have to be re-placed.
+            /// </summary>
             public Vector3 Position;
             public float Yaw;
+
+            public Vector3 HeldAt => Position * SkyCityBuilder.Scale;
 
             public string PrefabPath => $"{PrefabFolder}/{Name}.prefab";
             public string FbxPath => $"{FbxFolder}/{Fbx}.fbx";
         }
 
         // Round the flagship at three heights, clear of the reach of its sails and
-        // outriggers (x -49..46; the ships are ~36 m across, more when yawed): the
-        // freighter high on one flank, the skiff forward and the tug low astern on
-        // the other. Unity space, metres; the build warns if one overlaps the city.
+        // outriggers (x -49..46 unscaled; the ships are ~36 m across, more when
+        // yawed): the freighter high on one flank, the skiff forward and the tug low
+        // astern on the other. Unity axes; the build warns if one overlaps the city.
         public static readonly Vessel[] Vessels =
         {
             new Vessel { Name = "SkyFreighter", Fbx = "sky_freighter", Position = new Vector3(78f, 26f, -8f), Yaw = 8f },
@@ -58,7 +70,7 @@ namespace SpaceGame.EditorTools
             new Vessel { Name = "SkyTug", Fbx = "sky_tug", Position = new Vector3(-78f, -14f, -40f), Yaw = 20f },
         };
 
-        private static readonly NamedFit[] Rules =
+        internal static readonly NamedFit[] Rules =
         {
             new NamedFit { Match = "Mesh_SkyCity_Bag", Fit = Fit.Convex, Note = "gas envelope" },
             new NamedFit { Match = "Mesh_SkyCity_Cage", Fit = Fit.Mesh, Note = "ring frames round the bags" },
@@ -98,7 +110,7 @@ namespace SpaceGame.EditorTools
                 {
                     var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(vessel.PrefabPath);
                     var ship = (GameObject)PrefabUtility.InstantiatePrefab(prefab, fleet.transform);
-                    ship.transform.SetLocalPositionAndRotation(vessel.Position, Quaternion.Euler(0f, vessel.Yaw, 0f));
+                    ship.transform.SetLocalPositionAndRotation(vessel.HeldAt, Quaternion.Euler(0f, vessel.Yaw, 0f));
                     Bounds shipBounds = RendererBounds(ship);
                     if (shipBounds.Intersects(cityBounds))
                         report.AppendLine($"  WARNING {vessel.Name}'s bounds overlap the city's - move it in Vessels.");
@@ -111,6 +123,10 @@ namespace SpaceGame.EditorTools
                 Object.DestroyImmediate(fleet);
             }
             AssetDatabase.SaveAssets();
+            // The fleet was saved from scratch, without its NavMesh component, over geometry the
+            // old bake may no longer match.
+            report.AppendLine($"  {SkyCityNavMeshBaker.Bake()}");
+            report.AppendLine($"  {SkyCitySettlementWiring.Wire()}");
             Debug.Log(report.ToString());
         }
 

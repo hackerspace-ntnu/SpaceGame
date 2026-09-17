@@ -1,5 +1,6 @@
 // Runtime groups: created, found, released and disbanded; never seeded at startup; restored from a
-// save without duplicates; and a war party's lead never goes cold.
+// save without duplicates; a war party's lead never goes cold; and a flying party travels at its
+// vessel's speed and remembers whether it was dropped off.
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -198,6 +199,59 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(group.HasLead);
             Assert.Greater(group.LeadAge, 300f);
             Assert.Greater(group.Position.x, 0f, "it walked toward the lead");
+        }
+
+        [Test]
+        public void AFoldedFlyingParty_TravelsAtTheTransportSpeed_UntilDelivered()
+        {
+            var vessel = new GameObject("Vessel");
+            junk.Add(vessel);
+            warParty.travelSpeed = 3f;
+            warParty.transport = new NpcGroupTransport { smallVessel = vessel, travelSpeed = 28f };
+
+            NpcGroup flying = sim.CreateGroup(warParty, "flying", Vector3.zero);
+            NpcGroup walking = sim.CreateGroup(warParty, "walking", Vector3.zero);
+            foreach (NpcGroup group in new[] { flying, walking })
+            {
+                group.QuarryProfileId = "p";
+                group.Lead = new Vector3(5000f, 0f, 0f);
+                group.HasLead = true;
+            }
+            walking.Delivered = true;
+
+            Call("TickGroup", flying, 1f);
+            Call("TickGroup", walking, 1f);
+
+            Assert.AreEqual(28f, flying.Position.x, 0.01f);
+            Assert.AreEqual(3f, walking.Position.x, 0.01f, "dropped off, the party walks like any other");
+        }
+
+        [Test]
+        public void ReleaseGroup_OfAFoldedGroupWhoseVesselIsStillOut_WaitsForTheVessel()
+        {
+            NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
+            group.QuarryProfileId = "p";
+            group.Delivered = true;
+            group.Transport = new GameObject("Vessel");
+            junk.Add(group.Transport);
+
+            sim.ReleaseGroup("w");
+
+            Assert.AreSame(group, sim.FindGroup("w"), "removing it now would leave the vessel nobody's");
+            Assert.IsTrue(group.DisbandWhenFolded);
+            Assert.IsFalse(group.IsWarParty);
+        }
+
+        [Test]
+        public void RestoreRecords_KeepsWhetherAPartyWasDelivered()
+        {
+            var inTheAir = new NpcGroup { Id = "warparty:sky:p:1", TemplateId = "sand-war-party", QuarryProfileId = "p" };
+            var onFoot = new NpcGroup { Id = "warparty:sky:p:2", TemplateId = "sand-war-party", QuarryProfileId = "q", Delivered = true };
+
+            sim.RestoreRecords(new[] { inTheAir.ToRecord(), onFoot.ToRecord() });
+
+            Assert.IsFalse(sim.FindGroup("warparty:sky:p:1").Delivered);
+            Assert.IsTrue(sim.FindGroup("warparty:sky:p:2").Delivered);
         }
 
         [Test]

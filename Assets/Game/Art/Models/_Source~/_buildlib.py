@@ -319,6 +319,101 @@ class Part:
         _smooth_around(faces, _axis_vec(axis))
         return faces
 
+    def segment(self, a, b, stations, mat=0, hint=(1.0, 0.0, 0.0), ring=16, dome=True):
+        """A lofted body segment between two arbitrary points - a limb, a torso shell, a head.
+
+        `loft` only runs along a world axis; a limb runs along its bone. `stations`
+        are (t, half_width, half_depth) with t in 0..1 from `a` to `b`; the width axis
+        leans toward `hint`. With `dome` each end closes in a rounded cap the size of
+        its end section, so two segments meeting at a joint overlap as curves and never
+        share a face. Lifted from `components/organic/human_mannequin.py`.
+        """
+        a, b = Vector(a), Vector(b)
+        axis = b - a
+        length = axis.length
+        axis.normalize()
+        side = Vector(hint) - axis * Vector(hint).dot(axis)
+        if side.length < 1e-4:
+            side = Vector((1.0, 0.0, 0.0)) - axis * axis.x
+        side.normalize()
+        front = axis.cross(side).normalized()
+
+        rings = []
+        cap_angles = (80.0, 55.0, 28.0)
+        if dome:
+            t0, w0, d0 = stations[0]
+            for ang in cap_angles:
+                s, c = math.sin(math.radians(ang)), math.cos(math.radians(ang))
+                rings.append((t0 * length - max(w0, d0) * s, w0 * c, d0 * c))
+        rings += [(t * length, w, d) for t, w, d in stations]
+        if dome:
+            t1, w1, d1 = stations[-1]
+            for ang in reversed(cap_angles):
+                s, c = math.sin(math.radians(ang)), math.cos(math.radians(ang))
+                rings.append((t1 * length + max(w1, d1) * s, w1 * c, d1 * c))
+
+        bm2 = bmesh.new()
+        verts = []
+        for along, w, d in rings:
+            centre = a + axis * along
+            verts.append([bm2.verts.new(centre + side * (math.cos(2 * math.pi * i / ring) * w)
+                                        + front * (math.sin(2 * math.pi * i / ring) * d))
+                          for i in range(ring)])
+        for r0, r1 in zip(verts, verts[1:]):
+            for i in range(ring):
+                j = (i + 1) % ring
+                bm2.faces.new((r0[i], r0[j], r1[j], r1[i]))
+        bm2.faces.new(verts[0])
+        bm2.faces.new(list(reversed(verts[-1])))
+        faces = self._absorb(bm2, mat)
+        return self.shade(faces)
+
+    def sheet(self, rows, thickness, mat=0, closed=False, smooth=True):
+        """Thicken a grid of points into a solid shell - coat panels, collars, scarves, trims.
+
+        `rows` is a list of equal-length lists of points; neighbouring rows and columns
+        are bridged. The sheet is offset half `thickness` each way along the grid's own
+        normal, and its open borders are closed, so it has real thickness and nothing
+        laid against it can z-fight. `closed` joins the last column back to the first,
+        for a collar or a sleeve.
+        """
+        rows = [[Vector(p) for p in row] for row in rows]
+        nr, nc = len(rows), len(rows[0])
+        cols = nc if closed else nc - 1
+
+        def point(i, j):
+            return rows[max(0, min(nr - 1, i))][j % nc if closed else max(0, min(nc - 1, j))]
+
+        bm2 = bmesh.new()
+        outer, inner = [], []
+        for i in range(nr):
+            o_row, i_row = [], []
+            for j in range(nc):
+                du = point(i, j + 1) - point(i, j - 1)
+                dv = point(i + 1, j) - point(i - 1, j)
+                n = du.cross(dv)
+                n = n.normalized() if n.length > 1e-9 else Vector((0.0, 0.0, 1.0))
+                o_row.append(bm2.verts.new(rows[i][j] + n * (thickness / 2.0)))
+                i_row.append(bm2.verts.new(rows[i][j] - n * (thickness / 2.0)))
+            outer.append(o_row)
+            inner.append(i_row)
+
+        for i in range(nr - 1):
+            for j in range(cols):
+                k = (j + 1) % nc
+                bm2.faces.new((outer[i][j], outer[i][k], outer[i + 1][k], outer[i + 1][j]))
+                bm2.faces.new((inner[i][j], inner[i + 1][j], inner[i + 1][k], inner[i][k]))
+        for i in (0, nr - 1):
+            for j in range(cols):
+                k = (j + 1) % nc
+                bm2.faces.new((outer[i][j], inner[i][j], inner[i][k], outer[i][k]))
+        if not closed:
+            for j in (0, nc - 1):
+                for i in range(nr - 1):
+                    bm2.faces.new((outer[i][j], outer[i + 1][j], inner[i + 1][j], inner[i][j]))
+        faces = self._absorb(bm2, mat)
+        return self.shade(faces, smooth)
+
     # -- detail generators -------------------------------------------------
 
     def rivets(self, start, end, count, radius=0.018, height=0.012,

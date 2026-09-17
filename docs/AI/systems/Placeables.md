@@ -13,8 +13,9 @@ symptoms:
   - "right-clicking a placed object does nothing"
   - "the lantern needs a different button to pick up than every other loose item"
   - "pressing Q over a placed object pockets it and fires the left gauntlet at the same time"
+  - "Wire Saveable Prefabs reports success but the placed half's prefabId is still empty"
 reads_with: [Artifacts, InteractionSystem, Backpack, Saddles]
-updated: 2026-09-06
+updated: 2026-09-17
 ---
 
 # Placeables
@@ -24,7 +25,7 @@ at no point should a placeable exist in the world *and* in an inventory.
 
 **Worked example:** the camp lantern — `Lantern.prefab` (held) / `PlacedLantern.prefab`
 (placed) / `Lantern.asset`, built by
-[`LanternBuilder`](Assets/Game/Editor/Items/LanternBuilder.cs).
+[`LanternBuilder`](Assets/Game/Editor/Items/LanternBuilder.cs). **One that does something:** the storm ward — `StormWard.prefab` / `PlacedStormWard.prefab` / `StormWard.asset`, built by [`StormWardBuilder`](Assets/Game/Editor/Items/StormWardBuilder.cs). Both share the pair recipe in [`PlaceablePairBuilder`](Assets/Game/Editor/Items/PlaceablePairBuilder.cs).
 
 **Scope:** [`PlaceableItem`](Assets/Game/Scripts/Items/Placeables/PlaceableItem.cs),
 [`PlacedObject`](Assets/Game/Scripts/Items/Placeables/PlacedObject.cs),
@@ -40,6 +41,7 @@ press finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 | `PlacementRule` | What placing *means* for this item: its **criteria** and its **logic**. On the item's prefab. |
 | `PlacedObject` | A thing on the ground. Answers **RMB** and returns the item. |
 | `IRetrievable` | "This can be taken back", reached by the interact press when there is no primary verb to spend it on. |
+| `StormWard` | On a placed ward, every `pulseInterval` (3 s): the ring (`head`) rides up its mast and slams down (`StormWardStroke`, a pure function of time either side of the impact); on the impact every machine plays the dust shockwave (sped to travel exactly `wardRadius`), the flash (parented to the ring) and the pulse sound. Separately and continuously, it is an `IStormSuppressor`: while enabled, any storm whose sand reaches `wardRadius` (100 m) fades out and keeps living unseen; picked up, it fades back in. |
 
 **Rules that exist:**
 
@@ -88,6 +90,8 @@ the asker's inventory and **then** despawns.
 
 ## Multiplayer
 
+**The storm ward** sends nothing: every machine has the spawned ward, registers it as a suppressor and holds off the same storms; its stroke and shockwave run on each machine's own timer.
+
 One id, on the placed object's own relay, gated on `Network.Owns`. Retrieval must be
 server-authoritative: two players clicking the same crate on the same frame must not produce
 two crates. There is no reply message — the despawn is what every other machine sees.
@@ -96,7 +100,7 @@ two crates. There is no reply message — the despawn is what every other machin
 
 A placed object is a spawned `NetworkObject`, so it needs a registered saveable prefab id and a
 `SaveableEntity`, or it is gone on reload. It carries **no** state of its own worth saving beyond
-its transform: what it returns is on the prefab, so `TransformSaveable` is the whole of it.
+its transform: what it returns is on the prefab, so `TransformSaveable` is the whole of it. The storm ward adds none: the storms it holds off are saved like any other and are held off again by the reloaded ward.
 
 ## Gotchas
 
@@ -138,8 +142,7 @@ its transform: what it returns is on the prefab, so `TransformSaveable` is the w
   fills it in the editor, so a prefab looks correctly wired while the `.prefab` file ships an empty
   string — and anything spawned from it is written into the save and can never be restored. Both
   lantern prefabs failed this when first built. `SaveWiringOnDiskTests` is the guard; run
-  **Tools ▸ Save System ▸ Wire Saveable Prefabs** and then check the file, because the tool does not
-  always flush the placed half.
+  **Tools ▸ Save System ▸ Wire Saveable Prefabs** after every rebuild. Until 2026-09-17 that tool **skipped every placed half** — `SaveablePolicy` finds no saver to add, and the pass skipped such prefabs before stamping, leaving `prefabId:` empty on disk. It now stamps any prefab that already carries a `SaveableEntity`.
 - **The returned asset must be the item that placed it.** Nothing enforces the pairing at runtime,
   and getting it wrong transmutes the item on every place/pick cycle.
 
@@ -155,6 +158,8 @@ one (`PlacedObject` + collider + `NetworkObject` + `SaveableEntity` + `Transform
 **A placeable that attaches to something** — write a `PlacementRule` instead. `CanPlace` is the
 criteria, `Place` returns whether the world changed, and no other file needs to know it exists.
 `SaddlePlacement` is 60 lines and is the worked example.
+
+**A new ground placeable, fast** — a builder on `PlaceablePairBuilder` (`EnsureItemAsset` → placed half via `Instantiate` + your components + `AddPlacedWiring` → `BuildHeld` → `Link`), as `StormWardBuilder` does; then Sync Network Prefabs, Wire Saveable Prefabs, Generate All Item Icons.
 
 **A placeable that does something** — subclass `PlacedObject` and implement
 `ISecondaryInteractable` for the operating verb, which puts it on LMB. Do **not** override

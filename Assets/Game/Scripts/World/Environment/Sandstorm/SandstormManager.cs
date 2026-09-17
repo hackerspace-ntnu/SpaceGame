@@ -55,6 +55,10 @@ namespace SpaceGame.World.Weather
                  "term in every density query, and more than a handful is not readable anyway.")]
         [SerializeField, Range(1, 8)] private int maxConcurrent = 4;
 
+        [Tooltip("Seconds a storm takes to fade out when a suppressor starts holding it off, and to " +
+                 "fade back in when it stops. See StormSuppressors.")]
+        [SerializeField, Min(0.01f)] private float suppressionFadeSeconds = 2f;
+
         // The write model when there is a session: the server appends, everyone mirrors. Small,
         // and written only at birth and death, so it never shows up in a bandwidth profile.
         private readonly NetworkList<StormInstance> replicated = new NetworkList<StormInstance>();
@@ -64,6 +68,12 @@ namespace SpaceGame.World.Weather
         private readonly List<StormInstance> records = new List<StormInstance>();
 
         private readonly List<ResolvedStorm> resolved = new List<ResolvedStorm>();
+
+        // How present each storm is, 0 (held off) to 1, by id. Local to this machine and never
+        // saved: every machine has the same suppressors, so it converges on the same answer, and a
+        // storm first seen already held off starts at 0 rather than flashing up and fading.
+        private readonly Dictionary<int, float> presence = new Dictionary<int, float>();
+        private readonly List<int> presenceGone = new List<int>();
         private readonly List<int> expired = new List<int>();
         private int resolvedOnFrame = -1;
         private int nextId = 1;
@@ -459,6 +469,7 @@ namespace SpaceGame.World.Weather
                 return;
 
             double now = Sandstorms.WeatherTime;
+            float fadeStep = Time.deltaTime / suppressionFadeSeconds;
             for (int i = 0; i < records.Count; i++)
             {
                 StormInstance record = records[i];
@@ -467,13 +478,37 @@ namespace SpaceGame.World.Weather
                     continue;
 
                 StormState state = record.Evaluate(profile, now);
-                if (state.Intensity <= 0f)
+                StormFootprint footprint = profile.Footprint(state.Center, state.Heading);
+
+                // Suppression scales intensity rather than dropping the storm, so the record keeps
+                // its life and its path and comes back where it would have been.
+                float target = StormSuppressors.Suppresses(footprint) ? 0f : 1f;
+                float present = presence.TryGetValue(record.Id, out float was)
+                    ? Mathf.MoveTowards(was, target, fadeStep)
+                    : target;
+                presence[record.Id] = present;
+
+                float intensity = state.Intensity * present;
+                if (intensity <= 0f)
                     continue;
 
-                resolved.Add(new ResolvedStorm(record.Id, profile,
-                                               profile.Footprint(state.Center, state.Heading),
-                                               state.Intensity));
+                resolved.Add(new ResolvedStorm(record.Id, profile, footprint, intensity));
             }
+
+            ForgetEndedStorms();
+        }
+
+        private void ForgetEndedStorms()
+        {
+            if (presence.Count <= records.Count)
+                return;
+
+            presenceGone.Clear();
+            foreach (int id in presence.Keys)
+                if (records.FindIndex(storm => storm.Id == id) < 0)
+                    presenceGone.Add(id);
+            foreach (int id in presenceGone)
+                presence.Remove(id);
         }
     }
 }

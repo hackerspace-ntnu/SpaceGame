@@ -17,8 +17,9 @@ symptoms:
   - "a nomad town is skipped with no level ground of radius N m left"
   - "NPCs cannot walk on a rock or mesa I just generated"
   - "surface detail I dialled up does not show in the meshed feature"
+  - "a ground NPC's home/task search picks an airborne site and walks underneath it"
 reads_with: [WorldStreaming, NavMeshSystem, Environment, SceneTransitions]
-updated: 2026-09-14
+updated: 2026-09-17
 ---
 
 # Procedural World Generation
@@ -38,6 +39,7 @@ Three independent edit-time generators — marching-cubes **terrain features**, 
 - **The one placed `RobotSettlementGenerator` is the mock Clanker settlement**, put into a main-world chunk by [`ClankerSettlementBuilder`](Assets/Game/Editor/Environment/ClankerSettlementBuilder.cs) (`Tools/SpaceGame/Settlements/…`) under a root named `ClankerSettlement`, seeded (`1701`), from `ClankerSettlement.asset`. The builder picks the ground itself: the flattest 150 m disc 450–800 m from the `SpawnPoint` whose disc clears every `TerrainFeatureSpawner` footprint. Before 2026-09-07 no scene held the generator and `SettlementConfig.asset` had every building slot empty — the robot settlement had never been built anywhere. Faction-side rules for it are in the faction design (`docs/superpowers/specs/2026-09-07-faction-system-design.md` §3.10). The recipe's `outriderPrefabs`/`outriderTotal` are mounted units on their own slots (two `ClankerOutrider`s), placed *after* everything else so adding them did not move a seeded town. Each robot group is a band — `AssignFormation` gives its members one `FormationModule` id (`<scene>/<root>/group<n>`, an instance override the scene saves) and makes the first the leader, so a group patrols as a group. The generated garrison is the town's *starting* population; `SettlementPopulation` on the root ([AgentSystem.md](AgentSystem.md)) tops it up to `ClankerSettlementBuilder.PopulationCap` a wave at a time afterwards.
 - **Nomad towns are a second, unrelated settlement generator.** [`NomadSettlementGenerator`](Assets/Game/Scripts/World/ProceduralGeneration/NomadSettlement/NomadSettlementGenerator.cs) scatters finished building prefabs in concentric bands — large landmarks in the core, then medium, then small, then freestanding tents — rather than composing tiles. [`NomadSettlementPlacer`](Assets/Game/Editor/Environment/NomadSettlementPlacer.cs) (`Tools/SpaceGame/Settlements/Build Nomad Settlements`) finds each town level ground and writes it into a chunk scene. **Its band radii are measured off the prefabs, not typed in**: a band holding N structures of clearance diameter D cannot ring tighter than `N·D/2π`, and every structure keeps a street of `NeighbourGap` (0.45) of its own longest side plus 2 m from its neighbours. Hand-tuned radii were what broke when the buildings were scaled up by half and the numbers were not — the ring slots all collided and what placed stood shoulder to shoulder.
 - **Authored, not generated**: [`WorldSiteMarker`](Assets/Game/Scripts/World/Sites/WorldSiteMarker.cs) components are hand-placed; they publish `WorldSite` records into a static registry NPCs query.
+- **Airborne sites opt out of ground search.** A marker's `airborne` flag (the Sky City's, set by `SkyCitySettlementWiring`) makes `WorldSiteRegistry.TryFindNearest`/`TryFindRandom`/`Query` skip it by default — those are what `NpcTaskModule`'s home search and `NpcTaskPlanner`'s task destinations call. `WorldSiteRegistry.TryFindByName` ignores the flag, for a caller that already knows the place by name rather than searching by kind.
 
 ## Key types
 
@@ -59,7 +61,7 @@ Three independent edit-time generators — marching-cubes **terrain features**, 
 | `SettlementGenerator`, `SettlementLayout`, `SettlementBuilder` | [Settlement/Core/](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core) | 4-pass tile pipeline; heights + block roles; prefab instantiation |
 | `SettlementPrefabConfig`, `SettlementGenerationSettings` | [Settlement/Config/](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Config) | ~25 prefab-variant arrays (tileSize 1, prefabs at 3× scale); footprint/height/density knobs |
 | `NomadSettlementGenerator`, `NomadSettlementPlacer` | [NomadSettlement/](Assets/Game/Scripts/World/ProceduralGeneration/NomadSettlement), [Editor/Environment/](Assets/Game/Editor/Environment/NomadSettlementPlacer.cs) | Banded prefab scatter with measured radii; site search + chunk-scene writer for the nine towns |
-| `WorldSite`, `SiteKind`, `WorldSiteRegistry`, `WorldSiteMarker` | [World/Sites/](Assets/Game/Scripts/World/Sites) | Position+radius+id record; 8 kinds; static registry with nearest/random queries |
+| `WorldSite`, `SiteKind`, `WorldSiteRegistry`, `WorldSiteMarker` | [World/Sites/](Assets/Game/Scripts/World/Sites) | Position+radius+id record + `Airborne` flag; 8 kinds; static registry with nearest/random/by-name queries |
 
 ## Flows
 
@@ -113,6 +115,7 @@ Three independent edit-time generators — marching-cubes **terrain features**, 
 - **A mesa is invisible to an editor raycast.** Terrain-feature meshes are spawned at bake time, not kept in the chunk scene, so `RobotSettlementGenerator.SampleGround` (a `Physics.Raycast`) and `Terrain.SampleHeight` both report the flat terrain *under* a mesa. Anything that chooses ground in the editor must read `TerrainFeatureSpawner.Area.ComputeLocalBounds()` and keep out of it, which is what the settlement builder does.
 - **`RobotSettlementGenerator` raycasts with `terrainMask = ~0`, so a later placement can land on an earlier one.** Terrain is on layer `Default` like the buildings, so the mask cannot separate them; the ring radii and `buildingPadding` are what keep buildings apart, and a parked vehicle can still end up on a roof.
 - `WorldSiteMarker` **never unregisters on disable** (a caravan may be walking to a site whose chunk unloaded); only `WorldSiteRegistry.Clear()` removes sites.
+- **A `Home` site is not automatically a ground destination.** `SiteKind` says what a place is FOR, not whether anything can walk to it — the Sky City is `Home` because that is what it is to the Sky Tribe, but it sits 228 m up with no ground link. With its marker's `airborne` flag set, every kind-based search (`WorldSiteRegistry.TryFindNearest`/`TryFindRandom`/`Query`) skips it **for everyone, including the Sky Tribe's own errands** — `airborne` is not "ground NPCs only", it opts the site out of kind search entirely. Only `TryFindByName` (a caller that already knows the place by name) or an explicit `includeAirborne: true` finds it. Before the flag existed, nothing stopped `NpcTaskModule.EnsureHome`/`NpcTaskPlanner.ResolveDestination` from sending an unrelated ground NPC there; a new elevated or otherwise unwalkable structure needs the same flag, not a new `SiteKind`.
 - Feature/cave meshes feed the shared world NavMesh through their `MeshCollider` layer — they get no isolated `NavMeshData` (except a baked cave's). The layer must be one the world surface collects; see [NavMeshSystem.md](NavMeshSystem.md).
 
 ## Extending
@@ -128,4 +131,4 @@ Three independent edit-time generators — marching-cubes **terrain features**, 
 
 **New cave/settlement pass** — add a static pass class in the matching folder and call it from `CaveGenerator.Generate` / `SettlementGenerator.GenerateFull` after the existing passes; take `System.Random rng` (or the seed) as a parameter rather than creating your own, so the whole pipeline stays one seeded sequence.
 
-**New site kind** — add a `SiteKind` entry, give it a gizmo colour in `WorldSiteMarker.KindColour`, place markers, and query it via `WorldSiteRegistry.TryFindRandom` (prefer random over `TryFindNearest`, which makes every NPC walk the same route).
+**New site kind** — add a `SiteKind` entry, give it a gizmo colour in `WorldSiteMarker.KindColour`, place markers, and query it via `WorldSiteRegistry.TryFindRandom` (prefer random over `TryFindNearest`, which makes every NPC walk the same route). If the new site cannot be reached on foot, tick `airborne` on its marker instead of inventing a kind for it.

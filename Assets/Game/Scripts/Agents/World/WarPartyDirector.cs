@@ -253,7 +253,8 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            if (WarPartyRules.ShouldAbandon(party.Position, quarryPosition, settings.maxPursuitDistance))
+            if (WarPartyRules.ShouldAbandon(party.Position, quarryPosition, settings.maxPursuitDistance,
+                                            sim.IsInFlight(party)))
             {
                 Resolve(war, Reckoning.Abandoned);
                 return;
@@ -304,7 +305,7 @@ namespace SpaceGame.Agents
             }
 
             string id = book.AssignParty(war, taken => sim.FindGroup(taken) != null);
-            NpcGroup party = sim.CreateGroup(template, id, ChooseOrigin(quarryPosition));
+            NpcGroup party = sim.CreateGroup(template, id, ChooseOrigin(template, quarryPosition));
             if (party == null)
             {
                 book.ClearParty(war, settings.partyCooldown);
@@ -318,9 +319,17 @@ namespace SpaceGame.Agents
             Notify(war, WarNotice.Raised);
         }
 
-        /// <summary>The nearest camp if nobody can see it, else a point beyond staging nobody can see.</summary>
-        private Vector3 ChooseOrigin(Vector3 quarryPosition)
+        /// <summary>
+        /// A party with a transport sets out from its home site, seen or not: a vessel leaving its own
+        /// city is expected to be watched. Any other party (or one whose home is not registered): the
+        /// nearest camp if nobody can see it, else a point beyond staging nobody can see.
+        /// </summary>
+        private Vector3 ChooseOrigin(NpcGroupTemplate template, Vector3 quarryPosition)
         {
+            if (template.transport.Flies &&
+                WorldSiteRegistry.TryFindByName(template.transport.homeSiteName, out WorldSite home))
+                return home.Position;
+
             float staging = Staging;
 
             if (WorldSiteRegistry.TryFindNearest(SiteKind.Camp, quarryPosition, settings.campSearchRadius, out WorldSite camp)

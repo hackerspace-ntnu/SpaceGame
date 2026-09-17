@@ -11,17 +11,24 @@
 //   the two is hysteresis: without it, standing exactly on the boundary spawns and despawns a
 //   caravan every second.
 //
+// A group whose template has a transport (a Sky war party) travels in a vessel until it is
+// dropped off: folded at the transport's speed, spawned seated aboard a vessel that flies it to its
+// goal. From then on it walks like any other group, and the empty vessel flies home and is taken
+// away once nobody can see it.
+//
 // Put one of these in the persistent scene. It is server-only — NPC decisions belong on the machine
 // that simulates them, and a client running its own copy would produce a different caravan in a
 // different place with the same name.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Vehicles;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -55,6 +62,15 @@ namespace SpaceGame.Agents
         [Tooltip("How often the list of players is refreshed. Players join, die and respawn; " +
                  "caching forever means a group never notices anyone who arrived late.")]
         [SerializeField] private float playerRefreshInterval = 2f;
+
+        [Header("Transports")]
+        [Tooltip("Seconds a vessel that came home with its party still aboard (it found nowhere to set " +
+                 "down) waits at its dock before it tries the drop again.")]
+        [SerializeField] private float transportRetryDelay = 15f;
+
+        [Tooltip("A vessel parked empty at its dock within this distance of a group about to fly out is " +
+                 "boarded instead of a new one being spawned beside it.")]
+        [SerializeField] private float dockReuseRadius = 150f;
 
         [Header("Bounty hunters")]
         [Tooltip("Seconds before a lead on the player goes cold and the squad returns to roaming.")]
@@ -130,8 +146,9 @@ namespace SpaceGame.Agents
             for (int i = 0; i < groups.Count; i++)
                 TickGroup(groups[i], elapsed);
 
-            // A released group leaves once nobody can see it go (rosters plan: never popped out of view).
-            groups.RemoveAll(g => g.DisbandWhenFolded && !g.Spawned);
+            // A released group leaves once nobody can see it go (rosters plan: never popped out of view),
+            // and not before the vessel it came in has gone the same way.
+            groups.RemoveAll(g => g.DisbandWhenFolded && !g.Spawned && g.Transport == null);
         }
 
         // ── Setup ────────────────────────────────────────────────────────────────
@@ -241,21 +258,23 @@ namespace SpaceGame.Agents
             NpcGroup group = FindGroup(groupId);
             if (group == null) return;
 
+            DespawnTransport(group);
             DespawnMembers(group);
             groups.Remove(group);
             Log($"'{groupId}' disbanded");
         }
 
         /// <summary>
-        /// Stop a group being anyone's war party. Folded: removed at once. Spawned: its quarry is cleared
-        /// and it is removed when it folds, so players never watch it vanish.
+        /// Stop a group being anyone's war party. Folded with no vessel still out: removed at once.
+        /// Otherwise its quarry is cleared and it is removed once it has folded and its vessel is gone,
+        /// so players never watch either vanish.
         /// </summary>
         public void ReleaseGroup(string groupId)
         {
             NpcGroup group = FindGroup(groupId);
             if (group == null) return;
 
-            if (!group.Spawned)
+            if (!group.Spawned && group.Transport == null)
             {
                 DisbandGroup(groupId);
                 return;
@@ -279,6 +298,12 @@ namespace SpaceGame.Agents
 
         public FactionDefinition TribeOf(NpcGroup group) => TemplateFor(group)?.tribe;
 
+        /// <summary>The group has a transport and has not been dropped off yet: it is flying, not walking.</summary>
+        public bool IsInFlight(NpcGroup group) => TemplateFor(group) is { } template && InFlight(group, template);
+
+        private static bool InFlight(NpcGroup group, NpcGroupTemplate template) =>
+            template.transport != null && template.transport.Flies && !group.Delivered;
+
         public void CollectPlayerPositions(List<Vector3> into)
         {
             into.Clear();
@@ -293,6 +318,9 @@ namespace SpaceGame.Agents
             NpcGroupTemplate template = TemplateFor(group);
             if (template == null) return;
 
+            // First: a wiped-out or released party's vessel still has to leave before it can be removed.
+            TickTransport(group, template, delta);
+
             // Wiped out: waits for the director to resolve it rather than re-spawning at full strength.
             if (group.WipedOut) return;
 
@@ -301,6 +329,9 @@ namespace SpaceGame.Agents
                 TickSpawned(group, template, delta);
                 return;
             }
+
+            // Released and folded: only waiting for its vessel to fly out of sight.
+            if (group.DisbandWhenFolded) return;
 
             TickVirtual(group, template, delta);
 
@@ -322,7 +353,7 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            group.Position = Centroid(group);
+            group.Position = CurrentPosition(group);
 
             if (group.IsWarParty) RefreshQuarryLead(group, delta);
             else if (template.bountyHunters) RefreshLead(group, delta);
@@ -357,7 +388,7 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            if (!group.AdvanceToward(template.travelSpeed, delta)) return;
+            if (!group.AdvanceToward(FoldedSpeed(group, template), delta)) return;
 
             // Arrived. Dwell for as long as the task says, exactly as the live module would.
             group.HasGoal = false;
@@ -394,7 +425,7 @@ namespace SpaceGame.Agents
                 group.HasGoal = true;
             }
 
-            if (!group.AdvanceToward(template.travelSpeed, delta)) return;
+            if (!group.AdvanceToward(FoldedSpeed(group, template), delta)) return;
 
             group.HasGoal = false;
 
@@ -419,8 +450,12 @@ namespace SpaceGame.Agents
             group.LeadAge += delta;
             group.GoalPosition = group.Lead;
             group.HasGoal = true;
-            group.AdvanceToward(template.travelSpeed, delta);
+            group.AdvanceToward(FoldedSpeed(group, template), delta);
         }
+
+        /// <summary>A record still on its way in a vessel moves at the vessel's speed; altitude does not matter folded.</summary>
+        private static float FoldedSpeed(NpcGroup group, NpcGroupTemplate template) =>
+            InFlight(group, template) ? template.transport.travelSpeed : template.travelSpeed;
 
         private void ChooseTask(NpcGroup group, NpcGroupTemplate template)
         {
@@ -473,6 +508,22 @@ namespace SpaceGame.Agents
             group.FightersDead = 0;
             group.QuarrySeenThisSpawn = false;
 
+            // The riders are counted before anyone is spawned, because the count chooses the vessel.
+            int riderCount = plan.Count(NpcGroupComposition.Rides);
+            GameObject vessel = InFlight(group, template) && riderCount > 0
+                ? BoardTransport(group, template, riderCount)
+                : null;
+            List<GameObject> riders = vessel != null ? new List<GameObject>() : null;
+            int seats = vessel != null ? vessel.GetComponent<VesselSeats>().Capacity : 0;
+
+            if (vessel != null && riderCount > seats)
+                Debug.LogWarning($"[NpcWorldSim] '{group.Id}' has {riderCount} riders for {seats} seats on " +
+                                 $"'{vessel.name}'; {riderCount - seats} go on foot. Give '{template.id}' a larger vessel.", this);
+
+            // Under the vessel, so the riders are put on the NavMesh right below the seats they take.
+            Vector3 origin = vessel != null
+                ? new Vector3(vessel.transform.position.x, group.Position.y, vessel.transform.position.z)
+                : group.Position;
             Vector3 heading = group.Heading;
             int followerIndex = 0;
             bool leaderTaken = false;
@@ -485,8 +536,8 @@ namespace SpaceGame.Agents
                 bool leads = planned.Leads && !leaderTaken;
 
                 Vector3 slot = leads
-                    ? group.Position
-                    : FormationMath.SlotPosition(followerIndex, group.Position, heading,
+                    ? origin
+                    : FormationMath.SlotPosition(followerIndex, origin, heading,
                                                  template.formation, followerIndex * 7919, 0f);
 
                 if (!leads) followerIndex++;
@@ -499,9 +550,12 @@ namespace SpaceGame.Agents
 
                 leaderTaken |= leads;
                 group.Live.Add(member);
+                if (riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats) riders.Add(member);
 
                 Configure(member, group, template, leads);
             }
+
+            if (vessel != null) Launch(vessel, group, template, riders);
 
             if (group.Live.Count == 0) return;
 
@@ -512,6 +566,99 @@ namespace SpaceGame.Agents
 
             group.Spawned = true;
             Log($"{template.displayName} spawned ({group.Live.Count} members)");
+        }
+
+        /// <summary>
+        /// The vessel a group still on its way flies in, chosen by how many ride: an empty one of that
+        /// kind parked at its dock nearby if there is one, else a new one at the group's position lifted
+        /// to cruise height before anyone can see it, prow toward the quarry. With no flyable vessel the
+        /// party is logged and put down on foot rather than not appearing at all.
+        /// </summary>
+        private GameObject BoardTransport(NpcGroup group, NpcGroupTemplate template, int riders)
+        {
+            GameObject prefab = template.transport.VesselFor(riders);
+            if (prefab == null || prefab.GetComponent<VesselPilot>() == null)
+            {
+                Debug.LogError($"[NpcWorldSim] '{group.Id}' should fly in, but '{template.id}' has no vessel " +
+                               $"with a VesselPilot for {riders} riders; it spawns on foot.", this);
+                group.Delivered = true;
+                return null;
+            }
+
+            if (TryTakeParkedHull(group, prefab)) return group.Transport;
+
+            GameObject vessel = NpcSpawn.Create(prefab, group.Position, FacingQuarry(group), this,
+                instance => instance.GetComponent<VesselPilot>().RiseToCruise(QuarryPoint(group)));
+            if (vessel == null) return null;
+
+            group.Transport = vessel;
+            group.TransportPrefab = prefab;
+            group.TransportDock = FirstFreeDock(group);
+            return vessel;
+        }
+
+        /// <summary>
+        /// Board a hull of <paramref name="prefab"/>'s kind that another group left parked empty at its
+        /// dock within <see cref="dockReuseRadius"/>: no second hull spawned into the one already there.
+        /// It keeps its dock slot.
+        /// </summary>
+        private bool TryTakeParkedHull(NpcGroup group, GameObject prefab)
+        {
+            foreach (NpcGroup other in groups)
+            {
+                if (other == group || other.Transport == null || other.TransportPrefab != prefab) continue;
+                if (!other.Transport.TryGetComponent(out VesselPilot pilot) || pilot.IsWrecked ||
+                    pilot.State != VesselMissionState.Done || pilot.Seats.Occupied > 0) continue;
+                if (FlatDistance(other.Transport.transform.position, group.Position) > dockReuseRadius) continue;
+
+                group.Transport = other.Transport;
+                group.TransportPrefab = other.TransportPrefab;
+                group.TransportDock = other.TransportDock;
+                ForgetTransport(other);
+                Log($"'{group.Id}' boards the hull '{other.Id}' left parked");
+                return true;
+            }
+
+            return false;
+        }
+
+        private int FirstFreeDock(NpcGroup group)
+        {
+            var taken = new HashSet<int>();
+            foreach (NpcGroup other in groups)
+                if (other != group && other.Transport != null && other.TransportDock >= 0) taken.Add(other.TransportDock);
+
+            return NpcGroupTransport.FirstFreeDock(taken);
+        }
+
+        /// <summary>Seat the riders and send the vessel after the group's quarry; it flies back to its dock.</summary>
+        private void Launch(GameObject vessel, NpcGroup group, NpcGroupTemplate template, IReadOnlyList<GameObject> riders)
+        {
+            group.TransportParkedFor = 0f;
+            vessel.GetComponent<VesselPilot>().Begin(DockOf(group, template), () => QuarryPoint(group), riders, despawnRadius);
+        }
+
+        /// <summary>The group's dock slot around the transport's home site, or around the group's own position with no site registered.</summary>
+        private static Vector3 DockOf(NpcGroup group, NpcGroupTemplate template)
+        {
+            Vector3 home = WorldSiteRegistry.TryFindByName(template.transport.homeSiteName, out WorldSite site)
+                ? site.Position
+                : group.Position;
+
+            return NpcGroupTransport.DockPoint(home, group.TransportDock, template.transport.dockSpacing);
+        }
+
+        private static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
+
+        /// <summary>Where the group is headed: the director's fix on its quarry, else its goal.</summary>
+        private static Vector3 QuarryPoint(NpcGroup group) =>
+            group.HasLead ? group.Lead : group.HasGoal ? group.GoalPosition : group.Position;
+
+        private static Quaternion FacingQuarry(NpcGroup group)
+        {
+            Vector3 toward = QuarryPoint(group) - group.Position;
+            toward.y = 0f;
+            return toward.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(toward, Vector3.up) : Quaternion.identity;
         }
 
         private GameObject SpawnMember(GameObject prefab, Vector3 position, Vector3 heading,
@@ -591,7 +738,7 @@ namespace SpaceGame.Agents
 
         private void Despawn(NpcGroup group, NpcGroupTemplate template)
         {
-            group.Position = Centroid(group);
+            group.Position = CurrentPosition(group);
 
             // Read the leader's live goal back into the record, so a caravan that chose a new
             // destination while it was real does not forget it the moment it folds away.
@@ -613,10 +760,86 @@ namespace SpaceGame.Agents
                 break;
             }
 
+            // Still aboard: the vessel folds with its riders, and the record flies on from where it was.
+            // Dropped off: the empty vessel is TickTransport's, unless it is already out of sight too.
+            if (group.Transport != null &&
+                (!group.Delivered || NearestPlayerDistance(group.Transport.transform.position) > despawnRadius))
+                DespawnTransport(group);
+
             DespawnMembers(group);
             group.Spawned = false;
             Log($"{template.displayName} folded back to a record");
         }
+
+        /// <summary>
+        /// The vessel a group flew in on. It is the group's ride until the party is off (nobody left
+        /// seated, the vessel shot down or gone) and from then only a hull flying home, taken away once
+        /// every player is beyond despawnRadius. A run that came home with the party still aboard (no
+        /// landing site) is not a delivery: in sight it waits transportRetryDelay at its dock and flies
+        /// the drop again; out of sight the group folds with it and flies in afresh. Polled rather than
+        /// waiting for VesselPilot.Finished, which a vessel despawned mid-run never raises.
+        /// </summary>
+        private void TickTransport(NpcGroup group, NpcGroupTemplate template, float delta)
+        {
+            if (!InFlight(group, template) && group.Transport == null) return;
+
+            VesselPilot pilot = group.Transport != null ? group.Transport.GetComponent<VesselPilot>() : null;
+            bool wrecked = pilot != null && pilot.IsWrecked;
+            int aboard = pilot != null ? pilot.Seats.Occupied : 0;
+
+            if (!group.Delivered && (group.Spawned || group.Transport != null) &&
+                NpcGroupTransport.IsDelivered(pilot != null, wrecked, aboard))
+            {
+                group.Delivered = true;
+                Log($"{template.displayName} was dropped off");
+            }
+
+            if (group.Transport == null)
+            {
+                ForgetTransport(group);   // destroyed by its own wreck timer: let go of the dead reference
+                return;
+            }
+
+            if (!group.Delivered)
+            {
+                bool runDone = pilot != null && pilot.State == VesselMissionState.Done;
+                group.TransportParkedFor = runDone ? group.TransportParkedFor + delta : 0f;
+
+                if (NpcGroupTransport.ShouldRelaunch(runDone, wrecked, aboard, group.TransportParkedFor, transportRetryDelay))
+                {
+                    Log($"{template.displayName} flies the drop again");
+                    Launch(group.Transport, group, template, Array.Empty<GameObject>());
+                }
+
+                return;
+            }
+
+            if (NearestPlayerDistance(group.Transport.transform.position) > despawnRadius)
+                DespawnTransport(group);
+        }
+
+        /// <summary>
+        /// Despawn a group's vessel. Before its members, always: the hull's despawn hook puts anyone
+        /// still seated down on the NavMesh below, so a member despawned afterwards is a plain NPC,
+        /// never a seated body netcode lifts off a vanished hull.
+        /// </summary>
+        private static void DespawnTransport(NpcGroup group)
+        {
+            DestroyMember(group.Transport);
+            ForgetTransport(group);
+        }
+
+        private static void ForgetTransport(NpcGroup group)
+        {
+            group.Transport = null;
+            group.TransportPrefab = null;
+            group.TransportDock = -1;
+            group.TransportParkedFor = 0f;
+        }
+
+        /// <summary>A spawned group's position: its vessel's while aboard, else its members' centroid.</summary>
+        private static Vector3 CurrentPosition(NpcGroup group) =>
+            !group.Delivered && group.Transport != null ? group.Transport.transform.position : Centroid(group);
 
         /// <summary>
         /// Take a group's bodies out of the world: its spawned members, and every fighter that is no
@@ -839,7 +1062,7 @@ namespace SpaceGame.Agents
                 // A spawned group's record is stale — its members have walked since. Refresh the
                 // position from them so a save taken while you are standing next to a caravan puts
                 // it back where you last saw it, not where it was when it spawned.
-                if (groups[i].Spawned) groups[i].Position = Centroid(groups[i]);
+                if (groups[i].Spawned) groups[i].Position = CurrentPosition(groups[i]);
 
                 records[i] = groups[i].ToRecord();
             }
@@ -858,6 +1081,7 @@ namespace SpaceGame.Agents
         {
             foreach (NpcGroup group in groups)
             {
+                DespawnTransport(group);
                 if (!group.Spawned) continue;
 
                 DespawnMembers(group);
@@ -920,6 +1144,8 @@ namespace SpaceGame.Agents
             spawnRadius = Mathf.Max(20f, spawnRadius);
             despawnRadius = Mathf.Max(spawnRadius + 50f, despawnRadius);
             spawnSampleDistance = Mathf.Max(1f, spawnSampleDistance);
+            transportRetryDelay = Mathf.Max(0f, transportRetryDelay);
+            dockReuseRadius = Mathf.Max(0f, dockReuseRadius);
             tickInterval = Mathf.Clamp(tickInterval, 0.1f, 10f);
             playerRefreshInterval = Mathf.Max(0.5f, playerRefreshInterval);
             leadLifetime = Mathf.Max(10f, leadLifetime);

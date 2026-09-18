@@ -15,6 +15,7 @@ using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.World;
 
 namespace SpaceGame.Vehicles
 {
@@ -70,6 +71,7 @@ namespace SpaceGame.Vehicles
         private VesselSeats seats;
         private HealthComponent health;
         private Rigidbody body;
+        private WorldStreamer streamer;
 
         private VesselMission mission;
         private Func<Vector3> quarry;
@@ -122,6 +124,7 @@ namespace SpaceGame.Vehicles
             if (!Network.Simulates(this)) return;
 
             this.quarry = quarry ?? throw new ArgumentNullException(nameof(quarry));
+            streamer = FindFirstObjectByType<WorldStreamer>();
             VesselMissionSettings run = missionSettings;
             run.despawnDistance = despawnDistance;
             mission = new VesselMission(home, run);
@@ -215,11 +218,17 @@ namespace SpaceGame.Vehicles
         /// <summary>
         /// Choose a site on reaching Approach, and keep checking it is still clear until the hull is
         /// down: another vessel, a camp or a crowd may have moved in since. No site anywhere, first
-        /// time or on a re-check, gives up the drop and goes home with the party aboard.
+        /// time or on a re-check, gives up the drop and goes home with the party aboard. Nothing is
+        /// judged until the ground around the quarry has streamed in: until then the hull keeps
+        /// flying at the quarry (Approach with no site steers there) and asks again next frame.
         /// </summary>
         private void MaintainSite(Vector3 quarryPoint, Vector3 position, float dt)
         {
             VesselMissionState state = mission.State;
+            if ((state == VesselMissionState.Approach || state == VesselMissionState.Descend) &&
+                !IsGroundLoadedAround(quarryPoint))
+                return;
+
             if (state == VesselMissionState.Approach && !mission.Site.HasValue)
             {
                 ChooseSite(quarryPoint, position);
@@ -236,6 +245,15 @@ namespace SpaceGame.Vehicles
             if (!LandingSiteFinder.IsStillClear(mission.Site.Value, quarryPoint, footprintRadius, landing, probe))
                 ChooseSite(quarryPoint, position);
         }
+
+        /// <summary>
+        /// Whether every chunk the landing rings (and a footprint on the outermost) could stand on is
+        /// loaded. Without this a party a load restored — spawned in the world's first frame, before a
+        /// single chunk — searched empty space, found no site, and flew home to fold and come back.
+        /// No streamer (a test scene, an arena) has nothing to wait for.
+        /// </summary>
+        private bool IsGroundLoadedAround(Vector3 quarryPoint) =>
+            streamer == null || streamer.IsGroundLoadedAround(quarryPoint, landing.ringMax + footprintRadius);
 
         private void ChooseSite(Vector3 quarryPoint, Vector3 position)
         {

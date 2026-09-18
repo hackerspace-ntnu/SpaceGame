@@ -227,32 +227,10 @@ namespace SpaceGame.Agents
             }
         }
 
-        // The chunks under the centre and the corners of countRadius. With no streamer there are no
-        // chunks to wait for; a streamer that is not ready yet has no answer, which is a wait.
-        //
-        // Assumes countRadius fits well inside half a chunk's width: these 9 samples (the centre
-        // plus its 8 surrounding points) only cover every chunk the ring could touch if the ring
-        // never reaches past the centre chunk's immediate neighbours. The Sky City's 100 m radius
-        // is comfortably inside that against the world's 500 m chunks; a settlement whose
-        // countRadius approaches half the chunk size would need more samples, not just a bigger
-        // radius on these same 9.
-        private bool GroundChunksLoaded()
-        {
-            if (streamer == null)
-                return true;
-            if (!streamer.IsReady)
-                return false;
-
-            Vector3 centre = transform.position;
-            for (int x = -1; x <= 1; x++)
-            for (int z = -1; z <= 1; z++)
-            {
-                Vector3 point = centre + new Vector3(x, 0f, z) * countRadius;
-                if (streamer.IsInsideWorldGrid(point) && !streamer.IsChunkLoadedAt(point))
-                    return false;
-            }
-            return true;
-        }
+        // The ground under countRadius. With no streamer there are no chunks to wait for; a streamer
+        // that is not ready yet has no answer, which is a wait.
+        private bool GroundChunksLoaded() =>
+            streamer == null || streamer.IsGroundLoadedAround(transform.position, countRadius);
 
         // Says once that the chunks this settlement is waiting on have not shown up within a
         // generous timeout -- a settlement that never spawns anyone looks identical to one that is

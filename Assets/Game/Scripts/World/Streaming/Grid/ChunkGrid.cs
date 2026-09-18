@@ -15,6 +15,7 @@
 //
 // Distance from the grid's edge separates them. Strict containment cannot: it puts a metre
 // past the beach in the same bucket as another map.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.World.Streaming
@@ -98,6 +99,25 @@ namespace SpaceGame.World.Streaming
                                  Mathf.FloorToInt((relZ - halfZ) / ChunkSize.y));
             max = new Vector2Int(Mathf.CeilToInt((relX + halfX) / ChunkSize.x),
                                  Mathf.CeilToInt((relZ + halfZ) / ChunkSize.y));
+        }
+
+        /// <summary>
+        /// Every chunk of the grid within <paramref name="radius"/> metres of
+        /// <paramref name="worldPos"/> on either axis: the chunks whose ground something working
+        /// that far out could need. <see cref="WindowAround"/> clipped to the grid, so a position
+        /// near the edge of the world names only the chunks that exist. Fills
+        /// <paramref name="into"/>, cleared first.
+        /// </summary>
+        public void CoordsAround(Vector3 worldPos, float radius, List<Vector2Int> into)
+        {
+            into.Clear();
+
+            float size = Mathf.Max(0f, radius) * 2f;
+            WindowAround(worldPos, new Vector2(size, size), out Vector2Int min, out Vector2Int max);
+
+            for (int x = Mathf.Max(min.x, 0); x < Mathf.Min(max.x, Dimensions.x); x++)
+            for (int y = Mathf.Max(min.y, 0); y < Mathf.Min(max.y, Dimensions.y); y++)
+                into.Add(new Vector2Int(x, y));
         }
 
         public bool IsValidCoord(Vector2Int coord)

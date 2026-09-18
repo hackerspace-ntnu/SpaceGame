@@ -260,6 +260,7 @@ A persistence change that has not been round-tripped does not work. Do all of th
 | Assuming a saver on a child is captured by the parent | State lands in the child's own record | Collection stops at any nested `SaveableEntity` |
 | Giving a system-owned object its own `SaveableEntity` | Two competing copies of the same state, and a lifeless duplicate object standing beside the real one on every load | `SaveScope.External` on the prefab, or `SaveableEntity.DisownToExternal()` at runtime; store the state on the owning system's saver |
 | Adding a saver with `AddComponent` at runtime | New saver never captured — the entity cached its saver list on first use | `entity.InvalidateSavers()` after the add (see `PlayerSaveService.EnsureMomentumSaver`) |
+| `NetworkObject.Spawn()` for something a record rebuilds on load | Survives an in-session quickload (NGO keeps `destroyWithScene: false` roots through `LoadScene(Single)`) and stands beside its rebuilt copy; quit-to-menu hides it | `Spawn(destroyWithScene: true)` — `WorldService` and `NpcSpawn` both do |
 | Restoring 0 HP without guarding | Loot re-dropped and death reaction replayed on every load | `HealthComponent.IsRestoring` — checked by `HealthReactionModule` and `EntityLootTable` |
 
 ## Related

@@ -283,6 +283,7 @@ namespace SpaceGame.EditorTools
             targeting = go.AddComponent<AgentTargeting>();
             mount = go.AddComponent<MountModule>();
             PassengerSeat seat = go.AddComponent<PassengerSeat>();
+            ClearMountCooldown(mount);
 
             Boot(go);
             EntityTargetRegistry.Register(faction);
@@ -363,6 +364,20 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// TryMount is gated on <c>Time.time >= lastMountChangeTime + mountCooldown</c>, and
+        /// Time.time does not advance outside Play mode — it sits wherever the last Play session
+        /// left it, which is 0 on a session that hasn't entered Play mode at all. A freshly
+        /// constructed MountModule starts with lastMountChangeTime at its default of 0 too, so the
+        /// authored 0.25s cooldown reads as still running and TryMount refuses every rider. Every
+        /// other MountModule test (MountSeatAddressingTests, NpcPassengerTests, WingPackLaunchTests,
+        /// ...) zeroes this field before mounting for the same reason; these tests need the same seam.
+        private static void ClearMountCooldown(MountModule mount)
+        {
+            var so = new SerializedObject(mount);
+            so.FindProperty("mountCooldown").floatValue = 0f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         [Test]
         public void ADismount_LeavesAModuleItNeverSwitchedOffAlone()
         {
@@ -378,6 +393,7 @@ namespace SpaceGame.EditorTools
 
             // A passenger seat: the mount keeps its own AI, so it suppresses nothing on the way in.
             SetAllowAIWhileMounted(mount, true);
+            ClearMountCooldown(mount);
             Boot(go);
 
             // A module that has switched ITSELF off — what DormantModule does the instant its wake
@@ -409,6 +425,7 @@ namespace SpaceGame.EditorTools
 
             // A steered mount: MountModule takes the creature's AI away for the ride.
             SetAllowAIWhileMounted(mount, false);
+            ClearMountCooldown(mount);
             Boot(go);
 
             Interactor interactor = Rider(out _);

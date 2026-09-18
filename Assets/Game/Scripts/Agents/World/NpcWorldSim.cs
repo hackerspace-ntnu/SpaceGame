@@ -25,6 +25,7 @@ using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
@@ -90,6 +91,9 @@ namespace SpaceGame.Agents
         private float tickTimer;
         private float playerTimer;
 
+        private SceneEventHook sceneEvents;
+        private bool worldReplaced;
+
         /// <summary>Every group, live or virtual. Read by the save adapter.</summary>
         public IReadOnlyList<NpcGroup> Groups => groups;
 
@@ -110,11 +114,30 @@ namespace SpaceGame.Agents
 
             Instance = this;
             BuildTemplateIndex();
+
+            // Through a hook: there is no NetworkSceneManager until a session starts. See SceneEventHook.
+            sceneEvents = new SceneEventHook(OnSceneEvent);
+            sceneEvents.Poll();
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            sceneEvents?.Detach();
+        }
+
+        /// <summary>
+        /// A single-mode load replaces the world this sim belongs to, and from that moment its groups
+        /// are no longer its to decide. Netcode has already despawned every member (NpcSpawn spawns
+        /// them destroyWithScene), but this scene lives on for the frames the new one takes to load:
+        /// ticking through them read every group as wiped out — which the war director resolves as a
+        /// defeat, posting "their resolve is weakening" over the loading screen — and spawned fresh
+        /// members into a world already on its way out. The new world's sim rebuilds them all from the save.
+        /// </summary>
+        private void OnSceneEvent(SceneEvent sceneEvent)
+        {
+            if (sceneEvent.SceneEventType == SceneEventType.Load && sceneEvent.LoadSceneMode == LoadSceneMode.Single)
+                worldReplaced = true;
         }
 
         private void Start()
@@ -127,6 +150,9 @@ namespace SpaceGame.Agents
             // Server only. NPC decisions must be made in exactly one place, or every machine gets
             // its own caravan in its own position and NetworkTransform has two truths to reconcile.
             if (Network.IsNetworked && !Network.Server) return;
+
+            sceneEvents.Poll();
+            if (worldReplaced) return;
 
             float delta = Time.deltaTime;
 
@@ -542,15 +568,18 @@ namespace SpaceGame.Agents
 
                 if (!leads) followerIndex++;
 
+                // Known before the spawn, so a rider is made with its NavMeshAgent already off.
+                bool seated = riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats;
+
                 // Stamped before the network spawn, so the loadout roll in OnNetworkSpawn is seeded.
                 int memberIndex = index;
-                GameObject member = SpawnMember(planned.Prefab, slot, heading,
+                GameObject member = SpawnMember(planned.Prefab, slot, heading, seated,
                     instance => GroupMembership.Stamp(instance, group, memberIndex, template.tribe));
                 if (member == null) continue;
 
                 leaderTaken |= leads;
                 group.Live.Add(member);
-                if (riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats) riders.Add(member);
+                if (seated) riders.Add(member);
 
                 Configure(member, group, template, leads);
             }
@@ -661,7 +690,7 @@ namespace SpaceGame.Agents
             return toward.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(toward, Vector3.up) : Quaternion.identity;
         }
 
-        private GameObject SpawnMember(GameObject prefab, Vector3 position, Vector3 heading,
+        private GameObject SpawnMember(GameObject prefab, Vector3 position, Vector3 heading, bool seated,
                                        Action<GameObject> beforeSpawn)
         {
             if (NavMesh.SamplePosition(position, out NavMeshHit hit, spawnSampleDistance, NavMesh.AllAreas))
@@ -671,7 +700,7 @@ namespace SpaceGame.Agents
                 ? Quaternion.LookRotation(heading, Vector3.up)
                 : Quaternion.identity;
 
-            return NpcSpawn.Create(prefab, position, rotation, this, beforeSpawn);
+            return NpcSpawn.Create(prefab, position, rotation, this, beforeSpawn, seated);
         }
 
         private void Configure(GameObject member, NpcGroup group, NpcGroupTemplate template, bool leads)

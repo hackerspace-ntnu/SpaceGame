@@ -168,6 +168,39 @@ namespace SpaceGame.EditorTools
             Assert.AreSame(instance, seen);
         }
 
+        // A seat is usually in mid-air, and a NavMeshAgent that wakes enabled off the NavMesh logs
+        // "Failed to create agent" inside Instantiate — before beforeSpawn could switch it off.
+        [Test]
+        public void NpcSpawn_Seated_WakesWithItsNavMeshAgentAlreadyOff()
+        {
+            var prefab = new GameObject("Template", typeof(UnityEngine.AI.NavMeshAgent));
+            junk.Add(prefab);
+
+            bool agentOnInBeforeSpawn = true;
+            GameObject instance = NpcSpawn.Create(prefab, new Vector3(0f, 500f, 0f), Quaternion.identity, null,
+                go => agentOnInBeforeSpawn = go.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled,
+                seated: true);
+            junk.Add(instance);
+
+            Assert.IsFalse(agentOnInBeforeSpawn, "the agent must already be off when beforeSpawn runs");
+            Assert.IsFalse(instance.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled);
+            Assert.IsNull(instance.transform.parent, "the NPC must come out at the scene root");
+            Assert.IsTrue(instance.activeInHierarchy);
+            Assert.AreEqual(new Vector3(0f, 500f, 0f), instance.transform.position);
+        }
+
+        [Test]
+        public void NpcSpawn_NotSeated_LeavesTheNavMeshAgentAsAuthored()
+        {
+            var prefab = new GameObject("Template", typeof(UnityEngine.AI.NavMeshAgent));
+            junk.Add(prefab);
+
+            GameObject instance = NpcSpawn.Create(prefab, Vector3.zero, Quaternion.identity);
+            junk.Add(instance);
+
+            Assert.IsTrue(instance.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled);
+        }
+
         [Test]
         public void SeededPick_IsTheSameForTheSameGroupAndMember()
         {

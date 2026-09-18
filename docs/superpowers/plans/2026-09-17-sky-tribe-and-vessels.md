@@ -10,6 +10,20 @@
 
 **Spec:** this plan is its own spec; decisions were made with the user on 2026-09-17 (answers recorded in the table below). Parent systems: [2026-09-16-rosters-and-war-parties-design.md](../specs/2026-09-16-rosters-and-war-parties-design.md), `.claude/skills/spacegame-tribe/SKILL.md`, [Vehicles.md](../../AI/systems/Vehicles.md), [NavMeshSystem.md](../../AI/systems/NavMeshSystem.md), [AgentSystem.md](../../AI/systems/AgentSystem.md).
 
+## Status (2026-09-17)
+
+**Part 1 (Tasks 1–8) is implemented.** Tasks 1–7 are done and play-verified on the host (see
+`task-N-report.md`, `fix-t3t4-report.md`, `fix-t4-followup-report.md` and
+`fix-skiff-facing-report.md` in this folder) — faction, roster, city NavMesh and population,
+vessel flight/landing math, the transport prefabs, and war parties that fly, land or hover, drop
+off and return. **Task 8: docs and skill are done** — `docs/AI/systems/SkyTribe.md`,
+`docs/Human/the-systems.md`, `.claude/skills/spacegame-vessel/SKILL.md`, and cross-references from
+`AgentSystem.md`/`Vehicles.md`/`NavMeshSystem.md`/`TerrainGeneration.md`/`Persistence.md`;
+`docs_check.py --index` is clean. **Task 8's play/client verification checklist (host+client vessel
+motion and dismount, save/reload mid-flight and after delivery) is still pending** a controller
+pass with a connected Unity Editor. Part 2 (Tasks 9–14: NPC worn gear, flight, swarmers) has not
+started.
+
 ## Decisions (user, 2026-09-17)
 
 | Question | Decision |

@@ -13,8 +13,10 @@
 //   root   NetworkObject, NetRelay, NetAuthority, NetworkTransform (server authority, interpolated),
 //          kinematic Rigidbody, EntityFaction (Sky), HealthComponent + NetworkedHealthComponent,
 //          ChairPose, VesselSeats, VesselPilot
-//   Model  the FBX, turned prow-forward and lifted so its lowest point is the root; the escort's
-//          collider rules (solid, not triggers) and cull group
+//   Model  the FBX, yawed by Transport.ModelYawCorrection (per vessel, measured — see BuildModel's
+//          remarks — not a shared constant) so its bow points prow-forward along +Z, and lifted so
+//          its lowest point is the root; the escort's collider rules (solid, not triggers) and cull
+//          group
 //   Seats  one marker per seat on the deck, facing outboard (skiff 4, freighter 8)
 //   Ramp   astern, at keel height: where a landed party walks off
 //   Drop   under the keel: where a hovering vessel drops its party
@@ -51,12 +53,23 @@ namespace SpaceGame.EditorTools
             public readonly string Escort;
             public readonly float FootprintRadius;
             public readonly int MaxHealth;
-            /// <summary>Seat points on the deck, in the MODEL's own space (as exported, prow at −Z).</summary>
+            /// <summary>
+            /// Yaw, in degrees about the model's own centre, that turns the escort FBX so ITS bow
+            /// points along the root's +Z — the heading VesselPilot/VesselFlightMath fly and steer
+            /// toward. Not a shared constant: the escort meshes were hand-built in the city's blend
+            /// file at whatever heading the artist happened to place them, so each vessel's own bow
+            /// (measured from its asymmetric parts — engine pylons, the cockpit house, masts) can
+            /// land anywhere. See BuildModel's remarks for how each value here was measured.
+            /// </summary>
+            public readonly float ModelYawCorrection;
+            /// <summary>Seat points on the deck, in the MODEL's own space, before <see cref="ModelYawCorrection"/>.</summary>
             public readonly Vector3[] Seats;
 
-            public Transport(string name, string escort, float footprintRadius, int maxHealth, Vector3[] seats)
+            public Transport(string name, string escort, float footprintRadius, int maxHealth,
+                              float modelYawCorrection, Vector3[] seats)
             {
-                Name = name; Escort = escort; FootprintRadius = footprintRadius; MaxHealth = maxHealth; Seats = seats;
+                Name = name; Escort = escort; FootprintRadius = footprintRadius; MaxHealth = maxHealth;
+                ModelYawCorrection = modelYawCorrection; Seats = seats;
             }
 
             public string PrefabPath => $"{PrefabFolder}/{Name}.prefab";
@@ -68,15 +81,23 @@ namespace SpaceGame.EditorTools
         // Deck points measured by raycasting the models: the skiff's gondola catwalk is ~3.5 × 3 m
         // under its beacon and hab capsule; the freighter's two catwalks make a 3 × 18 m deck.
         // The skiff carries a small war party, the freighter a large one (RosterAuthoring.WireWorldSim).
+        //
+        // ModelYawCorrection: measured by instantiating each escort FBX unrotated and reading where
+        // its bow-identifying part's renderer bounds fall along Z (see BuildModel's remarks). Both
+        // come out already bow-at-+Z as exported, so both are 0 — a fixed 180° here (the previous
+        // behaviour) flew the skiff stern-first, with its lookout cupola trailing and its engine
+        // pylons leading.
         public static readonly Transport Skiff =
-            new Transport("SkySkiffTransport", "SkySkiff", footprintRadius: 12f, maxHealth: 600, seats: new[]
+            new Transport("SkySkiffTransport", "SkySkiff", footprintRadius: 12f, maxHealth: 600,
+                modelYawCorrection: 0f, seats: new[]
             {
                 new Vector3(-0.4f, -6.1f, -0.6f), new Vector3(1.9f, -6.1f, -0.6f),
                 new Vector3(-0.4f, -6.1f, 1.4f), new Vector3(1.9f, -6.1f, 1.4f),
             });
 
         public static readonly Transport Freighter =
-            new Transport("SkyFreighterTransport", "SkyFreighter", footprintRadius: 18f, maxHealth: 1200, seats: new[]
+            new Transport("SkyFreighterTransport", "SkyFreighter", footprintRadius: 18f, maxHealth: 1200,
+                modelYawCorrection: 0f, seats: new[]
             {
                 new Vector3(-1f, -5.3f, -8.5f), new Vector3(1.4f, -5.3f, -8.5f),
                 new Vector3(-1f, -5.3f, -4f), new Vector3(1.4f, -5.3f, -4f),
@@ -129,7 +150,8 @@ namespace SpaceGame.EditorTools
                 // NetworkObject first: the NetworkBehaviours below look for it when added.
                 root.AddComponent<NetworkObject>();
 
-                Transform model = BuildModel(root.transform, source, out Bounds bounds, out StaticPropBuilder.FitCounts fits);
+                Transform model = BuildModel(root.transform, source, transport.ModelYawCorrection,
+                                              out Bounds bounds, out StaticPropBuilder.FitCounts fits);
                 Transform[] seats = BuildSeats(root.transform, model, transport.Seats);
                 string deckProblems = VerifyDeck(model, seats);
 
@@ -156,17 +178,30 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The FBX under a Model child, turned so the prow (−Z as exported) points along the root's +Z
-        /// and lifted so the lowest drawn point sits on the root. Returns the model's bounds in root space.
+        /// The FBX under a Model child, yawed by <paramref name="modelYawCorrection"/> so the vessel's
+        /// bow points along the root's +Z and lifted so the lowest drawn point sits on the root.
+        /// Returns the model's bounds in root space.
         /// </summary>
-        private static Transform BuildModel(Transform root, GameObject source, out Bounds bounds,
-                                            out StaticPropBuilder.FitCounts fits)
+        /// <remarks>
+        /// Each vessel's correction was found by instantiating its escort FBX unrotated (identity, as
+        /// exported) and reading which end its bow-identifying parts fall on along Z:
+        /// - Skiff: the lookout cupola (Mesh_SkyCity_Beacon_SensorCupola_Lantern, a windowed
+        ///   pilothouse) sits at exported Z ≈ +3.7, and the engine pylons named SternGear sit at
+        ///   exported Z ≈ −2.4 to −7.2 — consistent with the SternGear naming (stern) only when the
+        ///   bow is +Z, so the correction is 0.
+        /// - Freighter: the rotor/motor nacelles (also named Mesh_SkyCity_SternGear on this hull) sit
+        ///   at exported Z ≈ +4.7 to +14.3, confirmed by playtest as the bow; the correction is 0.
+        /// Mesh names here are inherited from the flagship's part library and do not indicate which
+        /// end is which on these hand-placed escort hulls — measure the geometry, not the name.
+        /// </remarks>
+        private static Transform BuildModel(Transform root, GameObject source, float modelYawCorrection,
+                                            out Bounds bounds, out StaticPropBuilder.FitCounts fits)
         {
             var model = (GameObject)PrefabUtility.InstantiatePrefab(source);
             PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             model.name = "Model";
             model.transform.SetParent(root, false);
-            model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            model.transform.localRotation = Quaternion.Euler(0f, modelYawCorrection, 0f);
 
             bounds = SkyFleetBuilder.RendererBounds(model);
             model.transform.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);

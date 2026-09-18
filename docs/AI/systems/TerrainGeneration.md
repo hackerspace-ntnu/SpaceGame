@@ -18,7 +18,7 @@ symptoms:
   - "NPCs cannot walk on a rock or mesa I just generated"
   - "surface detail I dialled up does not show in the meshed feature"
   - "a ground NPC's home/task search picks an airborne site and walks underneath it"
-reads_with: [WorldStreaming, NavMeshSystem, Environment, SceneTransitions]
+reads_with: [WorldStreaming, NavMeshSystem, Environment, SceneTransitions, SkyTribe]
 updated: 2026-09-17
 ---
 

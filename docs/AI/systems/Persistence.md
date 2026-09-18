@@ -25,8 +25,9 @@ symptoms:
   - "items I left lying on the ground are not caught by the terrain when I load the world, they just fall for ever"
   - "a save file's item records sit at y = -30000 and get deeper on every load"
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
-reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer]
-updated: 2026-09-16
+  - "after a quickload the old caravan is still standing beside the new one"
+reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
+updated: 2026-09-17
 ---
 
 # Persistence / Save-Load
@@ -138,6 +139,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | Leaving a `SaveableEntity` on a copy that is carried rather than lying in the world | The carried thing is captured **inside its carrier** and re-spawned as a loose root object at that pose on the next hydrate — one more copy per load, each falling further than the last | `CaptureScene` walks `GetComponentsInChildren` from every scene ROOT, so a saveable nested under a player, a vehicle or a fixture is a world record. Take it off the copy (`EquipItemSocket.Sanitize`) or `DisownToExternal()` it |
 | Restoring an entity's state *before* network-spawning it | `Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects` from `NetworkSpawnManager.AuthorityLocalSpawn`, once per affected entity, and the entity stays host-only. Restore is what nests the child: `EntityEquipmentSaveable` puts the NPC's weapon back in its hand and every item prefab ships a NetworkObject. A chunk with five armed Clankers logged it five times on hydrate. NGO **logs** this rather than throwing, so the `try/catch` around `Spawn()` never sees it | Network-spawn between `AdoptIdentity` and `Restore`. A child attached to an already-spawned root is just an unspawned child — which is what a held item is at runtime anyway |
 | Treating `OnLoadComplete` as once-only | State re-applied over a world that moved on | Idempotent — it fires per player bind and per late chunk |
+| Network-spawning something its owner rebuilds on load with plain `NetworkObject.Spawn()` | Only an **in-session** reload (F9 quickload) shows it — quit-to-menu tears the session down. The default is `destroyWithScene: false`, and NGO's `LoadScene(Single)` parks every such dynamic root in DontDestroyOnLoad and moves it back into the new scene, so it stands beside the copy its record rebuilds. Measured 2026-09-17: 21 of 113 NPC/hull objects survived (a Sand caravan, bounty hunters, a Sky hull and its riders) | `Spawn(destroyWithScene: true)`, as `WorldService` and `NpcSpawn` do (`SaveNetworking.SpawnIfNetworked` still does not — [DEFECTS.md](../DEFECTS.md)). It also changes a chunk unload: a `destroyWithScene` object in the unloading chunk scene is despawned rather than rescued, which is right for anything a save or a record rebuilds |
 | Restoring pose with `transform.position` | Object snaps back within a frame | The record's pose is applied for you via `SaveTeleport.Move` |
 | Persisting `isKinematic` | Loaded player cannot walk (quit-time autosave captures the body after netcode teardown) | Never save engine-owned flags; `RigidbodySaveable` returns null for a kinematic body |
 | Capturing the world after Netcode has shut down | `DespawnAndDestroyNetworkObjects` has destroyed every runtime-spawned NetworkObject, so `DropVanishedRuntime` erases their records as if the player had destroyed them — **no log line**. The PlayerShip vanished from the file on every editor Stop while timer, F5 and pause-menu saves kept it, which read as "sometimes". The tell is `[NpcWorldSim] … folded back to a record` printed just before `[Save] Wrote` | The store is captured and `Seal()`ed at `OnPreShutdown`. Do not "fix" quit ordering with execution order — the editor's ExitingPlayMode hook runs before any `OnApplicationQuit` |

@@ -134,6 +134,12 @@ Every creature, villager, enemy and gun emplacement is a body plus a stack of sm
 
 **Worth knowing:** a creature with no faction is invisible to every targeting system with no error at all, and a species is peaceful precisely by having *zero* relationship rows — adding one "for completeness" makes the whole faction attack on sight.
 
+### The tribe that lives in the sky *(SkyTribe)*
+
+A second neutral tribe, camped in a walking city that stands 228 metres up in the air on its own little NavMesh. Its people are the sand nomads wearing a different colour, and it goes to war the same way Sand does — except its war parties do not walk out to find you. A skiff or a freighter lifts off from the city, flies to wherever you are, looks for ground flat enough to land on and touches down, or hovers a few metres up and drops its passengers onto the nearest walkable ground if it cannot. The party then fights on foot like any other, and the empty hull flies itself home once you are out of sight.
+
+**Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
+
 ### Picking a creature up off the ground *(CarriedAgent)*
 
 Animals and people who walk the world walk on an invisible navigation surface, and until now that surface held them down absolutely: a rope could drag a creature along the sand but could never lift it, so a pilot with a jetpack and a leash hauled a dune rat about at ground level while paying the full cost of carrying it. A roped creature pulled steeply enough now comes off that surface and hangs from the rope, falls under its own weight when the rope lets go, and puts itself back down wherever it lands.

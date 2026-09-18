@@ -96,6 +96,14 @@ list), and sets `runtimeOnly = true`. Skip this and `WarPartyDirector.Raise` log
 however angry the tribe is. Also ensure a `WarPartyDirector` component sits on the same `NpcWorldSim`
 object — `WireWorldSim` adds one if missing.
 
+**A party can travel by vessel instead of on foot**: give the template an `NpcGroupTransport`
+(`smallVessel`/`largeVessel`, `travelSpeed`, `homeSiteName`) and the sim spawns the party seated in
+whichever vessel fits its tier, flies it to the quarry, lands or hovers, drops the party, and flies
+the empty hull home. The Sky Tribe is the worked example — its `sky-war-party` template flies out of
+"Sky City" in a `SkySkiffTransport`/`SkyFreighterTransport`. Building the vessel itself (turning a
+model into a flyable NPC transport) is **spacegame-vessel**; the end-to-end flow once it is built is
+[SkyTribe.md](../../../docs/AI/systems/SkyTribe.md).
+
 ## 6. Caravan templates
 
 An ordinary (non-war-party) `NpcGroupTemplate` for the tribe: set `tribe`, and for any
@@ -181,6 +189,8 @@ must not grow.
 ## Related
 
 - [spacegame-agent](../spacegame-agent/SKILL.md) — building the people/mounts this roster fields.
+- [spacegame-vessel](../spacegame-vessel/SKILL.md) — turning a model into a war party's flown
+  transport (the `NpcGroupTransport` option in §5).
 - [spacegame-persistence](../spacegame-persistence/SKILL.md) — `factionGoodwill` and `npcworld`
   record shapes.
 - [spacegame-multiplayer](../spacegame-multiplayer/SKILL.md) — network prefab registration for any

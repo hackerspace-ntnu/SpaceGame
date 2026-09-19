@@ -50,6 +50,13 @@ namespace SpaceGame.Items
         public override bool IsContinuous => true;
 
         /// <summary>
+        /// A committed burst outlives the press: the hold stream has to keep carrying the aim
+        /// until the tank ends the burn, or every other machine burns along a ray frozen at the
+        /// moment the finger came up. See <see cref="UsableItem.WantsHold"/>.
+        /// </summary>
+        public override bool WantsHold => commitToBurst && firing;
+
+        /// <summary>
         /// Server-run. The fire applies a condition to shared world state, which exactly one machine
         /// may decide (GDC-L1-MP-0004). The jet a peer sees is drawn by <see cref="PresentHold"/>.
         /// </summary>
@@ -136,6 +143,13 @@ namespace SpaceGame.Items
         [SerializeField] private Transform muzzle;
 
         [Header("Feel")]
+        [Tooltip("Once lit, burn until the tank is dry whatever the trigger does. Off, the lance's " +
+                 "way: the flame stops when the button does. On, the Flame Gauntlet's way: one press " +
+                 "is one whole burst, sized by the tank (a 3 s tank that must be full to start is " +
+                 "a 3 s burst, every time), and the trigger cannot end it early -- the committed end " +
+                 "of the responsiveness-commitment axis, like the laser staff (GDC-L1-FEEL-0008).")]
+        [SerializeField] private bool commitToBurst;
+
         [Tooltip("Seconds for the jet to reach full throttle when the trigger goes down.")]
         [SerializeField] private float igniteTime = 0.06f;
 
@@ -266,6 +280,10 @@ namespace SpaceGame.Items
         {
             if (!active)
             {
+                // A committed burst ignores the button. The stream itself only ends once WantsHold
+                // has gone false, i.e. once the tank has already put the jet out, so the release
+                // that does arrive here finds nothing burning to stop.
+                if (commitToBurst && firing) return;
                 Extinguish();
                 return;
             }

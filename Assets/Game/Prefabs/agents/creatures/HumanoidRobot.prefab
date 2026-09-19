@@ -21,6 +21,8 @@ GameObject:
   - component: {fileID: 8415662941036781290}
   - component: {fileID: 2439016603775203238}
   - component: {fileID: 2818752865614016348}
+  - component: {fileID: 4464501642632358035}
+  - component: {fileID: 1120242178897775557}
   m_Layer: 0
   m_Name: HumanoidRobot
   m_TagString: Untagged
@@ -313,6 +315,32 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &4464501642632358035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7063367642927654169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &1120242178897775557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7063367642927654169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
 --- !u!1001 &8262891103071106896
 PrefabInstance:
   m_ObjectHideFlags: 0

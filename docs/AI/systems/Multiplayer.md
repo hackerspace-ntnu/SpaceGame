@@ -19,7 +19,7 @@ symptoms:
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-08
+updated: 2026-09-15
 ---
 
 # Multiplayer / Netcode core
@@ -65,7 +65,7 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 | `SpawnSyncGuard` | [SpawnSyncGuard.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/SpawnSyncGuard.cs) | Server-side sweep, once a second, of NGO's `SpawnedObjects`/`SpawnedObjectsList` for entries whose GameObject is destroyed. Bootstrapped from a static like `SessionWatchdog`; logs each removal as an error |
 | `SkyNetwork`/`SkyAnchor` | [SkyNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/SkyNetwork.cs) | Replicates the day/night *anchor* only; time of day is a pure function of a shared clock |
 | `PlayerIdentity`/`PlayerRoster` | [PlayerIdentity.cs](Assets/Game/Scripts/Core/Multiplayer/Players/PlayerIdentity.cs) | On the player prefab: name + suit colour **owner-write**, team **server-write**; roster rows + ping |
-| `ChatNetwork`/`ChatLog`/`ChatCommands`/`ChatBuiltinCommands`/`ChatText`/`ChatMessage` | [ChatNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Chat/ChatNetwork.cs) | Own 3 RPCs (NetArg has no string, NetTo has no unicast); token-bucket throttle; static log survives scene loads |
+| `ChatNetwork`/`ChatLog`/`ChatCommands`/`ChatBuiltinCommands`/`ChatText`/`ChatMessage` | [ChatNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Chat/ChatNetwork.cs) | Own 3 RPCs (NetArg has no string, NetTo has no unicast); token-bucket throttle; static log survives scene loads. Commands are an open table: `/tp`, `/help` here, `/wave` `/cheer` `/shrug` `/flex` from [PlayerEmoteCommands](Assets/Game/Scripts/Characters/Player/PlayerEmoteCommands.cs) |
 | `MultiplayerAutotest`/`AutotestRunner.*`/`AutotestProbes` | [MultiplayerAutotest.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/MultiplayerAutotest.cs) | `-sgmode host\|client\|persist`; prints `[MPTEST] key=value` |
 | `NetworkPrefabRegistrar` | [NetworkPrefabRegistrar.cs](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) | `Tools/SpaceGame/Multiplayer/Sync Network Prefabs` |
 | Lobby (`LobbySession`, `LobbyJoinRecovery`, `LobbyTeams`, …) | [Lobby/](Assets/Game/Scripts/Core/Multiplayer/Lobby/) | Namespace `SpaceGame.Core.Lobbies` — see [Lobby.md](Lobby.md) |

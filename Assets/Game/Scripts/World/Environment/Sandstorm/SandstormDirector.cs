@@ -127,7 +127,10 @@ namespace SpaceGame.World.Weather
             if (activeStormId == 0)
                 return false;
 
-            var storms = manager.Resolved;
+            // The records, not the resolved storms: a storm fading in at birth, or held off by a
+            // storm ward, resolves at no intensity and is left out of Resolved while still running.
+            // Reading Resolved lost track of it and rolled the next storm on top of it.
+            var storms = manager.Records;
             for (int i = 0; i < storms.Count; i++)
             {
                 if (storms[i].Id == activeStormId)

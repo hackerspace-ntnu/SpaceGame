@@ -316,7 +316,7 @@ namespace SpaceGame.World.NavMeshTools
         /// Collider to NavMesh source. Lifted from the runtime <c>NavMeshSourceCache</c> this change
         /// deletes — the mapping was correct, it was the per-frame rebuilding around it that was not.
         /// </summary>
-        private static bool TryColliderToSource(Collider col, out NavMeshBuildSource src)
+        public static bool TryColliderToSource(Collider col, out NavMeshBuildSource src)
         {
             src = default;
             var t = col.transform;

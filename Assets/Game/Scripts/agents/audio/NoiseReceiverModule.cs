@@ -121,17 +121,40 @@ namespace SpaceGame.Agents
             // Never aggro onto yourself. AgentTargeting.ForceTarget has no self-check of its own,
             // and a creature handed its own transform chases a target it can never lose and melees
             // a target it can never miss — it beats itself to death with no attacker anywhere.
-            if ((aggroOn & typeMask) != 0 && instigator
-                && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
-                && !IsAlly(instigator))
+            bool aggro = (aggroOn & typeMask) != 0 && instigator
+                         && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                         && !IsAlly(instigator);
+
+            if (aggro)
             {
-                Targeting.ForceTarget(instigator);
+                // The same split AlertReceiverModule makes, for the same reason: an agent already
+                // Hostile toward the instigator takes the noise as the order to attack it was
+                // before the meter existed, and one that is Neutral toward them weighs it instead.
+                // Without a meter at all — a plain robot — the old bare ForceTarget stands.
+                bool alreadyHostile = TryGetComponent(out EntityFaction self)
+                                      && self.IsHostileTo(instigator);
+
+                if (TryGetComponent(out ProvocationModule provocation) && !alreadyHostile)
+                    provocation.AddAggression(AggressionInput.AllyHurt, 1f, instigator);
+                else
+                    Targeting.ForceTarget(instigator);
+
                 isInvestigating = false;
                 return;
             }
 
+            // A gunshot heard by an agent with a meter winds it up as well as sending it to look.
+            // Deliberately BOTH: the walk to the source is what the player sees, and the meter is
+            // why the seventh shot near a camp is different from the first.
             if ((investigateOn & typeMask) != 0)
             {
+                if (type == NoiseType.Gunshot && instigator && !IsAlly(instigator)
+                    && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                    && TryGetComponent(out ProvocationModule heard))
+                {
+                    heard.AddAggression(AggressionInput.Gunshot, 1f, instigator);
+                }
+
                 investigatePosition = origin;
                 investigateTimer = investigateDuration;
                 isInvestigating = true;

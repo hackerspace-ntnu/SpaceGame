@@ -2,6 +2,7 @@
 // Add this to any entity that should move around when nothing else claims the frame.
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.World;
 
 namespace SpaceGame.Agents
 {
@@ -15,6 +16,11 @@ namespace SpaceGame.Agents
         [SerializeField] private float sampleDistance = 6f;
         [SerializeField] private float minDestinationDistance = 1.5f;
         [SerializeField] private int maxSampleAttempts = 10;
+        [Tooltip("Only pick points a complete NavMesh path leads to. For NavMesh in pieces -- the Sky " +
+                 "City's roofs and gas-bag tops are islands beside its promenades -- where a point on " +
+                 "another island walks the agent to the nearest railing and stands it there. Needs " +
+                 "the agent on the NavMesh; off it, every point is refused.")]
+        [SerializeField] private bool onlyReachableDestinations = false;
 
         [Header("Wait")]
         [SerializeField] private float minWaitTime = 0.5f;
@@ -76,6 +82,7 @@ namespace SpaceGame.Agents
             "• sampleDistance — NavMesh.SamplePosition search radius\n" +
             "• minDestinationDistance — ignore destinations closer than this\n" +
             "• maxSampleAttempts — tries per destination before giving up\n" +
+            "• onlyReachableDestinations — refuse points no complete path leads to (islanded NavMesh)\n" +
             "• minWaitTime / maxWaitTime — idle pause range after reaching each point\n" +
             "• stopDistance — how close counts as 'reached'\n" +
             "• speedMultiplier — movement speed scale while wandering";
@@ -97,7 +104,15 @@ namespace SpaceGame.Agents
             if (!hasDestination)
             {
                 if (!TryPickDestination(context.Position, out currentDestination))
+                {
+                    // Back off rather than re-rolling next frame. With onlyReachableDestinations on,
+                    // an agent standing somewhere every sampled point fails from (off the NavMesh, or
+                    // an island with no complete path anywhere) would otherwise retry every Tick
+                    // forever -- a busy-loop of NavMesh queries that never succeeds until something
+                    // else moves it.
+                    waitTimer = minWaitTime;
                     return null;
+                }
                 hasDestination = true;
             }
 
@@ -117,6 +132,9 @@ namespace SpaceGame.Agents
                     continue;
 
                 if (Vector3.Distance(origin, hit.position) < minDestinationDistance)
+                    continue;
+
+                if (onlyReachableDestinations && !NavMeshReach.CanWalk(origin, hit.position))
                     continue;
 
                 destination = hit.position;

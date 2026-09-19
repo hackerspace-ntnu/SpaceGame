@@ -58,6 +58,8 @@ Full rules: [docs/AI/CONTRIBUTING.md](docs/AI/CONTRIBUTING.md).
 | [spacegame-artifact](.claude/skills/spacegame-artifact/SKILL.md) | Usable items: gadgets, spells, weapons, hotbar slots, hold poses |
 | [spacegame-multiplayer](.claude/skills/spacegame-multiplayer/SKILL.md) | Netcode: host works, clients broken; ownership, RPCs, prefab registration |
 | [spacegame-persistence](.claude/skills/spacegame-persistence/SKILL.md) | Save/load: state resets, entities duplicate, savers missing from JSON |
+| [spacegame-tribe](.claude/skills/spacegame-tribe/SKILL.md) | Adding a tribe: roster, war parties, caravans, goodwill |
+| [spacegame-vessel](.claude/skills/spacegame-vessel/SKILL.md) | NPC-flown transports: turning a model into a vessel that carries a group, lands or hovers, and drops them off |
 | [blender-model](.claude/skills/blender-model/SKILL.md) | Any 3D asset — models, props, variants — in the `.blend` library |
 
 ## Non-negotiables for every new feature

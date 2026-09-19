@@ -8,9 +8,14 @@
 //
 // So this is the other model: a mounted NPC is ONE agent, not two. The mount is the agent — it has
 // the motor, the NavMeshAgent, the formation slot, the task. The rider is a passenger: parented to
-// the saddle with its own drivers switched off, along for the journey. Half the agents, no
+// the saddle with its own MOVEMENT switched off, along for the journey. Half the agents, no
 // arbitration between a rider's AI and its mount's, and the rider is still a full NPC the moment it
 // gets off.
+//
+// Movement, and only movement. A passenger keeps its eyes and its trigger finger: it acquires its
+// own targets and fires its own gun from the saddle (AgentController.RidesAsPassenger). That split
+// is the whole reason a mount is not a weapon — an outrider's horse carries and an outrider's
+// Clanker shoots, and neither does the other's job.
 //
 // Online, only the authority seats anyone. Netcode then carries the whole arrangement by itself:
 // it replicates the rider's spawn, it replicates the parenting, and NetAuthority switches the
@@ -78,11 +83,9 @@ namespace SpaceGame.Agents
         private bool ownsRider;
 
         // What was switched off to make them a passenger, so exactly that much can be switched back
-        // on. Recording rather than re-deriving matters: a rider whose AgentController was already
-        // disabled by something else must not be handed a working one by dismounting.
-        private readonly List<Behaviour> suppressed = new();
-        private bool riderWasKinematic;
-        private Rigidbody riderBody;
+        // on. Shared with every other NPC carrier; see NpcSeating.
+        private readonly NpcSeating seating = new NpcSeating();
+        private readonly List<Transform> seatedNpcs = new();
 
         // Held so the death subscription is undone against the very instance it was made against,
         // even once Rider has been cleared. Same reason MountModule keeps its own.
@@ -132,7 +135,8 @@ namespace SpaceGame.Agents
 
             (Vector3 position, Quaternion rotation) = SeatPose(null);
 
-            GameObject rider = NpcSpawn.Create(riderPrefab, position, rotation, this);
+            GameObject rider = NpcSpawn.Create(riderPrefab, position, rotation, this,
+                                               spawned => GroupMembership.StampRider(gameObject, spawned));
             ownsRider = true;
             SeatInternal(rider);
             return rider;
@@ -153,8 +157,8 @@ namespace SpaceGame.Agents
 
             Rider = rider;
 
-            Suppress(rider);
-            Attach(rider.transform);
+            seating.Suppress(rider);
+            NpcSeating.Attach(rider.transform, GetComponentInParent<NetworkObject>(), SeatTransform, seatOffset, seatEuler);
             SubscribeToRiderDeath(rider);
             RefreshSeatedRider();
         }
@@ -163,12 +167,12 @@ namespace SpaceGame.Agents
         /// A rider who is hurt, or killed, gets off.
         ///
         /// <para>
-        /// A passenger's brain is switched off — that is what makes them a passenger — so a seated
-        /// rider cannot chase, cannot fight, cannot even turn round. Being shootable and unable to
-        /// answer is worse than being invulnerable: it reads as a broken enemy rather than a
-        /// peaceful one. Getting off is what makes them an NPC again, and every module that decides
-        /// what a provoked nomad does about it is already on the prefab and already listening to
-        /// the same damage.
+        /// A passenger can shoot back, but it cannot move: where it goes is the animal's decision,
+        /// and an animal has its own reasons to be somewhere. So a rider under fire is a rider that
+        /// cannot take cover, cannot close and cannot break off — it can only sit in the saddle and
+        /// trade. Getting off is what gives it those verbs back, and every module that decides what
+        /// a provoked nomad does with them is already on the prefab and already listening to the
+        /// same damage.
         /// </para>
         /// <para>
         /// Death matters separately because <c>HealthReactionModule</c> kills by switching the
@@ -214,65 +218,9 @@ namespace SpaceGame.Agents
             Dismount();
         }
 
-        /// <summary>
-        /// Park the rider in the saddle so the mount carries them.
-        ///
-        /// <para>
-        /// Netcode will not let a spawned <see cref="NetworkObject"/> sit under a plain transform,
-        /// and <see cref="seatPoint"/> is a bare child marker — so the networked path parents to
-        /// the mount's own NetworkObject, the only legal parent, and folds the marker's offset into
-        /// its local space instead. That is the same fold <c>MountModule.ParentRiderToMount</c>
-        /// does for a human rider on this very saddle; the two share no code because a player rider
-        /// and an NPC passenger share no other requirement.
-        /// </para>
-        /// </summary>
-        private void Attach(Transform rider)
-        {
-            NetworkObject riderNetObj = rider.GetComponent<NetworkObject>();
-            NetworkObject mountNetObj = GetComponentInParent<NetworkObject>();
-
-            if (riderNetObj != null && riderNetObj.IsSpawned &&
-                mountNetObj != null && mountNetObj.IsSpawned &&
-                riderNetObj.TrySetParent(mountNetObj, worldPositionStays: true))
-            {
-                (Vector3 position, Quaternion rotation) = SeatPose(mountNetObj.transform);
-                rider.SetLocalPositionAndRotation(position, rotation);
-                return;
-            }
-
-            // Nothing here is spawned, so netcode has no arrangement to replicate and its parenting
-            // rules are in the way rather than protecting anything: an unspawned NetworkObject
-            // refuses a reparent outright and silently puts the parent back, which left the rider
-            // standing in the air at the spot where the mount was born while the mount walked off.
-            // Clearing the flag is how you say this object's parenting is not netcode's business.
-            if (riderNetObj != null) riderNetObj.AutoObjectParentSync = false;
-
-            rider.SetParent(SeatTransform, worldPositionStays: false);
-            rider.SetLocalPositionAndRotation(seatOffset, Quaternion.Euler(seatEuler));
-        }
-
         /// <summary>The seat pose, in <paramref name="space"/> or in world space when that is null.</summary>
         private (Vector3 position, Quaternion rotation) SeatPose(Transform space) =>
-            SeatPoseIn(space, SeatTransform, seatOffset, seatEuler);
-
-        /// <summary>
-        /// Where a rider sits: <paramref name="offset"/> from <paramref name="seat"/>, read in
-        /// <paramref name="space"/> — the mount's root for the netcode path, world space (null) for
-        /// everything else.
-        ///
-        /// The two answers describe the same point in the world. Getting that fold wrong is how a
-        /// mounted rider ends up floating above the saddle on every machine but one.
-        /// </summary>
-        public static (Vector3 position, Quaternion rotation) SeatPoseIn(
-            Transform space, Transform seat, Vector3 offset, Vector3 euler)
-        {
-            Vector3 position = seat.TransformPoint(offset);
-            Quaternion rotation = seat.rotation * Quaternion.Euler(euler);
-
-            return space == null
-                ? (position, rotation)
-                : (space.InverseTransformPoint(position), Quaternion.Inverse(space.rotation) * rotation);
-        }
+            NpcSeating.SeatPoseIn(space, SeatTransform, seatOffset, seatEuler);
 
         /// <summary>
         /// Put the rider back on the ground beside the mount as a working NPC again.
@@ -307,10 +255,10 @@ namespace SpaceGame.Agents
                 beside = hit.position;
 
             UnsubscribeFromRiderDeath();
-            Detach(rider.transform);
+            NpcSeating.Detach(rider.transform);
             rider.transform.SetPositionAndRotation(beside, Quaternion.LookRotation(transform.forward, Vector3.up));
 
-            Restore(rider);
+            seating.Restore(rider, dismountSampleDistance);
 
             Rider = null;
             ownsRider = false;
@@ -354,17 +302,6 @@ namespace SpaceGame.Agents
             return passenger.Dismount() != null;
         }
 
-        // Mirror of Attach: a spawned NetworkObject is detached through netcode so the change
-        // reaches everyone, rather than by a raw SetParent(null) that only happens here.
-        private static void Detach(Transform rider)
-        {
-            NetworkObject riderNetObj = rider.GetComponent<NetworkObject>();
-            if (riderNetObj != null && riderNetObj.IsSpawned && riderNetObj.TryRemoveParent(true))
-                return;
-
-            rider.SetParent(null, worldPositionStays: true);
-        }
-
         private void OnDestroy()
         {
             UnsubscribeFromRiderDeath();
@@ -384,56 +321,6 @@ namespace SpaceGame.Agents
             }
 
             Destroy(Rider);
-        }
-
-        // ── Suppression ──────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Switch off everything that would make the rider try to move under its own power.
-        ///
-        /// <para>
-        /// Deliberately not the whole GameObject: the rider must keep animating, rendering and
-        /// being talkable-to while mounted — a trader you cannot speak to until they get down is
-        /// not a trader.
-        /// </para>
-        /// <para>
-        /// And deliberately not their colliders, which is what this used to do. A collider is not
-        /// only how a body pushes the world about; it is how the world finds the body at all.
-        /// Raycasts, overlap sweeps and the interaction probe all pass straight through a disabled
-        /// one, so a rider suppressed that way was not merely light on his feet — he could not be
-        /// shot, could not be lassoed or roped, could not be aimed at and could not be looked at.
-        /// What was actually wanted was for his body not to shove the animal underneath him, and
-        /// that is <see cref="RiderCollisionIgnore"/>'s job, applied per machine in
-        /// <see cref="PresentRider"/> because physics is local and only the authority gets here.
-        /// </para>
-        /// </summary>
-        private void Suppress(GameObject rider)
-        {
-            suppressed.Clear();
-
-            foreach (AgentController controller in rider.GetComponentsInChildren<AgentController>(true))
-                Disable(controller);
-
-            foreach (NavMeshAgent agent in rider.GetComponentsInChildren<NavMeshAgent>(true))
-                Disable(agent);
-
-            // Motors drive the body directly and would fight the saddle for the transform.
-            foreach (MonoBehaviour behaviour in rider.GetComponentsInChildren<MonoBehaviour>(true))
-                if (behaviour is IMovementMotor) Disable(behaviour);
-
-            riderBody = rider.GetComponent<Rigidbody>();
-            if (riderBody != null)
-            {
-                riderWasKinematic = riderBody.isKinematic;
-                riderBody.isKinematic = true;
-            }
-        }
-
-        private void Disable(Behaviour behaviour)
-        {
-            if (behaviour == null || !behaviour.enabled) return;
-            behaviour.enabled = false;
-            suppressed.Add(behaviour);
         }
 
         /// <summary>
@@ -456,43 +343,6 @@ namespace SpaceGame.Agents
                         parameter.name != seatedAnimatorBool) continue;
                     animator.SetBool(seatedAnimatorBool, seated);
                     break;
-                }
-            }
-        }
-
-        private void Restore(GameObject rider)
-        {
-
-            // A dead rider gets nothing back. HealthReactionModule has already switched the brain
-            // off and started the despawn timer by the time a death-triggered dismount reaches
-            // here, and handing back a working AgentController stands the corpse up and walks it
-            // away. Same rule MountModule applies to a player who dies in the saddle.
-            bool dead = rider.TryGetComponent(out HealthComponent health) && !health.Alive;
-
-            if (!dead)
-            {
-                foreach (Behaviour behaviour in suppressed)
-                    if (behaviour != null) behaviour.enabled = true;
-            }
-
-            suppressed.Clear();
-
-            if (riderBody != null)
-            {
-                riderBody.isKinematic = riderWasKinematic;
-                riderBody = null;
-            }
-
-            if (dead) return;
-
-            // A NavMeshAgent switched on away from the mesh is inert and logs nothing. Warping it
-            // is what makes the rider actually able to walk after getting off.
-            if (rider.TryGetComponent(out NavMeshAgent agent) && agent.enabled && !agent.isOnNavMesh)
-            {
-                if (NavMesh.SamplePosition(rider.transform.position, out NavMeshHit hit,
-                                           dismountSampleDistance, NavMesh.AllAreas))
-                {
-                    agent.Warp(hit.position);
                 }
             }
         }
@@ -561,13 +411,8 @@ namespace SpaceGame.Agents
         /// </summary>
         private Transform FindSeatedNpc()
         {
-            foreach (AgentController controller in GetComponentsInChildren<AgentController>(true))
-            {
-                if (controller == null || controller.gameObject == gameObject) continue;
-                return controller.transform;
-            }
-
-            return null;
+            NpcSeating.CollectSeatedNpcs(transform, seatedNpcs);
+            return seatedNpcs.Count > 0 ? seatedNpcs[0] : null;
         }
 
         private void OnValidate()

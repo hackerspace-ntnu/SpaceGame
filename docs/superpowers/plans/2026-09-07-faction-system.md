@@ -12,6 +12,54 @@
 
 ---
 
+## Where this actually is — verified against the repo 2026-09-16
+
+The checkboxes below had drifted from the code, and **the phases were not done in plan order** —
+Phase A and Phase 6 ran first and the cheap foundation everything else reads was skipped. Phases 0,
+1, 2 and Task 3.0 were done on 2026-09-15/16 and the boxes below now match the repo.
+
+| Phase | State | Evidence |
+| --- | --- | --- |
+| **A** Mock Clanker settlement | **done** bar the play/client check | `ClankerSettlementBuilder.cs`, `ClankerSettlement.asset`, generated into `Chunk_7_3` |
+| **0** Data hygiene | **done 2026-09-15** | Four assets renamed keeping their GUIDs (`HumansFaction`, `SandTribeFaction`, `ClankerFaction`, `OutlawFaction`); Outlaws↔Humans Hostile row added; `PatrolRobot 2` moved off the player's faction; `EntityFactionWiring` gave the six unowned agents one; `FactionAssetTests` |
+| **1** `defaultStance` + resolver | **done 2026-09-15** | `FactionDefinition.defaultStance` (+ `debugColor`→`hudColor`); `Get` falls through to §3.2 step 3; Clankers Hostile by default with two `Neutral` animal rows and three redundant rows deleted; `FactionRelations.Resolve` with the goodwill layer stubbed; `FactionRelationsTests` |
+| **2** Alerts | **done 2026-09-15** | 2.1 was already done. 2.2 found the alert modules were in the builder's list and on **none** of the five prefabs — nobody had re-run it. Added `NoiseReceiverModule` (Gunshot investigates, Hurt aggros), rebuilt all five, savers via `SaveablePolicy`; `NomadAlertWiringTests` |
+| **3** Goodwill + aggression meters | **DONE 2026-09-16** (3.0–3.3), bar the two-client check | `AggressionMath` + 17 tests; `ProvocationModule` is a 0–100 meter with `AggressionSettings`; inputs from damage, alerts, gunshots and the new `MenaceSensor`; `AggressionTelegraphModule` shows the Wary/Drawn bands and replicates them as `AgentAction.Band`; meter persisted. `GoodwillMath` (one-sided hysteresis) and `FactionGoodwillLedger` (on the `NpcWorldSim` object in `persistentScene`, Sand Tribe listed) with the Hit and Kill hooks live and `ResolveGoodwill` no longer a stub; **at war spreads by proximity to same-faction players** — crew in the world, team in versus, one rule. 3.3: `FactionGoodwillSaveable` (PATH C, player prefab) and `FactionGoodwillNetwork` (a targeted Rpc, not a NetMsg — NetMessaging has no unicast) |
+| **4** Rosters and tribes (incl. **4.5 traders**) | **sub-project 1 DONE 2026-09-16** (rosters + war parties, code and tests only — carrying the client/host-and-client and save/reload verification debt until Task 11 Step 7 runs against a connected Unity Editor); **sub-project 3's Sky half DONE 2026-09-17** via the separate [2026-09-17-sky-tribe-and-vessels.md](2026-09-17-sky-tribe-and-vessels.md) plan (Tasks 1–8: `SkyTribeFaction`, `Rosters/SkyTribe.asset`, the sky city and its population, and NPC-flown war-party transports — see [SkyTribe.md](../../AI/systems/SkyTribe.md); that plan's own host/client/save-reload checklist is still pending); Mechanics tribe, `TerritoryZone` and 4.5 traders **not started** | `FactionRoster`, `RosterRole`, `RosterValidation`, `RosterDraw`; `Rosters/SandTribe.asset` + `SandTribeHostileLines.asset`; `WarPartyDirector`, `WarBook`, `WarPartyRules`, `NpcGroupComposition`, `GroupMembership`, `WarNotice`; `RosterAuthoring` (`Author Sand Tribe Roster`, `Wire War Party Templates`) chained into `NomadPrefabBuilder`; tests `RosterAssetTests`, `RosterDrawTests`, `WarBookTests`, `WarPartyRulesTests`, `WarPartyDirectorTests`, `WarPartyPersistenceTests`, `WarNoticeTextTests`, `NpcGroupCompositionTests`, `FactionGoodwillLedgerTests` (self-defence exemption) |
+| **5** NPC worn gear, Sky flight | **not started** | no `EntityBodyEquipment`, no `NpcFlightModule` |
+| **6** Clankers | **6.1 + 6.2 done, 6.3 not started** | Clanker imported with `THIRD_PARTY_NOTICES.md`, `ClankerBuilder.cs`, `Clanker.prefab`, `Clanker.asset` targeting profile, `ClankerSquadPlacer`, settlement garrison + 3 outriders. `Rosters/Clankers.asset` waits on Phase 4. No `ScavengeModule` |
+| **7** Legibility | **not started** | no `FactionReadout` |
+| **8** Docs | **not started** | no `docs/AI/systems/Factions.md` |
+
+Not in the plan at all, and shipped: the **robot horse** (`RobotHorseBuilder`), which builds the wild
+Fauna `RobotHorse` and the Clanker-ridden `ClankerOutrider` the settlement fields. Its rule —
+**a mount carries, the rider shoots; no horse can attack anything** — is in
+[AgentSystem.md](../../AI/systems/AgentSystem.md) and [Vehicles.md](../../AI/systems/Vehicles.md).
+
+**Suggested next step:** Phase 4 sub-project 1 (rosters and war parties, per the
+[2026-09-16 spec](../specs/2026-09-16-rosters-and-war-parties-design.md) and its
+[implementation plan](2026-09-16-rosters-and-war-parties.md)) is code-and-tests complete — finish its
+Task 11 Steps 6–7 (full EditMode run, then the host-and-client play checklist) once the Unity Editor
+bridge is back. The Sky half of sub-project 3 is likewise code-and-docs complete (see above) with
+the same host/client/save-reload checklist outstanding. Remaining: the Mechanics tribe, `TerritoryZone`
+and 4.5 traders.
+
+**Carrying verification debt.** Five pieces of netcode from 2026-09-15/16 have never been seen on a
+real client: `AgentAction.Band`, Appa and Sandloper's `NetworkTransform`, the charged-shot
+replication, `MenaceSensor` reading body facing on the server, the goodwill layer deciding
+who targets whom, and 3.3's saver and client mirror. Extending
+`MultiplayerAutotest.RunClient` with `Report(...)` calls for these is the cheapest way to stop
+stacking on an unverified base — [INVARIANTS.md](../../AI/INVARIANTS.md) §1.
+
+**Future, recorded 2026-09-16 at the user's request — plan only, not scheduled:** quest-granted
+goodwill. Completing a quest for a tribe is an amends event into `FactionGoodwillLedger`, exactly as
+trading is, and needs only a new `GoodwillEvent` when the quest system exists. Also: the user wants to
+review what makes NPCs aggressive before per-tribe aggression tuning is designed.
+
+**Also on the list, outside this plan:** enemy pathfinding — see `AI-01` in
+[BACKLOG.md](../../BACKLOG.md), which records the three systems the symptom could live in and says
+to get one reproducible case before picking one.
+
 ## Before you start
 
 - **Branch.** Work is on `Feat/factions` (already checked out). One PR per phase; each phase leaves `main` shippable.
@@ -93,29 +141,29 @@ Fixes what is wrong on disk so later phases build on true data. Ships alone.
 
 ### Task 0.1 — Fix the faction assets
 
-- [ ] `PlayerFaction.asset` → `factionName: Humans`; rename file to `HumansFaction.asset` (`AssetDatabase.RenameAsset` or a git `mv` of file + `.meta`; the GUID must survive).
-- [ ] `NPCFaction.asset` → `factionName: Sand Tribe`; rename to `SandTribeFaction.asset`.
-- [ ] `RobotFaction.asset` → `factionName: Clankers`; rename to `ClankerFaction.asset`.
-- [ ] `BountyHunterFaction.asset` → `factionName: Outlaws`; rename to `OutlawFaction.asset`. Add one row: Outlaws↔Humans `Hostile`.
-- [ ] Update every string path: `NomadPrefabBuilder.FactionPath`, `EntitySystemSetup.cs` comments, the skill's temperament table, `AgentSystem.md`.
-- [ ] `PatrolRobot 2.prefab` → `ClankerFaction` (via its builder if one exists; grep `Assets/Game/Editor` for `PatrolRobot` first — if none, a one-off `SerializedObject` edit is acceptable and must be recorded in the doc's Gotchas).
-- [ ] Add `EntityFaction` (+ `EntityFactionSaveable`) to `BountyHunter`, `Ostrich`, `DesertCrawler`, `HumanoidRobot`, `CrabWalker6` through their builders. Factions: BountyHunter → `Outlaws`, Ostrich → `Fauna`, DesertCrawler → `Mechanics` once that faction asset exists in Task 4.3 (until then `SandTribe`, so it is at least targetable), the two robots → `Clankers`.
-- [ ] **Test** `FactionAssetTests`: loads every asset under `ScriptableObjects/Factions/Core/` and asserts unique, non-"Robots" `factionName`s and non-empty `ID`. Reads the asset, not the class (INVARIANTS: "a serialized field keeps its old value").
+- [x] `PlayerFaction.asset` → `factionName: Humans`; rename file to `HumansFaction.asset` (`AssetDatabase.RenameAsset` or a git `mv` of file + `.meta`; the GUID must survive).
+- [x] `NPCFaction.asset` → `factionName: Sand Tribe`; rename to `SandTribeFaction.asset`.
+- [x] `RobotFaction.asset` → `factionName: Clankers`; rename to `ClankerFaction.asset`.
+- [x] `BountyHunterFaction.asset` → `factionName: Outlaws`; rename to `OutlawFaction.asset`. Add one row: Outlaws↔Humans `Hostile`.
+- [x] Update every string path: `NomadPrefabBuilder.FactionPath`, `EntitySystemSetup.cs` comments, the skill's temperament table, `AgentSystem.md`.
+- [x] `PatrolRobot 2.prefab` → `ClankerFaction` (via its builder if one exists; grep `Assets/Game/Editor` for `PatrolRobot` first — if none, a one-off `SerializedObject` edit is acceptable and must be recorded in the doc's Gotchas).
+- [x] Add `EntityFaction` (+ `EntityFactionSaveable`) to `BountyHunter`, `Ostrich`, `DesertCrawler`, `HumanoidRobot`, `CrabWalker6` through their builders. Factions: BountyHunter → `Outlaws`, Ostrich → `Fauna`, DesertCrawler → `Mechanics` once that faction asset exists in Task 4.3 (until then `SandTribe`, so it is at least targetable), the two robots → `Clankers`.
+- [x] **Test** `FactionAssetTests`: loads every asset under `ScriptableObjects/Factions/Core/` and asserts unique, non-"Robots" `factionName`s and non-empty `ID`. Reads the asset, not the class (INVARIANTS: "a serialized field keeps its old value").
 - [ ] Verify: play, walk up to a nomad, dev-print `EntityFaction.Faction.factionName` → `Sand Tribe`. Save, reload, same.
 
 ## Phase 1 — Default stance and the resolver
 
 ### Task 1.1 — `defaultStance`
 
-- [ ] `FactionDefinition`: `[SerializeField] FactionRelationship defaultStance = Neutral` with a tooltip that quotes the rule in design §3.2; `[FormerlySerializedAs("debugColor")] hudColor`.
-- [ ] `FactionRelationshipTable.Get`: after the row miss, apply §3.2 step 3 (either Hostile → Hostile; both Allied → Allied; else Neutral). Keep the index; the fallback runs only on a cache miss.
-- [ ] Set `defaultStance = Hostile` on `ClankerFaction.asset`. Add two rows: Clankers↔Fauna `Neutral`, Clankers↔Wildlife `Neutral` (people only — a row beats the default). Delete the now-redundant `Player↔Robot Hostile`, `Player↔NPC Neutral` and `Robot↔NPC Neutral` rows **only after** the test below passes with them removed.
-- [ ] **Tests** `FactionRelationsTests` (pure, `CreateInstance` factions with ids stamped by hand): no rows + Neutral defaults → Neutral; either Hostile default → Hostile; row beats default (Fauna vs Clanker → **Neutral** via the row); same faction → Allied; Fauna vs Sand → Neutral; Humans vs Clanker → Hostile with no row. Plus `FactionAssetTests` reads `GlobalRelationships.asset` and asserts the two Clanker animal rows exist and that no row pairs Clankers with a people faction.
+- [x] `FactionDefinition`: `[SerializeField] FactionRelationship defaultStance = Neutral` with a tooltip that quotes the rule in design §3.2; `[FormerlySerializedAs("debugColor")] hudColor`.
+- [x] `FactionRelationshipTable.Get`: after the row miss, apply §3.2 step 3 (either Hostile → Hostile; both Allied → Allied; else Neutral). Keep the index; the fallback runs only on a cache miss.
+- [x] Set `defaultStance = Hostile` on `ClankerFaction.asset`. Add two rows: Clankers↔Fauna `Neutral`, Clankers↔Wildlife `Neutral` (people only — a row beats the default). Delete the now-redundant `Player↔Robot Hostile`, `Player↔NPC Neutral` and `Robot↔NPC Neutral` rows **only after** the test below passes with them removed.
+- [x] **Tests** `FactionRelationsTests` (pure, `CreateInstance` factions with ids stamped by hand): no rows + Neutral defaults → Neutral; either Hostile default → Hostile; row beats default (Fauna vs Clanker → **Neutral** via the row); same faction → Allied; Fauna vs Sand → Neutral; Humans vs Clanker → Hostile with no row. Plus `FactionAssetTests` reads `GlobalRelationships.asset` and asserts the two Clanker animal rows exist and that no row pairs Clankers with a people faction.
 
 ### Task 1.2 — `FactionRelations.Resolve`
 
-- [ ] Static `Resolve(EntityFaction self, EntityFaction other)`: grudge (self's `ProvocationModule.IsProvoked && Aggressor.root == other.root` → Hostile) → goodwill (Phase 3; stub returns null now) → table.
-- [ ] `EntityFaction.GetRelationshipWith` calls it. Nothing else changes; `EntityTargetRegistry`, `AgentTargeting`, `FleeModule`, `AlertBroadcaster` all go through this one method already — grep `GetRelationshipWith\|IsHostileTo\|IsAlliedWith` and confirm no caller bypasses to `table.Get` directly (only `EntityFaction` may).
+- [x] Static `Resolve(EntityFaction self, EntityFaction other)`: grudge (self's `ProvocationModule.IsProvoked && Aggressor.root == other.root` → Hostile) → goodwill (Phase 3; stub returns null now) → table.
+- [x] `EntityFaction.GetRelationshipWith` calls it. Nothing else changes; `EntityTargetRegistry`, `AgentTargeting`, `FleeModule`, `AlertBroadcaster` all go through this one method already — grep `GetRelationshipWith\|IsHostileTo\|IsAlliedWith` and confirm no caller bypasses to `table.Get` directly (only `EntityFaction` may).
 - [ ] Verify on host **and client**: shoot a Golem (Fauna), it fights back; a Clanker patrol attacks a nomad caravan on sight and the nomads shoot back (Phase 0 gave them a faction, Phase 1 gave Clankers a default); the same patrol walks past a DuneRat herd and Appa without firing. Profile `AgentTargeting.Reevaluate` in the bot arena at 16 solo factions before/after; budget: no measurable change.
 
 ## Phase 2 — Alerts that actually fire
@@ -124,51 +172,58 @@ Fixes what is wrong on disk so later phases build on true data. Ships alone.
 
 ### Task 2.1 — Registry-based broadcaster
 
-- [ ] `AlertBroadcaster.Broadcast`: replace `OverlapSphereNonAlloc` + `receiverLayers` with `EntityTargetRegistry.Query(myFaction, Allied, position, alertRadius, buffer)`; skip self; `TryGetComponent<AlertReceiverModule>`. Remove `receiverLayers` and `alliedOnly` (a renamed/removed field is fine here — nothing reads them back). Keep `alertRadius`.
-- [ ] `AlertReceiverModule.ReceiveAlert`: if `TryGetComponent(out ProvocationModule p)` → `p.Provoke(target)`, else `Targeting.ForceTarget(target)`. Never re-broadcast (design §3.5 cascade cap) — assert it in a test with three agents in a line.
-- [ ] `ProvocationModule.Provoke`: when `aggressor` changes to a *new* transform, call `GetComponent<AlertBroadcaster>()?.Broadcast(target, target.position)`. Not on every re-assertion frame, not on restore (`RestoreGrudge` passes a flag).
-- [ ] `NoiseReceiverModule.OnNoiseHeard` aggro branch: resolve `hurtEntity = origin's EntityFaction` (pass it through `Noise.Emit`'s existing `instigator`/`ignore` args or add a `subject` arg — check `Noise.cs` signature first) and require `self.IsAlliedWith(hurtEntity) && !self.IsAlliedWith(instigator)`.
-- [ ] **Tests** `AlertBroadcasterTests`: allied receiver in radius gets the target; neutral one does not; out-of-radius does not; receiver with `ProvocationModule` ends `IsProvoked`; no cascade.
+- [x] `AlertBroadcaster.Broadcast`: replace `OverlapSphereNonAlloc` + `receiverLayers` with `EntityTargetRegistry.Query(myFaction, Allied, position, alertRadius, buffer)`; skip self; `TryGetComponent<AlertReceiverModule>`. Remove `receiverLayers` and `alliedOnly` (a renamed/removed field is fine here — nothing reads them back). Keep `alertRadius`.
+- [x] `AlertReceiverModule.ReceiveAlert`: if `TryGetComponent(out ProvocationModule p)` → `p.Provoke(target)`, else `Targeting.ForceTarget(target)`. Never re-broadcast (design §3.5 cascade cap) — assert it in a test with three agents in a line.
+- [x] `ProvocationModule.Provoke`: when `aggressor` changes to a *new* transform, call `GetComponent<AlertBroadcaster>()?.Broadcast(target, target.position)`. Not on every re-assertion frame, not on restore (`RestoreGrudge` passes a flag).
+- [x] `NoiseReceiverModule.OnNoiseHeard` aggro branch: resolve `hurtEntity = origin's EntityFaction` (pass it through `Noise.Emit`'s existing `instigator`/`ignore` args or add a `subject` arg — check `Noise.cs` signature first) and require `self.IsAlliedWith(hurtEntity) && !self.IsAlliedWith(instigator)`.
+- [x] **Tests** `AlertBroadcasterTests`: allied receiver in radius gets the target; neutral one does not; out-of-radius does not; receiver with `ProvocationModule` ends `IsProvoked`; no cascade.
 
 ### Task 2.2 — Put the modules on every tribe member
 
-- [ ] `NomadPrefabBuilder`: add `AlertBroadcaster` (radius 30 m), `AlertReceiverModule` (priority `Reactive − 1`, explicit — script-added modules keep priority 0), `AlertResponseSaveable`, `NoiseReceiverModule` (`aggroOn = Hurt`, `investigateOn = Gunshot`) + `NoiseInvestigationSaveable`. Rebuild all five nomads; read the prefab back and assert the components exist (the builder's existing `Verify` pattern).
+- [x] `NomadPrefabBuilder`: add `AlertBroadcaster` (radius 30 m), `AlertReceiverModule` (priority `Reactive − 1`, explicit — script-added modules keep priority 0), `AlertResponseSaveable`, `NoiseReceiverModule` (`aggroOn = Hurt`, `investigateOn = Gunshot`) + `NoiseInvestigationSaveable`. Rebuild all five nomads; read the prefab back and assert the components exist (the builder's existing `Verify` pattern).
 - [ ] Verify on a client: shoot one sand nomad in a caravan of four; all four turn, the three you did not hit walk to your last-known position then engage; dialog prompt disappears on all four (`DialogInteraction.CanInteract` already reads the grudge). Reload the save mid-fight: still hostile, still converging.
 
 ## Phase 3 — The two meters
 
 ### Task 3.0 — Aggression meter (per agent)
 
-- [ ] `AggressionMath` (pure): `Gain(input, amount, settings)`, `Cool(value, dt, calmRate)`, `BandFor(value)` → `Calm / Wary / Drawn / Grudge` at 40 / 80 / 100. **Tests** `AggressionMathTests`: one full hit reaches 100; a 5 % hit does not; cooling stops at 0; a gunshot at 15 needs seven shots inside the cooling window.
-- [ ] `ProvocationModule`: `aggression` field, `AddAggression(AggressionInput, amount, Transform from)`; reaching `attackAt` calls the existing `Provoke(from)` (unchanged from there: leash, calm-down, re-assert). `HandleDamage` becomes one input among several. Serialized: `hitGain`, `allyHurtGain`, `gunshotGain`, `menaceGainPerSecond`, `menaceRange`, `menaceDelay`, `trespassGainPerSecond`, `calmRate`, `attackAt`. `damageThreshold` stays (a floor under `hitGain`).
-- [ ] Inputs wired: `NoiseReceiverModule` → `AddAggression(Gunshot)` instead of a bare investigate for tribe members; `AlertReceiverModule` → `AddAggression(AllyHurt, 40, target)`; a new `MenaceSensor` side-effect module reads whether a player inside `menaceRange` has a weapon aimed at this body for `menaceDelay` (ask `EntityEquipmentController` / the player's `Weapon` aim; do not raycast per frame — interval 0.25 s).
-- [ ] Bands drive the telegraph: `Wary` → `WatchModule` target + one `hostileLines` bark; `Drawn` → `IsAiming` + `StopAndFace` + "last warning" bark, `DialogInteraction.CanInteract` refuses (extend `IsFightingWith` to "Drawn or worse"); `Grudge` → the existing fight. Clankers and Outlaws skip `Wary/Drawn` presentation (`attackAt` reached by stance already).
-- [ ] `ProvocationSaveable.State` gains `aggression` (append; key `"provocation"` untouched); restore sets the value without re-triggering barks.
+- [x] `AggressionMath` (pure): `Gain(input, amount, settings)`, `Cool(value, dt, calmRate)`, `BandFor(value)` → `Calm / Wary / Drawn / Grudge` at 40 / 80 / 100. **Tests** `AggressionMathTests`: one full hit reaches 100; a 5 % hit does not; cooling stops at 0; a gunshot at 15 needs seven shots inside the cooling window.
+- [x] `ProvocationModule`: `aggression` field, `AddAggression(AggressionInput, magnitude, Transform from)`; reaching `attackAt` calls the existing `Provoke(from)` (unchanged from there: leash, calm-down, re-assert). `HandleDamage` becomes one input among several. Settings live in one serialized `AggressionSettings` struct; `hitGain` is **1200**, calibrated so a hit worth a twelfth of max health still fights at once (the pre-meter behaviour) while a 5 % graze only makes the agent wary. `damageThreshold` stays (a floor under `hitGain`). Also records `LastGunshotFrom`/`HeardGunshotFrom`, which is what `MenaceSensor` reads.
+- [x] Inputs wired: `NoiseReceiverModule` → `AddAggression(Gunshot)`; `AlertReceiverModule` → `AddAggression(AllyHurt)` — **but only for a faction that is not already Hostile toward the target**, or a Clanker patrol would hesitate instead of answering its own alarm; `MenaceSensor` (side-effect, 0.25 s sweep) is **brandishing** rather than aiming — see the revised design §3.3 row. It needs `InventoryItem.menacing` **and** a gunshot this agent heard within `brandishWindow`, and it reads the player's BODY facing, because a remote player has no camera on the server.
+- [x] Bands drive the telegraph: `Wary` → `WatchModule` target + one `hostileLines` bark; `Drawn` → `IsAiming` + `StopAndFace` + "last warning" bark, `DialogInteraction.CanInteract` refuses (extend `IsFightingWith` to "Drawn or worse"); `Grudge` → the existing fight. Clankers and Outlaws skip `Wary/Drawn` presentation (`attackAt` reached by stance already).
+- [x] `ProvocationSaveable.State` gains `aggression` (append; key `"provocation"` untouched); restore sets the value without re-triggering barks.
 - [ ] Verify on a client: aim a gun at a nomad from 8 m — after 1.5 s it turns and barks, after ~4 s it draws, keep aiming and it attacks; look away in the wary band and it cools and goes back to work; reload while drawn, it comes back drawn.
 
 ### Task 3.1 — Goodwill maths
 
-- [ ] `GoodwillBand` enum {`AtWar`, `HostileOnSight`, `Wary`, `Friendly`, `Allied`} and `GoodwillMath`: `BandFor(value, previousBand, thresholds, hysteresis)`, `HitDelta(amount, maxHealth, perHitMin, perHitMax)`, `Decay(value, hours, ratePerHour)`. **Tests** `GoodwillMathTests` including the hysteresis case (−40 enters HostileOnSight, −30 does not leave it, −29 does).
+- [x] `GoodwillBand` enum {`AtWar`, `HostileOnSight`, `Wary`, `Friendly`, `Allied`} and `GoodwillMath`: `BandFor(value, previousBand, thresholds, hysteresis)`, `HitDelta(amount, maxHealth, perHitMin, perHitMax)`, `Decay(value, hours, ratePerHour)`. **Tests** `GoodwillMathTests` including the hysteresis case (−40 enters HostileOnSight, −30 does not leave it, −29 does).
 
 ### Task 3.2 — The ledger
 
-- [ ] `FactionGoodwillLedger` MonoBehaviour on the `NpcWorldSim` object in `persistentScene.unity` (same lifetime, same server-only pattern; static instance reset via `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]` — INVARIANTS "statics outlive the world").
-- [ ] Serialized: default thresholds, hysteresis, per-event deltas (design §3.4 table), decay rate, `crewFaction` (`HumansFaction`). Everything tunable in the Inspector.
-- [ ] **Per player.** Rows are keyed `(factionId, playerProfileId)`. Find the profile id PATH C in the persistence skill keys player-scoped state by (grep `SaveScope.Player` / the player-scoped saver's key type) and resolve it from an attacker's `EntityFaction` root through the same component. Record the exact type in the Factions doc.
-- [ ] API: `Report(FactionDefinition victimFaction, EntityFaction attacker, GoodwillEvent kind, float magnitude)` (attacker resolves to a player id or is ignored); `BandFor(FactionDefinition, playerId)`; `event Action<FactionDefinition, playerId, GoodwillBand, GoodwillBand> BandChanged`. Ignores factions with no `roster` and factions whose `defaultStance == Hostile` (design §3.7 Clankers; Outlaws likewise, they are not a tribe).
-- [ ] Decay: per in-game hour while loaded; on restore, apply `(now − lastChangeTime)` worth of decay once, so an absence counts (design §3.4).
-- [ ] Hooks: `ProvocationModule.HandleDamage` → `Report(Hit)`; `HealthReactionModule` death path → `Report(Kill)` guarded by `health.IsRestoring`; mount/vehicle kills via the same path (the mount has an `EntityFaction` after Phase 0). Spread to allies/enemies of the victim faction per the table.
-- [ ] `FactionRelations.Resolve` goodwill step: if `other` is a **player** entity and `self.faction.roster != null` → look up `(self.faction, other's playerId)`: `AtWar/HostileOnSight → Hostile`, `Allied → Allied`, else null. Symmetric for `self` being the player (so the player's own `EntityFaction`-based queries — the visor — agree).
-- [ ] **Tests** `FactionGoodwillLedgerTests`: a 10 % hit moves −2, a kill −25, cross-faction spread, decay, band events fire once per crossing, Clankers and Outlaws never move, Fauna never move, **two players have independent rows** (player A at −50 is Hostile-on-sight while player B at 0 is Wary against the same tribe).
+- [x] `FactionGoodwillLedger` MonoBehaviour on the `NpcWorldSim` object in `persistentScene.unity` (same lifetime, same server-only pattern; static instance reset via `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]` — INVARIANTS "statics outlive the world").
+- [x] Serialized: default thresholds, hysteresis, per-event deltas (design §3.4 table), decay rate, `crewFaction` (`HumansFaction`). Everything tunable in the Inspector.
+- [x] **Per player.** Rows are keyed `(factionId, playerProfileId)`. Find the profile id PATH C in the persistence skill keys player-scoped state by (grep `SaveScope.Player` / the player-scoped saver's key type) and resolve it from an attacker's `EntityFaction` root through the same component. Record the exact type in the Factions doc.
+- [x] API: `Report(FactionDefinition victimFaction, EntityFaction attacker, GoodwillEvent kind, float magnitude)` (attacker resolves to a player id or is ignored); `BandFor(FactionDefinition, playerId)`; `event Action<FactionDefinition, playerId, GoodwillBand, GoodwillBand> BandChanged`. Ignores factions with no `roster` and factions whose `defaultStance == Hostile` (design §3.7 Clankers; Outlaws likewise, they are not a tribe).
+- [x] Decay: per in-game hour while loaded; on restore, apply `(now − lastChangeTime)` worth of decay once, so an absence counts (design §3.4).
+- [x] Hooks: `ProvocationModule.HandleDamage` → `Report(Hit)`; `HealthReactionModule` death path → `Report(Kill)` guarded by `health.IsRestoring`; mount/vehicle kills via the same path (the mount has an `EntityFaction` after Phase 0). Spread to allies/enemies of the victim faction per the table.
+- [x] `FactionRelations.Resolve` goodwill step: if `other` is a **player** entity and `self.faction.roster != null` → look up `(self.faction, other's playerId)`: `AtWar/HostileOnSight → Hostile`, `Allied → Allied`, else null. Symmetric for `self` being the player (so the player's own `EntityFaction`-based queries — the visor — agree).
+- [x] **Tests** `FactionGoodwillLedgerTests`: a 10 % hit moves −2, a kill −25, cross-faction spread, decay, band events fire once per crossing, Clankers and Outlaws never move, Fauna never move, **two players have independent rows** (player A at −50 is Hostile-on-sight while player B at 0 is Wary against the same tribe).
 
 ### Task 3.3 — Persistence and replication
 
-- [ ] `FactionGoodwillSaveable` (key `"factionGoodwill"`, **player-scoped, PATH C**, not deferred): `{ factionId → { value, band, lastChangeTime } }` per player. Restored when that player binds, which is before any agent can target them. Follow the skill's PATH C recipe exactly (it survives regardless of which chunks are loaded).
-- [ ] `NetMsg.FactionGoodwill = 70` (append; never renumber). Server sends `{ factionId hash, band }` **to the affected player's client** (`NetSendTo`) on `BandChanged`, and replays that player's bands when their player object binds. The host reads the ledger directly.
-- [ ] Clients keep a read-only mirror of *their own* bands (`FactionGoodwillLedger.BandFor` answers from the mirror when `!Network.Server`). Nothing on a client mutates.
+- [x] `FactionGoodwillSaveable` (key `"factionGoodwill"`, **player-scoped, PATH C**, not deferred): `{ factionId → { value, band, lastChangeTime } }` per player. Restored when that player binds, which is before any agent can target them. Follow the skill's PATH C recipe exactly (it survives regardless of which chunks are loaded).
+- [x] ~~`NetMsg.FactionGoodwill = 70`~~ **— deliberately not done that way.** 70 is long taken (the catalogue is at 115) and, more importantly, `NetTo` has no unicast: Server/All/Others only. Sending one player their own bands over the channel means broadcasting everybody's to everybody, which is bandwidth spent to leak exactly what design §5 says each client should not have. The multiplayer skill routes "an answer for ONE player" to a NetworkBehaviour with a targeted `[Rpc]`, so `FactionGoodwillNetwork` on the networked player does it — the shape `NetworkedTeleport` already uses. Factions travel as an INDEX into the ledger's tribes list, because `NetArg` has no string field and `string.GetHashCode` is explicitly not stable across machines. Server sends `{ factionId hash, band }` **to the affected player's client** (`NetSendTo`) on `BandChanged`, and replays that player's bands when their player object binds. The host reads the ledger directly.
+- [x] Clients keep a read-only mirror of *their own* bands (`FactionGoodwillLedger.BandFor` answers from the mirror when `!Network.Server`). Nothing on a client mutates.
 - [ ] Verify with two clients: client A shoots nomads until its band flips; A's visor shows HOSTILE, client B's still shows WARY, the host's dev overlay shows both rows; the nomads chase A and ignore B stood beside them; A quits and rejoins, band restored and the player-scoped JSON has `"factionGoodwill"`.
 
 ## Phase 4 — Rosters and tribes *(working names until the real ones arrive)*
+
+> **Redesigned 2026-09-16 — read [2026-09-16-rosters-and-war-parties-design.md](../specs/2026-09-16-rosters-and-war-parties-design.md) before building Tasks 4.1 or 4.2.**
+> Phase 4 is split into four sub-projects there. Sub-project 1 (4.1 + 4.2) replaces two passages:
+> design §3.4's "every caravan of that tribe routes toward the player" becomes **dedicated war parties**,
+> and Task 4.2's template-level `quarry` field becomes a quarry on runtime **groups**. The war-party
+> behaviour — the reckoning, self-defence exemption, catch-up and abandon rules — lives only in that
+> spec. The task bullets below are kept for history; the new plan supersedes them.
 
 ### Task 4.1 — `FactionRoster`
 
@@ -202,6 +257,55 @@ Fixes what is wrong on disk so later phases build on true data. Ships alone.
 - [ ] **Tests** `TerritoryZoneTests` (pure part): welcome bands, radius, and that a Hostile-default owner (Clankers) never needs the zone.
 - [ ] Verify on a client: with Sand goodwill at −30, walk into a Sand camp — guards turn, bark, draw, attack; leave, they cool; at +10 the same camp ignores you.
 
+### Task 4.5 — Traders: the peaceful half of the goodwill loop
+
+**Why it belongs in this plan rather than beside it.** Goodwill is currently a meter with only one
+direction of travel: everything that moves it is something you did wrong. Trading is what makes it
+worth *earning* — a tribe that likes you sells you things, a tribe that does not turns you away —
+and without it the Mechanics' whole identity ("the tribe that would trade for salvage, which ties
+them to the game's spine") is a sentence in the design and nothing in the game.
+
+**The system already exists and is unused.** `Gameplay/Trading/` has `TraderInteraction` (asks
+through the existing `DialogInteraction` question popup rather than being a second `IInteractable`),
+`TraderProfile` + `TradeOffer` (stock as an asset, cloned per trader so one buyer does not empty
+every trader sharing it), `TradeUI`, `TraderSaveable` and `TradingTests`, and it has a `NetMsg` id.
+**No prefab or scene references any of it** — a grep for `TraderInteraction` finds only C#. So this
+task is content and wiring, not a new system, and the first step is to confirm that by putting one
+trader in front of a player.
+
+- [ ] **Spike first (half a day):** add `TraderInteraction` + a `TraderProfile` to one sand nomad by
+      hand, walk up to them, buy something, reload. Answers whether the unused code actually works
+      before anything is built on it. If it does not, fix it here and stop — everything below assumes
+      a working trade.
+- [ ] `RosterRole.Trader` in the Phase 4.1 roster, and a `TraderProfile` per tribe on the roster
+      asset. Sand sells water, rope, mounts and saddles; Mechanics buy salvage and sell tools and
+      vehicle parts (the hull modules that tie them to the ship); Sky sell wing packs and scanners.
+      Outlaws and Clankers get none — you do not haggle with either.
+- [ ] `NpcWorldSim` draws one Trader per caravan and per camp from the roster, the same way it draws
+      every other role. A tribe's trader is not a separate spawn path.
+- [ ] **Goodwill gates the trade, and that is the loop closing** (design §3.4 bands):
+      `AtWar`/`HostileOnSight` refuse outright (`TraderInteraction` declines with a line);
+      `Wary` trades at a markup; `Friendly` at list price; `Allied` unlocks the roster's
+      `alliedOnlyOffers`. Read through `FactionGoodwillLedger.BandFor(faction, playerId)` — **per
+      player**, so a crew-mate who has not been shooting nomads can still buy for you. That asymmetry
+      is worth playtesting deliberately; it is either the most interesting thing here or an annoyance.
+- [ ] **Trading is an amends event.** A completed trade reports a small positive delta to the ledger
+      (design §3.4's "decay plus amends"), so the way back from a bad reputation is to do business
+      rather than to wait. Cap it per in-game day or it is a grind that buys forgiveness.
+- [ ] **Multiplayer**: the trade itself is server-decided and already has a `NetMsg` id — check that
+      `TradeUI` opens for the asking player only and that stock decrements are authoritative, or two
+      players buy the same last item. Verify with two clients trading with one trader at once.
+- [ ] **Tests** `TraderGoodwillTests` (pure where possible): each band's price multiplier and refusal;
+      allied-only offers hidden below Allied; two players with different bands get different prices
+      from the same trader; a trade reports amends once and is capped.
+- [ ] Verify on a client: buy from a Sand trader at `Friendly`; shoot a nomad until `HostileOnSight`;
+      the same trader refuses you and the one in the next camp does too, while your crew-mate still
+      trades normally. Reload — stock and goodwill both survive.
+
+**Design check before building the price bands:** `ECON` and `MON` in the constitution, plus
+`GDC-L1-SYS-0008` (sources, sinks and flows) — a trader who buys anything at any volume is an
+infinite sink and the fastest way to flatten an economy.
+
 ## Phase 5 — NPC worn gear and Sky flight *(Option B decided: the nomad wears and deploys the pack)*
 
 ### Task 5.1 — `EntityBodyEquipment`
@@ -225,7 +329,7 @@ Fixes what is wrong on disk so later phases build on true data. Ships alone.
 
 ## Phase 6 — Clankers *(decided: new prefabs alongside, patrol robots retired in a later PR)*
 
-**Status 2026-09-07:** Tasks 6.1 and 6.2 are built — `Assets/ThirdParty/RedPlanetRampage/` (body + nine clips + licence, from commit `25835ac0` of a sparse clone at `../Red-Planet-Rampage`), `THIRD_PARTY_NOTICES.md`, `ClankerBuilder`, `ClankerPrefabTests`, and `ClankerSettlementBuilder` now garrisons the town with `Clanker.prefab`. `Build Clanker Prefab` ran to completion (body scaled 0.332 → 3.20 m, stride 4.89 m/s; verified: animator on the rig root, palette materials, network hash, save id, ragdoll wired) — after parking the editor behind `SyncMenu`'s modal dialog for ten minutes; the builder calls `Sync` now. The town was rebuilt with five Clankers as its garrison and the NavMesh re-baked (511 sources; all five stand on mesh, no holes). `ClankerPrefabTests`: 8 of 8 pass (the first run's one failure was a test bug reading the controller through the prefab reference; fixed). **Playtest 1 (user, same day):** "animation didn't work" — root cause: the second build's delete-and-recreate of the controller lost every state (gotcha in `EditorTooling.md`); the builder now rebuilds it in place and asserts the states off disk. Also per the playtest: the built-in pistol ray is gone; the Clanker now rolls a real `basicgun`/`GravelBlaster` at spawn (`NpcRandomLoadout` + `EntityEquipmentController` on `DEF-hand.R` + `NpcItemUseModule`) and drops it on death (`EntityLootTable`). `ClankerSquadPlacer` puts three Clankers ~75 m from the spawn point (`Tools > SpaceGame > Agents > Place Clanker Squad Near Spawn`) so the robots can be met without the hike. After the fix the full sequence (build → place squad → bake) was run twice in a fresh editor and the controller kept its states each time; an edit-mode drive of the prefab's Animator at SpeedY 4.5 plays the walk clip at 0.92 weight and rotates the foot bone 25°, so the rig animates. The one corruption seen after the in-place fix (17:01) coincided with a corrupted `Library/Artifacts` entry the same editor session later died on, and could not be reproduced afterwards; the read-back assert in `BuildController` is what stands guard now. **Robot horse (same day, user request):** the user's `horse1.blend` became `_Source~/models/creatures/robot_horse/robot_horse.blend` through `robot_horse_rig.py` (rigid per-island binding replacing the broken auto-weights, hooves onto the cannon bones, IK gone), `robot_horse_anim.py` (Idle/Walk/Run/TurnL/TurnR, in place, axis-probed) and `robot_horse_export.py`; `RobotHorseBuilder` builds `RobotHorse.prefab` (wild, Fauna, full wildlife stack + saddle stack, born saddled via the new `SaddleSocket.startSaddled`) and `Robots/ClankerOutrider.prefab` (Clanker faction, patrol/alerts/charge, a Clanker seated by `NpcPassenger`; the Clanker's controller gained an `IsSeated` → crouch state because `MountedRiderPose` needs a Humanoid). Mounted gallop 13.9 m/s, derived from the run clip's stride × 1.8 scale × 1.4 playback. The town recipe gained `outriderPrefabs`/`outriderTotal` (2) and the squad placer drops a saddled stray horse 16 m from the squad. Tests: `RobotHorsePrefabTests` (6), a seated-flag case in `NpcPassengerTests`, an outrider check in `ClankerSettlementTests`. **Settlement population (same night, user request):** `SettlementPopulation` on the town root refills the Clankers to a cap of 14 one wave (≤2) a minute, Clankers 3:1 outriders, spawned via `GameServices.World.Spawn` in the patrol ring away from players, holding while the alarm is raised; pure `SettlementPopulationLogic` + 4 tests. **Open:** play verification on host and a client (rider seat height on the crouching Clanker is a first estimate, `RobotHorseBuilder.ClankerSeatDrop`; whether a wave a minute is the right cadence is a playtest question). **Option for later:** RPR's own textures exist (`Assets/Textures/Player/YiiHaw_{Albedo,Normal,Metalness,Base_Normal}.png` in the clone) if the palette look is not wanted — they were not copied because RPR's materials need its dither shader.
+**Status 2026-09-07:** Tasks 6.1 and 6.2 are built — `Assets/ThirdParty/RedPlanetRampage/` (body + nine clips + licence, from commit `25835ac0` of a sparse clone at `../Red-Planet-Rampage`), `THIRD_PARTY_NOTICES.md`, `ClankerBuilder`, `ClankerPrefabTests`, and `ClankerSettlementBuilder` now garrisons the town with `Clanker.prefab`. `Build Clanker Prefab` ran to completion (body scaled 0.332 → 3.20 m, stride 4.89 m/s; verified: animator on the rig root, palette materials, network hash, save id, ragdoll wired) — after parking the editor behind `SyncMenu`'s modal dialog for ten minutes; the builder calls `Sync` now. The town was rebuilt with five Clankers as its garrison and the NavMesh re-baked (511 sources; all five stand on mesh, no holes). `ClankerPrefabTests`: 8 of 8 pass (the first run's one failure was a test bug reading the controller through the prefab reference; fixed). **Playtest 1 (user, same day):** "animation didn't work" — root cause: the second build's delete-and-recreate of the controller lost every state (gotcha in `EditorTooling.md`); the builder now rebuilds it in place and asserts the states off disk. Also per the playtest: the built-in pistol ray is gone; the Clanker now rolls a real `basicgun`/`GravelBlaster` at spawn (`NpcRandomLoadout` + `EntityEquipmentController` on `DEF-hand.R` + `NpcItemUseModule`) and drops it on death (`EntityLootTable`). `ClankerSquadPlacer` puts three Clankers ~75 m from the spawn point (`Tools > SpaceGame > Agents > Place Clanker Squad Near Spawn`) so the robots can be met without the hike. After the fix the full sequence (build → place squad → bake) was run twice in a fresh editor and the controller kept its states each time; an edit-mode drive of the prefab's Animator at SpeedY 4.5 plays the walk clip at 0.92 weight and rotates the foot bone 25°, so the rig animates. The one corruption seen after the in-place fix (17:01) coincided with a corrupted `Library/Artifacts` entry the same editor session later died on, and could not be reproduced afterwards; the read-back assert in `BuildController` is what stands guard now. **Robot horse (same day, user request):** the user's `horse1.blend` became `_Source~/models/creatures/robot_horse/robot_horse.blend` through `robot_horse_rig.py` (rigid per-island binding replacing the broken auto-weights, hooves onto the cannon bones, IK gone), `robot_horse_anim.py` (Idle/Walk/Run/TurnL/TurnR, in place, axis-probed) and `robot_horse_export.py`; `RobotHorseBuilder` builds `RobotHorse.prefab` (wild, Fauna, full wildlife stack + saddle stack, born saddled via the new `SaddleSocket.startSaddled`) and `Robots/ClankerOutrider.prefab` (Clanker faction, patrol/alerts/charge, a Clanker seated by `NpcPassenger`; the Clanker's controller gained an `IsSeated` → crouch state because `MountedRiderPose` needs a Humanoid). Mounted gallop 13.9 m/s, derived from the run clip's stride × 1.8 scale × 1.4 playback. The town recipe gained `outriderPrefabs`/`outriderTotal` (2) and the squad placer drops a saddled stray horse 16 m from the squad. Tests: `RobotHorsePrefabTests` (6), a seated-flag case in `NpcPassengerTests`, an outrider check in `ClankerSettlementTests`. **Settlement population (same night, user request):** `SettlementPopulation` on the town root refills the Clankers to a cap of 14 one wave (≤2) a minute, Clankers 3:1 outriders, spawned via `GameServices.World.Spawn` in the patrol ring away from players, holding while the alarm is raised; pure `SettlementPopulationLogic` + 4 tests. **Playtest 2 (2026-09-08, user):** "Clankers aren't wandering, don't see players unless right next to them, must feel like a threat; more spawns; take-down should be hard; posses that roam; more artifacts." Found in the log: the spawner's `World.Spawn` refused 29× as "called on a client" (`Network.Simulates` says yes on clients for scene objects → new `Network.Decides`), and by reading: `PerceptionModule` aimed its sight line at the target's origin = the ground (`AimPointOf` now aims at the body; `PerceptionAimTests`). Then: Clankers carry a `FormationModule` and every placer names bands (settlement groups, the spawn posse with a 120 m-roaming leader, spawner waves); sight 110/140 m, FOV 170, health 160, cooldown 0.9, patrol 35 m with 2–6 s waits; seven guns (the nomads' list) and a carried artifact from ten-or-nothing in a second bag slot; town garrison 4–5 bands of 3–4, three outriders, cap 26 with three every 45 s. **Open:** play verification on host and a client (rider seat height on the crouching Clanker is a first estimate, `RobotHorseBuilder.ClankerSeatDrop`; the standing-still report could not be reproduced from the code — if it persists on the host, the next thing to check is `NavMeshAgentMotor` parking at Awake). **Option for later:** RPR's own textures exist (`Assets/Textures/Player/YiiHaw_{Albedo,Normal,Metalness,Base_Normal}.png` in the clone) if the palette look is not wanted — they were not copied because RPR's materials need its dither shader.
 
 ### Task 6.1 — Import
 

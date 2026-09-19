@@ -113,11 +113,16 @@ namespace SpaceGame.World
                 {
                     Vector2 groupCenter = RandomPointInAnnulus(recipe.innerRadius * 0.6f, recipe.outerRadius * 0.9f);
                     int count = RandRange(recipe.robotsPerGroup);
+                    // One band per group: the first robot out leads and the rest fall in behind
+                    // it, so a patrol group reads as a patrol rather than as strangers who happen
+                    // to have spawned near each other.
+                    string band = $"{gameObject.scene.name}/{name}/group{g}";
                     for (int r = 0; r < count; r++)
                     {
                         Vector2 offset = Random.insideUnitCircle * recipe.robotGroupSpread;
                         GameObject prefab = recipe.robotPrefabs[Random.Range(0, recipe.robotPrefabs.Length)];
-                        SpawnAtGround(prefab, groupCenter + offset, root, randomYaw: true, isBuilding: false);
+                        GameObject robot = SpawnAtGround(prefab, groupCenter + offset, root, randomYaw: true, isBuilding: false);
+                        AssignFormation(robot, band, leader: r == 0);
                     }
                 }
             }
@@ -146,6 +151,28 @@ namespace SpaceGame.World
             }
 
             Debug.Log($"[RobotSettlementGenerator] Generated settlement under {root.name}.", root);
+        }
+
+        /// <summary>
+        /// Put a spawned robot into a band. Through the serialized fields in the editor, so the
+        /// membership is an ordinary prefab-instance override the scene saves; through the runtime
+        /// API in play, where the registry has to be told.
+        /// </summary>
+        private static void AssignFormation(GameObject robot, string band, bool leader)
+        {
+            if (robot == null || !robot.TryGetComponent(out SpaceGame.Agents.FormationModule formation))
+                return;
+    #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                var so = new UnityEditor.SerializedObject(formation);
+                so.FindProperty("formationId").stringValue = band;
+                so.FindProperty("isLeader").boolValue = leader;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                return;
+            }
+    #endif
+            formation.SetFormation(band, leader);
         }
 
         [ContextMenu("Clear")]

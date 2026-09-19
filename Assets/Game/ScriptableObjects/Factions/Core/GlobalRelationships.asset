@@ -14,15 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FactionRelationshipTable
   <ID>k__BackingField: 285b6c1ceb5024872a050cd6fb8aaba9
   relationships:
-  - factionA: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
-    factionB: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
-    relationship: 0
-  - factionA: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
-    factionB: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
-    relationship: 2
-  - factionA: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
-    factionB: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
-    relationship: 0
   - factionA: {fileID: 11400000, guid: d69aae2bf7f6842298a4d4c229ee33d1, type: 2}
     factionB: {fileID: 11400000, guid: de8dc1fbb995942349174c818663f14a, type: 2}
     relationship: 2
@@ -404,3 +395,12 @@ MonoBehaviour:
   - factionA: {fileID: 11400000, guid: 2ee6e7c9c668f4169a98d2307a4d4b0b, type: 2}
     factionB: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
     relationship: 2
+  - factionA: {fileID: 11400000, guid: 4815f6a4ad2c743ad900584b2c1e0c4b, type: 2}
+    factionB: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
+    relationship: 2
+  - factionA: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
+    factionB: {fileID: 11400000, guid: acfac6dcc51034e60915d44e81aa5710, type: 2}
+    relationship: 0
+  - factionA: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
+    factionB: {fileID: 11400000, guid: 2ee6e7c9c668f4169a98d2307a4d4b0b, type: 2}
+    relationship: 0

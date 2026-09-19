@@ -382,8 +382,9 @@ namespace SpaceGame.Agents
 
         protected override void OnValidate()
         {
-            if (string.IsNullOrWhiteSpace(formationId)) formationId = "caravan";
-
+            // An empty id is "not in a band" -- Register already skips it -- so a prefab can ship
+            // the module inert and let whatever places it name the band (the Clanker; every one
+            // of them would otherwise be in one formation called "caravan" with the nomads).
             shape = shape.Sanitised();
             slotTolerance = Mathf.Max(0.3f, slotTolerance);
             catchUpGain = Mathf.Max(0f, catchUpGain);

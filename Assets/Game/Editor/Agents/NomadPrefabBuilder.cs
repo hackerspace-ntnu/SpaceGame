@@ -6,6 +6,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
 using SpaceGame.Core.Persistence.EditorTools;
 using SpaceGame.Items;
 using SpaceGame.Presentation;
@@ -34,9 +35,9 @@ namespace SpaceGame.EditorTools
     public static class NomadPrefabBuilder
     {
         /// <summary>
-        /// One character built by this pipeline. The original Nomad and the four sand nomads
-        /// share the body, the rig, the agent stack and the gait; they differ in the FBX, the
-        /// prefab path, and what is in their hands.
+        /// One character built by this pipeline. The original Nomad, the four sand nomads and the
+        /// four sky nomads share the body, the rig, the agent stack and the gait; they differ in
+        /// the FBX, the prefab path, the tribe, the cloth dye and what is in their hands.
         /// </summary>
         public sealed class NomadRecipe
         {
@@ -44,12 +45,27 @@ namespace SpaceGame.EditorTools
             public string FbxPath;
             public string PrefabPath;
 
+            /// <summary>
+            /// The tribe serialized on the EntityFaction. Faction is not replicated, so this is what
+            /// a client's copy of the character belongs to.
+            /// </summary>
+            public string FactionPath;
+
+            /// <summary>The roster whose <c>handItems</c> a <see cref="RandomWeapon"/> loadout is baked from.</summary>
+            public string RosterPath;
+
+            /// <summary>What the cloth is dyed. See <see cref="NomadPrefabBuilder.ClothPalette"/>.</summary>
+            public ClothPalette ClothPalette;
+
+            /// <summary>The flavour lines he says when talked to.</summary>
+            public string[] DialogLines;
+
             /// <summary>The walking staff, parented to the right hand and swung in melee.</summary>
             public bool CarriesStaff;
 
             /// <summary>
-            /// A weapon drawn at random from <see cref="WeaponArtifactPaths"/> at spawn, held in
-            /// the right hand and fired when provoked. Mutually exclusive with the staff.
+            /// A weapon drawn at random from the <see cref="RosterPath"/> roster's <c>handItems</c> at spawn,
+            /// held in the right hand and fired when provoked. Mutually exclusive with the staff.
             /// </summary>
             public bool RandomWeapon;
 
@@ -59,50 +75,167 @@ namespace SpaceGame.EditorTools
             /// length and reads as a flag at the same setting.
             /// </summary>
             public float ClothWindScale = 1f;
+
+            /// <summary>
+            /// Wander only to points a complete NavMesh path leads to. For people who live on NavMesh
+            /// in pieces: the Sky City's roofs and gas-bag tops are islands beside its promenades,
+            /// and a wander point on one walks a nomad to the railing and stands him there.
+            /// </summary>
+            public bool WanderReachableOnly;
+        }
+
+        /// <summary>
+        /// The dye on a character's <c>Cloth_*</c> meshes, and the material assets that carry it.
+        ///
+        /// <para>
+        /// The cloth materials are keyed by mesh name, and the sky nomads are the sand nomads' own
+        /// FBX -- the same mesh names. Without a prefix per palette the second tribe built would
+        /// rewrite the first tribe's materials in place, and every sand nomad would change colour
+        /// without being rebuilt.
+        /// </para>
+        /// </summary>
+        public sealed class ClothPalette
+        {
+            /// <summary>File-name prefix of this palette's materials: "NomadCloth" writes NomadCloth_Tan_Shawl.mat.</summary>
+            public string MaterialPrefix;
+
+            /// <summary>The colour every cloth piece takes unless an accent names it.</summary>
+            public Color Cloth;
+
+            /// <summary>Pieces dyed differently, matched on the end of the mesh name ("_Scarf_Long").</summary>
+            public (string MeshSuffix, Color Colour)[] Accents = System.Array.Empty<(string, Color)>();
+
+            public Color ColourFor(string meshName)
+            {
+                foreach (var accent in Accents)
+                    if (meshName.EndsWith(accent.MeshSuffix)) return accent.Colour;
+                return Cloth;
+            }
         }
 
         private const string CharacterFolder = "Assets/Game/Prefabs/Agents/Characters";
+        private const string SkyCharacterFolder = CharacterFolder + "/SkyTribe";
         private const string ModelFolder = "Assets/Game/Art/Models/Characters/Nomad";
 
+        // Undyed desert canvas, the colour every nomad's cloth has always been.
+        private static readonly ClothPalette SandCloth = new ClothPalette
+        {
+            MaterialPrefix = "NomadCloth",
+            Cloth = new Color(0.44f, 0.35f, 0.26f),
+        };
+
+        // Pale sky blue with a cloud-white long scarf. The shawl and scarf are the two largest
+        // shapes on the silhouette, so a sky nomad reads as not-Sand from across a dune.
+        private static readonly ClothPalette SkyCloth = new ClothPalette
+        {
+            MaterialPrefix = "SkyNomadCloth",
+            Cloth = new Color(0.58f, 0.72f, 0.86f),
+            Accents = new[] { ("_Scarf_Long", new Color(0.90f, 0.91f, 0.88f)) },
+        };
+
+        // The sky soldier's only cloth is its orange scarf; the poncho is a stiff slab and not cloth.
+        // A prefix of its own, so dyeing it can never recolour a sky nomad's shawl.
+        private static readonly ClothPalette SkySoldierCloth = new ClothPalette
+        {
+            MaterialPrefix = "SkySoldierCloth",
+            Cloth = new Color(0.89f, 0.44f, 0.11f),
+        };
+
+        // Flavour lines, drawn at random. RandomFromPredefinedPool shuffles a private cycle so the
+        // nomad works through all of them before repeating.
+        private static readonly string[] SandDialogLines =
+        {
+            "Sand's been restless since the storm.",
+            "You're the first face I've seen in a week.",
+            "Careful past the ridge. Something out there hums at night.",
+            "Water first. Questions later.",
+            "I trade in scrap, not promises.",
+            "The old relay still sings, if you know where to listen.",
+            "Keep your visor sealed after dark.",
+            "Every wreck out here was somebody's ride home.",
+        };
+
+        private static readonly string[] SkyDialogLines =
+        {
+            "The wind turned east this morning. Good day to fly.",
+            "You walk everywhere? Down here? Brave.",
+            "The city keeps its lights on for anyone who can reach it.",
+            "We trade high and sell low. Literally.",
+            "Mind the updraft off the dunes.",
+            "The freighters never land for long.",
+            "Half my hull is patches. The other half is hope.",
+            "Rust holds better than you'd think, a mile up.",
+        };
+
+        // Static initializers run in textual order: the palettes and lines above must precede every recipe.
         public static readonly NomadRecipe Nomad = new NomadRecipe
         {
             Name = "Nomad",
             FbxPath = ModelFolder + "/nomad.fbx",
             PrefabPath = CharacterFolder + "/Nomad.prefab",
+            FactionPath = RosterAuthoring.SandFactionPath,
+            RosterPath = RosterAuthoring.SandRosterPath,
+            ClothPalette = SandCloth,
+            DialogLines = SandDialogLines,
             CarriesStaff = true,
         };
 
         // The four characters in sand_nogs.blend, exported one per file by
         // Assets/Game/Art/Models/_Source~/models/characters/nomad/sand_nogs_export.py. Named after
         // the one thing that tells them apart at a glance.
-        public static readonly NomadRecipe[] SandNomads =
+        private static readonly string[] ArmedNomadVariants = { "Umber", "Tan", "Maroon", "StrawHat" };
+
+        public static readonly NomadRecipe[] SandNomads = ArmedNomadVariants
+            .Select(variant => ArmedNomad(variant, "Nomad_", CharacterFolder, RosterAuthoring.SandFactionPath,
+                                          RosterAuthoring.SandRosterPath, SandCloth, SandDialogLines))
+            .ToArray();
+
+        // The same four bodies, dyed and sworn to the Sky Tribe, and at home on the Sky City's decks.
+        public static readonly NomadRecipe[] SkyNomads = ArmedNomadVariants
+            .Select(variant =>
+            {
+                NomadRecipe recipe = ArmedNomad(variant, "SkyNomad_", SkyCharacterFolder, RosterAuthoring.SkyFactionPath,
+                                                RosterAuthoring.SkyRosterPath, SkyCloth, SkyDialogLines);
+                recipe.WanderReachableOnly = true;
+                return recipe;
+            })
+            .ToArray();
+
+        // The long-ponchoed sky soldier: Maroon's body with the Nomad's robot helmet, its own FBX
+        // from Assets/Game/Art/Models/_Source~/models/characters/sky_soldier/sky_soldier_nomad_export.py.
+        // Built on its own (Build Sky Soldier NPC) so building it never rewrites the four sky nomads.
+        public static readonly NomadRecipe SkySoldier = new NomadRecipe
         {
-            SandNomad("Umber"), SandNomad("Tan"), SandNomad("Maroon"), SandNomad("StrawHat"),
+            Name = "SkySoldier",
+            FbxPath = ModelFolder + "/sky_soldier.fbx",
+            PrefabPath = SkyCharacterFolder + "/SkySoldier.prefab",
+            FactionPath = RosterAuthoring.SkyFactionPath,
+            RosterPath = RosterAuthoring.SkyRosterPath,
+            ClothPalette = SkySoldierCloth,
+            DialogLines = SkyDialogLines,
+            RandomWeapon = true,
+            ClothWindScale = 0.35f,
+            WanderReachableOnly = true,
         };
 
-        private static NomadRecipe SandNomad(string name) => new NomadRecipe
+        /// <summary>Everyone the Sky Tribe fields: its roster's members and the Sky City's inhabitants.</summary>
+        public static readonly NomadRecipe[] SkyTribePeople = SkyNomads.Append(SkySoldier).ToArray();
+
+        private static NomadRecipe ArmedNomad(string variant, string namePrefix, string folder,
+                                              string factionPath, string rosterPath,
+                                              ClothPalette palette, string[] dialogLines) => new NomadRecipe
         {
-            Name = "Nomad_" + name,
-            FbxPath = $"{ModelFolder}/nomad_{name.ToLowerInvariant()}.fbx",
-            PrefabPath = $"{CharacterFolder}/Nomad_{name}.prefab",
+            Name = namePrefix + variant,
+            FbxPath = $"{ModelFolder}/nomad_{variant.ToLowerInvariant()}.fbx",
+            PrefabPath = $"{folder}/{namePrefix}{variant}.prefab",
+            FactionPath = factionPath,
+            RosterPath = rosterPath,
+            ClothPalette = palette,
+            DialogLines = dialogLines,
             RandomWeapon = true,
             // A third of the cloak's motion: there is a lot of cloth on these, and at full
             // strength the scarf flagged rather than hung.
             ClothWindScale = 0.35f,
-        };
-
-        // What a sand nomad may be carrying. Ranged artifacts only: NpcItemUseModule fires the
-        // held item at a target between minRange and maxRange, so a gauntlet or a scanner in the
-        // hand would be raised and "used" at nothing every cooldown.
-        private static readonly string[] WeaponArtifactPaths =
-        {
-            "Assets/Game/Resources/Items/Artifacts/basicgun.asset",
-            "Assets/Game/Resources/Items/Artifacts/GravelBlaster.asset",
-            "Assets/Game/Resources/Items/Artifacts/NetGun.asset",
-            "Assets/Game/Resources/Items/Artifacts/LaserStaff.asset",
-            "Assets/Game/Resources/Items/Artifacts/BallLightningWeapon.asset",
-            "Assets/Game/Resources/Items/Artifacts/LightningSpell.asset",
-            "Assets/Game/Resources/Items/Artifacts/DragonBazooka.asset",
         };
 
         private const string ClothMaterialFolder = "Assets/Game/Art/Materials/Characters";
@@ -112,7 +245,6 @@ namespace SpaceGame.EditorTools
         // host start fail with "An item with the same key has already been added. Key: 7".
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
         private const string AnimatorPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
-        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/NPCFaction.asset";
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
         // The walking staff he carries and fights with. Built by
@@ -180,20 +312,6 @@ namespace SpaceGame.EditorTools
         // showed three were a grey shoulder pad and two thigh pads, so only the cloth is named.
         private const string ClothMeshPrefix = "Cloth_";
 
-        // Flavour lines, drawn at random. RandomFromPredefinedPool shuffles a private cycle so the
-        // nomad works through all of them before repeating.
-        private static readonly string[] DialogLines =
-        {
-            "Sand's been restless since the storm.",
-            "You're the first face I've seen in a week.",
-            "Careful past the ridge. Something out there hums at night.",
-            "Water first. Questions later.",
-            "I trade in scrap, not promises.",
-            "The old relay still sings, if you know where to listen.",
-            "Keep your visor sealed after dark.",
-            "Every wreck out here was somebody's ride home.",
-        };
-
         [MenuItem("Tools/SpaceGame/Agents/Build Nomad NPC")]
         public static void BuildAndPlace()
         {
@@ -221,6 +339,60 @@ namespace SpaceGame.EditorTools
         [MenuItem("Tools/SpaceGame/Agents/Build Sand Nomad NPCs")]
         public static void BuildSandNomads()
         {
+            var prefabs = BuildArmedNomads(SandNomads);
+            if (prefabs.Count == 0) return;
+
+            AddSandNomadCaravan(prefabs);
+            RegisterBuiltNomads();
+
+            Debug.Log($"[NomadPrefabBuilder] Built {prefabs.Count} sand nomad(s), registered them " +
+                      "as network prefabs, wired their savers and ragdolls.");
+        }
+
+        /// <summary>
+        /// The four sky nomads: the same chain as <see cref="BuildSandNomads"/> minus the caravan,
+        /// because Sky parties arrive by vessel rather than walking a road.
+        ///
+        /// <para>
+        /// On a fresh project run it twice, around Author Sky Tribe Roster: the roster validates
+        /// its members' baked faction, so the prefabs have to exist first, and the prefabs bake the
+        /// roster's hand items, so they are built again once the roster does.
+        /// </para>
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Build Sky Nomad NPCs")]
+        public static void BuildSkyNomads()
+        {
+            var prefabs = BuildArmedNomads(SkyNomads);
+            if (prefabs.Count == 0) return;
+
+            RegisterBuiltNomads();
+
+            Debug.Log($"[NomadPrefabBuilder] Built {prefabs.Count} sky nomad(s), registered them " +
+                      "as network prefabs, wired their savers and ragdolls.");
+        }
+
+        /// <summary>
+        /// The sky soldier alone, then the same registration chain as <see cref="BuildSkyNomads"/>.
+        /// A menu of its own so that adding him never rebuilds - and overwrites - the four sky nomads.
+        /// Re-run Author Sky Tribe Roster and Wire Sky City Settlement afterwards to field him.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Build Sky Soldier NPC")]
+        public static void BuildSkySoldier()
+        {
+            var prefabs = BuildArmedNomads(new[] { SkySoldier });
+            if (prefabs.Count == 0) return;
+
+            RegisterBuiltNomads();
+            Debug.Log($"[NomadPrefabBuilder] Built {SkySoldier.PrefabPath}, registered it as a network " +
+                      "prefab, wired its savers and ragdoll.");
+        }
+
+        /// <summary>
+        /// Imports each recipe's FBX as a Humanoid and builds its prefab. Logs an error and returns
+        /// an empty list when nothing could be built.
+        /// </summary>
+        private static List<GameObject> BuildArmedNomads(NomadRecipe[] recipes)
+        {
             // Import whatever the export scripts have just written BEFORE anything loads the FBX.
             // Without this the pipeline can still be holding the previous import when
             // BuildPrefab instantiates the model: the prefab then freezes the OLD skeleton's rest
@@ -229,7 +401,7 @@ namespace SpaceGame.EditorTools
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
             var prefabs = new List<GameObject>();
-            foreach (var recipe in SandNomads)
+            foreach (var recipe in recipes)
             {
                 if (!EnsureHumanoidImport(recipe.FbxPath)) continue;
                 var prefab = BuildPrefab(recipe);
@@ -237,23 +409,28 @@ namespace SpaceGame.EditorTools
             }
 
             if (prefabs.Count == 0)
-            {
-                Debug.LogError("[NomadPrefabBuilder] No sand nomad was built. Export the FBX files " +
+                Debug.LogError("[NomadPrefabBuilder] No nomad was built. Export the FBX files " +
                                "with sand_nogs_export.py first.");
-                return;
-            }
 
-            AddSandNomadCaravan(prefabs);
-            NetworkPrefabRegistrar.SyncMenu();
+            return prefabs;
+        }
+
+        /// <summary>
+        /// The registrations every freshly built nomad needs. A chain that has to run to the end:
+        /// stopped before the last two steps, it leaves finished-looking prefabs with no savers
+        /// and no ragdoll.
+        /// </summary>
+        private static void RegisterBuiltNomads()
+        {
+            // The worker, not SyncMenu: that ends in a modal dialog, which parks the editor -- and
+            // with it the save and ragdoll wiring below -- until someone clicks OK.
+            Debug.Log(NetworkPrefabRegistrar.Sync(out _, out _));
             WireSaveables();
 
             // The ragdoll adapter is put on creature prefabs by a project-wide tool, and a rebuild
             // writes the prefab wholesale, so every build has to ask for it again or the nomad
             // drops dead standing up while the original folds.
             RagdollWiring.WirePrefabs();
-
-            Debug.Log($"[NomadPrefabBuilder] Built {prefabs.Count} sand nomad(s), registered them " +
-                      "as network prefabs, wired their savers and ragdolls.");
         }
 
         public static GameObject BuildPrefab(NomadRecipe recipe)
@@ -265,7 +442,7 @@ namespace SpaceGame.EditorTools
                 return null;
             }
 
-            EnsureFolder(CharacterFolder);
+            EnsureFolder(Path.GetDirectoryName(recipe.PrefabPath).Replace('\\', '/'));
             EnsureFolder(ClothMaterialFolder);
 
             // The agent components live on their own root rather than on the model, because the
@@ -297,12 +474,15 @@ namespace SpaceGame.EditorTools
                 ConfigureAnimator(model);
                 ConfigurePhysics(root);
                 AddAgentStack(root, recipe);
-                ConfigureDialog(root);
+                ConfigureDialog(root, recipe);
                 ConfigurePerception(root);
                 ConfigureHealth(root);
-                ConfigureFaction(root);
+                ConfigureFaction(root, recipe);
                 ConfigureWatch(root);
+                ConfigureWander(root, recipe);
                 ConfigureAlerts(root);
+                ConfigureHearing(root);
+                ConfigureTelegraph(root);
                 if (recipe.CarriesStaff) AttachStaff(model);
                 ConfigureCombat(root, recipe);
                 ConfigureProvocation(root);
@@ -499,7 +679,7 @@ namespace SpaceGame.EditorTools
         /// piece rigid and blow the other inside out.
         /// </para>
         /// </summary>
-        private static Material EnsureClothMaterial(string meshName, ClothAnchor anchor, float windScale)
+        private static Material EnsureClothMaterial(string meshName, ClothAnchor anchor, NomadRecipe recipe)
         {
             var shader = Shader.Find("SpaceGame/ClothWind");
             if (shader == null)
@@ -511,8 +691,9 @@ namespace SpaceGame.EditorTools
             }
 
             // "Cloth_Cape_01" -> ".../NomadCloth_Cape_01.mat"
+            ClothPalette palette = recipe.ClothPalette;
             string leaf = meshName.StartsWith("Cloth_") ? meshName.Substring("Cloth_".Length) : meshName;
-            string path = $"{ClothMaterialFolder}/NomadCloth_{leaf}.mat";
+            string path = $"{ClothMaterialFolder}/{palette.MaterialPrefix}_{leaf}.mat";
 
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
@@ -525,7 +706,7 @@ namespace SpaceGame.EditorTools
                 mat.shader = shader;
             }
 
-            mat.SetColor("_BaseColor", new Color(0.44f, 0.35f, 0.26f));
+            mat.SetColor("_BaseColor", palette.ColourFor(meshName));
             mat.SetFloat("_Smoothness", 0.10f);
 
             // The shoulder scarf carries no UVs, so a weave sampled from UV0 would read as
@@ -548,7 +729,7 @@ namespace SpaceGame.EditorTools
             // 0.5 m it was being thrown nearly three times its own length off the body, which is
             // what read in-game as a flap juddering back and forth and as loose bits floating
             // beside the character.
-            float scale = Mathf.Clamp(anchor.WorldDrop / ReferenceCapeDrop, 0.05f, 1f) * windScale;
+            float scale = Mathf.Clamp(anchor.WorldDrop / ReferenceCapeDrop, 0.05f, 1f) * recipe.ClothWindScale;
 
             mat.SetFloat("_WindStrength", 0.14f * scale);
             mat.SetFloat("_Turbulence", 0.18f * scale);
@@ -664,7 +845,7 @@ namespace SpaceGame.EditorTools
 
                 if (!TryMeasureClothAnchor(renderer, out ClothAnchor anchor)) continue;
 
-                var cloth = EnsureClothMaterial(renderer.gameObject.name, anchor, recipe.ClothWindScale);
+                var cloth = EnsureClothMaterial(renderer.gameObject.name, anchor, recipe);
                 if (cloth == null) continue;
 
                 var mats = new Material[Mathf.Max(1, renderer.sharedMaterials.Length)];
@@ -747,17 +928,28 @@ namespace SpaceGame.EditorTools
                 "SpaceGame.Agents.IdleLookAroundModule",
                 // Turns to face you when you walk up, before you press anything. Reused rather
                 // than written: WatchModule already is "stop and face whoever is inside this
-                // radius", and its Neutral default is exactly what NPCFaction is toward the
+                // radius", and its Neutral default is exactly what SandTribeFaction is toward the
                 // player. See ConfigureWatch.
                 "SpaceGame.Agents.WatchModule",
                 "SpaceGame.Agents.AlertBroadcaster",
                 "SpaceGame.Agents.AlertReceiverModule",
+                // Ears. A caravan strung out along a dune loses line of sight constantly, so the
+                // alert radius alone leaves the far half of it standing about while the near half
+                // fights. See ConfigureHearing for which noises mean what.
+                "SpaceGame.Agents.NoiseReceiverModule",
+                // Notices a gun pointed at him, and shows what he thinks about it. The two halves
+                // of the aggression meter: MenaceSensor supplies the one input the player is
+                // actively making, AggressionTelegraphModule is the only reason any of it is
+                // legible. Deliberately absent from the Clanker and Outlaw builders — their stance
+                // is Hostile, so they never climb the meter and a robot cowboy does not warn you.
+                "SpaceGame.Agents.MenaceSensor",
+                "SpaceGame.Agents.AggressionTelegraphModule",
                 // Lets DialogInteraction stop him and turn him to face whoever is talking.
                 "SpaceGame.Agents.InteractionFocusModule",
             };
 
             // He is peaceful, so the attack modules never claim a frame — they do nothing at all
-            // without a target, and NPCFaction is Neutral toward the player so AgentTargeting
+            // without a target, and SandTribeFaction is Neutral toward the player so AgentTargeting
             // never acquires one. ProvocationModule is what hands him a target, and only after
             // someone hits him. See ConfigureProvocation.
             //
@@ -809,6 +1001,10 @@ namespace SpaceGame.EditorTools
                 // every agent here. Without it the creature reloads having forgotten who it was
                 // fighting — which now includes forgetting that it was provoked at all.
                 "SpaceGame.Core.Persistence.AgentStateSaveable",
+                // AlertResponseSaveable and NoiseInvestigationSaveable are deliberately NOT listed:
+                // SaveablePolicy adds a saver for each of the two modules above during
+                // WireSaveables, the same way ProvocationSaveable and CombatCadenceSaveable already
+                // arrive here. Listing them as well would be a second place to keep in step.
                 "SpaceGame.World.Safety.UnderTerrainGuard",
             });
 
@@ -821,7 +1017,7 @@ namespace SpaceGame.EditorTools
         /// because these are private [SerializeField]s -- reaching them any other way means making
         /// gameplay fields public for the benefit of an editor script.
         /// </summary>
-        private static void ConfigureDialog(GameObject root)
+        private static void ConfigureDialog(GameObject root, NomadRecipe recipe)
         {
             var dialog = FindComponent(root, "SpaceGame.Gameplay.DialogInteraction");
             if (dialog == null)
@@ -838,9 +1034,9 @@ namespace SpaceGame.EditorTools
             var pool = so.FindProperty("predefinedRandomPool");
             if (pool != null)
             {
-                pool.arraySize = DialogLines.Length;
-                for (int i = 0; i < DialogLines.Length; i++)
-                    pool.GetArrayElementAtIndex(i).stringValue = DialogLines[i];
+                pool.arraySize = recipe.DialogLines.Length;
+                for (int i = 0; i < recipe.DialogLines.Length; i++)
+                    pool.GetArrayElementAtIndex(i).stringValue = recipe.DialogLines[i];
             }
 
             // SfxId.NpcMumbleFriendly
@@ -897,12 +1093,12 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void ConfigureFaction(GameObject root)
+        private static void ConfigureFaction(GameObject root, NomadRecipe recipe)
         {
             var faction = FindComponent(root, "SpaceGame.Agents.EntityFaction");
             if (faction == null) return;
 
-            var definition = AssetDatabase.LoadAssetAtPath<Object>(FactionPath);
+            var definition = AssetDatabase.LoadAssetAtPath<Object>(recipe.FactionPath);
             var table = AssetDatabase.LoadAssetAtPath<Object>(RelationshipsPath);
             if (definition == null || table == null)
             {
@@ -1179,6 +1375,76 @@ namespace SpaceGame.EditorTools
             }
         }
 
+        /// <summary>
+        /// What a nomad does about a noise he did not see the cause of.
+        ///
+        /// <para>
+        /// The two masks are deliberately different, because the two noises mean different things
+        /// to a peaceful man. A <b>gunshot</b> is a thing to go and look at — it may be a hunt, or
+        /// another caravan, or nothing to do with him — so it moves him, and no more. A tribesman
+        /// <b>crying out in pain</b> is not ambiguous: he knows that voice, and
+        /// <c>NoiseReceiverModule</c>'s aggro branch already refuses to turn him on an ally, so the
+        /// only thing he can take it as is somebody attacking his people.
+        /// </para>
+        /// <para>
+        /// This is the other half of <see cref="ConfigureAlerts"/>, and it is the half that covers
+        /// the caravan strung out along a dune: the alert radius is 35 m of clear line, and a
+        /// column on the march is regularly longer than that.
+        /// </para>
+        /// </summary>
+        private static void ConfigureHearing(GameObject root)
+        {
+            var ears = FindComponent(root, "SpaceGame.Agents.NoiseReceiverModule");
+            if (ears == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No NoiseReceiverModule; a nomad shot out of " +
+                                 "sight of the rest of the caravan will die without anyone coming.");
+                return;
+            }
+
+            var so = new SerializedObject(ears);
+            // Literal masks for the same reason the component list is strings: this file names no
+            // agent type directly, so it still compiles while that assembly is mid-edit.
+            SetInt(so, "priority", 18);         // ModulePriority.Reactive - 2
+            SetEnum(so, "investigateOn", 1 << 4);   // NoiseTypeMask.Gunshot
+            SetEnum(so, "aggroOn", 1 << 2);         // NoiseTypeMask.Hurt
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The two modules that turn the aggression meter into something the player can read.
+        ///
+        /// Priorities set by hand, as everywhere else in this builder: AddComponent does not run
+        /// Reset, so a script-added module keeps priority 0 and ties with WanderModule — a nomad
+        /// who is supposed to be standing his ground with his gun up would wander off mid-threat,
+        /// and win or lose that coin toss on a different frame each time.
+        /// </summary>
+        private static void ConfigureTelegraph(GameObject root)
+        {
+            var sensor = FindComponent(root, "SpaceGame.Agents.MenaceSensor");
+            if (sensor != null)
+            {
+                var so = new SerializedObject(sensor);
+                SetInt(so, "priority", 22);                 // ModulePriority.RangedAttack; side-effect
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            var telegraph = FindComponent(root, "SpaceGame.Agents.AggressionTelegraphModule");
+            if (telegraph == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No AggressionTelegraphModule; the nomad will " +
+                                 "go from ignoring you to shooting you with nothing in between.");
+                return;
+            }
+
+            var telegraphSo = new SerializedObject(telegraph);
+            // Above WatchModule (Ambient, 10), below the reactive modules: a nomad being menaced
+            // looks at the person menacing him rather than at whoever last walked past, and still
+            // yields the frame the moment there is an actual fight to run.
+            SetInt(telegraphSo, "priority", 12);
+            telegraphSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void ConfigureWatch(GameObject root)
         {
             var watch = FindComponent(root, "SpaceGame.Agents.WatchModule");
@@ -1193,6 +1459,20 @@ namespace SpaceGame.EditorTools
             SetInt(so, "priority", 10);                 // ModulePriority.Ambient
             SetEnum(so, "requiredRelationship", 0);     // FactionRelationship.Neutral
             SetFloat(so, "detectRadius", InteractorCastDistance + 1f);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureWander(GameObject root, NomadRecipe recipe)
+        {
+            var wander = FindComponent(root, "SpaceGame.Agents.WanderModule");
+            if (wander == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No WanderModule; he will stand where he spawned.");
+                return;
+            }
+
+            var so = new SerializedObject(wander);
+            SetBool(so, "onlyReachableDestinations", recipe.WanderReachableOnly);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -1214,7 +1494,7 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static void ConfigureCombat(GameObject root, NomadRecipe recipe)
         {
-            if (recipe.RandomWeapon) ConfigureRandomWeapon(root);
+            if (recipe.RandomWeapon) ConfigureRandomWeapon(root, recipe);
 
             var melee = FindComponent(root, "SpaceGame.Agents.CloseCombatModule");
             if (melee != null)
@@ -1270,7 +1550,7 @@ namespace SpaceGame.EditorTools
         /// stays holstered until someone hits him.
         /// </para>
         /// </summary>
-        private static void ConfigureRandomWeapon(GameObject root)
+        private static void ConfigureRandomWeapon(GameObject root, NomadRecipe recipe)
         {
             var loadout = FindComponent(root, "SpaceGame.Agents.NpcRandomLoadout");
             if (loadout != null)
@@ -1279,18 +1559,24 @@ namespace SpaceGame.EditorTools
                 var candidates = so.FindProperty("candidates");
                 if (candidates != null)
                 {
-                    var items = WeaponArtifactPaths
-                        .Select(AssetDatabase.LoadAssetAtPath<InventoryItem>)
-                        .Where(item => item != null)
-                        .ToArray();
-                    if (items.Length < WeaponArtifactPaths.Length)
-                        Debug.LogWarning("[NomadPrefabBuilder] Some weapon artifacts in " +
-                                         "WeaponArtifactPaths do not exist; the roll draws from " +
-                                         $"{items.Length} instead of {WeaponArtifactPaths.Length}.");
-
-                    candidates.arraySize = items.Length;
-                    for (int i = 0; i < items.Length; i++)
-                        candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+                    // The roster owns the weapon list (rosters spec §4.5). Baked rather than read at
+                    // runtime so a hand-placed nomad works standalone; RosterAssetTests fails if the
+                    // bake and the roster ever differ.
+                    var roster = AssetDatabase.LoadAssetAtPath<FactionRoster>(recipe.RosterPath);
+                    if (roster == null)
+                    {
+                        Debug.LogError($"[NomadPrefabBuilder] No roster at {recipe.RosterPath}; run the " +
+                                       "tribe's Tools/SpaceGame/Agents/Author ... Roster menu, then build " +
+                                       $"again. {recipe.Name} is built unarmed.");
+                        candidates.arraySize = 0;
+                    }
+                    else
+                    {
+                        InventoryItem[] items = roster.handItems.Where(item => item != null).ToArray();
+                        candidates.arraySize = items.Length;
+                        for (int i = 0; i < items.Length; i++)
+                            candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+                    }
                 }
                 SetInt(so, "slot", 0);
                 so.ApplyModifiedPropertiesWithoutUndo();
@@ -1941,7 +2227,7 @@ namespace SpaceGame.EditorTools
             if (SaveableWiring.TryWirePrefabs()) return;
 
             Debug.LogError("[NomadPrefabBuilder] The prefabs were built but Tools > Save System > " +
-                           "Wire Saveable Prefabs failed. Run it by hand; until then the sand " +
+                           "Wire Saveable Prefabs failed. Run it by hand; until then the " +
                            "nomads have no prefabId and are missing savers.");
         }
 

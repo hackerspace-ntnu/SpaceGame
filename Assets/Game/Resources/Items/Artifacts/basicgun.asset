@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
   m_Name: basicgun
   m_EditorClassIdentifier: Assembly-CSharp::InventoryItem
+  <ID>k__BackingField: 4c3ecf8e279975a4985ffafb2b2e4e95
   itemName: gun
   itemPrefab: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
   icon: {fileID: 21300000, guid: 956f28a456c4b41f5bdefb06bf26a899, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0
+  menacing: 1

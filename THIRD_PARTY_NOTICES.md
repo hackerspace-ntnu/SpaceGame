@@ -34,3 +34,15 @@ project are **not** included; the body is dressed from this project's own palett
 **Lore carried over, with thanks:** the robots were sent to terraform Mars and received
 western films in place of their instructions. In SpaceGame they have since moved on to this
 planet — see `docs/superpowers/specs/2026-09-07-faction-system-design.md` §3.7.
+
+## Kenney — Sci-Fi Sounds
+
+**What:** `lowFrequency_explosion_001.ogg`, shipped as
+[`Assets/StreamingAssets/Audio/storm_ward_pulse.ogg`](Assets/StreamingAssets/Audio/storm_ward_pulse.ogg),
+the storm ward's pulse.
+
+**From:** Kenney, "Sci-Fi Sounds" 1.0 (2020-10-11), <https://kenney.nl/assets/sci-fi-sounds>,
+downloaded 2026-09-17.
+
+**Licence:** Creative Commons Zero (CC0 1.0), <http://creativecommons.org/publicdomain/zero/1.0/>.
+Nothing is owed; crediting Kenney (www.kenney.nl) is invited, not required.

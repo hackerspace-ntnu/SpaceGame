@@ -74,7 +74,7 @@ namespace SpaceGame.Agents
         /// <para>
         /// A per-entity exemption on top of the faction answer, not a second faction system. The
         /// case it exists for is a rider being carried: a player sitting on a robot's shoulder is
-        /// still a hostile member of PlayerFaction to every other robot in the world, and must stay
+        /// still a hostile member of HumansFaction to every other robot in the world, and must stay
         /// one — but the machine carrying them cannot be allowed to turn round and fight its own
         /// passenger. Faction cannot express that, because it is a statement about the two SIDES
         /// and this is a statement about these two INDIVIDUALS.
@@ -161,12 +161,17 @@ namespace SpaceGame.Agents
             return component;
         }
 
-        public FactionRelationship GetRelationshipWith(EntityFaction other)
-        {
-            if (other == null || relationshipTable == null)
-                return FactionRelationship.Neutral;
-            return relationshipTable.Get(faction, other.Faction);
-        }
+        /// <summary>
+        /// What this entity thinks of <paramref name="other"/>: grudge, then goodwill, then the
+        /// faction table. See <see cref="FactionRelations.Resolve"/> for why that order.
+        ///
+        /// This is the ONLY way to ask. Every hunting module in the project comes through here —
+        /// <c>EntityTargetRegistry</c>, <c>AgentTargeting</c>, <c>FleeModule</c>,
+        /// <c>AlertBroadcaster</c> — and nothing else may call <c>FactionRelationshipTable.Get</c>
+        /// directly, or an agent ends up chasing what it will not shoot.
+        /// </summary>
+        public FactionRelationship GetRelationshipWith(EntityFaction other) =>
+            FactionRelations.Resolve(this, other);
 
         public bool IsHostileTo(EntityFaction other) => GetRelationshipWith(other) == FactionRelationship.Hostile;
         public bool IsAlliedWith(EntityFaction other) => GetRelationshipWith(other) == FactionRelationship.Allied;

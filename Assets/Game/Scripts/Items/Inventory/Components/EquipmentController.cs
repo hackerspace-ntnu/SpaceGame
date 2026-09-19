@@ -216,6 +216,7 @@ namespace SpaceGame.Items
                 return;
             }
 
+            HeldItemAsset = item;
             activeSocket = SocketFor(item.itemPrefab);
             equippedItemObject = activeSocket != null ? activeSocket.Equip(item.itemPrefab) : null;
 
@@ -302,6 +303,17 @@ namespace SpaceGame.Items
         public UsableItem HeldUsable => HeldItem();
 
         /// <summary>
+        /// The <see cref="InventoryItem"/> asset the held object was equipped FROM, or null.
+        ///
+        /// The instance in the hand is a plain <c>Instantiate</c> of <c>itemPrefab</c> and carries
+        /// no way back to the asset, so anything that needs to ask a question about the ITEM rather
+        /// than about the object — is this a weapon (<c>menacing</c>), what is it called, what does
+        /// it weigh — has to be told here. Held rather than derived from the selected slot, because
+        /// the selection has usually moved on by the time <c>Unequip</c> runs.
+        /// </summary>
+        public InventoryItem HeldItemAsset { get; private set; }
+
+        /// <summary>
         /// Trigger the held item as though the use button had been pressed.
         ///
         /// The seam <c>MultiplayerAutotest</c> fires through, because the button itself cannot be
@@ -315,6 +327,8 @@ namespace SpaceGame.Items
 
         private void Unequip()
         {
+            HeldItemAsset = null;
+
             // Before anything is destroyed: the slot has to keep what this instance became, or
             // switching hotbar slot and back would refill the magazine and the charges.
             WriteBackHeldItemState();

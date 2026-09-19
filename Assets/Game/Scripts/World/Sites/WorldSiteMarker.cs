@@ -28,6 +28,11 @@ namespace SpaceGame.World
                  "they can find. Requires a MapPOI component on this object.")]
         [SerializeField] private bool mirrorToMap = false;
 
+        [Tooltip("Nothing can walk here — the Sky City, say. Ground errands (NpcTaskModule's home " +
+                 "search, NpcTaskPlanner's task destinations) skip this site as if it did not exist; " +
+                 "it is still findable by id or by WorldSiteRegistry.TryFindByName.")]
+        [SerializeField] private bool airborne = false;
+
         [Tooltip("Stable unique id. Auto-generated on first add — don't edit unless you know what " +
                  "you're doing. Changing it orphans the old record for the rest of the session.")]
         [HideInInspector]
@@ -36,6 +41,7 @@ namespace SpaceGame.World
         public SiteKind Kind => kind;
         public string SiteId => id;
         public string SiteName => siteName;
+        public bool Airborne => airborne;
 
         private void Reset()      => EnsureId();
         private void OnValidate()
@@ -81,7 +87,7 @@ namespace SpaceGame.World
 
             // Position is read now rather than cached at bake time, so a marker parented to
             // something that moves (a caravan's own camp, a ship) reports where it actually is.
-            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id);
+            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id, airborne);
 
             if (mirrorToMap && TryGetComponent(out MapPOI poi))
                 poi.Refresh();
@@ -99,7 +105,7 @@ namespace SpaceGame.World
         public void Refresh()
         {
             EnsureId();
-            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id);
+            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id, airborne);
         }
 
         private void OnDrawGizmosSelected()

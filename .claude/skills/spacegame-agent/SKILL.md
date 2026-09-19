@@ -96,15 +96,21 @@ best template for a new creature builder.
 
    | Temperament | Faction | Rows in `GlobalRelationships.asset` | Extra |
    |---|---|---|---|
-   | Attacks on sight | `RobotFaction`, `BountyHunterFaction`, or a new one | `Hostile` toward `PlayerFaction` | combat modules |
-   | Peaceful until hurt | `FaunaFaction` (or a new empty one) | **none** — `FaunaFaction.asset` appears in zero rows; adding one "for completeness" makes every creature of that faction attack on sight | `ProvocationModule`, with `leashRange` ≤ `AgentTargeting.loseRange` |
-   | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward the player — change or reuse deliberately | — |
+   | Attacks on sight | `ClankerFaction`, `OutlawFaction`, or a new one | Clankers need none — `defaultStance = Hostile` covers every people-faction, including ones added later. Outlaws have one `Hostile` row toward `HumansFaction` | combat modules |
+   | Peaceful until hurt | `FaunaFaction` (or a new empty one) | **none, and leave `defaultStance` at `Neutral`** — Fauna's only rows are the two `Neutral` ones the Clankers use to stay off the animals. Adding a `Hostile` row "for completeness", or a `Hostile` default, makes every creature of that faction attack on sight | `ProvocationModule`, with `leashRange` ≤ `AgentTargeting.loseRange` |
+   | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward `HumansFaction` — change or reuse deliberately | — |
    | Afraid of the player | any | see below | `FleeModule` |
+
+   **`defaultStance` is the checkbox, not the rows.** It is the stance toward any faction the table
+   has no row for: `Hostile` if **either** side says so, `Allied` only if **both** do, else
+   `Neutral`. Only `ClankerFaction` sets it, and a row always beats it — which is exactly how
+   "Clankers shoot people but ignore animals" is expressed. Leave it `Neutral` for anything new
+   unless the whole point of the faction is that it is everyone's enemy.
 
    `FleeModule` resolves its own threat by **relationship**, not by "the player": it uses
    `fleeFromRelationship` (default `Hostile`) against `EntityTargetRegistry`. For a creature that
    should flee the player and nothing else, give it its own `FactionDefinition` with a single
-   `Hostile` row toward `PlayerFaction` and add **no** chase or combat module — `AgentTargeting`
+   `Hostile` row toward `HumansFaction` and add **no** chase or combat module — `AgentTargeting`
    acquires the player, and with only `FleeModule` above `WanderModule` on the ladder the creature
    runs. Setting `fleeFromRelationship = Neutral` instead makes it flee every neutral entity in the
    world, including other creatures.
@@ -117,7 +123,13 @@ best template for a new creature builder.
     serialized default of `Fallback (0)` and ties with wander.
 11. **Perception** — `PerceptionModule` for FOV/LoS; set `occlusionLayers` explicitly.
     `AlertBroadcaster` + `AlertReceiverModule` for pack alerts; `NoiseEmitter` +
-    `NoiseReceiverModule` for hearing.
+    `NoiseReceiverModule` for hearing. **Vision must meet `VisionBaseline`** (180° cone, 80 m
+    acquire, 110 m lose, 12 s memory) or `VisionBaselineTests` fails: write
+    `VisionBaseline.MinFieldOfView` / `MinMemory` in the builder rather than a narrower literal
+    (wider is fine — prey animals use 210–220°), then run `Tools/SpaceGame/Agents/Wire Vision
+    Baseline`. A creature that deliberately sees less (a stationary boss whose range *is* its
+    trigger) goes in `VisionBaselineWiring.Exempt` with a comment saying why. Any new visibility
+    raycast passes `QueryTriggerInteraction.Ignore` — the project hits triggers by default.
 12. **Animation parameters** (NavMesh creatures) — a controller in
     `Assets/Game/Art/Animations/Creatures/` carrying exactly `SpeedX`, `SpeedY`, `FallSpeed`,
     `IsGrounded`, `IsImmobalized` *(sic)*, `IsAiming`, plus whatever triggers the combat and health
@@ -142,6 +154,20 @@ best template for a new creature builder.
     - A hand-placed instance in a chunk scene under `Assets/Game/Scenes/world/Chunks/`.
 17. **Verify in play**: it wanders; it acquires only what it should; the feet do not slide; the
     walk/run blend matches the motor; it dies, drops loot once, and despawns.
+
+## Rosters and war parties
+
+Adding a new tribe end to end — its `FactionRoster`, people, war parties and caravans — is a
+repeatable job with its own skill: **[spacegame-tribe](../spacegame-tribe/SKILL.md)**.
+
+- A member's `role` draws a prefab from the tribe's `FactionRoster` when `NpcGroupMemberSpec.prefab`
+  is left empty; a `runtimeOnly` template (`bountyHunters`, `tribe` set) is never seeded at startup —
+  `WarPartyDirector` creates one when a tribe goes `AtWar`, and without one in `NpcWorldSim.templates`
+  it logs "no war-party template" and no party ever comes.
+- **Never hand-edit a nomad's `NpcRandomLoadout.candidates`** — baked from the roster's `handItems`
+  by `NomadPrefabBuilder`; run the roster-authoring menu first, then the tribe's builder (it bakes
+  `roster.handItems` and errors without the roster).
+- Full model, flows and gotchas: [AgentSystem.md](../../../docs/AI/systems/AgentSystem.md).
 
 ## Module quick reference
 
@@ -321,7 +347,7 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Symptom | Cause | Fix |
 |---|---|---|
 | Creature never notices anything, no errors | No `EntityFaction`, or no relationship table assigned | Add both; `EntityFaction.Ensure(go, faction, table)` on spawn paths |
-| Every "peaceful" creature attacks on sight | A relationship row was added for its faction | Peaceful = **zero rows** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
+| Every "peaceful" creature attacks on sight | A relationship row was added for its faction, or its `defaultStance` is not `Neutral` | Peaceful = **zero rows and a `Neutral` default** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
 | Creature chases A, shoots B, backs away from C | A module resolved its own target | Read `context.Targeting` |
 | Everything below one module never runs | That module returns `MoveIntent.Idle()` while merely waiting | Return `null` |
 | A script-added module is ignored | `Reset()` is not called for `AddComponent`; priority stayed 0 and tied with wander | Set `priority` explicitly |
@@ -338,6 +364,7 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | A spawner's group duplicates on load | Its members were also captured by the world save | `SaveableEntity.DisownToExternal()` — see `spacegame-persistence` |
 | Vehicle carrying the creature climbs into the sky | Its ground probe hit the non-kinematic rider | Skip hits whose `attachedRigidbody` is non-kinematic; layer masks do not work here (the player is on layer 0) |
 | An agent with two `AgentTargeting` components | `[RequireComponent]` already added one before the builder did | Guard with `GetComponent<AgentTargeting>() == null` |
+| A mounted NPC rides up and never attacks | Its brain is off — it is a passenger | `NpcPassenger` takes the rider's *feet* (`AgentController.RidesAsPassenger` + `NavMeshAgent`/motors), never the `AgentController`. Do not arm the animal instead: a mount carries, the rider shoots |
 
 ## Cross-references
 

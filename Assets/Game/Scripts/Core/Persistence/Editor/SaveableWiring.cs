@@ -136,6 +136,19 @@ namespace SpaceGame.Core.Persistence.EditorTools
 
                 if (!NeedsSaving(prefab, out string why))
                 {
+                    // The policy adds no savers here, but a prefab that ALREADY carries an entity is
+                    // spawned at runtime and restored by its prefabId all the same - a placed
+                    // lantern, whose only saver is its TransformSaveable. Skipping it outright left
+                    // every placed half unstamped on disk and gone after a reload.
+                    if (prefab.GetComponent<SaveableEntity>() != null && StampPrefabId(prefab, guid))
+                    {
+                        changed++;
+                        report.Append("  + ").Append(System.IO.Path.GetFileNameWithoutExtension(path))
+                              .Append("  [authored entity]  stamped prefabId\n");
+                        EditorUtility.SetDirty(prefab);
+                        continue;
+                    }
+
                     skipped++;
                     continue;
                 }

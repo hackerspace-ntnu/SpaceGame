@@ -35,6 +35,35 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void CoordsAroundIsOnlyTheOwnChunkWhenTheRadiusFitsInsideIt()
+        {
+            var coords = new System.Collections.Generic.List<Vector2Int>();
+            Shipped().CoordsAround(new Vector3(1250f, 90f, 250f), 100f, coords);
+
+            CollectionAssert.AreEquivalent(new[] { new Vector2Int(2, 2) }, coords);
+        }
+
+        [Test]
+        public void CoordsAroundTakesEveryChunkTheRadiusReachesAcrossACorner()
+        {
+            var coords = new System.Collections.Generic.List<Vector2Int>();
+            Shipped().CoordsAround(new Vector3(1480f, 90f, 20f), 102f, coords);
+
+            CollectionAssert.AreEquivalent(
+                new[] { new Vector2Int(2, 1), new Vector2Int(3, 1), new Vector2Int(2, 2), new Vector2Int(3, 2) },
+                coords);
+        }
+
+        [Test]
+        public void CoordsAroundNeverNamesAChunkOutsideTheGrid()
+        {
+            var coords = new System.Collections.Generic.List<Vector2Int>();
+            Shipped().CoordsAround(new Vector3(20f, 90f, -980f), 102f, coords);
+
+            CollectionAssert.AreEquivalent(new[] { new Vector2Int(0, 0) }, coords);
+        }
+
+        [Test]
         public void TheWindowReachesTheWholeViewOnEverySideOfThePosition()
         {
             var grid = Shipped();

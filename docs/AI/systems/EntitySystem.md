@@ -18,7 +18,7 @@ symptoms:
   - "EntityProfile_RobotPhil / _DesertRat is referenced but does not exist"
   - "a moving NPC keeps nine chunks loaded around itself"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-09-06
+updated: 2026-09-16
 ---
 
 # Entity System
@@ -112,7 +112,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 - **Authored vs runtime is the whole storage split.** Authored objects already exist when the chunk loads, so records are *applied in place*; runtime objects are *re-instantiated* from `prefabId` into the chunk's own scene.
 - Records are keyed by **identity, never by scene** — an entity that walked into another chunk still finds its record.
 - `SaveScope.External` takes an object out of world capture (players; `NpcWorldSim` caravan members via `DisownToExternal`, which is refused outside play mode).
-- `NpcRandomLoadout` saves nothing of its own. The bag is `EntityInventorySaveable`'s and the hand `EntityEquipmentSaveable`'s (both added by `SaveablePolicy`); the roll only fills an EMPTY slot, so a restored bag wins, and a disowned caravan member rolls afresh every time it walks into range — which is the "random per spawn" the sand nomads were asked for.
+- `NpcRandomLoadout` may sit on an entity more than once, one per bag slot; `equipAfterRoll` off makes a slot loot that is carried and dropped but never drawn (the Clanker's artifact, slot 1, beside its gun in slot 0). A null candidate is a roll that comes up empty. `NpcRandomLoadout` saves nothing of its own. The bag is `EntityInventorySaveable`'s and the hand `EntityEquipmentSaveable`'s (both added by `SaveablePolicy`); the roll only fills an EMPTY slot, so a restored bag wins. A disowned caravan or war-party member's roll is seeded by its group (`GroupMembership`, `RosterDraw.IndexFor`), so the same group comes back carrying the same guns after every refold; a hand-placed NPC with no group still rolls at random each time it walks into range.
 - Unresolvable `prefabId` ⇒ the record is **kept**, not dropped, and warns `No prefab registered for id`. Format details: [Persistence.md](Persistence.md).
 
 ## Gotchas

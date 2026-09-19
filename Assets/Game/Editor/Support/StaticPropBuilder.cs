@@ -23,6 +23,8 @@ namespace SpaceGame.EditorTools
             Surface = 2,
             /// <summary>Convex MeshCollider -- silhouette actually matters.</summary>
             Convex = 3,
+            /// <summary>Non-convex MeshCollider on the renderer's own mesh -- static lattice a hull would fill in.</summary>
+            Mesh = 4,
         }
 
         // -------------------------------------------------------------------
@@ -107,6 +109,98 @@ namespace SpaceGame.EditorTools
             mc.sharedMesh = mf.sharedMesh;
             mc.convex = true;
             return true;
+        }
+
+        // A non-convex MeshCollider on the renderer's own triangles. Only for
+        // static structure a player can walk into from inside or between its
+        // members -- a cage of ring frames, a keel truss -- where a convex hull
+        // would fill the space the player is standing in. Static colliders only:
+        // Unity cannot put a non-convex mesh on a moving Rigidbody.
+        public static bool AddMesh(Renderer r)
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null) return false;
+            if (!mf.sharedMesh.isReadable) return false;
+
+            var mc = r.gameObject.AddComponent<MeshCollider>();
+            mc.sharedMesh = mf.sharedMesh;
+            mc.convex = false;
+            return true;
+        }
+
+        // -------------------------------------------------------------------
+        // Name rules -- which renderer gets which fit
+        // -------------------------------------------------------------------
+
+        /// <summary>A renderer-name prefix and the collider it gets. The FIRST match wins.</summary>
+        public struct NamedFit
+        {
+            public string Match;
+            public Fit Fit;
+            /// <summary>Renderers shorter than this get no collider whatever the fit.</summary>
+            public float MinHeight;
+            public string Note;
+        }
+
+        public struct FitCounts
+        {
+            public int Boxes;
+            public int Hulls;
+            public int Meshes;
+            public int Uncollided;
+            /// <summary>Renderer names no rule matched: no collider by fallback, not by decision.</summary>
+            public List<string> Unmatched;
+
+            public override string ToString() =>
+                $"{Boxes} box + {Hulls} convex + {Meshes} mesh, {Uncollided} uncollided by rule" +
+                (Unmatched.Count > 0
+                    ? $"; UNMATCHED ({Unmatched.Count}): {string.Join(", ", Unmatched.GetRange(0, System.Math.Min(8, Unmatched.Count)))}"
+                    : "");
+        }
+
+        // Applies `rules` to every renderer under `root`. A convex or mesh fit on
+        // an unreadable mesh throws: the failure is otherwise a silent collider
+        // with no mesh.
+        public static FitCounts ApplyFits(GameObject root, NamedFit[] rules)
+        {
+            var counts = new FitCounts { Unmatched = new List<string>() };
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                int index = System.Array.FindIndex(rules,
+                    rule => r.name.StartsWith(rule.Match, System.StringComparison.Ordinal));
+                if (index < 0)
+                {
+                    counts.Unmatched.Add(r.name);
+                    continue;
+                }
+
+                NamedFit rule = rules[index];
+                switch (r.bounds.size.y >= rule.MinHeight ? rule.Fit : Fit.None)
+                {
+                    case Fit.Box:
+                        AddBox(r, false);
+                        counts.Boxes++;
+                        break;
+                    case Fit.Surface:
+                        AddBox(r, true);
+                        counts.Boxes++;
+                        break;
+                    case Fit.Convex:
+                        if (!AddConvex(r))
+                            throw new System.InvalidOperationException($"{r.name}: mesh not readable for a convex hull.");
+                        counts.Hulls++;
+                        break;
+                    case Fit.Mesh:
+                        if (!AddMesh(r))
+                            throw new System.InvalidOperationException($"{r.name}: mesh not readable for a mesh collider.");
+                        counts.Meshes++;
+                        break;
+                    default:
+                        counts.Uncollided++;
+                        break;
+                }
+            }
+            return counts;
         }
 
         // -------------------------------------------------------------------

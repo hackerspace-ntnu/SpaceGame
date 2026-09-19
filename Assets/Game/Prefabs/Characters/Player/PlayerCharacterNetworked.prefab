@@ -173,6 +173,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6845326683234165101}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3713526863936286617}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7033699476868429178}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -412,6 +418,38 @@ MonoBehaviour:
       NameHash: -129432694
       Synchronize: 1
       ParameterType: 4
+    - name: WornLeftStyle
+      NameHash: -1542630508
+      Synchronize: 1
+      ParameterType: 3
+    - name: Stab
+      NameHash: 1952376142
+      Synchronize: 1
+      ParameterType: 9
+    - name: Gesturing
+      NameHash: 375919627
+      Synchronize: 1
+      ParameterType: 4
+    - name: Punch
+      NameHash: -316645540
+      Synchronize: 1
+      ParameterType: 9
+    - name: Wave
+      NameHash: 2050359991
+      Synchronize: 1
+      ParameterType: 9
+    - name: Cheer
+      NameHash: -813790127
+      Synchronize: 1
+      ParameterType: 9
+    - name: Shrug
+      NameHash: -1847043940
+      Synchronize: 1
+      ParameterType: 9
+    - name: Flex
+      NameHash: -1734177707
+      Synchronize: 1
+      ParameterType: 9
   AnimatorParametersExpanded: 0
 --- !u!114 &-3757295630438121014
 MonoBehaviour:
@@ -638,6 +676,31 @@ MonoBehaviour:
   suffocationDamage: 5
   suffocationInterval: 1
   warnFraction: 0.1
+--- !u!114 &3713526863936286617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a8d5d2682cfcb14fbe8ad6008286ca3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerEmotes
+--- !u!114 &7033699476868429178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ba932df8957eae4cad9476c50e33d33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionGoodwillNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

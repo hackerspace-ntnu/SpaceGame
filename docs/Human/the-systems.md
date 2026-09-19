@@ -122,11 +122,23 @@ The suited figure the player drives: walking, sprinting, crouching, jumping, fir
 
 **Worth knowing:** anything hung on the camera — a torch, an attached prop — is invisible to every other player, because the whole camera is switched off on remote copies.
 
+### Climbing ladders *(Ladders)*
+
+Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump held goes up, back goes down, and letting go of everything makes you slide slowly down rather than fall. At the top you step off onto the floor behind it on your own; from the top, walking off into the gap the ladder leaves catches you on the ladder to climb down. A hard sideways push lets go. There is no climbing animation yet.
+
+**Worth knowing:** the player is 3 m tall, so their head reaches the floor at the top of a ladder a whole body height before their feet do — the climb steps you over that lip rather than stopping you under it.
+
 ### Creatures, NPCs and turrets *(AgentSystem)*
 
 Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.
 
 **Worth knowing:** a creature with no faction is invisible to every targeting system with no error at all, and a species is peaceful precisely by having *zero* relationship rows — adding one "for completeness" makes the whole faction attack on sight.
+
+### The tribe that lives in the sky *(SkyTribe)*
+
+A second neutral tribe, camped in a walking city that stands 228 metres up in the air on its own little NavMesh. Its people are the sand nomads wearing a different colour, and it goes to war the same way Sand does — except its war parties do not walk out to find you. A skiff or a freighter lifts off from the city, flies to wherever you are, looks for ground flat enough to land on and touches down, or hovers a few metres up and drops its passengers onto the nearest walkable ground if it cannot. The party then fights on foot like any other, and the empty hull flies itself home once you are out of sight.
+
+**Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
 
 ### Picking a creature up off the ground *(CarriedAgent)*
 

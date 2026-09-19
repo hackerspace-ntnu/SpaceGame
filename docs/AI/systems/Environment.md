@@ -40,7 +40,7 @@ symptoms:
   - "an authored interior fog volume fades out as soon as I step into the room it is in"
   - "high up during the intro descent the skybox still shows ground-level mountains at eye level"
 reads_with: [Persistence, AgentSystem, ArtPipeline]
-updated: 2026-09-13
+updated: 2026-09-17
 ---
 
 # Environment
@@ -59,17 +59,18 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 - **One shape function drives damage *and* pixels.** [StormShape](Assets/Game/Scripts/World/Environment/Sandstorm/StormShape.cs) (C#) must stay identical to the shape in [SandstormVolume.hlsl](Assets/Game/Art/Shaders/Environment/SandstormVolume.hlsl); only the eroding noise is GPU-only.
 - **Fog and clouds hold zero runtime state** — authored in scenes, so they need no netcode and no saver at all.
 - **Shelter is one volume with two consumers.** `SandstormShelter` is a point query, not a trigger, and it answers both halves of "inside": the server stops charging storm damage (`SandstormVictim`), and each machine stops drawing the storm interior, its near grit and the volumetric fog for its own camera (`SandstormVisuals`, `FogVolumes.Push`). The rendering scales by the *same* `1 - shelter` the damage does, so what is drawn and what hurts cannot drift apart.
-- **Facade discipline:** consumers only ever call [Sandstorms](Assets/Game/Scripts/World/Environment/Sandstorm/Sandstorms.cs). Every query answers sensibly with no manager, no session and no storms.
+- **Suppressed is not ended.** A storm held off by a suppressor keeps its record, drifts and ages unseen and is saved as usual; it resolves at intensity 0 and fades back in if the suppressor goes while it still lives. Every machine registers the same (spawned) suppressors, so nothing about it is replicated or saved. **Facade discipline:** consumers only ever call [Sandstorms](Assets/Game/Scripts/World/Environment/Sandstorm/Sandstorms.cs). Every query answers sensibly with no manager, no session and no storms.
 
 ## Key types
 
 | Type | File | Role |
 | --- | --- | --- |
-| `Sandstorms` | [Sandstorms.cs](Assets/Game/Scripts/World/Environment/Sandstorm/Sandstorms.cs) | The only public surface: `IntensityAt` / `ExposureAt` / `VisibilityAt` / `SightFactorAt` / `TrySample` / `TrySpawn` |
+| `Sandstorms` | [Sandstorms.cs](Assets/Game/Scripts/World/Environment/Sandstorm/Sandstorms.cs) | The only public surface: `IntensityAt` / `ExposureAt` / `VisibilityAt` / `SightFactorAt` / `TrySample` / `TrySpawn` / `Despawn` |
 | `SandstormManager` | [SandstormManager.cs](Assets/Game/Scripts/World/Environment/Sandstorm/SandstormManager.cs) | Owns `NetworkList<StormInstance>` + anchor `NetworkVariable`; resolves storms once per frame (`[DefaultExecutionOrder(-90)]`) |
 | `StormInstance` / `StormState` | [StormInstance.cs](Assets/Game/Scripts/World/Environment/Sandstorm/StormInstance.cs) | The wire record; `Evaluate(profile, now)` is the deterministic position+intensity function |
 | `StormClock` / `StormClockAnchor` | [StormClock.cs](Assets/Game/Scripts/World/Environment/Sandstorm/StormClock.cs) | Weather time as `(weather, clock)` anchor pair; re-states itself when the clock source changes identity |
-| `StormShape` / `StormFootprint` | [StormShape.cs](Assets/Game/Scripts/World/Environment/Sandstorm/StormShape.cs) | Cell/Wall density, feathering, `HeadingFromDegrees` (0=+Z, 90=+X) |
+| `StormShape` / `StormFootprint` | [StormShape.cs](Assets/Game/Scripts/World/Environment/Sandstorm/StormShape.cs) | Cell/Wall density, feathering, `ReachesCircle` (ground-plane reach test; a Wall's is its slab grown by the radius), `HeadingFromDegrees` (0=+Z, 90=+X) |
+| `StormSuppressors` / `IStormSuppressor` | [StormSuppressors.cs](Assets/Game/Scripts/World/Environment/Sandstorm/StormSuppressors.cs) | Registry of things that hold storms off (the storm ward). `SandstormManager.EnsureResolved` scales a storm's intensity by a per-storm `presence` that fades (`suppressionFadeSeconds`, 2 s) to 0 while any suppressor's circle is reached and back to 1 when none is |
 | `StormNoise` | [StormNoise.cs](Assets/Game/Scripts/World/Environment/Sandstorm/StormNoise.cs) | Integer avalanche hash — `Mathf.PerlinNoise` has no cross-platform promise |
 | `SandstormProfile` / `SandstormCatalog` | [SandstormProfile.cs](Assets/Game/Scripts/World/Environment/Sandstorm/SandstormProfile.cs), [SandstormCatalog.cs](Assets/Game/Scripts/World/Environment/Sandstorm/SandstormCatalog.cs) | Per-kind tuning; catalog turns a profile into a `byte` index for the wire (max 256) |
 | `SandstormDirector` / `SandstormZone` | [SandstormDirector.cs](Assets/Game/Scripts/World/Environment/Sandstorm/SandstormDirector.cs), [SandstormZone.cs](Assets/Game/Scripts/World/Environment/Sandstorm/SandstormZone.cs) | Server-only weighted roll on an interval / a permanently parked hazard storm |
@@ -172,6 +173,7 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 - **A `SandstormShelter` is a box, not a trigger** — a live trigger on a drivable vehicle would enter every `SceneTransition` and `VolumeTrigger` it drove through.
 - **`SandstormVisuals.PushSkyLight` is load-bearing.** A fullscreen blit has no per-draw SH and the shell has probes off; without it the storm interior renders near-black.
 - **The skybox's painted vista is anchored to VIEW angles, not world height.** `_MountainHeight`, `_DustHeight` and `_HorizonHeight` are view-direction Y thresholds, so on their own the mountains and dust bands sit at the same angular height from any altitude — a camera 2 km up (the crash-landing descent) still saw a ground-level sky with peaks beside it at eye level. The shader now reads `_WorldSpaceCameraPos.y` and fades that vista out (and a below-horizon ground haze in) across the airborne band; any **new** painted band added to this shader must also be multiplied by `1 - airborne` or it will hang in the sky during flight. This is per-camera local presentation — nothing to sync, nothing to save.
+- **`Resolved` is not "the storms that exist".** It leaves out any storm at intensity 0 — fading in at birth, or held off by a storm ward. Ask `Records` whether a storm is still running: `SandstormDirector` asked `Resolved`, lost its own storm during the fade-in, and could roll the next one on top of it (fixed 2026-09-17). And **a ward holds off a whole storm**: an unbounded Wall that passes within reach disappears along its entire front, not only near the ward.
 - **Wind has no coupling to storms.** `WindField` is the DuneFoil's, reached reflectively from `ClothWindDriver`; a storm does not move a cape or a sail.
 
 ## Extending

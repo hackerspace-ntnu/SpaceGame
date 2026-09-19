@@ -12,6 +12,7 @@ IDs are never reused — when an item is fixed, mark it done rather than deletin
 | Ship interior wall | `SHIP` | 2 |
 | Animation & ragdoll | `ANIM` | 3 |
 | Artifact behaviour | `ART` | 4 |
+| Enemy AI & pathfinding | `AI` | 1 |
 
 ---
 
@@ -742,3 +743,28 @@ the state machine outside Unity. **Not** verified: the tests were not executed �
 Editor is contended and `-runTests` needs it closed — nor was any of it played. Whether
 0.12/0.08 s is a fair window and 1.12/link the right climb **needs a human on a pogo
 stick**; I could not feel it.
+
+---
+
+## AI — enemy AI & pathfinding
+
+### AI-01 — Enemy pathfinding needs work
+Reported 2026-09-16 by the user, after extensive play testing of the faction work. Enemies
+do not move around the world well enough. Not yet decomposed — the symptom has not been
+pinned to one cause, and the candidates sit in three different systems:
+
+- **The bake.** One author-time bake of the whole world into `WorldNavMesh.asset`
+  ([NavMeshSystem](AI/systems/NavMeshSystem.md)); nothing bakes at runtime. Holes, missing
+  carve-outs around settlement buildings and stale bakes all present as "the enemy will not
+  come at me".
+- **The agent.** `NavMeshAgentMotor` + `NavMeshAgent` radius/height/`stoppingDistance` per
+  prefab, and `AgentGroundConform` on top of it. A radius wider than a doorway is a path that
+  silently does not exist.
+- **The decision.** `ChaseModule` walks to `AgentTargeting`'s target and nothing else;
+  `SearchModule` handles lost sight. Neither replans around an obstacle, and there is no
+  repath-on-stuck anywhere in the stack.
+
+**Before working this, get one reproducible case** — which enemy, where, and what it did
+instead — because the three causes above need different fixes and the same sentence describes
+all of them. `NavMeshAgentMotor` already publishes `stuckVelocityThreshold`, so a stuck-detector
+is the cheapest probe.

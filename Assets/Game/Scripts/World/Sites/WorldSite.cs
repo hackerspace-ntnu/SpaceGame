@@ -15,6 +15,9 @@ namespace SpaceGame.World
     /// </summary>
     public readonly struct WorldSite
     {
+        /// <summary>The Sky Tribe's airborne city: its settlement marker and its war parties' home.</summary>
+        public const string SkyCityName = "Sky City";
+
         /// <summary>Stable across the session, so a task can say "not the one I just left".</summary>
         public readonly string Id;
 
@@ -30,13 +33,24 @@ namespace SpaceGame.World
         /// <summary>Shown to the player in chatter and dialog. May be empty.</summary>
         public readonly string Name;
 
-        public WorldSite(string id, SiteKind kind, Vector3 position, float radius, string name)
+        /// <summary>
+        /// Not reachable on foot — the Sky City is the first. A ground errand's kind-scoped search
+        /// (<see cref="WorldSiteRegistry.TryFindNearest"/>, <see cref="WorldSiteRegistry.TryFindRandom"/>,
+        /// <see cref="WorldSiteRegistry.Query"/>) skips it by default, so an NPC walking to "the
+        /// nearest Home" never picks a site 200 m up and walks underneath it. Still findable by id
+        /// or by name for something that is not a ground errand — a war party told to head for the
+        /// Sky City by name, say.
+        /// </summary>
+        public readonly bool Airborne;
+
+        public WorldSite(string id, SiteKind kind, Vector3 position, float radius, string name, bool airborne = false)
         {
             Id = id;
             Kind = kind;
             Position = position;
             Radius = Mathf.Max(1f, radius);
             Name = name ?? string.Empty;
+            Airborne = airborne;
         }
 
         public bool IsValid => !string.IsNullOrEmpty(Id);

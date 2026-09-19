@@ -187,7 +187,7 @@ aggressor, leash, calm-down — is what the meter *becomes* at the top; nothing 
 | Damages this agent | +`hitGain` × damage fraction (default enough that one solid hit is 100) | The old behaviour is the default: a real hit still means a fight. Chip damage does not. |
 | Damages an ally within the alert radius | +40 | Arrives through the alert (§3.5). |
 | Fires a gun within `NoiseReceiverModule` range | +15 per shot | Through the noise path; needs no line of sight. |
-| Points a held weapon at this agent inside `menaceRange` (12 m) for more than `menaceDelay` (1.5 s) | +20 per second | Read off the player's aim: `EntityEquipmentController` already knows who is aimed at what. |
+| **Brandishes** at this agent: a `menacing` item in hand, a shot fired in the last `brandishWindow` (6 s) that THIS agent heard, and still squared up inside `menaceRange` (12 m) for more than `menaceDelay` (1.5 s) | +20 per second | **Revised 2026-09-16, and the revision matters.** The original row read "points a held weapon at this agent" and assumed an aim verb: **this game has no aim button.** The player's verbs are Move, Look, Jump, Crouch, Dash, Interact, Drop and the hotbar. Built literally, the trigger became "holds anything and looks at you" — which is exactly what you do to *talk* to somebody, since `DialogInteraction` needs you facing them for the prompt, so walking up to a nomad to trade wound him to hostile in ~6 s and then left him refusing to talk. Menace is therefore **brandishing**, out of two verbs that exist: `InventoryItem.menacing` (authored per item; guns yes, **gauntlets never** — gear you wear is not a weapon you have drawn) AND a gunshot this agent actually heard. Facing is read off the player's **body**, not their camera — a remote player has no camera on the server. |
 | Stands inside this tribe's territory while unwelcome (§3.10) | +10 per second | The settlement guard case. |
 | Time | −`calmRate` per second (default 10) while below `attackAt` | Above it, the old leash rule applies instead: no cooling while the aggressor is inside the leash. |
 
@@ -203,7 +203,7 @@ old binary version could not give):
 
 The per-tribe flavour is in the numbers: Sand nomads have a high `calmRate` and forgive a
 gunshot; a Clanker's `attackAt` is irrelevant because its stance already says Hostile; an
-Outlaw's `menaceRange` is long. `GDC-L1-SYS-0006`: the rule is hidden, the feedback (posture,
+Outlaw's `menaceRange` is long, and a jumpier tribe has a longer `brandishWindow`. `GDC-L1-SYS-0006`: the rule is hidden, the feedback (posture,
 bark, aim) is not.
 
 Two additions on top of the meter:

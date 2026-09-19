@@ -11769,6 +11769,8 @@ GameObject:
   - component: {fileID: 5582520173645095293}
   - component: {fileID: -7655675379975840629}
   - component: {fileID: 7371218599211206636}
+  - component: {fileID: 4007017711298590549}
+  - component: {fileID: 5916352996411920773}
   m_Layer: 0
   m_Name: DesertCrawler
   m_TagString: Untagged
@@ -11935,8 +11937,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
   profile: {fileID: 0}
   relationship: 2
-  acquisitionRange: 35
-  loseRange: 45
+  acquisitionRange: 80
+  loseRange: 110
   requireLineOfSightToAcquire: 1
   proximityAcquireRange: 4
   drawGizmos: 1
@@ -12266,9 +12268,9 @@ MonoBehaviour:
   burning:
     seconds: 5
     damagePerSecond: 4
+    reigniteDelay: 3
   frozen:
     seconds: 10
-    shatterDamage: 25
   slick:
     seconds: 20
     grip: 0.03
@@ -12281,7 +12283,35 @@ MonoBehaviour:
   foamed:
     seconds: 10
     breakDamage: 10
+  swallowed:
+    seconds: 6
   inflationTarget: {fileID: 553205145545624286}
+--- !u!114 &4007017711298590549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &5916352996411920773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
 --- !u!1 &7877522406223312297
 GameObject:
   m_ObjectHideFlags: 0

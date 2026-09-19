@@ -30,7 +30,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | [CoreServices](systems/CoreServices.md) | Boot order, the static service/registry locators, player input bindings, and PlayerPrefs-backed settings | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [SceneTransitions](systems/SceneTransitions.md), [UI](systems/UI.md) |
 | [Diagnostics](systems/Diagnostics.md) | One fault barrier, per-site quarantine, and outcome guards that give a stuck session back | [Multiplayer](systems/Multiplayer.md), [AgentSystem](systems/AgentSystem.md), [UI](systems/UI.md), [Testing](systems/Testing.md) |
 | [Multiplayer](systems/Multiplayer.md) | Unity NGO wrapped in one NetMsg/NetArg message channel, an authority facade and one session launcher | [Lobby](systems/Lobby.md), [Persistence](systems/Persistence.md), [Testing](systems/Testing.md), [CoreServices](systems/CoreServices.md) |
-| [Persistence](systems/Persistence.md) | Identity-keyed, streaming-aware save system; one JSON document per world built from ISaveable payloads | [EntitySystem](systems/EntitySystem.md), [SceneTransitions](systems/SceneTransitions.md), [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md) |
+| [Persistence](systems/Persistence.md) | Identity-keyed, streaming-aware save system; one JSON document per world built from ISaveable payloads | [EntitySystem](systems/EntitySystem.md), [SceneTransitions](systems/SceneTransitions.md), [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [SkyTribe](systems/SkyTribe.md) |
 | [ProjectConfig](systems/ProjectConfig.md) | Engine and package versions, physics layers and collision matrix, tags, URP assets, git attribute rules | [Multiplayer](systems/Multiplayer.md), [NavMeshSystem](systems/NavMeshSystem.md), [WorldStreaming](systems/WorldStreaming.md), [Environment](systems/Environment.md) |
 
 ### World — terrain, streaming, scenes, atmosphere
@@ -38,24 +38,26 @@ grep -i 'client' docs/AI/ROUTING.md
 | Doc | Covers | Read with |
 | --- | --- | --- |
 | [Environment](systems/Environment.md) | Sandstorms, volumetric fog and clouds, sky time-of-day, and the URP render features that draw them | [Persistence](systems/Persistence.md), [AgentSystem](systems/AgentSystem.md), [ArtPipeline](systems/ArtPipeline.md) |
-| [NavMeshSystem](systems/NavMeshSystem.md) | One author-time bake of the whole world into a single asset, added at runtime; nothing bakes at runtime | [WorldStreaming](systems/WorldStreaming.md), [AgentSystem](systems/AgentSystem.md), [Locomotion](systems/Locomotion.md) |
+| [NavMeshSystem](systems/NavMeshSystem.md) | One author-time bake of the whole world into a single asset, added at runtime; nothing bakes at runtime | [WorldStreaming](systems/WorldStreaming.md), [AgentSystem](systems/AgentSystem.md), [Locomotion](systems/Locomotion.md), [SkyTribe](systems/SkyTribe.md) |
 | [Portals](systems/Portals.md) | Sprayable one-way-pair apertures you walk through, replicated as messages rather than networked entities | [SceneTransitions](systems/SceneTransitions.md), [Artifacts](systems/Artifacts.md), [Combat](systems/Combat.md) |
 | [SceneTransitions](systems/SceneTransitions.md) | Additive interior scenes any body can walk into, the door/threshold orchestrator, and the one instant move | [Portals](systems/Portals.md), [Persistence](systems/Persistence.md), [Cutscenes](systems/Cutscenes.md), [InteractionSystem](systems/InteractionSystem.md) |
 | [Scenes](systems/Scenes.md) | Map of every .unity scene, its role, and the build-settings order runtime scene loads depend on | [WorldStreaming](systems/WorldStreaming.md), [Multiplayer](systems/Multiplayer.md), [SceneTransitions](systems/SceneTransitions.md) |
-| [TerrainGeneration](systems/TerrainGeneration.md) | Edit-time marching-cubes terrain features, SDF caves and tile settlements, plus the runtime site registry | [WorldStreaming](systems/WorldStreaming.md), [NavMeshSystem](systems/NavMeshSystem.md), [Environment](systems/Environment.md), [SceneTransitions](systems/SceneTransitions.md) |
+| [TerrainGeneration](systems/TerrainGeneration.md) | Edit-time marching-cubes terrain features, SDF caves and tile settlements, plus the runtime site registry | [WorldStreaming](systems/WorldStreaming.md), [NavMeshSystem](systems/NavMeshSystem.md), [Environment](systems/Environment.md), [SceneTransitions](systems/SceneTransitions.md), [SkyTribe](systems/SkyTribe.md) |
 | [WorldStreaming](systems/WorldStreaming.md) | Server-authoritative additive loading of chunk scenes around moving anchors, plus scene membership | [TerrainGeneration](systems/TerrainGeneration.md), [Persistence](systems/Persistence.md), [SceneTransitions](systems/SceneTransitions.md), [NavMeshSystem](systems/NavMeshSystem.md) |
 
 ### Characters — player, creatures, locomotion, combat
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
-| [AgentSystem](systems/AgentSystem.md) | Creatures, NPCs, enemies and turrets: one AgentController ticking priority-arbitrated behaviour modules | [EntitySystem](systems/EntitySystem.md), [Vehicles](systems/Vehicles.md), [Combat](systems/Combat.md), [NavMeshSystem](systems/NavMeshSystem.md), [Diagnostics](systems/Diagnostics.md), [CarriedAgent](systems/CarriedAgent.md) |
+| [AgentSystem](systems/AgentSystem.md) | Creatures, NPCs, enemies and turrets: one AgentController ticking priority-arbitrated behaviour modules | [EntitySystem](systems/EntitySystem.md), [Vehicles](systems/Vehicles.md), [Combat](systems/Combat.md), [NavMeshSystem](systems/NavMeshSystem.md), [Diagnostics](systems/Diagnostics.md), [CarriedAgent](systems/CarriedAgent.md), [SkyTribe](systems/SkyTribe.md) |
 | [CarriedAgent](systems/CarriedAgent.md) | A rope or a rocket lifts a NavMesh creature off its mesh; the motor carries it, falls it, lands it | [AgentSystem](systems/AgentSystem.md), [LeashSystem](systems/LeashSystem.md), [Jetpack](systems/Jetpack.md), [Locomotion](systems/Locomotion.md), [NavMeshSystem](systems/NavMeshSystem.md) |
 | [Combat](systems/Combat.md) | Health, damage, weapons, projectiles, death and ragdolls through one server-decided damage pipeline | [Artifacts](systems/Artifacts.md), [AgentSystem](systems/AgentSystem.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md) |
 | [EntitySystem](systems/EntitySystem.md) | How a GameObject becomes an entity — identity, save opt-in, and following the streaming grid between chunks | [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [WorldStreaming](systems/WorldStreaming.md), [Vehicles](systems/Vehicles.md) |
 | [Flashlight](systems/Flashlight.md) | The torch: a worn forearm gauntlet whose lamp is a URP spot, long-throw shader globals and a beam volume | [PlayerCharacter](systems/PlayerCharacter.md), [BodyEquipment](systems/BodyEquipment.md), [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Environment](systems/Environment.md) |
+| [Ladders](systems/Ladders.md) | Ladder volumes, and the LadderClimber that climbs, slides down and steps off them | [PlayerCharacter](systems/PlayerCharacter.md), [ArtPipeline](systems/ArtPipeline.md), [Wingsuit](systems/Wingsuit.md) |
 | [Locomotion](systems/Locomotion.md) | Procedural legged walking: one LeggedLocomotion base plus four policy objects per creature or walker | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [Persistence](systems/Persistence.md) |
 | [PlayerCharacter](systems/PlayerCharacter.md) | The astronaut the player drives: rigidbody movement, first-person look, stances, upper-body rig, suit, death | [Persistence](systems/Persistence.md), [Inventory](systems/Inventory.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md), [Wingsuit](systems/Wingsuit.md) |
+| [SkyTribe](systems/SkyTribe.md) | The Sky Tribe end to end — faction, roster, city population and NPC-flown war-party vessels | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [NavMeshSystem](systems/NavMeshSystem.md), [Persistence](systems/Persistence.md), [TerrainGeneration](systems/TerrainGeneration.md) |
 
 ### Items — inventory, gadgets, interaction
 
@@ -91,7 +93,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | --- | --- | --- |
 | [Ornithopter](systems/Ornithopter.md) | Folded wing pack deployed mid-air; point-mass energy flight model, stalls, crash damage. | [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Backpack](systems/Backpack.md), [Wingsuit](systems/Wingsuit.md) |
 | [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, the entry burn, and the crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md), [Terminal](systems/Terminal.md) |
-| [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [Diagnostics](systems/Diagnostics.md) |
+| [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [Diagnostics](systems/Diagnostics.md), [SkyTribe](systems/SkyTribe.md) |
 
 ### Presentation — UI, cutscenes, audio, modes
 
@@ -138,4 +140,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 55 system docs, 6 redirects -->
+<!-- 57 system docs, 6 redirects -->

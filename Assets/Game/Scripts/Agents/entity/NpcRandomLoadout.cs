@@ -14,8 +14,9 @@
 // Persistence: nothing of its own. The bag is EntityInventorySaveable's, and a restored bag simply
 // wins: the roll only fills the slot when it is empty, and the restore lands afterwards through
 // the same slot-changed path the roll uses. Caravan members are not saved at all
-// (NpcSpawn.Create disowns them), so they roll afresh every time they walk into range -- which is
-// the "random per spawn" that was asked for.
+// (NpcSpawn.Create disowns them), so a group member's roll is seeded by its group (GroupMembership)
+// instead: the same caravan comes back with the same guns after every refold. A hand-placed NPC
+// still rolls at random.
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -28,6 +29,12 @@ namespace SpaceGame.Agents
     [RequireComponent(typeof(EntityInventoryComponent))]
     public class NpcRandomLoadout : NetworkBehaviour
     {
+        // Offsets the member index for the gun roll. The roster drew this member's prefab from the same
+        // (seed, index) hash, so without it who you are and what you carry would come from one number.
+        // Far above any plan index or rider index (GroupMembership.RiderIndexOffset), so a salted roll
+        // never reuses the hash of another member's prefab draw either.
+        private const int LoadoutSalt = 500000;
+
         [Tooltip("What this NPC may be carrying. One is picked at random when it spawns with an " +
                  "empty hand slot. Leave empty to carry nothing.")]
         [SerializeField] private InventoryItem[] candidates;
@@ -35,6 +42,10 @@ namespace SpaceGame.Agents
         [Tooltip("The inventory slot the pick goes into. Match EntityEquipmentController's " +
                  "starting slot so the item is drawn, not just carried.")]
         [SerializeField] private int slot;
+        [Tooltip("Draw the pick once it lands in the slot. Off for a slot that is loot rather than " +
+                 "a weapon -- the artifact a Clanker is carrying home -- so it stays in the bag and " +
+                 "drops on death without ever replacing the gun in the hand.")]
+        [SerializeField] private bool equipAfterRoll = true;
 
         // Server-written, everyone-read: the item id in `slot`, or empty for nothing.
         private readonly NetworkVariable<FixedString64Bytes> heldId = new(
@@ -86,11 +97,17 @@ namespace SpaceGame.Agents
             InventorySlot current = inventory.GetSlot(slot);
             if (current != null && !current.IsEmpty) return;
 
-            InventoryItem pick = candidates[Random.Range(0, candidates.Length)];
+            // A group member draws from its group's seed, so a caravan that folds and re-spawns comes
+            // back carrying the same guns. A hand-placed NPC has no group and still rolls freely.
+            int index = TryGetComponent(out GroupMembership membership) && membership.Group != null
+                ? RosterDraw.IndexFor(membership.Group.RosterSeed, membership.MemberIndex + LoadoutSalt, candidates.Length)
+                : Random.Range(0, candidates.Length);
+
+            InventoryItem pick = candidates[index];
             if (pick == null) return;
 
             inventory.RestoreSlot(slot, pick);
-            if (equipment != null) equipment.EquipSlot(slot);
+            if (equipAfterRoll && equipment != null) equipment.EquipSlot(slot);
         }
 
         private void PublishSlot(int index, InventorySlot changed)
@@ -122,7 +139,7 @@ namespace SpaceGame.Agents
             if (current != null && current.Item == item) return;
 
             inventory.RestoreSlot(slot, item);
-            if (equipment != null) equipment.EquipSlot(slot);
+            if (equipAfterRoll && equipment != null) equipment.EquipSlot(slot);
         }
     }
 }

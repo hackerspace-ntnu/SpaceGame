@@ -1190,6 +1190,9 @@ GameObject:
   - component: {fileID: 7456712760989411983}
   - component: {fileID: 6410857504872933242}
   - component: {fileID: 5927883062174466355}
+  - component: {fileID: 7384174763482400561}
+  - component: {fileID: 4614671118880357572}
+  - component: {fileID: 8399710111736229435}
   m_Layer: 0
   m_Name: Appa
   m_TagString: Untagged
@@ -1322,12 +1325,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
   agent: {fileID: 7084194288932562823}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.22
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 2.6
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.875
   mountedJumpDuration: 0.55
@@ -1337,6 +1345,7 @@ MonoBehaviour:
   mountedLeapSampleRadius: 6
   riderTurnSpeed: 120
   riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
 --- !u!114 &3277286897550678054
@@ -1356,6 +1365,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 2
   measuredRunSpeed: 3.5
+  strideEndPhases: []
 --- !u!114 &7419681462752306991
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1450,7 +1460,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 641
   eyeHeight: 3.4499998
-  memoryDuration: 8
+  targetAimHeight: 1
+  headAimHeight: 1.6
+  headInset: 0.15
+  memoryDuration: 12
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
@@ -1640,8 +1653,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
   profile: {fileID: 0}
   relationship: 2
-  acquisitionRange: 35
-  loseRange: 45
+  acquisitionRange: 80
+  loseRange: 110
   requireLineOfSightToAcquire: 1
   proximityAcquireRange: 4
   drawGizmos: 1
@@ -1660,6 +1673,16 @@ MonoBehaviour:
   leashRange: 45
   calmDownDelay: 45
   damageThreshold: 5
+  aggressionSettings:
+    hitGain: 1200
+    allyHurtGain: 40
+    gunshotGain: 15
+    menaceGainPerSecond: 20
+    menaceRange: 12
+    menaceDelay: 1.5
+    trespassGainPerSecond: 10
+    calmRate: 10
+    attackAt: 100
   drawGizmos: 1
 --- !u!114 &775580657554504541
 MonoBehaviour:
@@ -1819,9 +1842,11 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 0}
+  seatBone: 
   seatOffset: {x: 0, y: 2.331, z: -0.18}
   dismountPoint: {fileID: 0}
   mountableByDirectInteraction: 1
+  maxMountDistance: 0
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
@@ -2064,9 +2089,9 @@ MonoBehaviour:
   burning:
     seconds: 5
     damagePerSecond: 4
+    reigniteDelay: 3
   frozen:
     seconds: 10
-    shatterDamage: 25
   slick:
     seconds: 20
     grip: 0.03
@@ -2079,6 +2104,8 @@ MonoBehaviour:
   foamed:
     seconds: 10
     breakDamage: 10
+  swallowed:
+    seconds: 6
   inflationTarget: {fileID: 0}
 --- !u!114 &7456712760989411983
 MonoBehaviour:
@@ -2152,6 +2179,78 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &7384174763482400561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c6ec310cb4245338056b26c04d3d64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.ClientNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &4614671118880357572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &8399710111736229435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 224ea88323b7644c2a480ebc564c8756, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &3120901560776529387
 GameObject:
   m_ObjectHideFlags: 0

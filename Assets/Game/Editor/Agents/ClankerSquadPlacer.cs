@@ -23,7 +23,15 @@ namespace SpaceGame.EditorTools
     public static class ClankerSquadPlacer
     {
         public const string RootName = "ClankerSquad";
-        public const int SquadSize = 3;
+        public const int SquadSize = 4;
+
+        /// <summary>
+        /// The posse's leader wanders this far from where it was put down, and the others keep
+        /// formation behind it: a band that ranges over the land near the ship rather than four
+        /// robots guarding a patch of sand.
+        /// </summary>
+        public const float PosseRoamRadius = 120f;
+        public const string PosseId = "spawn-posse";
 
         /// <summary>
         /// A stray robot horse, saddled and riderless, this far from the squad: something to
@@ -42,6 +50,19 @@ namespace SpaceGame.EditorTools
 
         [MenuItem("Tools/SpaceGame/Agents/Place Clanker Squad Near Spawn")]
         public static void PlaceMenu() => Place();
+
+        /// <summary>An instance override, written the way the Inspector writes one.</summary>
+        private static void Override(Component component, System.Action<SerializedObject> edit)
+        {
+            if (component == null)
+            {
+                Debug.LogError("[ClankerSquadPlacer] The Clanker prefab is missing a module the placer configures; rebuild it.");
+                return;
+            }
+            var so = new SerializedObject(component);
+            edit(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         public static void Place()
         {
@@ -99,6 +120,14 @@ namespace SpaceGame.EditorTools
                     var member = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root.transform);
                     member.transform.SetPositionAndRotation(new Vector3(flat.x, y, flat.z),
                                                             Quaternion.Euler(0f, (float)(rng.NextDouble() * 360f), 0f));
+                    Override(member.GetComponent<SpaceGame.Agents.FormationModule>(), so =>
+                    {
+                        so.FindProperty("formationId").stringValue = PosseId;
+                        so.FindProperty("isLeader").boolValue = i == 0;
+                    });
+                    if (i == 0)
+                        Override(member.GetComponent<SpaceGame.Agents.PatrolModule>(),
+                                 so => so.FindProperty("patrolRadius").floatValue = PosseRoamRadius);
                     placed.Add(member.transform.position);
                 }
 

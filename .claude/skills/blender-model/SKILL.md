@@ -5,6 +5,13 @@ description: Create production-ready Blender models as .blend files in a shared 
 
 # Blender Model
 
+> **Precedence over generic Blender skills.** The user-level `cc-blender-skill` set (`text-to-blender`,
+> `blender-modeling`, `blender-materials`, `blender-export`, …) is installed as craft reference:
+> modifier recipes, PBR values, render/validation technique. For anything in this repository's
+> model library, **this skill's rules win** wherever they differ — never regenerate or clear a scene
+> in an existing `.blend`, palette materials only (linked, not per-asset Principled recipes), parts
+> never merged, and export through `_exportlib`, not those skills' FBX settings.
+>
 > **Design check:** when an asset must read at a glance, sell an animation or fit a level's
 > language, consult `CONTENT`, `LEVEL`, `ANIM` and `PERF` in
 > `docs/game-development-constitution/INDEX.md` and cite the IDs.

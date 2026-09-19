@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**58 material(s)** across 10 categor(ies).
+**62 material(s)** across 10 categor(ies).
 
 ## Emissive
 
@@ -101,6 +101,7 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Paint_Roof_Green` | `#6E7A5E` | 0.6 | 0.4 | Faded military green: roof caps, banded accent panels, hatch covers. Reads as the older paint layer under the bleached topcoat. |
 | `Mat_Paint_Rose_Dusty` | `#D6A79C` | 0.62 | 0.25 | Chalky dusty-rose pastel enamel: workshop settlement cottage walls. The desaturated pale cousin of Mat_Paint_Coral_Faded, which is a much stronger sun-faded coral used as a mass colour on the outpost tower. |
 | `Mat_Paint_Safety_Orange` | `#D9541F` | 0.52 | 0.2 | High-visibility construction orange: the refinery tower's landing legs, cantilever spine, conveyor ramp and accent modules. Reads as fresh paint against Mat_Metal_HullRust_Orange, which is the weathered oxidised version. |
+| `Mat_Paint_Teal_Deep` | `#2B6F8E` | 0.55 | 0.2 | Deep teal enamel over armour plate: the sky soldier's shin, thigh and forearm plating and shoulder guard. The darker, painted-metal partner to Mat_Fabric_Tarp_Azure's coat cloth - the palette had no mid-dark blue-green (nearest were Slate_Teal hide and Slate_Dark trim). |
 | `Mat_Paint_Warn_Red` | `#8E2B22` | 0.55 | 0.2 | Matte hazard red: stencilled roundels, danger bands, lifting-point marks. The non-glowing counterpart to Mat_Emissive_Red_Warn. |
 | `Mat_Paint_White_Arctic` | `#D6DAD9` | 0.58 | 0.35 | Cool off-white enamel over steel: the refinery tower's slab cladding and module skins. The arctic counterpart to Mat_Paint_Hull_Bleached, which is warm desert sun-bleach. |
 

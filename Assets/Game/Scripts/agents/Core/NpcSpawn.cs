@@ -8,6 +8,7 @@
 using System;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.AI;
 using SpaceGame.Core;
 
 namespace SpaceGame.Agents
@@ -24,20 +25,37 @@ namespace SpaceGame.Agents
         /// </para>
         /// </summary>
         /// <param name="context">Logged as the object to select when a spawn fails.</param>
+        /// <param name="beforeSpawn">
+        /// Runs on the new instance after Instantiate and BEFORE the network spawn — the only moment
+        /// where anything read in <c>OnNetworkSpawn</c> (a seeded loadout roll) can still be set.
+        /// </param>
+        /// <param name="seated">
+        /// The NPC goes straight into a seat, usually in mid-air: it wakes with its NavMeshAgent off.
+        /// See <see cref="InstantiateSeated"/>.
+        /// </param>
         public static GameObject Create(GameObject prefab, Vector3 position, Quaternion rotation,
-                                        UnityEngine.Object context = null)
+                                        UnityEngine.Object context = null,
+                                        Action<GameObject> beforeSpawn = null,
+                                        bool seated = false)
         {
             if (prefab == null) return null;
 
-            GameObject instance = UnityEngine.Object.Instantiate(prefab, position, rotation);
+            GameObject instance = seated
+                ? InstantiateSeated(prefab, position, rotation)
+                : UnityEngine.Object.Instantiate(prefab, position, rotation);
             DisownFromWorldSave(instance);
+            beforeSpawn?.Invoke(instance);
 
             if (!Network.IsNetworked || !Network.Server) return instance;
             if (!instance.TryGetComponent(out NetworkObject netObj) || netObj.IsSpawned) return instance;
 
             try
             {
-                netObj.Spawn();
+                // Destroyed with the scene: whoever spawned this NPC rebuilds it from its own record
+                // on load. Spawn()'s default (false) carried every caravan member, war-party rider and
+                // transport hull through an in-session reload (quickload) into the DontDestroyOnLoad
+                // scene and back, where it stood beside the copy its record rebuilt.
+                netObj.Spawn(destroyWithScene: true);
             }
             catch (Exception e)
             {
@@ -48,6 +66,36 @@ namespace SpaceGame.Agents
                                context != null ? context : instance);
             }
 
+            return instance;
+        }
+
+        /// <summary>
+        /// Instantiate an NPC whose NavMeshAgent is already off when it wakes.
+        ///
+        /// <para>
+        /// A NavMeshAgent that wakes enabled away from the NavMesh logs "Failed to create agent
+        /// because it is not close enough to the NavMesh" from inside <c>Instantiate</c> itself —
+        /// before <c>beforeSpawn</c>, or <c>NavMeshAgentMotor.Awake</c>, can switch it off (the motor
+        /// does, a moment too late). A war party's rider is made under its hull at cruise height,
+        /// so every Sky party logged it once per rider. Made under an inactive parent nothing wakes;
+        /// the agents are switched off there, and only then is the NPC let go to the scene root.
+        /// </para>
+        /// <para>
+        /// Nothing has to hand the agent back: NpcSeating does not record an agent it found off, and
+        /// the re-enabled <c>NavMeshAgentMotor</c> puts it back on the NavMesh once the NPC is set down.
+        /// </para>
+        /// </summary>
+        private static GameObject InstantiateSeated(GameObject prefab, Vector3 position, Quaternion rotation)
+        {
+            var cradle = new GameObject("NpcSpawn cradle");
+            cradle.SetActive(false);
+
+            GameObject instance = UnityEngine.Object.Instantiate(prefab, position, rotation, cradle.transform);
+            foreach (NavMeshAgent agent in instance.GetComponentsInChildren<NavMeshAgent>(true))
+                agent.enabled = false;
+
+            instance.transform.SetParent(null, worldPositionStays: true);
+            UnityEngine.Object.DestroyImmediate(cradle);
             return instance;
         }
 

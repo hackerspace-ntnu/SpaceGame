@@ -268,6 +268,8 @@ GameObject:
   - component: {fileID: 114649344}
   - component: {fileID: 114649343}
   - component: {fileID: 114649342}
+  - component: {fileID: 114649346}
+  - component: {fileID: 114649347}
   m_Layer: 0
   m_Name: NpcWorldSim
   m_TagString: Untagged
@@ -318,11 +320,15 @@ MonoBehaviour:
   templates:
   - id: nomad-caravan
     displayName: Nomad Caravan
+    tribe: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+    runtimeOnly: 0
     members:
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
+      role: 0
       isLeader: 1
       count: 1
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
+      role: 0
       isLeader: 0
       count: 4
     tasks:
@@ -373,6 +379,12 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3650, y: 100, z: 1620}
     bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 5
@@ -383,17 +395,23 @@ MonoBehaviour:
       DriftRate: 0.07
   - id: sand-nomads
     displayName: Sand Nomads
+    tribe: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+    runtimeOnly: 0
     members:
     - prefab: {fileID: 154119959528579656, guid: c3ae6b451d3393043b8ad3f1c9f152b0, type: 3}
+      role: 0
       isLeader: 1
       count: 1
     - prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
+      role: 0
       isLeader: 0
       count: 1
     - prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
+      role: 0
       isLeader: 0
       count: 1
     - prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
+      role: 0
       isLeader: 0
       count: 1
     tasks:
@@ -444,6 +462,62 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3700, y: 100, z: 1560}
     bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 3.5
+      LaneSpacing: 2.4
+      LateralJitter: 1
+      LongitudinalJitter: 1.3
+      DriftAmplitude: 0.8
+      DriftRate: 0.07
+  - id: sand-war-party
+    displayName: Sand War Party
+    tribe: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+    runtimeOnly: 1
+    members: []
+    tasks: []
+    travelSpeed: 3
+    startNearSite: 1
+    useStartPosition: 0
+    startPosition: {x: 3700, y: 100, z: 1560}
+    bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 3.5
+      LaneSpacing: 2.4
+      LateralJitter: 1
+      LongitudinalJitter: 1.3
+      DriftAmplitude: 0.8
+      DriftRate: 0.07
+  - id: sky-war-party
+    displayName: Sky War Party
+    tribe: {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+    runtimeOnly: 1
+    members: []
+    tasks: []
+    travelSpeed: 3
+    startNearSite: 1
+    useStartPosition: 0
+    startPosition: {x: 3700, y: 100, z: 1560}
+    bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 3975991240799448283, guid: 94f134b4aed0e0247ac1302ad4cd3e11, type: 3}
+      largeVessel: {fileID: 7321445808256780902, guid: 0d35522efcaf99f46a0cd122b9941333, type: 3}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -454,11 +528,15 @@ MonoBehaviour:
       DriftRate: 0.07
   - id: bounty-hunters
     displayName: Bounty Hunters
+    tribe: {fileID: 11400000, guid: 4815f6a4ad2c743ad900584b2c1e0c4b, type: 2}
+    runtimeOnly: 0
     members:
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      role: 0
       isLeader: 1
       count: 1
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      role: 0
       isLeader: 0
       count: 3
     tasks: []
@@ -467,6 +545,12 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3480, y: 100, z: 1740}
     bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3
@@ -477,8 +561,11 @@ MonoBehaviour:
       DriftRate: 0.1
   - id: wild-appa
     displayName: Appa
+    tribe: {fileID: 0}
+    runtimeOnly: 0
     members:
     - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
       isLeader: 1
       count: 1
     tasks:
@@ -523,6 +610,12 @@ MonoBehaviour:
     useStartPosition: 0
     startPosition: {x: 3480, y: 100, z: 1740}
     bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
     formation:
       Lanes: 2
       RowSpacing: 3
@@ -536,6 +629,8 @@ MonoBehaviour:
   spawnSampleDistance: 25
   tickInterval: 1
   playerRefreshInterval: 2
+  transportRetryDelay: 15
+  dockReuseRadius: 150
   leadLifetime: 180
   hunterRoamRadius: 900
   logGroupEvents: 1
@@ -555,6 +650,66 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &114649346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 114649341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3d84f991ddee7f4aa55a0f686059d7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionGoodwillLedger
+  tribes:
+  - {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  - {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+  crewFaction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
+  relationships: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+  thresholds:
+    atWar: -80
+    hostileOnSight: -40
+    friendly: 20
+    allied: 60
+    hysteresis: 10
+  hitCostMin: 2
+  hitCostMax: 10
+  killCost: 25
+  mountKillCost: 15
+  clankerKilledCredit: 3
+  tradeCredit: 5
+  hostileSpread: 0.2
+  alliedSpread: 0.4
+  decayPerGameHour: 0.5
+  fallbackSecondsPerGameHour: 100
+  huntSpillRadius: 200
+--- !u!114 &114649347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 114649341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b541f6d3341e1a49ae1dbd3a5153950, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.WarPartyDirector
+  settings:
+    partyCooldown: 60
+    campSearchRadius: 1000
+    stagingMargin: 30
+    fallbackExtra: 100
+    maxPursuitDistance: 1500
+    trailInterval: 10
+    trailFuzz: 30
+    caughtCredit: 15
+    defeatedCredit: 4
+  decisionInterval: 0.5
+  trailArriveRadius: 20
+  absentQuarryGrace: 120
+  fallbackAttempts: 8
 --- !u!1 &118567313
 GameObject:
   m_ObjectHideFlags: 0
@@ -908,7 +1063,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 100.154
+      value: 52.95798
       objectReference: {fileID: 0}
     - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -951,6 +1106,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+--- !u!1001 &484284621
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 765982938715578520, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_Name
+      value: SkyCityFleet
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3704
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 228
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1182
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: adec8f29c01881849bae72863c3be026, type: 3}
 --- !u!1 &508336265
 GameObject:
   m_ObjectHideFlags: 0
@@ -1464,6 +1676,8 @@ MonoBehaviour:
   exitChunkLoadTimeoutSeconds: 8
   groundClampMaxLift: 50
   postExitEntranceLockout: 2
+  sceneEventRetryDelay: 0.2
+  sceneEventRetryTimeout: 10
 --- !u!4 &759788038
 Transform:
   m_ObjectHideFlags: 0
@@ -1757,6 +1971,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_DirtyAABB
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Center.x
+      value: 0.0000000018626451
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Center.z
+      value: 0.0000000016298145
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Extent.x
+      value: 0.00521521
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Extent.y
+      value: 0.005215213
+      objectReference: {fileID: 0}
+    - target: {fileID: 363624757103368622, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_AABB.m_Extent.z
+      value: 0.005215212
+      objectReference: {fileID: 0}
     - target: {fileID: 721406942356391028, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2139172980
@@ -2191,6 +2429,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   catalog: {fileID: 11400000, guid: 1a13b401bc0164b51be070a92077c20b, type: 2}
   maxConcurrent: 3
+  suppressionFadeSeconds: 2
 --- !u!1 &1236054300
 GameObject:
   m_ObjectHideFlags: 0
@@ -3136,3 +3375,4 @@ SceneRoots:
   - {fileID: 1845903061}
   - {fileID: 1900100002}
   - {fileID: 1612428264}
+  - {fileID: 484284621}

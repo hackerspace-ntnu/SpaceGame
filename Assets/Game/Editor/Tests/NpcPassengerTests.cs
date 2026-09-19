@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.AI;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Gameplay;
@@ -37,9 +38,9 @@ namespace SpaceGame.Tests
             (Transform root, Transform seat) = NewMountRig();
 
             (Vector3 local, Quaternion localRotation) =
-                NpcPassenger.SeatPoseIn(root, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
+                NpcSeating.SeatPoseIn(root, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
             (Vector3 world, Quaternion worldRotation) =
-                NpcPassenger.SeatPoseIn(null, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
+                NpcSeating.SeatPoseIn(null, seat, new Vector3(0f, -0.85f, 0f), new Vector3(0f, 15f, 0f));
 
             Assert.That(Vector3.Distance(root.TransformPoint(local), world), Is.LessThan(1e-4f),
                 "Netcode will not parent a rider to the seat marker itself, so the marker's offset " +
@@ -54,8 +55,8 @@ namespace SpaceGame.Tests
             (Transform root, Transform seat) = NewMountRig();
             root.SetPositionAndRotation(new Vector3(913f, 27f, -455f), Quaternion.Euler(0f, 214f, 0f));
 
-            (Vector3 local, _) = NpcPassenger.SeatPoseIn(root, seat, Vector3.down, Vector3.zero);
-            (Vector3 world, _) = NpcPassenger.SeatPoseIn(null, seat, Vector3.down, Vector3.zero);
+            (Vector3 local, _) = NpcSeating.SeatPoseIn(root, seat, Vector3.down, Vector3.zero);
+            (Vector3 world, _) = NpcSeating.SeatPoseIn(null, seat, Vector3.down, Vector3.zero);
 
             Assert.That(Vector3.Distance(root.TransformPoint(local), world), Is.LessThan(1e-3f),
                 "Caravans live kilometres from the origin — a fold that only holds at the origin " +
@@ -123,15 +124,33 @@ namespace SpaceGame.Tests
             (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
             GameObject rider = NewObject("rider");
 
-            var controller = rider.AddComponent<AgentController>();
-            controller.enabled = false;
+            var agent = rider.AddComponent<NavMeshAgent>();
+            agent.enabled = false;
 
             passenger.Seat(rider);
             passenger.Dismount();
 
-            Assert.IsFalse(controller.enabled,
-                "This rider's brain was already switched off by something else. Dismounting must " +
-                "not hand them a working one it never took.");
+            Assert.IsFalse(agent.enabled,
+                "This rider's pathing was already switched off by something else. Dismounting must " +
+                "not hand them a working agent it never took.");
+        }
+
+        [Test]
+        public void DismountingHandsTheBodyBackAsItWas()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var body = rider.AddComponent<Rigidbody>();
+            body.isKinematic = false;
+            body.useGravity = true;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+
+            passenger.Seat(rider);
+            passenger.Dismount();
+
+            Assert.IsFalse(body.isKinematic);
+            Assert.IsTrue(body.useGravity, "a rider handed back weightless walks on air");
+            Assert.AreEqual(RigidbodyInterpolation.Interpolate, body.interpolation);
         }
 
         [Test]
@@ -142,14 +161,34 @@ namespace SpaceGame.Tests
             var controller = rider.AddComponent<AgentController>();
 
             passenger.Seat(rider);
-            Assert.IsFalse(controller.enabled, "A passenger must not walk out from under its mount.");
+            Assert.IsTrue(controller.RidesAsPassenger, "A passenger must not walk out from under its mount.");
 
             GameObject dismounted = passenger.Dismount();
 
             Assert.AreSame(rider, dismounted);
             Assert.IsNull(rider.transform.parent);
-            Assert.IsTrue(controller.enabled);
+            Assert.IsFalse(controller.RidesAsPassenger);
             Assert.IsFalse(passenger.HasRider);
+        }
+
+        /// <summary>
+        /// The split the outrider is built on: the horse decides where, the rider decides what to
+        /// shoot. Seating may take the rider's feet and nothing else — switching the whole brain
+        /// off is what made every mounted NPC in the game harmless.
+        /// </summary>
+        [Test]
+        public void ASeatedRiderKeepsItsBrainAndLosesOnlyItsFeet()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var controller = rider.AddComponent<AgentController>();
+            var agent = rider.AddComponent<NavMeshAgent>();
+
+            passenger.Seat(rider);
+
+            Assert.IsTrue(controller.enabled, "a rider that cannot think cannot shoot back");
+            Assert.IsTrue(controller.RidesAsPassenger, "but it may not choose where it goes");
+            Assert.IsFalse(agent.enabled, "and it may not path there either");
         }
 
         // ─────────── The rider is still part of the world while they ride ───────────
@@ -328,9 +367,10 @@ namespace SpaceGame.Tests
             health.Damage(1);
 
             Assert.IsFalse(passenger.HasRider);
-            Assert.IsTrue(brain.enabled,
-                "A passenger's brain is off — that is what makes them a passenger. Shootable and " +
-                "unable to answer reads as a broken enemy, not a peaceful one.");
+            Assert.IsFalse(brain.RidesAsPassenger,
+                "A passenger can shoot from the saddle but cannot take cover, close or break off. " +
+                "Getting off is what hands those verbs back.");
+            Assert.IsTrue(brain.enabled);
         }
 
         [Test]
@@ -340,14 +380,19 @@ namespace SpaceGame.Tests
             GameObject rider = NewObject("rider");
             var health = rider.AddComponent<HealthComponent>();
             var brain = rider.AddComponent<AgentController>();
+            var agent = rider.AddComponent<NavMeshAgent>();
 
             passenger.Seat(rider);
             health.Damage(health.GetMaxHealth);
 
             Assert.IsFalse(passenger.HasRider);
-            Assert.IsFalse(brain.enabled,
+            Assert.IsFalse(agent.enabled,
                 "HealthReactionModule has already switched the brain off and started the despawn " +
-                "timer by now. Handing back a working AgentController stands the corpse up.");
+                "timer by now. Handing back a working NavMeshAgent stands the corpse up and walks " +
+                "it away.");
+            Assert.IsTrue(brain.RidesAsPassenger,
+                "And a corpse is not released from passenger mode either — whatever is still " +
+                "ticking on it must not start choosing where the body goes.");
         }
 
         // ─────────── Ropes take a rider off ───────────

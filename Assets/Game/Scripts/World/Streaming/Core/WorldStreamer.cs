@@ -113,6 +113,27 @@ namespace SpaceGame.World
         }
 
         /// <summary>
+        /// Whether all the ground within <paramref name="radius"/> of <paramref name="worldPos"/> has
+        /// streamed in: every chunk there that has terrain is <c>Loaded</c>. False while the streamer
+        /// is not ready — no answer yet is a wait, not a yes. For anything that reads the ground
+        /// around a point and must not mistake "not loaded yet" for "nothing there": a settlement
+        /// counting its residents, a vessel choosing where to land.
+        /// </summary>
+        public bool IsGroundLoadedAround(Vector3 worldPos, float radius)
+        {
+            if (!isReady || config == null) return false;
+
+            config.Grid.CoordsAround(worldPos, radius, groundCoords);
+            foreach (Vector2Int coord in groundCoords)
+            {
+                ChunkInfo? chunk = config.GetChunk(coord);
+                if (chunk.HasValue && !chunk.Value.hasTerrain) continue;
+                if (GetChunkState(coord) != ChunkState.Loaded) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Sample the ground height at <paramref name="worldPos"/> using a downward raycast first,
         /// then the chunk's terrain as fallback. Returns false if neither is available.
         /// </summary>
@@ -198,6 +219,7 @@ namespace SpaceGame.World
         private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
         private readonly Dictionary<Vector2Int, float> unloadTimers = new();
         private readonly List<Transform> trackedTransforms = new();
+        private readonly List<Vector2Int> groundCoords = new();
 
         // ── Scene migration replication (see MoveTracked) ──────────────────────────
         //

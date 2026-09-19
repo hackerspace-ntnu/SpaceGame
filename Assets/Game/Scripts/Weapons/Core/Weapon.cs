@@ -289,25 +289,9 @@ namespace SpaceGame.Weapons
             // If charging is enabled and we're already charging, launch the charged projectile
             if (enableCharging && isCharging)
             {
-                if (chargedProjectile != null)
-                {
-                    try
-                    {
-                        // Tell the projectile to finish charging and be ready to move
-                        chargedProjectile.OnChargeComplete();
-                    
-                        // Launch the already-charged projectile with current aim direction
-                        Fire();
-                        ReportGunshot();
-                    }
-                    catch (MissingReferenceException)
-                    {
-                        Debug.LogWarning("Charged projectile was destroyed before launch.");
-                    }
-                }
-            
-                chargedProjectile = null;
-                isCharging = false;
+                if (LaunchChargedProjectile())
+                    ReportGunshot();
+
                 nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
                 return true;
             }
@@ -333,6 +317,99 @@ namespace SpaceGame.Weapons
                 nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
                 return true;
             }
+        }
+
+        /// <summary>
+        /// Finish the charge and send the orb on its way. Answers whether a round actually left.
+        ///
+        /// <para>
+        /// Shared by the authority (through <see cref="TryFire"/>) and by every watching machine
+        /// (through <see cref="Present"/>), because a charged shot has to LOOK the same everywhere
+        /// and the only difference between the two is whether the projectile can hurt anybody —
+        /// which <see cref="ShotDealsDamage"/> already decides, one layer down in the subclass.
+        /// Two copies of this would be two places for the launch to drift.
+        /// </para>
+        /// <para>
+        /// The gunshot report is deliberately NOT here. It is a noise the world reacts to, so it
+        /// belongs to the authority alone; a peer that reported it would wake every NPC in earshot
+        /// a second time, on its own machine, from a shot that had already been ruled on.
+        /// </para>
+        /// </summary>
+        protected bool LaunchChargedProjectile()
+        {
+            bool launched = false;
+
+            if (chargedProjectile != null)
+            {
+                try
+                {
+                    // Tell the projectile to finish charging and be ready to move
+                    chargedProjectile.OnChargeComplete();
+
+                    // Launch the already-charged projectile with current aim direction
+                    Fire();
+                    launched = true;
+                }
+                catch (MissingReferenceException)
+                {
+                    Debug.LogWarning("Charged projectile was destroyed before launch.");
+                }
+            }
+
+            chargedProjectile = null;
+            isCharging = false;
+            return launched;
+        }
+
+        // ─────────── Which press is this? ───────────
+        //
+        // A charging weapon is a two-press state machine, and a watching machine cannot work out
+        // which press it is being shown: it sees two identical NetMsg.ItemUsed messages. So the
+        // owner says, in NetArg.B — the same field GrapplingHookArtifact uses for Attach/Release
+        // and RepulsorGauntletArtifact for Fire/Miss.
+        //
+        // Before this, Present() simply gave up on charging weapons ("peers therefore hear a
+        // charged shot but do not draw one"), which meant ball lightning was a noise with no orb
+        // on every machine but the shooter's.
+
+        /// <summary>An ordinary shot, or a weapon that does not charge at all.</summary>
+        protected const int PhaseShot = 0;
+
+        /// <summary>First press: the orb appears at the barrel and starts growing.</summary>
+        protected const int PhaseChargeStart = 1;
+
+        /// <summary>Second press: it leaves.</summary>
+        protected const int PhaseChargeLaunch = 2;
+
+        /// <summary>
+        /// What the owner should report for a press, given whether this weapon charges and whether
+        /// it was already mid-charge when the press arrived.
+        ///
+        /// Pure and public so the two-press alternation can be tested without a weapon, a magazine
+        /// or a session — the arithmetic is trivial and the ORDER is the part that goes wrong.
+        /// </summary>
+        public static int PhaseForPress(bool charges, bool alreadyCharging) =>
+            !charges ? PhaseShot : alreadyCharging ? PhaseChargeLaunch : PhaseChargeStart;
+
+        /// <summary>
+        /// Is the press a watching machine is being shown the one that LAUNCHES the orb?
+        ///
+        /// <para>
+        /// <paramref name="reportedPhase"/> is what the owner put in <c>NetArg.B</c>. Trusted when
+        /// it says anything, because the owner is the only machine that knows. When it is
+        /// <see cref="PhaseShot"/> nobody filled it in — an NPC firing through
+        /// <c>EntityEquipmentController</c> never runs <c>OnRequestUse</c> — and this machine falls
+        /// back to mirroring its own alternation, which is sound because it has seen exactly the
+        /// same presses the authority has.
+        /// </para>
+        /// </summary>
+        public static bool IsLaunchPress(bool charges, int reportedPhase, bool alreadyCharging)
+        {
+            if (!charges) return false;
+            if (reportedPhase == PhaseChargeLaunch) return true;
+            if (reportedPhase == PhaseChargeStart) return false;
+
+            return alreadyCharging;
         }
 
         /// <summary>
@@ -501,6 +578,11 @@ namespace SpaceGame.Weapons
             arg.R = direction.sqrMagnitude > 0.0001f
                 ? Quaternion.LookRotation(direction)
                 : GetFireOrigin().rotation;
+
+            // Read BEFORE this press is applied anywhere, so it describes the press rather than the
+            // state after it. On the owner `isCharging` is true only between the two presses,
+            // whether this machine is the authority (TryFire set it) or a client (Present did).
+            arg.B = PhaseForPress(enableCharging, isCharging);
         }
 
         /// <summary>
@@ -521,23 +603,59 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected override void Present()
         {
-            PlayFireSound();
+            // Which press this is. The owner said so in NetArg.B; a use that came from somewhere
+            // that does not fill it in — an NPC firing through EntityEquipmentController — leaves
+            // PhaseShot, and for a charging weapon this machine then mirrors its own alternation,
+            // which is right because it has seen exactly the same presses the authority has.
+            bool launching = IsLaunchPress(enableCharging, UseArg.B, isCharging);
+
+            // The charge press is not a shot and must not sound like one; StartCharging plays the
+            // charge-up itself. Everything else gets the report.
+            if (!enableCharging || launching) PlayFireSound();
 
             if (Network.Simulates(this)) return;
 
             // Mirror the round off this machine's own magazine. Equipment is rebuilt locally on
             // every machine from the replicated hotbar, so each has its own Magazine — and the one
             // the owner's HUD reads is theirs, not the server's.
-            if (magazine != null) magazine.ConsumeAmmo(ammoPerShot);
+            //
+            // Only on the press that actually commits the round. TryFire takes the ammo when the
+            // charge STARTS and takes nothing when it launches, so consuming on both presses drained
+            // a watching machine's magazine twice as fast as the authority's and the owner's own HUD
+            // was the thing that drifted.
+            if (!launching && magazine != null) magazine.ConsumeAmmo(ammoPerShot);
 
-            // A charging weapon's shot is a two-press state machine — spawn on the first press,
-            // launch on the second — and a peer never saw the first press, so it has no projectile
-            // to launch. Peers therefore hear a charged shot but do not draw one. Showing it would
-            // mean replicating the charge itself, which is a bigger piece of work than this.
-            if (enableCharging) return;
-
+            // Nothing this machine does from here may hurt anybody: the hit was decided on the
+            // server. For a charging weapon the flag has to be down BEFORE the orb is spawned,
+            // because that is the moment the subclass reads it (BallLightningWeapon stamps
+            // projectile.Cosmetic from it).
             ShotDealsDamage = false;
-            Fire();
+
+            if (!enableCharging)
+            {
+                Fire();
+                return;
+            }
+
+            if (!launching)
+            {
+                // A stale orb from a launch this machine never saw would otherwise sit at the
+                // barrel for the rest of the session.
+                CancelCharging();
+                StartCharging();
+                return;
+            }
+
+            // Launching with nothing charged means the first press never arrived here — a late
+            // joiner, or a dropped message. Show nothing rather than a second orb appearing and
+            // instantly leaving, and clear the state so the next press starts a fresh charge.
+            if (chargedProjectile == null)
+            {
+                CancelCharging();
+                return;
+            }
+
+            LaunchChargedProjectile();
         }
 
         /// <summary>

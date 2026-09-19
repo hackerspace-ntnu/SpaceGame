@@ -322,7 +322,7 @@ namespace SpaceGame.EditorTools
             EnsureFolder(FactionDir);
             fauna = ScriptableObject.CreateInstance<FactionDefinition>();
             fauna.factionName = "Fauna";
-            fauna.debugColor = new Color(0.42f, 0.78f, 0.45f);
+            fauna.hudColor = new Color(0.42f, 0.78f, 0.45f);
             AssetDatabase.CreateAsset(fauna, FaunaPath);
             Debug.Log($"Created {FaunaPath} — peaceful by having no row in " +
                       "GlobalRelationships. Do not add one.");
@@ -417,9 +417,9 @@ namespace SpaceGame.EditorTools
 
             // -- senses and behaviour ---------------------------------------
             var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", 130f);   // head is low and forward
+            SetFloat(perception, "fieldOfViewAngle", VisionBaseline.MinFieldOfView);
             SetFloat(perception, "eyeHeight", 1.55f);
-            SetFloat(perception, "memoryDuration", 11f);      // it does not lose interest
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             // Left unset this is Nothing, which makes every line-of-sight test
             // succeed through walls; PerceptionModule falls back to these three
             // at runtime and warns once per spawn asking to be told explicitly.
@@ -465,7 +465,7 @@ namespace SpaceGame.EditorTools
             // everything and AgentTargeting only acquires the Hostile. This is
             // the component that changes its mind.
             //
-            // The leash matches AgentTargeting's own loseRange (45 m). Holding
+            // The leash stays inside AgentTargeting's own loseRange. Holding
             // a grudge further out than targeting will retain the target means
             // re-asserting and dropping it on alternate frames.
             var provocation = root.AddComponent<ProvocationModule>();

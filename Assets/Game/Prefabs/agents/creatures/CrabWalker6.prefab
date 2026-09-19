@@ -2879,6 +2879,8 @@ GameObject:
   - component: {fileID: 1350892109519894096}
   - component: {fileID: 1782413409471376653}
   - component: {fileID: 1394045671287126060}
+  - component: {fileID: 7451896244763841215}
+  - component: {fileID: 4789149616321989118}
   m_Layer: 0
   m_Name: CrabWalker6
   m_TagString: Untagged
@@ -3135,6 +3137,32 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &7451896244763841215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3061139444255008399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &4789149616321989118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3061139444255008399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
 --- !u!1 &3164049048110282236
 GameObject:
   m_ObjectHideFlags: 0

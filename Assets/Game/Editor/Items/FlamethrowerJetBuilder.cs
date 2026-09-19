@@ -165,26 +165,6 @@ namespace SpaceGame.EditorTools
         [MenuItem("Tools/SpaceGame/Items/Build Flamethrower Fire")]
         public static void Build()
         {
-            Material core = EnsureFlameMaterial(CoreMatPath, brightness: 4.2f, noiseScale: 14f,
-                                                cut: 0.26f, halo: 0.1f);
-            Material billow = EnsureFlameMaterial(BillowMatPath, brightness: 2.6f, noiseScale: 9f,
-                                                  cut: 0.32f, halo: 0.08f);
-            Material ember = EnsureFlameMaterial(EmberMatPath, brightness: 6f, noiseScale: 22f,
-                                                 cut: 0.18f, halo: 0.22f);
-            if (core == null || billow == null || ember == null) return;
-
-            var smoke = AssetDatabase.LoadAssetAtPath<Material>(SmokeMatPath);
-            if (smoke == null)
-            {
-                Debug.LogError($"[Flamethrower] No smoke material at {SmokeMatPath}.");
-                return;
-            }
-
-            GameObject groundFire = BuildGroundFirePrefab(billow, core, smoke);
-            if (groundFire == null) return;
-
-            if (BuildBodyFirePrefab(billow, core, smoke) == null) return;
-
             GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);
             if (root == null)
             {
@@ -202,17 +182,7 @@ namespace SpaceGame.EditorTools
                     return;
                 }
 
-                ClearOwned(jetRoot, FlameName, EmbersName, SmokeName, PilotName);
-
-                ParticleSystem flame = BuildJet(jetRoot, core, billow);
-                ParticleSystem embers = BuildEmbers(jetRoot, ember);
-                ParticleSystem fumes = BuildSmoke(jetRoot, smoke);
-                ParticleSystem pilot = BuildPilot(jetRoot, core);
-                Light light = EnsureLight(jetRoot);
-
-                WireJet(root, jetRoot, flame, embers, fumes, pilot, light);
-                WireArtifact(root, groundFire);
-
+                if (!AttachFire(root, jetRoot)) return;
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
             finally
@@ -223,6 +193,52 @@ namespace SpaceGame.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[Flamethrower] Fire rebuilt on " + PrefabPath + " and " + GroundFirePath + ".");
+        }
+
+        /// <summary>
+        /// Hang the whole fire — jet, embers, smoke, pilot, light, and the ground-fire prefab it
+        /// lays — under <paramref name="jetRoot"/> on a prefab that carries a
+        /// <see cref="FlameJet"/> and a <see cref="FlamethrowerArtifact"/>.
+        ///
+        /// <para>
+        /// Public because the lance is no longer the only thing that throws this fire: the Flame
+        /// Gauntlet's builder calls it on a prefab it has just assembled. The materials and the
+        /// ground/body fire prefabs are (re)built on every call, which is how the lance's build
+        /// always worked; two callers now share one fire rather than each owning a copy of it.
+        /// </para>
+        /// </summary>
+        public static bool AttachFire(GameObject root, Transform jetRoot)
+        {
+            Material core = EnsureFlameMaterial(CoreMatPath, brightness: 4.2f, noiseScale: 14f,
+                                                cut: 0.26f, halo: 0.1f);
+            Material billow = EnsureFlameMaterial(BillowMatPath, brightness: 2.6f, noiseScale: 9f,
+                                                  cut: 0.32f, halo: 0.08f);
+            Material ember = EnsureFlameMaterial(EmberMatPath, brightness: 6f, noiseScale: 22f,
+                                                 cut: 0.18f, halo: 0.22f);
+            if (core == null || billow == null || ember == null) return false;
+
+            var smoke = AssetDatabase.LoadAssetAtPath<Material>(SmokeMatPath);
+            if (smoke == null)
+            {
+                Debug.LogError($"[Flamethrower] No smoke material at {SmokeMatPath}.");
+                return false;
+            }
+
+            GameObject groundFire = BuildGroundFirePrefab(billow, core, smoke);
+            if (groundFire == null) return false;
+            if (BuildBodyFirePrefab(billow, core, smoke) == null) return false;
+
+            ClearOwned(jetRoot, FlameName, EmbersName, SmokeName, PilotName);
+
+            ParticleSystem flame = BuildJet(jetRoot, core, billow);
+            ParticleSystem embers = BuildEmbers(jetRoot, ember);
+            ParticleSystem fumes = BuildSmoke(jetRoot, smoke);
+            ParticleSystem pilot = BuildPilot(jetRoot, core);
+            Light light = EnsureLight(jetRoot);
+
+            WireJet(root, jetRoot, flame, embers, fumes, pilot, light);
+            WireArtifact(root, groundFire);
+            return true;
         }
 
         // ── The jet ────────────────────────────────────────────────────────────

@@ -172,7 +172,7 @@ def _unmirror():
 
 
 def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
-           fix_inverted=False, keep_collection=None):
+           fix_inverted=False, keep_collection=None, prepare=None):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -196,11 +196,18 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     `fix_inverted` bakes out negative-determinant transforms and repairs the
     winding — see `_unmirror`. Off by default so nothing already shipping
     changes; turn it on for a file whose hand edits left an object mirrored.
+
+    `prepare` is called with no arguments right after the file opens, for a
+    model whose export needs more than a keep-list - dropping build helpers,
+    adding sockets derived from the file's own data. Whatever it changes is in
+    memory only, like everything else here.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
 
     bpy.ops.wm.open_mainfile(filepath=src)
+    if prepare is not None:
+        prepare()
 
     if keep_collection is not None:
         coll = bpy.data.collections.get(keep_collection)

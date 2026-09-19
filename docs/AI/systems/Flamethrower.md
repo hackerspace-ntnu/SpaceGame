@@ -44,7 +44,7 @@ symptoms:
   - "a creature stays on fire for as long as it stands in the flames and never burns out"
   - "the fire on a burning creature is a fireball wider than the creature itself"
 reads_with: [Artifacts, Combat, Multiplayer]
-updated: 2026-09-09
+updated: 2026-09-14
 ---
 
 # Flamethrower
@@ -96,7 +96,7 @@ The original design brief is [Artifacts/Flamethrower.md](Artifacts/Flamethrower.
 
 | Type | File | Role |
 |---|---|---|
-| `FlamethrowerArtifact` | [FlamethrowerArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/FlamethrowerArtifact.cs) | The lance. `UseAuthority.Server`, `IsContinuous`. Sweeps the cone, lays the ground fire, drives the jet |
+| `FlamethrowerArtifact` | [FlamethrowerArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/FlamethrowerArtifact.cs) | The lance — and, with `commitToBurst` on, the Flame Gauntlet. `UseAuthority.Server`, `IsContinuous`. Sweeps the cone, lays the ground fire, drives the jet |
 | `FlameJet` | [FlameJet.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/FlameJet.cs) | What "on" looks and sounds like: aim, throttle, four emitter channels, the muzzle light |
 | `FlameLayers` | [FlameLayers.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/FlameLayers.cs) | One emitter and its children, throttled as one. **Multiplies the authored rate by hand** — see Gotchas |
 | `Ignition` | [Ignition.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/Ignition.cs) | What may catch fire, and the one call that lights it. Shared by the cone and the patches |
@@ -104,7 +104,8 @@ The original design brief is [Artifacts/Flamethrower.md](Artifacts/Flamethrower.
 | `BurningVisual` | [BurningVisual.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/BurningVisual.cs) | The flames ON a burning body. Added by `Ignition`, driven by `StatusChanged`, sized to the body |
 | `GroundFire` | [GroundFire.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/GroundFire.cs) | One patch: its own clock, its flames, its glow, and the status it announces on the authority |
 | `GroundFireField` | [GroundFireField.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/GroundFireField.cs) | The cell grid, the pool, the patch cap and the per-camera light budget |
-| `FlamethrowerJetBuilder` | [FlamethrowerJetBuilder.cs](Assets/Game/Editor/Items/FlamethrowerJetBuilder.cs) | *Tools ▸ SpaceGame ▸ Items ▸ Build Flamethrower Fire*. Owns the `Jet` subtree, the whole ground-fire prefab and the three flame materials |
+| `FlamethrowerJetBuilder` | [FlamethrowerJetBuilder.cs](Assets/Game/Editor/Items/FlamethrowerJetBuilder.cs) | *Tools ▸ SpaceGame ▸ Items ▸ Build Flamethrower Fire*. Owns the `Jet` subtree, the whole ground-fire prefab and the three flame materials. `AttachFire(root, jetRoot)` is the same work for any prefab carrying a `FlamethrowerArtifact` + `FlameJet` |
+| `FlameGauntletBuilder` | [FlameGauntletBuilder.cs](Assets/Game/Editor/AssetPipeline/FlameGauntletBuilder.cs) | *Tools ▸ Build Flame Gauntlet Artifact*. The forearm burner: the lance's types on a gauntlet body, `commitToBurst` on, a 3 s tank that must be full to light and refills in 5 s — the burst length is the tank, not a timer |
 
 The jet's layers hang under `Jet`: **Flame** (core), with **Billows** (slow, fat, buoyant — what
 persists after the core has gone) and **Wisps** (fast, hot) under it, plus **Embers**, **Smoke** and
@@ -116,7 +117,7 @@ persists after the core has gone) and **Wisps** (fast, hot) under it, plus **Emb
 2. **Hold.** `OnRequestHold` re-sends the aim; `Hold()` and `PresentHold()` both record it — a dedicated server never receives `PresentHold`, so the aim must land on the authority path too.
 3. **Per frame.** On **every** machine: the throttle ramps, the jet is drawn, the cone is swept at 15 /s and ground fire is laid at 10 /s — one forward ray for what stopped the jet, then a dropped ray per stride along what it crossed.
 4. **A patch.** `Kindle` refills its five-second clock; it burns, fades over the last 1.5 s, stops emitting, waits for the flames to go out, and hands itself back to the pool.
-5. **Release.** The final hold tick arrives with `active` false and stops the jet; `holdTimeout` (0.5 s) is the net for a release that never arrives.
+5. **Release.** The final hold tick arrives with `active` false and stops the jet; `holdTimeout` (0.5 s) is the net for a release that never arrives. With `commitToBurst` (the Flame Gauntlet) the release is ignored while the jet burns: `WantsHold` stays true so the owner keeps streaming the aim, and the tank running dry is what ends the burst.
 
 ## Multiplayer
 
@@ -152,6 +153,8 @@ would give it a saveable identity with no stamped prefab id.
 - **A patch skips anything steeper than `minGroundSlope` (0.45) and any body** — a body has its own fire now, and a disc of flame on a creature's hip would stay behind when it walked off.
 - **Sampling starts 2 m out**: the flame at the muzzle is over the holder's own feet, so a stride from zero sets them alight on their own trigger pull.
 - **Re-exporting the model moves nothing on the prefab, silently.** `Muzzle`, `Jet`, `Jet/Pilot`, `GripPoint` and the `Gauge_*` trio sit at positions read off the model's `Marker_*` meshes, and a hand edit in Blender does not move those markers either. The order is **markers → export → reseat**: `flamethrower_markers.py`, `flamethrower_export.py`, then `Tools/SpaceGame/Items/Reseat Flamethrower` ([FlamethrowerReseat.cs](Assets/Game/Editor/Items/FlamethrowerReseat.cs)), which also refits the pickup box. Skip it and the flame leaves from inside the barrel and the gauge bar hangs in the air behind the grip.
+
+- **A committed burst has to keep the hold stream alive, or peers burn along a frozen ray.** `commitToBurst` ignores the release, but if `WantsHold` did not also stay true the owner's `UseChannel` would stop sending holds on the release, and every other machine would sweep and draw the rest of the burst along the aim of the moment the finger came up. Both halves live in `FlamethrowerArtifact`; do not add the bool anywhere else.
 
 ## Extending
 

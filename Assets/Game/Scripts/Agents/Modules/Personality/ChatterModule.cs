@@ -11,6 +11,7 @@ using FMODUnity;
 using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
@@ -80,9 +81,24 @@ namespace SpaceGame.Agents
 
         private void Reset() => SetPriorityDefault(ModulePriority.Personality);
 
-        private void Awake() => taskModule = GetComponent<NpcTaskModule>();
+        private AgentAuthority authority;
 
-        private void OnEnable() => speakTimer = RollInterval();
+        private void Awake()
+        {
+            taskModule = GetComponent<NpcTaskModule>();
+            authority = new AgentAuthority(this);
+        }
+
+        // A rider is re-parented onto its mount, which can change who simulates it.
+        private void OnTransformParentChanged() => authority?.Invalidate();
+
+        private void OnEnable()
+        {
+            speakTimer = RollInterval();
+            this.NetOn(NetMsg.AgentActed, OnAgentActed);
+        }
+
+        private void OnDisable() => this.NetOff(NetMsg.AgentActed, OnAgentActed);
 
         public override string ModuleDescription =>
             "Speaks a line about the current task when a player is within hearing range.\n\n" +
@@ -169,6 +185,68 @@ namespace SpaceGame.Agents
         /// chatter array and a dialog array without being rewritten.
         /// </summary>
         private string Resolve(string line) => NpcSpeechTokens.Resolve(line, taskModule);
+
+        /// <summary>
+        /// Say <paramref name="line"/> now, outside the idle rotation. Answers whether it was said.
+        ///
+        /// <para>
+        /// For a line the world has a REASON for at this instant — the aggression telegraph's
+        /// warning, which is worthless three seconds late. It therefore skips the interval and the
+        /// silent-while-fighting rule, both of which exist to stop ambient chatter being annoying,
+        /// and keeps the two that stop lines colliding: the global cooldown, so six nomads warning
+        /// you at once produce one line rather than six, and never talking over a conversation the
+        /// player is actually having.
+        /// </para>
+        /// <para>
+        /// Deliberately not "say this no matter what". A warning that overwrites the dialogue box
+        /// mid-sentence is a worse bug than a warning that is missed.
+        /// </para>
+        /// </summary>
+        public bool TrySayNow(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            if (Time.time < nextGlobalSpeakTime) return false;
+
+            NpcDialogPopupUI popup = NpcDialogPopupUI.Instance;
+            if (popup == null || popup.IsVisible || popup.IsQuestionActive) return false;
+
+            Speak(Resolve(line));
+            return true;
+        }
+
+        /// <summary>
+        /// Server side. Shout line <paramref name="lineIndex"/> of this agent's tribe's hostile lines,
+        /// here and on every watching machine. Called by WarPartyDirector on a party's first sight.
+        /// </summary>
+        public void WarCry(int lineIndex)
+        {
+            PresentWarCry(lineIndex);
+
+            if (Network.Server)
+                AgentActionRelay.Broadcast(this, AgentAction.WarCry, transform.position, transform.forward, lineIndex);
+        }
+
+        private void OnAgentActed(in NetArg arg, ulong sender)
+        {
+            if (arg.A != AgentAction.WarCry) return;
+
+            // The deciding machine already shouted while deciding to.
+            if (authority == null || authority.SimulatedHere) return;
+
+            PresentWarCry(arg.B);
+        }
+
+        private void PresentWarCry(int lineIndex)
+        {
+            FactionRoster roster = TryGetComponent(out EntityFaction faction) && faction.Faction != null
+                ? faction.Faction.roster
+                : null;
+
+            string[] lines = roster != null && roster.hostileLines != null ? roster.hostileLines.lines : null;
+            if (lines == null || lineIndex < 0 || lineIndex >= lines.Length) return;
+
+            TrySayNow(lines[lineIndex]);
+        }
 
         private void Speak(string line)
         {

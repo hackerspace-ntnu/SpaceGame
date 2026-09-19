@@ -16,15 +16,25 @@
 //
 // A machine built like a horse, and the two things the Clankers ride it as:
 //
-//   RobotHorse       Wildlife. Fauna, so it targets nobody on its own; it wanders, it flees a
-//                    gunshot, it turns and kicks when cornered (FightOrFlightModule, the Appa
-//                    pattern). Born saddled, so a player who finds one can climb on -- and the
-//                    saddle can be taken off like any other.
+//   RobotHorse       Wildlife. Fauna, so it targets nobody on its own; it wanders and it runs
+//                    from a gunshot. Born saddled, so a player who finds one can climb on -- and
+//                    the saddle can be taken off like any other.
 //   ClankerOutrider  The same horse on the Clankers' side, with a Clanker in the saddle. The
-//                    HORSE is the agent (NpcPassenger: the rider is cargo with its brain off): it
-//                    patrols the town, joins the faction's alerts, and charges what it is handed,
-//                    trampling at the end. Shoot the rider and it gets off and fights on foot;
-//                    the horse keeps coming.
+//                    HORSE is the agent (NpcPassenger: the rider is cargo): it patrols the town,
+//                    joins the faction's alerts, and carries its rider to whatever the town is
+//                    shouting about. Shoot the rider and it gets off and fights on foot; the horse
+//                    keeps coming.
+//
+// **Neither horse can attack anything, and that is the design, not an omission.** A horse is
+// transport. It has no CloseCombatModule, no kick, no trample and no ranged weapon, on either
+// side; if a mounted Clanker hurts you, the Clanker shot you. The two roles stay orthogonal
+// (GDC-L1-SYS-0005) and the player can read which one is dangerous (GDC-L1-SYS-0006): the thing
+// with the gun. A horse that could also kill you would make "kill the rider" and "kill the horse"
+// the same move with different animations.
+//
+// What makes that work is that a seated rider keeps its own brain's side-effect channel -- it
+// acquires and fires from the saddle. See NpcPassenger and AgentController.RidesAsPassenger; the
+// outrider is exactly the case that used to be harmless without it.
 //
 // Mounted running is the point of the animal. The run clip is played fast (AnimatorSpeedScale)
 // and the agent's speed is derived from the clip's own stride at that rate, so the feet keep up
@@ -66,7 +76,7 @@ namespace SpaceGame.EditorTools
 
         private const string FactionDir = "Assets/Game/ScriptableObjects/Factions/Core";
         private const string FaunaPath = FactionDir + "/FaunaFaction.asset";
-        private const string RobotFactionPath = FactionDir + "/RobotFaction.asset";
+        private const string ClankerFactionPath = FactionDir + "/ClankerFaction.asset";
         private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
 
         // ── the model, measured off robot_horse.blend (robot_horse_rig.py's probe) ─────────
@@ -109,6 +119,18 @@ namespace SpaceGame.EditorTools
         // at rate 1.4 they step out ~32 deg/s. The agent is allowed 60: a machine that gallops at
         // 14 m/s and pivots at a stroll cannot follow a path, and the feet slipping a little in a
         // turn is the lesser evil (the same trade Appa makes at 45).
+        /// <summary>
+        /// How close the outrider's horse brings its rider before it stands, in world metres.
+        ///
+        /// The horse carries; the Clanker in the saddle shoots. So this is not an attack range, it
+        /// is a firing position handed to somebody else, and the only thing it has to get right is
+        /// landing inside the rider's own band (<see cref="ClankerBuilder.GunMinRange"/> to
+        /// <see cref="ClankerBuilder.GunMaxRange"/>). Well clear of the near edge, because the
+        /// animal is 1.8x scale and stopping a horse on top of the player reads as a shove rather
+        /// than a charge, and well inside the far edge so the rider opens fire on arrival.
+        /// </summary>
+        public const float ChaseStopDistance = 12f;
+
         private const float TurnSpeed = 60f;
         private const float TurnEnterRate = 18f;
         private const float TurnExitRate = 9f;
@@ -153,7 +175,7 @@ namespace SpaceGame.EditorTools
         private static readonly Design[] Designs =
         {
             new Design("RobotHorse", WildPrefabPath, FaunaPath, wild: true),
-            new Design("ClankerOutrider", OutriderPrefabPath, RobotFactionPath, wild: false),
+            new Design("ClankerOutrider", OutriderPrefabPath, ClankerFactionPath, wild: false),
         };
 
         [MenuItem("Tools/Creatures/Build Robot Horse")]
@@ -485,9 +507,9 @@ namespace SpaceGame.EditorTools
 
             // -- senses ----------------------------------------------------------------
             var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", design.Wild ? 220f : 170f);
+            SetFloat(perception, "fieldOfViewAngle", design.Wild ? 220f : VisionBaseline.MinFieldOfView);
             SetFloat(perception, "eyeHeight", HeadHeight * Scale);
-            SetFloat(perception, "memoryDuration", 8f);
+            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
             SetInt(perception, "occlusionLayers", LayerMaskOf("Default", "Ground", "Interior"));
 
             var ears = root.AddComponent<NoiseReceiverModule>();
@@ -513,27 +535,9 @@ namespace SpaceGame.EditorTools
             // -- behaviour --------------------------------------------------------------
             // Priorities set explicitly on every module: AddComponent does not run Reset, so a
             // script-added module keeps priority 0 and ties with the fallback.
-            if (design.Wild) AddWildBehaviour(root, driver, provocation);
+            // No attack module on either horse, by design -- see the header. A horse is transport.
+            if (design.Wild) AddWildBehaviour(root);
             else AddOutriderBehaviour(root);
-
-            var chase = root.AddComponent<ChaseModule>();
-            SetFloat(chase, "chaseStopDistance", (design.Wild ? 2.5f : 3.5f) * Scale);
-            SetFloat(chase, "chaseSpeedMultiplier", 1f);
-            SetInt(chase, "priority", ModulePriority.Reactive);
-
-            // A kick (wild) or a trampling charge (outrider). No clip: the shove is the visual.
-            var melee = root.AddComponent<CloseCombatModule>();
-            SetFloat(melee, "attackRange", 3.2f * Scale);
-            SetFloat(melee, "attackCooldown", design.Wild ? 2.5f : 2f);
-            SetInt(melee, "attackDamage", design.Wild ? 30 : 25);
-            SetFloat(melee, "attackCommitDuration", 0.5f);
-            SetString(melee, "attackAnimTrigger", string.Empty);
-            SetInt(melee, "priority", ModulePriority.MeleeAttack);
-            SetFloat(melee, "knockbackSpeed", design.Wild ? 12f : 16f);
-            SetFloat(melee, "knockbackLift", 0.3f);
-            SetFloat(melee, "knockbackLeapDistance", 5f);
-            SetFloat(melee, "knockbackLeapHeight", 1.5f);
-            SetFloat(melee, "knockbackLeapDuration", 0.5f);
 
             // -- streaming, multiplayer, persistence -------------------------------------
             var tracked = root.AddComponent<SceneTracked>();
@@ -565,8 +569,12 @@ namespace SpaceGame.EditorTools
             return prefab;
         }
 
-        /// <summary>Wander, flee a gunshot, and turn to kick when cornered: the Appa temperament.</summary>
-        private static void AddWildBehaviour(GameObject root, AgentAnimatorDriver driver, ProvocationModule provocation)
+        /// <summary>
+        /// Wander, and run from whatever frightens it. A horse has no answer to a threat but
+        /// distance: there is no cornered-kick branch, because a horse that fights back is a horse
+        /// that has stopped being a mount and started being an enemy.
+        /// </summary>
+        private static void AddWildBehaviour(GameObject root)
         {
             var wander = root.AddComponent<WanderModule>();
             SetBool(wander, "limitWanderRadius", false);
@@ -582,30 +590,25 @@ namespace SpaceGame.EditorTools
             SetFloat(flee, "safeRadius", 60f);
             SetFloat(flee, "fleeSpeedMultiplier", 1f);   // the run IS the flee
             SetInt(flee, "priority", ModulePriority.Override);
-
-            // No roar clip and no roar sound: the trigger, flag and file are cleared so the
-            // module skips the telegraph and goes straight from cornered to the kick.
-            var temperament = root.AddComponent<FightOrFlightModule>();
-            SetField(temperament, "fleeModule", flee);
-            SetField(temperament, "animatorDriver", driver);
-            SetField(temperament, "provocation", provocation);
-            SetInt(temperament, "enrageDamage", 80);
-            SetFloat(temperament, "corneredDistance", 6f * Scale);
-            SetFloat(temperament, "rageDuration", 10f);
-            SetString(temperament, "roarTrigger", string.Empty);
-            SetString(temperament, "roaringFlag", string.Empty);
-            SetString(temperament, "roarFile", string.Empty);
-            SetFloat(temperament, "roarDuration", 0f);
-            SetInt(temperament, "priority", ModulePriority.Override + 1);
         }
 
         /// <summary>
-        /// Patrol the town and answer the faction's alerts. The same alert wiring as the Clanker
-        /// on foot (ClankerBuilder), so a rider's sighting reaches the outrider and its charge
-        /// is announced back.
+        /// Patrol the town, answer the faction's alerts, and carry the rider to whatever they
+        /// answer. The same alert wiring as the Clanker on foot (ClankerBuilder), so a rider's
+        /// sighting reaches the outrider and its charge is announced back.
+        ///
+        /// The horse closes and then stands: the shooting is the rider's, and
+        /// <see cref="ChaseStopDistance"/> is the standoff it hands them. It is deliberately inside
+        /// the Clanker pistol's maxRange and outside its minRange, so a horse that has arrived has
+        /// put its rider in the band the gun actually fires in.
         /// </summary>
         private static void AddOutriderBehaviour(GameObject root)
         {
+            var chase = root.AddComponent<ChaseModule>();
+            SetFloat(chase, "chaseStopDistance", ChaseStopDistance);
+            SetFloat(chase, "chaseSpeedMultiplier", 1f);
+            SetInt(chase, "priority", ModulePriority.Reactive);
+
             var patrol = root.AddComponent<PatrolModule>();
             SetInt(patrol, "priority", ModulePriority.Fallback);
             SetFloat(patrol, "patrolRadius", 45f);

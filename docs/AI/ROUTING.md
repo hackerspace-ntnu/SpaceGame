@@ -1099,6 +1099,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | tying somebody up freezes them on my screen and they walk around on theirs | [Hogtie](systems/Hogtie.md) |
 | typecheck.py prints 'No errors.' but the Editor still shows compile errors | [Testing](systems/Testing.md) |
 | typecheck.py says a type I just added to an asmdef does not exist | [Testing](systems/Testing.md) |
+| UnassignedReferenceException: The variable animator of AgentAnimatorDriver has not been assigned, thrown from AggressionTelegraphModule.OnEnable as nomads spawn | [AgentSystem](systems/AgentSystem.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a ladder does nothing | [Ladders](systems/Ladders.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
@@ -1500,4 +1501,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1099 symptoms, 375 paths, 57 docs -->
+<!-- 1100 symptoms, 375 paths, 57 docs -->

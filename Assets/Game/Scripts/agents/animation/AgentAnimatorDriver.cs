@@ -152,7 +152,10 @@ namespace SpaceGame.Agents
         private readonly System.Collections.Generic.Dictionary<int, bool> parameterCache
             = new System.Collections.Generic.Dictionary<int, bool>();
 
-        private void Awake()
+        // Not only Awake's business. Components on one object awake in no guaranteed order, and
+        // AggressionTelegraphModule.OnEnable calls SetIsAiming straight away — on a nomad it can land
+        // before this component's Awake, while the field still holds the prefab's empty reference.
+        private bool ResolveAnimator()
         {
             if (!animator)
             {
@@ -164,7 +167,12 @@ namespace SpaceGame.Agents
                 animator = GetComponentInChildren<Animator>(true);
             }
 
-            if (!animator)
+            return animator;
+        }
+
+        private void Awake()
+        {
+            if (!ResolveAnimator())
             {
                 Debug.LogWarning($"{name}: AgentAnimatorDriver could not find an Animator on this object or children.", this);
                 return;
@@ -547,7 +555,11 @@ namespace SpaceGame.Agents
         public void TriggerShootRifle() => SetTriggerSafe("ShootRifle");
         public void TriggerSpearAttack() => SetTriggerSafe("SpearAttack");
         public void TriggerByName(string triggerName) => SetTriggerSafe(triggerName);
-        public void SetIsAiming(bool aiming) => animator?.SetBool("IsAiming", aiming);
+        public void SetIsAiming(bool aiming)
+        {
+            if (ResolveAnimator())
+                animator.SetBool("IsAiming", aiming);
+        }
 
         private void SetTriggerSafe(string triggerName)
         {

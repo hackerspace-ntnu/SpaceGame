@@ -46,6 +46,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a caravan comes back with different guns after walking out of range | [AgentSystem](systems/AgentSystem.md) |
 | a caught creature can never be let out again once it has been reeled in | [Lasso](systems/Lasso.md) |
 | a cave regenerates on Start and stalls play mode for seconds | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a character stands correctly in the rest pose and its hands shred into spikes the moment it is posed | [ArtPipeline](systems/ArtPipeline.md) |
 | a charge is right on the host and wrong on every client | [SupplyCharge](systems/SupplyCharge.md) |
 | a charge written into a slot never reaches the owning client | [SupplyCharge](systems/SupplyCharge.md) |
 | a charged shot is audible on other machines but no orb is ever drawn | [Combat](systems/Combat.md) |
@@ -212,6 +213,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a renamed or newly added test never runs and the old one keeps failing with identical text | [Testing](systems/Testing.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
+| a resculpted character's eyes sit outside its head once the head bone moves | [ArtPipeline](systems/ArtPipeline.md) |
 | a rider arrives twice the aperture separation past the exit | [Portals](systems/Portals.md) |
 | a rider is left behind, or arrives twice as far, when its mount teleports | [SceneTransitions](systems/SceneTransitions.md) |
 | a rifle shows a gauge reading 0% | [SupplyCharge](systems/SupplyCharge.md) |
@@ -552,6 +554,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one prop type turns out to be a quarter of a model's whole triangle count | [ArtPipeline](systems/ArtPipeline.md) |
 | one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
 | one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
+| one side of a mirrored character follows the other side's arm and leg | [ArtPipeline](systems/ArtPipeline.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
 | only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
@@ -591,6 +594,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Render Graph Execution error: The passed in texture handle does not have a valid descriptor | [Environment](systems/Environment.md) |
 | respawning put me on open sand at the world's starting coordinates instead of back in my ship | [GameModes](systems/GameModes.md) |
 | retuning a shader default changed nothing in the game | [FoamGun](systems/FoamGun.md) |
+| Rig Error: Required human bone 'LeftLowerLeg' not found, and the bone is plainly in the FBX | [ArtPipeline](systems/ArtPipeline.md) |
 | right after loading, a sky transport turns straight around, flies home and comes back about 20 s later | [SkyTribe](systems/SkyTribe.md) |
 | right mouse no longer brings the held item up to the eye | [PlayerCharacter](systems/PlayerCharacter.md) |
 | right-clicking a placed object does nothing | [Placeables](systems/Placeables.md) |
@@ -1094,6 +1098,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | two ropes on one object hold it far more firmly than one does | [LeashSystem](systems/LeashSystem.md) |
 | two sites on the body screen light up at each other's outline thickness | [BodyEquipment](systems/BodyEquipment.md) |
 | two sky hulls park on top of each other outside the city | [SkyTribe](systems/SkyTribe.md) |
+| two versions of the same rig cannot be compared: the same pose angles bend them differently | [ArtPipeline](systems/ArtPipeline.md) |
 | two war parties hunt one player after loading | [AgentSystem](systems/AgentSystem.md) |
 | tying my rope to a rock or a hull makes the jetpack far more powerful | [Jetpack](systems/Jetpack.md) |
 | tying somebody up freezes them on my screen and they walk around on theirs | [Hogtie](systems/Hogtie.md) |
@@ -1501,4 +1506,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1100 symptoms, 375 paths, 57 docs -->
+<!-- 1105 symptoms, 375 paths, 57 docs -->

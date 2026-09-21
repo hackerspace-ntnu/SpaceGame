@@ -1369,6 +1369,10 @@ GameObject:
   - component: {fileID: 5864439237002659066}
   - component: {fileID: 3396970559404320230}
   - component: {fileID: 1514548991028845510}
+  - component: {fileID: -5156923894725687591}
+  - component: {fileID: 3226276941698132615}
+  - component: {fileID: -7002460751449813850}
+  - component: {fileID: -9047632059651739366}
   m_Layer: 0
   m_Name: SkyFreighterTransport
   m_TagString: Untagged
@@ -1647,6 +1651,58 @@ MonoBehaviour:
     surfaceSkin: 0.5
   wreckFallAcceleration: 9.81
   wreckDespawnDelay: 10
+--- !u!114 &-5156923894725687591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7321445808256780902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 0d35522efcaf99f46a0cd122b9941333
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &3226276941698132615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7321445808256780902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &-7002460751449813850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7321445808256780902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
+--- !u!114 &-9047632059651739366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7321445808256780902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
 --- !u!1 &7675979225116559189
 GameObject:
   m_ObjectHideFlags: 0

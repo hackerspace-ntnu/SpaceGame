@@ -131,9 +131,22 @@ namespace SpaceGame.EditorTools
         /// no help because it only refuses while somebody is actually aboard.
         /// </para>
         /// </summary>
-        private static bool IsVehicle(string path) =>
-            path.Replace('\\', '/').Contains("/Prefabs/Agents/Vehicles/",
-                                             System.StringComparison.OrdinalIgnoreCase);
+        /// <para>
+        /// There are TWO vehicle folders and this has to know both. The NPC-flown sky transports
+        /// live under <c>Assets/Game/Prefabs/Vehicles/Sky/</c>, outside
+        /// <c>Prefabs/Agents/Vehicles/</c>, so for as long as only the latter was matched every
+        /// run of this tool bolted an AgentRagdoll and a RagdollRig onto two flying hulls — and
+        /// because the builders chain <c>WirePrefabs</c>, it came back each time either of them
+        /// was rebuilt.
+        /// </para>
+        private static bool IsVehicle(string path)
+        {
+            string normalised = path.Replace('\\', '/');
+            return normalised.Contains("/Prefabs/Agents/Vehicles/",
+                                       System.StringComparison.OrdinalIgnoreCase)
+                || normalised.Contains("/Prefabs/Vehicles/",
+                                       System.StringComparison.OrdinalIgnoreCase);
+        }
 
         /// <summary>
         /// Is there a body here for physics to take, and something driving it that would have to be

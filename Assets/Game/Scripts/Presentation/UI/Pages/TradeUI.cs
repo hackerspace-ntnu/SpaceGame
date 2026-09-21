@@ -282,7 +282,7 @@ namespace SpaceGame.Presentation
                 if (!trader.TryGetOffer(row.Index, out TradeOffer offer)) continue;
 
                 bool affordable = trader.CanAfford(row.Index, inventory);
-                int held = TraderInteraction.CountHeld(inventory, offer.wants);
+                int held = InventoryQuery.CountHeld(inventory, offer.wants);
 
                 row.Swap.text = offer.Summary();
 

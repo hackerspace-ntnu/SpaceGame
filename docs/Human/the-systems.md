@@ -70,6 +70,14 @@ Three separate generators that all run while designers work, never during play: 
 
 **Worth knowing:** only two landmark types survive, mesas and cliffs; a dozen others were deleted, and because scenes store the type as a number, those numbers must never be renumbered or reused.
 
+### Building a whole town from one recipe *(Towns)*
+
+Drop one component into a scene, point it at a recipe asset, and press Generate: it lays out the buildings, the clutter, the scrap worth picking over and the people who live there, then wires up the town's alarm and its trickle of replacements. The recipe describes a *kind* of town — a mining post, a market, a nomad camp — as four lists of "this many of these, roughly this far out", so a new settlement is something you author rather than something anyone has to write code for. What the inhabitants actually *do* is left entirely to their own prefabs; the town only decides who stands where.
+
+Towns can also hand out errands. A questline is a short chain of steps, each one a line the character says and an item they want brought to them, with an optional something in return. Generating a town deals its questlines out to whichever of its people can hold a conversation, so the same town always puts the same errand on the same character.
+
+**Worth knowing:** generating is a designer's action and happens while the editor is open, never during play — the ground characters walk on is worked out ahead of time and cannot be recalculated mid-game. And regenerating a town you have already played in throws away everything the save remembered about it: its people, their health, where they stood, and how far along their errands were. There is a confirmation tick for exactly that reason.
+
 ### Where characters can walk *(NavMeshSystem)*
 
 One single walkable-surface map is baked for the entire world at author time and simply switched on when the game starts — nothing is calculated at runtime. All 48 tiles are opened at once to bake it, which means editing any one tile invalidates the whole thing and there is no per-tile shortcut. Caves are excluded and carry their own separate bake.

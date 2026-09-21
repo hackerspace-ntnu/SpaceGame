@@ -427,10 +427,14 @@ namespace SpaceGame.Core.Persistence.EditorTools
         // ─────────────────────────────────────────────
 
         // The rule itself lives in SaveablePolicy, in the runtime assembly, so this pass and the
-        // one the world store runs as it hydrates a scene cannot drift apart. Running this tool is
-        // now an optimisation rather than a requirement: it bakes a GUID identity into the asset,
-        // which survives renaming and re-parenting, where the runtime fallback derives an identity
-        // from where the object sits.
+        // one the world store runs as it hydrates a scene cannot drift apart.
+        //
+        // What this pass does and does not do, because the previous version of this comment was
+        // wrong about it and cost someone an afternoon: Wire is ONE line — SaveablePolicy.Ensure —
+        // which only ADDS COMPONENTS. It does not write any identity. The GUID comes from
+        // SaveableEntity.OnValidate's scene branch, via RecordAsPrefabOverrides(); for prefab
+        // ASSETS, StampPrefabId is what writes prefabId to disk. So running this tool is an
+        // optimisation for saver COVERAGE, not for identity.
 
         private static bool NeedsSaving(GameObject go, out string why) =>
             SaveablePolicy.NeedsSaving(go, out why);

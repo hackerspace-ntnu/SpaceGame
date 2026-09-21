@@ -42,7 +42,8 @@ grep -i 'client' docs/AI/ROUTING.md
 | [Portals](systems/Portals.md) | Sprayable one-way-pair apertures you walk through, replicated as messages rather than networked entities | [SceneTransitions](systems/SceneTransitions.md), [Artifacts](systems/Artifacts.md), [Combat](systems/Combat.md) |
 | [SceneTransitions](systems/SceneTransitions.md) | Additive interior scenes any body can walk into, the door/threshold orchestrator, and the one instant move | [Portals](systems/Portals.md), [Persistence](systems/Persistence.md), [Cutscenes](systems/Cutscenes.md), [InteractionSystem](systems/InteractionSystem.md) |
 | [Scenes](systems/Scenes.md) | Map of every .unity scene, its role, and the build-settings order runtime scene loads depend on | [WorldStreaming](systems/WorldStreaming.md), [Multiplayer](systems/Multiplayer.md), [SceneTransitions](systems/SceneTransitions.md) |
-| [TerrainGeneration](systems/TerrainGeneration.md) | Edit-time marching-cubes terrain features, SDF caves and tile settlements, plus the runtime site registry | [WorldStreaming](systems/WorldStreaming.md), [NavMeshSystem](systems/NavMeshSystem.md), [Environment](systems/Environment.md), [SceneTransitions](systems/SceneTransitions.md) |
+| [TerrainGeneration](systems/TerrainGeneration.md) | Edit-time marching-cubes terrain features, SDF caves and tile settlements, plus the runtime site registry | [WorldStreaming](systems/WorldStreaming.md), [NavMeshSystem](systems/NavMeshSystem.md), [Environment](systems/Environment.md), [SceneTransitions](systems/SceneTransitions.md), [Towns](systems/Towns.md) |
+| [Towns](systems/Towns.md) | Drag-in generator that places a whole settlement from settings on the component, plus fetch-quest givers | [TerrainGeneration](systems/TerrainGeneration.md), [NavMeshSystem](systems/NavMeshSystem.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md), [AgentSystem](systems/AgentSystem.md), [InteractionSystem](systems/InteractionSystem.md) |
 | [WorldStreaming](systems/WorldStreaming.md) | Server-authoritative additive loading of chunk scenes around moving anchors, plus scene membership | [TerrainGeneration](systems/TerrainGeneration.md), [Persistence](systems/Persistence.md), [SceneTransitions](systems/SceneTransitions.md), [NavMeshSystem](systems/NavMeshSystem.md) |
 
 ### Characters — player, creatures, locomotion, combat
@@ -138,4 +139,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 55 system docs, 6 redirects -->
+<!-- 56 system docs, 6 redirects -->

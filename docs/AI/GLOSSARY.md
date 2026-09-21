@@ -94,6 +94,8 @@ they are the ones worth reading before you start grepping.
 | **prefabId** | Asset GUID answering "what do I instantiate"; no prefab on disk ships one until the wiring tool stamps it | [Persistence](systems/Persistence.md) |
 | **`Present()`** | Two unrelated things: the cosmetic every-machine half of an item use, and `MenuScreen.Present()`, which builds a menu page | [Artifacts](systems/Artifacts.md) |
 | **profile** | 5 senses: `TargetingProfile`, `EntityProfile_*`, a save `PlayerProfile` GUID, a UGS `SessionProfile`, a `SandstormProfile` | [EntitySystem](systems/EntitySystem.md) |
+| **quest giver** | A `QuestGiver` on an NPC. NOT an `IInteractable` — `DialogInteraction` consults it, the way it consults `TraderInteraction` | [Towns](systems/Towns.md) |
+| **questline** | A GUID-stamped asset: ordered steps, each a line to say plus an item to receive. Progress is one int, shared across the session, saved under key `"quest"` | [Towns](systems/Towns.md) |
 | **ragdoll** | A skeleton *derived* at runtime from mesh vertex weights — no `CharacterJoint` is authored anywhere on disk | [Combat](systems/Combat.md) |
 | **Registry&lt;T&gt;** | The **item** registry (`Resources/Items`), keyed by string ID. Never wire an entity into it | [CoreServices](systems/CoreServices.md) |
 | **relay** | 4 senses: Unity Relay (transport), `NetRelay` (our wire), `AgentActionRelay`/`InteractorRelay`, `Unity.Relay.Editor` (AI sidecar) | [Multiplayer](systems/Multiplayer.md) |
@@ -108,8 +110,9 @@ they are the ones worth reading before you start grepping.
 | **SceneTracked** | Opt-in for a moving entity: `Pin` / `Migrate` / `Despawn` between chunk scenes, plus `keepChunksLoaded` | [WorldStreaming](systems/WorldStreaming.md) |
 | **SceneTransition** | The door/threshold orchestrator: trigger → destination (SO) + effects (SO[]), run on a `DontDestroyOnLoad` host | [SceneTransitions](systems/SceneTransitions.md) |
 | **session** | 4 senses: `WorldSession` (which world), `LobbySession` (UGS), `VersusSession` (the match), the NGO session `SessionLauncher` starts | [Multiplayer](systems/Multiplayer.md) |
-| **settlement** | A seeded, tile-generated town emitted at edit time into the scene. Not a **site** | [ProceduralGeneration](systems/TerrainGeneration.md) |
+| **settlement** | The `Settlement*` types generate ONE monumental ruin from a tile grid — despite the name, not a town. Not a **town**, not a **site** | [ProceduralGeneration](systems/TerrainGeneration.md) |
 | **SfxId** | The 71-value sound vocabulary an `AudioCatalog` maps to FMOD events; new events cannot be authored, the `.fspro` is lost | [Audio](systems/audio.md) |
+| **town** | A generated settlement of prefab instances — buildings, props, scrap, people — placed at edit time by `TownGenerator` from a `TownRecipe`. Not a **settlement** (that is the ruin generator), not a **site** | [Towns](systems/Towns.md) |
 | **site** | A hand-placed `WorldSiteMarker` publishing a `WorldSite` record NPCs navigate by. Not a **settlement** | [ProceduralGeneration](systems/TerrainGeneration.md) |
 | **`_Source~`** | `Art/Models/_Source~/`: the Unity-invisible Blender library. No `.meta`, no GUIDs, nothing there is referenceable | [ArtPipeline](systems/ArtPipeline.md) |
 | **SpawnPoint** | The scene marker `SpawnManager` resolves a player spawn anchor from; absent, nobody spawns and one error is logged | [GameModes](systems/GameModes.md) |

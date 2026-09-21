@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using SpaceGame.Agents;
 using SpaceGame.Audio;
+using SpaceGame.Gameplay.Quests;
 using SpaceGame.Gameplay.Trading;
 using SpaceGame.Presentation;
 
@@ -226,6 +227,16 @@ namespace SpaceGame.Gameplay
             // one on the same character would make which of the two answers depend on component
             // order — silently, and differently per prefab.
             if (TryGetComponent(out TraderInteraction trader) && trader.TryOfferTrade(this, interactor))
+            {
+                return;
+            }
+
+            // A quest giver asks once the trader has passed, by the same route and for the same
+            // reason. Trade goes first because stock is contested and perishable and has its own
+            // "before anything else" toggle, where a fetch errand can wait a conversation; and
+            // because TryOfferTrade returns false cheaply on any character with no offers, so the
+            // ordering only ever matters for somebody who is both.
+            if (TryGetComponent(out QuestGiver questGiver) && questGiver.TryOfferQuest(this, interactor))
             {
                 return;
             }

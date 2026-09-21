@@ -533,6 +533,15 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(TraderSaveable));
             }
 
+            // How far along a quest giver's errand is. Shared world state, so it belongs to the
+            // NPC's entity record rather than to any one player.
+            if (go.GetComponent<SpaceGame.Gameplay.Quests.QuestGiver>() != null &&
+                go.GetComponent<QuestGiverSaveable>() == null)
+            {
+                go.AddComponent<QuestGiverSaveable>();
+                parts.Add(nameof(QuestGiverSaveable));
+            }
+
             if (go.GetComponent<VolumeTrigger>() != null && go.GetComponent<VolumeTriggerSaveable>() == null)
             {
                 go.AddComponent<VolumeTriggerSaveable>();

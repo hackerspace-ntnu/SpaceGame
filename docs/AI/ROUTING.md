@@ -101,6 +101,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a gauntlet I gave a smaller pack size grew back to full size on its own | [Backpack](systems/Backpack.md) |
 | a gauntlet sitting correctly on the gear screen's rail is badged as misplaced | [BodyEquipment](systems/BodyEquipment.md) |
 | a generated prefab has an empty motor slot and no error was logged | [EntitySystem](systems/EntitySystem.md) |
+| a generated town lost every saved NPC, quest and dropped item in it | [Towns](systems/Towns.md) |
+| a generated town placed nothing and the report says it found no ground | [Towns](systems/Towns.md) |
+| a generated town's scene diff is huge even though I changed nothing | [Towns](systems/Towns.md) |
 | a geometric test is documented as failing on purpose, and the thing it measures really is too big | [Backpack](systems/Backpack.md) |
 | a ghostly second lander floats inside the cockpit where the terminal stands | [ShipSchematic](systems/ShipSchematic.md) |
 | a grapple swing's speed vanishes the moment the wings deploy | [Ornithopter](systems/Ornithopter.md) |
@@ -179,6 +182,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a prefab I deleted is still a row in the network prefab list, and re-running the sync says everything is already in sync | [Inventory](systems/Inventory.md) |
 | a probe that excludes one part of a prefab measures that part anyway | [Testing](systems/Testing.md) |
 | a provoked NPC walks toward me instead of running | [AgentSystem](systems/AgentSystem.md) |
+| a quest giver keeps asking for an item I already handed over | [Towns](systems/Towns.md) |
+| a quest step advanced on the host but the client still asks for the old item | [Towns](systems/Towns.md) |
 | a quicksave in mid-air cools the pack down for free | [Jetpack](systems/Jetpack.md) |
 | a ramp will not build any higher no matter how long the trigger is held | [FoamGun](systems/FoamGun.md) |
 | a raycast right after moving something reads the collider's old position | [ProjectConfig](systems/ProjectConfig.md) |
@@ -285,6 +290,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an NPC stands bolt upright on a dune instead of leaning into it | [AgentSystem](systems/AgentSystem.md) |
 | an NPC vanishes for clients when its old chunk unloads but the host still has it | [WorldStreaming](systems/WorldStreaming.md) |
 | an NPC walking into the parked ship pushes it around, but the player cannot move it at all | [PlayerShip](systems/PlayerShip.md) |
+| an NPC with a questline never offers it when I talk to them | [Towns](systems/Towns.md) |
 | an NPC's chatter mutes every other NPC of the same kind | [audio](systems/audio.md) |
 | an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject | [Multiplayer](systems/Multiplayer.md) |
 | an oxygen tank stands on end on the mat and eats a third of the leaf | [Oxygen](systems/Oxygen.md) |
@@ -300,6 +306,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | back gear sits half a metre off the pack's rail until I re-equip it | [BodyEquipment](systems/BodyEquipment.md) |
 | both status lamps on the pack are lit at once and flicker against each other | [Backpack](systems/Backpack.md) |
 | bots on opposite teams refuse to fight each other | [GameModes](systems/GameModes.md) |
+| buildings in a generated town stand inside each other | [Towns](systems/Towns.md) |
 | camera shake does nothing anywhere in the game | [Cutscenes](systems/Cutscenes.md) |
 | carried or worn items duplicate in the world, one more copy after every load | [Persistence](systems/Persistence.md) |
 | chairs are boardable from outside again after a hull mesh was deleted in the .blend | [PlayerShip](systems/PlayerShip.md) |
@@ -329,6 +336,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
 | editing a script while the game is running kills my camera and controls for the rest of the session | [PlayerCharacter](systems/PlayerCharacter.md) |
+| editing the settings on the town component changes nothing | [Towns](systems/Towns.md) |
 | EntityProfile_RobotPhil / _DesertRat is referenced but does not exist | [EntitySystem](systems/EntitySystem.md) |
 | equipping or unequipping a gauntlet keeps selecting the chest or back item | [BodyEquipment](systems/BodyEquipment.md) |
 | Esc right after pressing B leaves no camera enabled at all | [Backpack](systems/Backpack.md) |
@@ -367,8 +375,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | gear placed on the pack is missing after a save and reload | [Backpack](systems/Backpack.md) |
 | gear stowed on an animal vanished when the saddle came off | [AgentSystem](systems/AgentSystem.md) |
 | gear stowed on an animal vanished when the saddle came off | [Saddles](systems/Saddles.md) |
+| Generate refuses and says it would orphan save records | [Towns](systems/Towns.md) |
 | gliding into a cliff at full speed costs nothing | [Wingsuit](systems/Wingsuit.md) |
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
+| handing an item to a quest giver took the item but the quest did not advance | [Towns](systems/Towns.md) |
 | hauling somebody on a rope overheats the pack much sooner than flying alone | [Jetpack](systems/Jetpack.md) |
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
 | holding W does the same thing whether I look up or down | [Jetpack](systems/Jetpack.md) |
@@ -378,6 +388,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Hull_MountThirdPersonCamera or PassengerSeat1_MountThirdPersonCamera exists while nothing is mounted, or was saved into a scene file | [Vehicles](systems/Vehicles.md) |
 | I added a binding to the .inputactions asset and nothing happens in game | [PlayerCharacter](systems/PlayerCharacter.md) |
 | I added a chunk or interior scene and nothing ever loads it | [Scenes](systems/Scenes.md) |
+| I added a prefab to a town, pressed Generate, and nothing appeared | [Towns](systems/Towns.md) |
 | I am stopped by nothing walking past the ship's gear wall, or wedged in a doorway I used to fit through | [Backpack](systems/Backpack.md) |
 | I am stuck in a completely white room with no way out | [BottledSingularity](systems/BottledSingularity.md) |
 | I am stuck on a mount that is not there any more | [Diagnostics](systems/Diagnostics.md) |
@@ -499,6 +510,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | pointing an empty hand at a receptacle does nothing and says nothing | [Oxygen](systems/Oxygen.md) |
 | pointing at a worn tile on the gear screen lights nothing on the character | [BodyEquipment](systems/BodyEquipment.md) |
 | pressing B or F again during the fly-out kills my own camera for the rest of the session | [Backpack](systems/Backpack.md) |
+| pressing Generate a second time replaced my whole town instead of moving it | [Towns](systems/Towns.md) |
 | pressing H does nothing at all — no gauges, no bracket, no message-stack change | [Visor](systems/Visor.md) |
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
 | pressing Play shows only the skybox through a stray Main Camera instead of the game | [Testing](systems/Testing.md) |
@@ -510,6 +522,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | re-running a generator script destroyed hand edits that existed only in the .blend | [ArtPipeline](systems/ArtPipeline.md) |
 | rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload | [Ornithopter](systems/Ornithopter.md) |
 | rebuilding the wing pack makes the folded craft stowable on the back panels | [Ornithopter](systems/Ornithopter.md) |
+| regenerating the robot settlement rewrites hundreds of scene lines with no code change | [TerrainGeneration](systems/TerrainGeneration.md) |
 | remote copies of the creature slide along with their feet still | [AgentSystem](systems/AgentSystem.md) |
 | Render Graph Execution error: The passed in texture handle does not have a valid descriptor | [Environment](systems/Environment.md) |
 | respawning put me on open sand at the world's starting coordinates instead of back in my ship | [GameModes](systems/GameModes.md) |
@@ -529,6 +542,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | shrinking an item on the backpack also shrank it where it lies in the sand | [Backpack](systems/Backpack.md) |
 | some players could look around during the intro descent and others could not, or kept their HUD through it | [Cutscenes](systems/Cutscenes.md) |
 | someone else's compile error makes my own unrelated test change invisible | [Testing](systems/Testing.md) |
+| something I parented under the Generated object disappeared | [Towns](systems/Towns.md) |
 | something invisible shoves me around inside the ship as soon as I step off the middle of the aisle | [PlayerShip](systems/PlayerShip.md) |
 | Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released | [Persistence](systems/Persistence.md) |
 | starting a deathmatch drops me into an empty arena with no bots and no spawns | [GameModes](systems/GameModes.md) |
@@ -766,6 +780,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the net gun fires, the net lands, and it never catches anything at all | [Artifacts](systems/Artifacts.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
 | the nozzle tips never go red however hot the pack gets | [Jetpack](systems/Jetpack.md) |
+| the NPCs in a generated town stand still and cannot walk anywhere | [Towns](systems/Towns.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
 | the off hand grips empty air in front of a one-handed item | [Inventory](systems/Inventory.md) |
 | the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
@@ -917,6 +932,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the torch dies at about 40 m and distant terrain stays black | [Flashlight](systems/Flashlight.md) |
 | the torch is off after a load, or a remote player's torch state is wrong | [Flashlight](systems/Flashlight.md) |
 | the torso tile on the gear screen lights up whenever hotbar slot 1 is in my hand | [BodyEquipment](systems/BodyEquipment.md) |
+| the town generator reported success but placed nothing | [Towns](systems/Towns.md) |
 | the turret or NPC aims its weapon at the host's camera | [Combat](systems/Combat.md) |
 | the two rows of team plates land in the same band of screen and smear together | [Lobby](systems/Lobby.md) |
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
@@ -1047,6 +1063,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/vehicles/ornithopter_worn.py` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/QuestGiverSaveable.cs` | [Towns](systems/Towns.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/gauntlet_flashlight.py` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/SingularityWell.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
@@ -1147,6 +1164,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitWings.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/World/ProceduralGeneration/Town` | [Towns](systems/Towns.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Art/Models/Props/standing_terminal.fbx` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader` | [FoamGun](systems/FoamGun.md) |
@@ -1194,6 +1212,7 @@ Longest match wins.
 | `Assets/Game/Editor/Items/FoamGunModelBuilder.cs` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Editor/Items/FoamGunSprayBuilder.cs` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Editor/Items/ShipPartItemBuilder.cs` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Editor/World/TownGeneratorEditor.cs` | [Towns](systems/Towns.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BodyVeil.cs` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [Scenes](systems/Scenes.md) |
@@ -1306,6 +1325,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Streaming/` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/agents/Profiles/` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Prefabs/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
+| `Assets/Game/Scripts/Gameplay/Quests` | [Towns](systems/Towns.md) |
 | `Assets/Game/Scripts/Gear/JumpingRod` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Inventory` | [Inventory](systems/Inventory.md) |
@@ -1368,4 +1388,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 990 symptoms, 352 paths, 55 docs -->
+<!-- 1006 symptoms, 356 paths, 56 docs -->

@@ -3,6 +3,7 @@
 // Spawned objects parent under a "Generated" child so "Clear" wipes them cleanly.
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.World.Towns;
 
 namespace SpaceGame.World
 {
@@ -27,6 +28,22 @@ namespace SpaceGame.World
             public float radius;
         }
 
+        /// <summary>
+        /// Ground sampling, footprints and pads. Rebuilt at the top of every <see cref="Generate"/>
+        /// so a recipe edited between runs is picked up, and so its footprint cache does not outlive
+        /// a prefab change.
+        /// </summary>
+        private TownPlacement placement;
+
+        private TownPlacement BuildPlacement() => new TownPlacement(
+            terrainMask,
+            recipe.buildingFootprint,
+            recipe.minStructureSpacing,
+            recipe.buildingPadding,
+            recipe.foundationPadThreshold,
+            recipe.foundationPadOverhang,
+            recipe.foundationPadMaterial);
+
         [ContextMenu("Reroll (new seed + generate)")]
         public void Reroll()
         {
@@ -47,6 +64,8 @@ namespace SpaceGame.World
             }
 
             Clear();
+
+            placement = BuildPlacement();
 
             if (useSeed) Random.InitState(seed);
 
@@ -182,7 +201,7 @@ namespace SpaceGame.World
                 float r   = radius + Random.Range(-recipe.slotRadialJitter, recipe.slotRadialJitter);
                 Vector2 xz = new Vector2(Mathf.Cos(ang) * r, Mathf.Sin(ang) * r);
 
-                float clearance = BuildingClearanceRadius(prefab);
+                float clearance = placement.ClearanceRadius(prefab);
                 if (IsTooCloseToOthers(xz, clearance, placed))
                 {
                     // Try a couple of nudges along the ring before giving up on this slot.
@@ -209,7 +228,7 @@ namespace SpaceGame.World
         {
             if (!prefab) return;
             Vector3 worldXZ = transform.TransformPoint(new Vector3(localXZ.x, 0f, localXZ.y));
-            if (!SampleGround(worldXZ, out float baseY)) return;
+            if (!placement.SampleGround(worldXZ, out float baseY)) return;
 
             Quaternion rot;
             if (recipe.faceCenter && localXZ.sqrMagnitude > 0.01f)
@@ -233,9 +252,9 @@ namespace SpaceGame.World
             GameObject go = Instantiate(prefab, spawnPos, rot, root);
     #endif
 
-            Vector2 footprint = GetPrefabFootprint(prefab);
-            MaybeAddFoundationPad(go.transform, worldXZ, baseY, root, footprint, rot);
-            placed.Add(new Placement { xz = localXZ, radius = BuildingClearanceRadius(prefab) });
+            Vector2 footprint = placement.Footprint(prefab);
+            placement.AddFoundationPad(go.transform, worldXZ, baseY, root, footprint, rot);
+            placed.Add(new Placement { xz = localXZ, radius = placement.ClearanceRadius(prefab) });
         }
 
         private static void ShuffleInPlace<T>(List<T> list)
@@ -250,7 +269,7 @@ namespace SpaceGame.World
         private void TryPlaceBuilding(GameObject prefab, float minR, float maxR, Transform root, List<Placement> placed)
         {
             if (!prefab) return;
-            float radius = BuildingClearanceRadius(prefab);
+            float radius = placement.ClearanceRadius(prefab);
             for (int attempt = 0; attempt < recipe.maxPlacementAttempts; attempt++)
             {
                 Vector2 xz = RandomPointInAnnulus(minR, maxR);
@@ -274,63 +293,7 @@ namespace SpaceGame.World
         {
             if (!prefab) return;
             var go = SpawnBuildingAtBaseY(prefab, localXZ, root);
-            if (go) placed.Add(new Placement { xz = localXZ, radius = BuildingClearanceRadius(prefab) });
-        }
-
-        private readonly Dictionary<GameObject, Vector2> footprintCache = new();
-
-        private Vector2 GetPrefabFootprint(GameObject prefab)
-        {
-            if (footprintCache.TryGetValue(prefab, out var cached)) return cached;
-
-            // Walk the prefab hierarchy in local space and find the XZ extents of all meshes.
-            var filters = prefab.GetComponentsInChildren<MeshFilter>(true);
-            if (filters.Length == 0)
-            {
-                footprintCache[prefab] = new Vector2(recipe.buildingFootprint, recipe.buildingFootprint);
-                return footprintCache[prefab];
-            }
-
-            Bounds? combined = null;
-            Transform prefabRoot = prefab.transform;
-            foreach (var mf in filters)
-            {
-                if (mf.sharedMesh == null) continue;
-                Bounds local = mf.sharedMesh.bounds;
-                Vector3 c = local.center;
-                Vector3 e = local.extents;
-                Bounds wb = new Bounds();
-                bool init = false;
-                for (int i = 0; i < 8; i++)
-                {
-                    Vector3 corner = c + new Vector3(
-                        (i & 1) == 0 ? -e.x : e.x,
-                        (i & 2) == 0 ? -e.y : e.y,
-                        (i & 4) == 0 ? -e.z : e.z);
-                    Vector3 worldCorner = mf.transform.TransformPoint(corner);
-                    Vector3 inRoot = prefabRoot.InverseTransformPoint(worldCorner);
-                    if (!init) { wb = new Bounds(inRoot, Vector3.zero); init = true; }
-                    else wb.Encapsulate(inRoot);
-                }
-                if (combined == null) combined = wb;
-                else { var cb = combined.Value; cb.Encapsulate(wb); combined = cb; }
-            }
-
-            Vector2 size = combined.HasValue
-                ? new Vector2(combined.Value.size.x, combined.Value.size.z)
-                : new Vector2(recipe.buildingFootprint, recipe.buildingFootprint);
-
-            footprintCache[prefab] = size;
-            return size;
-        }
-
-        private float BuildingClearanceRadius(GameObject prefab)
-        {
-            // Use the prefab's longest XZ extent so even after a 90° yaw the building has clearance.
-            Vector2 fp = GetPrefabFootprint(prefab);
-            float longest = Mathf.Max(fp.x, fp.y);
-            float required = longest + recipe.buildingPadding;
-            return Mathf.Max(required, recipe.minStructureSpacing) * 0.5f;
+            if (go) placed.Add(new Placement { xz = localXZ, radius = placement.ClearanceRadius(prefab) });
         }
 
         private GameObject SpawnBuildingAtBaseY(GameObject prefab, Vector2 localXZ, Transform root)
@@ -339,7 +302,7 @@ namespace SpaceGame.World
 
             Vector3 worldXZ = transform.TransformPoint(new Vector3(localXZ.x, 0f, localXZ.y));
 
-            if (!SampleGround(worldXZ, out float baseY))
+            if (!placement.SampleGround(worldXZ, out float baseY))
                 return null;
 
             Quaternion rot = Quaternion.Euler(0f, Random.Range(0, 4) * 90f, 0f);
@@ -352,8 +315,8 @@ namespace SpaceGame.World
             GameObject go = Instantiate(prefab, spawnPos, rot, root);
     #endif
 
-            Vector2 footprint = GetPrefabFootprint(prefab);
-            MaybeAddFoundationPad(go.transform, worldXZ, baseY, root, footprint, rot);
+            Vector2 footprint = placement.Footprint(prefab);
+            placement.AddFoundationPad(go.transform, worldXZ, baseY, root, footprint, rot);
             return go;
         }
 
@@ -363,7 +326,7 @@ namespace SpaceGame.World
 
             Vector3 worldXZ = transform.TransformPoint(new Vector3(localXZ.x, 0f, localXZ.y));
 
-            if (!SampleGround(worldXZ, out float centerY))
+            if (!placement.SampleGround(worldXZ, out float centerY))
                 return null;
 
             Quaternion rot = randomYaw
@@ -408,7 +371,7 @@ namespace SpaceGame.World
 
         private bool TryEmbedRockHalfway(GameObject rock)
         {
-            if (!TryGetWorldMeshBounds(rock, out Bounds b))
+            if (!TownPlacement.TryGetWorldMeshBounds(rock, out Bounds b))
                 return false;
 
             // Sample terrain on a 5x5 grid across the rock's XZ footprint.
@@ -426,7 +389,7 @@ namespace SpaceGame.World
                     float tz = gz / (float)(grid - 1);
                     float x = Mathf.Lerp(b.min.x, b.max.x, tx);
                     float z = Mathf.Lerp(b.min.z, b.max.z, tz);
-                    if (TryGetTerrainHeight(new Vector3(x, 0f, z), out float y))
+                    if (TownPlacement.TryGetTerrainHeight(new Vector3(x, 0f, z), out float y))
                     {
                         if (y < minTerrain) minTerrain = y;
                         if (y > maxTerrain) maxTerrain = y;
@@ -450,112 +413,6 @@ namespace SpaceGame.World
             float dy = avgTerrain - currentCenterY;
             rock.transform.position += new Vector3(0f, dy, 0f);
             return true;
-        }
-
-        private bool TryGetWorldMeshBounds(GameObject go, out Bounds bounds)
-        {
-            var filters = go.GetComponentsInChildren<MeshFilter>();
-            bounds = default;
-            bool init = false;
-            foreach (var mf in filters)
-            {
-                if (mf.sharedMesh == null) continue;
-                Bounds local = mf.sharedMesh.bounds;
-                Vector3 c = local.center;
-                Vector3 e = local.extents;
-                for (int i = 0; i < 8; i++)
-                {
-                    Vector3 corner = c + new Vector3(
-                        (i & 1) == 0 ? -e.x : e.x,
-                        (i & 2) == 0 ? -e.y : e.y,
-                        (i & 4) == 0 ? -e.z : e.z);
-                    Vector3 world = mf.transform.TransformPoint(corner);
-                    if (!init) { bounds = new Bounds(world, Vector3.zero); init = true; }
-                    else bounds.Encapsulate(world);
-                }
-            }
-            return init;
-        }
-
-        private static bool TryGetTerrainHeight(Vector3 worldPos, out float height)
-        {
-            Terrain[] terrains = Terrain.activeTerrains;
-            for (int i = 0; i < terrains.Length; i++)
-            {
-                Terrain terrain = terrains[i];
-                if (terrain == null || terrain.terrainData == null) continue;
-
-                Vector3 origin = terrain.transform.position;
-                Vector3 size = terrain.terrainData.size;
-                float relX = worldPos.x - origin.x;
-                float relZ = worldPos.z - origin.z;
-                if (relX < 0f || relZ < 0f || relX > size.x || relZ > size.z) continue;
-
-                height = origin.y + terrain.SampleHeight(worldPos);
-                return true;
-            }
-
-            height = 0f;
-            return false;
-        }
-
-        private bool SampleGround(Vector3 worldXZ, out float groundY)
-        {
-            Vector3 origin = new Vector3(worldXZ.x, worldXZ.y + 500f, worldXZ.z);
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 2000f, terrainMask, QueryTriggerInteraction.Ignore))
-            {
-                groundY = hit.point.y;
-                return true;
-            }
-            groundY = worldXZ.y;
-            return false;
-        }
-
-        private void MaybeAddFoundationPad(Transform building, Vector3 worldXZ, float baseY, Transform root, Vector2 prefabFootprint, Quaternion buildingRot)
-        {
-            // Pad sized to the actual prefab footprint (with a small overhang), oriented to match the building's yaw.
-            float padX = prefabFootprint.x + recipe.foundationPadOverhang * 2f;
-            float padZ = prefabFootprint.y + recipe.foundationPadOverhang * 2f;
-            float halfX = padX * 0.5f;
-            float halfZ = padZ * 0.5f;
-
-            Vector3 right = buildingRot * Vector3.right;
-            Vector3 forward = buildingRot * Vector3.forward;
-
-            Vector3[] samples =
-            {
-                worldXZ,
-                worldXZ + right * +halfX + forward * +halfZ,
-                worldXZ + right * -halfX + forward * +halfZ,
-                worldXZ + right * +halfX + forward * -halfZ,
-                worldXZ + right * -halfX + forward * -halfZ,
-            };
-
-            float minY = baseY;
-            for (int i = 0; i < samples.Length; i++)
-                if (SampleGround(samples[i], out float y) && y < minY)
-                    minY = y;
-
-            float dip = baseY - minY;
-            if (dip < recipe.foundationPadThreshold) return;
-
-            float padTop = baseY + 0.02f;
-            float padBottom = minY - 0.1f;
-            float padHeight = padTop - padBottom;
-            float padCenterY = (padTop + padBottom) * 0.5f;
-
-            var pad = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            pad.name = $"FoundationPad_{building.name}";
-            pad.transform.SetParent(root, worldPositionStays: true);
-            pad.transform.SetPositionAndRotation(new Vector3(worldXZ.x, padCenterY, worldXZ.z), buildingRot);
-            pad.transform.localScale = new Vector3(padX, padHeight, padZ);
-
-            var renderer = pad.GetComponent<MeshRenderer>();
-            if (renderer)
-            {
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                if (recipe.foundationPadMaterial) renderer.sharedMaterial = recipe.foundationPadMaterial;
-            }
         }
 
         // ── math helpers ─────────────────────────────────────────────────────────

@@ -636,5 +636,28 @@ namespace SpaceGame.Core
         // not worth a packet per frame to prevent.
         public const ushort ConjurerCast   = 113; // server → everyone: begin the wind-up
         public const ushort ConjurerStruck = 114; // server → everyone: draw the bolt at P
+
+        // ── Handing an item to a quest giver ──
+        // Both on the GIVER's relay. The server alone decides whether a step is complete, and it
+        // is the only writer of the step index anywhere.
+        //
+        // This deliberately does NOT follow TraderInteraction's shape, which takes payment locally
+        // and only asks the server to settle the trader's books. That is right for trading: the
+        // contested resource is the trader's STOCK, and CanAfford runs against the client's own
+        // bag, which is authoritative for the only question it asks. A quest contests the STEP
+        // INDEX instead, and a client can be arbitrarily stale about that — a late joiner
+        // streaming the chunk in sees step 0 while the world is on step 2. Taking the item locally
+        // there would spend it on a step that no longer exists and then be refused, so the item is
+        // gone and the quest has not moved. The server takes and gives, and it costs one hop.
+        //
+        //   QuestHandIn   client → server. A = the step index the client believes is current, so a
+        //                 stale request can be recognised and refused rather than applied to the
+        //                 wrong step; Target = the player handing over.
+        //   QuestStepSet  server → everyone. A = the authoritative step index now. B = 1 when this
+        //                 followed a successful hand-in, 0 when it is correcting somebody who
+        //                 asked about the wrong step. Target = the player who handed over, so that
+        //                 one machine can say the thank-you line and the others stay quiet.
+        public const ushort QuestHandIn  = 115; // client → server: I am giving you this step's item
+        public const ushort QuestStepSet = 116; // server → everyone: the step index is now A
     }
 }

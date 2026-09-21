@@ -140,12 +140,12 @@ namespace SpaceGame.Gameplay.Trading
             if (inventory == null || !TryGetOffer(offerIndex, out TradeOffer offer)) return false;
             if (!offer.InStock) return false;
 
-            int held = CountHeld(inventory, offer.wants);
+            int held = InventoryQuery.CountHeld(inventory, offer.wants);
             if (held < offer.wantsCount) return false;
 
             // Room for what comes back. The slots being freed by the payment count toward it, which
             // is what lets a full inventory still make an even swap.
-            int freeAfterPayment = CountFree(inventory) + offer.wantsCount;
+            int freeAfterPayment = InventoryQuery.CountFree(inventory) + offer.wantsCount;
             return freeAfterPayment >= offer.givesCount;
         }
 
@@ -172,7 +172,7 @@ namespace SpaceGame.Gameplay.Trading
             // already established there is room for the goods.
             for (int taken = 0; taken < offer.wantsCount; taken++)
             {
-                int slot = FindHeld(inventory, offer.wants);
+                int slot = InventoryQuery.FindHeld(inventory, offer.wants);
                 if (slot < 0) return false;
 
                 inventory.TryRemoveItem(slot);
@@ -290,45 +290,6 @@ namespace SpaceGame.Gameplay.Trading
             }
 
             nextOfferTime = Time.time + Mathf.Max(0f, cooldownRemaining);
-        }
-
-        // ── Inventory helpers ────────────────────────────────────────────────────
-
-        public static int CountHeld(IPlayerInventory inventory, InventoryItem item)
-        {
-            if (inventory == null || item == null) return 0;
-
-            int count = 0;
-            for (int i = 0; i < inventory.GetInventorySize(); i++)
-            {
-                InventorySlot slot = inventory.GetSlot(i);
-                if (slot != null && !slot.IsEmpty && slot.Item == item) count++;
-            }
-
-            return count;
-        }
-
-        private static int FindHeld(IPlayerInventory inventory, InventoryItem item)
-        {
-            for (int i = 0; i < inventory.GetInventorySize(); i++)
-            {
-                InventorySlot slot = inventory.GetSlot(i);
-                if (slot != null && !slot.IsEmpty && slot.Item == item) return i;
-            }
-
-            return -1;
-        }
-
-        private static int CountFree(IPlayerInventory inventory)
-        {
-            int count = 0;
-            for (int i = 0; i < inventory.GetInventorySize(); i++)
-            {
-                InventorySlot slot = inventory.GetSlot(i);
-                if (slot == null || slot.IsEmpty) count++;
-            }
-
-            return count;
         }
 
         private void OnValidate()

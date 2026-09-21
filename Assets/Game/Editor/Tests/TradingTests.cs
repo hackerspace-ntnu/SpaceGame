@@ -175,8 +175,8 @@ namespace SpaceGame.EditorTools
 
             Assert.IsTrue(trader.TryExecute(0, bag, null));
 
-            Assert.AreEqual(0, TraderInteraction.CountHeld(bag, scrap), "payment should be gone");
-            Assert.AreEqual(1, TraderInteraction.CountHeld(bag, water), "goods should have arrived");
+            Assert.AreEqual(0, InventoryQuery.CountHeld(bag, scrap), "payment should be gone");
+            Assert.AreEqual(1, InventoryQuery.CountHeld(bag, water), "goods should have arrived");
         }
 
         [Test]
@@ -199,7 +199,7 @@ namespace SpaceGame.EditorTools
 
             Assert.IsTrue(trader.CanAfford(0, bag), "a one-for-one swap needs no spare slot");
             Assert.IsTrue(trader.TryExecute(0, bag, null));
-            Assert.AreEqual(1, TraderInteraction.CountHeld(bag, water));
+            Assert.AreEqual(1, InventoryQuery.CountHeld(bag, water));
         }
 
         [Test]
@@ -220,7 +220,7 @@ namespace SpaceGame.EditorTools
 
             Assert.IsFalse(trader.CanAfford(0, bag), "no room for three cells in a two-slot bag");
             Assert.IsFalse(trader.TryExecute(0, bag, null));
-            Assert.AreEqual(1, TraderInteraction.CountHeld(bag, scrap), "payment must not have been taken");
+            Assert.AreEqual(1, InventoryQuery.CountHeld(bag, scrap), "payment must not have been taken");
         }
 
         [Test]

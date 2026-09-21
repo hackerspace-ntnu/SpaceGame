@@ -426,6 +426,7 @@ MonoBehaviour:
   priority: 30
   active: 1
   threat: {fileID: 0}
+  fleeFromCurrentTarget: 0
   fleeFromRelationship: 2
   triggerRadius: 6
   safeRadius: 12
@@ -472,6 +473,7 @@ MonoBehaviour:
     Path: 
   despawnDelay: 0
   disableAgentOnDeath: 1
+  logDamage: 0
 --- !u!114 &301530254
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -536,12 +538,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
   agent: {fileID: 301530258}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.65
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
@@ -551,6 +557,7 @@ MonoBehaviour:
   mountedLeapSampleRadius: 6
   riderTurnSpeed: 120
   riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
 --- !u!195 &301530258
@@ -787,6 +794,110 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &310244656
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 310244658}
+  - component: {fileID: 310244659}
+  m_Layer: 0
+  m_Name: town
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &310244658
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310244656}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.63163, y: 6.0627, z: -74.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1570620029}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &310244659
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310244656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd7d75286cc4445448f85137c2054dd7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Towns.TownGenerator
+  settings:
+    innerRadius: 22.67
+    midRadius: 43.5
+    outerRadius: 70.83
+    minStructureSpacing: 8
+    defaultFootprint: 14
+    buildingPadding: 2
+    maxPlacementAttempts: 40
+    organizedLayout: 1
+    slotRadialJitter: 0.5
+    slotAngularJitter: 2
+    foundationPadThreshold: 0.35
+    foundationPadOverhang: 0.5
+    foundationPadMaterial: {fileID: 0}
+    centrepiecePrefab: {fileID: 0}
+    buildings:
+    - label: 
+      prefabs:
+      - {fileID: 919132149155446097, guid: f7a2a7cefafe9a241a51da0a6b6630e9, type: 3}
+      count: {x: 1, y: 1}
+      band: {x: 0, y: 0}
+      yaw: 0
+      reservesClearance: 0
+      foundationPad: 0
+      scaleRange: {x: 0, y: 0}
+      clusterSize: {x: 0, y: 0}
+      clusterSpread: 0
+    props: []
+    scatter:
+    - label: 
+      prefabs: []
+      count: {x: 0, y: 0}
+      band: {x: 0, y: 0}
+      yaw: 0
+      reservesClearance: 0
+      foundationPad: 0
+      scaleRange: {x: 0, y: 0}
+      clusterSize: {x: 0, y: 0}
+      clusterSpread: 0
+    people: []
+    questlines: []
+    wireAlarm: 0
+    wirePopulation: 0
+    ownerFaction: {fileID: 0}
+    relationshipTable: {fileID: 0}
+    alarmMargin: 40
+    populationCap: 12
+    populationInterval: 60
+  sharedRecipe: {fileID: 0}
+  seed: 1701
+  terrainMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  confirmRegenerate: 0
+  lastReport: "\u2022 1 placement(s) found no ground and were skipped. Did the chunk's
+    terrain collider load? Open the terrain's scene before generating.\n\u2022 placed
+    0 of at least 1 expected \u2014 the rest could not find room. Widen the radii,
+    or lower the counts."
+  lastReportOk: 0
 --- !u!1001 &505247772
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -921,6 +1032,90 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+--- !u!1 &699389906
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 699389910}
+  - component: {fileID: 699389909}
+  - component: {fileID: 699389908}
+  - component: {fileID: 699389907}
+  m_Layer: 0
+  m_Name: GetBehaviourIndexOne
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &699389907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699389906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2846301747
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &699389908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699389906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Editor.Tests::Unity.Netcode.EditorTests.NetworkObjectTests/EmptyMonoBehaviour
+--- !u!114 &699389909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699389906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Editor.Tests::Unity.Netcode.EditorTests.NetworkObjectTests/EmptyNetworkBehaviour
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!4 &699389910
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699389906}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 32.1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &722404270
 GameObject:
   m_ObjectHideFlags: 0
@@ -1679,6 +1874,121 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ec4e691b1839d6341982bcd940dd429c, type: 3}
+--- !u!1 &1553023295
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1553023299}
+  - component: {fileID: 1553023298}
+  - component: {fileID: 1553023297}
+  - component: {fileID: 1553023296}
+  m_Layer: 0
+  m_Name: GetBehaviourIndexOne
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1553023296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1553023295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 1870960237
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &1553023297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1553023295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Editor.Tests::Unity.Netcode.EditorTests.NetworkObjectTests/EmptyMonoBehaviour
+--- !u!114 &1553023298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1553023295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Editor.Tests::Unity.Netcode.EditorTests.NetworkObjectTests/EmptyNetworkBehaviour
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!4 &1553023299
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1553023295}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1570620028
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1570620029}
+  m_Layer: 0
+  m_Name: Generated
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1570620029
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1570620028}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 310244658}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1691103689
 GameObject:
   m_ObjectHideFlags: 0
@@ -2286,3 +2596,6 @@ SceneRoots:
   - {fileID: 544655812}
   - {fileID: 301530262}
   - {fileID: 864549187}
+  - {fileID: 310244658}
+  - {fileID: 699389910}
+  - {fileID: 1553023299}

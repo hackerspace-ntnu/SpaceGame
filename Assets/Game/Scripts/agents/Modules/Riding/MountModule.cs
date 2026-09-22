@@ -290,17 +290,7 @@ namespace SpaceGame.Agents
         public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
         public Transform MountedPlayerTransform => mountedPlayer;
         public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
-        public PlayerLook MountedPlayerLook => mountedPlayerLook;
-        public Interactor MountedInteractor => mountedInteractor;
-        public Rigidbody MountedPlayerRigidbody => mountedPlayerRigidbody;
-        public Camera MountedFirstPersonCamera => mountedFirstPersonCamera;
-        public Transform MountedFirstPersonCameraRoot => mountedFirstPersonCameraRoot;
         public Camera MountedThirdPersonCamera => runtimeThirdPersonCamera;
-        public CameraPerspective ActivePerspective => activePerspective;
-        public float CameraYaw => cameraYaw;
-        public float CameraYawOffset => cameraYawOffset;
-        public float MountedPitch => mountedPitch;
-        public float OrbitPitch => orbitPitch;
         public Vector3 SeatOffset => seatOffset;
 
         /// <summary>
@@ -626,10 +616,10 @@ namespace SpaceGame.Agents
             foreach (MonoBehaviour mb in all)
             {
                 // Suppress anything that could produce movement or a MoveIntent while mounted:
-                // IBehaviourModule (except Mount/Steer themselves) and legacy IAgentBrain fallbacks.
-                // Without this, e.g. a legacy NpcBrain/EnemyBrain would keep feeding intents to the
+                // IBehaviourModule except Mount/Steer themselves.
+                // Without this, a wander or chase module would keep feeding intents to the
                 // motor and make the mount drift/circle while the rider is idle.
-                if ((mb is IBehaviourModule || mb is IAgentBrain) && !IsMountAware(mb))
+                if (mb is IBehaviourModule && !IsMountAware(mb))
                     list.Add(mb);
             }
             suppressibleModules = list.ToArray();

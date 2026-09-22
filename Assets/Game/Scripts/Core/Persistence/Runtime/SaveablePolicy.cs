@@ -314,7 +314,7 @@ namespace SpaceGame.Core.Persistence
         private static void EnsureAgentRoutine(GameObject go, List<string> parts)
         {
             // Keyed off PatrolModule rather than AgentTargeting, which is where patrol progress used
-            // to ride. PatrolRobot and DeathmatchBot have the first and not the second, so the one
+            // to ride. PatrolRobot has the first and not the second, so the one
             // population whose whole identity IS a route was the population saving nothing about it.
             if (go.GetComponent<PatrolModule>() != null && go.GetComponent<PatrolSaveable>() == null)
             {
@@ -336,13 +336,6 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<WanderSaveable>();
                 parts.Add(nameof(WanderSaveable));
-            }
-
-            if (go.GetComponent<WanderBehaviour>() != null &&
-                go.GetComponent<WanderBehaviourSaveable>() == null)
-            {
-                go.AddComponent<WanderBehaviourSaveable>();
-                parts.Add(nameof(WanderBehaviourSaveable));
             }
 
             if (go.GetComponent<KeepDistanceModule>() != null &&
@@ -428,7 +421,7 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(EntityEquipmentSaveable));
             }
 
-            // Which side this entity is on. SetFaction is a runtime reassignment — MatchManager
+            // Which side this entity is on. SetFaction is a runtime reassignment — a spawner
             // re-teams every arena spawn — and nothing captured it, so a re-teamed entity reloaded on
             // its prefab's faction and either turned on its own side or became untargetable.
             if (go.GetComponent<EntityFaction>() != null && go.GetComponent<EntityFactionSaveable>() == null)

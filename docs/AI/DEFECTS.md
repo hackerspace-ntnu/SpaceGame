@@ -13,7 +13,6 @@ Recorded 2026-09-01 during the full documentation pass.
 
 | Defect | Detail | Doc |
 | --- | --- | --- |
-| The deathmatch arena scene is empty | `MinigameArena.unity` has `m_Roots: []` and no baked NavMesh. It is build index 58 and is loaded additively for the deathmatch route, so that whole path loads a void. Dropped from 14.7 MB to 3.5 KB in commit `7cbccf9f`; restore from `7cbccf9f^`. | [Scenes](systems/Scenes.md), [GameModes](systems/GameModes.md) |
 | Trading has no content | The trade flow is code-complete, but no `TraderProfile` asset exists and no prefab or scene references `TraderInteraction` (verified by GUID grep). | [Interaction](systems/InteractionSystem.md) |
 | Camera shake is inert | The only `CameraShaker` component sits on a prefab whose GUID has zero references, so every `CameraShakerHandler.Shake(...)` call silently no-ops. That path also never reads the accessibility intensity setting. | [Cutscenes](systems/Cutscenes.md) |
 | Crosshair hover never runs | `CrosshairUI.playerInteractor` is unwired on the HUD prefab, so hover-brightening has never executed. | [UI](systems/UI.md), [Interaction](systems/InteractionSystem.md) |
@@ -29,7 +28,6 @@ Recorded 2026-09-01 during the full documentation pass.
 | `InputManager` binds a nonexistent action | It binds `"Attack"`, which is not in the action asset. | [CoreServices](systems/CoreServices.md) |
 | `CameraShakeIntensity` is not reset | It is missing from `GameSettings.ResetToDefaults`. | [CoreServices](systems/CoreServices.md) |
 | Fast enter-play-mode is a no-op | `m_EnterPlayModeOptionsEnabled: 1` with `m_EnterPlayModeOptions: 0` — enabled, but neither reload is actually disabled. | [ProjectConfig](systems/ProjectConfig.md) |
-| Arena NavMesh filtering is dead code | `MatchManager`'s island filtering runs against arena content that no longer exists. | [NavMesh](systems/NavMeshSystem.md) |
 | `PatrolRobot 2.prefab` has no builder | Its faction was moved from Humans to Clankers by a one-off `SerializedObject` edit (2026-09-15) because no editor script owns the four `PatrolRobot` prefabs. Nothing will put it back if someone re-authors them by hand. They are slated for deletion once Clankers are client-verified (faction plan Task 6.2). | [AgentSystem](systems/AgentSystem.md) |
 
 ## Correctness

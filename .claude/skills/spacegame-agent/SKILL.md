@@ -71,7 +71,7 @@ best template for a new creature builder.
 3. **Prefab** in `Assets/Game/Prefabs/agents/creatures/` (or `.../Robots/`, `.../Characters/`,
    `.../Caravan/`, `.../Vehicles/{Ground,Aircraft,Spacecraft}/`). Existing examples:
    `DuneRat.prefab`, `Golem.prefab`, `Ostrich.prefab`, `Vrescal.prefab`, `Nomad.prefab`,
-   `PatrolRobot.prefab`, `DeathmatchBot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`).
+   `PatrolRobot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`).
 4. **Animator** — reuse the FBX's own `Animator`, never add a second one. Set
    `applyRootMotion = false` (the motor owns movement) and `cullingMode = AlwaysAnimate` for any
    rig built from many bone-parented renderers, or it freezes mid-stride when Unity thinks its
@@ -84,10 +84,9 @@ best template for a new creature builder.
    - Procedural legged rig: a `LeggedDriver` subclass in `Assets/Game/Scripts/Creatures/Drivers/`
      (must stay in Assembly-CSharp) plus a `LeggedLocomotion` subclass in its own
      `SpaceGame.Creatures.<Name>` asmdef. No NavMeshAgent, no `AgentAnimatorDriver`.
-   - Flyer: `FlyingRigidbodyMotor` + `AirWanderModule`. Vehicle: `RigidbodyMotor`.
+   - Flyer: `FlyingRigidbodyMotor`. Vehicle: `RigidbodyMotor`.
 7. **`AgentController`** on the root; assign `MotorComponent` and `animatorDriver`.
    `AgentTargeting` and `AgentGoal` are auto-added in `Awake`. Set `nearbyAgentScanRadius` and
-   `nearbyAgentLayer` only if using `FlockingModule`.
 8. **`EntityFaction`** — a `FactionDefinition` from
    `Assets/Game/ScriptableObjects/Factions/Core/` **and** the one relationship table,
    `Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset`. Without this component
@@ -150,7 +149,6 @@ best template for a new creature builder.
       `NpcGroupMemberSpec { prefab, isLeader, count }`, inlined in the scene, not an asset.
     - `Assets/Game/ScriptableObjects/Settlements/SettlementConfig.asset` → `robotPrefabs`
       (settlement patrols).
-    - `MatchManager.deathmatchBotPrefab` (arena).
     - A hand-placed instance in a chunk scene under `Assets/Game/Scenes/world/Chunks/`.
 17. **Verify in play**: it wanders; it acquires only what it should; the feet do not slide; the
     walk/run blend matches the motor; it dies, drops loot once, and despawns.
@@ -177,21 +175,18 @@ Social 15 · Ambient 10 · Personality 5 · Fallback 0`.
 | Want | Module | Priority |
 |---|---|---|
 | Roam | `WanderModule` | Fallback |
-| Roam in the air | `AirWanderModule` | Fallback |
 | Waypoints / area patrol | `PatrolModule`, `BasePatrolModule` | Fallback |
 | Run an errand | `NpcTaskModule` (writes goal) + `GoalTravelModule` (walks) | Fallback / Fallback+1 |
 | Close on a target | `ChaseModule` | Reactive |
 | Investigate where it lost you | `SearchModule` | Reactive−1 |
-| Take cover | `CoverModule` | Reactive+1 |
 | Run away | `FleeModule` | Override |
 | Kite / keep its distance | `KeepDistanceModule` | Ambient |
-| Walk up and talk | `ApproachModule` | Ambient |
-| Stop and stare | `WatchModule`, `FacePlayerModule` | Ambient |
+| Stop and stare | `WatchModule` | Ambient |
 | Melee | `CloseCombatModule` | MeleeAttack |
 | Built-in ranged weapon | `AgentRangedCombatModule` | RangedAttack |
 | Fire a real lootable item | `NpcItemUseModule` | RangedAttack (side-effect) |
-| Stationary gun | `TurretModule` | n/a |
-| Move as a herd | `HerdModule` / `FlockingModule` | Social |
+| Stationary gun | `RocketLauncherTurret` | n/a |
+| Move as a herd | `HerdModule` | Social |
 | Travel as a column | `FormationModule` | Social |
 | Peaceful until hit | `ProvocationModule` | order −40 |
 | React to allies / noise | `AlertReceiverModule`, `NoiseReceiverModule` | 19 / 18 |
@@ -371,7 +366,6 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 - `reference.md` (beside this file) — tick order, execution orders, verbatim interface members,
   full module catalog, motors, targeting/faction API, animator contract.
 - `Assets/Game/Editor/Creatures/GolemBuilder.cs` — the reference creature builder.
-- `Assets/Game/Scripts/agents/Profiles/EntitySystemSetup.cs` — in-repo setup notes
   (documentation only; some of its paths are stale).
 - Skills: `blender-model` (mesh/rig), `spacegame-persistence` (save/load),
   `spacegame-multiplayer` (netcode, network prefabs, damage replication),

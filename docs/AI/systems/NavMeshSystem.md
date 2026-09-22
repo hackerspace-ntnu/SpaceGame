@@ -87,8 +87,7 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 | `LeggedDriver` | [LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Path-only consumer: `NavMesh.CalculatePath`, no `NavMeshAgent` |
 | `DeferredNavMeshWarp` | [DeferredNavMeshWarp.cs](Assets/Game/Scripts/Core/Persistence/Runtime/DeferredNavMeshWarp.cs) | Retries a save-restore `Warp` for 10 s, sample radius 4 m |
 | `CaveSpawner` | [CaveSpawner.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveSpawner.cs) | Own `NavMeshSurface`; `SpawnBaked()` adds a pre-baked `NavMeshData` instance |
-| `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `MatchManager`, `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` all call it |
-| `MatchManager` / `SpawnReachability` | [MatchManager.cs](Assets/Game/Scripts/Gameplay/Minigame/Runtime/MatchManager.cs), [SpawnReachability.cs](Assets/Game/Scripts/Gameplay/Minigame/Core/SpawnReachability.cs) | Snaps arena spawns to the mesh, keeps only the largest mutually-pathable group |
+| `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` both call it |
 
 ## Flows
 
@@ -116,7 +115,7 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 
 ## Multiplayer
 
-Yes — every machine has the identical mesh. `WorldNavMeshProvider` is a plain scene component in `persistentScene`, and the baked data ships in the build, so host and client both `AddNavMeshData` the same bytes locally (`StaticNavMeshData` on the Sky City fleet likewise runs on every machine); nothing about the NavMesh is replicated. Pathing runs wherever the agent simulates: `AgentController`/motor ticks are gated by `NetAuthority`, so the **server** paths NPCs and clients see replicated transforms. `MatchManager` spawn reachability is server-side. A client never disagrees about the mesh, only about who is allowed to drive an agent along it.
+Yes — every machine has the identical mesh. `WorldNavMeshProvider` is a plain scene component in `persistentScene`, and the baked data ships in the build, so host and client both `AddNavMeshData` the same bytes locally (`StaticNavMeshData` on the Sky City fleet likewise runs on every machine); nothing about the NavMesh is replicated. Pathing runs wherever the agent simulates: `AgentController`/motor ticks are gated by `NetAuthority`, so the **server** paths NPCs and clients see replicated transforms. A client never disagrees about the mesh, only about who is allowed to drive an agent along it.
 
 ## Persistence
 
@@ -137,7 +136,6 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 - **The bake can be silently wrong.** Nothing at runtime checks freshness; only `World/Streaming/Check World NavMesh Is Current` and the build preprocessor do. In the Editor a stale bake just means NPCs navigate a world that no longer exists.
 - **No off-mesh links exist.** Zero `NavMeshLink` / `OffMeshLink` components in any scene or prefab; the baker never sets `GenerateLinks`. The `m_AutoTraverseOffMeshLink` fields on agent prefabs are inert. Agents cannot cross a gap — jumps and leaps are `NavMeshAgentMotor`'s `baseOffset`/arc simulation, not navigation.
 - **`persistentScene` still has a legacy `NavMeshSurface`** on the same `NavMesh` GameObject, `m_Enabled: 0` with `m_NavMeshData: {fileID: 0}`. It contributes nothing. Do not enable it; do not treat it as the world surface.
-- **`MinigameArena.unity` is an empty scene** (`SceneRoots: []`) — no geometry, no surface, no baked data. `MatchManager.KeepMutuallyReachable` therefore hits its "no NavMesh at all" branch and returns the authored spawn positions unfiltered. The code comments about steep arena terrain splitting the mesh into islands describe an arena that is no longer in the scene.
 - **The `Interior` layer is excluded from the world bake**, so cave interiors never merge with the world mesh; each `CaveSpawner` adds its own `NavMeshData` instance and removes it in `ClearPrevious`/disable. A cave without `bakedMesh` + `bakedNavMeshData` assigned generates and bakes live on `Start` — seconds of stall.
 - **The layer mask is only defaulted at asset creation** (`LoadOrCreateAsset`). Adding a new layer later does *not* update the existing asset's mask; a new walkable layer above bit 10 is included by accident, a new character layer must be excluded by hand.
 - **`MeshCollider` sources need readable meshes** — `TryColliderToSource` silently returns `false` for `isReadable == false`, so the geometry vanishes from the bake with no error. Watch the reported source count (currently 130); a sudden drop means geometry went missing.

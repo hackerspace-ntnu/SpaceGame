@@ -26,7 +26,7 @@ namespace SpaceGame.Characters
     ///   • the OWNER performs the move, because the player's NetworkTransform is owner-authoritative
     ///     (AuthorityMode: Owner). A server-side write to a remote player's transform is overwritten
     ///     by that owner's next state update, which is exactly how a teleport silently does nothing.
-    ///     MatchManager.MoveTo already learned this the hard way; this mirrors it.
+    ///     Every teleport path in this project learned this the hard way; this mirrors it.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(HealthComponent))]
@@ -63,7 +63,7 @@ namespace SpaceGame.Characters
             if (!Network.Simulates(this)) return;
 
             // Already alive means a duplicate request — two clicks, or a click that crossed a
-            // MatchManager respawn. Healing again would be harmless; moving them would not.
+            // respawn. Healing again would be harmless; moving them would not.
             if (health == null || health.Alive) return;
 
             // The rule of respawn: you come back inside your ship — in versus, your TEAM's ship.
@@ -104,7 +104,7 @@ namespace SpaceGame.Characters
 
             // ResetToFull rather than Heal(maxHealth): overkill drives currentHealth below zero and
             // Heal caps the restore at the amount passed, so a heavily overkilled player would come
-            // back damaged — or still dead. Same reasoning as MatchManager's respawn.
+            // back damaged — or still dead. Same reasoning as the respawn above.
             health.ResetToFull();
         }
     }

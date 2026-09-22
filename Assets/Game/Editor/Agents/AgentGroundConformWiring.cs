@@ -23,7 +23,7 @@ namespace SpaceGame.EditorTools
         /// torso near vertical and spends the slope in its legs, so leaning it over the way a
         /// many-legged body leans reads as falling rather than as walking. Nine of this project's
         /// ten NavMesh agents are bipeds: the Nomad and its BountyHunter variant, all four
-        /// PatrolRobots, the DeathmatchBot, the Golem (`Bone_Thigh/Shin/Foot_L/R` and nothing else)
+        /// PatrolRobots, the Golem (`Bone_Thigh/Shin/Foot_L/R` and nothing else)
         /// and the DuneRat, whose bone names claim a quadruped but whose forelimbs are 0.29 m
         /// against a 0.99 m hind chain and rest clear of the ground.
         /// </para>

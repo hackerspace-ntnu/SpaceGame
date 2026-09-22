@@ -100,7 +100,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | Doc | Covers | Read with |
 | --- | --- | --- |
 | [Cutscenes](systems/Cutscenes.md) | Coroutine cutscene components plus shared presentation helpers: letterbox, shake, cloth wind, tint. | [SceneTransitions](systems/SceneTransitions.md), [PlayerShip](systems/PlayerShip.md), [CutsceneExamples](systems/CutsceneExamples.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md) |
-| [GameModes](systems/GameModes.md) | Versus team PvP in the streamed world, the three-gamemode bot arena, and the plain story run | [Multiplayer](systems/Multiplayer.md), [Lobby](systems/Lobby.md), [PlayerShip](systems/PlayerShip.md), [Persistence](systems/Persistence.md) |
+| [GameModes](systems/GameModes.md) | Versus team PvP in the streamed world and the plain story run | [Multiplayer](systems/Multiplayer.md), [Lobby](systems/Lobby.md), [PlayerShip](systems/PlayerShip.md), [Persistence](systems/Persistence.md) |
 | [Lobby](systems/Lobby.md) | Unity Lobby session state plus the disposable lobby screen: hosting, joining, roster and team rules | [UI](systems/UI.md), [GameModes](systems/GameModes.md), [Multiplayer](systems/Multiplayer.md) |
 | [UI](systems/UI.md) | Menus, HUD, full-screen overlays and world-anchored labels, all built in C# at runtime, no UI art | [Lobby](systems/Lobby.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md) |
 | [Visor](systems/Visor.md) | The helmet's projected blue readout layer — one design language, two sublayers, gauges bound to sources | [UI](systems/UI.md), [Combat](systems/Combat.md), [PlayerCharacter](systems/PlayerCharacter.md), [Multiplayer](systems/Multiplayer.md), [InteractionSystem](systems/InteractionSystem.md) |
@@ -113,6 +113,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | [ArtPipeline](systems/ArtPipeline.md) | How a .blend in the Unity-invisible source library becomes an FBX, material, rig and generated prefab | [Vehicles](systems/Vehicles.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md) |
 | [EditorTooling](systems/EditorTooling.md) | Every custom editor window, menu command, prefab/asset builder and importer hook in the project | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Artifacts](systems/Artifacts.md), [TerrainGeneration](systems/TerrainGeneration.md) |
 | [LookLab](systems/LookLab.md) | An Editor window that retunes the shipped palette live in the Game view, without a recompile | [Environment](systems/Environment.md), [EditorTooling](systems/EditorTooling.md) |
+| [StylizedEyes](systems/StylizedEyes.md) | Character eyes: eight looks baked as equirect maps, plus the re-unwrap that lets a sphere wear one | [ArtPipeline](systems/ArtPipeline.md), [AgentSystem](systems/AgentSystem.md) |
 | [Testing](systems/Testing.md) | EditMode-only NUnit suite, a headless Roslyn type-check, and the two-process batch-mode multiplayer autotest | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [EditorTooling](systems/EditorTooling.md) |
 
 ## Route by path
@@ -140,4 +141,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 57 system docs, 6 redirects -->
+<!-- 58 system docs, 6 redirects -->

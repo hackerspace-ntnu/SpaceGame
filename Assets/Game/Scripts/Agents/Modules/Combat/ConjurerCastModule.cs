@@ -397,10 +397,8 @@ namespace SpaceGame.Agents
             return target != null ? target.position : committedPoint;
         }
 
-        /// Which of the three phases this module is in, for the stop probe. Read-only.
+        /// Which of the three phases this module is in. Read-only.
         public string Phase => casting ? "casting" : settling ? "settling" : "idle";
-
-        public float SettleElapsed => settleElapsed;
 
         public override string ModuleDescription =>
             "Comes to a full stop, then holds the staff up for castSeconds and calls a " +

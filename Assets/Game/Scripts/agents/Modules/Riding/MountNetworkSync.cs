@@ -534,11 +534,5 @@ namespace SpaceGame.Agents
             }
         }
 
-        /// <summary>
-        /// True while a server/relayed change is being applied locally. MountModule raises its
-        /// Mounted/Dismounted events during that window; anything listening and re-requesting should
-        /// check this to avoid a feedback loop.
-        /// </summary>
-        public bool IsApplyingReplicatedChange => applyingRemote;
     }
 }

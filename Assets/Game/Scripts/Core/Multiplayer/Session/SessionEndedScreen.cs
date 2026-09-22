@@ -99,7 +99,7 @@ namespace SpaceGame.Core
 
         /// <summary>
         /// A row in the menu's column, measured down from the top of the page. The same helper
-        /// MultiplayerChoiceUI and MinigameConfigUI each keep a copy of — it is four lines of anchor
+        /// MultiplayerChoiceUI keeps a copy of — it is four lines of anchor
         /// arithmetic, and hoisting it would put a layout detail into MenuScreen's contract.
         /// </summary>
         private static RectTransform PinnedRow(RectTransform parent, float fromTop, float height)

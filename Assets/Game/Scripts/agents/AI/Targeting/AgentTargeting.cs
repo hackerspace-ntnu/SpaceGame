@@ -1,6 +1,6 @@
 // The single place an agent decides who it is fighting.
 //
-// Before this existed, ChaseModule, CloseCombatModule, AgentRangedCombatModule, HuntModule and
+// Before this existed, ChaseModule, CloseCombatModule, AgentRangedCombatModule and
 // KeepDistanceModule each ran their own EntityTargetRegistry query on their own schedule with
 // their own staleness rules. Three consequences, all visible in play:
 //   * One agent could chase A, shoot B and back away from C in the same frame.
@@ -286,7 +286,7 @@ namespace SpaceGame.Agents
                 Destroy(runtimeDefaults);
         }
 
-        // Swap tuning at runtime — MatchManager uses this to give arena bots a more aggressive
+        // Swap tuning at runtime — a spawner can use this to give its bots a more aggressive
         // profile than the same prefab runs with in the open world.
         public void ApplyProfile(TargetingProfile newProfile)
         {

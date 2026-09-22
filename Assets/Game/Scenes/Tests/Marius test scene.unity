@@ -265,7 +265,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 301530262}
-  - component: {fileID: 301530261}
   - component: {fileID: 301530260}
   - component: {fileID: 301530259}
   - component: {fileID: 301530258}
@@ -277,7 +276,6 @@ GameObject:
   - component: {fileID: 301530252}
   - component: {fileID: 301530251}
   - component: {fileID: 301530250}
-  - component: {fileID: 301530249}
   - component: {fileID: 301530248}
   - component: {fileID: 301530247}
   - component: {fileID: 301530246}
@@ -351,25 +349,6 @@ MonoBehaviour:
   speedMultiplier: 1.2
   stopDistance: 0.2
   navMeshSampleDistance: 4
---- !u!114 &301530249
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301530244}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 397f03d89a2314b8da2e16936411b05a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ApproachModule
-  priority: 10
-  active: 0
-  target: {fileID: 0}
-  requiredRelationship: 1
-  detectRadius: 6
-  conversationDistance: 1.6
-  speedMultiplier: 1.1
 --- !u!114 &301530250
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -625,26 +604,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &301530261
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301530244}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 785761752b4ee40328244e7f928d22af, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityProfile_NPC
-  description: A friendly NPC that wanders and flees from danger.
-  maxHealth: 80
-  fleeRadius: 6
-  fleeSafeRadius: 12
-  fleeSpeed: 1.5
-  wanderRadius: 30
-  wanderMinWait: 2
-  wanderMaxWait: 8
 --- !u!4 &301530262
 Transform:
   m_ObjectHideFlags: 0

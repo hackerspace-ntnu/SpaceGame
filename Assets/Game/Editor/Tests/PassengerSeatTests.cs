@@ -9,7 +9,7 @@
 //
 // It lives on EntityFaction rather than on AgentTargeting on purpose, and one test guards that
 // choice: AgentTargeting is not the only thing that hunts. DormantModule, FleeModule, WatchModule
-// and ApproachModule all ask EntityTargetRegistry directly, so an exemption those cannot see is one
+// and KeepDistanceModule all ask EntityTargetRegistry directly, so an exemption those cannot see is one
 // a sleeping conjurer wakes up in spite of.
 using System.Collections.Generic;
 using System.Reflection;

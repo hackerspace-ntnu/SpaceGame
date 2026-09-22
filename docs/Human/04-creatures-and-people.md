@@ -98,8 +98,6 @@ Three things about it are worth knowing as a designer:
 
 **Caves are separate surfaces.** The interior layer is excluded from the world bake, so a cave adds its own navigation data when it spawns and removes it when it goes.
 
-One consequence in the minigame arena: that scene is currently **empty**, so it has no navigation mesh at all. The spawn-point filter that is supposed to discard positions that cannot reach each other therefore does nothing and returns the authored spawns unchanged.
-
 ## How legged animals actually walk
 
 This is the distinctive part of the project, and it is worth understanding even if you never touch the code.

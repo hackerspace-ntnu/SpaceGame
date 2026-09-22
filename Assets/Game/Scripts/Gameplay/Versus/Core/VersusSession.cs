@@ -5,7 +5,7 @@ namespace SpaceGame.Gameplay
     /// how many there are, and what colour each one wears.
     ///
     /// <para>
-    /// A static for the same reason <c>MatchSettings</c> and <c>WorldSession</c> are: the lobby
+    /// A static for the same reason <c>WorldSession</c> is: the lobby
     /// that knows these values is destroyed by the very load that needs them, so there is no object
     /// to hang them off. Statics outlive returning to the menu, which is why
     /// <see cref="Clear"/> exists and why every route out of a match calls it — a session left

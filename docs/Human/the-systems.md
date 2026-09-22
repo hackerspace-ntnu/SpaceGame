@@ -40,9 +40,9 @@ The engine-level dials: engine and package versions, the physics settings, the n
 
 ### The scene map *(Scenes)*
 
-75 scenes exist, 68 of them ship in the build. One small boot scene is first, the main menu is second, and one root gameplay scene holds the managers; everything else in game — map tiles, cave interiors, the arena — is layered additively on top of it. Scene names are looked up through small named assets rather than typed as raw text, so the menu and the lobby cannot drift apart.
+74 scenes exist, 67 of them ship in the build. One small boot scene is first, the main menu is second, and one root gameplay scene holds the managers; everything else in game — map tiles, cave interiors — is layered additively on top of it. Scene names are looked up through small named assets rather than typed as raw text, so the menu and the lobby cannot drift apart.
 
-**Worth knowing:** five personal test scenes are in the build list and ship as content today, and the deathmatch arena scene is currently empty — it was emptied by a cleanup commit and nothing rebuilds it.
+**Worth knowing:** five personal test scenes are in the build list and ship as content today.
 
 ### Tests and checks *(Testing)*
 
@@ -397,9 +397,9 @@ Hosting, browsing, joining, the roster and the team rules, built on Unity's lobb
 
 ### Match types *(GameModes)*
 
-Three unrelated ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *arena* is a bot deathmatch with three variants (team deathmatch, free-for-all, battle royale) sharing one scorekeeper, and the *story run* is the ordinary game with a timer and a win scene.
+Two ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *story run* is the ordinary game with a timer and a win scene.
 
-**Worth knowing:** The deathmatch arena scene is completely empty — no spawn points, no bots, no baked navigation mesh anywhere in the project — so the entire arena code path is orphaned today and nothing warns you before you start a match into it.
+**Worth knowing:** a third mode, a bot deathmatch arena, was deleted in September 2026. Its scene had been empty for months, no match orchestrator was placed anywhere, and no menu button reached it.
 
 ## How the game gets made
 
@@ -408,6 +408,12 @@ Three unrelated ways to play. *Versus* is team PvP in the full streamed world �
 Every 3D asset starts as a Blender file in a source library Unity deliberately cannot see, sitting beside the script that generated it and a note recording how it was built. Colours never come from the model: they are linked from one shared palette of 54 materials that grows only when nothing existing serves, and the export makes them local on the way out. From there an export writes the FBX, Unity imports it, and a generator script assembles the prefab, its clips and its animation controller — the finished prefab is never wired by hand.
 
 **Worth knowing:** Never re-run a generator over a Blender file that already exists — the file, not the script, is the truth, and several of them (the lander interior, the nomad, the six-legged vrescal) carry hand edits that exist nowhere else and would be gone forever.
+
+### The eyes on a character's face *(StylizedEyes)*
+
+Characters' eyes are painted, not lit: a pupil, a coloured iris that darkens toward its edge, a dark ring around it and a white glint are all drawn straight into a picture that is wrapped round the eyeball. There are eight of them — six bright alien colours on a near-black eye, one pale human one, and one blank white one with no pupil at all — and a character picks the one it wears by name. Seven of them glow faintly.
+
+**Worth knowing:** The eyeballs arrived from the sculpt with their wrapping broken in a way that looks perfectly fine until you paint on one, at which point a single pupil comes out as two or four pointing different ways. The build fixes the wrapping itself rather than trusting what shipped.
 
 ### The build menus *(EditorTooling)*
 

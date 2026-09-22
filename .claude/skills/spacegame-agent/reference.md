@@ -95,16 +95,12 @@ instance method `.WithFacing(Vector3)`.
 | Module | Default priority | What it does | Requires |
 |---|---|---|---|
 | `WanderModule` | Fallback 0 | Random NavMesh roaming, optional radius limit, wait between points | NavMesh |
-| `AirWanderModule` | Fallback 0 | Random 3D points in a sphere around an anchor, no NavMesh | `FlyingRigidbodyMotor` |
 | `PatrolModule` | Fallback 0 | RadiusBased or PatrolPoints waypoint cycling (sequence / ping-pong / random) | NavMesh, optional waypoint Transforms |
 | `BasePatrolModule` | Fallback 0 | Random NavMesh points around a fixed base position | NavMesh |
 | `GoalTravelModule` | Fallback+1 = 1 | Walks to `AgentGoal.Position`; returns null on arrival so wander takes over | `AgentGoal` (auto-added) |
-| `HuntModule` | Ambient-1 = 9 | Walks at the nearest hostile anywhere on the map, ignoring perception and acquisition range (arena) | `EntityFaction` |
-| `ApproachModule` | Ambient 10 | Walks to `conversationDistance` and faces the target | — |
 | `KeepDistanceModule` | Ambient 10 | Kites: backs off when too close, faces otherwise | NavMesh |
 | `SearchModule` | Reactive-1 = 19 | On losing the target, moves to `AgentTargeting.LastKnownPosition`, searches, then passes | `AgentTargeting` |
 | `ChaseModule` | Reactive 20 | Drives at `AgentTargeting.Target`; auto-tightens stop distance and disables herd spread when a `CloseCombatModule` is present | `AgentTargeting` |
-| `CoverModule` | Reactive+1 = 21 | Moves to the best `CoverPoint` relative to the threat | `CoverPoint` objects in the level |
 | `FleeModule` | Override 30 | Runs from the nearest entity of a chosen `FactionRelationship`; hysteresis via triggerRadius/safeRadius | `EntityFaction`, NavMesh |
 | `SteerModule` | Scripted 100 | Rider input, camera, jump, hold-to-leap | `MountModule`, `AgentController` |
 
@@ -112,13 +108,12 @@ instance method `.WithFacing(Vector3)`.
 
 | Module | Default priority | What it does | Requires |
 |---|---|---|---|
-| `FlockingModule` | Social 15 | Separation / alignment / cohesion from neighbour arrays | `AgentController.nearbyAgentScanRadius > 0` + `nearbyAgentLayer` |
 | `HerdModule` | Social 15 | Rebroadcasts the highest-priority intent in the herd; members spread onto a ring, then settle. Also provides `GetSlotPositionAround` | shared `herdId` string |
 | `FormationModule` | Social 15 | Keeps a group in a column behind an unmanaged leader | leader reference / group id |
 
 ### Facing (second channel)
 
-`WatchModule` (Ambient), `FacePlayerModule` (Ambient), `IdleLookAroundModule` (Personality) and
+`WatchModule` (Ambient), `IdleLookAroundModule` (Personality) and
 `InteractionFocusModule` (Scripted) are **movement** modules that return `StopAndFace` — they are
 not `IFacingModule`. The only true `IFacingModule` implementors are `AgentRangedCombatModule`
 (`FacingPriority => Priority`) and `NpcItemUseModule` (serialized `facingPriority`).
@@ -130,8 +125,6 @@ not `IFacingModule`. The only true `IFacingModule` implementors are `AgentRanged
 | `CloseCombatModule` | MeleeAttack 23 | yes (`StopAndFace`) | `rangeExitFactor` hysteresis + `attackCommitDuration`; exposes `AttackRange` |
 | `AgentRangedCombatModule` | RangedAttack 22 | yes | Owns the whole engagement (backs off to `preferredRange`, strafes). Needs `AgentWeaponDefinition` + `AgentFireProfile` + `AgentAimProfile`; exposes `MaxRange`. Also `IFacingModule` |
 | `NpcItemUseModule` | RangedAttack 22 | **no** | Fires a real `InventoryItem` from `EntityInventoryComponent`; triggers `TargetInRange` / `WhenHurt` / `OnInterval`. Needs `EntityEquipmentController` |
-| `TurretModule` | n/a (not a BehaviourModule) | n/a | Stationary; resolves its own target. `[RequireComponent(typeof(EntityFaction))]` |
-| `WeaponMount` / `WeaponSelector` | n/a | n/a | Multiple pre-placed weapon slots; `AgentRangedCombatModule` reads `ActiveMuzzle`/`ActiveDefinition` |
 
 ### Sensing / reaction
 
@@ -165,7 +158,7 @@ decides whether AI keeps running while ridden) + `SteerModule` (Scripted 100). O
 | `NavMeshAgentMotor` | Everything that walks on the baked NavMesh | `IMountJumpMotor`, `IMountLeapMotor`, `IRiderControllable`, `ISelfDrivingMotor` |
 | `RigidbodyMotor` | Physics ground vehicles | `IRiderControllable` |
 | `HoverRigidbodyMotor` + `HoverGroundSensor` | Hovercraft | |
-| `FlyingRigidbodyMotor` | Free 3D flight (pair with `AirWanderModule`) | |
+| `FlyingRigidbodyMotor` | Free 3D flight | |
 | `OrnithopterFlightMotor` | The ornithopter's energy flight model | |
 | `LeggedDriver` (abstract) | Procedurally animated legged rigs | `IRiderControllable`, `IMovementMotor` |
 
@@ -205,7 +198,7 @@ no `AgentAnimatorDriver` because nothing is keyframed.
   Sight range is multiplied by `Sandstorms.SightFactorAt(position)`, floored at
   `proximityAcquireRange`.
 - `TargetingProfile` — `Assets > Create > Agents > Targeting Profile`. Overrides every inline field
-  on `AgentTargeting` when assigned. `MatchManager` swaps it at spawn for arena bots.
+  on `AgentTargeting` when assigned. `ApplyProfile` swaps one in at runtime.
 - `TargetResolution.IsViable(t)` / `.Refresh(current, ref timer, interval, dt, selfFaction,
   relationship, position)` — for modules resolving a NON-hostile candidate (allies, neutrals).
   Never hand-roll `if (target) return;`.
@@ -282,5 +275,4 @@ agent-specific facts:
 | Legged locomotion policies | `Assets/Game/Scripts/Creatures/<Name>/` (own asmdef) |
 | Legged drivers | `Assets/Game/Scripts/Creatures/Drivers/` (Assembly-CSharp) |
 | Animator controllers | `Assets/Game/Art/Animations/Creatures/` |
-| Setup notes (documentation-only file) | `Assets/Game/Scripts/agents/Profiles/EntitySystemSetup.cs` |
 | World NPC groups | `Assets/Game/Scripts/agents/World/NpcWorldSim.cs`, `NpcGroup.cs` |

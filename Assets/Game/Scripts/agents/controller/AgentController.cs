@@ -1,7 +1,6 @@
 // Main runtime coordinator for entity agents.
 // Each frame: ticks all side-effect modules (ClaimsMovement==false) unconditionally, then
 // evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins.
-// Also supports the legacy IAgentBrain interface so old prefabs don't break immediately.
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Diagnostics;
@@ -33,7 +32,6 @@ namespace SpaceGame.Agents
         private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
         private IBehaviourModule[] presentationModules; // IPresentationModule — ticked on every machine
         private IFacingModule[] facingModules;        // separate facing channel, priority-sorted
-        private IAgentBrain legacyBrain;
         private HerdModule herdModule;
         private AgentTargeting targeting;
         private AgentGoal goal;
@@ -380,10 +378,6 @@ namespace SpaceGame.Agents
                 }
             }
 
-            // Fall back to legacy brain if present (old NpcBrain / EnemyBrain on same prefab).
-            if (legacyBrain != null)
-                return legacyBrain.Tick(in context, deltaTime);
-
             return MoveIntent.Idle();
         }
 
@@ -486,18 +480,8 @@ namespace SpaceGame.Agents
             // read by whoever moves. Auto-added so a prefab needs no extra step to be sendable.
             goal = AgentGoal.GetOrAdd(gameObject);
 
-            // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
-            foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (mb is IAgentBrain brain && mb is not IBehaviourModule)
-                {
-                    legacyBrain = brain;
-                    break;
-                }
-            }
-
-            if (movementModules.Length == 0 && legacyBrain == null)
-                Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule or IAgentBrain. Add at least one module.", this);
+            if (movementModules.Length == 0)
+                Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule. Add at least one module.", this);
         }
 
         private void ResolveMotor()

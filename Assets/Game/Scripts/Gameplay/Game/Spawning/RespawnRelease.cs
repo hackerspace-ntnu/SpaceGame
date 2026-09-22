@@ -19,7 +19,7 @@ namespace SpaceGame.Gameplay
     /// Cut a body loose from everything holding it, at the moment it respawns.
     ///
     /// <para>
-    /// Called by every respawn path — <c>PlayerRespawn</c> for the world and <c>MatchManager</c>
+    /// Called by every respawn path — <c>PlayerRespawn</c> for the world and <c>ShipRespawn</c>
     /// for a minigame — on the DECIDING machine, immediately before the move. Before rather than
     /// after, because a rope resolves against both its ends every physics step: one left standing
     /// across a teleport spends that step hauling somebody back towards the grave they just left.

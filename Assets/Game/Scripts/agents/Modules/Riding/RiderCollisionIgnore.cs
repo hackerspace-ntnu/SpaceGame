@@ -24,12 +24,6 @@ namespace SpaceGame.Agents
     {
         private (Collider a, Collider b)[] pairs;
 
-        /// <summary>Whether anything is currently suspended.</summary>
-        public bool IsApplied => pairs != null;
-
-        /// <summary>How many pairs are suspended. For tests and diagnostics.</summary>
-        public int PairCount => pairs?.Length ?? 0;
-
         /// <summary>
         /// Stop every collider under <paramref name="rider"/> colliding with every collider under
         /// <paramref name="mount"/>. Replaces any previous suspension.

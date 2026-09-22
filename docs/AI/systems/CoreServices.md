@@ -68,7 +68,6 @@ Almost all gameplay code is in the **default `Assembly-CSharp`** (no asmdef). Th
 | `SpaceGame.Vehicles.DuneFoil` | [Vehicles/DuneFoil/](Assets/Game/Scripts/Vehicles/DuneFoil/SpaceGame.Vehicles.DuneFoil.asmdef) | Sailer physics | Persistence, Teleporting |
 | `SpaceGame.Vehicles.Ornithopter` | [Vehicles/Ornithopter/](Assets/Game/Scripts/Vehicles/Ornithopter/SpaceGame.Vehicles.Ornithopter.asmdef) | Flight model | `FMODUnity`, Audio, Teleporting |
 | `SpaceGame.Gear.JumpingRod` | [Gear/JumpingRod/](Assets/Game/Scripts/Gear/JumpingRod/SpaceGame.Gear.JumpingRod.asmdef) | Pogo maths | — |
-| `SpaceGame.Minigame.Core` | [Gameplay/Minigame/Core/](Assets/Game/Scripts/Gameplay/Minigame/Core/SpaceGame.Minigame.Core.asmdef) | Match rules | — |
 | `SpaceGame.Versus.Core` | [Gameplay/Versus/Core/](Assets/Game/Scripts/Gameplay/Versus/Core/SpaceGame.Versus.Core.asmdef) | Team/ring layout | — |
 | `SpaceGame.World.Safety` | [World/Safety/Rules/](Assets/Game/Scripts/World/Safety/Rules/SpaceGame.World.Safety.asmdef) | Safety rules | — |
 | `SpaceGame.World.Streaming` | [World/Streaming/Grid/](Assets/Game/Scripts/World/Streaming/Grid/SpaceGame.World.Streaming.asmdef) | Chunk grid maths | — |

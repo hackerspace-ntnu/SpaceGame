@@ -466,19 +466,6 @@ namespace SpaceGame.Agents
             strideEndKnown = false;
         }
 
-        public bool IsHoldingStride => strideHeld;
-
-        // ---- read-only, for the stop probe ----
-        //
-        // A stride hold is a decision spread over three or four seconds and two components,
-        // and none of it leaves a trace in the pose until it is already too late to see what
-        // went wrong. These let a diagnostic watch it happen.
-        public bool StrideEndKnown => strideEndKnown;
-        public float StrideEndTime => strideEndTime;
-        public float StrideHoldElapsed => strideHoldElapsed;
-        public Vector3 HeldCadence => heldLocalVelocity;
-        public bool HasHeldCadence => hasHeldCadence;
-        public float[] StrideEndPhases => strideEndPhases;
 
         /// <summary>
         /// Substitute the held cadence for the real one while a stop is in progress, and

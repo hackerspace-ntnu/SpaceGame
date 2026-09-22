@@ -641,11 +641,6 @@ namespace SpaceGame.Gameplay
             {
                 focusModule.FocusOn(interactor.transform, interactionFocusDuration);
             }
-
-            if (TryGetComponent(out NpcBrain npcBrain))
-            {
-                npcBrain.FocusOn(interactor.transform, interactionFocusDuration);
-            }
         }
 
         private void OnValidate()

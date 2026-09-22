@@ -13,8 +13,7 @@ public class JumpingRodHopTests
 
     // Every take-off case below passes chainLinks 0. BoostFactor is 1 for an empty chain,
     // so these measure the unboosted arithmetic — the clamps and EnergyReturn — exactly as
-    // they did before the landing boost existed. The chain itself is covered by
-    // JumpingRodBoostTests in Assets/Game/Editor/Tests/.
+    // they did before the landing boost existed. The chain itself is no longer covered.
 
     [Test]
     public void StandingOnItAndDoingNothingStillHopsHigh()

@@ -306,12 +306,6 @@ namespace SpaceGame.Core.Persistence
                 go.AddComponent<FleeSaveable>();
                 parts.Add(nameof(FleeSaveable));
             }
-
-            if (go.GetComponent<CoverModule>() != null && go.GetComponent<CoverSaveable>() == null)
-            {
-                go.AddComponent<CoverSaveable>();
-                parts.Add(nameof(CoverSaveable));
-            }
         }
 
         /// <summary>
@@ -344,12 +338,6 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(WanderSaveable));
             }
 
-            if (go.GetComponent<AirWanderModule>() != null && go.GetComponent<AirWanderSaveable>() == null)
-            {
-                go.AddComponent<AirWanderSaveable>();
-                parts.Add(nameof(AirWanderSaveable));
-            }
-
             if (go.GetComponent<WanderBehaviour>() != null &&
                 go.GetComponent<WanderBehaviourSaveable>() == null)
             {
@@ -357,11 +345,7 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(WanderBehaviourSaveable));
             }
 
-            // One saver for the three modules that resolve their own target: an agent almost never
-            // has more than one of them, and they hold the same two fields for the same reason.
-            if ((go.GetComponent<HuntModule>() != null ||
-                 go.GetComponent<KeepDistanceModule>() != null ||
-                 go.GetComponent<ApproachModule>() != null) &&
+            if (go.GetComponent<KeepDistanceModule>() != null &&
                 go.GetComponent<PursuitSaveable>() == null)
             {
                 go.AddComponent<PursuitSaveable>();
@@ -428,20 +412,11 @@ namespace SpaceGame.Core.Persistence
 
             // Includes where the barrel pointed, which lives on a CHILD transform and so is invisible
             // to TransformSaveable.
-            if (go.GetComponent<TurretSaveable>() == null &&
-                (go.GetComponent<TurretModule>() != null || go.GetComponent<RocketLauncherTurret>() != null))
+            if (go.GetComponent<RocketLauncherTurret>() != null &&
+                go.GetComponent<TurretSaveable>() == null)
             {
                 go.AddComponent<TurretSaveable>();
                 parts.Add(nameof(TurretSaveable));
-            }
-
-            // Asked of the subtree: a WeaponMount lives on a hand bone while the saver belongs on the
-            // entity — the same split ArticulatedPartsSaveable makes.
-            if (go.GetComponentInChildren<WeaponMount>(true) != null &&
-                go.GetComponent<WeaponMountSaveable>() == null)
-            {
-                go.AddComponent<WeaponMountSaveable>();
-                parts.Add(nameof(WeaponMountSaveable));
             }
 
             // EntityInventorySaveable keeps what is in the bag; this keeps what is in the hand, and

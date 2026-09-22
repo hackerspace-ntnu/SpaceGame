@@ -50,6 +50,13 @@ namespace SpaceGame.EditorTools
             public string TexturePath;
             public string PrefabPath;
 
+            /// <summary>
+            /// Which <see cref="StylizedEyeBuilder"/> style its eyes wear. The eye materials are
+            /// shared across characters rather than baked per character, so giving a drifter a
+            /// different look is changing this one string and rebuilding.
+            /// </summary>
+            public string EyeStyle;
+
             /// <summary>The flavour lines it says when talked to.</summary>
             public string[] DialogLines;
         }
@@ -61,6 +68,13 @@ namespace SpaceGame.EditorTools
         private const string CharacterFolder = "Assets/Game/Prefabs/agents/Characters/Drifters";
         private const string ModelFolder = "Assets/Game/Art/Models/Characters";
         private const string MaterialFolder = "Assets/Game/Art/Materials/Characters";
+
+        /// <summary>
+        /// How the FBX names its eye material -- <c>alien_eyes</c>, <c>human_eyes</c>,
+        /// <c>crumpy_eyes</c>. It is the only thing in the imported model that says which slot is an
+        /// eye; see <see cref="ApplySkin"/>.
+        /// </summary>
+        private const string EyeMaterialSuffix = "_eyes";
 
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
 
@@ -122,6 +136,7 @@ namespace SpaceGame.EditorTools
                 FbxPath = ModelFolder + "/Human/human.fbx",
                 TexturePath = ModelFolder + "/Human/Textures/human_BaseColor.png",
                 PrefabPath = CharacterFolder + "/Drifter_Human.prefab",
+                EyeStyle = "Ivory",
                 DialogLines = new[]
                 {
                     "Came down in the same storm you did, near enough.",
@@ -135,6 +150,7 @@ namespace SpaceGame.EditorTools
                 FbxPath = ModelFolder + "/Alien/alien.fbx",
                 TexturePath = ModelFolder + "/Alien/Textures/alien_BaseColor.png",
                 PrefabPath = CharacterFolder + "/Drifter_Alien.prefab",
+                EyeStyle = "Amber",
                 DialogLines = new[]
                 {
                     "Your suit is loud. Everything out here hears it.",
@@ -148,6 +164,7 @@ namespace SpaceGame.EditorTools
                 FbxPath = ModelFolder + "/Crumpy/crumpy.fbx",
                 TexturePath = ModelFolder + "/Crumpy/Textures/crumpy_BaseColor.png",
                 PrefabPath = CharacterFolder + "/Drifter_Crumpy.prefab",
+                EyeStyle = "Ember",
                 DialogLines = new[]
                 {
                     "Hhh. You are very tall and very slow.",
@@ -641,6 +658,15 @@ namespace SpaceGame.EditorTools
         /// gets its own pair of .mat files instead, named for the character so the three cannot
         /// overwrite each other's.
         /// </para>
+        ///
+        /// <para>
+        /// The eye spheres are a separate renderer with their own slot, and they do NOT take the
+        /// body texture: the skin map has nothing painted where the eyes are, so a body material on
+        /// an eye gives the character two beads of bare skin in its sockets. Which slot is an eye is
+        /// read off the material the FBX itself arrived with -- Blender names it
+        /// <c>&lt;character&gt;_eyes</c> -- rather than off the object name, which is the importer's
+        /// <c>Sphere</c> / <c>Sphere.001</c> and says nothing.
+        /// </para>
         /// </summary>
         private static void ApplySkin(GameObject model, SculptRecipe recipe)
         {
@@ -652,14 +678,32 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            var material = EnsureMaterial(recipe.Name, texture);
+            var body = EnsureMaterial(recipe.Name, texture);
+            var eyes = StylizedEyeBuilder.Load(recipe.EyeStyle);
+
+            int eyeSlots = 0;
             foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
             {
                 var materials = renderer.sharedMaterials;
                 for (int i = 0; i < materials.Length; i++)
-                    materials[i] = material;
+                {
+                    bool isEye = materials[i] != null &&
+                                 materials[i].name.EndsWith(EyeMaterialSuffix,
+                                                            System.StringComparison.OrdinalIgnoreCase);
+                    if (isEye) eyeSlots++;
+                    materials[i] = isEye && eyes != null ? eyes : body;
+                }
+
                 renderer.sharedMaterials = materials;
             }
+
+            // Loud, because the failure it catches is silent: rename the material in the .blend and
+            // every slot quietly falls through to the body material, which is the bug this whole
+            // split exists to fix, and it looks like nothing happened.
+            if (eyeSlots == 0)
+                Debug.LogError($"[SculptCharacterBuilder] {recipe.Name}: no slot on the FBX uses a " +
+                               $"material ending in '{EyeMaterialSuffix}', so the eyes wear the " +
+                               "body skin. Check the material names in the source .blend.");
         }
 
         private static Material EnsureMaterial(string characterName, Texture2D texture)

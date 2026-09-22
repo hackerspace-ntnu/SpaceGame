@@ -8531,17 +8531,18 @@ GameObject:
   - component: {fileID: 1295212593}
   - component: {fileID: 1295212592}
   - component: {fileID: 1295212591}
-  - component: {fileID: 1295212590}
-  - component: {fileID: 1295212589}
   - component: {fileID: 1295212588}
   - component: {fileID: 1295212587}
   - component: {fileID: 1295212603}
   - component: {fileID: 1295212602}
-  - component: {fileID: 1295212601}
   - component: {fileID: 1295212600}
   - component: {fileID: 1295212599}
   - component: {fileID: 1295212598}
   - component: {fileID: 1295212597}
+  - component: {fileID: 2142048212}
+  - component: {fileID: 2142048213}
+  - component: {fileID: 2142048214}
+  - component: {fileID: 2142048215}
   m_Layer: 0
   m_Name: NPC
   m_TagString: Untagged
@@ -8586,60 +8587,6 @@ MonoBehaviour:
     m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
---- !u!114 &1295212589
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295212586}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d151d4ee47624b1d8575f91257da610, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NpcBrain
-  wanderBehaviour: {fileID: 1295212590}
-  mountController: {fileID: 0}
-  playerTarget: {fileID: 0}
-  playerRelationship: 1
-  playerReactionMode: 1
-  playerDetectRadius: 4
-  reactionSpeedMultiplier: 1.1
-  moveStopDistance: 0.2
-  approachStopDistance: 1.6
-  keepDistanceRadius: 3
-  fleeDistanceRadius: 7
-  enableLookAround: 1
-  lookAroundMinInterval: 1.5
-  lookAroundMaxInterval: 4.5
-  lookAroundTurnAngle: 70
-  lookAroundDuration: 0.75
-  wanderSpeedMultiplier: 1
---- !u!114 &1295212590
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295212586}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ec2582aec804c4f45a4739731da4c023, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WanderBehaviour
-  wanderRadius: 100
-  sampleDistance: 6
-  maxTriesPerDestination: 10
-  minDestinationDistance: 5
-  minWaitTime: 0.5
-  maxWaitTime: 10
-  usePatrolPoints: 0
-  patrolSelectionMode: 0
-  patrolPointChance: 1
-  patrolPoints: []
-  useSpawnAsAnchor: 1
-  anchorTransform: {fileID: 0}
-  leashRadius: 0
 --- !u!114 &1295212591
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8849,18 +8796,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
   drawGizmos: 1
---- !u!114 &1295212601
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295212586}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 28c98d1ddf47d4dc0a1e01f0e1524066, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderBehaviourSaveable
 --- !u!114 &1295212602
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13977,6 +13912,75 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+--- !u!114 &2142048212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 421edd01c56ce43e49db60c5c7a6caed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.WanderModule
+  priority: 0
+  active: 1
+  limitWanderRadius: 1
+  wanderRadius: 100
+  freeRoamRadius: 50
+  sampleDistance: 6
+  minDestinationDistance: 5
+  maxSampleAttempts: 10
+  onlyReachableDestinations: 0
+  minWaitTime: 0.5
+  maxWaitTime: 10
+  stopDistance: 0.2
+  speedMultiplier: 1
+--- !u!114 &2142048213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9df4b2e8a10c2468a90eacf73ff27057, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.IdleLookAroundModule
+  priority: 5
+  active: 1
+  minInterval: 1.5
+  maxInterval: 4.5
+  turnAngle: 70
+  lookDuration: 0.75
+--- !u!114 &2142048214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd810634453d54856ae47d03bd771c25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.InteractionFocusModule
+  priority: 100
+  active: 1
+--- !u!114 &2142048215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43b0c557f13f4220884e513b4eff4fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderSaveable
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

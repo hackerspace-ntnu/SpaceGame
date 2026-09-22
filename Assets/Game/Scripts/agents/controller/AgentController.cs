@@ -21,10 +21,6 @@ namespace SpaceGame.Agents
         [SerializeField] private MonoBehaviour MotorComponent;
         [SerializeField] private AgentAnimatorDriver animatorDriver;
 
-        [Header("Nearby Agents (Flocking)")]
-        [Tooltip("Radius within which nearby agents are gathered for FlockingModule. 0 = disabled.")]
-        [SerializeField] private float nearbyAgentScanRadius = 0f;
-        [SerializeField] private LayerMask nearbyAgentLayer;
 
         [Header("Speed Variation")]
         [Tooltip("How much the agent's speed can drift above and below its base. 0.1 = ±10%.")]
@@ -43,10 +39,6 @@ namespace SpaceGame.Agents
         private AgentGoal goal;
         private float speedVariationPhase;
 
-        // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
-        private readonly Collider[] neighbourBuffer = new Collider[32];
-        private readonly Vector3[] nearbyPositionBuffer = new Vector3[32];
-        private readonly Vector3[] nearbyVelocityBuffer = new Vector3[32];
 
         private AgentAuthority authority;
 
@@ -294,26 +286,6 @@ namespace SpaceGame.Agents
                 Goal = goal,
             };
 
-            if (nearbyAgentScanRadius > 0f)
-            {
-                int count = Physics.OverlapSphereNonAlloc(transform.position, nearbyAgentScanRadius, neighbourBuffer, nearbyAgentLayer);
-                int written = 0;
-                for (int i = 0; i < count && written < nearbyPositionBuffer.Length; i++)
-                {
-                    Transform t = neighbourBuffer[i].transform;
-                    if (t == transform)
-                        continue;
-                    nearbyPositionBuffer[written] = t.position;
-                    // Populate velocity from NavMeshAgentMotor if available.
-                    IMovementMotor neighbourMotor = t.GetComponent<IMovementMotor>();
-                    nearbyVelocityBuffer[written] = neighbourMotor != null ? neighbourMotor.Velocity : Vector3.zero;
-                    written++;
-                }
-                ctx.NearbyAgentPositions = nearbyPositionBuffer;
-                ctx.NearbyAgentVelocities = nearbyVelocityBuffer;
-                ctx.NearbyAgentCount = written;
-            }
-
             return ctx;
         }
 
@@ -322,10 +294,8 @@ namespace SpaceGame.Agents
         /// the authority for a body that is riding as cargo (<see cref="RidesAsPassenger"/>).
         ///
         /// A separate method rather than a flag on <see cref="BuildContext"/>, because the two are
-        /// not the same query with an option: this one may not touch the motor (it has been parked,
-        /// and its Velocity would be a stale zero dressed up as a measurement) and must not run the
-        /// neighbour OverlapSphere, which is the single most expensive thing an agent does and the
-        /// whole reason a client should not be paying for agents it does not own.
+        /// not the same query with an option: this one may not touch the motor, which has been
+        /// parked, and whose Velocity would be a stale zero dressed up as a measurement.
         /// </summary>
         private AgentContext BuildPresentationContext() => new AgentContext
         {

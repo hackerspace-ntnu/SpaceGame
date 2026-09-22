@@ -52,9 +52,6 @@ namespace SpaceGame.Agents
         [Tooltip("When true, spawns the weapon model from the weapon asset at runtime. " +
                  "Disable if the weapon is already placed in the prefab hierarchy (e.g. parented to a hand bone).")]
         [SerializeField] private bool spawnWeaponModel = false;
-        [Tooltip("Optional. When assigned (or found on this object), overrides weapon and muzzleSocket with the active slot.")]
-        [SerializeField] private WeaponMount weaponMount;
-
         [Header("Animation")]
         [SerializeField] private Animator animator;
         [Tooltip("Trigger to fire on each shot. Leave empty to disable.")]
@@ -94,20 +91,10 @@ namespace SpaceGame.Agents
         public float MaxRange => fireProfile != null ? fireProfile.maxRange : 0f;
 
         /// <summary>
-        /// The weapon this barrel is firing right now — the mounted slot when there is a
-        /// WeaponMount, the serialized fallback otherwise.
-        ///
-        /// <para>
-        /// A watching machine resolves it the same way and lands on the same asset, because nothing
-        /// swaps a WeaponMount slot on its own: <see cref="WeaponMount.Equip"/> is only reachable
-        /// from a UnityEvent or a script, so both machines are reading the same serialized index.
-        /// If something ever does start swapping mid-fight, the index belongs in the message's
-        /// spare <see cref="NetArg.B"/> and a mismatch should drop the shot — which is the rule
-        /// EntityEquipmentController already applies to a hotbar slot.
-        /// </para>
+        /// The weapon this barrel is firing right now. Serialized, so a watching machine resolves
+        /// the same asset and agrees on projectile speed without anything being sent.
         /// </summary>
-        private AgentWeaponDefinition ActiveWeapon =>
-            weaponMount != null ? weaponMount.ActiveDefinition : weapon;
+        private AgentWeaponDefinition ActiveWeapon => weapon;
 
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
@@ -203,8 +190,6 @@ namespace SpaceGame.Agents
                 muzzleSocket = gun.transform;
             if (!animator)
                 animator = GetComponentInChildren<Animator>();
-            if (!weaponMount)
-                weaponMount = GetComponentInChildren<WeaponMount>();
             perception = GetComponent<PerceptionModule>();
         }
 
@@ -415,7 +400,7 @@ namespace SpaceGame.Agents
         private void FireOne(Transform target)
         {
             AgentWeaponDefinition activeWeapon = ActiveWeapon;
-            Transform activeMuzzle = weaponMount != null ? weaponMount.ActiveMuzzle : muzzleSocket;
+            Transform activeMuzzle = muzzleSocket;
 
             if (activeWeapon == null || activeWeapon.projectilePrefab == null)
             {
@@ -553,9 +538,8 @@ namespace SpaceGame.Agents
             PresentShot(origin, origin, direction, cosmetic: true);
         }
 
-        // Lead prediction uses the weapon actually being fired, not the serialized fallback — a
-        // WeaponMount slot swap changes projectile speed, and aiming with the old number puts every
-        // shot behind or ahead of a moving target.
+        // Lead prediction uses the weapon actually being fired, so aiming never lags a moving
+        // target by a stale projectile speed.
         private Vector3 ComputeAimDirection(Transform target, Vector3 from, AgentWeaponDefinition activeWeapon)
         {
             if (!target)

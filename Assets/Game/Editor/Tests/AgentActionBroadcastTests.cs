@@ -143,7 +143,7 @@ namespace SpaceGame.Tests
             Enable(ranged);
 
             Assert.AreEqual(2, HandlerCount(agent, NetMsg.AgentActed),
-                "DeathmatchBot and PatrolRobot carry both. Every AgentActed reaches both handlers, " +
+                "PatrolRobot carries both. Every AgentActed reaches both handlers, " +
                 "which is why each one filters on NetArg.A before drawing anything — a sword swing " +
                 "must not put a bullet in the air.");
         }
@@ -203,20 +203,15 @@ namespace SpaceGame.Tests
         }
 
         [Test]
-        public void NeitherTurretListensForAgentActed()
+        public void TheTurretDoesNotListenForAgentActed()
         {
-            GameObject turret = NewObject("turret");
-            var module = turret.AddComponent<TurretModule>();
-            Enable(module);
-
             GameObject launcher = NewObject("rocket launcher");
             var rocket = launcher.AddComponent<RocketLauncherTurret>();
             Enable(rocket);
 
-            Assert.AreEqual(0, HandlerCount(turret, NetMsg.AgentActed));
             Assert.AreEqual(0, HandlerCount(launcher, NetMsg.AgentActed),
-                "Both already run their own Update on every machine and already mark the shells " +
-                "they did not authorise cosmetic, so every peer draws the arc for itself. Adding " +
+                "It already runs its own Update on every machine and already marks the shells " +
+                "it did not authorise cosmetic, so every peer draws the arc for itself. Adding " +
                 "AgentActed on top without first gating Fire() would put two shells in the air per " +
                 "shot on every watcher.");
         }

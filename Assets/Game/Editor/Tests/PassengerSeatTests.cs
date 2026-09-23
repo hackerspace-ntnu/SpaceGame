@@ -472,7 +472,7 @@ namespace SpaceGame.EditorTools
             foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
                 if (t.name == name) return t;
 
-            Assert.Fail($"No bone '{name}' on the conjurer — did rig.py rename it?");
+            Assert.Fail($"No bone '{name}' on the conjurer — was it renamed in the rig?");
             return null;
         }
 

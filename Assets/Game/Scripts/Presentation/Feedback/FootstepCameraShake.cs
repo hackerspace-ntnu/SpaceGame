@@ -2,7 +2,7 @@
 //
 // Driven by ANIMATION EVENTS baked into the walk clip at the exact frames the
 // contact lands, not by a timer and not by a collider. The frames come from
-// measuring the foot's lowest point across the cycle (see _Source~/contacts.py
+// measuring the foot's lowest point across the cycle (baked into the rig
 // beside the model), so the jolt is locked to the footfall no matter what the
 // animator's playback speed is set to.
 //

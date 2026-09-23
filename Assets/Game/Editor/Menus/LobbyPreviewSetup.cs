@@ -35,7 +35,7 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The player body. Must stay the same file PlayerCharacter.prefab uses, and the one
-        /// astronaut_export.py writes — the menu figure and the player are the same character, so a
+        /// the astronaut FBX carries — the menu figure and the player are the same character, so a
         /// second copy of the model means skinning fixes land on one of them and not the other.
         /// </summary>
         private const string ModelPath =

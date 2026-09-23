@@ -459,7 +459,7 @@ namespace SpaceGame.Core
         public const ushort LeaveSeat = 91; // server → everyone, on the SHIP's relay
 
         // (92 and 93 were SeatRequest/SeatRelease, retired: passenger chairs are ordinary mounts —
-        //  PlayerShipBuilder gives every non-helm chair its own MountModule — so a second, bespoke
+        //  The ship prefab gives every non-helm chair its own MountModule — so a second, bespoke
         //  way to sit down was two mechanisms for one job. Not reused; ids travel between builds.)
 
         // "Let me out of my arrival seat." Client → server, on the SHIP's relay.

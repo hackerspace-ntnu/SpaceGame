@@ -9,7 +9,7 @@ namespace SpaceGame.Items
     /// <para>
     /// <b>The cell is 94.5 mm, and it is a measurement of the rig rather than a number somebody
     /// liked.</b> It is <see cref="PackScale.Factor"/> times the 90 mm webbing pitch the rig was
-    /// originally modelled at, and the rig is BUILT at that factor — <c>expedition_rig_scale.py</c>
+    /// originally modelled at, and the rig is BUILT at that factor — the rig's baked scale
     /// multiplies every length in the finished model by the same number, so the back panel's
     /// webbing ladder has its rungs at <c>s = 0.0945, 0.189, 0.2835, 0.378, 0.4725, 0.567</c> and
     /// the lash line's two webbing runs sit 0.0945 apart. Those are still the only two places the
@@ -80,7 +80,7 @@ namespace SpaceGame.Items
         /// <summary>
         /// The longest run of cells any face in the game offers, on its longer axis: the ship's
         /// gear wall, 30 across (<see cref="PackSurfaceId.WallGrid"/> and
-        /// <c>InventoryWallBuilder.SurfaceCellsAcross</c>). The rig's own longest is the lash
+        /// the wall's SurfaceCellsAcross). The rig's own longest is the lash
         /// line's 18.
         ///
         /// <para>

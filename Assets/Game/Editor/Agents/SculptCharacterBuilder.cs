@@ -16,7 +16,7 @@ namespace SpaceGame.EditorTools
     /// <para>
     /// They are one model three ways: the same 24830-vertex sculpt pushed into three shapes, the
     /// same 52-bone Humanoid skeleton, the same object and material names. So they are one
-    /// builder and one recipe type, for the reason <see cref="NomadPrefabBuilder"/> is one
+    /// builder and one recipe type, for the reason the nomad prefabs are one
     /// builder for nine nomads -- three copies of this wiring is three chances for one of them to
     /// drift out of step with its siblings.
     /// </para>
@@ -906,7 +906,7 @@ namespace SpaceGame.EditorTools
         /// Sets the sight-blocking mask. Left at Nothing the module logs a warning every session
         /// and falls back to this same set, so writing it down just makes the prefab say what it
         /// means. The angle and memory fields are left alone -- PerceptionModule already defaults
-        /// them to <c>VisionBaseline</c>, which is what VisionBaselineTests checks.
+        /// them to <c>VisionBaseline</c>.
         /// </summary>
         private static void ConfigurePerception(GameObject root)
         {

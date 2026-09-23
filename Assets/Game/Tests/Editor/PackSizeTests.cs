@@ -83,7 +83,7 @@ namespace SpaceGame.Tests
         /// </summary>
         private const string BottleWhy =
             "a 0.5414 m pressure bottle carried at the BigTool bracket's 0.90 m, which is 1.66x " +
-            "life size. It LIES DOWN on the mat (OxygenGearBuilder.BottleLiesDown), so its length " +
+            "life size. It LIES DOWN on the mat, so its length " +
             "is part of its footprint rather than standing up out of it, and the roster's usual " +
             "'+ a cell' rule would cost 4 x 8 = 32 cells; 0.50 draws it 0.525 m, life size to " +
             "within 3%, for 3 x 6 = 18 — exactly a back panel. Both variants share it";
@@ -126,7 +126,7 @@ namespace SpaceGame.Tests
         /// `packSize` of 0.54, and that divergence was recorded here. The bracer is now worn
         /// permanently and is not part of the item: what goes on the mat is the device alone,
         /// 0.39 m for the flashlight up to 0.60 for the grappling hook. Those are gadget-sized,
-        /// so `GauntletPrefab.PackSize` went to 0 and the family stopped diverging as a family.
+        /// so the gauntlet packSize went to 0 and the family stopped diverging as a family.
         /// </para>
         /// <para>
         /// It is written down because the shape of the absence is the interesting part. A gauntlet
@@ -163,7 +163,7 @@ namespace SpaceGame.Tests
         /// </para>
         /// <para>
         /// The number is written in three places on purpose and they are pinned together here:
-        /// this row, the prefab on disk, and <c>GauntletReseat.RuinScannerPackSize</c> — which
+        /// this row and the prefab on disk — which
         /// REWRITES the prefab's field on every reseat, so a value that lives only on the prefab
         /// grows silently back.
         /// </para>
@@ -173,7 +173,7 @@ namespace SpaceGame.Tests
             "and cost 4 x 5 = 20 of the rig's 255 cells, reading as the biggest thing on the mat " +
             "for a gadget worn on a forearm. 0.225 is 0.58x, which is the asked-for 'roughly 0.6x' " +
             "backed off the cell boundary its 0.301 m WIDTH crosses at 0.2326 — 2 x 3 = 6 cells. " +
-            "GauntletReseat.RuinScannerPackSize carries the same number and rewrites the prefab";
+            "the prefab on disk carries the same number";
 
         /// <summary>
         /// Why the flamethrower's hand size ran away from its mat size on 2026-09-09.
@@ -248,7 +248,7 @@ namespace SpaceGame.Tests
 
             // The second gun to leave the bracket, and for the same reason. "Guns stay at the
             // anchor on the mat, because big gear goes on the rack with overhang" was the rule
-            // NetGunBuilder shipped with; it holds for a launcher whose true size IS about a
+            // the net gun shipped with; it holds for a launcher whose true size IS about a
             // metre, and not for a pistol.
             new(Gadgets + "NetGun.prefab", 1.25f, 0.63f,
                 "a 0.629 m capture pistol carried at the ladder's 1.25 m Gun bracket, which is " +
@@ -266,17 +266,17 @@ namespace SpaceGame.Tests
                 "size rounded up to the next 0.09 m webbing pitch plus a cell, which is 2 x 4 = 8 " +
                 "cells and fits every face but LongGoods strictly. The HAND moved to 0.73 on " +
                 "2026-09-06 (backlog GEAR-02) and the mat did not follow it, which is exactly " +
-                "what an authored packSize is for — see ItemScaleLadder.VesselWhy"),
+                "what an authored packSize is for"),
 
             // The one item that diverges UPWARDS, and the one sized against a face rather than
             // against a bracket. Its value is derived, not chosen — see the Why — so if this row
             // fails after the rack was re-cut or `wing_pack_folded.fbx` was re-exported, the
             // literal here is what is stale: take the new number from
-            // `WingPackBuilder.PackSizeForRack` and put it in. If it fails on its own, a builder
+            // the rack-derived packSize and put it in. If it fails on its own, a builder
             // run or a hand edit dropped the field and the craft is back to reading as a toy.
             new(Equipment + "WingPack.prefab", 1.26f, 1.824f,
                 "the folded ornithopter, and the only item whose stowed size is decided by the " +
-                "SURFACE: WingPackBuilder.PackSizeForRack solves it from the rack's 9-cell width " +
+                "SURFACE: the rack-derived packSize solves it from the rack's 9-cell width " +
                 "at a 0.96 fill, the folded mesh's short:long proportions and PackScale.Factor, " +
                 "so the craft fills the pack's back edge to edge and hangs off both ends. Its " +
                 "1.26 m hand size is the wearer's span and predates the 1.5x enlargement, which " +
@@ -285,7 +285,7 @@ namespace SpaceGame.Tests
                 "alike, so a bigger wing pack is a wing pack with nowhere to go"),
 
             // The seven salvageable hull modules. All 0.80 m on the mat, which is the rack face
-            // they occupy; their hand sizes are ItemScaleLadder brackets.
+            // they occupy; their hand sizes are size brackets.
             new(ShipParts + "AntiGravity.prefab",  1.40f, 0.80f, ModuleWhy),
             new(ShipParts + "NuclearMotor.prefab", 1.40f, 0.80f, ModuleWhy),
             new(ShipParts + "LongTurbine.prefab",  1.40f, 0.80f, ModuleWhy),
@@ -311,7 +311,7 @@ namespace SpaceGame.Tests
                 Assert.IsNotNull(grip, item.Path + " has no ItemGrip to size it");
 
                 Assert.AreEqual(item.Hold, grip.HoldSize, Slack,
-                    item.Path + " left the hand ladder; ItemScaleLadder owns holdSize");
+                    item.Path + " left the hand ladder; the size brackets own holdSize");
 
                 Assert.AreEqual(item.Pack, grip.PackSize, Slack,
                     item.Path + " lost its packSize — " + item.Why);

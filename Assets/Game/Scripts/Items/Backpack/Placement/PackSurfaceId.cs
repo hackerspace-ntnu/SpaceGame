@@ -48,7 +48,7 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// It grew from 6 to 9 cells deep on 2026-08-25, with the board it is the underside of,
-        /// when <c>ItemScaleLadder</c> roughly doubled the gear: at 8 x 6 cells a single launcher
+        /// when the gear was roughly doubled in size: at 8 x 6 cells a single launcher
         /// took half the face and two of them filled it.
         /// </para>
         /// <para>

@@ -46,7 +46,7 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// The prefab's flame shell diameter at a scale of one, in metres — see
-        /// <c>FlamethrowerJetBuilder.BuildBodyFirePrefab</c>. The fitted scale is the body's width
+        /// the shipped body-fire prefab. The fitted scale is the body's width
         /// divided by this, so a creature ends up wearing a fire its own width instead of a ball
         /// sized off its diagonal, which on anything tall was far wider than the thing burning.
         /// </summary>

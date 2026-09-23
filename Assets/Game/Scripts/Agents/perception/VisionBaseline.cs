@@ -1,12 +1,12 @@
 // The least any agent sees: how wide, how far, and how long it remembers. One definition, read by
 // the component defaults (PerceptionModule, AgentTargeting, TargetingProfile), by the wiring pass
-// that raises authored prefabs and profiles to it, and by VisionBaselineTests, which fails a
+// that raises authored prefabs and profiles to it, which fails a
 // creature that falls below it.
 //
 // Why it exists: every agent used to run on its component's defaults -- a 110 degree cone, 35 m,
 // five or six seconds of memory -- which nobody had chosen, and a player was noticed only when he
 // stood right in front of an NPC. A creature may see MORE than this (prey animals are wider); one
-// that should see less is exempted by name in VisionBaselineWiring, with its reason.
+// that should see less is exempted by name in the wiring pass, with its reason.
 namespace SpaceGame.Agents
 {
     public static class VisionBaseline

@@ -30,13 +30,13 @@ namespace SpaceGame.Items
         /// left alone for the reason the astronaut's neutrals are, because a wing flooded with one
         /// colour stops reading as cloth stretched over a frame.
         /// </summary>
-        /// <summary>The Unity material name <c>WingsuitBuilder</c> creates for the cloth.</summary>
+        /// <summary>The Unity material name the wingsuit prefab uses for the cloth.</summary>
         public const string MembraneMaterial = "WingsuitMembrane";
 
         /// <summary>
         /// The worn wing's cloth. A second material rather than a second use of the first, because
         /// the two panels have different object spaces and want different wind amplitudes — see
-        /// <c>WingsuitBuilder.WornWind</c>. Both are the wearer's suit colour, so both are here.
+        /// the worn wind material. Both are the wearer's suit colour, so both are here.
         /// </summary>
         public const string WornMembraneMaterial = "WingsuitWornMembrane";
 
@@ -60,7 +60,7 @@ namespace SpaceGame.Items
 
         protected override string NothingToPaintMessage =>
             $"[WingsuitRecolor] '{name}' has no material named {MembraneMaterial}, so the wings " +
-            "will not take the player's suit colour. WingsuitBuilder is what names it — re-run " +
+            "will not take the player's suit colour. The prefab is what names it — check " +
             "Tools ▸ SpaceGame ▸ Items ▸ Build Wingsuit.";
     }
 }

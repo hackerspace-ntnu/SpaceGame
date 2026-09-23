@@ -41,7 +41,7 @@ namespace SpaceGame.Agents
         [SerializeField] private FightOrFlightModule mood;
 
         [Tooltip("Animator trigger fired on the PLAYER who petted, on every machine. Their " +
-                 "controller needs an Upper Body one-shot by this name — see PlayerPetGestureBuilder.")]
+                 "controller needs an Upper Body one-shot by this name.")]
         [SerializeField] private string petterTrigger = "Pet";
 
         [Tooltip("How long the petter's gesture runs. Matches PetCreature.fbx (2.5 s); it keeps " +

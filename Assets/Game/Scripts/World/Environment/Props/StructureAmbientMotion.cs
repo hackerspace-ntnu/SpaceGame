@@ -16,7 +16,7 @@
 // physics, no allocation, just a sine or a constant rate per handle.
 //
 // Bindings are a serialized array rather than a name lookup at runtime, because
-// BuildingPrefabBuilder resolves the bones once at build time. A renamed bone
+// The building prefab resolves the bones once at build time. A renamed bone
 // then shows up as an empty slot in the inspector on the prefab, instead of a
 // silent no-op discovered months later in a scene.
 using UnityEngine;
@@ -113,7 +113,7 @@ namespace SpaceGame.World
 
 #if UNITY_EDITOR
         /// <summary>
-        /// Build-time entry point. BuildingPrefabBuilder owns the binding list;
+        /// Build-time entry point. The building prefab owns the binding list;
         /// this exists so it does not have to reach in through SerializedObject
         /// for a type it does own.
         /// </summary>

@@ -33,7 +33,7 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A hull with seat markers the way PlayerShipBuilder authors them: the marker itself on
+        /// A hull with seat markers the way the ship prefab carries them: the marker itself on
         /// the chair's cushion, the dismount point on the deck beside it.
         /// </summary>
         private Transform BuildHull(params Vector3[] seatMarkers)

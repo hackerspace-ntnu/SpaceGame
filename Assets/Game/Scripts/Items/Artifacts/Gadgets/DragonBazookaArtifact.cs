@@ -62,7 +62,7 @@ namespace SpaceGame.Items
                  "network prefab list — see DragonRocket.")]
         [SerializeField] private DragonRocket rocketPrefab;
 
-        [Tooltip("Where the rocket leaves the dragon's teeth. Placed by DragonBazookaBuilder.")]
+        [Tooltip("Where the rocket leaves the dragon's teeth. Placed on the prefab.")]
         [SerializeField] private Transform muzzle;
 
         [Tooltip("Seconds before it can be fired again. Short — the real cost of this weapon is " +

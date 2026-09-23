@@ -16,7 +16,7 @@ namespace SpaceGame.Items
     /// so it stays crisp however close the wearer brings their arm, and it needs no render texture
     /// and no second camera. <see cref="ScannerRadar"/> draws the rings, the beam and the contacts;
     /// this class decides what they mean. The canvas is built onto the prefab by
-    /// <c>ItemScannerScreenBuilder</c>, never at runtime.
+    /// the shipped screen prefab, never at runtime.
     /// </para>
     /// <para>
     /// Contacts arrive in world space and are resolved here into the scanner's own frame, because

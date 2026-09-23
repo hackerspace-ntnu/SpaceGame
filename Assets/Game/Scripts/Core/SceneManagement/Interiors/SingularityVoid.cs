@@ -2,7 +2,7 @@
 //
 // A scene name and an anchor id, in one place, because three things need to agree about them and
 // none of them can see the other two: the editor builder that generates the scene and the
-// InteriorScene asset (SingularityVoidBuilder), the artifact that sends bodies there
+// InteriorScene asset, the artifact that sends bodies there
 // (SingularityWell), and the guard that gets a stranded player back out (SingularityVoidGuard).
 //
 // Constants rather than values read off the InteriorScene asset, because the guard runs in sessions

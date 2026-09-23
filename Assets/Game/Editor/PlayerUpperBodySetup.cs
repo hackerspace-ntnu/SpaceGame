@@ -313,7 +313,7 @@ namespace SpaceGame.EditorTools
         // the crosshair up and down without a scripted IK goal — which the layer cannot apply
         // while it sits in Empty, i.e. whenever the hands are empty, the ordinary case for a
         // player wearing gauntlets. The left arm plays the right arm's clips MIRRORED; there is
-        // no Left set to drift from the Right one. Clips: gauntlet_point.py in the astronaut's
+        // no Left set to drift from the Right one. Clips: the gauntlet-point set in the astronaut's
         // source folder.
 
         private const string ArmRaiseParameter = "ArmRaise";

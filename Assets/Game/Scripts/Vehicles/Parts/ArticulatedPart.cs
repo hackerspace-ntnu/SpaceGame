@@ -4,7 +4,7 @@
 //
 // The component rotates around its OWN origin, so put it on a pivot GameObject placed at the
 // hinge line with the mesh parented underneath. PlayerShip is built that way (see
-// Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs).
+// the ship prefab).
 //
 // Deliberately knows nothing about who moves it. Player interaction lives in
 // ArticulatedPartInteraction; mount-driven deployment lives in VehicleDeploymentController.

@@ -4,7 +4,7 @@ namespace SpaceGame.Vehicles
 {
     /// <summary>
     /// How a hull module's mesh is named, and how to read a <see cref="ShipPartKind"/> back out of
-    /// it: <c>Part_&lt;Kind&gt;_&lt;Side&gt;</c>, written by <c>ship_parts.py</c> at export.
+    /// it: <c>Part_&lt;Kind&gt;_&lt;Side&gt;</c>, written into the model at export.
     ///
     /// <para>
     /// Here rather than in the builder that first needed it because the convention now has three
@@ -14,7 +14,7 @@ namespace SpaceGame.Vehicles
     /// </summary>
     public static class ShipPartNaming
     {
-        /// <summary>What every module mesh's name starts with. Matches <c>ROLE_PREFIX</c> in ship_parts.py.</summary>
+        /// <summary>What every module mesh's name starts with, as baked into the ship model.</summary>
         public const string Prefix = "Part_";
 
         public static bool IsPart(string meshName) =>

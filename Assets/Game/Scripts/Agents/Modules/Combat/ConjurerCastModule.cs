@@ -106,7 +106,7 @@
 // four-second wind-up.
 //
 // So the hold does not let go the moment the body stops either. It takes one more
-// step: it releases on the next FOOTFALL -- the driver is given the frames anim.py
+// step: it releases on the next FOOTFALL -- the driver is given the frames the clip
 // plants a foot on -- and only then does the walk blend down into the standing pose.
 // The stop lands on a step instead of on whatever frame the brake happened to end
 // on, and it costs at worst half a cycle of striding on the spot.
@@ -243,7 +243,7 @@ namespace SpaceGame.Agents
 
         [Header("Timing")]
         [Tooltip("Wind-up before the bolt lands. This is the clip's FIRE FRAME, not its " +
-                 "length: _Source~/anim.py authors 135 frames at 30 fps and strikes on " +
+                 "length: the clip is 135 frames at 30 fps and strikes on " +
                  "frame 120, so this is 4.0 s against a 4.5 s clip. The last half second " +
                  "is the recoil and the return to neutral. Setting this to the clip length " +
                  "lands the bolt after the staff has already come down.")]
@@ -303,7 +303,7 @@ namespace SpaceGame.Agents
                  "the bolt lands. Optional.")]
         [SerializeField] private GameObject chargeVFXPrefab;
 
-        [Tooltip("Bone the charge effect parents to. staff.py puts StaffTip at the emitter " +
+        [Tooltip("Bone the charge effect parents to. The model puts StaffTip at the emitter " +
                  "above the turbine, so the effect rides the staff through the whole raise " +
                  "for free.")]
         [SerializeField] private string chargeSocketBone = "StaffTip";
@@ -475,7 +475,7 @@ namespace SpaceGame.Agents
                 Debug.LogWarning(
                     $"{name}: ConjurerCastModule found no bone '{chargeSocketBone}' under " +
                     "the Animator; the charge effect will spawn on the agent root instead. " +
-                    "_Source~/staff.py is what creates it.", this);
+                    "The staff model is what carries it.", this);
 
             if (muzzle == null && !skyStrike && !string.IsNullOrEmpty(muzzleBone))
                 Debug.LogWarning(

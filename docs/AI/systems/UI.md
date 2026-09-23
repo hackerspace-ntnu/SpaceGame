@@ -34,7 +34,7 @@ updated: 2026-09-12
 
 Every screen in the game — the main-menu page stack, the in-game HUD, the full-screen overlays that open over gameplay, and the world-anchored labels — all built in C# at runtime, no UI art assets.
 
-**Scope:** [Assets/Game/Scripts/Presentation/UI/](Assets/Game/Scripts/Presentation/UI) (71 files) + [Menu Button.controller](Assets/Game/Art/Animations/UI/Buttons/Menu%20Button.controller) + [GameSettings.cs](Assets/Game/Scripts/Core/Settings/GameSettings.cs)
+**Scope:** [Assets/Game/Scripts/Presentation/UI/](Assets/Game/Scripts/Presentation/UI) (71 files) + Menu Button.controller + [GameSettings.cs](Assets/Game/Scripts/Core/Settings/GameSettings.cs)
 **Related:** [Lobby.md](Lobby.md) (lobby netcode), [Inventory.md](Inventory.md), [Persistence.md](Persistence.md), [audio.md](audio.md)
 
 ## Model

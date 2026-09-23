@@ -5,9 +5,7 @@ summary: "The torch: a worn forearm gauntlet whose lamp is a URP spot, long-thro
 paths:
   - Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs
   - Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs
-  - Assets/Game/Editor/AssetPipeline/FlashlightGauntletBuilder.cs
   - Assets/Game/Prefabs/Items/Artifacts/Gadgets/FlashlightGauntlet.prefab
-  - "Assets/Game/Art/Models/_Source~/models/gear/gauntlet_flashlight.py"
   - Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs
   - Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs
   - Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs
@@ -48,7 +46,7 @@ A player torch in three layers: a URP spot light, a global-uniform long-throw co
 
 ## Model
 
-- [Flashlight.prefab](Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab) is nested on the **`Emitter`** of [FlashlightGauntlet.prefab](Assets/Game/Prefabs/Items/Artifacts/Gadgets/FlashlightGauntlet.prefab), at the mouth of the lamp's horn, at an identity local pose. Until 2026-09-03 it hung under [Main Camera.prefab](Assets/Game/Prefabs/Camera/Main%20Camera.prefab) instead; that instance is gone.
+- [Flashlight.prefab](Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab) is nested on the **`Emitter`** of [FlashlightGauntlet.prefab](Assets/Game/Prefabs/Items/Artifacts/Gadgets/FlashlightGauntlet.prefab), at the mouth of the lamp's horn, at an identity local pose. Until 2026-09-03 it hung under Main Camera.prefab instead; that instance is gone.
 - **The beam leaves along the ARM, and the arm is AIMED.** The lamp is diegetic — you watch a wrist torch swing — but it points at what the player is looking at, because a torch lighting past the thing you are looking at cannot be told from a torch that is off (GDC-L1-ANIM-0003). `PlayerArmAim` swings the shoulder and elbow in `LateUpdate` so the lamp's own forward converges on the look; the pose layer decides whether the arm is up, this decides where it points. Between 2026-09-03 and 2026-09-13 the beam went wherever the clip left the forearm, on purpose; that is reversed.
 - **It converges on a POINT, not a direction.** `convergeRange` (25 m) — the wrist is not the eye, so a beam pointed parallel to the look sits beside the crosshair by the width of that offset, worst on near surfaces. Aiming at a point puts the two together at that range and keeps the error small either side of it.
 - **`maxSwing` (75°) is a shoulder limit, and the arm stops following at it** rather than reaching through the chest. Looking further back than that leaves the beam behind the crosshair — the readable failure of the two.
@@ -72,7 +70,7 @@ A player torch in three layers: a URP spot light, a global-uniform long-throw co
 | `SampleFlashlight` | [Flashlight.hlsl](Assets/Game/Art/Shaders/Effects/Flashlight.hlsl) | `float3 SampleFlashlight(posWS, N, wrap)` — the long-throw contribution |
 | beam shader | [FlashlightBeam.shader](Assets/Game/Art/Shaders/Effects/FlashlightBeam.shader) | `Blend One One`, `ZWrite Off`, `Cull Off`. Material: [FlashlightBeam.mat](Assets/Game/Art/Materials/Effects/FlashlightBeam.mat) |
 | `PlayerViewNetwork` | [PlayerViewNetwork.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerViewNetwork.cs) | `NetworkVariable<bool> netTorch`, `TorchOn`, `SetTorch`/`ClearTorch` |
-| `FlashlightGauntletBuilder` | [FlashlightGauntletBuilder.cs](Assets/Game/Editor/AssetPipeline/FlashlightGauntletBuilder.cs) | *Tools ▸ SpaceGame ▸ Items ▸ Build Flashlight Gauntlet*. Owns the prefab and the item asset |
+| `FlashlightGauntletBuilder` | FlashlightGauntletBuilder.cs | *Tools ▸ SpaceGame ▸ Items ▸ Build Flashlight Gauntlet*. Owns the prefab and the item asset |
 | `PlayerArmAim` | [PlayerArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs) | Points a posed forearm at the look. `SetPointer`/`ClearPointer` per arm; runs on every machine off `PlayerViewNetwork.AimPivot`. Added by `PlayerAimRig.Awake`, never authored on a prefab |
 | `ArmAim` | [ArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs) | The maths with no frame in it: `Convergence`, the clamped `Swing`, and `Point` — shoulder share then elbow passes. Pinned by `ArmAimTests` |
 | `PlayerAimRig.SetWornStyle` | [PlayerAimRig.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs) | The pose a working gauntlet on one arm asks for — **shared with the Item Scanner**, which asks for it while powered ([Artifacts.md](Artifacts.md)). `PoseStyle` lets a held item override it, `PoseMirrored` says which arm asked, `Posing` is what the layer weight follows, `LeftArmStyle` is what the second (left-arm) layer plays when both arms ask at once |

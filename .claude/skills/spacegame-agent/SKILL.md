@@ -31,7 +31,7 @@ targets the wrong thing, or ignores the player.
 
 ## When NOT to use
 
-- Mesh, rig, FBX export → **`blender-model`** skill.
+- Mesh, rig, FBX export → **`docs/AI/systems/ArtPipeline.md`**.
 - Save / load, `SaveableEntity`, savers, `SaveScope` → **`spacegame-persistence`**.
 - `NetworkObject` registration, RPCs, `NetRelay` / `NetChannel`, damage replication →
   **`spacegame-multiplayer`**.
@@ -64,7 +64,7 @@ Reference implementation to copy: `Assets/Game/Editor/Creatures/GolemBuilder.cs`
 (`Tools/Creatures/Build Golem Prefab`). It assembles the whole stack in one place and is the
 best template for a new creature builder.
 
-1. **Mesh + rig** — `blender-model` skill. Export through the model's own export script.
+1. **Mesh + rig** — author the `.blend`, then export through `_exportlib` (see `docs/AI/systems/ArtPipeline.md`).
 2. **Import check (humanoid rigs only)** — confirm the generated avatar reports `isHuman = true`.
    A downgraded generic avatar leaves the character standing still with a **completely clean
    console**.
@@ -367,6 +367,6 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
   full module catalog, motors, targeting/faction API, animator contract.
 - `Assets/Game/Editor/Creatures/GolemBuilder.cs` — the reference creature builder.
   (documentation only; some of its paths are stale).
-- Skills: `blender-model` (mesh/rig), `spacegame-persistence` (save/load),
+- Mesh/rig: `docs/AI/systems/ArtPipeline.md`. Skills: `spacegame-persistence` (save/load),
   `spacegame-multiplayer` (netcode, network prefabs, damage replication),
   `spacegame-artifact` (items an NPC carries and fires).

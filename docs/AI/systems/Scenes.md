@@ -44,16 +44,16 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 | AlgeaCave | [Interiors/AlgeaCave.unity](Assets/Game/Scenes/Interiors/AlgeaCave.unity) | Additive interior; target of `Interior_AlgeaCave` (note the `Algea` spelling) | 8 |
 | SandstoneCaveInterior | [Interiors/SandstoneCaveInterior.unity](Assets/Game/Scenes/Interiors/SandstoneCaveInterior.unity) | Additive interior, ~3.5 MB, 20+ `AlgaeLight_*`; target of `Interior_SandstoneCave` | 9 |
 | Ferdinand_Test_world | [Tests/Ferdinand_Test_world.unity](Assets/Game/Scenes/Tests/Ferdinand_Test_world.unity) | Second-world root; own `WorldStreamer` + `InteriorManager`. Editor-only entry, no menu route | 58 |
-| Blocking test | [Tests/Blocking test.unity](Assets/Game/Scenes/Tests/Blocking%20test.unity) | Terrain + ProBuilder blockout; `Blocking scene` SceneReference points here | 2 |
-| Aleksander test scene | [Tests/Aleksander test scene.unity](Assets/Game/Scenes/Tests/Aleksander%20test%20scene.unity) | Personal sandbox; visor overlay + volumetric explosion + waypoints | 3 |
-| Tommy test scene | [Tests/Tommy test scene.unity](Assets/Game/Scenes/Tests/Tommy%20test%20scene.unity) | Personal sandbox; floor + camera only | 4 |
-| Emil test scene | [Tests/Emil test scene.unity](Assets/Game/Scenes/Tests/Emil%20test%20scene.unity) | Personal sandbox; plane + light | 5 |
-| Marius test scene | [Tests/Marius test scene.unity](Assets/Game/Scenes/Tests/Marius%20test%20scene.unity) | Personal sandbox; artifact + particle/movement cameras | 6 |
+| Blocking test | Tests/Blocking test.unity | Terrain + ProBuilder blockout; `Blocking scene` SceneReference points here | 2 |
+| Aleksander test scene | Tests/Aleksander test scene.unity | Personal sandbox; visor overlay + volumetric explosion + waypoints | 3 |
+| Tommy test scene | Tests/Tommy test scene.unity | Personal sandbox; floor + camera only | 4 |
+| Emil test scene | Tests/Emil test scene.unity | Personal sandbox; plane + light | 5 |
+| Marius test scene | Tests/Marius test scene.unity | Personal sandbox; artifact + particle/movement cameras | 6 |
 | CaveTest | [Tests/CaveTest.unity](Assets/Game/Scenes/Tests/CaveTest.unity) | Empty since creation (125 lines, no roots) — a stub, not a regression | no |
 | DuneFoilTest | [Tests/DuneFoilTest.unity](Assets/Game/Scenes/Tests/DuneFoilTest.unity) | Sand plane + `PlayerStandIn` + preview cam for the dune foil sailer | no |
 | FogGallery | [Tests/FogGallery.unity](Assets/Game/Scenes/Tests/FogGallery.unity) | Volumetric fog reference gallery: 8 named volumes + overlap lamps | no |
 | PortalTest | [Tests/PortalTest.unity](Assets/Game/Scenes/Tests/PortalTest.unity) | Portal traversal box with `Traveller_0..2`, crates, pillars | no |
-| Markus Music Test Scene | [Tests/Markus Music Test Scene.unity](Assets/Game/Scenes/Tests/Markus%20Music%20Test%20Scene.unity) | Audio sandbox | no |
+| Markus Music Test Scene | Tests/Markus Music Test Scene.unity | Audio sandbox | no |
 | SpriteRenderScene | [Utility/SpriteRenderScene.unity](Assets/Game/Scenes/Utility/SpriteRenderScene.unity) | Camera + light rig used by the inventory icon bakers ([IconGenerator.cs](Assets/Game/Editor/AssetPipeline/IconGenerator.cs)) | no |
 | 0 | [_Recovery/0.unity](Assets/_Recovery/0.unity) | Byte-identical copy of Bootstrap left by a Unity crash recovery. Dead — delete | no |
 

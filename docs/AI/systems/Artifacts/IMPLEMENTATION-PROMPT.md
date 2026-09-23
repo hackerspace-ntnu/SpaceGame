@@ -36,7 +36,7 @@ Designs live in `docs/AI/systems/Artifacts/`:
 | Storm flask | `StormFlask.md` |
 
 Governing reference for all of it: `docs/AI/systems/Artifacts.md`, plus the `spacegame-artifact`,
-`spacegame-multiplayer`, `spacegame-persistence` and `blender-model` skills.
+`spacegame-multiplayer` and `spacegame-persistence` skills.
 
 ### Read before dispatching anything
 
@@ -66,7 +66,7 @@ Governing reference for all of it: `docs/AI/systems/Artifacts.md`, plus the `spa
 5. **The Blender library is append-only and shared.** Modelling agents must re-dump object names from
    the `.blend` immediately before appending, because a parallel session may have changed it since
    they last looked. Shipped `.blend` files carry hand edits a regenerating script destroys — check
-   `docs/AI/systems/ArtPipeline.md` and the `blender-model` skill before regenerating anything that
+   `docs/AI/systems/ArtPipeline.md` before regenerating anything that
    already exists.
 6. **Every behaviour change updates its doc in the same commit**, then
    `python3 tools/docs_check.py --index`. `INDEX.md` and `ROUTING.md` are generated — never hand-edit.
@@ -130,7 +130,7 @@ concurrently. Compile and verify between waves.
 
 **Wave 1 — art and shaders (4 agents, parallel)**
 
-Modelling agents follow the `blender-model` skill. Family: clean issued equipment — moulded shells,
+Modelling agents follow `docs/AI/systems/ArtPipeline.md`. Family: clean issued equipment — moulded shells,
 colour coded, a `SupplyGauge` on every tank. Sizes bracketed against the Dragon Bazooka's 1.25 m:
 sprayers ~0.5 m one-handed, Flamethrower ~0.9 m two-handed, thrown bottles ~0.2 m.
 

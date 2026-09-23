@@ -25,7 +25,7 @@ at no point should a placeable exist in the world *and* in an inventory.
 
 **Worked example:** the camp lantern — `Lantern.prefab` (held) / `PlacedLantern.prefab`
 (placed) / `Lantern.asset`, built by
-[`LanternBuilder`](Assets/Game/Editor/Items/LanternBuilder.cs). **One that does something:** the storm ward — `StormWard.prefab` / `PlacedStormWard.prefab` / `StormWard.asset`, built by [`StormWardBuilder`](Assets/Game/Editor/Items/StormWardBuilder.cs). Both share the pair recipe in [`PlaceablePairBuilder`](Assets/Game/Editor/Items/PlaceablePairBuilder.cs).
+`LanternBuilder`. **One that does something:** the storm ward — `StormWard.prefab` / `PlacedStormWard.prefab` / `StormWard.asset`, built by `StormWardBuilder`. Both share the pair recipe in `PlaceablePairBuilder`.
 
 **Scope:** [`PlaceableItem`](Assets/Game/Scripts/Items/Placeables/PlaceableItem.cs),
 [`PlacedObject`](Assets/Game/Scripts/Items/Placeables/PlacedObject.cs),

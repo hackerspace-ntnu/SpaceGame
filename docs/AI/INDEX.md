@@ -110,8 +110,8 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
-| [ArtPipeline](systems/ArtPipeline.md) | How a .blend in the Unity-invisible source library becomes an FBX, material, rig and generated prefab | [Vehicles](systems/Vehicles.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md) |
-| [EditorTooling](systems/EditorTooling.md) | Every custom editor window, menu command, prefab/asset builder and importer hook in the project | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Artifacts](systems/Artifacts.md), [TerrainGeneration](systems/TerrainGeneration.md) |
+| [ArtPipeline](systems/ArtPipeline.md) | How a .blend in the Unity-invisible source library becomes an FBX, material and rig in the game | [Vehicles](systems/Vehicles.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md) |
+| [EditorTooling](systems/EditorTooling.md) | Every custom editor window, menu command, wiring pass and importer hook in the project | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Artifacts](systems/Artifacts.md), [TerrainGeneration](systems/TerrainGeneration.md) |
 | [LookLab](systems/LookLab.md) | An Editor window that retunes the shipped palette live in the Game view, without a recompile | [Environment](systems/Environment.md), [EditorTooling](systems/EditorTooling.md) |
 | [StylizedEyes](systems/StylizedEyes.md) | Character eyes: eight looks baked as equirect maps, plus the re-unwrap that lets a sphere wear one | [ArtPipeline](systems/ArtPipeline.md), [AgentSystem](systems/AgentSystem.md) |
 | [Testing](systems/Testing.md) | EditMode-only NUnit suite, a headless Roslyn type-check, and the two-process batch-mode multiplayer autotest | [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [EditorTooling](systems/EditorTooling.md) |

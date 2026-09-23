@@ -16,7 +16,7 @@ namespace SpaceGame.EditorTools
     /// <para>
     /// The prose half lives in <c>docs/library/blurbs.md</c> and is written by hand. This tool
     /// never reads or writes that file, so re-exporting after adding a creature cannot destroy
-    /// the descriptions. Joining the two is a manual step.
+    /// the descriptions — <c>tools/build_library_site.py</c> is what joins the two.
     /// </para>
     ///
     /// <para>

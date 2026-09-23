@@ -11,8 +11,8 @@ namespace SpaceGame.EditorTools
     /// equirectangular texture per style, and wraps each in a URP/Lit material.
     ///
     /// <para>
-    /// The eyes on the sculpt-base characters are plain UV spheres, so the whole look can live in
-    /// the albedo: no eye shader, no second UV set, no per-character texture. One set of materials
+    /// The eyes on the sculpt-base characters are plain spheres, so the whole look can live in the
+    /// albedo: no eye shader, no second UV set, no per-character texture. One set of materials
     /// serves every character that has spherical eyes, and swapping a character's eye colour is
     /// swapping which of these <c>.mat</c> files its eye slots point at.
     /// </para>
@@ -24,7 +24,10 @@ namespace SpaceGame.EditorTools
     /// place so every reference to them survives.
     /// </para>
     ///
-    /// <para><b>The UV convention is measured, not assumed.</b> See <see cref="Gaze"/>.</para>
+    /// <para>
+    /// It also owns the other half of the deal: <see cref="EnsureEyeMesh"/> gives the eye sphere the
+    /// unwrap this map is painted for, because the one the art ships with is folded and unusable.
+    /// </para>
     /// </summary>
     public static class StylizedEyeBuilder
     {
@@ -44,22 +47,21 @@ namespace SpaceGame.EditorTools
         private const int Supersample = 2;
 
         /// <summary>
-        /// Where the character is looking, in the eye mesh's own space.
+        /// The frame the map is painted in: the gaze sits at the middle of the texture, uv(0.5, 0.5),
+        /// with v rising toward <see cref="Up"/> and u rising toward <see cref="Side"/>.
         ///
         /// <para>
-        /// Measured off the shipped FBX rather than assumed: all three sculpt-base eye spheres are
-        /// unrotated UV spheres with the pole on local +Z, and their UVs put local +X at u=0.5,
-        /// local +Y at u=0.75 and local +Z at v=1. In the authoring .blend the eye objects carry an
-        /// identity rotation and the characters face +Y, so local +Y IS the gaze -- which lands the
-        /// pupil at uv(0.75, 0.5). Re-measure before trusting this on a differently authored eye:
-        /// a texture keyed to the wrong axis puts the pupil in the side of the head and nothing
-        /// warns you.
+        /// These are arbitrary axes, not the eye's. Nothing reads the eye mesh's own orientation,
+        /// because <see cref="EnsureEyeMesh"/> writes the UVs itself from the gaze it is handed --
+        /// the two halves only have to agree with each other, and they agree by both using
+        /// <see cref="Direction"/>. Putting the gaze in the middle also parks the wrap seam at
+        /// u=0/1, which is the back of the eyeball, inside the head.
         /// </para>
         /// </summary>
-        private static readonly Vector3 Gaze = new Vector3(0f, 1f, 0f);
+        private static readonly Vector3 Gaze = new Vector3(0f, 0f, 1f);
 
-        /// <summary>The sphere's pole, and the up the highlight's azimuth is measured from.</summary>
-        private static readonly Vector3 Up = new Vector3(0f, 0f, 1f);
+        /// <summary>Up in the map. v=1 is this pole.</summary>
+        private static readonly Vector3 Up = new Vector3(0f, 1f, 0f);
 
         /// <summary>Completes the frame. Azimuth 90 deg lies along this.</summary>
         private static readonly Vector3 Side = Vector3.Cross(Up, Gaze);
@@ -123,9 +125,12 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// Shared defaults, so a style below only states what makes it that style. The angles are
-        /// sized against the visible cap of the eyeball: roughly 50-60 deg of the sphere clears the
-        /// lids, so a 38 deg iris fills most of the eye and reads large and stylized rather than
-        /// human.
+        /// sized against the visible cap of the eyeball: the lids crop it to roughly 50 deg of the
+        /// sphere, so a 45 deg iris fills what is on show and reads large and stylized rather than
+        /// human. The pupil is deliberately huge -- 25 deg of a 45 deg iris -- which is what makes
+        /// these read as cartoon eyes rather than as an eyeball with a dot on it. Emission is kept
+        /// well under 1 -- an iris that is both a bright albedo and an HDR emitter clips to white
+        /// and the colour is gone.
         /// </summary>
         private static EyeStyle Base(string name) => new EyeStyle
         {
@@ -134,9 +139,9 @@ namespace SpaceGame.EditorTools
             Pupil = Hex("07060A"),
             LimbalRing = Hex("14090B"),
             Highlight = Hex("FFFFFF"),
-            PupilAngle = 12f,
-            IrisAngle = 38f,
-            LimbalWidth = 7f,
+            PupilAngle = 25f,
+            IrisAngle = 45f,
+            LimbalWidth = 6f,
             EdgeSoftness = 1.4f,
             HighlightAngle = 18f,
             HighlightAzimuth = -38f,
@@ -163,45 +168,48 @@ namespace SpaceGame.EditorTools
 
         private static EyeStyle[] BuildStyles()
         {
-            var amber = Glowing("Amber", "FFA23A", "C4480A", "2B1204", "FF7A14", 1.6f);
+            var amber = Glowing("Amber", "FFA23A", "C4480A", "2B1204", "FF7A14", 0.55f);
 
-            var ember = Glowing("Ember", "FF6A3C", "94180A", "2A0805", "FF3A12", 1.8f);
+            var ember = Glowing("Ember", "FF6A3C", "94180A", "2A0805", "FF3A12", 0.6f);
 
-            var acid = Glowing("Acid", "B6FF5E", "2F7A14", "0E2006", "7CE01E", 1.5f);
+            var acid = Glowing("Acid", "B6FF5E", "2F7A14", "0E2006", "7CE01E", 0.5f);
 
-            var glacier = Glowing("Glacier", "9FF0FF", "16679E", "061C2C", "3FC6FF", 1.4f);
+            var glacier = Glowing("Glacier", "9FF0FF", "16679E", "061C2C", "3FC6FF", 0.5f);
             glacier.Sclera = Hex("0B1016");
 
-            var violet = Glowing("Violet", "D49BFF", "51219A", "170728", "9A46FF", 1.5f);
+            var violet = Glowing("Violet", "D49BFF", "51219A", "170728", "9A46FF", 0.5f);
             violet.Sclera = Hex("100A18");
 
-            var gold = Glowing("Gold", "FFDC6A", "A86E06", "2A1A02", "FFB61E", 1.3f);
+            var gold = Glowing("Gold", "FFDC6A", "A86E06", "2A1A02", "FFB61E", 0.45f);
 
-            // "White eyes", reading one: a white eyeball. The only style here with a pale sclera,
-            // so it is also the only one whose iris needs a dark rim to separate it from the white.
+            // "White eyes", reading one: a white eyeball, the nearest thing here to a human eye.
+            // The only style with a pale sclera, which is why its iris is a washed grey rather than
+            // the white it started as -- white on white left nothing but the limbal ring visible and
+            // the eye read as an empty hoop. It also pulls back from the huge pupil the rest wear.
             var ivory = Base("Ivory");
             ivory.Sclera = Hex("F1ECE2");
-            ivory.IrisInner = Hex("FFFFFF");
-            ivory.IrisOuter = Hex("C6C1B8");
-            ivory.LimbalRing = Hex("4A4640");
+            ivory.IrisInner = Hex("DCE7EC");
+            ivory.IrisOuter = Hex("8FA5B2");
+            ivory.LimbalRing = Hex("3C4750");
             ivory.LimbalWidth = 4.5f;
-            ivory.IrisAngle = 30f;
-            ivory.PupilAngle = 13f;
+            ivory.IrisAngle = 38f;
+            ivory.PupilAngle = 22f;
 
             // "White eyes", reading two: no pupil at all, the whole eye lit blank. Pupil and iris
-            // are the same white, so only the rim and the catchlight give it any shape.
+            // are the same white, so only the rim and the catchlight give it any shape -- and the
+            // catchlight only reads because the white underneath it is held just short of full.
             var blank = Base("Blank");
-            blank.Sclera = Hex("EFEFEA");
-            blank.IrisInner = Hex("FFFFFF");
-            blank.IrisOuter = Hex("FFFFFF");
-            blank.Pupil = Hex("FFFFFF");
-            blank.LimbalRing = Hex("D2D2CC");
-            blank.LimbalWidth = 3f;
-            blank.IrisAngle = 44f;
+            blank.Sclera = Hex("E6E6E0");
+            blank.IrisInner = Hex("EDEDE8");
+            blank.IrisOuter = Hex("EDEDE8");
+            blank.Pupil = Hex("EDEDE8");
+            blank.LimbalRing = Hex("C9C9C2");
+            blank.LimbalWidth = 4f;
+            blank.IrisAngle = 46f;
             blank.EdgeSoftness = 6f;
             blank.Highlight = Hex("FFFFFF");
             blank.Emission = Hex("FFFFFF");
-            blank.EmissionStrength = 0.9f;
+            blank.EmissionStrength = 0.3f;
 
             return new[] { amber, ember, acid, glacier, violet, gold, ivory, blank };
         }
@@ -262,9 +270,10 @@ namespace SpaceGame.EditorTools
             material.SetColor("_BaseColor", Color.white);
             material.SetFloat("_Metallic", 0f);
 
-            // Wetter than skin. The catchlight is painted in, so this is only the sheen that moves
-            // with the light and tells the eye apart from a matte bead.
-            material.SetFloat("_Smoothness", 0.75f);
+            // Wetter than skin, but well short of a mirror: the catchlight is already painted into
+            // the albedo, and a glossier eye adds a second one on top that washes the iris colour
+            // out under any strong key light.
+            material.SetFloat("_Smoothness", 0.55f);
 
             if (emission != null)
             {
@@ -324,15 +333,28 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The point on the unit sphere a texel covers, in the eye mesh's own space -- the inverse
-        /// of the UV sphere's own unwrap. See <see cref="Gaze"/> for where the axes come from.
+        /// The point on the unit sphere a texel covers, in the map's own frame. Inverted by
+        /// <see cref="Unwrap"/>, which is what puts the same look on the mesh.
         /// </summary>
         private static Vector3 Direction(float u, float v)
         {
             float longitude = (u - 0.5f) * 2f * Mathf.PI;
             float latitude = (v - 0.5f) * Mathf.PI;
             float c = Mathf.Cos(latitude);
-            return new Vector3(c * Mathf.Cos(longitude), c * Mathf.Sin(longitude), Mathf.Sin(latitude));
+            return c * Mathf.Cos(longitude) * Gaze + c * Mathf.Sin(longitude) * Side +
+                   Mathf.Sin(latitude) * Up;
+        }
+
+        /// <summary>
+        /// The texel a direction lands on -- <see cref="Direction"/> run backwards, in whatever frame
+        /// the caller's <paramref name="gaze"/>, <paramref name="up"/> and <paramref name="side"/>
+        /// describe.
+        /// </summary>
+        private static Vector2 Unwrap(Vector3 direction, Vector3 gaze, Vector3 up, Vector3 side)
+        {
+            float longitude = Mathf.Atan2(Vector3.Dot(direction, side), Vector3.Dot(direction, gaze));
+            float latitude = Mathf.Asin(Mathf.Clamp(Vector3.Dot(direction, up), -1f, 1f));
+            return new Vector2(0.5f + longitude / (2f * Mathf.PI), 0.5f + latitude / Mathf.PI);
         }
 
         private static Color Shade(EyeStyle style, Vector3 direction, bool emission)
@@ -388,6 +410,117 @@ namespace SpaceGame.EditorTools
 
             float theta = Mathf.Rad2Deg * Mathf.Acos(Mathf.Clamp(Vector3.Dot(direction, centre), -1f, 1f));
             return 1f - Band(theta, radius, softness);
+        }
+
+        // ------------------------------------------------------------------
+        // The mesh the map is painted onto
+
+        private const string EyeMeshFolder = "Assets/Game/Art/Models/Characters/EyeMeshes";
+
+        /// <summary>
+        /// How far off the gaze a vertex may be from the sphere it is supposed to lie on before
+        /// this refuses to unwrap it, as a fraction of the sphere's radius. Generous: it is there to
+        /// catch "this renderer is not an eyeball", not to grade the sculpt.
+        /// </summary>
+        private const float SphereTolerance = 0.2f;
+
+        /// <summary>
+        /// Gives an eye sphere a copy of its mesh with UVs that an eye map can actually be painted
+        /// on, and hands it to <paramref name="eye"/>.
+        ///
+        /// <para>
+        /// <b>Why this exists.</b> The UVs the sculpt-base eyes ship with are folded: a single
+        /// longitude on the sphere carries up to FOUR different u, mirrored in pairs, so one painted
+        /// pupil comes out as two or four pupils facing different ways and the eye reads as a
+        /// scrambled ball. v is fine -- it is only the way round the sphere that was lost. Nothing
+        /// in Unity reports this; the mesh imports clean and the material binds clean.
+        /// </para>
+        ///
+        /// <para>
+        /// The replacement is a plain equirectangular unwrap about the gaze the caller measured, so
+        /// the pupil lands where <see cref="Bake"/> painted it. It writes a mesh ASSET rather than a
+        /// runtime mesh because a prefab cannot reference a mesh that only exists in memory -- the
+        /// eye would come back with no mesh at all next time the prefab is opened.
+        /// </para>
+        ///
+        /// <para>
+        /// The one seam is at the back of the eyeball, 180 deg from the gaze, where the triangles
+        /// that straddle u=1/u=0 run the whole map backwards across a few millimetres. That is
+        /// inside the head. Do NOT re-centre the map to move the seam somewhere "tidier".
+        /// </para>
+        /// </summary>
+        /// <param name="eye">The renderer to repair. Its <c>sharedMesh</c> is left untouched.</param>
+        /// <param name="gaze">Where the character looks, in the eye's own local space.</param>
+        /// <param name="up">The character's up, in the eye's own local space.</param>
+        /// <param name="assetName">Unique per character and per eye; names the mesh asset.</param>
+        /// <returns>True if the eye came out of this with a usable unwrap.</returns>
+        public static bool EnsureEyeMesh(Renderer eye, Vector3 gaze, Vector3 up, string assetName)
+        {
+            var source = eye is SkinnedMeshRenderer skinned
+                ? skinned.sharedMesh
+                : eye.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
+
+            if (source == null)
+            {
+                Debug.LogError($"[StylizedEyeBuilder] {assetName}: the eye renderer has no mesh.");
+                return false;
+            }
+
+            Vector3.OrthoNormalize(ref gaze, ref up);
+            Vector3 side = Vector3.Cross(up, gaze);
+
+            var vertices = source.vertices;
+            Vector3 centre = Vector3.zero;
+            foreach (var vertex in vertices) centre += vertex;
+            centre /= vertices.Length;
+
+            float radius = 0f;
+            foreach (var vertex in vertices) radius += (vertex - centre).magnitude;
+            radius /= vertices.Length;
+
+            float drift = 0f;
+            foreach (var vertex in vertices)
+                drift = Mathf.Max(drift, Mathf.Abs((vertex - centre).magnitude - radius));
+
+            // An unwrap about a centre is only an eye map if the thing really is a ball around that
+            // centre. On anything else the shapes would smear and there would be no other sign.
+            if (radius <= 0f || drift / radius > SphereTolerance)
+            {
+                Debug.LogError($"[StylizedEyeBuilder] {assetName}: '{source.name}' is not a sphere " +
+                               $"(radius {radius:F4}, worst vertex off by {drift:F4}), so it cannot " +
+                               "take an equirectangular eye map. Left as it was.");
+                return false;
+            }
+
+            var uv = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+                uv[i] = Unwrap((vertices[i] - centre).normalized, gaze, up, side);
+
+            var repaired = UnityEngine.Object.Instantiate(source);
+            repaired.name = assetName;
+            repaired.uv = uv;
+
+            string path = $"{EyeMeshFolder}/{assetName}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                EnsureFolder(EyeMeshFolder);
+                AssetDatabase.CreateAsset(repaired, path);
+                existing = repaired;
+            }
+            else
+            {
+                // Overwrite in place. Deleting and recreating would hand out a new GUID and null the
+                // mesh on every prefab already pointing at this one.
+                EditorUtility.CopySerialized(repaired, existing);
+                UnityEngine.Object.DestroyImmediate(repaired);
+                EditorUtility.SetDirty(existing);
+            }
+
+            if (eye is SkinnedMeshRenderer target) target.sharedMesh = existing;
+            else eye.GetComponent<MeshFilter>().sharedMesh = existing;
+
+            return true;
         }
 
         // ------------------------------------------------------------------

@@ -667,6 +667,11 @@ namespace SpaceGame.EditorTools
         /// <c>&lt;character&gt;_eyes</c> -- rather than off the object name, which is the importer's
         /// <c>Sphere</c> / <c>Sphere.001</c> and says nothing.
         /// </para>
+        ///
+        /// <para>
+        /// An eye also gets its UVs rebuilt -- see <see cref="StylizedEyeBuilder.EnsureEyeMesh"/>
+        /// for what is wrong with the ones the FBX ships.
+        /// </para>
         /// </summary>
         private static void ApplySkin(GameObject model, SculptRecipe recipe)
         {
@@ -685,16 +690,21 @@ namespace SpaceGame.EditorTools
             foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
             {
                 var materials = renderer.sharedMaterials;
+                bool isEye = false;
                 for (int i = 0; i < materials.Length; i++)
                 {
-                    bool isEye = materials[i] != null &&
-                                 materials[i].name.EndsWith(EyeMaterialSuffix,
-                                                            System.StringComparison.OrdinalIgnoreCase);
-                    if (isEye) eyeSlots++;
-                    materials[i] = isEye && eyes != null ? eyes : body;
+                    bool eyeSlot = materials[i] != null &&
+                                   materials[i].name.EndsWith(EyeMaterialSuffix,
+                                                              System.StringComparison.OrdinalIgnoreCase);
+                    isEye |= eyeSlot;
+                    if (eyeSlot) eyeSlots++;
+                    materials[i] = eyeSlot && eyes != null ? eyes : body;
                 }
 
                 renderer.sharedMaterials = materials;
+
+                if (isEye)
+                    UnwrapEye(model, renderer, recipe);
             }
 
             // Loud, because the failure it catches is silent: rename the material in the .blend and
@@ -704,6 +714,37 @@ namespace SpaceGame.EditorTools
                 Debug.LogError($"[SculptCharacterBuilder] {recipe.Name}: no slot on the FBX uses a " +
                                $"material ending in '{EyeMaterialSuffix}', so the eyes wear the " +
                                "body skin. Check the material names in the source .blend.");
+        }
+
+        /// <summary>
+        /// Re-unwraps one eye sphere around the direction the character actually looks.
+        ///
+        /// <para>
+        /// The gaze is taken from the model root's own forward rather than written down as an axis:
+        /// the importer's axis conversion decides what the eye's local space ends up being, and a
+        /// hardcoded axis would be a number that is right until someone re-exports. It is then
+        /// checked against the geometry -- the eyes sit in FRONT of the skull -- because the two
+        /// answers come from different places and a disagreement means one of them is wrong.
+        /// </para>
+        /// </summary>
+        private static void UnwrapEye(GameObject model, Renderer eye, SculptRecipe recipe)
+        {
+            Transform root = model.transform;
+            Vector3 gaze = eye.transform.InverseTransformDirection(root.forward);
+            Vector3 up = eye.transform.InverseTransformDirection(root.up);
+
+            // The eye object's own origin, not renderer.bounds: a SkinnedMeshRenderer that has never
+            // been animated reports whatever bounds the importer guessed. The sphere is centred on
+            // its origin, which EnsureEyeMesh re-checks from the vertices anyway.
+            Vector3 toEye = root.InverseTransformPoint(eye.transform.position);
+            if (toEye.z <= 0f)
+                Debug.LogError($"[SculptCharacterBuilder] {recipe.Name}: eye '{eye.name}' sits " +
+                               $"{-toEye.z:F3} m BEHIND the model root's forward, so the root is not " +
+                               "facing the way the character does and the pupils will end up in the " +
+                               "side of its head.");
+
+            string assetName = $"{recipe.Name}_{eye.name}";
+            StylizedEyeBuilder.EnsureEyeMesh(eye, gaze, up, assetName);
         }
 
         private static Material EnsureMaterial(string characterName, Texture2D texture)

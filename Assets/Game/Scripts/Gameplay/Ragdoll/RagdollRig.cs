@@ -153,10 +153,10 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "passes through zero at the top of every bounce, so without this it stands up mid-air.")]
         [SerializeField] private float settleSeconds = 0.45f;
 
-        [Tooltip("Longest a knockdown may hold a body, seconds — settled or not.\n\n" +
-                 "This is the GDC-L1-FEEL-0002 ceiling and it is not a tuning nicety: a body " +
-                 "wedged against a rock never settles, and without a ceiling a knocked-down PLAYER " +
-                 "never gets control back. Death ignores it, because a corpse has nowhere to be.")]
+        [Tooltip("Longest a CORPSE keeps simulating before it is called settled and put to sleep, " +
+                 "seconds — settled or not. Bounds how long a body wedged against a rock grinds " +
+                 "there. Knockdown timing is not this: it belongs to KnockdownTuning on the body's " +
+                 "RagdollController.")]
         [SerializeField] private float maxLimpSeconds = 4f;
 
         [Header("Recovery")]
@@ -274,9 +274,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <para>
         /// A corpse and a captive are both limp and <see cref="RagdollBudget"/> cannot otherwise
         /// tell them apart — so a firefight across the valley filling the budget would freeze a
-        /// netted player, and <c>PlayerRagdoll.Update</c> restores control on <c>!IsLimp</c>, which
-        /// stands them straight back up. The net is still drawn around them and still holding, and
-        /// nothing is logged. Set for the duration of the hold and cleared on release.
+        /// netted player, and <c>RagdollController.TickStandUp</c> restores control on
+        /// <c>!IsLimp</c>, which stands them straight back up. The net is still drawn around them
+        /// and still holding, and nothing is logged. Set for the duration of the hold and cleared
+        /// on release.
         /// </para>
         ///
         /// <para>
@@ -287,8 +288,8 @@ namespace SpaceGame.Gameplay.Ragdoll
         ///
         /// <para>
         /// Two routes clear it, not one. The release is the ordinary one; DEATH is the other, and
-        /// both <c>PlayerRagdoll.OnDeath</c> and <c>AgentRagdoll.OnDeath</c> drop the claim on the
-        /// spot. A corpse is exactly the thing the budget exists to reclaim, and it can no longer
+        /// <c>RagdollController.OnDeath</c> drops the claim on the spot. A corpse is exactly the
+        /// thing the budget exists to reclaim, and it can no longer
         /// struggle out — so a captive who dies still netted must not take an un-evictable place in
         /// the budget with them and keep it for the rest of the session.
         /// </para>
@@ -349,14 +350,22 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>
         /// Is the body at rest, or has it been limp long enough that the answer stops mattering?
         ///
-        /// The timeout half is the ceiling described on <see cref="maxLimpSeconds"/>: a knockdown
-        /// that never settles must still end.
+        /// The timeout half is the ceiling described on <see cref="maxLimpSeconds"/>: a body that
+        /// never settles must still be put to sleep, and a corpse still be evictable.
         /// </summary>
         public bool IsSettled =>
             !IsLimp
             || limpSeconds >= maxLimpSeconds
             || RagdollSkeleton.IsSettled(FastestLinearSpeed, FastestAngularSpeed, slowSeconds,
                                          settleLinearSpeed, settleAngularSpeed, settleSeconds);
+
+        /// <summary>
+        /// Has the body actually stopped moving — the velocity half of <see cref="IsSettled"/> with no
+        /// timeout. The controller supplies its own ceiling (KnockdownTuning.settleGraceSeconds).
+        /// </summary>
+        public bool IsAtRest =>
+            !IsLimp || RagdollSkeleton.IsSettled(FastestLinearSpeed, FastestAngularSpeed, slowSeconds,
+                                                 settleLinearSpeed, settleAngularSpeed, settleSeconds);
 
         /// <summary>
         /// The fastest bone, not the hips.

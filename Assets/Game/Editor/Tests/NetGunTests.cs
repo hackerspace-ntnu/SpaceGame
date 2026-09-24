@@ -98,15 +98,11 @@ namespace SpaceGame.EditorTools
         private const int FlightStepCeiling = 600;
 
         /// <summary>
-        /// The two adapters that implement the hold. Both are read as text below: the guards that
-        /// make a hold indefinite have no runtime state to assert against, and the components need
-        /// an Awake that AddComponent does not raise in EditMode.
+        /// The one base both ragdoll adapters inherit the hold from. Read as text below: the guards
+        /// that make a hold indefinite have no runtime state to assert against.
         /// </summary>
-        private const string PlayerRagdollSource =
-            "Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs";
-
-        private const string AgentRagdollSource =
-            "Assets/Game/Scripts/Gameplay/Ragdoll/AgentRagdoll.cs";
+        private const string RagdollControllerSource =
+            "Assets/Game/Scripts/Gameplay/Ragdoll/RagdollController.cs";
 
         private readonly System.Collections.Generic.List<GameObject> spawned =
             new System.Collections.Generic.List<GameObject>();
@@ -1389,7 +1385,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ANetLetsGoOfACaptiveWhoDies()
         {
-            // A corpse is not a captive. PlayerRagdoll.OnDeath drops the hold's own claim, but it
+            // A corpse is not a captive. RagdollController.OnDeath drops the hold's own claim, but it
             // knows nothing about the net — so without a death subscription here the binding
             // outlives the player: Update goes on reading a dead player's keys (there is no menu
             // open over a corpse, so the menu gate does not stop it) and the struggle keeps being
@@ -3391,7 +3387,7 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The source of one ragdoll adapter, failed by name when the file has moved.
+        /// The source of the ragdoll controller, failed by name when the file has moved.
         ///
         /// EditMode tests run with the project root as their working directory — the assumption
         /// LeashConstraintTests already makes with a bare "Assets/..." path.
@@ -3410,37 +3406,37 @@ namespace SpaceGame.EditorTools
             return at;
         }
 
-        [TestCase(PlayerRagdollSource)]
-        [TestCase(AgentRagdollSource)]
-        public void Hold_IsNotEndedByTheSettleCeiling(string path)
+        [Test]
+        public void Hold_IsNotEndedByTheSettleCeiling()
         {
-            // RagdollRig.maxLimpSeconds is 4, and IsSettled goes true there whether the body agrees
-            // or not. That is correct for a knockdown and must NOT end a hold: a captive is up when
-            // the pool runs out, which can be thirty seconds or two minutes later. Settling means
-            // the bodies sleep, which is the look we want — it does not mean standing up.
+            // KnockdownTuning.settleGraceSeconds stands a knocked-down body up whether it has come
+            // to rest or not. That is correct for a knockdown and must NOT end a hold: a captive is
+            // up when the pool runs out, which can be thirty seconds or two minutes later. Settling
+            // means the bodies sleep, which is the look we want — it does not mean standing up.
             //
             // Pinned by reading the source, because the distinction lives in a control-flow guard
             // with no runtime state to assert on — the same technique LeashConstraintTests uses to
             // pin the absence of a SetTethered call.
             //
-            // Both adapters, because they are two independent copies of the same guard: with only
-            // the player's pinned, deleting the creature's leaves the suite green while every
-            // netted animal stands back up on the next budget eviction.
+            // One file, because both adapters inherit the guard from RagdollController; before
+            // that they were two independent copies and each had to be pinned.
             //
-            // Every index is measured from the start of Update rather than from the start of the
-            // file. A bare IndexOf over the whole source is satisfied by a guard sitting in
+            // Every index is measured from the start of TickStandUp rather than from the start of
+            // the file. A bare IndexOf over the whole source is satisfied by a guard sitting in
             // HoldDown, in ReleaseHold or in a comment, none of which keeps anybody down.
+            const string path = RagdollControllerSource;
             string source = RagdollSource(path);
 
-            int update = source.IndexOf("private void Update()", System.StringComparison.Ordinal);
-            Assert.Greater(update, -1, path + " lost its Update.");
+            int update = source.IndexOf("private void TickStandUp(float now)",
+                                        System.StringComparison.Ordinal);
+            Assert.Greater(update, -1, path + " lost its TickStandUp.");
 
-            int guard = IndexAfter(source, "if (IsHeld) return;", update,
-                                   path + ".Update lost its held guard.");
+            int guard = IndexAfter(source, "IsHeld) return;", update,
+                                   path + ".TickStandUp lost its held guard.");
             int budgetRescue = IndexAfter(source, "if (!rig.IsLimp)", update,
-                                          path + ".Update lost its budget-eviction rescue.");
-            int recovery = IndexAfter(source, "if (Time.time < downUntil", update,
-                                      path + ".Update lost its settle-and-timer recovery.");
+                                          path + ".TickStandUp lost its budget-eviction rescue.");
+            int recovery = IndexAfter(source, "KnockdownPolicy.ShouldStandUp(", update,
+                                      path + ".TickStandUp lost its settle-and-timer recovery.");
 
             Assert.Less(guard, budgetRescue,
                         path + ": the held guard has to come before the `!rig.IsLimp` rescue as " +
@@ -3451,12 +3447,11 @@ namespace SpaceGame.EditorTools
 
             Assert.Less(guard, recovery,
                         path + ": the held guard has to come BEFORE the settle-and-timer " +
-                        "recovery, or a held captive stands up four seconds into a two-minute tie.");
+                        "recovery, or a held captive stands up a few seconds into a two-minute tie.");
         }
 
-        [TestCase(PlayerRagdollSource)]
-        [TestCase(AgentRagdollSource)]
-        public void Hold_ClaimsTheBudgetExemptionAndGivesItBack(string path)
+        [Test]
+        public void Hold_ClaimsTheBudgetExemptionAndGivesItBack()
         {
             // The exemption is the whole reason a firefight across the valley cannot free a
             // captive, and nothing else in this file can see it: the components need Awake to
@@ -3469,6 +3464,7 @@ namespace SpaceGame.EditorTools
             // captive, and OnRevive, so a body that somehow kept the claim is not barred from ever
             // being netted again. Death and revive empty the whole holder set rather than giving
             // one claim back, because they end every hold at once.
+            const string path = RagdollControllerSource;
             string source = RagdollSource(path);
 
             int holdDown = source.IndexOf("public bool HoldDown(object holder)",
@@ -3501,11 +3497,11 @@ namespace SpaceGame.EditorTools
 
             int givenBack = IndexAfter(source, "rig.BudgetExempt = false;", releaseHold,
                                        path + ".ReleaseHold never gives the exemption back.");
-            int releaseEnd = IndexAfter(source, "downUntil = 0f;", releaseHold,
-                                        path + ".ReleaseHold stopped clearing downUntil.");
+            int releaseEnd = IndexAfter(source, "standAt = Time.time;", releaseHold,
+                                        path + ".ReleaseHold stopped restarting the stand-up clock.");
             Assert.Less(givenBack, releaseEnd, path + ": the release has to be inside ReleaseHold.");
 
-            AssertClearsTheClaim(source, path, "OnDeath", "Suspend();",
+            AssertClearsTheClaim(source, path, "OnDeath", "Suspend(standing: false);",
                                  "a captive who dies still netted keeps an un-evictable place in " +
                                  "RagdollBudget for the rest of the session.");
 

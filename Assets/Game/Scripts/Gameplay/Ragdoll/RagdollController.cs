@@ -1,0 +1,379 @@
+using System.Collections.Generic;
+using SpaceGame.Core;
+using SpaceGame.Teleporting;
+using UnityEngine;
+
+namespace SpaceGame.Gameplay.Ragdoll
+{
+    /// <summary>
+    /// Decides WHEN a body goes limp and for how long, for any body — creature or player.
+    ///
+    /// <para>
+    /// Everything here used to exist twice, once in <see cref="AgentRagdoll"/> and once in
+    /// <see cref="PlayerRagdoll"/>, and the two copies had started to drift (only one refused a
+    /// knockdown on a carried body). What differs between them is WHICH layers own the transform
+    /// and must be switched off — a creature's brain, motor and legs; a player's input, look and
+    /// camera — and that is all the subclasses supply.
+    /// </para>
+    ///
+    /// <para>
+    /// Down-time comes from the event, not from the body: <see cref="KnockdownPolicy"/> prices it on
+    /// the deciding machine and <c>NetMsg.Knockdown</c> carries it to everyone, so every machine
+    /// stands the body up together. Death has no down-time: a corpse stays limp until it despawns.
+    /// </para>
+    /// </summary>
+    [RequireComponent(typeof(RagdollRig))]
+    public abstract class RagdollController : MonoBehaviour
+    {
+        [SerializeField] private KnockdownTuning knockdown = new KnockdownTuning();
+
+        protected RagdollRig rig;
+        protected HealthComponent health;
+
+        /// <summary>
+        /// Everything currently holding this body down with no end time — a net, a tie, both at
+        /// once. See <see cref="HoldDown"/>.
+        ///
+        /// <para>
+        /// A set of holders rather than a flag, the same shape <c>CarriedBody</c> uses and
+        /// for the same reason: two systems can want one body down, and the one that lets go first
+        /// must not stand it up. A captor hands back the token it claimed with, so forgetting is a
+        /// compile error rather than a captive who gets up on their own.
+        /// </para>
+        /// <para>
+        /// Identity only — nothing is ever read off a holder. <see cref="object"/> rather than an
+        /// interface so a captor needs to implement nothing at all to take part.
+        /// </para>
+        /// </summary>
+        private readonly HashSet<object> holders = new HashSet<object>();
+
+        private bool suspended;
+        private bool dead;
+
+        /// <summary>Earliest this body may stand up. See <see cref="OnKnockdown"/>.</summary>
+        private float standAt;
+
+        /// <summary>When this body last stood up — what hit immunity is measured from.</summary>
+        private float stoodUpAt = float.NegativeInfinity;
+
+        public KnockdownTuning Tuning => knockdown;
+
+        /// <summary>Is something holding this body down right now?</summary>
+        public bool IsHeld => holders.Count > 0;
+
+        /// <summary>
+        /// Is this body on the ground right now, by any route — a net, a tie, or a blast?
+        ///
+        /// Deliberately broader than <see cref="IsHeld"/>: a body knocked flat by a repulsor blast
+        /// is just as tieable as a netted one, and refusing that would make the two feel like
+        /// unrelated systems.
+        /// </summary>
+        public bool IsHeldOrDown => IsHeld || (rig != null && rig.IsLimp);
+
+        /// <summary>Can this body be put on the ground right now, or must it be leapt instead?</summary>
+        public bool CanBeKnockedDown => isActiveAndEnabled && !RefusesToGoDown;
+
+        // ── What the subclass supplies ────────────────────────────────────────
+
+        /// <summary>Does THIS machine decide where the body ends up? See <see cref="RagdollRig.Drives"/>.</summary>
+        protected abstract bool Drives { get; }
+
+        /// <summary>
+        /// How fast the body was already moving. Read BEFORE suspending: suspending switches off
+        /// the very layer it is read from, and taken after, it is a confident zero — a body felled
+        /// mid-sprint then drops as if switched off.
+        /// </summary>
+        protected abstract Vector3 CarriedVelocity { get; }
+
+        /// <summary>
+        /// Is the body somebody else's to move — a rider in a saddle or a seat? A rider is PARENTED
+        /// to what carries it, so one that goes limp there is dragged wherever it goes, through the
+        /// ground included — and on a client that is a body the server does not own and cannot put
+        /// back. Refuses knockdowns and holds alike.
+        /// </summary>
+        protected abstract bool RefusesToGoDown { get; }
+
+        /// <summary>The velocity a killing blow hands the body.</summary>
+        protected abstract Vector3 DeathImpulse();
+
+        /// <summary>Stop every layer that writes the transform or the bones. Called once per suspension.</summary>
+        /// <param name="standing">
+        /// Keep the body on its feet: nothing is going to go limp under it. See
+        /// <see cref="HoldStandingClaim"/>.
+        /// </param>
+        protected abstract void SuspendLayers(bool standing);
+
+        /// <summary>Hand the body back to those layers, at the place it came to rest.</summary>
+        protected abstract void RestoreLayers(in TeleportMove move);
+
+        /// <summary>Something outside this component that forbids standing up — a player's death screen.</summary>
+        protected virtual bool ControlsLocked => false;
+
+        // ── Lifecycle ─────────────────────────────────────────────────────────
+
+        protected virtual void Awake()
+        {
+            rig = GetComponent<RagdollRig>();
+            health = GetComponent<HealthComponent>();
+        }
+
+        protected virtual void OnEnable()
+        {
+            this.NetOn(NetMsg.Knockdown, OnKnockdown);
+            if (health != null) health.OnDeath += OnDeath;
+            if (health != null) health.OnRevive += OnRevive;
+        }
+
+        protected virtual void OnDisable()
+        {
+            this.NetOff(NetMsg.Knockdown, OnKnockdown);
+            if (health != null) health.OnDeath -= OnDeath;
+            if (health != null) health.OnRevive -= OnRevive;
+        }
+
+        private void Update() => TickStandUp(Time.time);
+
+        /// <summary>The stand-up decision, with the clock passed in so it can be tested.</summary>
+        private void TickStandUp(float now)
+        {
+            // Death outranks it: a knockdown that landed on the same frame as the killing blow must
+            // not stand the corpse back up. A hold has no timer and no settle condition to wait
+            // for, so every reason to stand up below is the wrong one — and it has to sit ABOVE the
+            // rescue as well as the timer, or a captive stands up the moment their rig stops
+            // being limp for any reason at all.
+            if (!suspended || dead || ControlsLocked || IsHeld) return;
+
+            // Something took the body off physics while it was suspended. RagdollBudget only
+            // freezes corpses, so a living body should never be here — this is the belt to that
+            // brace. Nothing will come to rest or say so, and leaving it suspended is a knockdown
+            // that never ends: a creature with its brain switched off, a player unable to move.
+            if (!rig.IsLimp)
+            {
+                Restore();
+                return;
+            }
+
+            // The shared floor first, then this machine's own body, then a ceiling. A body still in
+            // the air when the floor expires keeps tumbling; one that landed early lies there for
+            // the rest of the beat (GDC-L1-FEEL-0007); one wedged against a rock that never comes
+            // to rest still gets up (GDC-L1-FEEL-0002).
+            if (KnockdownPolicy.ShouldStandUp(now, standAt, rig.IsAtRest, knockdown.settleGraceSeconds))
+                Restore();
+        }
+
+        // ── What starts it ────────────────────────────────────────────────────
+
+        private void OnDeath()
+        {
+            dead = true;
+
+            // Death outranks every hold. What is dropped is the holds' CLAIM, not the limpness: the
+            // corpse stays down, it just stops being a captive the budget may not reclaim. Without
+            // this a body netted at the moment it dies keeps its place in RagdollBudget for the
+            // rest of the session, and enough of them stop the budget bounding anything.
+            //
+            // Cleared directly rather than through ReleaseHold, and the difference is not cosmetic.
+            // ReleaseHold releases ONE claim and would leave every other captor's standing; death
+            // ends all of them at once.
+            holders.Clear();
+            rig.BudgetExempt = false;
+            rig.IsCorpse = true;
+
+            // True both for a save being loaded and for a remote death arriving through
+            // RestoreHealth. Both want the same thing: the body lies down where it is, without
+            // being thrown again — a corpse relaunched on every load walks its way across the
+            // desert one reload at a time.
+            bool restoring = health != null && health.IsRestoring;
+            Vector3 carried = restoring ? Vector3.zero : CarriedVelocity;
+
+            Suspend(standing: false);
+            rig.GoLimp(restoring ? Vector3.zero : DeathImpulse() + carried,
+                       settled: restoring, drives: Drives);
+        }
+
+        private void OnRevive()
+        {
+            dead = false;
+
+            // Belt to OnDeath's braces. Unreachable today — death always clears the claims first,
+            // and HealthComponent only raises this on a dead-to-alive transition — but the failure
+            // if it ever were reachable is permanent and silent: Restore calls rig.Recover, which
+            // unregisters from the budget while leaving the claim set standing, and HoldDown
+            // answers a stale claim rather than taking a fresh one.
+            holders.Clear();
+            rig.BudgetExempt = false;
+            rig.IsCorpse = false;
+
+            // Not gated on IsLimp: a corpse RagdollBudget froze is no longer limp but is still
+            // suspended, and has to be handed back as much as one still lying limp. Restore
+            // returns on its own when nothing was suspended.
+            Restore();
+        }
+
+        /// <summary>
+        /// Every machine: go limp for <c>A</c> ms, thrown at <c>P</c>. <c>B</c> is the
+        /// <see cref="RagdollCause"/>, for diagnostics and immunity bookkeeping.
+        ///
+        /// <para>
+        /// The duration travels with the message rather than being decided locally because it is
+        /// the only part of the recovery every machine can agree on. Settling cannot be: a watcher
+        /// does not simulate the flight — it takes the body's position off the wire — so its
+        /// ragdoll comes to rest on a different schedule from the one that does. Sharing the floor
+        /// and letting each machine wait out its own body on top of it keeps them within a frame or
+        /// two of each other without a second round trip to say "get up now".
+        /// </para>
+        /// </summary>
+        private void OnKnockdown(in NetArg arg, ulong sender)
+        {
+            if (dead || RefusesToGoDown) return;
+
+            Vector3 carried = CarriedVelocity;
+
+            Suspend(standing: false);
+            rig.GoLimp(arg.P + carried, settled: false, drives: Drives);
+
+            float seconds = arg.A > 0 ? arg.A / 1000f : knockdown.minSeconds;
+            standAt = Mathf.Max(standAt, Time.time + seconds);
+        }
+
+        // ── Holds ─────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Go limp and STAY limp until every holder lets go.
+        ///
+        /// <para>
+        /// Distinct from <see cref="OnKnockdown"/>, which recovers on its own timer, because the
+        /// end of this one is not known when it starts: a captive is up when they have struggled
+        /// out, and how long that takes is decided on the server against a pool being drained by
+        /// their own inputs. Nothing about the duration can travel, so nothing tries to.
+        /// </para>
+        /// <para>
+        /// The callers (<c>SnaredBody.Bind</c>, <c>SnareTether.Bind</c>, <c>Hogtie</c>,
+        /// <c>BodyHold</c>) reach every machine, so this runs everywhere, and the Drives split then
+        /// decides which half of the ragdoll plumbing this machine gets, exactly as for a
+        /// knockdown. Until <see cref="ReleaseHold"/> runs, the rig is exempt from
+        /// <c>RagdollBudget</c> and this component ignores every other reason to stand up.
+        /// </para>
+        /// <para>
+        /// The refusal has to be visible to the caller rather than silent, because a net on a
+        /// ridden mount would otherwise be a no-op with a clean console. The captor is expected to
+        /// fall back to whatever restraint it has instead — <c>SnareTether.Bind</c> caps a
+        /// NavMeshAgent's speed when, and only when, this answers false, and has nothing to fall
+        /// back on for a creature with no NavMeshAgent, a legged rig among them. This only says
+        /// whether the body itself went down.
+        /// </para>
+        /// </summary>
+        /// <returns>
+        /// True once the body is actually limp and held. FALSE means the hold did not take and the
+        /// caller must not treat the body as held — it is dead, something else is carrying it (see
+        /// <see cref="RefusesToGoDown"/>), or the rig declined to go limp at all.
+        /// <c>RagdollRig.GoLimp</c> returns without a word when the skeleton build kept no bones,
+        /// and a caller that assumed otherwise would leave a body suspended with its layers switched
+        /// off and nothing in the console: the <c>!rig.IsLimp</c> rescue in
+        /// <see cref="TickStandUp"/> is skipped while any claim is still standing.
+        /// </returns>
+        public bool HoldDown(object holder)
+        {
+            // A corpse is already down and is not getting up. A hold that took one would set
+            // BudgetExempt on a body nothing will ever release — the leak OnDeath exists to close,
+            // arriving through a second door.
+            if (holder == null || dead) return false;
+
+            // Somebody else already has this body down. Take a claim on it and say so: the work
+            // below has been done, and doing it twice would record the suspended state as this
+            // body's normal one.
+            if (IsHeld)
+            {
+                holders.Add(holder);
+                return true;
+            }
+
+            if (!CanBeKnockedDown) return false;
+
+            holders.Add(holder);
+            Vector3 carried = CarriedVelocity;
+
+            Suspend(standing: false);
+            rig.BudgetExempt = true;
+            rig.GoLimp(carried, settled: false, drives: Drives);
+
+            // Asked of the rig afterwards rather than pre-checked, so the refusal covers every
+            // reason GoLimp can decline rather than only the one we thought of. Everything this
+            // method did is undone, suspend included, or the refusal is worse than the failure it
+            // is reporting.
+            if (rig.IsLimp) return true;
+
+            holders.Remove(holder);
+            rig.BudgetExempt = false;
+            Restore();
+            return false;
+        }
+
+        /// <summary>
+        /// Claim the body WITHOUT laying it down — the same claim set, the same release and the
+        /// same refusal as <see cref="HoldDown"/>, so a captive who is netted AND frozen is held
+        /// once and stands up once. See <c>PlayerRagdoll.HoldStanding</c>.
+        /// </summary>
+        protected bool HoldStandingClaim(object holder)
+        {
+            if (holder == null || dead) return false;
+
+            if (IsHeld)
+            {
+                holders.Add(holder);
+                return true;
+            }
+
+            if (RefusesToGoDown) return false;
+
+            holders.Add(holder);
+            Suspend(standing: true);
+            return true;
+        }
+
+        /// <summary>
+        /// Give up one claim. The body gets up only once the LAST claim is given up — the rule
+        /// <c>CarriedBody.Release</c> follows, so a net rotting off a hogtied captive does
+        /// not untie them.
+        ///
+        /// Safe to call with a token that was never claimed, or after death has cleared the set.
+        /// </summary>
+        public void ReleaseHold(object holder)
+        {
+            if (holder == null || !holders.Remove(holder)) return;
+            if (IsHeld) return;
+
+            rig.BudgetExempt = false;
+
+            // Not Restore() directly: TickStandUp owns the recovery, and it waits for the body to
+            // come to rest, or for the settle grace to run out, so a body released mid-tumble does
+            // not snap upright out of a roll. Now, not zero: the grace is measured from standAt,
+            // and a floor of zero would have run out long ago.
+            standAt = Time.time;
+        }
+
+        // ── Handing the body over and back ────────────────────────────────────
+
+        /// <summary>
+        /// Idempotent: a body knocked down twice while already down must not record the suspended
+        /// state a second time, or resuming restores the values captured mid-ragdoll.
+        /// </summary>
+        private void Suspend(bool standing)
+        {
+            if (suspended) return;
+            suspended = true;
+            SuspendLayers(standing);
+        }
+
+        private void Restore()
+        {
+            if (!suspended) return;
+            suspended = false;
+            standAt = 0f;
+            stoodUpAt = Time.time;
+
+            TeleportMove move = rig.Recover();
+            RestoreLayers(move);
+        }
+    }
+}

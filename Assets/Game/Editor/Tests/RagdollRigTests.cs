@@ -224,6 +224,48 @@ namespace SpaceGame.EditorTools
                 "back, or the creature comes back to life with its animation switched off");
         }
 
+        /// <summary>A <c>NetMsg.Knockdown</c> as every machine receives it: <c>A</c> = ms down, <c>B</c> = cause.</summary>
+        private static void Knock(Component body, float seconds, RagdollCause cause = RagdollCause.Blast)
+        {
+            var arg = new SpaceGame.Core.NetArg { P = Vector3.zero, A = Mathf.RoundToInt(seconds * 1000f), B = (int)cause };
+            Invoke(body, "OnKnockdown", arg, 0UL);
+        }
+
+        [Test]
+        public void Controller_StandsUpOnlyAfterTheEventsDuration()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+
+            Knock(ragdoll, 2f);
+            Assert.IsTrue(rig.IsLimp);
+
+            Invoke(ragdoll, "TickStandUp", Time.time + 1.9f);
+            Assert.IsTrue(rig.IsLimp, "stood up before the 2 s the event asked for");
+
+            Invoke(ragdoll, "TickStandUp", Time.time + 2f + ragdoll.Tuning.settleGraceSeconds + 0.01f);
+            Assert.IsFalse(rig.IsLimp, "never stood up");
+        }
+
+        [Test]
+        public void Knockdown_RefusedWhileRiding()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<RidingTestRagdoll>();
+            Invoke(ragdoll, "Awake");
+
+            Knock(ragdoll, 1f);
+
+            Assert.IsFalse(rig.IsLimp, "a rider went limp in the saddle and will be dragged through the ground");
+        }
+
+        /// <summary>A controller that answers "someone is carrying me" — the saddle/seat case.</summary>
+        private sealed class RidingTestRagdoll : AgentRagdoll
+        {
+            protected override bool RefusesToGoDown => true;
+        }
+
         [Test]
         public void Joints_TwistAboutTheirOwnBone()
         {

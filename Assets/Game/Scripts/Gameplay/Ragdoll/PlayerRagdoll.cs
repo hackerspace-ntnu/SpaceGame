@@ -226,7 +226,10 @@ namespace SpaceGame.Gameplay.Ragdoll
             rig.BudgetExempt = false;
             rig.IsCorpse = false;
 
-            if (rig.IsLimp) Restore();
+            // Not gated on IsLimp: a corpse RagdollBudget froze is no longer limp but is still
+            // suspended, and has to be handed back as much as one still lying limp. Restore
+            // returns on its own when nothing was suspended.
+            Restore();
         }
 
         /// <summary>A blast: impulse in <c>P</c>, seconds down in <c>A</c> as milliseconds.</summary>

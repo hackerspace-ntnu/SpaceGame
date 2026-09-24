@@ -3,6 +3,7 @@ using System.Reflection;
 using NUnit.Framework;
 using SpaceGame.Gameplay.Ragdoll;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace SpaceGame.EditorTools
 {
@@ -36,6 +37,24 @@ namespace SpaceGame.EditorTools
 
             Physics.simulationMode = originalSimulationMode;
             Physics.gravity = originalGravity;
+            LogAssert.ignoreFailingMessages = false;
+        }
+
+        /// <summary>
+        /// Call <see cref="RagdollRig.Freeze"/> from an EditMode test.
+        ///
+        /// <para>
+        /// Freeze tears the skeleton down with <c>Object.Destroy</c>, which is right at runtime and
+        /// logs "Destroy may not be called from edit mode" once per joint, created collider and body
+        /// here. How many of each the rig creates is its own business, so rather than expect a count
+        /// that breaks whenever the build changes, the errors are tolerated for the rest of the test.
+        /// TearDown switches that back off.
+        /// </para>
+        /// </summary>
+        private static void FreezeInEditMode(RagdollRig rig)
+        {
+            LogAssert.ignoreFailingMessages = true;
+            rig.Freeze();
         }
 
         private static void StepPhysics(int steps)
@@ -174,11 +193,34 @@ namespace SpaceGame.EditorTools
             rig.GoLimp(Vector3.zero);
             Assert.IsFalse(animator.enabled);
 
-            rig.Freeze();
+            FreezeInEditMode(rig);
             rig.Recover();
 
             Assert.IsTrue(animator.enabled,
                 "Freeze took the body off physics; nothing else will ever switch the animator on");
+        }
+
+        [Test]
+        public void AgentRagdoll_ReviveAfterTheBudgetFrozeTheCorpse_HandsTheBodyBack()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            Animator animator = root.AddComponent<Animator>();
+            Invoke(rig, "Awake");
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+
+            Invoke(ragdoll, "OnDeath");
+            Assert.IsTrue(rig.IsCorpse, "death has to mark the body a corpse, or the budget never takes it");
+
+            FreezeInEditMode(rig);
+            Assert.IsFalse(rig.IsLimp, "the fixture has to reproduce a frozen corpse: suspended but not limp");
+
+            Invoke(ragdoll, "OnRevive");
+
+            Assert.IsFalse(rig.IsCorpse);
+            Assert.IsTrue(animator.enabled,
+                "a corpse the budget froze is not limp but is still suspended — revive has to hand it " +
+                "back, or the creature comes back to life with its animation switched off");
         }
     }
 }

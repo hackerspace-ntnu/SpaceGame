@@ -109,6 +109,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a flat ground apron appears around a generated rock | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a fleeing creature walks toward the thing it is running from | [AgentSystem](systems/AgentSystem.md) |
 | a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0) | [EditorTooling](systems/EditorTooling.md) |
+| a frozen player hit by a blast or a hard shot collapses into a heap with the camera stuck inside their head | [Combat](systems/Combat.md) |
 | a gadget with a tank saves its fill but a client never sees it | [SupplyCharge](systems/SupplyCharge.md) |
 | a gameplay hotkey still fires while a menu or the chat box is open | [CoreServices](systems/CoreServices.md) |
 | a gauge draws a full bar before the player has finished spawning | [Visor](systems/Visor.md) |
@@ -1512,4 +1513,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1109 symptoms, 375 paths, 57 docs -->
+<!-- 1110 symptoms, 375 paths, 57 docs -->

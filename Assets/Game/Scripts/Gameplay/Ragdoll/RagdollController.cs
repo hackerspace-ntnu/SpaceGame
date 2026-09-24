@@ -85,7 +85,22 @@ namespace SpaceGame.Gameplay.Ragdoll
         public bool IsHeldOrDown => IsHeld || (rig != null && rig.IsLimp);
 
         /// <summary>Can this body be put on the ground right now, or must it be leapt instead?</summary>
-        public bool CanBeKnockedDown => isActiveAndEnabled && !RefusesToGoDown;
+        public bool CanBeKnockedDown => isActiveAndEnabled && !RefusesToGoDown && !HeldStanding;
+
+        /// <summary>
+        /// Is something holding this body ON ITS FEET — a claim taken through
+        /// <see cref="HoldStandingClaim"/>, with the collider on and the camera still in the helmet?
+        ///
+        /// <para>
+        /// Such a body refuses knockdowns the way a rider does. Limp under a standing hold it would
+        /// be a heap on the sand with its first-person camera inside a tumbling skull — the statue
+        /// the freeze exists to show thrown away — and it would stay down for as long as the hold
+        /// lasts, however short the knockdown, because <see cref="TickStandUp"/> waits for the last
+        /// claim. A body held DOWN is different: it is already limp, and a second knockdown only
+        /// adds to its motion.
+        /// </para>
+        /// </summary>
+        private bool HeldStanding => IsHeld && !rig.IsLimp;
 
         // ── What the subclass supplies ────────────────────────────────────────
 
@@ -374,7 +389,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private void OnKnockdown(in NetArg arg, ulong sender)
         {
-            if (dead || RefusesToGoDown) return;
+            // The same refusals Knock made on the deciding machine, asked again here: a standing
+            // hold is claimed on every machine, and a watcher that laid the body down anyway would
+            // show a heap where everyone else sees a statue.
+            if (dead || RefusesToGoDown || HeldStanding) return;
 
             Vector3 carried = CarriedVelocity;
 

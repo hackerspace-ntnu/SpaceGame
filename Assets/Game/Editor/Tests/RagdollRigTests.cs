@@ -339,6 +339,34 @@ namespace SpaceGame.EditorTools
                 "a body that never went down was made immune to hits as though it had stood up");
         }
 
+        /// <summary>
+        /// A freeze holds a player ON THEIR FEET; a blast or a hit must not lay the statue down —
+        /// neither through the deciding machine's door (<c>Knock</c>) nor on a machine that is
+        /// only told about it (<c>OnKnockdown</c>), or the two disagree.
+        /// </summary>
+        [Test]
+        public void StandingHold_RefusesKnockdowns()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<StandingHoldTestRagdoll>();
+            Invoke(ragdoll, "Awake");
+            Invoke(ragdoll, "OnEnable");
+
+            Assert.IsTrue(ragdoll.HoldStanding(new object()), "the fixture has to hold the body standing");
+
+            RagdollController.Knock(root, RagdollCause.Blast, new Vector3(20f, 5f, 0f));
+            Assert.IsFalse(rig.IsLimp, "a blast laid a body held standing on the ground");
+
+            Knock(ragdoll, 2f);
+            Assert.IsFalse(rig.IsLimp, "a machine told of a knockdown laid the statue down anyway");
+        }
+
+        /// <summary>Exposes the standing claim <c>PlayerRagdoll.HoldStanding</c> takes.</summary>
+        private sealed class StandingHoldTestRagdoll : AgentRagdoll
+        {
+            public bool HoldStanding(object holder) => HoldStandingClaim(holder);
+        }
+
         /// <summary>Reads one of <see cref="RagdollController"/>'s private fields.</summary>
         private static T ControllerField<T>(RagdollController ragdoll, string name)
         {

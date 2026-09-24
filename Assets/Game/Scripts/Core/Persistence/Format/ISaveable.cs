@@ -90,24 +90,35 @@ namespace SpaceGame.Persistence
     }
 
     /// <summary>
-    /// Implemented by a component whose object's live rotation is not the one a save should keep.
+    /// Implemented by a component whose object's live pose is not the one a save should keep.
     ///
-    /// A knocked-down body is the case this exists for: while limp its root carries the body's
-    /// tilt so that every watcher can rebuild the pelvis from it, but a knockdown is not saved — on
-    /// load the body is alive and standing, and nothing would ever turn a root recorded lying on its
-    /// side upright again. The object answers for itself here rather than every place that records
-    /// a pose learning about ragdolls. Read it through <see cref="SavedRotation.Of"/>.
+    /// <para>
+    /// A ragdoll is the case this exists for. While limp its root sits AT the pelvis and carries
+    /// the body's tilt, so that every watcher can rebuild the pelvis from it — but a load puts the
+    /// root back and the model on it in its standing pose. A knocked-down body is alive and
+    /// standing on load, so it wants its tilt dropped; a corpse goes limp again, so it wants the
+    /// root placed where its standing pose puts the pelvis back where it lay, rather than a hip
+    /// height further along the tilted up axis. The object answers for itself here rather than
+    /// every place that records a pose learning about ragdolls. Read it through
+    /// <see cref="SavedPose"/>.
+    /// </para>
     /// </summary>
-    public interface ISavedRotation
+    public interface ISavedPose
     {
+        /// <summary>The position to record for this object's transform right now.</summary>
+        Vector3 PositionToSave { get; }
+
         /// <summary>The rotation to record for this object's transform right now.</summary>
         Quaternion RotationToSave { get; }
     }
 
-    /// <summary>The one way a pose capture reads a rotation. See <see cref="ISavedRotation"/>.</summary>
-    public static class SavedRotation
+    /// <summary>The one way a pose capture reads a pose. See <see cref="ISavedPose"/>.</summary>
+    public static class SavedPose
     {
-        public static Quaternion Of(Transform transform) =>
-            transform.TryGetComponent(out ISavedRotation saved) ? saved.RotationToSave : transform.rotation;
+        public static Vector3 PositionOf(Transform transform) =>
+            transform.TryGetComponent(out ISavedPose saved) ? saved.PositionToSave : transform.position;
+
+        public static Quaternion RotationOf(Transform transform) =>
+            transform.TryGetComponent(out ISavedPose saved) ? saved.RotationToSave : transform.rotation;
     }
 }

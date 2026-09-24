@@ -296,6 +296,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | after closing the body screen the view is black with only the HUD, and there is no sound | [BodyEquipment](systems/BodyEquipment.md) |
 | after landing I could not look around from the seat until I stood up | [Cutscenes](systems/Cutscenes.md) |
 | after loading a save the rider is standing next to the mount instead of in the seat | [Vehicles](systems/Vehicles.md) |
+| after loading, a corpse lies stiff as a board, floating above the sand and shifted a body length from where it fell | [Combat](systems/Combat.md) |
 | after reloading, the ship hangs in the sky nose-down and never comes down level | [PlayerShip](systems/PlayerShip.md) |
 | after the crash-landing intro the player walks and steers but never falls | [WorldStreaming](systems/WorldStreaming.md) |
 | after loading a save made while knocked down, the player stands tilted | [Combat](systems/Combat.md) |
@@ -1515,4 +1516,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1112 symptoms, 375 paths, 57 docs -->
+<!-- 1113 symptoms, 375 paths, 57 docs -->

@@ -43,7 +43,7 @@ namespace SpaceGame.Gameplay.Ragdoll
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public class RagdollRig : MonoBehaviour, ISavedRotation
+    public class RagdollRig : MonoBehaviour, ISavedPose
     {
         [Header("Which bones get a body")]
         [Tooltip("Share of the mesh a bone must carry to be simulated, 0..1. The floor that " +
@@ -245,6 +245,20 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// the body's orientation to every watcher and they can reconstruct the pelvis from it.
         /// </summary>
         private Quaternion hipsToRoot = Quaternion.identity;
+
+        /// <summary>
+        /// Where the hips sat relative to the root in the pose the body stood in before it went
+        /// limp — in the root's frame, unscaled. It is also where a load will put them: the model
+        /// is rebuilt on the saved root in that standing pose. See <see cref="PositionToSave"/>.
+        /// </summary>
+        private Vector3 hipsOffset;
+
+        /// <summary>
+        /// The hips' pose in the root's frame, unscaled, taken as <see cref="Freeze"/> tears the
+        /// skeleton down — the one record a frozen corpse keeps of where its pelvis lies, so a
+        /// save of it can still be placed. See <see cref="CorpseHips"/>.
+        /// </summary>
+        private Pose frozenHips = Pose.identity;
 
         public bool IsLimp { get; private set; }
 
@@ -450,9 +464,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </para>
         /// </param>
         /// <param name="settled">
-        /// True for a body that is ALREADY down — a corpse arriving from a save. Skips the impulse
-        /// and starts the settle timer expired, so it lies where it is instead of being thrown
-        /// again and instead of standing up while the timer runs. See AgentRagdoll's restore path.
+        /// True for a body that is ALREADY down — a corpse arriving from a save. The impulse is
+        /// ignored, so it is not thrown again; it still settles under gravity like any other body.
+        /// It has to: the load rebuilt it in its standing pose laid along the saved tilt, and a
+        /// body put straight to sleep in that pose lies there as a rigid plank. See
+        /// <c>RagdollController.OnDeath</c> and <see cref="PositionToSave"/>.
         /// </param>
         public void GoLimp(Vector3 impulse, bool settled = false, bool drives = true)
         {
@@ -474,6 +490,9 @@ namespace SpaceGame.Gameplay.Ragdoll
                 // not a standing one. Its rest pose is still the one taken before the first knockdown.
                 bool midRecovery = blendRemaining > 0f;
                 blendRemaining = 0f;
+
+                if (!midRecovery && Hips != null)
+                    hipsOffset = Quaternion.Inverse(transform.rotation) * (Hips.position - transform.position);
 
                 // Before the bodies wake, or the animator spends this frame fighting them for the
                 // same transforms.
@@ -536,9 +555,7 @@ namespace SpaceGame.Gameplay.Ragdoll
                     if (!bone.Body.isKinematic) bone.Body.AddForce(impulse, ForceMode.VelocityChange);
             }
 
-            slowSeconds = settled ? settleSeconds : 0f;
-
-            if (settled) limpSeconds = maxLimpSeconds;
+            slowSeconds = 0f;
         }
 
         /// <summary>
@@ -771,6 +788,13 @@ namespace SpaceGame.Gameplay.Ragdoll
         public void Freeze()
         {
             if (!built) return;
+
+            // Before Hips is let go below: the last word on where this corpse lies, for its save. A
+            // rig that never found a pelvis records the root itself, which saves the live pose.
+            Quaternion toRoot = Quaternion.Inverse(transform.rotation);
+            frozenHips = Hips != null
+                ? new Pose(toRoot * (Hips.position - transform.position), toRoot * Hips.rotation)
+                : Pose.identity;
 
             IsLimp = false;
             frozen = true;
@@ -1036,18 +1060,73 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
-        /// What a save records for the root: upright while a LIVING body is knocked down.
+        /// What a save records for the root's rotation: upright while a LIVING body is knocked
+        /// down, the way the body lies for a corpse.
         ///
         /// <para>
         /// A knockdown is not saved — on load the body is alive, not limp, and nothing would ever
         /// run <see cref="PlaceRootUnderHips"/> to undo a tilt recorded mid-fall; a player would
         /// stay rolled on its side for good, because the look rig only ever adds yaw to the
         /// rotation it finds. A corpse is different: it goes limp again on load, and keeping the
-        /// tilt lets it start lying the way it lay.
+        /// tilt lets it start lying the way it lay. Read off the pelvis through
+        /// <see cref="hipsToRoot"/> rather than off the root, which stops following once the
+        /// body sleeps and is gone entirely once the budget has frozen it.
         /// </para>
         /// </summary>
-        public Quaternion RotationToSave =>
-            IsLimp && !IsCorpse && Hips != null ? UprightRotation() : transform.rotation;
+        public Quaternion RotationToSave
+        {
+            get
+            {
+                if (IsCorpse && CorpseHips(out Pose hips)) return hips.rotation * hipsToRoot;
+                return IsLimp && Hips != null ? UprightRotation() : transform.rotation;
+            }
+        }
+
+        /// <summary>
+        /// What a save records for the root's position: for a corpse, the root that puts the
+        /// PELVIS back where it lies.
+        ///
+        /// <para>
+        /// While limp the root sits at the hips exactly (see <see cref="FollowHips"/>). A load does
+        /// not know that: it places the root and rebuilds the model on it in its standing pose, so
+        /// a corpse recorded at its own pelvis came back with the pelvis a hip height further
+        /// along its tilted up axis — shifted sideways, floating, and put to sleep there. Saving
+        /// the root one standing hip offset back from the pelvis, along the saved rotation, is the
+        /// root that pose needs.
+        /// </para>
+        /// <para>
+        /// A living body keeps its live position: it reloads standing, and nothing about a
+        /// knockdown is saved.
+        /// </para>
+        /// </summary>
+        public Vector3 PositionToSave =>
+            IsCorpse && CorpseHips(out Pose hips)
+                ? hips.position - hips.rotation * hipsToRoot * hipsOffset
+                : transform.position;
+
+        /// <summary>
+        /// Where a corpse's pelvis lies, in world space — off the live bone while the body is limp,
+        /// off <see cref="frozenHips"/> once the budget has frozen it. False when there is no
+        /// ragdolled pelvis to read: the body never went down.
+        /// </summary>
+        private bool CorpseHips(out Pose hips)
+        {
+            if (IsLimp && Hips != null)
+            {
+                hips = new Pose(Hips.position, Hips.rotation);
+                return true;
+            }
+
+            if (frozen)
+            {
+                hips = new Pose(transform.position + transform.rotation * frozenHips.position,
+                                transform.rotation * frozenHips.rotation);
+                return true;
+            }
+
+            hips = default;
+            return false;
+        }
 
         /// <summary>
         /// Ease the bones from where they came to rest into the pose they should now hold —

@@ -47,6 +47,7 @@ symptoms:
   - "a frozen player hit by a blast or a hard shot collapses into a heap with the camera stuck inside their head"
   - "on my own client my player dies standing up and stays frozen upright, while the others see my pelvis dragged into the ground"
   - "on a client a creature that dies tips over stiff as a plank instead of collapsing"
+  - "after loading, a corpse lies stiff as a board, floating above the sand and shifted a body length from where it fell"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
 updated: 2026-09-24
 ---
@@ -155,7 +156,7 @@ Messages: `NetMsg.Damage` (10, → server on the *target's* relay, `A` = amount,
 | Threshold latches + the modules a reaction switched | `HealthReactionSaveable` → `HealthReactionModule.RestoreThresholds` (re-applies module enable/disable *silently*, no UnityEvent) |
 | Weapon ammo + cooldown | `Weapon.CaptureItemState`/`RestoreItemState` in the item's `ItemState` (`ammo`, `cd`). Cooldown stored as time **remaining** |
 | NPC fire cooldowns, bursts, aim tracking | `CombatCadenceSaveable` (one saver, three module types) |
-| Ragdoll pose | **Not saved.** The rig follows the hips into the transform, so `TransformSaveable` records where the corpse lies; the root carries the body's orientation too, so a reloaded corpse starts tilted the way it lay. On load (`IsLoading` — not merely `IsRestoring`, which a client's replicated death also sets) it goes limp `settled: true` with zero impulse. A knockdown is not saved: a body saved mid-knockdown reloads standing upright, because `RagdollRig` answers `ISavedRotation` with yaw only while a *living* body is limp — the root's tilt would otherwise outlive the knockdown (`PlayerLook` only adds yaw to the rotation it finds) |
+| Ragdoll pose | **Not saved.** `RagdollRig` answers `ISavedPose` (read by every pose capture through `SavedPose`) so a **corpse** reloads lying where it lay: rotation = the pelvis through `hipsToRoot` (tilted the way it lay), position = pelvis − rotation × `hipsOffset` (the hips' standing offset, taken at `GoLimp`) — a load rebuilds the model on the root in its *standing* pose, and the old capture (root = pelvis) put the reloaded pelvis a hip height along the tilted up axis, floating and shifted. A budget-frozen corpse answers from `frozenHips`, recorded by `Freeze`. On load (`IsLoading` — not merely `IsRestoring`, which a client's replicated death also sets) it goes limp `settled: true`: the impulse is ignored, but it **settles under gravity** (to sleep, bounded by `maxLimpSeconds`) — pre-expiring the settle clock slept it at once as a rigid plank. A knockdown is not saved: a *living* limp body saves its live position and yaw only — the root's tilt would otherwise outlive the knockdown (`PlayerLook` only adds yaw to the rotation it finds) |
 
 Ordering on load: the record lands → `LoadHealth` → `RestoreHealth` clamps to the prefab's `maxHealth` → `OnRestored` (replication) then `OnDeath`/`OnRevive`. `IsRestoring` is set for the whole call and cleared in a `finally`, so a throwing listener cannot make every later death in the session look like a restore. `PlayerController` re-checks `playerHealth.Alive` on enable because an event cannot be replayed into a delegate that was empty when it fired.
 

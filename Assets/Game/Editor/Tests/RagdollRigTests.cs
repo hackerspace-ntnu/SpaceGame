@@ -629,6 +629,56 @@ namespace SpaceGame.EditorTools
                 "a corpse goes limp again on load and should start lying the way it lay");
         }
 
+        /// <summary>
+        /// A load rebuilds the model on the saved root in its STANDING pose, so the saved root has
+        /// to be the one that pose hangs the pelvis where the corpse lay — not the pelvis itself,
+        /// where the root sits while limp. Frozen by the budget, the answer must not change.
+        /// </summary>
+        [Test]
+        public void SaveTakenOfACorpse_PutsTheRootWhereTheStandingPoseReturnsThePelvis()
+        {
+            Physics.gravity = Vector3.zero;
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            Transform hips = Find(root, "Hips");
+            var saver = root.AddComponent<TransformSaveable>();
+            Vector3 standingOffset = hips.position - root.transform.position;
+
+            rig.IsCorpse = true;
+            rig.GoLimp(Vector3.zero);
+            Quaternion lying = Quaternion.Euler(0f, 40f, 90f);
+            root.transform.SetPositionAndRotation(new Vector3(3f, 0f, 2f), lying);
+            Physics.SyncTransforms();
+            Invoke(rig, "FollowHips");
+            Assert.Less(Vector3.Distance(root.transform.position, hips.position), 1e-3f,
+                "the fixture has to leave the root at the pelvis, as a limp body's root is");
+
+            var saved = (TransformSaveable.State)saver.CaptureState();
+
+            Assert.Less(Quaternion.Angle(saved.rotation, lying), 1f);
+            Assert.Less(Vector3.Distance(saved.position + saved.rotation * standingOffset, hips.position), 1e-3f,
+                "a reloaded corpse's pelvis lands a hip height along its tilted up axis from where it lay");
+
+            FreezeInEditMode(rig);
+            var frozen = (TransformSaveable.State)saver.CaptureState();
+
+            Assert.Less(Vector3.Distance(frozen.position, saved.position), 1e-3f,
+                "a corpse the budget froze is saved somewhere else than the same corpse still limp");
+            Assert.Less(Quaternion.Angle(frozen.rotation, saved.rotation), 0.1f);
+        }
+
+        [Test]
+        public void LoadedCorpse_IsNotThrown_ButIsLeftToSettle()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+
+            rig.GoLimp(new Vector3(10f, 2f, 0f), settled: true);
+
+            foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
+                Assert.Less(body.linearVelocity.magnitude, 1e-4f, $"{body.name} was thrown on load");
+            Assert.IsFalse(rig.IsSettled,
+                "a loaded corpse was put to sleep at once — rebuilt in its standing pose, it lies as a rigid plank");
+        }
+
         [Test]
         public void DroppedBody_ComesToRest_AndSleeps()
         {

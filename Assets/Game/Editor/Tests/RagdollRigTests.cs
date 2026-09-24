@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Ragdoll;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -246,6 +247,46 @@ namespace SpaceGame.EditorTools
 
             Invoke(ragdoll, "TickStandUp", Time.time + 2f + ragdoll.Tuning.settleGraceSeconds + 0.01f);
             Assert.IsFalse(rig.IsLimp, "never stood up");
+        }
+
+        /// <summary>
+        /// The whole server path, offline: <c>Network.Decides</c> is true and with no relay on the
+        /// body <c>NetSendTo(…, NetTo.All)</c> dispatches straight to the channel OnEnable
+        /// registered, so damage → OnDamaged → Knock → NetMsg.Knockdown → OnKnockdown all run.
+        /// </summary>
+        [Test]
+        public void SmallHit_DoesNotKnockDown_BigHitDoes()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var health = root.AddComponent<HealthComponent>();
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+            Invoke(ragdoll, "OnEnable");
+
+            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.05f), null);
+            Assert.IsFalse(rig.IsLimp, "a 5% hit knocked the body down — automatic fire will stun-lock");
+
+            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.4f), null);
+            Assert.IsTrue(rig.IsLimp, "a 40% hit on a wounded body did not knock it down");
+        }
+
+        [Test]
+        public void RefusedHold_GrantsNoHitImmunity()
+        {
+            // No bones at all, so GoLimp declines and HoldDown rolls itself back through Restore.
+            var root = new GameObject("Boneless");
+            spawned.Add(root);
+            Rig(root);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+
+            Assert.IsFalse(ragdoll.HoldDown(new object()), "the fixture has to reproduce a refused hold");
+
+            FieldInfo stoodUpAt = typeof(RagdollController).GetField(
+                "stoodUpAt", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(stoodUpAt, "RagdollController.stoodUpAt no longer exists");
+            Assert.AreEqual(float.NegativeInfinity, (float)stoodUpAt.GetValue(ragdoll),
+                "a body that never went down was made immune to hits as though it had stood up");
         }
 
         [Test]

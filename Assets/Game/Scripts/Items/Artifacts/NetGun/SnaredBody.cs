@@ -172,7 +172,7 @@ namespace SpaceGame.Items
         /// The captive died under the net. Let go of them at that moment rather than at the net's.
         ///
         /// <para>
-        /// A corpse is not a captive. <c>PlayerRagdoll.OnDeath</c> drops the hold's claim on its
+        /// A corpse is not a captive. <c>RagdollController.OnDeath</c> drops the hold's claim on its
         /// own — a corpse is already limp and stays that way — but nothing there knows about the
         /// net, so without this the binding outlives the player: <see cref="Update"/> goes on
         /// reading a dead player's keys (the menu gate is open for a corpse, there being no menu),

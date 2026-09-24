@@ -303,7 +303,13 @@ namespace SpaceGame.Core
         public const ushort PortalsShut = 81; // server → everyone else, on the SHOOTER's relay
 
         // Server → everyone, on the VICTIM's relay: this body has been knocked down. Every machine
-        // presents it going limp, with P as the impulse handed to the hips (m/s, world space).
+        // presents it going limp, with P as the velocity handed to every bone (m/s, world space).
+        //
+        //   A  down-time in ms, priced by KnockdownPolicy on the deciding machine.
+        //   B  the RagdollCause.
+        //
+        // Send through RagdollController.Knock, never directly: that is where the victim's
+        // KnockdownTuning prices the event and where hit immunity is checked.
         //
         // Broadcast for the same reason Flung (79) is: bone transforms are not replicated, so a
         // ragdoll is not something one machine can do on another's behalf — every machine has to

@@ -29,8 +29,9 @@ namespace SpaceGame.Items
     /// <para>
     /// Physics is server-authoritative (Authority=Server): loose bodies are pushed directly,
     /// players via NetMsg.Flung applied by their own machine (FlungBody), and everything with a
-    /// skeleton is put on the ground by NetMsg.Knockdown, which every machine presents as a ragdoll
-    /// of its own. The one exception is a creature carrying a rider — ragdolling under one would
+    /// skeleton is put on the ground by RagdollController.Knock, which prices the down-time from
+    /// the victim's own KnockdownTuning and broadcasts NetMsg.Knockdown for every machine to
+    /// present as a ragdoll of its own. The one exception is a creature carrying a rider — ragdolling under one would
     /// drag them through the ground — which is thrown as a leap via IMountLeapMotor instead.
     /// Cosmetics (cone, ring, dust, thunder, hurt flinches, recoil on the caster) run per machine
     /// in <see cref="Present"/>. A press the magazine refuses travels as <see cref="MissVerb"/> and
@@ -82,12 +83,6 @@ namespace SpaceGame.Items
         [SerializeField] private float blastOriginHeight = 1.2f;
         [Tooltip("Damage per body caught in the blast. 0 = pure force.")]
         [SerializeField] private int blastDamage = 0;
-        [Tooltip("How long a victim stays on the ground before getting up, seconds.\n\n" +
-                 "Travels with the blast rather than being each victim's own business, so every " +
-                 "machine watching a knockdown agrees on when it ends — a watcher does not " +
-                 "simulate the flight and cannot work the moment out for itself. This is the " +
-                 "price of being caught, and it is the whole price: the blast does no damage.")]
-        [SerializeField] private float downedSeconds = 1.2f;
         [Tooltip("Impulse scaling reference for loose items: a body this heavy takes the full fling speed.")]
         [SerializeField] private float itemMassReference = 18f;
         [Tooltip("Bounds on that mass scaling. The floor is what stops a crate from shrugging the " +
@@ -324,23 +319,17 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Tell every machine to put this body on the ground.
+        /// Put this body on the ground, for a duration priced by the victim's own
+        /// <see cref="KnockdownTuning"/> — the gauntlet owns the throw, not how long it lasts.
         ///
         /// <para>
-        /// Sent on the VICTIM's relay, like the damage and the fling: the message is about their
-        /// state, and it is the attacker who happens to be sending it. <c>NetTo.All</c> because a
-        /// ragdoll has to be presented everywhere — bone transforms do not replicate, so each
-        /// machine runs its own and only the root converges.
+        /// No damage share: <see cref="blastDamage"/> is an absolute amount, and when it is dealt
+        /// the victim's health prices it as a hit on its own. Two knockdowns that land together
+        /// merge by keeping the later stand-up time.
         /// </para>
         /// </summary>
-        private void Knock(GameObject victim, Vector3 fling)
-        {
-            NetMessaging.NetSendTo(victim, NetMsg.Knockdown, new NetArg
-            {
-                P = fling,
-                A = Mathf.RoundToInt(downedSeconds * 1000f),
-            }, NetTo.All);
-        }
+        private void Knock(GameObject victim, Vector3 fling) =>
+            RagdollController.Knock(victim, RagdollCause.Blast, fling);
 
         private void PlayBlastFx(Vector3 dir)
         {

@@ -27,6 +27,10 @@ namespace SpaceGame.Gameplay.Ragdoll
     {
         [SerializeField] private KnockdownTuning knockdown = new KnockdownTuning();
 
+        [Tooltip("Speed a knockdown-worthy HIT throws the body at, m/s, away from the attacker. The " +
+                 "hit carries no knockback of its own, so this is the fall's shape, not its price.")]
+        [SerializeField] private float hitImpulse = 3f;
+
         protected RagdollRig rig;
         protected HealthComponent health;
 
@@ -53,7 +57,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>Earliest this body may stand up. See <see cref="OnKnockdown"/>.</summary>
         private float standAt;
 
-        /// <summary>When this body last stood up — what hit immunity is measured from.</summary>
+        /// <summary>
+        /// When this body last got up off the ground — what hit immunity is measured from. Only a
+        /// body that actually went limp stamps it: a hold the rig refused, or a standing hold let
+        /// go, never put anything on the ground and earns no immunity.
+        /// </summary>
         private float stoodUpAt = float.NegativeInfinity;
 
         public KnockdownTuning Tuning => knockdown;
@@ -120,6 +128,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         protected virtual void OnEnable()
         {
             this.NetOn(NetMsg.Knockdown, OnKnockdown);
+            if (health != null) health.OnDamage += OnDamaged;
             if (health != null) health.OnDeath += OnDeath;
             if (health != null) health.OnRevive += OnRevive;
         }
@@ -127,6 +136,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         protected virtual void OnDisable()
         {
             this.NetOff(NetMsg.Knockdown, OnKnockdown);
+            if (health != null) health.OnDamage -= OnDamaged;
             if (health != null) health.OnDeath -= OnDeath;
             if (health != null) health.OnRevive -= OnRevive;
         }
@@ -211,8 +221,70 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
+        /// The deciding machine only: price a knockdown and tell every machine. The single door every
+        /// knockdown source goes through — a blast, a hit, a fall — so no source owns a duration of
+        /// its own and a boss and a rat can price the same blast differently (their
+        /// <see cref="KnockdownTuning"/>). A no-op anywhere else, and on anything with no controller.
+        /// </summary>
+        public static void Knock(GameObject victim, RagdollCause cause, Vector3 impulse,
+                                 float damageFraction = 0f)
+        {
+            if (!Network.Decides || victim == null) return;
+
+            // Up, then down: a hit hands over the body itself, but a blast hands over the root of
+            // whatever collider it caught, and a creature's controller can sit below that.
+            RagdollController ragdoll = victim.GetComponentInParent<RagdollController>();
+            if (ragdoll == null) ragdoll = victim.GetComponentInChildren<RagdollController>();
+            if (ragdoll != null) ragdoll.KnockHere(cause, impulse, damageFraction);
+        }
+
+        private void KnockHere(RagdollCause cause, Vector3 impulse, float damageFraction)
+        {
+            if (dead || !CanBeKnockedDown) return;
+
+            // Measured only while standing: a body already down is being knocked again, not
+            // re-knocked, and OnKnockdown merges the two by keeping the later stand-up time.
+            if (!rig.IsLimp && KnockdownPolicy.Immune(cause, Time.time - stoodUpAt, knockdown)) return;
+
+            float healthLeft = health != null && health.GetMaxHealth > 0
+                ? (float)health.GetHealth / health.GetMaxHealth
+                : 1f;
+
+            float seconds = KnockdownPolicy.Seconds(
+                new KnockdownEvent(cause, damageFraction, healthLeft, impulse.magnitude), knockdown);
+            if (seconds <= 0f) return;
+
+            NetMessaging.NetSendTo(gameObject, NetMsg.Knockdown, new NetArg
+            {
+                P = impulse,
+                A = Mathf.RoundToInt(seconds * 1000f),
+                B = (int)cause,
+            }, NetTo.All);
+        }
+
+        /// <summary>
+        /// Damage lands only where it is decided (the server, or offline), so this runs there and
+        /// nowhere else — a client's copy of the health changes through <c>RestoreHealth</c>, which
+        /// raises no <c>OnDamage</c>. A killing blow is death's business, and a save restoring
+        /// health is not a hit.
+        /// </summary>
+        private void OnDamaged(int amount)
+        {
+            if (!Network.Decides || health == null || health.IsRestoring) return;
+            if (health.GetHealth <= 0 || health.GetMaxHealth <= 0) return;
+
+            Transform source = health.LastDamageSource;
+            Vector3 away = source != null
+                ? Vector3.ProjectOnPlane(transform.position - source.position, Vector3.up).normalized
+                : -transform.forward;
+
+            Knock(gameObject, RagdollCause.Hit, away * hitImpulse, (float)amount / health.GetMaxHealth);
+        }
+
+        /// <summary>
         /// Every machine: go limp for <c>A</c> ms, thrown at <c>P</c>. <c>B</c> is the
-        /// <see cref="RagdollCause"/>, for diagnostics and immunity bookkeeping.
+        /// <see cref="RagdollCause"/>, for diagnostics only — the price and the immunity were both
+        /// settled by <see cref="Knock"/> before the message left the deciding machine.
         ///
         /// <para>
         /// The duration travels with the message rather than being decided locally because it is
@@ -370,7 +442,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (!suspended) return;
             suspended = false;
             standAt = 0f;
-            stoodUpAt = Time.time;
+            if (rig.IsLimp) stoodUpAt = Time.time;
 
             TeleportMove move = rig.Recover();
             RestoreLayers(move);

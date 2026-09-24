@@ -194,14 +194,19 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A body <c>RagdollRig</c> can really build a skeleton out of, without a skinned mesh.
+        /// A five-bone hard-surface body: a chain of empty bones, each carrying one collider-less cube.
         ///
+        /// <para>
+        /// The bones have to be EMPTY. RagdollRig puts bodies on the rig — nodes that draw nothing and
+        /// lead to geometry — and never on the root, so cubes parented straight under the root are
+        /// meshes with no skeleton and the body silently refuses to go limp. That is how this fixture
+        /// used to be built, and every hold test measured a body that never went down.
+        /// </para>
         /// <para>
         /// Rigid mesh parts are a first-class path through <c>RagdollRig.Build</c> rather than a
         /// trick played on it: the golem, the six-legged crab and the humanoid robot have no
-        /// SkinnedMeshRenderer between them, and the part measure is the answer written for exactly
-        /// those. Five equal cubes clear both the weight floor and the four-bone minimum, so
-        /// <c>GoLimp</c> keeps bones and <c>IsLimp</c> goes true — which is the difference between
+        /// SkinnedMeshRenderer between them. Five bones clear both the weight floor and the four-bone
+        /// minimum, so <c>GoLimp</c> keeps bones and <c>IsLimp</c> goes true — the difference between
         /// a test of a hold that took and a test of a hold that could never have taken.
         /// </para>
         /// <para>
@@ -212,18 +217,53 @@ namespace SpaceGame.EditorTools
         private GameObject NewRagdollBody(string name)
         {
             GameObject root = NewObject(name);
+            Transform parent = root.transform;
 
             for (int i = 0; i < 5; i++)
             {
+                var bone = new GameObject($"Bone{i}").transform;
+                bone.SetParent(parent, false);
+                bone.localPosition = new Vector3(0f, 0.5f, 0f);
+
                 GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 part.name = $"Part{i}";
-                part.transform.SetParent(root.transform);
-                part.transform.localPosition = new Vector3(0f, i * 0.5f, 0f);
-
+                part.transform.SetParent(bone, false);
                 Object.DestroyImmediate(part.GetComponent<Collider>());
+
+                parent = bone;
             }
 
             return root;
+        }
+
+        /// <summary>
+        /// Moves a ragdoll's whole simulated skeleton by <paramref name="offset"/>.
+        ///
+        /// <para>
+        /// Only the bones with no simulated bone above them are moved. The rig keeps the model's
+        /// hierarchy — a chain stays a chain — so adding the offset to every bone would carry each
+        /// child once for itself and once more for every ancestor, and the skeleton would be
+        /// stretched along the offset instead of moved by it.
+        /// </para>
+        /// </summary>
+        private static void MoveSkeleton(GameObject body, Vector3 offset)
+        {
+            var bones = new System.Collections.Generic.HashSet<Transform>(
+                body.GetComponent<RagdollRig>().BoneTransforms());
+
+            foreach (Transform bone in bones)
+                if (!HasAncestorIn(bone, bones)) bone.position += offset;
+
+            Physics.SyncTransforms();
+        }
+
+        private static bool HasAncestorIn(Transform node,
+                                          System.Collections.Generic.HashSet<Transform> set)
+        {
+            for (Transform parent = node.parent; parent != null; parent = parent.parent)
+                if (set.Contains(parent)) return true;
+
+            return false;
         }
 
         /// <summary>
@@ -4112,16 +4152,9 @@ namespace SpaceGame.EditorTools
             // The BONES, not the root: SnareBinding stores each node in its own bone's local space,
             // so moving anything else would leave the binding resolving to exactly where it was and
             // this test would pass just as happily against a net bound to nothing.
-            //
-            // Adding rather than assigning is safe because these bones are flat siblings —
-            // RagdollRig.MeasureRigidParts skips the root and nothing in the build reparents
-            // anything, so no bone here is inside another and none is moved twice.
             const float Hauled = 7f;
 
-            foreach (Transform bone in victim.GetComponent<RagdollRig>().BoneTransforms())
-                bone.position += Vector3.right * Hauled;
-
-            Physics.SyncTransforms();
+            MoveSkeleton(victim, Vector3.right * Hauled);
             net.Advance(Substep);
 
             Assert.That(net.Footprint.center.x - before.center.x, Is.EqualTo(Hauled).Within(0.05f),
@@ -4286,10 +4319,7 @@ namespace SpaceGame.EditorTools
             Bounds before = net.Footprint;
             const float Freed = 5f;
 
-            foreach (Transform bone in victim.GetComponent<RagdollRig>().BoneTransforms())
-                bone.position += Vector3.right * Freed;
-
-            Physics.SyncTransforms();
+            MoveSkeleton(victim, Vector3.right * Freed);
             net.Advance(Substep);
 
             Assert.That(net.Footprint.center.x - before.center.x, Is.EqualTo(Freed).Within(0.05f),

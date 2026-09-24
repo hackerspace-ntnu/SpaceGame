@@ -276,6 +276,53 @@ namespace SpaceGame.EditorTools
                 "a killing blow was priced as a hit knockdown — death's business, not the policy's");
         }
 
+        /// <summary>
+        /// Offline the request dispatches straight to the channel OnEnable registered, so
+        /// RequestFallKnockdown → OnKnockdownRequest → Knock(Fall) → OnKnockdown all run here.
+        /// </summary>
+        [Test]
+        public void FallRequest_KnocksDownForTheFallTime()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+            Invoke(ragdoll, "OnEnable");
+
+            RagdollController.RequestFallKnockdown(ragdoll);
+
+            Assert.IsTrue(rig.IsLimp);
+            Invoke(ragdoll, "TickStandUp", Time.time + ragdoll.Tuning.fallSeconds - 0.05f);
+            Assert.IsTrue(rig.IsLimp, "stood up before the fall's second was up");
+        }
+
+        [Test]
+        public void FallDamage_IsNotAlsoPricedAsAHit()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var health = root.AddComponent<HealthComponent>();
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+            Invoke(ragdoll, "OnEnable");
+
+            // Wounded first, so the fall's damage on its own would be a hit knockdown of about
+            // 1.65 s — long enough to show whether it was priced.
+            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.05f), null);
+            Assert.IsFalse(rig.IsLimp, "the fixture's first hit has to leave the body standing");
+
+            RagdollController.RequestFallKnockdown(ragdoll);
+            float standAt = ControllerField<float>(ragdoll, "standAt");
+            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.4f), null);
+
+            Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"),
+                "the fall's damage was priced as a hit as well — a hard landing outlasted fallSeconds");
+            Assert.IsFalse(ControllerField<bool>(ragdoll, "fallDamagePending"),
+                "the fall's damage did not use up the mark, so the next sourceless hit will be swallowed");
+
+            Invoke(ragdoll, "TickStandUp",
+                   Time.time + ragdoll.Tuning.fallSeconds + ragdoll.Tuning.settleGraceSeconds + 0.01f);
+            Assert.IsFalse(rig.IsLimp, "still down after the fall's time and the settle grace");
+        }
+
         [Test]
         public void RefusedHold_GrantsNoHitImmunity()
         {

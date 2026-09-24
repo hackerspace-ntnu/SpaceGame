@@ -647,5 +647,12 @@ namespace SpaceGame.Core
         // A gesture with no item behind it: /wave and its siblings. On the PLAYER's relay.
         //   A = index into PlayerEmotes.Table.
         public const ushort Emote = 115; // server → everyone
+
+        // ── Knockdown requests ──
+        // Owner → server, on the VICTIM's relay: "my own landing was hard enough to knock me down".
+        // A = RagdollCause. The server checks Network.MayActFor and prices it through
+        // RagdollController.Knock, which broadcasts Knockdown (82). A client cannot broadcast, and a
+        // fall is only ever measured by the machine that owns the body — hence the round trip.
+        public const ushort KnockdownRequest = 116; // owner → server, on the VICTIM's relay
     }
 }

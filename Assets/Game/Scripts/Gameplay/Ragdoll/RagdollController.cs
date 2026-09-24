@@ -64,6 +64,12 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private float stoodUpAt = float.NegativeInfinity;
 
+        /// <summary>
+        /// The deciding machine has knocked this body down for a fall and the fall's damage has not
+        /// landed yet. See <see cref="OnDamaged"/>.
+        /// </summary>
+        private bool fallDamagePending;
+
         public KnockdownTuning Tuning => knockdown;
 
         /// <summary>Is something holding this body down right now?</summary>
@@ -128,6 +134,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         protected virtual void OnEnable()
         {
             this.NetOn(NetMsg.Knockdown, OnKnockdown);
+            this.NetOn(NetMsg.KnockdownRequest, OnKnockdownRequest);
             if (health != null) health.OnDamage += OnDamaged;
             if (health != null) health.OnDeath += OnDeath;
             if (health != null) health.OnRevive += OnRevive;
@@ -136,6 +143,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         protected virtual void OnDisable()
         {
             this.NetOff(NetMsg.Knockdown, OnKnockdown);
+            this.NetOff(NetMsg.KnockdownRequest, OnKnockdownRequest);
             if (health != null) health.OnDamage -= OnDamaged;
             if (health != null) health.OnDeath -= OnDeath;
             if (health != null) health.OnRevive -= OnRevive;
@@ -259,6 +267,37 @@ namespace SpaceGame.Gameplay.Ragdoll
             return null;
         }
 
+        /// <summary>
+        /// The owner's half of a fall knockdown: ask the server. A fall is measured only by the
+        /// machine that owns the body, and only the server may broadcast the knockdown. Offline, and
+        /// on a host, this dispatches locally and lands in <see cref="OnKnockdownRequest"/> at once.
+        ///
+        /// <para>
+        /// Send it BEFORE the fall's damage: both travel on the victim's relay, reliable and in
+        /// order, so the server has marked the damage as the fall's by the time it lands. See
+        /// <see cref="OnDamaged"/>.
+        /// </para>
+        /// </summary>
+        public static void RequestFallKnockdown(Component body)
+        {
+            if (body == null) return;
+
+            NetMessaging.NetSendTo(body.gameObject, NetMsg.KnockdownRequest,
+                                   new NetArg { A = (int)RagdollCause.Fall }, NetTo.Server);
+        }
+
+        private void OnKnockdownRequest(in NetArg arg, ulong sender)
+        {
+            // Only falls may be requested: a client naming any other cause is asking to knock a body
+            // down on its own authority. Asked of the entity root, which holds the NetworkObject —
+            // this component may sit below it.
+            if ((RagdollCause)arg.A != RagdollCause.Fall) return;
+            if (!Network.MayActFor(NetChannel.RootOf(this), sender)) return;
+
+            fallDamagePending = true;
+            Knock(gameObject, RagdollCause.Fall, Vector3.zero);
+        }
+
         private void KnockHere(RagdollCause cause, Vector3 impulse, float damageFraction)
         {
             if (dead || !CanBeKnockedDown) return;
@@ -288,13 +327,30 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// nowhere else — a client's copy of the health changes through <c>RestoreHealth</c>, which
         /// raises no <c>OnDamage</c>. A killing blow is death's business, and a save restoring
         /// health is not a hit.
+        ///
+        /// <para>
+        /// Nor is a fall's own damage: the fall already knocked the body down for exactly
+        /// <c>fallSeconds</c> by its own rule, and pricing its damage as a hit as well would stretch
+        /// a hard landing to the hit's 1–2 s. The request arrives first (see
+        /// <see cref="RequestFallKnockdown"/>) and the fall's damage has no source, so the next
+        /// sourceless damage after it is the fall's. The mark is dropped at stand-up too
+        /// (<see cref="Restore"/>): damage that never lands — the body was already dead — must not
+        /// leave it waiting to swallow some later, unrelated sourceless hit.
+        /// </para>
         /// </summary>
         private void OnDamaged(int amount)
         {
             if (!Network.Decides || health == null || health.IsRestoring) return;
-            if (health.GetHealth <= 0 || health.GetMaxHealth <= 0) return;
 
             Transform source = health.LastDamageSource;
+            if (source == null && fallDamagePending)
+            {
+                fallDamagePending = false;
+                return;
+            }
+
+            if (health.GetHealth <= 0 || health.GetMaxHealth <= 0) return;
+
             Vector3 away = source != null
                 ? Vector3.ProjectOnPlane(transform.position - source.position, Vector3.up).normalized
                 : -transform.forward;
@@ -460,6 +516,8 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         private void Restore()
         {
+            // Ahead of the guard: a revive runs this on a body that may not be suspended.
+            fallDamagePending = false;
             if (!suspended) return;
             suspended = false;
             standAt = 0f;

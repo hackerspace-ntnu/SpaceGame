@@ -282,5 +282,29 @@ namespace SpaceGame.Gameplay.Ragdoll
             => linearSpeed <= linearThreshold
                && angularSpeed <= angularThreshold
                && slowSeconds >= settleSeconds;
+
+        /// <summary>
+        /// The two axes a <c>CharacterJoint</c> needs, in the bone's local space: twist down the
+        /// bone, swing perpendicular to it.
+        ///
+        /// <para>
+        /// Left at Unity's defaults the joint twists about local X and swings about local Y, and on
+        /// a rig whose bones run along Y — Mixamo, and most Blender exports — that puts the tight
+        /// twist limit across the limb and the loose swing limits around it. Every spine and neck
+        /// joint could then corkscrew forty-five degrees each way, which a skinned surface shows as
+        /// a limb collapsing into itself.
+        /// </para>
+        /// </summary>
+        /// <param name="alongBone">Direction from this joint toward the next one, bone-local.</param>
+        public static void JointAxes(Vector3 alongBone, out Vector3 twist, out Vector3 swing)
+        {
+            twist = alongBone.sqrMagnitude > 1e-8f ? alongBone.normalized : Vector3.right;
+
+            // The basis vector least parallel to the twist gives the best-conditioned perpendicular.
+            float x = Mathf.Abs(twist.x), y = Mathf.Abs(twist.y), z = Mathf.Abs(twist.z);
+            Vector3 seed = x <= y && x <= z ? Vector3.right : y <= z ? Vector3.up : Vector3.forward;
+
+            swing = Vector3.ProjectOnPlane(seed, twist).normalized;
+        }
     }
 }

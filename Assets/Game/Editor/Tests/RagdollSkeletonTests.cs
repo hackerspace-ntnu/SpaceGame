@@ -199,5 +199,27 @@ namespace SpaceGame.EditorTools
             // The whole hierarchy rolls up to its root, which is what makes the numbers comparable.
             Assert.AreEqual(22f, subtree[0], 1e-4f);
         }
+
+        [Test]
+        public void JointAxes_TwistRunsDownTheBone_SwingIsPerpendicular()
+        {
+            foreach (Vector3 along in new[] { Vector3.down, new Vector3(0.3f, 0.9f, 0.1f), Vector3.forward })
+            {
+                RagdollSkeleton.JointAxes(along, out Vector3 twist, out Vector3 swing);
+
+                Assert.Less(Vector3.Angle(twist, along), 0.01f, "twist must be the bone's own length");
+                Assert.AreEqual(0f, Vector3.Dot(twist, swing), 1e-4f, "swing must be perpendicular");
+                Assert.AreEqual(1f, swing.magnitude, 1e-4f);
+            }
+        }
+
+        [Test]
+        public void JointAxes_ZeroLengthBone_FallsBackToAValidPair()
+        {
+            RagdollSkeleton.JointAxes(Vector3.zero, out Vector3 twist, out Vector3 swing);
+
+            Assert.AreEqual(1f, twist.magnitude, 1e-4f);
+            Assert.AreEqual(0f, Vector3.Dot(twist, swing), 1e-4f);
+        }
     }
 }

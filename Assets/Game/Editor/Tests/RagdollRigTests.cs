@@ -222,5 +222,53 @@ namespace SpaceGame.EditorTools
                 "a corpse the budget froze is not limp but is still suspended — revive has to hand it " +
                 "back, or the creature comes back to life with its animation switched off");
         }
+
+        [Test]
+        public void Joints_TwistAboutTheirOwnBone()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            rig.GoLimp(Vector3.zero);
+
+            var thigh = Find(root, "ThighL").GetComponent<CharacterJoint>();
+            Vector3 towardShin = thigh.transform.InverseTransformDirection(
+                Find(root, "ShinL").position - thigh.transform.position);
+
+            Assert.Less(Vector3.Angle(thigh.axis, towardShin), 1f,
+                "the twist axis lies across the thigh, so its ±45° swing limit is a twist limit");
+        }
+
+        [Test]
+        public void SecondKnockdown_LimitsAreRelativeToTheNewPose()
+        {
+            Physics.gravity = Vector3.zero;
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            Transform thigh = Find(root, "ThighL");
+
+            rig.GoLimp(Vector3.zero, settled: true);
+            rig.Recover();
+
+            // Well past the 45° swing limit measured from the first pose.
+            Quaternion posed = Quaternion.Euler(80f, 0f, 0f);
+            thigh.localRotation = posed;
+
+            rig.GoLimp(Vector3.zero);
+            StepPhysics(20);
+
+            Assert.Less(Quaternion.Angle(thigh.localRotation, posed), 3f,
+                "the joint still measures its limits from the first knockdown's pose and snapped the leg");
+        }
+
+        [Test]
+        public void GoLimp_AfterAJointedBoneIsDestroyed_DoesNotThrow()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            rig.GoLimp(Vector3.zero, settled: true);
+            rig.Recover();
+
+            Object.DestroyImmediate(Find(root, "ThighL").gameObject);
+
+            Assert.DoesNotThrow(() => rig.GoLimp(Vector3.zero));
+            Assert.AreEqual(3, rig.JointCount, "spine, and the right thigh and shin");
+        }
     }
 }

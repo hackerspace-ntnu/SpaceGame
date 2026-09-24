@@ -919,6 +919,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ragdoll audit reports unfiltered: 0 on a body that visibly tears itself apart | [Combat](systems/Combat.md) |
 | the ragdoll is only the creature's neck, or a single body, and the rest of the animal is missing | [Combat](systems/Combat.md) |
 | the ragdoll jitters and vibrates instead of falling limp | [Combat](systems/Combat.md) |
+| the ragdoll's neck, spine or arms twist until the mesh collapses | [Combat](systems/Combat.md) |
 | the rain is a wall of grey cubes instead of falling water | [StormFlask](systems/StormFlask.md) |
 | the raymarched storm disappears when the camera does not produce a depth texture | [StormFlask](systems/StormFlask.md) |
 | the repair station stands in the aft bulkhead, or inside the map projector, after a re-export of the lander | [PlayerShip](systems/PlayerShip.md) |
@@ -1502,4 +1503,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1101 symptoms, 375 paths, 57 docs -->
+<!-- 1102 symptoms, 375 paths, 57 docs -->

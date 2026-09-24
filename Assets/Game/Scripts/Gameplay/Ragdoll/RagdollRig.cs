@@ -27,10 +27,12 @@ namespace SpaceGame.Gameplay.Ragdoll
     ///
     /// <para>
     /// The skeleton is built on the FIRST limp rather than at spawn, because most bodies never fall
-    /// over. Once built it is kept and switched kinematic rather than destroyed: rebuilding costs a
-    /// mesh walk, and destroying a <c>Rigidbody</c> that a live <c>CharacterJoint</c> still
-    /// references is an ordering problem there is no reason to have. <see cref="Freeze"/> is the
-    /// one path that really tears it down.
+    /// over. Once built its bodies and colliders are kept and switched kinematic rather than
+    /// destroyed: rebuilding them costs a mesh walk, and destroying a <c>Rigidbody</c> that a live
+    /// <c>CharacterJoint</c> still references is an ordering problem there is no reason to have.
+    /// The joints alone are rebuilt on every knockdown, because a joint measures its limits from
+    /// the pose it was made in; see <see cref="RebuildJoints"/>. <see cref="Freeze"/> is the one
+    /// path that really tears the skeleton down.
     /// </para>
     ///
     /// <para>
@@ -195,6 +197,9 @@ namespace SpaceGame.Gameplay.Ragdoll
             public Transform Transform;
             public Rigidbody Body;
             public OwnedCollider[] Colliders;
+
+            /// <summary>The body this bone is jointed to. Null for the root bone.</summary>
+            public Rigidbody Parent;
 
             /// <summary>Where this bone was pointing when the body went still — the blend's start.</summary>
             public Quaternion RecoverFrom;
@@ -436,6 +441,8 @@ namespace SpaceGame.Gameplay.Ragdoll
                     terrainGuard.enabled = false;
                 }
 
+                RebuildJoints();
+
                 foreach (Bone bone in bones)
                 {
                     foreach (OwnedCollider owned in bone.Colliders)
@@ -532,6 +539,38 @@ namespace SpaceGame.Gameplay.Ragdoll
             for (int i = 0; i < all.Count; i++)
             for (int j = i + 1; j < all.Count; j++)
                 Physics.IgnoreCollision(all[i], all[j], !selfCollision);
+        }
+
+        /// <summary>
+        /// Throw away the joints and wire fresh ones from the pose the body is in right now.
+        ///
+        /// <para>
+        /// A joint measures its limits from the pose it was created in. Built once, on the first
+        /// knockdown, every later knockdown was judged against whatever the creature happened to be
+        /// doing that first time — and a body already past a limit from there was snapped back on
+        /// the first physics step. Rebuilding costs a couple of dozen component adds per knockdown.
+        /// </para>
+        ///
+        /// <para>
+        /// DestroyImmediate, not Destroy: this runs on the frame the body goes dynamic, and a
+        /// deferred destroy would leave two joints on one bone for that frame's physics step.
+        /// </para>
+        /// </summary>
+        private void RebuildJoints()
+        {
+            foreach (Joint joint in joints)
+                if (joint != null) DestroyImmediate(joint);
+            joints.Clear();
+
+            foreach (Bone bone in bones)
+            {
+                if (bone == bones[0]) continue;
+
+                // A parent destroyed with worn gear leaves the branch hanging off the root bone —
+                // the same fallback Build uses for a branch with no simulated ancestor.
+                Rigidbody parent = bone.Parent != null ? bone.Parent : bones[0].Body;
+                joints.Add(BuildJoint(bone, parent));
+            }
         }
 
         /// <summary>
@@ -883,8 +922,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         // ── Building the skeleton ─────────────────────────────────────────────
 
         /// <summary>
-        /// Find the model's rig, decide which of its bones are worth simulating, and wire bodies,
-        /// shapes and joints through what survives. Runs once, on the first limp.
+        /// Find the model's rig, decide which of its bones are worth simulating, and wire bodies and
+        /// shapes through what survives, noting which body each bone hangs from. Runs once, on the
+        /// first limp; the joints themselves are made per knockdown by <see cref="RebuildJoints"/>.
         ///
         /// <para>
         /// Bodies go on the RIG, never on the pieces of geometry hanging off it, and that is the
@@ -952,7 +992,7 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (parent == null && bone != Hips) parent = Hips;
 
                 if (parent != null && bodies.TryGetValue(parent, out Rigidbody parentBody))
-                    joints.Add(BuildJoint(made, parentBody));
+                    made.Parent = parentBody;
             }
         }
 
@@ -1488,6 +1528,11 @@ namespace SpaceGame.Gameplay.Ragdoll
             joint.connectedBody = parent;
             joint.enablePreprocessing = false;
 
+            RagdollSkeleton.JointAxes(LocalBoneDirection(bone.Transform, BoneTransforms()),
+                                      out Vector3 twist, out Vector3 swing);
+            joint.axis = twist;
+            joint.swingAxis = swing;
+
             joint.swing1Limit = new SoftJointLimit { limit = swingLimit };
             joint.swing2Limit = new SoftJointLimit { limit = swingLimit };
             joint.lowTwistLimit = new SoftJointLimit { limit = -twistLimit };
@@ -1529,38 +1574,36 @@ namespace SpaceGame.Gameplay.Ragdoll
                 : 0.1f;
         }
 
-        /// <summary>The bone's local axis pointing down its own segment, and which way along it.</summary>
-        private int LongAxis(Transform bone, List<Transform> simulated, out float sign)
+        /// <summary>
+        /// Which way the bone runs, in its own local space: toward its first simulated child, else
+        /// its first child, else onward from its parent (a hand, a head, a foot).
+        /// </summary>
+        private static Vector3 LocalBoneDirection(Transform bone, IList<Transform> simulated)
         {
-            Vector3 target = Vector3.zero;
-            bool found = false;
-
-            for (int i = 0; i < bone.childCount && !found; i++)
+            for (int i = 0; i < bone.childCount; i++)
             {
                 Transform child = bone.GetChild(i);
-                if (!simulated.Contains(child)) continue;
-                target = child.position;
-                found = true;
+                if (simulated.Contains(child))
+                    return bone.InverseTransformDirection(child.position - bone.position);
             }
 
-            if (!found && bone.childCount > 0)
-            {
-                target = bone.GetChild(0).position;
-                found = true;
-            }
+            if (bone.childCount > 0)
+                return bone.InverseTransformDirection(bone.GetChild(0).position - bone.position);
 
-            if (!found)
-            {
-                sign = 1f;
-                return 1;
-            }
+            return bone.parent != null
+                ? bone.InverseTransformDirection(bone.position - bone.parent.position)
+                : Vector3.up;
+        }
 
-            Vector3 local = bone.InverseTransformDirection((target - bone.position).normalized);
+        /// <summary>The bone's local axis pointing down its own segment, and which way along it.</summary>
+        private static int LongAxis(Transform bone, IList<Transform> simulated, out float sign)
+        {
+            Vector3 local = LocalBoneDirection(bone, simulated);
             int axis = 0;
             if (Mathf.Abs(local.y) > Mathf.Abs(local[axis])) axis = 1;
             if (Mathf.Abs(local.z) > Mathf.Abs(local[axis])) axis = 2;
 
-            sign = Mathf.Sign(local[axis]);
+            sign = local[axis] < 0f ? -1f : 1f;
             return axis;
         }
 

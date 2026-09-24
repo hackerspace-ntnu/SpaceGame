@@ -56,7 +56,7 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | Tools/Save System/Validate Save Wiring | [SaveWiringValidator.cs](Assets/Game/Scripts/Core/Persistence/Editor/SaveWiringValidator.cs) | Reports wiring that would fail silently (missing ids, duplicate ids, unregistered prefabs) |
 | Tools/Save System/Report Unsaved State | [SaveCoverageReport.cs](Assets/Game/Scripts/Core/Persistence/Editor/SaveCoverageReport.cs) | Heuristic: mutable component state covered by no saver |
 | Tools/Save System/Drop Fallen Item Records | [Assets/Game/Scripts/Core/Persistence/Editor/](Assets/Game/Scripts/Core/Persistence/Editor) | Clears world records for items that fell out of the world |
-| Tools/SpaceGame/Agents/{Build, Verify} Drifter NPCs · Place Drifter Band | [SculptCharacterBuilder.cs](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) | The three sculpt-base drifters (human, alien, crumpy): prefabs, the agent/netcode/save stack, and a band placed in the world |
+| Tools/SpaceGame/Agents/{Build, Verify} Drifter NPCs · Update Drifter Behaviour · Place Drifter Band | [SculptCharacterBuilder.cs](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) | The four sculpt-base drifters (human, alien, crumpy, Gary). *Build* makes only a drifter with no prefab yet — the existing ones carry hand edits and are never rebuilt; *Update Drifter Behaviour* re-applies the agent/netcode/save stack, dialogue and temperament to every existing prefab in place; *Verify* also fails if Drifters are Hostile to any core faction; *Place Drifter Band* puts them in the world |
 | Tools/SpaceGame/Agents/Wire Ground Conform | [Assets/Game/Editor/Agents/](Assets/Game/Editor/Agents) | Adds ground-conform to agent prefabs |
 | Tools/SpaceGame/Art/Build Stylized Eye Materials | [StylizedEyeBuilder.cs](Assets/Game/Editor/Agents/StylizedEyeBuilder.cs) | The shared eye materials the characters use |
 | Tools/SpaceGame/Export Library Site Data | [LibraryExporter.cs](Assets/Game/Editor/AssetPipeline/LibraryExporter.cs) | One preview render per item/creature/vehicle + `library.json` into `docs/library/`; `tools/build_library_site.py` joins it to the hand-written blurbs |
@@ -88,7 +88,7 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | Script | Writes |
 | --- | --- |
 | [ExpeditionRigWiring](Assets/Game/Editor/Backpack/ExpeditionRigWiring.cs) | Backpack rig + 5 holder prefabs; also edits `PlayerCharacter.prefab` |
-| [SculptCharacterBuilder](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) · [StylizedEyeBuilder](Assets/Game/Editor/Agents/StylizedEyeBuilder.cs) | The three drifter prefabs and the shared eye materials |
+| [SculptCharacterBuilder](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) · [StylizedEyeBuilder](Assets/Game/Editor/Agents/StylizedEyeBuilder.cs) | The four drifter prefabs and the shared eye materials |
 | [PackShapeLibraryTool](Assets/Game/Editor/Backpack/PackShapeLibraryTool.cs) | `ScriptableObjects/Items/PackShapes.asset` — `Reseed` **preserves** hand-drawn masks |
 | [SandstormNoiseGenerator](Assets/Game/Editor/Weather/SandstormNoiseGenerator.cs) | `SandstormNoise.asset` |
 | [FrontMenuSetup](Assets/Game/Editor/Menus/FrontMenuSetup.cs) · [WorldSelectSetup](Assets/Game/Editor/Menus/WorldSelectSetup.cs) · [LobbyPreviewSetup](Assets/Game/Editor/Menus/LobbyPreviewSetup.cs) | UI subtrees in `Scenes/Core/MainMenu.unity`, `Resources/LobbyPreviewAstronaut.prefab` |

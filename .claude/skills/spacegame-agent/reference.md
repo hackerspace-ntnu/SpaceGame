@@ -116,13 +116,14 @@ instance method `.WithFacing(Vector3)`.
 `WatchModule` (Ambient), `IdleLookAroundModule` (Personality) and
 `InteractionFocusModule` (Scripted) are **movement** modules that return `StopAndFace` — they are
 not `IFacingModule`. The only true `IFacingModule` implementors are `AgentRangedCombatModule`
-(`FacingPriority => Priority`) and `NpcItemUseModule` (serialized `facingPriority`).
+(`FacingPriority => Priority`), `NpcItemUseModule` (serialized `facingPriority`) and
+`CloseCombatModule` (`FacingPriority => Priority`, only when `strikeOnTheMove` is on).
 
 ### Combat
 
 | Module | Priority | Claims movement | Notes |
 |---|---|---|---|
-| `CloseCombatModule` | MeleeAttack 23 | yes (`StopAndFace`) | `rangeExitFactor` hysteresis + `attackCommitDuration`; exposes `AttackRange` |
+| `CloseCombatModule` | MeleeAttack 23 | yes (`StopAndFace`; `null` + facing with `strikeOnTheMove`) | `rangeExitFactor` hysteresis + `attackCommitDuration`; exposes `AttackRange`. Opt-ins: `impactDelay` (damage at the clip's contact frame), `strikeOnTheMove` (Chase keeps the legs, this keeps the body on target), `upperBodySwing` (trigger on the masked `Upper Body` layer via `AgentAnimatorDriver.PlayUpperBodyGesture`) |
 | `AgentRangedCombatModule` | RangedAttack 22 | yes | Owns the whole engagement (backs off to `preferredRange`, strafes). Needs `AgentWeaponDefinition` + `AgentFireProfile` + `AgentAimProfile`; exposes `MaxRange`. Also `IFacingModule` |
 | `NpcItemUseModule` | RangedAttack 22 | **no** | Fires a real `InventoryItem` from `EntityInventoryComponent`; triggers `TargetInRange` / `WhenHurt` / `OnInterval`. Needs `EntityEquipmentController` |
 
@@ -223,7 +224,9 @@ no `AgentAnimatorDriver` because nothing is keyframed.
 | `IsImmobalized` | Bool (**misspelled in code and in the controllers**) | `Motor.IsImmobile` |
 | `IsAiming` | Bool | `SetIsAiming(bool)` |
 
-Triggers: `Hurt`, `Die`, `ShootRifle`, `SpearAttack`, plus `TriggerByName(string)`.
+Triggers: `Hurt`, `Die`, `ShootRifle`, `SpearAttack`, plus `TriggerByName(string)`, and
+`PlayUpperBodyGesture(trigger, seconds, mirrored)` for a one-shot on the masked `Upper Body` layer of
+`AstronautArmature.controller` (a bare trigger there shows nothing — see AgentSystem.md Gotchas).
 Other components fire their own configurable triggers, and their **defaults do not match**:
 `CloseCombatModule.attackAnimTrigger = "Meele"`, `AgentRangedCombatModule.shootAnimTrigger =
 "AssualtShoot"`, `HealthReactionModule.hurtAnimTrigger = "Hurt"`, `dieAnimTrigger = "Death"`.

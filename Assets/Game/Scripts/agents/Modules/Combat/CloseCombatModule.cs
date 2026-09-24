@@ -1,6 +1,8 @@
 // Deals melee damage to a target when within attack range.
 // Claims movement: returns StopAndFace while in range (preempting ChaseModule) and null otherwise,
 // so ChaseModule at lower priority can drive the approach when the target is out of melee reach.
+// With strikeOnTheMove it never plants the feet: it passes the frame to ChaseModule and keeps only
+// the body turned to the target, through the facing channel, so the agent swings on the run.
 using System;
 using UnityEngine;
 using UnityEngine.Events;
@@ -12,7 +14,7 @@ using SpaceGame.Items;
 
 namespace SpaceGame.Agents
 {
-    public class CloseCombatModule : BehaviourModuleBase
+    public class CloseCombatModule : BehaviourModuleBase, IFacingModule
     {
         [Header("Attack")]
         [SerializeField] private float attackRange = 5f;
@@ -23,8 +25,22 @@ namespace SpaceGame.Agents
         [SerializeField] [Range(1f, 2f)] private float rangeExitFactor = 1.15f;
         [SerializeField] private float attackCooldown = 1.2f;
         [SerializeField] private int attackDamage = 10;
-        [Tooltip("Seconds the agent stays locked in StopAndFace after a swing fires — keeps the attack committed so it can't start walking mid-animation if the target drifts out of attackRange. Typically set to the length of the attack animation.")]
+        [Tooltip("Seconds the agent stays locked in StopAndFace after a swing fires — keeps the attack committed so it can't start walking mid-animation if the target drifts out of attackRange. Typically set to the length of the attack animation. With strikeOnTheMove nothing is locked: it only keeps the body turned to the target for that long.")]
         [SerializeField] private float attackCommitDuration = 0.5f;
+
+        [Tooltip("Seconds from the start of a swing to the frame it connects in the attack clip. " +
+                 "Damage and knockback wait for it, and land only if the target is still inside " +
+                 "attackRange * rangeExitFactor, so the hit the player feels is the hit they saw. " +
+                 "0 lands it on the frame the swing starts, which is right only for a clip with no " +
+                 "wind-up — a long one leaves the damage number up before the arm has moved.")]
+        [SerializeField] private float impactDelay;
+
+        [Tooltip("Swing without stopping. Off, the agent plants its feet for every swing, which suits " +
+                 "an attack that animates the whole body. On, the module below it (ChaseModule) keeps " +
+                 "the legs going and this one only turns the body to the target, so the agent strikes " +
+                 "on the run and a target backing away keeps getting hit. Pair it with upperBodySwing " +
+                 "or a full-body attack clip freezes the legs while the body slides.")]
+        [SerializeField] private bool strikeOnTheMove;
 
         // Knockback is OFF by default, and that is deliberate: this module is shared, and giving
         // every melee creature in the project a shove because one of them needed it would retune
@@ -54,6 +70,15 @@ namespace SpaceGame.Agents
         [Tooltip("Trigger to fire on each attack. Leave empty to disable.")]
         [SerializeField] private string attackAnimTrigger = "Meele";
 
+        [Tooltip("Play attackAnimTrigger on the masked Upper Body layer of the player's layered " +
+                 "controller (AstronautArmature), through AgentAnimatorDriver, so the legs keep " +
+                 "running under the swing. Alternates arms: every other swing plays the mirrored state.")]
+        [SerializeField] private bool upperBodySwing;
+
+        [Tooltip("Seconds the Upper Body layer is held up for one swing before it blends back. A " +
+                 "little under the clip's length, so the blend is done before the state exits.")]
+        [SerializeField] private float upperBodySwingSeconds = 0.55f;
+
         [Header("Events")]
         public UnityEvent<Transform> OnAttack;
         public event Action OnAttackEvent;
@@ -70,6 +95,17 @@ namespace SpaceGame.Agents
         // the hysteresis: entering costs attackRange, leaving costs attackRange * rangeExitFactor.
         private bool engaged;
         private Animator animator;
+        private AgentAnimatorDriver animatorDriver;
+
+        // A swing between its start and its impact. Deliberately not saved: it lives for at most
+        // impactDelay, and a swing a quit cut short is one the target never saw land either.
+        private Transform pendingStrike;
+        private float impactTimer;
+
+        // Which fist the next upper-body swing is thrown with. Presentation only, so each machine
+        // keeps its own: a watcher that missed a message throws the other fist, and nothing else
+        // reads it.
+        private bool nextSwingMirrored;
 
         // Whose swing this is. Cached rather than resolved per message — see AgentAuthority. Only
         // ever read on the receiving side here: the deciding side is gated one level up, in
@@ -121,6 +157,8 @@ namespace SpaceGame.Agents
                 engaged = false;
             }
 
+            pendingStrike = null;
+
             // Watching machines listen so the authority can tell them a swing happened. The
             // authority registers too and simply never receives its own broadcast — NetRelay
             // filters the sender out — which is the same shape EntityEquipmentController uses for
@@ -137,6 +175,12 @@ namespace SpaceGame.Agents
             authority = new AgentAuthority(this);
             FindChildByName("Sword")?.SetActive(IsActive);
             animator = GetComponentInChildren<Animator>();
+            animatorDriver = GetComponentInChildren<AgentAnimatorDriver>();
+
+            if (upperBodySwing && animatorDriver == null)
+                Debug.LogError($"{name}: CloseCombatModule.upperBodySwing needs an AgentAnimatorDriver " +
+                               "to hold the Upper Body layer up; swinging with a plain trigger instead.",
+                               this);
         }
 
         // Being carried — onto a walker's deck, into a seat — moves this agent under a different
@@ -150,6 +194,10 @@ namespace SpaceGame.Agents
             cooldownTimer -= deltaTime;
             commitTimer -= deltaTime;
 
+            // Before the target check: a fist already thrown still lands if the target is in
+            // reach, whoever the agent has decided to fight next.
+            ResolvePendingStrike(deltaTime);
+
             AgentTargeting targeting = context.Targeting;
             Transform target = targeting != null && targeting.HasTarget ? targeting.Target : null;
             if (target == null)
@@ -160,7 +208,8 @@ namespace SpaceGame.Agents
 
             // Mid-swing: keep the agent planted and facing the target regardless of distance,
             // so Chase can't reclaim the frame and start walking while the attack animation plays.
-            if (commitTimer > 0f)
+            // On the move there is nothing to protect — the swing never stopped the legs.
+            if (commitTimer > 0f && !strikeOnTheMove)
                 return MoveIntent.StopAndFace(target.position);
 
             float distance = targeting.DistanceToTarget;
@@ -182,7 +231,47 @@ namespace SpaceGame.Agents
                 commitTimer = attackCommitDuration;
             }
 
-            return MoveIntent.StopAndFace(target.position);
+            // On the move the legs belong to whatever closes the distance, and this module keeps
+            // only the body — see TryGetFacing. Planting the feet here is what made a swing a
+            // full stop: the agent braked to zero for every blow and had to run back up to speed
+            // behind a target that had already walked out of reach.
+            return strikeOnTheMove ? null : MoveIntent.StopAndFace(target.position);
+        }
+
+        // Outranks the ambient look-arounds, as the ranged module's facing does.
+        public int FacingPriority => Priority;
+
+        /// <summary>
+        /// The body on the target while ChaseModule drives the legs. Only on the move: planted,
+        /// StopAndFace already faces it. Held through <see cref="attackCommitDuration"/> so a
+        /// target slipping out of reach mid-swing does not turn the punch into a shrug.
+        /// </summary>
+        public bool TryGetFacing(in AgentContext context, out Vector3 facePosition)
+        {
+            facePosition = default;
+            if (!strikeOnTheMove || (!engaged && commitTimer <= 0f)) return false;
+
+            AgentTargeting targeting = context.Targeting;
+            if (targeting == null || !targeting.HasTarget || targeting.Target == null) return false;
+
+            facePosition = targeting.Target.position;
+            return true;
+        }
+
+        private void ResolvePendingStrike(float deltaTime)
+        {
+            if (pendingStrike == null) return;
+
+            impactTimer -= deltaTime;
+            if (impactTimer > 0f) return;
+
+            Transform target = pendingStrike;
+            pendingStrike = null;
+
+            // The same reach that keeps the agent engaged, not the stricter one that starts a
+            // swing: a target that stepped back half a pace was still inside the punch.
+            if (Vector3.Distance(transform.position, target.position) <= attackRange * rangeExitFactor)
+                Strike(target);
         }
 
         /// <summary>
@@ -194,9 +283,9 @@ namespace SpaceGame.Agents
         /// forwards it as a REQUEST from a client, and the server honours every request it gets, so
         /// a swing that runs on the host and on two clients bills the target three times. The gate
         /// is one level up, in <see cref="AgentController"/>, which stops ticking modules at all on
-        /// a machine that does not own the agent — and this method is reachable from nowhere else.
-        /// Repeating the check here would be a second answer to the same question, free to drift
-        /// from the first.
+        /// a machine that does not own the agent — and this method, like <see cref="Strike"/>, is
+        /// reachable from Tick alone. Repeating the check here would be a second answer to the
+        /// same question, free to drift from the first.
         /// </para>
         /// <para>
         /// The consequence used to be that the sound and the trigger only fired on the simulating
@@ -204,25 +293,22 @@ namespace SpaceGame.Agents
         /// <see cref="NetMsg.AgentActed"/> — see <see cref="PresentSwing"/>, which is the half of
         /// this method that runs everywhere.
         /// </para>
+        /// <para>
+        /// The swing is presented now and lands <see cref="impactDelay"/> later, when the clip
+        /// connects. Landing both at once put the damage up to two seconds ahead of the arm.
+        /// </para>
         /// </summary>
         private void Attack(Transform target)
         {
-            var health = target.GetComponentInChildren<HealthComponent>();
-            if (health != null && health.Alive)
-                NetDamage.Apply(health.gameObject, attackDamage, transform);
-
-            // Alongside the damage, not inside the presentation below: a shove moves the victim,
-            // and where the victim ends up is exactly the state every machine must agree on.
-            // BlastPush routes it correctly for each kind of target — a player is
-            // owner-authoritative and gets NetMsg.Flung, a creature's transform belongs to its
-            // motor so it is asked for a leap, and a loose Rigidbody takes a mass-scaled impulse.
-            Knock(target);
-
-            // Deliberately NOT part of the presentation below, and not carried in the message
-            // either: this hands out the TARGET, which is exactly the divergent state AgentActed
-            // exists so that watchers never have to guess at. A handler holding the victim is one
-            // edit away from being a second machine that can damage it.
-            OnAttack?.Invoke(target);
+            if (impactDelay > 0f)
+            {
+                pendingStrike = target;
+                impactTimer = impactDelay;
+            }
+            else
+            {
+                Strike(target);
+            }
 
             // The agent's own position, matching where the sound was played from before this was
             // split — a swing has no muzzle, so its origin is the body that made it.
@@ -238,10 +324,33 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// The swing connecting. Authority only, for every reason <see cref="Attack"/> gives.
+        /// </summary>
+        private void Strike(Transform target)
+        {
+            var health = target.GetComponentInChildren<HealthComponent>();
+            if (health != null && health.Alive)
+                NetDamage.Apply(health.gameObject, attackDamage, transform);
+
+            // Alongside the damage, not inside the presentation: a shove moves the victim, and
+            // where the victim ends up is exactly the state every machine must agree on.
+            // BlastPush routes it correctly for each kind of target — a player is
+            // owner-authoritative and gets NetMsg.Flung, a creature's transform belongs to its
+            // motor so it is asked for a leap, and a loose Rigidbody takes a mass-scaled impulse.
+            Knock(target);
+
+            // Deliberately NOT part of the presentation, and not carried in the message either:
+            // this hands out the TARGET, which is exactly the divergent state AgentActed exists so
+            // that watchers never have to guess at. A handler holding the victim is one edit away
+            // from being a second machine that can damage it.
+            OnAttack?.Invoke(target);
+        }
+
+        /// <summary>
         /// Throw the victim away from the attacker.
         ///
         /// <para>
-        /// Authority only — it is called from <see cref="Attack"/>, which is the deciding side.
+        /// Authority only — it is called from <see cref="Strike"/>, which is the deciding side.
         /// Running it on a watcher would shove the same victim once per machine in the session,
         /// which is the movement equivalent of the damage bug the <c>Cosmetic</c> split exists to
         /// prevent.
@@ -290,8 +399,16 @@ namespace SpaceGame.Agents
         {
             Sfx.Play(attackId, origin, attackSound, GetInstanceID());
 
-            if (animator && !string.IsNullOrEmpty(attackAnimTrigger))
+            if (upperBodySwing && animatorDriver != null)
+            {
+                animatorDriver.PlayUpperBodyGesture(attackAnimTrigger, upperBodySwingSeconds,
+                                                    nextSwingMirrored);
+                nextSwingMirrored = !nextSwingMirrored;
+            }
+            else if (animator && !string.IsNullOrEmpty(attackAnimTrigger))
+            {
                 animator.SetTrigger(attackAnimTrigger);
+            }
 
             OnAttackEvent?.Invoke();
         }
@@ -331,6 +448,8 @@ namespace SpaceGame.Agents
             attackCooldown = Mathf.Max(0.1f, attackCooldown);
             attackDamage = Mathf.Max(0, attackDamage);
             attackCommitDuration = Mathf.Max(0f, attackCommitDuration);
+            impactDelay = Mathf.Max(0f, impactDelay);
+            upperBodySwingSeconds = Mathf.Max(0.05f, upperBodySwingSeconds);
             knockbackSpeed = Mathf.Max(0f, knockbackSpeed);
             knockbackLeapDistance = Mathf.Max(0f, knockbackLeapDistance);
             knockbackLeapHeight = Mathf.Max(0f, knockbackLeapHeight);

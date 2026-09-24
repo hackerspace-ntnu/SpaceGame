@@ -27,7 +27,9 @@ namespace SpaceGame.Characters
         /// and leaves the left at the hip — so a pose struck for something on the LEFT arm has to
         /// be the mirror of it or the wrong arm comes up.
         /// </summary>
-        private const string HoldMirrorParameter = "HoldMirror";
+        // Public for the same reason as HoldStyleParameter: AgentUpperBodyGesture throws an NPC's
+        // punch with either fist through it.
+        public const string HoldMirrorParameter = "HoldMirror";
 
         /// <summary>Name of the masked layer this component owns outright.</summary>
         public const string UpperBodyLayer = "Upper Body";
@@ -74,8 +76,9 @@ namespace SpaceGame.Characters
 
         /// <summary>Int the Upper Body layer's raise states are entered on: 0 none, 1 left, 2 right, 3 both.</summary>
         // Held true while a one-shot gesture plays, so the Upper Body layer's states can gate on
-        // it and an AnyState transition cannot evict the gesture mid-play.
-        private const string GesturingParameter = "Gesturing";
+        // it and an AnyState transition cannot evict the gesture mid-play. Public:
+        // AgentUpperBodyGesture holds it for an NPC's gestures on the same layer.
+        public const string GesturingParameter = "Gesturing";
 
         private const string ArmRaiseParameter = "ArmRaise";
 

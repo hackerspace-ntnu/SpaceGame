@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8bba8a0dd12640aeb51f5bddb4144a9, type: 3}
+  m_Name: Glacier
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::SpaceGame.EditorTools.EyeStyle
+  Sclera: {r: 0, g: 0.7735849, b: 0.46000066, a: 1}
+  IrisInner: {r: 0.44464353, g: 0.6431373, b: 0, a: 1}
+  IrisOuter: {r: 0.06931814, g: 0.18039216, b: 0.003921568, a: 1}
+  LimbalRing: {r: 0.754717, g: 0.64746845, b: 0.19579923, a: 1}
+  Iris:
+    Size: 47.1
+    Aspect: 1
+    Roundness: 2
+    Rotation: 0
+    OffsetUp: 5
+    OffsetSide: 0
+  LimbalWidth: 4.1
+  Pupil: {r: 0, g: 0.19148141, b: 0.38679248, a: 1}
+  PupilShape:
+    Size: 9.3
+    Aspect: 1.83
+    Roundness: 0.83
+    Rotation: 4
+    OffsetUp: 5
+    OffsetSide: 1
+  Catchlights:
+  - Colour: {r: 1, g: 1, b: 1, a: 1}
+    Strength: 1
+    Shape:
+      Size: 9
+      Aspect: 1
+      Roundness: 2
+      Rotation: 0
+      OffsetUp: 14.2
+      OffsetSide: -11.1
+  - Colour: {r: 1, g: 1, b: 1, a: 1}
+    Strength: 0.6
+    Shape:
+      Size: 4.5
+      Aspect: 1
+      Roundness: 2
+      Rotation: 0
+      OffsetUp: -22.1
+      OffsetSide: 15.5
+  EdgeSoftness: 0
+  Emission: {r: 1, g: 1, b: 1, a: 1}
+  EmissionStrength: 1.45
+  EmissionArea: 0
+  Smoothness: 0.499

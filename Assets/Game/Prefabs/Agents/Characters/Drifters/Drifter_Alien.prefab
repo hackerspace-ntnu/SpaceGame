@@ -26,13 +26,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 127195848836594104}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6452075, y: 1.877807e-15, z: 5.421099e-16, w: 0.76400733}
-  m_LocalPosition: {x: 0.084738106, y: 0.18300867, z: -0.091412045}
+  m_LocalRotation: {x: -0.62930506, y: -0.1423704, z: -0.16858481, w: 0.7451745}
+  m_LocalPosition: {x: 0.08473923, y: 0.18298471, z: -0.0914224}
   m_LocalScale: {x: 0.033507004, y: 0.033506997, z: 0.033507}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6360970822994835484}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -80.363, y: 0, z: -25.496}
 --- !u!33 &2681713174542464011
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -66,7 +66,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b9542ee074801433d81a213c2979c321, type: 2}
+  - {fileID: 2100000, guid: a08e9ed48837347b68b0dbfbdde77d18, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -863,13 +863,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3287389772039872656}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6452075, y: -2.9063122e-16, z: -2.0817865e-15, w: 0.76400733}
-  m_LocalPosition: {x: -0.0837286, y: 0.1751053, z: -0.082121626}
+  m_LocalRotation: {x: -0.6234371, y: 0.16618508, z: 0.19678453, w: 0.7382307}
+  m_LocalPosition: {x: -0.08372978, y: 0.17505313, z: -0.082144275}
   m_LocalScale: {x: 0.034901705, y: 0.034901697, z: 0.0349017}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6360970822994835484}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -80.362, y: 0, z: 29.852}
 --- !u!33 &801421851815869950
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -903,7 +903,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b9542ee074801433d81a213c2979c321, type: 2}
+  - {fileID: 2100000, guid: a08e9ed48837347b68b0dbfbdde77d18, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2133,6 +2133,10 @@ GameObject:
   - component: {fileID: -1881326595272320879}
   - component: {fileID: 444422182461639731}
   - component: {fileID: 487290134295436136}
+  - component: {fileID: 5108713667242987025}
+  - component: {fileID: 6171106716006324648}
+  - component: {fileID: 4147416084983116387}
+  - component: {fileID: 4550177604145150724}
   m_Layer: 0
   m_Name: Drifter_Alien
   m_TagString: Untagged
@@ -2280,6 +2284,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.0074075
   measuredRunSpeed: 3.5
+  upperBodyGestureBlend: 0.08
   strideEndPhases: []
 --- !u!114 &4589725165380895566
 MonoBehaviour:
@@ -2492,14 +2497,18 @@ MonoBehaviour:
   priority: 12
   active: 1
   warningLines:
-  - Careful where you point that.
-  - I see you.
-  - That is close enough.
+  - Easy. We're not armed.
+  - Point that somewhere else, friend.
+  - We don't want a fight.
   lastWarningLines:
-  - Last warning.
-  - Put it down. Now.
-  - Do not make me.
-  aimWhileDrawn: 1
+  - Lower it. I won't ask again.
+  - Keep pointing that and we settle this.
+  - Put it down, or we put you down.
+  provokedLines:
+  - You started this!
+  - All right. You wanted a fight.
+  - Drifters! On me!
+  aimWhileDrawn: 0
   standGroundWhileDrawn: 1
   facingPriority: 22
 --- !u!114 &5647846685334364661
@@ -2655,6 +2664,10 @@ MonoBehaviour:
   - Your suit is loud. Everything out here hears it.
   - We were here before the wind changed.
   - Pass. I have no quarrel with you.
+  - The sand remembers every ship that fell. It is patient about it.
+  - You count days. We count storms. Fewer numbers.
+  - The machines walk the same roads, again and again. We walk around them.
+  - Water hides under stone, never under a dune. Remember that and you will live.
   globalDialogPool: {fileID: 0}
   branchingSteps: []
   loopDialogLines: 1
@@ -3071,3 +3084,123 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &5108713667242987025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bde6bae968334560a6b4a8cb9594ce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChatterModule
+  priority: 5
+  active: 1
+  hearingRadius: 12
+  requireLineOfSight: 0
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  interval: {x: 20, y: 50}
+  globalCooldown: 6
+  popupDuration: 2.6
+  useTaskChatter: 1
+  idleChatter:
+  - The dunes have moved again.
+  - Quiet. The machines are elsewhere today.
+  - Walk soft.
+  silentWhileFighting: 1
+  voiceId: 401
+  voiceSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &6171106716006324648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43eff2e021982408cbdc8668fb5d941c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.CloseCombatModule
+  priority: 23
+  active: 1
+  attackRange: 2.76
+  rangeExitFactor: 1.15
+  attackCooldown: 0.9
+  attackDamage: 12
+  attackCommitDuration: 0.32
+  impactDelay: 0.2
+  strikeOnTheMove: 1
+  knockbackSpeed: 0
+  knockbackLift: 0.3
+  knockbackLeapDistance: 4
+  knockbackLeapHeight: 1.6
+  knockbackLeapDuration: 0.55
+  knockbackMassReference: 80
+  knockbackMassScale: {x: 0.4, y: 2.5}
+  attackAnimTrigger: Punch
+  upperBodySwing: 1
+  upperBodySwingSeconds: 0.55
+  OnAttack:
+    m_PersistentCalls:
+      m_Calls: []
+  attackId: 412
+  attackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &4147416084983116387
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdac19e9c311046d182417d2e82bc89b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CombatCadenceSaveable
+--- !u!114 &4550177604145150724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75ae63e04c304512b9f5f4b819f8086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.EyeBlink
+  eyes:
+  - {fileID: 7793118220934276387}
+  - {fileID: 7730277656989461979}
+  lidColour: {r: 1, g: 0.49411768, b: 0.25490198, a: 1}
+  lidSmoothness: 0.15
+  upperLidRest: 180
+  lowerLidRest: -180
+  lidsMeet: -15
+  lashWidth: 4
+  lashDarkening: 0.55
+  rhythm:
+    minInterval: 1
+    maxInterval: 3
+    closeTime: 0.08
+    shutTime: 0.05
+    openTime: 0.15
+    doubleBlinkChance: 0.25
+    doubleBlinkGap: 0.08

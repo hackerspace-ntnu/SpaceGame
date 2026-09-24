@@ -172,7 +172,7 @@ def _unmirror():
 
 
 def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
-           fix_inverted=False, keep_collection=None, prepare=None):
+           fix_inverted=False, keep_collection=None, prepare=None, scale_all=False):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -201,6 +201,13 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     model whose export needs more than a keep-list - dropping build helpers,
     adding sockets derived from the file's own data. Whatever it changes is in
     memory only, like everything else here.
+
+    `scale_all` writes the unit scale into the FBX header (`FBX_SCALE_ALL`)
+    instead of into every transform. Turn it on for a skinned HUMANOID
+    character — the drifters ship this way: with `FBX_SCALE_NONE` every bone
+    imports at scale 100, which anything parented to a hand then inherits. Off
+    by default so nothing already shipping changes; Appa and the other
+    creatures size their bone-parented colliders against that 100.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
@@ -252,18 +259,18 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     else:
         print("  dropped %d armature(s); meshes flattened in place" % dropped)
 
-    _write_fbx(dst, types)
+    _write_fbx(dst, types, scale_all=scale_all)
     # Deliberately no save_mainfile: the .blend is the source of truth.
 
 
-def _write_fbx(dst, types, use_selection=False):
+def _write_fbx(dst, types, use_selection=False, scale_all=False):
     """The twelve load-bearing flags, in one place. See the module docstring."""
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     bpy.ops.export_scene.fbx(
         filepath=dst,
         use_selection=use_selection,
         object_types=types,
-        apply_scale_options='FBX_SCALE_NONE',
+        apply_scale_options='FBX_SCALE_ALL' if scale_all else 'FBX_SCALE_NONE',
         axis_forward='-Z',
         axis_up='Y',
         mesh_smooth_type='FACE',

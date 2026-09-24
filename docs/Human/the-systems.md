@@ -411,7 +411,7 @@ Every 3D asset starts as a Blender file in a source library Unity deliberately c
 
 ### The eyes on a character's face *(StylizedEyes)*
 
-Characters' eyes are painted, not lit: a pupil, a coloured iris that darkens toward its edge, a dark ring around it and a white glint are all drawn straight into a picture that is wrapped round the eyeball. There are eight of them — six bright alien colours on a near-black eye, one pale human one, and one blank white one with no pupil at all — and a character picks the one it wears by name. Seven of them glow faintly.
+Characters' eyes are painted, not lit: a pupil, a coloured iris that darkens toward its edge, a dark ring around it and a white glint are all drawn straight into a picture that is wrapped round the eyeball. There are eight of them — six bright alien colours on a near-black eye, one pale human one, and one blank white one with no pupil at all — and a character picks the one it wears by name. Seven of them glow faintly. They also blink: every few seconds a pair of lids, painted in the character's own skin colour, sweeps over the ball and back, and a dead character's eyes stay shut.
 
 **Worth knowing:** The eyeballs arrived from the sculpt with their wrapping broken in a way that looks perfectly fine until you paint on one, at which point a single pupil comes out as two or four pointing different ways. The build fixes the wrapping itself rather than trusting what shipped.
 

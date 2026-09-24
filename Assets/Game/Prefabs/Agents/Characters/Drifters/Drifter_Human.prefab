@@ -26,13 +26,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 12588650251462297}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6452075, y: 2.6933551e-15, z: 3.8849625e-22, w: 0.76400733}
-  m_LocalPosition: {x: -0.06453044, y: 0.17582712, z: -0.08637226}
+  m_LocalRotation: {x: 0.055652663, y: 0.6678355, z: -0.5548844, w: -0.49295226}
+  m_LocalPosition: {x: -0.06479523, y: 0.17501205, z: -0.08685329}
   m_LocalScale: {x: 0.048698537, y: 0.048698526, z: 0.048698533}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5025674234266318857}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 43.336, y: 278.04498, z: 58.687}
 --- !u!33 &3012132035734405614
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -66,7 +66,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 6d2b1031acab148e694d96ce4f57ab08, type: 2}
+  - {fileID: 2100000, guid: 1194ac61866b34f46880ae54b14748c7, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -148,13 +148,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 750199470611154851}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6452075, y: 2.6933551e-15, z: 3.8849625e-22, w: 0.76400733}
-  m_LocalPosition: {x: 0.05934141, y: 0.17582712, z: -0.08637226}
+  m_LocalRotation: {x: -0.6042257, y: -0.22628316, z: -0.26794735, w: 0.71547985}
+  m_LocalPosition: {x: 0.059345625, y: 0.17577447, z: -0.08639531}
   m_LocalScale: {x: 0.048698537, y: 0.048698526, z: 0.048698533}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5025674234266318857}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -80.363, y: 0, z: -41.062}
 --- !u!33 &8986277967987750873
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -188,7 +188,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 6d2b1031acab148e694d96ce4f57ab08, type: 2}
+  - {fileID: 2100000, guid: 1194ac61866b34f46880ae54b14748c7, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1297,6 +1297,10 @@ GameObject:
   - component: {fileID: -9126960013248973006}
   - component: {fileID: 3995285557523267948}
   - component: {fileID: 5210495435081968202}
+  - component: {fileID: 4107478710463546933}
+  - component: {fileID: 3849500632852224777}
+  - component: {fileID: -4624532238568383670}
+  - component: {fileID: 6891018489333317914}
   m_Layer: 0
   m_Name: Drifter_Human
   m_TagString: Untagged
@@ -1444,6 +1448,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.0074075
   measuredRunSpeed: 3.5
+  upperBodyGestureBlend: 0.08
   strideEndPhases: []
 --- !u!114 &1041204777782767962
 MonoBehaviour:
@@ -1656,14 +1661,18 @@ MonoBehaviour:
   priority: 12
   active: 1
   warningLines:
-  - Careful where you point that.
-  - I see you.
-  - That is close enough.
+  - Easy. We're not armed.
+  - Point that somewhere else, friend.
+  - We don't want a fight.
   lastWarningLines:
-  - Last warning.
-  - Put it down. Now.
-  - Do not make me.
-  aimWhileDrawn: 1
+  - Lower it. I won't ask again.
+  - Keep pointing that and we settle this.
+  - Put it down, or we put you down.
+  provokedLines:
+  - You started this!
+  - All right. You wanted a fight.
+  - Drifters! On me!
+  aimWhileDrawn: 0
   standGroundWhileDrawn: 1
   facingPriority: 22
 --- !u!114 &7036200266885130878
@@ -1819,6 +1828,12 @@ MonoBehaviour:
   - Came down in the same storm you did, near enough.
   - Walk where the sand is firm. You learn that fast or you don't.
   - I don't want trouble. Neither do you, out here.
+  - My ship's under a dune somewhere east. I stopped looking for it.
+  - The machines leave us be. Nothing on us worth the bullet.
+  - Storm catches you in the open, get low and wait it out. Walking in it is how
+    people go missing.
+  - Drifting isn't a plan. It's what's left when the plan runs out.
+  - Hurt one of us and you've hurt all of us. Otherwise, walk with us a while.
   globalDialogPool: {fileID: 0}
   branchingSteps: []
   loopDialogLines: 1
@@ -2235,6 +2250,126 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &4107478710463546933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6110677241095528271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bde6bae968334560a6b4a8cb9594ce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChatterModule
+  priority: 5
+  active: 1
+  hearingRadius: 12
+  requireLineOfSight: 0
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  interval: {x: 20, y: 50}
+  globalCooldown: 6
+  popupDuration: 2.6
+  useTaskChatter: 1
+  idleChatter:
+  - Keep moving. Standing still is how the sand gets you.
+  - Wind's turning. Could be a storm by dark.
+  - Another wreck on the ridge. Picked clean, I'd bet.
+  silentWhileFighting: 1
+  voiceId: 401
+  voiceSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &3849500632852224777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6110677241095528271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43eff2e021982408cbdc8668fb5d941c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.CloseCombatModule
+  priority: 23
+  active: 1
+  attackRange: 2.76
+  rangeExitFactor: 1.15
+  attackCooldown: 0.9
+  attackDamage: 12
+  attackCommitDuration: 0.32
+  impactDelay: 0.2
+  strikeOnTheMove: 1
+  knockbackSpeed: 0
+  knockbackLift: 0.3
+  knockbackLeapDistance: 4
+  knockbackLeapHeight: 1.6
+  knockbackLeapDuration: 0.55
+  knockbackMassReference: 80
+  knockbackMassScale: {x: 0.4, y: 2.5}
+  attackAnimTrigger: Punch
+  upperBodySwing: 1
+  upperBodySwingSeconds: 0.55
+  OnAttack:
+    m_PersistentCalls:
+      m_Calls: []
+  attackId: 412
+  attackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &-4624532238568383670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6110677241095528271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdac19e9c311046d182417d2e82bc89b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CombatCadenceSaveable
+--- !u!114 &6891018489333317914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6110677241095528271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75ae63e04c304512b9f5f4b819f8086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.EyeBlink
+  eyes:
+  - {fileID: 8567777778241709373}
+  - {fileID: 1535552074224265606}
+  lidColour: {r: 0.827451, g: 0.72476035, b: 0.5543621, a: 1}
+  lidSmoothness: 0.15
+  upperLidRest: 180
+  lowerLidRest: -180
+  lidsMeet: -15
+  lashWidth: 4
+  lashDarkening: 0.55
+  rhythm:
+    minInterval: 1
+    maxInterval: 3
+    closeTime: 0.08
+    shutTime: 0.05
+    openTime: 0.15
+    doubleBlinkChance: 0.25
+    doubleBlinkGap: 0.08
 --- !u!1 &6521912300553627186
 GameObject:
   m_ObjectHideFlags: 0

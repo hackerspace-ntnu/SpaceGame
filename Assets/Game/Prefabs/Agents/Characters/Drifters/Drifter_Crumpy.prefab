@@ -433,13 +433,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1567679854123223544}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.67041, y: 0.0000000014559399, z: -0.0045117526, w: 0.74197716}
-  m_LocalPosition: {x: -0.097157374, y: 0.13179097, z: -0.08926697}
-  m_LocalScale: {x: 0.034901705, y: 0.0349017, z: 0.0349017}
+  m_LocalRotation: {x: -0.63411516, y: 0.21759473, z: 0.23655663, w: 0.703272}
+  m_LocalPosition: {x: -0.096999, y: 0.12998, z: -0.074008}
+  m_LocalScale: {x: 0.048046827, y: 0.04804682, z: 0.04804682}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8142197309883445878}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -84.187, y: 3.424, z: 34.09}
 --- !u!33 &9013394143497819812
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -473,7 +473,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0a686556526e14e2bb3f8c30bf03500a, type: 2}
+  - {fileID: 2100000, guid: a08e9ed48837347b68b0dbfbdde77d18, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -555,13 +555,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2055344136632556184}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.67041, y: 0.0000000012665156, z: -0.004511753, w: 0.74197716}
-  m_LocalPosition: {x: 0.09310208, y: 0.13106117, z: -0.0883168}
-  m_LocalScale: {x: 0.033507004, y: 0.033506993, z: 0.033507}
+  m_LocalRotation: {x: -0.64078456, y: -0.19709189, z: -0.22244412, w: 0.70786196}
+  m_LocalPosition: {x: 0.092999, y: 0.12996, z: -0.075012}
+  m_LocalScale: {x: 0.044168934, y: 0.04416892, z: 0.044168927}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8142197309883445878}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -84.187, y: 3.425, z: -37.984}
 --- !u!33 &6745243096666379626
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -595,7 +595,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0a686556526e14e2bb3f8c30bf03500a, type: 2}
+  - {fileID: 2100000, guid: a08e9ed48837347b68b0dbfbdde77d18, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -649,6 +649,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5886238118448993009}
+  - {fileID: 1996456589291221881}
   m_Father: {fileID: 5678458605085350010}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2273945370711337907
@@ -1279,7 +1280,6 @@ Transform:
   - {fileID: 8286161706637139942}
   - {fileID: 7813275246246491288}
   - {fileID: 1189887436111745556}
-  - {fileID: 1996456589291221881}
   m_Father: {fileID: 4324323552692156070}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4992729970447569732
@@ -1558,13 +1558,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6406105793976128892}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.10073202, y: -0.112484805, z: 0.094619595, w: 0.9839956}
-  m_LocalPosition: {x: -0.021007061, y: 0.07279118, z: 0.054348633}
-  m_LocalScale: {x: 0.99999994, y: 0.99999994, z: 1}
+  m_LocalRotation: {x: 0.04116821, y: 0.012679356, z: -0.0263078, w: 0.99872535}
+  m_LocalPosition: {x: -0.011696825, y: -0.06427963, z: 0.10040961}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2173845311954460492}
-  m_Father: {fileID: 5678458605085350010}
+  m_Father: {fileID: 1189887436111745556}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6573177455250453298
 GameObject:
@@ -1653,6 +1653,10 @@ GameObject:
   - component: {fileID: 3391789522913026509}
   - component: {fileID: 7057752312666739450}
   - component: {fileID: 6105661309999462056}
+  - component: {fileID: 2404325035028855571}
+  - component: {fileID: 317634203635491576}
+  - component: {fileID: -2583986947034652251}
+  - component: {fileID: 8315730480427762474}
   m_Layer: 0
   m_Name: Drifter_Crumpy
   m_TagString: Untagged
@@ -1800,6 +1804,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.0074075
   measuredRunSpeed: 3.5
+  upperBodyGestureBlend: 0.08
   strideEndPhases: []
 --- !u!114 &634320560839519955
 MonoBehaviour:
@@ -2012,14 +2017,18 @@ MonoBehaviour:
   priority: 12
   active: 1
   warningLines:
-  - Careful where you point that.
-  - I see you.
-  - That is close enough.
+  - Easy. We're not armed.
+  - Point that somewhere else, friend.
+  - We don't want a fight.
   lastWarningLines:
-  - Last warning.
-  - Put it down. Now.
-  - Do not make me.
-  aimWhileDrawn: 1
+  - Lower it. I won't ask again.
+  - Keep pointing that and we settle this.
+  - Put it down, or we put you down.
+  provokedLines:
+  - You started this!
+  - All right. You wanted a fight.
+  - Drifters! On me!
+  aimWhileDrawn: 0
   standGroundWhileDrawn: 1
   facingPriority: 22
 --- !u!114 &8136128242771283756
@@ -2175,6 +2184,10 @@ MonoBehaviour:
   - Hhh. You are very tall and very slow.
   - Dig where it is cool. Not where it is bright.
   - Leave me be and I leave you be.
+  - Hhh. Another one from the sky. They always look up. Look down.
+  - No. I will not carry your things.
+  - Wrecks are good. Wrecks are shade.
+  - The tall one talks too much. The frog talks more.
   globalDialogPool: {fileID: 0}
   branchingSteps: []
   loopDialogLines: 1
@@ -2591,6 +2604,126 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &2404325035028855571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6641747005437992729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bde6bae968334560a6b4a8cb9594ce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChatterModule
+  priority: 5
+  active: 1
+  hearingRadius: 12
+  requireLineOfSight: 0
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  interval: {x: 20, y: 50}
+  globalCooldown: 6
+  popupDuration: 2.6
+  useTaskChatter: 1
+  idleChatter:
+  - Hhh. Too bright.
+  - Sand in everything. Everything.
+  - We should stop. Somewhere cool.
+  silentWhileFighting: 1
+  voiceId: 401
+  voiceSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &317634203635491576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6641747005437992729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43eff2e021982408cbdc8668fb5d941c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.CloseCombatModule
+  priority: 23
+  active: 1
+  attackRange: 2.76
+  rangeExitFactor: 1.15
+  attackCooldown: 0.9
+  attackDamage: 12
+  attackCommitDuration: 0.32
+  impactDelay: 0.2
+  strikeOnTheMove: 1
+  knockbackSpeed: 0
+  knockbackLift: 0.3
+  knockbackLeapDistance: 4
+  knockbackLeapHeight: 1.6
+  knockbackLeapDuration: 0.55
+  knockbackMassReference: 80
+  knockbackMassScale: {x: 0.4, y: 2.5}
+  attackAnimTrigger: Punch
+  upperBodySwing: 1
+  upperBodySwingSeconds: 0.55
+  OnAttack:
+    m_PersistentCalls:
+      m_Calls: []
+  attackId: 412
+  attackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &-2583986947034652251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6641747005437992729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdac19e9c311046d182417d2e82bc89b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CombatCadenceSaveable
+--- !u!114 &8315730480427762474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6641747005437992729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75ae63e04c304512b9f5f4b819f8086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.EyeBlink
+  eyes:
+  - {fileID: 7470414703681645358}
+  - {fileID: 3280577541082514449}
+  lidColour: {r: 0.47058824, g: 0.90350485, b: 0.5918225, a: 1}
+  lidSmoothness: 0.15
+  upperLidRest: 180
+  lowerLidRest: -180
+  lidsMeet: -15
+  lashWidth: 4
+  lashDarkening: 0.55
+  rhythm:
+    minInterval: 1
+    maxInterval: 3
+    closeTime: 0.08
+    shutTime: 0.05
+    openTime: 0.15
+    doubleBlinkChance: 0.25
+    doubleBlinkGap: 0.08
 --- !u!1 &6675465372455135391
 GameObject:
   m_ObjectHideFlags: 0

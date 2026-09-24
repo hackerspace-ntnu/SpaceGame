@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -8,20 +7,22 @@ namespace SpaceGame.EditorTools
 {
     /// <summary>
     /// Bakes the stylized eye look -- pupil, iris, limbal ring and painted highlight -- into an
-    /// equirectangular texture per style, and wraps each in a URP/Lit material.
+    /// equirectangular texture per style, and wraps each in a material on
+    /// <see cref="EyeShaderName"/>.
     ///
     /// <para>
     /// The eyes on the sculpt-base characters are plain spheres, so the whole look can live in the
-    /// albedo: no eye shader, no second UV set, no per-character texture. One set of materials
-    /// serves every character that has spherical eyes, and swapping a character's eye colour is
-    /// swapping which of these <c>.mat</c> files its eye slots point at.
+    /// albedo: no second UV set, no per-character texture. One set of materials serves every
+    /// character that has spherical eyes, and swapping a character's eye colour is swapping which
+    /// of these <c>.mat</c> files its eye slots point at. The shader lights the map as URP/Lit did;
+    /// what it adds is the eyelids <c>EyeBlink</c> closes, painted over the same ball.
     /// </para>
     ///
     /// <para>
     /// The cost of baking into a texture is that an eye cannot be re-coloured in the Inspector --
-    /// the colours are in the pixels. That is why the styles below are data: edit a
-    /// <see cref="EyeStyle"/>, re-run the menu item, and the texture and material are rewritten in
-    /// place so every reference to them survives.
+    /// the colours are in the pixels. That is why a look is an <see cref="EyeStyle"/> ASSET rather
+    /// than a table in here: tune it against the live preview, bake, and the texture and material
+    /// are rewritten at the same paths so every reference to them survives.
     /// </para>
     ///
     /// <para>
@@ -37,10 +38,34 @@ namespace SpaceGame.EditorTools
         /// <summary>Prefix on every asset this builder owns, so a rebuild can find its own work.</summary>
         public const string AssetPrefix = "Eye_";
 
+        /// <summary>
+        /// The shader every eye material is on. It is also how an eye is recognised on a finished
+        /// character -- see <see cref="WearsEyeShader"/>.
+        /// </summary>
+        public const string EyeShaderName = "SpaceGame/Characters/StylizedEye";
+
+        /// <summary>
+        /// True for a renderer that is one of these eyes. Asked of the material's shader rather than
+        /// of the object's name: the importer calls the eyes <c>Sphere</c> / <c>Sphere.001</c>, and
+        /// the <c>_eyes</c> material name the FBX arrives with is replaced as soon as a style is
+        /// assigned.
+        /// </summary>
+        public static bool WearsEyeShader(Renderer renderer)
+        {
+            var material = renderer.sharedMaterial;
+            return material != null && material.shader != null && material.shader.name == EyeShaderName;
+        }
+
         // Equirectangular, so twice as wide as tall. Only the front cap is ever seen, but the
         // sphere carries the whole map, and 1024 across leaves the iris about 110 px wide.
         private const int Width = 1024;
         private const int Height = 512;
+
+        /// <summary>Floor on a shape's half-width, so an Aspect of nearly 0 cannot divide by 0.</summary>
+        private const float MinHalfSize = 0.05f;
+
+        /// <summary>Floor on the superellipse exponent, for the same reason.</summary>
+        private const float MinRoundness = 0.05f;
 
         /// <summary>Samples per texel per axis. The edges are already smoothstepped; this only
         /// cleans up the last of the stair-stepping on the highlight.</summary>
@@ -66,152 +91,23 @@ namespace SpaceGame.EditorTools
         /// <summary>Completes the frame. Azimuth 90 deg lies along this.</summary>
         private static readonly Vector3 Side = Vector3.Cross(Up, Gaze);
 
-        /// <summary>
-        /// One eye look. Every angle is a half-angle from the gaze direction in degrees, which is
-        /// what makes the shapes round on the sphere -- a circle measured in UV space would come out
-        /// stretched sideways, because u covers 360 deg over the same span v covers 180.
-        /// </summary>
-        public sealed class EyeStyle
-        {
-            public string Name;
-
-            /// <summary>The eyeball outside the iris. Near-black reads as "all iris" and alien;
-            /// an off-white reads as a human eye.</summary>
-            public Color Sclera;
-
-            /// <summary>Iris colour next to the pupil -- the bright end of the gradient.</summary>
-            public Color IrisInner;
-
-            /// <summary>Iris colour at its outer edge. Darker than <see cref="IrisInner"/> is what
-            /// the "dark sides" of a stylized eye actually are.</summary>
-            public Color IrisOuter;
-
-            /// <summary>The dark band ringing the iris.</summary>
-            public Color LimbalRing;
-
-            public Color Pupil;
-
-            /// <summary>The painted specular dot. Baked in so it reads the same under any light.</summary>
-            public Color Highlight;
-
-            public float PupilAngle;
-            public float IrisAngle;
-
-            /// <summary>Width of the limbal ring, taken inwards from <see cref="IrisAngle"/>.</summary>
-            public float LimbalWidth;
-
-            /// <summary>How soft every band edge is. Small keeps the graphic, stylized look.</summary>
-            public float EdgeSoftness;
-
-            public float HighlightAngle;
-
-            /// <summary>Where the highlight sits around the gaze: 0 is straight up, 90 deg along
-            /// <see cref="Side"/>. Both eyes share this texture and share an orientation, so one
-            /// value puts the highlight in the same place on both.</summary>
-            public float HighlightAzimuth;
-
-            public float HighlightRadius;
-
-            /// <summary>The smaller second catchlight opposite the first. Radius 0 leaves it off.</summary>
-            public float SparkAngle;
-            public float SparkAzimuth;
-            public float SparkRadius;
-
-            /// <summary>Iris glow. Strength 0 writes no emission map and leaves the material unlit
-            /// -- which is what a human eye wants.</summary>
-            public Color Emission;
-            public float EmissionStrength;
-        }
+        /// <summary>Where the seeded style assets are written. Yours may live anywhere.</summary>
+        private const string StyleFolder = "Assets/Game/ScriptableObjects/Eyes";
 
         /// <summary>
-        /// Shared defaults, so a style below only states what makes it that style. The angles are
-        /// sized against the visible cap of the eyeball: the lids crop it to roughly 50 deg of the
-        /// sphere, so a 45 deg iris fills what is on show and reads large and stylized rather than
-        /// human. The pupil is deliberately huge -- 25 deg of a 45 deg iris -- which is what makes
-        /// these read as cartoon eyes rather than as an eyeball with a dot on it. Emission is kept
-        /// well under 1 -- an iris that is both a bright albedo and an HDR emitter clips to white
-        /// and the colour is gone.
+        /// Every <see cref="EyeStyle"/> in the project, wherever it was filed. Searching the whole
+        /// project rather than one folder is deliberate: a style is authored art, and the person
+        /// authoring it should be able to keep it next to whatever it belongs to.
         /// </summary>
-        private static EyeStyle Base(string name) => new EyeStyle
+        public static EyeStyle[] LoadStyles()
         {
-            Name = name,
-            Sclera = Hex("120D0A"),
-            Pupil = Hex("07060A"),
-            LimbalRing = Hex("14090B"),
-            Highlight = Hex("FFFFFF"),
-            PupilAngle = 25f,
-            IrisAngle = 45f,
-            LimbalWidth = 6f,
-            EdgeSoftness = 1.4f,
-            HighlightAngle = 18f,
-            HighlightAzimuth = -38f,
-            HighlightRadius = 9f,
-            SparkAngle = 27f,
-            SparkAzimuth = 145f,
-            SparkRadius = 4.5f,
-            EmissionStrength = 0f,
-        };
+            var guids = AssetDatabase.FindAssets("t:" + nameof(EyeStyle));
+            var styles = new EyeStyle[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+                styles[i] = AssetDatabase.LoadAssetAtPath<EyeStyle>(AssetDatabase.GUIDToAssetPath(guids[i]));
 
-        private static EyeStyle Glowing(string name, string inner, string outer, string rim,
-                                        string glow, float strength)
-        {
-            var style = Base(name);
-            style.IrisInner = Hex(inner);
-            style.IrisOuter = Hex(outer);
-            style.LimbalRing = Hex(rim);
-            style.Emission = Hex(glow);
-            style.EmissionStrength = strength;
-            return style;
-        }
-
-        public static readonly EyeStyle[] Styles = BuildStyles();
-
-        private static EyeStyle[] BuildStyles()
-        {
-            var amber = Glowing("Amber", "FFA23A", "C4480A", "2B1204", "FF7A14", 0.55f);
-
-            var ember = Glowing("Ember", "FF6A3C", "94180A", "2A0805", "FF3A12", 0.6f);
-
-            var acid = Glowing("Acid", "B6FF5E", "2F7A14", "0E2006", "7CE01E", 0.5f);
-
-            var glacier = Glowing("Glacier", "9FF0FF", "16679E", "061C2C", "3FC6FF", 0.5f);
-            glacier.Sclera = Hex("0B1016");
-
-            var violet = Glowing("Violet", "D49BFF", "51219A", "170728", "9A46FF", 0.5f);
-            violet.Sclera = Hex("100A18");
-
-            var gold = Glowing("Gold", "FFDC6A", "A86E06", "2A1A02", "FFB61E", 0.45f);
-
-            // "White eyes", reading one: a white eyeball, the nearest thing here to a human eye.
-            // The only style with a pale sclera, which is why its iris is a washed grey rather than
-            // the white it started as -- white on white left nothing but the limbal ring visible and
-            // the eye read as an empty hoop. It also pulls back from the huge pupil the rest wear.
-            var ivory = Base("Ivory");
-            ivory.Sclera = Hex("F1ECE2");
-            ivory.IrisInner = Hex("DCE7EC");
-            ivory.IrisOuter = Hex("8FA5B2");
-            ivory.LimbalRing = Hex("3C4750");
-            ivory.LimbalWidth = 4.5f;
-            ivory.IrisAngle = 38f;
-            ivory.PupilAngle = 22f;
-
-            // "White eyes", reading two: no pupil at all, the whole eye lit blank. Pupil and iris
-            // are the same white, so only the rim and the catchlight give it any shape -- and the
-            // catchlight only reads because the white underneath it is held just short of full.
-            var blank = Base("Blank");
-            blank.Sclera = Hex("E6E6E0");
-            blank.IrisInner = Hex("EDEDE8");
-            blank.IrisOuter = Hex("EDEDE8");
-            blank.Pupil = Hex("EDEDE8");
-            blank.LimbalRing = Hex("C9C9C2");
-            blank.LimbalWidth = 4f;
-            blank.IrisAngle = 46f;
-            blank.EdgeSoftness = 6f;
-            blank.Highlight = Hex("FFFFFF");
-            blank.Emission = Hex("FFFFFF");
-            blank.EmissionStrength = 0.3f;
-
-            return new[] { amber, ember, acid, glacier, violet, gold, ivory, blank };
+            Array.Sort(styles, (a, b) => string.CompareOrdinal(a.name, b.name));
+            return styles;
         }
 
         [MenuItem("Tools/SpaceGame/Art/Build Stylized Eye Materials")]
@@ -220,15 +116,39 @@ namespace SpaceGame.EditorTools
             EnsureFolder(MaterialFolder);
             EnsureFolder(TextureFolder);
 
-            foreach (var style in Styles)
+            var styles = LoadStyles();
+            if (styles.Length == 0)
+            {
+                EyeStylePresets.CreateMissing();
+                styles = LoadStyles();
+            }
+
+            foreach (var style in styles)
                 Build(style);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"[StylizedEyeBuilder] Built {Styles.Length} eye materials into {MaterialFolder}.");
+            Debug.Log("[StylizedEyeBuilder] Baked " + styles.Length + " eye styles into " + MaterialFolder + ".");
         }
 
-        /// <summary>The material for a style by name, built if it is not on disk yet.</summary>
+        /// <summary>
+        /// Re-creates any built-in style whose asset is missing. It never overwrites one that is
+        /// already there -- these are starting points to duplicate and tune, and clobbering someone's
+        /// edits because they happened to reuse a name would be the worst thing this could do.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Art/Create Built-in Eye Styles")]
+        public static void CreateBuiltInStyles()
+        {
+            int made = EyeStylePresets.CreateMissing();
+            Debug.Log(made == 0
+                ? "[StylizedEyeBuilder] Every built-in style already exists in " + StyleFolder + "."
+                : "[StylizedEyeBuilder] Created " + made + " built-in eye style(s) in " + StyleFolder + ".");
+        }
+
+        /// <summary>The folder new styles are seeded into.</summary>
+        public static string SeedFolder => StyleFolder;
+
+        /// <summary>The material for a style by asset name, baked if it is not on disk yet.</summary>
         public static Material Load(string styleName)
         {
             string path = MaterialPath(styleName);
@@ -236,44 +156,68 @@ namespace SpaceGame.EditorTools
             if (material != null)
                 return material;
 
-            var style = Array.Find(Styles, s => s.Name == styleName);
+            var styles = LoadStyles();
+            var style = Array.Find(styles, s => s.name == styleName);
             if (style == null)
             {
-                Debug.LogError($"[StylizedEyeBuilder] No eye style named '{styleName}'. Known: " +
-                               string.Join(", ", Array.ConvertAll(Styles, s => s.Name)));
+                EyeStylePresets.CreateMissing();
+                styles = LoadStyles();
+                style = Array.Find(styles, s => s.name == styleName);
+            }
+
+            if (style == null)
+            {
+                Debug.LogError("[StylizedEyeBuilder] No eye style asset named '" + styleName +
+                               "'. Known: " + (styles.Length == 0
+                                   ? "(none -- run Tools > SpaceGame > Art > Create Built-in Eye Styles)"
+                                   : string.Join(", ", Array.ConvertAll(styles, s => s.name))));
+                return null;
+            }
+
+            return Build(style);
+        }
+
+        /// <summary>Bakes one style's textures and writes its material, in place.</summary>
+        public static Material Build(EyeStyle style)
+        {
+            if (style == null)
+            {
+                Debug.LogError("[StylizedEyeBuilder] Asked to bake a null style.");
+                return null;
+            }
+
+            var shader = Shader.Find(EyeShaderName);
+            if (shader == null)
+            {
+                Debug.LogError("[StylizedEyeBuilder] Shader '" + EyeShaderName + "' is missing or failed " +
+                               "to compile, so '" + style.name + "' was not baked.");
                 return null;
             }
 
             EnsureFolder(MaterialFolder);
             EnsureFolder(TextureFolder);
-            return Build(style);
-        }
 
-        public static Material Build(EyeStyle style)
-        {
-            var albedo = WriteTexture(style.Name + "_BaseColor", Bake(style, emission: false), sRGB: true);
+            var albedo = WriteTexture(style.name + "_BaseColor", Bake(style, emission: false), sRGB: true);
 
             Texture2D emission = style.EmissionStrength > 0f
-                ? WriteTexture(style.Name + "_Emission", Bake(style, emission: true), sRGB: true)
+                ? WriteTexture(style.name + "_Emission", Bake(style, emission: true), sRGB: true)
                 : null;
 
-            string path = MaterialPath(style.Name);
+            string path = MaterialPath(style.name);
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
             {
-                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                material = new Material(shader);
                 AssetDatabase.CreateAsset(material, path);
             }
 
+            // Set on an existing material too: that is how the ones first written on URP/Lit move
+            // over. Every property below has the same name on both shaders, so none of it is lost.
+            material.shader = shader;
             material.SetTexture("_BaseMap", albedo);
             material.mainTexture = albedo;
             material.SetColor("_BaseColor", Color.white);
-            material.SetFloat("_Metallic", 0f);
-
-            // Wetter than skin, but well short of a mirror: the catchlight is already painted into
-            // the albedo, and a glossier eye adds a second one on top that washes the iris colour
-            // out under any strong key light.
-            material.SetFloat("_Smoothness", 0.55f);
+            material.SetFloat("_Smoothness", style.Smoothness);
 
             if (emission != null)
             {
@@ -288,6 +232,12 @@ namespace SpaceGame.EditorTools
                 material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
                 material.SetTexture("_EmissionMap", null);
                 material.SetColor("_EmissionColor", Color.black);
+
+                // A style that used to glow leaves its emission PNG behind otherwise, and the next
+                // reader of the folder cannot tell it from a live one.
+                string stale = TextureFolder + "/" + AssetPrefix + style.name + "_Emission.png";
+                if (AssetDatabase.LoadAssetAtPath<Texture2D>(stale) != null)
+                    AssetDatabase.DeleteAsset(stale);
             }
 
             EditorUtility.SetDirty(material);
@@ -357,59 +307,154 @@ namespace SpaceGame.EditorTools
             return new Vector2(0.5f + longitude / (2f * Mathf.PI), 0.5f + latitude / Mathf.PI);
         }
 
-        private static Color Shade(EyeStyle style, Vector3 direction, bool emission)
+        /// <summary>
+        /// The colour of one point on the eyeball. Shared by the bake and by the Inspector preview,
+        /// so what the author tunes is literally what gets written.
+        /// </summary>
+        /// <param name="direction">A unit direction in the map's frame -- see <see cref="Gaze"/>.</param>
+        /// <param name="emission">Paint the emission map rather than the albedo.</param>
+        public static Color Shade(EyeStyle style, Vector3 direction, bool emission)
         {
-            float theta = Mathf.Rad2Deg * Mathf.Acos(Mathf.Clamp(Vector3.Dot(direction, Gaze), -1f, 1f));
+            Vector2 plane = EyePlane(direction);
+            float softness = style.EdgeSoftness;
 
-            float irisEdge = style.IrisAngle;
-            float limbalEdge = Mathf.Max(style.PupilAngle, irisEdge - style.LimbalWidth);
+            float irisDistance = EdgeDistance(plane, style.Iris);
+            float irisReach = Reach(style.Iris);
 
-            // Iris gradient runs from the pupil's edge to where the limbal ring starts, so the ring
-            // reads as a band on top of the gradient rather than as the gradient's own dark end.
-            float t = Mathf.InverseLerp(style.PupilAngle, limbalEdge, theta);
+            // The gradient runs from the iris centre out to where the limbal ring starts, so the
+            // ring reads as a band laid ON the gradient rather than as the gradient's own dark end.
+            float limbal = Mathf.Min(style.LimbalWidth, irisReach);
+
+            // The gradient spans the VISIBLE band of iris -- from the pupil's edge out to where the
+            // limbal ring starts -- not the whole disc from the centre. Running it from the centre
+            // wastes most of it under the pupil and leaves the ring you can actually see painted in
+            // IrisOuter, which merges with the pupil and reads as a swollen, warped eye.
+            float fromCentre = irisDistance + irisReach;
+            float t = Mathf.InverseLerp(Reach(style.PupilShape), irisReach - limbal, fromCentre);
             Color iris = Color.Lerp(style.IrisInner, style.IrisOuter, t);
 
-            Color colour = Color.Lerp(iris, style.LimbalRing, Band(theta, limbalEdge, style.EdgeSoftness));
-            colour = Color.Lerp(colour, style.Sclera, Band(theta, irisEdge, style.EdgeSoftness));
-            colour = Color.Lerp(style.Pupil, colour, Band(theta, style.PupilAngle, style.EdgeSoftness));
+            float ringMask = Band(irisDistance + limbal, softness);
+            float scleraMask = Band(irisDistance, softness);
+            float pupilMask = Band(EdgeDistance(plane, style.PupilShape), softness);
+
+            Color colour = Color.Lerp(iris, style.LimbalRing, ringMask);
+            colour = Color.Lerp(colour, style.Sclera, scleraMask);
+            colour = Color.Lerp(style.Pupil, colour, pupilMask);
 
             if (emission)
             {
-                // Only the iris glows: a glowing pupil erases the pupil, and a glowing sclera turns
-                // the whole eyeball into a lamp.
-                float lit = 1f - Band(theta, limbalEdge, style.EdgeSoftness);
-                lit *= Band(theta, style.PupilAngle, style.EdgeSoftness);
-                return iris * lit;
+                // The albedo times a mask, rather than a colour of its own: a glow that does not
+                // agree with what is painted underneath reads as a second, misaligned eye.
+                float lit;
+                switch (style.EmissionArea)
+                {
+                    case EyeEmissionArea.WholeEye:
+                        lit = 1f;
+                        break;
+                    case EyeEmissionArea.IrisAndPupil:
+                        lit = 1f - scleraMask;
+                        break;
+                    default:
+                        lit = (1f - ringMask) * pupilMask;
+                        break;
+                }
+
+                return colour * lit;
             }
 
-            float highlight = Dot(direction, style.HighlightAngle, style.HighlightAzimuth,
-                                  style.HighlightRadius, style.EdgeSoftness);
-            float spark = Dot(direction, style.SparkAngle, style.SparkAzimuth,
-                              style.SparkRadius, style.EdgeSoftness);
+            // Painter's order, so a later catchlight covers an earlier one. Max() would be cheaper
+            // and cannot express two glints of different colours overlapping.
+            if (style.Catchlights != null)
+            {
+                foreach (var light in style.Catchlights)
+                {
+                    float coverage = (1f - Band(EdgeDistance(plane, light.Shape), softness)) * light.Strength;
+                    if (coverage > 0f)
+                        colour = Color.Lerp(colour, light.Colour, coverage);
+                }
+            }
 
-            return Color.Lerp(colour, style.Highlight, Mathf.Max(highlight, spark * 0.6f));
+            return colour;
         }
 
-        /// <summary>0 inside <paramref name="edge"/>, 1 outside, soft across the seam.</summary>
-        private static float Band(float theta, float edge, float softness) =>
-            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(edge - softness, edge + softness, theta));
+        /// <summary>
+        /// A direction from a point on the face of the ball as the Inspector preview sees it:
+        /// <paramref name="sx"/> right, <paramref name="sy"/> up, both -1..1 across the disc, and
+        /// <paramref name="sz"/> the height of the sphere over that point.
+        /// </summary>
+        public static Vector3 PreviewDirection(float sx, float sy, float sz) =>
+            sx * Side + sy * Up + sz * Gaze;
 
         /// <summary>
-        /// Coverage of a round catchlight centred <paramref name="angle"/> off the gaze, turned
-        /// <paramref name="azimuth"/> around it from straight up.
+        /// Flattens a direction into the eye plane: how many degrees out from the gaze, in which
+        /// direction around it. x runs along <see cref="Side"/>, y along <see cref="Up"/>, both in
+        /// degrees.
+        ///
+        /// <para>
+        /// This is an azimuthal-equidistant projection about the gaze, which is why a shape written
+        /// here stays the shape it was drawn as: distance from the centre is the angle itself, so a
+        /// circle is a circle rather than something the map's stretching decides.
+        /// </para>
         /// </summary>
-        private static float Dot(Vector3 direction, float angle, float azimuth, float radius,
-                                 float softness)
+        private static Vector2 EyePlane(Vector3 direction)
         {
-            if (radius <= 0f) return 0f;
+            float forward = Mathf.Clamp(Vector3.Dot(direction, Gaze), -1f, 1f);
+            float theta = Mathf.Rad2Deg * Mathf.Acos(forward);
 
-            float a = angle * Mathf.Deg2Rad;
-            float z = azimuth * Mathf.Deg2Rad;
-            Vector3 centre = Mathf.Cos(a) * Gaze +
-                             Mathf.Sin(a) * (Mathf.Cos(z) * Up + Mathf.Sin(z) * Side);
+            float up = Vector3.Dot(direction, Up);
+            float side = Vector3.Dot(direction, Side);
+            float lateral = Mathf.Sqrt(up * up + side * side);
 
-            float theta = Mathf.Rad2Deg * Mathf.Acos(Mathf.Clamp(Vector3.Dot(direction, centre), -1f, 1f));
-            return 1f - Band(theta, radius, softness);
+            // Dead on the gaze there is no direction to point in, and the whole plane is the origin.
+            if (lateral < 1e-6f) return Vector2.zero;
+
+            float scale = theta / lateral;
+            return new Vector2(side * scale, up * scale);
+        }
+
+        /// <summary>
+        /// How far outside <paramref name="shape"/> a point in the eye plane lies, in degrees --
+        /// negative inside, 0 on the outline. Every band in <see cref="Shade"/> is a soft step on
+        /// this one number, which is what lets a slit pupil and a round iris share all the same code.
+        /// </summary>
+        private static float EdgeDistance(Vector2 plane, EyeShape shape)
+        {
+            // Size 0 switches a shape off -- a pupil-less eye, a style with one catchlight instead
+            // of two. Returning "very far outside" is what makes that mean nothing is drawn.
+            if (shape.Size <= 0f) return float.MaxValue;
+
+            float halfUp = shape.Size;
+            float halfSide = Mathf.Max(shape.Size * shape.Aspect, MinHalfSize);
+            float power = Mathf.Max(shape.Roundness, MinRoundness);
+
+            float x = plane.x - shape.OffsetSide;
+            float y = plane.y - shape.OffsetUp;
+
+            float turn = shape.Rotation * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(turn);
+            float sin = Mathf.Sin(turn);
+            float alongSide = x * cos + y * sin;
+            float alongUp = -x * sin + y * cos;
+
+            float radius = Mathf.Pow(
+                Mathf.Pow(Mathf.Abs(alongSide) / halfSide, power) +
+                Mathf.Pow(Mathf.Abs(alongUp) / halfUp, power),
+                1f / power);
+
+            // Scaled by the NARROW half-width, so the softness of a thin slit's long sides matches
+            // the softness of its ends instead of smearing the whole thing away.
+            return (radius - 1f) * Mathf.Min(halfUp, halfSide);
+        }
+
+        /// <summary>How far it is from a shape's centre to its outline at the narrowest, in degrees.</summary>
+        private static float Reach(EyeShape shape) =>
+            Mathf.Max(Mathf.Min(shape.Size, shape.Size * shape.Aspect), MinHalfSize);
+
+        /// <summary>0 inside the outline, 1 outside, soft across the seam.</summary>
+        private static float Band(float distance, float softness)
+        {
+            if (softness <= 0f) return distance > 0f ? 1f : 0f;
+            return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-softness, softness, distance));
         }
 
         // ------------------------------------------------------------------
@@ -551,14 +596,6 @@ namespace SpaceGame.EditorTools
             importer.SaveAndReimport();
 
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-
-        private static Color Hex(string rgb)
-        {
-            int packed = int.Parse(rgb, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            return new Color(((packed >> 16) & 0xFF) / 255f,
-                             ((packed >> 8) & 0xFF) / 255f,
-                             (packed & 0xFF) / 255f, 1f);
         }
 
         private static void EnsureFolder(string path)

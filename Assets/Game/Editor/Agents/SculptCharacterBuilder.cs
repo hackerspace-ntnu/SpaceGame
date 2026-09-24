@@ -5,20 +5,30 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
+using SpaceGame.Audio;
 using SpaceGame.Core.Persistence.EditorTools;
 
 namespace SpaceGame.EditorTools
 {
     /// <summary>
-    /// Builds the three sculpt-base drifter NPCs -- Human, Alien and Crumpy -- from their
-    /// imported FBX.
+    /// Builds the sculpt-base drifter NPCs -- Human, Alien, Crumpy and Gary -- from their
+    /// imported FBX, and owns how every one of them behaves and what it says.
     ///
     /// <para>
-    /// They are one model three ways: the same 24830-vertex sculpt pushed into three shapes, the
-    /// same 52-bone Humanoid skeleton, the same object and material names. So they are one
-    /// builder and one recipe type, for the reason the nomad prefabs are one
-    /// builder for nine nomads -- three copies of this wiring is three chances for one of them to
-    /// drift out of step with its siblings.
+    /// They are one model four ways: the same sculpt pushed into four shapes, the same 52-bone
+    /// Humanoid skeleton, the same object and material names. So they are one builder and one
+    /// recipe type, for the reason the nomad prefabs are one builder for nine nomads -- four
+    /// copies of this wiring is four chances for one of them to drift out of step with its
+    /// siblings.
+    /// </para>
+    ///
+    /// <para>
+    /// Two halves, because prefabs are authored assets now. <see cref="BuildAll"/> makes the
+    /// BODY of a drifter that has no prefab yet and never touches one that does -- the eyes on
+    /// the first three were hand-tuned after they were built. <see cref="UpdateBehaviourAll"/>
+    /// re-applies the BEHAVIOUR half (<see cref="ApplyBehaviour"/>) to every existing prefab in
+    /// place, which is how a change to their dialogue or temperament reaches them.
     /// </para>
     ///
     /// <para>
@@ -29,15 +39,16 @@ namespace SpaceGame.EditorTools
     /// </para>
     ///
     /// <para>
-    /// Idempotent: running it twice overwrites each prefab at the SAME asset path so the GUID
-    /// survives. Deleting and recreating would silently null every serialized reference to these
-    /// characters, the network prefab list included.
+    /// Never delete a drifter prefab to get it rebuilt: recreating it mints a new GUID and
+    /// silently nulls every serialized reference to the character, the network prefab list and
+    /// the drifter band included.
     /// </para>
     ///
     /// <para>
-    /// The FBX are exported by hand from the .blend files in
-    /// <c>Assets/Game/Art/Models/_Source~/models/characters/sculpt_base/</c>.
-    /// Re-export before running this if the art changed.
+    /// The FBX are exported from the .blend files in
+    /// <c>Assets/Game/Art/Models/_Source~/models/characters/drifters/</c> through
+    /// <c>_exportlib.export(keep_armature=True, scale_all=True)</c>, with the materials renamed
+    /// <c>&lt;name&gt;_body</c> / <c>&lt;name&gt;_eyes</c> -- see <see cref="EyeMaterialSuffix"/>.
     /// </para>
     /// </summary>
     public static class SculptCharacterBuilder
@@ -59,6 +70,9 @@ namespace SpaceGame.EditorTools
 
             /// <summary>The flavour lines it says when talked to.</summary>
             public string[] DialogLines;
+
+            /// <summary>What it mutters unprompted when a player walks within earshot.</summary>
+            public string[] IdleChatter;
         }
 
         // Lower-case "agents" is the real folder on disk, beside Nomad.prefab. macOS resolves
@@ -71,14 +85,14 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// How the FBX names its eye material -- <c>alien_eyes</c>, <c>human_eyes</c>,
-        /// <c>crumpy_eyes</c>. It is the only thing in the imported model that says which slot is an
-        /// eye; see <see cref="ApplySkin"/>.
+        /// <c>crumpy_eyes</c>, <c>gary_eyes</c>. It is the only thing in the imported model that
+        /// says which slot is an eye; see <see cref="ApplySkin"/>.
         /// </summary>
         private const string EyeMaterialSuffix = "_eyes";
 
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
 
-        /// <summary>The NpcWorldSim template these three walk in.</summary>
+        /// <summary>The NpcWorldSim template the drifters walk in.</summary>
         private const string BandId = "drifters";
 
         /// <summary>
@@ -92,14 +106,16 @@ namespace SpaceGame.EditorTools
         private const string WalkClipPath = "Assets/Game/Art/Animations/Player/walking.fbx";
 
         /// <summary>
-        /// Peaceful newcomers: <c>defaultStance</c> Neutral and NOT ONE row in
-        /// <c>GlobalRelationships.asset</c>, which is how the agent skill spells "peaceful until
-        /// hurt". <see cref="ConfigureProvocation"/> is what hands them a target, and only after
-        /// someone hits them. Adding a Hostile row here "for completeness" would make every
-        /// drifter attack on sight.
+        /// Neutral to everyone: <c>defaultStance</c> Neutral, no Hostile row, and one NEUTRAL row
+        /// in <c>GlobalRelationships.asset</c> -- toward the Clankers, whose own Hostile default
+        /// would otherwise make the pair Hostile and send every drifter after every robot it saw.
+        /// <see cref="ConfigureProvocation"/> is what hands them a target, and only after someone
+        /// provokes them. Adding a Hostile row here "for completeness" would make every drifter
+        /// attack on sight; <see cref="HostileFactions"/> checks for exactly that.
         /// </summary>
-        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/DriftersFaction.asset";
-        private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
+        private const string CoreFactionFolder = "Assets/Game/ScriptableObjects/Factions/Core";
+        private const string FactionPath = CoreFactionFolder + "/DriftersFaction.asset";
+        private const string RelationshipsPath = CoreFactionFolder + "/GlobalRelationships.asset";
 
         /// <summary>
         /// What every character here is scaled to stand. Matches the Nomad and the astronaut --
@@ -128,6 +144,30 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float FallbackClipSpeed = 1.35f;
 
+        // Fists, thrown on the run. The swing is the player's own punch -- Punch Right/Left on the
+        // masked Upper Body layer, 0.77 s -- and not the Nomad's "Meele", a full-body spear throw
+        // that roots the legs for 2.4 s and only releases at ~2.0 s: on it a drifter stopped dead,
+        // wound up, and swung long after its damage had landed, at a player already out of reach.
+        // Reach is the Nomad's (both are 3 m people). Damage and pace still sit under an armed
+        // Nomad's 18 every 1.1 s -- 13 dps against 16 -- because a drifter fights back rather
+        // than fights.
+        private const float PunchRange = 2.76f;
+        private const int PunchDamage = 12;
+        private const float PunchCooldown = 0.9f;
+        // On the move nothing plants the feet; this only keeps the body on the target through
+        // the strike.
+        private const float PunchCommit = 0.32f;
+        private const string PunchTrigger = "Punch";
+        // Punch Right Level reaches full extension between frames 6 and 7 of 23, at 30 fps.
+        private const float PunchImpact = 0.2f;
+        // Under the clip's 0.77 s, so the layer has blended down before the state exits at 0.73 s.
+        private const float PunchLayerSeconds = 0.55f;
+
+        // The drifters' writing. They are castaways and wanderers with nothing worth taking, so
+        // everything they say is about getting by, each other, and not wanting a fight -- and the
+        // machines leave them alone (GlobalRelationships), which is why they can say so
+        // (GDC-L1-NARR-0001: what they say has to match what they do). Their past is implied,
+        // never explained, and none of it is needed to play (GDC-L1-NARR-0006).
         public static readonly SculptRecipe[] Drifters =
         {
             new SculptRecipe
@@ -142,6 +182,17 @@ namespace SpaceGame.EditorTools
                     "Came down in the same storm you did, near enough.",
                     "Walk where the sand is firm. You learn that fast or you don't.",
                     "I don't want trouble. Neither do you, out here.",
+                    "My ship's under a dune somewhere east. I stopped looking for it.",
+                    "The machines leave us be. Nothing on us worth the bullet.",
+                    "Storm catches you in the open, get low and wait it out. Walking in it is how people go missing.",
+                    "Drifting isn't a plan. It's what's left when the plan runs out.",
+                    "Hurt one of us and you've hurt all of us. Otherwise, walk with us a while.",
+                },
+                IdleChatter = new[]
+                {
+                    "Keep moving. Standing still is how the sand gets you.",
+                    "Wind's turning. Could be a storm by dark.",
+                    "Another wreck on the ridge. Picked clean, I'd bet.",
                 },
             },
             new SculptRecipe
@@ -156,6 +207,16 @@ namespace SpaceGame.EditorTools
                     "Your suit is loud. Everything out here hears it.",
                     "We were here before the wind changed.",
                     "Pass. I have no quarrel with you.",
+                    "The sand remembers every ship that fell. It is patient about it.",
+                    "You count days. We count storms. Fewer numbers.",
+                    "The machines walk the same roads, again and again. We walk around them.",
+                    "Water hides under stone, never under a dune. Remember that and you will live.",
+                },
+                IdleChatter = new[]
+                {
+                    "The dunes have moved again.",
+                    "Quiet. The machines are elsewhere today.",
+                    "Walk soft.",
                 },
             },
             new SculptRecipe
@@ -170,43 +231,160 @@ namespace SpaceGame.EditorTools
                     "Hhh. You are very tall and very slow.",
                     "Dig where it is cool. Not where it is bright.",
                     "Leave me be and I leave you be.",
+                    "Hhh. Another one from the sky. They always look up. Look down.",
+                    "No. I will not carry your things.",
+                    "Wrecks are good. Wrecks are shade.",
+                    "The tall one talks too much. The frog talks more.",
+                },
+                IdleChatter = new[]
+                {
+                    "Hhh. Too bright.",
+                    "Sand in everything. Everything.",
+                    "We should stop. Somewhere cool.",
+                },
+            },
+            new SculptRecipe
+            {
+                Name = "Drifter_Gary",
+                FbxPath = ModelFolder + "/Gary/gary.fbx",
+                TexturePath = ModelFolder + "/Gary/Textures/gary_BaseColor.png",
+                PrefabPath = CharacterFolder + "/Drifter_Gary.prefab",
+                // Lime against the sand-coloured skin, and apart from the alien's Amber.
+                EyeStyle = "Acid",
+                DialogLines = new[]
+                {
+                    "Name's Gary. Just Gary. The others tried to give me a better one.",
+                    "Ever lick the dew off a hull at sunrise? Best drink on the planet.",
+                    "I collect bolts. Not for anything. I just like how they sound in the bag.",
+                    "Storm's coming. I can feel it in my eyes.",
+                    "The others walk quiet. I walk loud. Nothing's eaten me yet.",
+                    "Find anything shiny, I'm not saying give it to me. I'm saying I'd look after it.",
+                    "You're from the sky too? Everyone's from the sky. Well. Nearly everyone.",
+                },
+                IdleChatter = new[]
+                {
+                    "Anyone else hungry? Just me? Just me.",
+                    "I think that rock is looking at me.",
+                    "Found a bolt. Good day.",
                 },
             },
         };
 
+        // Shared by all four: one people, one temperament. Barked by AggressionTelegraphModule as
+        // the meter climbs. Neutral, not pacifist: a gun kept on them, or shots around them, climb
+        // the meter to a fight like a hit does, so the last warning has to say so plainly -- it is
+        // the one chance the player gets to read the rule before it bites (GDC-L1-SYS-0006).
+        private static readonly string[] WarningLines =
+        {
+            "Easy. We're not armed.",
+            "Point that somewhere else, friend.",
+            "We don't want a fight.",
+        };
+
+        private static readonly string[] LastWarningLines =
+        {
+            "Lower it. I won't ask again.",
+            "Keep pointing that and we settle this.",
+            "Put it down, or we put you down.",
+        };
+
+        // Said as the fight starts. It only starts because of something the player did -- a hit,
+        // a gun kept on them, shots around them -- and the line is what tells the player it was
+        // their doing (GDC-L1-DESIGN-0006).
+        private static readonly string[] ProvokedLines =
+        {
+            "You started this!",
+            "All right. You wanted a fight.",
+            "Drifters! On me!",
+        };
+
+        /// <summary>
+        /// Builds every drifter that has no prefab yet. One that already exists is skipped, not
+        /// rebuilt: its body may carry hand edits, and a rebuild writes the prefab wholesale.
+        /// </summary>
         [MenuItem("Tools/SpaceGame/Agents/Build Drifter NPCs")]
         public static void BuildAll()
         {
             var built = new List<GameObject>();
             foreach (var recipe in Drifters)
             {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(recipe.PrefabPath) != null)
+                {
+                    Debug.Log($"[SculptCharacterBuilder] {recipe.Name} already exists; left as " +
+                              "authored. 'Update Drifter Behaviour' reaches it without a rebuild.");
+                    continue;
+                }
+
                 var prefab = BuildPrefab(recipe);
                 if (prefab != null) built.Add(prefab);
             }
 
             if (built.Count == 0)
             {
-                Debug.LogError("[SculptCharacterBuilder] Nothing was built.");
+                Debug.Log("[SculptCharacterBuilder] Every drifter already has a prefab; nothing built.");
                 return;
             }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            // Runtime-spawned and carrying a NetworkObject, so all three project-wide wirings have
-            // to be asked again. None is optional: an unregistered network prefab fails ONLY on
-            // clients, a saveable without its savers reloads as prefab defaults, and a rebuild
-            // writes the prefab wholesale so the ragdoll adapter has to be re-applied or the
-            // character drops dead standing up.
-            Debug.Log(NetworkPrefabRegistrar.Sync(out _, out _));
-            SaveableWiring.TryWirePrefabs();
+            // A fresh prefab needs the ragdoll adapter as well as the two wirings every change
+            // needs, or the character drops dead standing up.
+            WireProjectWide();
             RagdollWiring.WirePrefabs();
 
-            Debug.Log($"[SculptCharacterBuilder] Built {built.Count} drifter NPCs into {CharacterFolder}.");
+            Debug.Log($"[SculptCharacterBuilder] Built {built.Count} drifter NPC(s) into {CharacterFolder}.");
         }
 
         /// <summary>
-        /// Puts the three of them in the world as one wandering band, by adding an
+        /// Re-applies <see cref="ApplyBehaviour"/> to every drifter prefab that exists, in place.
+        /// The body -- model, skin, eyes, scale -- is not touched, so hand edits there survive.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Update Drifter Behaviour")]
+        public static void UpdateBehaviourAll()
+        {
+            int updated = 0;
+            foreach (var recipe in Drifters)
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(recipe.PrefabPath) == null)
+                {
+                    Debug.LogWarning($"[SculptCharacterBuilder] No prefab for {recipe.Name}; " +
+                                     "run 'Build Drifter NPCs' first.");
+                    continue;
+                }
+
+                var root = PrefabUtility.LoadPrefabContents(recipe.PrefabPath);
+                try
+                {
+                    ApplyBehaviour(root, recipe);
+                    PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out bool ok);
+                    if (ok) updated++;
+                    else Debug.LogError($"[SculptCharacterBuilder] Failed to save {recipe.PrefabPath}.");
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
+
+            if (updated > 0)
+                WireProjectWide();
+
+            Debug.Log($"[SculptCharacterBuilder] Updated the behaviour of {updated} drifter NPC(s).");
+        }
+
+        /// <summary>
+        /// The project-wide wirings a drifter change has to be followed by. Neither is optional:
+        /// an unregistered network prefab fails ONLY on clients, and a new behaviour module without
+        /// its saver (CloseCombatModule's cadence, say) reloads as prefab defaults.
+        /// </summary>
+        private static void WireProjectWide()
+        {
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log(NetworkPrefabRegistrar.Sync(out _, out _));
+            SaveableWiring.TryWirePrefabs();
+        }
+
+        /// <summary>
+        /// Puts every built drifter in the world as one wandering band, by adding an
         /// <c>NpcGroupTemplate</c> to the <c>NpcWorldSim</c> in the persistent scene.
         ///
         /// <para>
@@ -315,7 +493,7 @@ namespace SpaceGame.EditorTools
                 member.FindPropertyRelative("count").intValue = 1;
             }
 
-            // Three people on foot, walking closer together than a string of pack animals.
+            // People on foot, walking closer together than a string of pack animals.
             var formation = template.FindPropertyRelative("formation");
             formation.FindPropertyRelative("Lanes").intValue = 2;
             formation.FindPropertyRelative("RowSpacing").floatValue = 3.5f;
@@ -370,15 +548,36 @@ namespace SpaceGame.EditorTools
                              "SpaceGame.Agents.AgentTargeting",
                              "SpaceGame.Agents.WanderModule",
                              "SpaceGame.Agents.ProvocationModule",
+                             "SpaceGame.Agents.CloseCombatModule",
+                             "SpaceGame.Agents.AggressionTelegraphModule",
+                             "SpaceGame.Agents.ChatterModule",
+                             "SpaceGame.Gameplay.DialogInteraction",
                              "SpaceGame.Agents.NavMeshAgentMotor",
                              "SpaceGame.Agents.AgentAnimatorDriver",
                              "SpaceGame.Gameplay.HealthComponent",
                              "Unity.Netcode.NetworkObject",
                              "SpaceGame.Core.Persistence.SaveableEntity",
+                             "SpaceGame.Presentation.EyeBlink",
                          })
                 {
                     if (FindComponent(prefab, required) == null)
                         problems.Add($"{recipe.Name}: missing {required}.");
+                }
+
+                // An EyeBlink with no eyes, or pointing at an eye that lost the eye shader, is a
+                // character that never blinks and never says why.
+                var blink = FindComponent(prefab, "SpaceGame.Presentation.EyeBlink");
+                if (blink != null)
+                {
+                    var eyes = Find(new SerializedObject(blink), "eyes");
+                    int wired = 0;
+                    for (int i = 0; eyes != null && i < eyes.arraySize; i++)
+                        if (eyes.GetArrayElementAtIndex(i).objectReferenceValue is Renderer eye &&
+                            StylizedEyeBuilder.WearsEyeShader(eye))
+                            wired++;
+
+                    if (wired == 0)
+                        problems.Add($"{recipe.Name}: EyeBlink has no eye on {StylizedEyeBuilder.EyeShaderName}; it will never blink.");
                 }
 
                 var faction = FindComponent(prefab, "SpaceGame.Agents.EntityFaction");
@@ -405,12 +604,40 @@ namespace SpaceGame.EditorTools
                 if (offender.Contains("Drifter_"))
                     problems.Add($"network wiring: {offender}");
 
+            problems.AddRange(HostileFactions());
+
             if (problems.Count == 0)
                 Debug.Log($"[SculptCharacterBuilder] Verified {Drifters.Length} drifter NPCs: " +
-                          "avatars are Humanoid, factions assigned, agent stack and savers present.");
+                          "avatars are Humanoid, factions assigned, agent stack and savers present, " +
+                          "eyes wired to blink, hostile to no faction.");
             else
                 Debug.LogError("[SculptCharacterBuilder] " + problems.Count + " problem(s):\n  " +
                                string.Join("\n  ", problems));
+        }
+
+        /// <summary>
+        /// Every core faction the drifters would fight on sight -- which must be none, since they
+        /// are neutral and fight only when provoked. Checked on the resolved relationship rather
+        /// than on the rows, because Hostile is unilateral: a faction whose own <c>defaultStance</c> is Hostile makes
+        /// the pair Hostile with no row written at all. That is how the Clankers had the drifters
+        /// attacking them on sight until a Neutral row was added for the pair.
+        /// </summary>
+        private static IEnumerable<string> HostileFactions()
+        {
+            var drifters = AssetDatabase.LoadAssetAtPath<FactionDefinition>(FactionPath);
+            var table = AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(RelationshipsPath);
+            if (drifters == null || table == null)
+            {
+                yield return "faction assets missing -- cannot check who the drifters are hostile to.";
+                yield break;
+            }
+
+            foreach (string guid in AssetDatabase.FindAssets("t:FactionDefinition", new[] { CoreFactionFolder }))
+            {
+                var other = AssetDatabase.LoadAssetAtPath<FactionDefinition>(AssetDatabase.GUIDToAssetPath(guid));
+                if (other != null && table.IsHostile(drifters, other))
+                    yield return $"Drifters are Hostile to {other.name} and would attack it on sight.";
+            }
         }
 
         public static GameObject BuildPrefab(SculptRecipe recipe)
@@ -456,18 +683,7 @@ namespace SpaceGame.EditorTools
                 ApplySkin(model, recipe);
                 ConfigureAnimator(model);
                 ConfigurePhysics(root);
-                AddAgentStack(root);
-                ConfigureDialog(root, recipe);
-                ConfigurePerception(root);
-                ConfigureHealth(root);
-                ConfigureFaction(root);
-                ConfigureWander(root);
-                ConfigureProvocation(root);
-                ConfigureGait(root);
-
-                // Every component this prefab needs must be added HERE. A rebuild overwrites the
-                // asset wholesale, so anything added by hand in the Inspector is silently gone.
-                AgentGroundConformWiring.Ensure(root);
+                ApplyBehaviour(root, recipe);
 
                 saved = PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out ok);
             }
@@ -804,6 +1020,38 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// Everything a drifter does and says -- the agent stack and its tuning, but not its body.
+        /// Idempotent, and safe on an existing prefab: every step adds only what is missing and
+        /// sets only fields this builder owns, so <see cref="UpdateBehaviourAll"/> can run it over
+        /// hand-edited prefabs.
+        /// </summary>
+        private static void ApplyBehaviour(GameObject root, SculptRecipe recipe)
+        {
+            AddAgentStack(root);
+            ConfigureDialog(root, recipe);
+            ConfigureChatter(root, recipe);
+            ConfigurePerception(root);
+            ConfigureHealth(root);
+            ConfigureFaction(root);
+            ConfigureWander(root);
+            ConfigureProvocation(root);
+            ConfigureTelegraph(root);
+            ConfigureCombat(root);
+            ConfigureGait(root);
+
+            // Every component this prefab needs must be added HERE or in AddAgentStack, never by
+            // hand in the Inspector: a hand-added module is invisible to this list, so the next
+            // drifter built is missing it.
+            AgentGroundConformWiring.Ensure(root);
+
+            // The blink is part of the face rather than of the temperament, but it lives in this half
+            // because this is the half that reaches existing prefabs -- and it touches nothing the
+            // hand-tuned eyes carry: not their transforms, not their materials. The lid colour is
+            // re-sampled from the skin each time, so it follows a repaint.
+            EyelidWiring.Ensure(root);
+        }
+
+        /// <summary>
         /// The agent stack. Types are resolved by name so this compiles even while parts of the
         /// agent assembly are being edited.
         /// </summary>
@@ -836,8 +1084,14 @@ namespace SpaceGame.EditorTools
                 // "you are about to start something" legible before it starts.
                 "SpaceGame.Agents.MenaceSensor",
                 "SpaceGame.Agents.AggressionTelegraphModule",
+                // The telegraph's voice as well as the ambient one: without it every warning
+                // above is silent, because the telegraph barks through ChatterModule.TrySayNow.
+                "SpaceGame.Agents.ChatterModule",
                 // Lets DialogInteraction stop it and turn it to face whoever is talking.
                 "SpaceGame.Agents.InteractionFocusModule",
+                // What a provoked drifter hits back with. Before Chase and AgentTargeting, both of
+                // which read its range.
+                "SpaceGame.Agents.CloseCombatModule",
                 // Chase before AgentTargeting: it reads sibling melee ranges to tighten its
                 // stopping distance, and AgentTargeting widens acquisition to cover the longest
                 // weapon it can find.
@@ -878,17 +1132,8 @@ namespace SpaceGame.EditorTools
 
             // DialogMode.RandomFromPredefinedPool
             SetEnum(so, "dialogMode", 2);
-
-            var pool = so.FindProperty("predefinedRandomPool");
-            if (pool != null)
-            {
-                pool.arraySize = recipe.DialogLines.Length;
-                for (int i = 0; i < recipe.DialogLines.Length; i++)
-                    pool.GetArrayElementAtIndex(i).stringValue = recipe.DialogLines[i];
-            }
-
-            // SfxId.NpcMumbleFriendly
-            SetEnum(so, "voiceId", 401);
+            SetStrings(so, "predefinedRandomPool", recipe.DialogLines);
+            SetEnum(so, "voiceId", (int)SfxId.NpcMumbleFriendly);
 
             SetBool(so, "loopDialogLines", true);
             SetBool(so, "allowRestartAfterEnd", true);
@@ -899,6 +1144,21 @@ namespace SpaceGame.EditorTools
             SetBool(so, "useDelayBetweenDialogues", true);
             SetFloat(so, "dialogueDelaySeconds", 1.5f);
 
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Ambient lines, in the same voice as the dialog. Drifters run no errands (no
+        /// NpcTaskModule), so the idle lines are all they ever say unprompted.
+        /// </summary>
+        private static void ConfigureChatter(GameObject root, SculptRecipe recipe)
+        {
+            var chatter = FindComponent(root, "SpaceGame.Agents.ChatterModule");
+            if (chatter == null) return;
+
+            var so = new SerializedObject(chatter);
+            SetStrings(so, "idleChatter", recipe.IdleChatter);
+            SetEnum(so, "voiceId", (int)SfxId.NpcMumbleFriendly);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -975,7 +1235,9 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// What turns a peaceful character into one that fights back, and only after it is hit.
+        /// What turns a neutral character into one that fights, and only once provoked: hit, or
+        /// held at gunpoint past its last warning. The default aggression meter is the drifters'
+        /// temperament -- the same as a nomad's.
         /// <c>leashRange</c> stays at or under AgentTargeting's loseRange, or it gives up the
         /// chase and re-acquires in a loop.
         /// </summary>
@@ -988,6 +1250,45 @@ namespace SpaceGame.EditorTools
             SetFloat(so, "leashRange", 30f);
             SetFloat(so, "calmDownDelay", 60f);
             SetInt(so, "damageThreshold", 1);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The drifters' warnings, and no raised weapon: they have none, and the drawn pose is an
+        /// assault-rifle aim that would have them levelling an empty pair of hands. They plant
+        /// their feet and face you instead.
+        /// </summary>
+        private static void ConfigureTelegraph(GameObject root)
+        {
+            var telegraph = FindComponent(root, "SpaceGame.Agents.AggressionTelegraphModule");
+            if (telegraph == null) return;
+
+            var so = new SerializedObject(telegraph);
+            SetStrings(so, "warningLines", WarningLines);
+            SetStrings(so, "lastWarningLines", LastWarningLines);
+            SetStrings(so, "provokedLines", ProvokedLines);
+            SetBool(so, "aimWhileDrawn", false);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureCombat(GameObject root)
+        {
+            var melee = FindComponent(root, "SpaceGame.Agents.CloseCombatModule");
+            if (melee == null) return;
+
+            var so = new SerializedObject(melee);
+            // Explicit rather than trusting Reset(): a module left at the serialized default of
+            // Fallback ties with wander and never swings.
+            SetInt(so, "priority", ModulePriority.MeleeAttack);
+            SetFloat(so, "attackRange", PunchRange);
+            SetFloat(so, "attackCommitDuration", PunchCommit);
+            SetInt(so, "attackDamage", PunchDamage);
+            SetFloat(so, "attackCooldown", PunchCooldown);
+            SetFloat(so, "impactDelay", PunchImpact);
+            SetBool(so, "strikeOnTheMove", true);
+            SerializedFields.SetString(so, "attackAnimTrigger", PunchTrigger);
+            SetBool(so, "upperBodySwing", true);
+            SetFloat(so, "upperBodySwingSeconds", PunchLayerSeconds);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -1075,6 +1376,16 @@ namespace SpaceGame.EditorTools
         {
             var property = Find(so, field);
             if (property != null) property.boolValue = value;
+        }
+
+        private static void SetStrings(SerializedObject so, string field, string[] values)
+        {
+            var property = Find(so, field);
+            if (property == null) return;
+
+            property.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+                property.GetArrayElementAtIndex(i).stringValue = values[i];
         }
 
         /// <summary>

@@ -9,7 +9,7 @@
 //   wary   the nomad stops what he is doing and looks at you, and says something.
 //   drawn  he plants his feet, brings his weapon up, and gives you a last warning. He will not
 //          talk to you while he is like this.
-//   grudge the existing fight, unchanged.
+//   grudge the existing fight, unchanged — announced with a line only when provokedLines has one.
 //
 // All three are reversible until the last. Look away inside wary or drawn and calmRate drains the
 // meter and he goes back to work, which is what makes menace a threat the player is making rather
@@ -41,6 +41,11 @@ namespace SpaceGame.Agents
             "Put it down. Now.",
             "Do not make me.",
         };
+
+        [Tooltip("Said once on entering the grudge band, as the fight starts. Empty by default, " +
+                 "because a warrior needs no excuse — this is for agents whose fight has to read " +
+                 "as a RESPONSE, so the player knows it was their doing.")]
+        [SerializeField] private string[] provokedLines = System.Array.Empty<string>();
 
         [Header("Posture")]
         [Tooltip("Raise the weapon (animator IsAiming) while drawn.")]
@@ -105,7 +110,7 @@ namespace SpaceGame.Agents
         public override string ModuleDescription =>
             "Shows the aggression meter: a look and a bark when wary, weapon up and planted when " +
             "drawn, the ordinary fight at the top.\n\n" +
-            "• warningLines / lastWarningLines — said once per band entered\n" +
+            "• warningLines / lastWarningLines / provokedLines — said once per band entered\n" +
             "• Leave this OFF Clankers and Outlaws: they are Hostile by stance and never climb " +
             "the meter.";
 
@@ -156,6 +161,7 @@ namespace SpaceGame.Agents
             {
                 AggressionBand.Wary => warningLines,
                 AggressionBand.Drawn => lastWarningLines,
+                AggressionBand.Grudge => provokedLines,
                 _ => null,
             };
 

@@ -96,7 +96,7 @@ best template for a new creature builder.
    | Temperament | Faction | Rows in `GlobalRelationships.asset` | Extra |
    |---|---|---|---|
    | Attacks on sight | `ClankerFaction`, `OutlawFaction`, or a new one | Clankers need none — `defaultStance = Hostile` covers every people-faction, including ones added later. Outlaws have one `Hostile` row toward `HumansFaction` | combat modules |
-   | Peaceful until hurt | `FaunaFaction` (or a new empty one) | **none, and leave `defaultStance` at `Neutral`** — Fauna's only rows are the two `Neutral` ones the Clankers use to stay off the animals. Adding a `Hostile` row "for completeness", or a `Hostile` default, makes every creature of that faction attack on sight | `ProvocationModule`, with `leashRange` ≤ `AgentTargeting.loseRange` |
+   | Peaceful until hurt | `FaunaFaction`, `DriftersFaction`, or a new one | **no Hostile row, `defaultStance` left at `Neutral`, and a `Neutral` row toward `ClankerFaction`** — Hostile is unilateral, so without it the Clankers' Hostile default makes the pair Hostile and your creature attacks every robot it sees (Fauna and Drifters each have that one row). Adding a `Hostile` row "for completeness", or a `Hostile` default, makes every creature of that faction attack on sight | `ProvocationModule` with `leashRange` ≤ `AgentTargeting.loseRange`; an attack module (`CloseCombatModule`) or it can never hit back; a `ChatterModule` or its warnings are mute |
    | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward `HumansFaction` — change or reuse deliberately | — |
    | Afraid of the player | any | see below | `FleeModule` |
 
@@ -342,7 +342,9 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Symptom | Cause | Fix |
 |---|---|---|
 | Creature never notices anything, no errors | No `EntityFaction`, or no relationship table assigned | Add both; `EntityFaction.Ensure(go, faction, table)` on spawn paths |
-| Every "peaceful" creature attacks on sight | A relationship row was added for its faction, or its `defaultStance` is not `Neutral` | Peaceful = **zero rows and a `Neutral` default** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
+| Every "peaceful" creature attacks on sight | A Hostile relationship row was added for its faction, or its `defaultStance` is not `Neutral` | Peaceful = **no Hostile row, a `Neutral` default, a `Neutral` row toward `ClankerFaction`** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
+| A "peaceful" creature attacks the robots on sight | No `Neutral` row toward `ClankerFaction`, whose own Hostile default makes the pair Hostile from both sides | Add the row; `SculptCharacterBuilder.VerifyAll` checks the drifters for exactly this |
+| Pointing a gun at an NPC does nothing | `MenaceSensor` also requires a shot THIS agent heard within `brandishWindow` (6 s) — by design, since facing someone armed is how you talk to them | Fire, then keep facing it; each shot also adds `gunshotGain` |
 | Creature chases A, shoots B, backs away from C | A module resolved its own target | Read `context.Targeting` |
 | Everything below one module never runs | That module returns `MoveIntent.Idle()` while merely waiting | Return `null` |
 | A script-added module is ignored | `Reset()` is not called for `AddComponent`; priority stayed 0 and tied with wander | Set `priority` explicitly |
@@ -350,6 +352,7 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Provoked NPC closes at a walking pace | `NavMeshAgent.speed` was set to the walk | Set it to the run; scale `walkSpeedMultiplier` down from it |
 | Character stands still after an FBX re-export, clean console | Unity downgraded the avatar: `isValid = true`, `isHuman = false` | Re-export via the model's export script (single armature, `add_leaf_bones=False`), reimport, re-check `isHuman` |
 | Creature freezes mid-stride when off screen | Bone-parented renderers give the Animator bind-pose bounds | `animator.cullingMode = AnimatorCullingMode.AlwaysAnimate` |
+| Melee NPC stops dead, winds up, swings long after the damage landed, and never hits a player walking away | A full-body attack clip (the drifters had the 2.4 s spear throw) + `StopAndFace` on every swing + damage on the trigger frame | `CloseCombatModule` opt-ins: `upperBodySwing` (clip on the masked `Upper Body` layer), `strikeOnTheMove` (Chase keeps the legs), `impactDelay` = the clip's contact time. `SculptCharacterBuilder.ConfigureCombat` is the worked example |
 | Death animation never plays | `AgentAnimatorDriver.TriggerDie` fires `"Die"`; `HealthReactionModule.dieAnimTrigger` defaults to `"Death"` | Match the controller. `CloseCombatModule` defaults to `"Meele"` and `AgentRangedCombatModule` to `"AssualtShoot"` — both misspellings are real, and `Golem.controller` carries `Die` *and* `Death` |
 | Every NPC swings its gun to follow the host's head | `Weapon.UpdateWeaponRotation` aims at `Camera.main` for the owner, and the server owns every NPC | `EntityEquipmentController` sets `Weapon.ExternallyAimed`; keep `aimHeldItem` on |
 | Agent shoots through walls, intermittently | `PerceptionModule.occlusionLayers` left at `Nothing` (it warns and falls back) | Set the mask explicitly on the prefab |

@@ -9,6 +9,7 @@
 // would report zero and the creature would slide across the sand with still feet; measuring the
 // transform reports what the server actually did with it.
 using UnityEngine;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Agents
 {
@@ -35,6 +36,11 @@ namespace SpaceGame.Agents
                  "see how fast the body moved, and guessing wrong costs a visibly different " +
                  "playback rate (see walkAnimBoost) rather than the wrong clip.")]
         [SerializeField] private float measuredRunSpeed = 3.5f;
+
+        [Tooltip("Seconds for the Upper Body layer to come up for a one-shot gesture - an NPC's " +
+                 "punch - and to go back down after it. Keep it well under the gesture's own " +
+                 "wind-up, or the strike lands on a layer still fading in.")]
+        [SerializeField] private float upperBodyGestureBlend = 0.08f;
 
         // The frame something else called Tick. Anything else means nobody is driving this agent's
         // animation on this machine, which is the watching case.
@@ -152,6 +158,11 @@ namespace SpaceGame.Agents
         private readonly System.Collections.Generic.Dictionary<int, bool> parameterCache
             = new System.Collections.Generic.Dictionary<int, bool>();
 
+        // Built on the first gesture rather than in Awake: most agents never throw one, and a
+        // controller without the layer is only worth a warning once something asks for it.
+        private AgentUpperBodyGesture upperBodyGesture;
+        private bool warnedNoUpperBody;
+
         // Not only Awake's business. Components on one object awake in no guaranteed order, and
         // AggressionTelegraphModule.OnEnable calls SetIsAiming straight away — on a nomad it can land
         // before this component's Awake, while the field still holds the prefab's empty reference.
@@ -197,6 +208,14 @@ namespace SpaceGame.Agents
             parameterCache.Clear();   // the controller may have been swapped
         }
 
+        // Dropped rather than kept for the same reason the cache above is cleared, and released
+        // first: a gesture cut off mid-play would leave Gesturing true and block every hold pose.
+        private void OnDisable()
+        {
+            upperBodyGesture?.Release();
+            upperBodyGesture = null;
+        }
+
         // A reparent moves the frame the sample is taken in, so the delta across that one frame is
         // the distance between two different origins rather than any motion. Mounting a creature
         // would otherwise flash a sprint on the frame it is seated.
@@ -233,6 +252,9 @@ namespace SpaceGame.Agents
             turnRate = hasPreviousYaw ? MeasureTurnRate(previousYaw, yaw, deltaTime) : 0f;
             previousYaw = yaw;
             hasPreviousYaw = true;
+
+            // Driven or watched alike: the gesture is presentation, and a watcher is told about it.
+            upperBodyGesture?.Tick(deltaTime);
 
             if (lastDrivenFrame == Time.frameCount)
                 return;
@@ -555,6 +577,39 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// Play <paramref name="trigger"/> on the masked Upper Body layer of the player's layered
+        /// controller, so the arms move and the legs keep running. See
+        /// <see cref="AgentUpperBodyGesture"/> for why a bare trigger shows nothing there.
+        ///
+        /// <para>
+        /// A controller without that layer falls back to the plain trigger, with one warning: the
+        /// caller asked for something this rig cannot do, and silence would hide it.
+        /// </para>
+        /// </summary>
+        public void PlayUpperBodyGesture(string trigger, float seconds, bool mirrored)
+        {
+            if (string.IsNullOrEmpty(trigger) || !ResolveAnimator()) return;
+
+            upperBodyGesture ??= AgentUpperBodyGesture.For(animator, upperBodyGestureBlend);
+            if (upperBodyGesture == null)
+            {
+                if (!warnedNoUpperBody)
+                {
+                    warnedNoUpperBody = true;
+                    Debug.LogWarning($"{name}: asked for the Upper Body gesture '{trigger}', but its " +
+                                     $"controller has no '{PlayerAimRig.UpperBodyLayer}' layer with " +
+                                     "HoldStyle, HoldMirror and Gesturing. Playing it as a plain trigger.",
+                                     this);
+                }
+
+                SetTriggerSafe(trigger);
+                return;
+            }
+
+            upperBodyGesture.Play(trigger, seconds, mirrored);
+        }
+
+        /// <summary>
         /// The next point at or after <paramref name="normalizedTime"/> where the stride may
         /// be put down, in the same units the animator reports.
         ///
@@ -593,6 +648,7 @@ namespace SpaceGame.Agents
             animationSpeedMultiplier = Mathf.Max(0.1f, animationSpeedMultiplier);
             animatorSpeedScale = Mathf.Clamp(animatorSpeedScale, 0.05f, 4f);
             measuredRunSpeed = Mathf.Max(0.1f, measuredRunSpeed);
+            upperBodyGestureBlend = Mathf.Max(0f, upperBodyGestureBlend);
         }
     }
 }

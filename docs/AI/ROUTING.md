@@ -281,6 +281,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a worn item is scaled to the size of the model it is carried as | [BodyEquipment](systems/BodyEquipment.md) |
 | a worn model came out lying on its face, or rotated ninety degrees | [BodyEquipment](systems/BodyEquipment.md) |
+| after a blast the ragdoll's limbs stretch away from the body | [Combat](systems/Combat.md) |
 | after a cutscene the camera stays at chest height instead of the head | [Cutscenes](systems/Cutscenes.md) |
 | after a quickload an empty sky transport hull stays parked at the city and no party owns it | [SkyTribe](systems/SkyTribe.md) |
 | after a quickload the old caravan is still standing beside the new one | [Persistence](systems/Persistence.md) |
@@ -1503,4 +1504,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1102 symptoms, 375 paths, 57 docs -->
+<!-- 1103 symptoms, 375 paths, 57 docs -->

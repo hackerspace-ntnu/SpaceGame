@@ -127,6 +127,13 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "— a body that can twist as freely as it bends reads as boneless.")]
         [SerializeField, Range(0f, 177f)] private float twistLimit = 25f;
 
+        [Tooltip("How far a joint may come apart before PhysX snaps it back, metres. The last line " +
+                 "against a stretched mesh when a blast is stronger than the solver can resolve.")]
+        [SerializeField] private float projectionDistance = 0.05f;
+
+        [Tooltip("How far past its limit a joint may bend before PhysX snaps it back, degrees.")]
+        [SerializeField, Range(1f, 45f)] private float projectionAngle = 10f;
+
         [Header("Settling")]
         [Tooltip("Linear speed under which the body counts as slow, m/s.")]
         [SerializeField] private float settleLinearSpeed = 0.35f;
@@ -399,8 +406,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// Hand the body to physics.
         /// </summary>
         /// <param name="impulse">
-        /// Velocity handed to the hips, m/s world space. The rest of the body follows through the
-        /// joints, which is what makes a blast read as a body thrown rather than a body switched off.
+        /// Velocity handed to every bone, m/s world space — the whole body thrown at one speed, which
+        /// is what makes a blast read as a body thrown rather than a body switched off. Handing it
+        /// to the hips alone left the limbs at rest and tore the joints apart.
         ///
         /// <para>
         /// The motion the body was ALREADY carrying belongs in here too, and it is the caller's to
@@ -459,23 +467,32 @@ namespace SpaceGame.Gameplay.Ragdoll
                     bone.Body.isKinematic = pinned;
                     if (pinned) continue;
 
-                    bone.Body.linearVelocity = Vector3.zero;
+                    // The whole body starts at the same speed. Giving it all to the hips left every
+                    // limb at rest for the solver to accelerate in one step, which it cannot do
+                    // without pulling the joints apart — the stretched mesh after every blast.
+                    //
+                    // Not applied on a watching machine, and that is not an omission. The impulse's
+                    // whole effect there arrives already baked into the replicated root — applying
+                    // it locally as well would carry the body the distance twice and land it at
+                    // double the range.
+                    bone.Body.linearVelocity = settled || !Drives ? Vector3.zero : impulse;
                     bone.Body.angularVelocity = Vector3.zero;
                 }
 
                 ApplySelfCollision();
                 RagdollBudget.Register(this, maxConcurrentRagdolls);
             }
+            else if (Drives && !settled)
+            {
+                // A second knockdown on a body already down adds to the motion it has, and to every
+                // bone for the same reason the first one sets every bone.
+                foreach (Bone bone in bones)
+                    if (!bone.Body.isKinematic) bone.Body.AddForce(impulse, ForceMode.VelocityChange);
+            }
 
             slowSeconds = settled ? settleSeconds : 0f;
 
             if (settled) limpSeconds = maxLimpSeconds;
-            else if (Drives && impulse != Vector3.zero)
-                bones[0].Body.AddForce(impulse, ForceMode.VelocityChange);
-
-            // Not applied on a watching machine, and that is not an omission. The impulse's whole
-            // effect there arrives already baked into the replicated root — applying it locally as
-            // well would carry the body the distance twice and land it at double the range.
         }
 
         /// <summary>
@@ -1532,6 +1549,9 @@ namespace SpaceGame.Gameplay.Ragdoll
             var joint = bone.Transform.gameObject.AddComponent<CharacterJoint>();
             joint.connectedBody = parent;
             joint.enablePreprocessing = false;
+            joint.enableProjection = true;
+            joint.projectionDistance = projectionDistance;
+            joint.projectionAngle = projectionAngle;
 
             RagdollSkeleton.JointAxes(LocalBoneDirection(bone.Transform, simulated),
                                       out Vector3 twist, out Vector3 swing);

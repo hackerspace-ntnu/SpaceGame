@@ -294,5 +294,34 @@ namespace SpaceGame.EditorTools
             Assert.DoesNotThrow(() => rig.GoLimp(Vector3.zero));
             Assert.AreEqual(3, rig.JointCount, "spine, and the right thigh and shin");
         }
+
+        [Test]
+        public void GoLimp_HandsTheImpulseToEveryBone()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var impulse = new Vector3(12f, 3f, 0f);
+
+            rig.GoLimp(impulse);
+
+            foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
+                Assert.Less(Vector3.Distance(body.linearVelocity, impulse), 1e-3f,
+                    $"{body.name} started at rest while the hips flew — the joints tear");
+        }
+
+        [Test]
+        public void HardBlast_JointsStayConnected()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            rig.GoLimp(new Vector3(48f, 10f, 0f));
+            StepPhysics(30);
+
+            foreach (CharacterJoint joint in root.GetComponentsInChildren<CharacterJoint>())
+            {
+                Vector3 mine = joint.transform.TransformPoint(joint.anchor);
+                Vector3 theirs = joint.connectedBody.transform.TransformPoint(joint.connectedAnchor);
+                Assert.Less(Vector3.Distance(mine, theirs), 0.05f, $"{joint.name} came apart");
+                Assert.IsTrue(joint.enableProjection);
+            }
+        }
     }
 }

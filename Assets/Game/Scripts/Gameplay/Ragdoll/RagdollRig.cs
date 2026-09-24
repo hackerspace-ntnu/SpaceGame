@@ -213,7 +213,12 @@ namespace SpaceGame.Gameplay.Ragdoll
             /// <summary>The body this bone is jointed to. Null for the root bone.</summary>
             public Rigidbody Parent;
 
-            /// <summary>Where this bone was pointing when the body went still — the blend's start.</summary>
+            /// <summary>The bone's local pose the moment the body went limp — what recovery returns to.</summary>
+            public Vector3 RestPosition;
+            public Quaternion RestRotation;
+
+            /// <summary>Where the bone lay when the body got up — the blend's start.</summary>
+            public Vector3 RecoverFromPosition;
             public Quaternion RecoverFrom;
         }
 
@@ -450,6 +455,10 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (Hips != null) hipsToRoot = Quaternion.Inverse(Hips.rotation) * transform.rotation;
                 IsLimp = true;
                 limpSeconds = 0f;
+
+                // A body knocked down again while it is still getting up holds a half-blended pose,
+                // not a standing one. Its rest pose is still the one taken before the first knockdown.
+                bool midRecovery = blendRemaining > 0f;
                 blendRemaining = 0f;
 
                 // Before the bodies wake, or the animator spends this frame fighting them for the
@@ -460,6 +469,16 @@ namespace SpaceGame.Gameplay.Ragdoll
                 {
                     terrainGuardWasEnabled = terrainGuard.enabled;
                     terrainGuard.enabled = false;
+                }
+
+                foreach (Bone bone in bones)
+                {
+                    if (!midRecovery)
+                    {
+                        bone.RestPosition = bone.Transform.localPosition;
+                        bone.RestRotation = bone.Transform.localRotation;
+                    }
+                    bone.Body.interpolation = RigidbodyInterpolation.Interpolate;
                 }
 
                 RebuildJoints();
@@ -674,7 +693,13 @@ namespace SpaceGame.Gameplay.Ragdoll
             foreach (Bone bone in bones)
             {
                 bone.RecoverFrom = bone.Transform.localRotation;
+                bone.RecoverFromPosition = bone.Transform.localPosition;
                 bone.Body.isKinematic = true;
+
+                // Off while the animator owns the bone. An interpolated kinematic body writes its
+                // own lagged pose over the animator's every frame — a smeared, trailing skeleton on
+                // anything that has ever been knocked down.
+                bone.Body.interpolation = RigidbodyInterpolation.None;
 
                 // Each collider back to what it was, rather than the body's detectCollisions off
                 // wholesale. A bone that inherited an authored proxy is holding the creature's own
@@ -825,6 +850,25 @@ namespace SpaceGame.Gameplay.Ragdoll
             bones[0].Body.MoveRotation(transform.rotation * Quaternion.Inverse(hipsToRoot));
         }
 
+        /// <summary>
+        /// Before the animator runs: put every simulated bone back to its pre-knockdown pose, so
+        /// the blend's target is that pose wherever nothing animates the bone, and the animator's
+        /// pose wherever something does. Rewritten every frame because the blend writes the bone
+        /// too — without this, a bone no animator touches would blend from its ragdoll pose to
+        /// itself and never move.
+        /// </summary>
+        private void Update()
+        {
+            if (!IsLimp && blendRemaining > 0f) WriteRecoveryTarget();
+        }
+
+        private void WriteRecoveryTarget()
+        {
+            foreach (Bone bone in bones)
+                if (bone.Transform != null)
+                    bone.Transform.SetLocalPositionAndRotation(bone.RestPosition, bone.RestRotation);
+        }
+
         private void LateUpdate()
         {
             if (IsLimp)
@@ -839,7 +883,7 @@ namespace SpaceGame.Gameplay.Ragdoll
                 return;
             }
 
-            if (blendRemaining > 0f) BlendRecovery();
+            if (blendRemaining > 0f) BlendRecovery(Time.deltaTime);
         }
 
         /// <summary>
@@ -979,7 +1023,16 @@ namespace SpaceGame.Gameplay.Ragdoll
             IsLimp && !IsCorpse && Hips != null ? UprightRotation() : transform.rotation;
 
         /// <summary>
-        /// Ease the bones from where they came to rest into whatever is animating them now.
+        /// Ease the bones from where they came to rest into the pose they should now hold —
+        /// position and rotation both.
+        ///
+        /// <para>
+        /// The target is whatever the bone holds when this runs: <see cref="Update"/> writes the
+        /// pre-knockdown pose into it every frame, and the animator overwrites whichever channels it
+        /// animates. Both channels matter because neither kind of rig writes both — a humanoid
+        /// avatar animates no bone translations, a hard-surface or procedurally walked rig no bone
+        /// rotations — so a blend over one channel only leaves the other in the ragdoll pose.
+        /// </para>
         ///
         /// <para>
         /// This is the whole of "getting up". There are no get-up clips in the project — four
@@ -995,9 +1048,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// driving while their body finishes standing up.
         /// </para>
         /// </summary>
-        private void BlendRecovery()
+        private void BlendRecovery(float deltaTime)
         {
-            blendRemaining -= Time.deltaTime;
+            blendRemaining -= deltaTime;
 
             float t = recoverBlendSeconds > 0f
                 ? Mathf.Clamp01(1f - blendRemaining / recoverBlendSeconds)
@@ -1013,6 +1066,8 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (bone.Transform == null) continue;
                 bone.Transform.localRotation =
                     Quaternion.Slerp(bone.RecoverFrom, bone.Transform.localRotation, eased);
+                bone.Transform.localPosition =
+                    Vector3.Lerp(bone.RecoverFromPosition, bone.Transform.localPosition, eased);
             }
 
             if (blendRemaining <= 0f) blendRemaining = 0f;
@@ -1430,7 +1485,6 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             var body = bone.gameObject.AddComponent<Rigidbody>();
             body.mass = RagdollSkeleton.MassFor(weight, totalWeight, totalMass, minBoneMass);
-            body.interpolation = RigidbodyInterpolation.Interpolate;
             body.angularDamping = angularDamping;
             body.linearDamping = linearDamping;
             body.solverIterations = solverIterations;
@@ -1446,7 +1500,8 @@ namespace SpaceGame.Gameplay.Ragdoll
                 Transform = bone,
                 Body = body,
                 Colliders = OwnColliders(bone, kept, rig),
-                RecoverFrom = bone.localRotation,
+                RestPosition = bone.localPosition,
+                RestRotation = bone.localRotation,
             };
         }
 

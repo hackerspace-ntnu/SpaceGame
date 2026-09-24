@@ -395,5 +395,37 @@ namespace SpaceGame.EditorTools
             Assert.Less(Quaternion.Angle(saved.rotation, lying), 1f,
                 "a corpse goes limp again on load and should start lying the way it lay");
         }
+
+        [Test]
+        public void Recovery_ReturnsEveryBoneToItsPose_EvenWithNoAnimator()
+        {
+            Physics.gravity = new Vector3(0f, -18f, 0f);
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+
+            var before = new Dictionary<Transform, (Vector3, Quaternion)>();
+            foreach (Transform t in root.GetComponentsInChildren<Transform>())
+                before[t] = (t.localPosition, t.localRotation);
+
+            rig.GoLimp(new Vector3(8f, 4f, 0f));
+            StepPhysics(40);
+            rig.Recover();
+
+            for (int frame = 0; frame < 20; frame++)
+            {
+                Invoke(rig, "WriteRecoveryTarget");
+                Invoke(rig, "BlendRecovery", 0.05f);
+            }
+
+            foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
+            {
+                Transform t = body.transform;
+                if (t == root.transform) continue;
+
+                Assert.Less(Vector3.Distance(t.localPosition, before[t].Item1), 1e-3f, $"{t.name} stayed stretched");
+                Assert.Less(Quaternion.Angle(t.localRotation, before[t].Item2), 0.5f, $"{t.name} stayed bent");
+                Assert.AreEqual(RigidbodyInterpolation.None, body.interpolation,
+                    $"{t.name} keeps an interpolated body that fights the animator");
+            }
+        }
     }
 }

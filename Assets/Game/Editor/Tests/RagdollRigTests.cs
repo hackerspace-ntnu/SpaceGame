@@ -323,5 +323,42 @@ namespace SpaceGame.EditorTools
                 Assert.IsTrue(joint.enableProjection);
             }
         }
+
+        [Test]
+        public void FollowHips_MovesTheRoot_WithoutMovingAnyBone()
+        {
+            Physics.gravity = new Vector3(0f, -18f, 0f);
+            GameObject root = NewSplitRig(out RagdollRig rig, out Transform body, out Transform leg);
+
+            rig.GoLimp(new Vector3(5f, 0f, 0f));
+            StepPhysics(10);
+
+            Rigidbody legBody = leg.GetComponent<Rigidbody>();
+            Vector3 legBefore = legBody.position;
+
+            Invoke(rig, "FollowHips");
+            Physics.SyncTransforms();
+
+            Assert.Less(Vector3.Distance(root.transform.position, body.GetComponent<Rigidbody>().position),
+                        1e-3f, "the root is not where the body is");
+            Assert.Less(Vector3.Distance(legBody.position, legBefore), 1e-3f,
+                "moving the root teleported a bone that is not a child of the hips");
+        }
+
+        [Test]
+        public void Watcher_PinsHipsRotationToo()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            Transform hips = Find(root, "Hips");
+
+            rig.GoLimp(Vector3.zero, drives: false);
+            root.transform.rotation = Quaternion.Euler(0f, 0f, 90f);   // the wire says: lying on its side
+
+            Invoke(rig, "PinHipsToRoot");
+            StepPhysics(1);
+
+            Assert.Less(Quaternion.Angle(hips.rotation, root.transform.rotation), 1f,
+                "a watcher's pelvis stays upright while the owner's body lies down");
+        }
     }
 }

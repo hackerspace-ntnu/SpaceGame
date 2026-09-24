@@ -228,6 +228,13 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>Hip height above the root in the standing pose — see <see cref="FollowHips"/>.</summary>
         private float standingHipHeight;
 
+        /// <summary>
+        /// The root's rotation expressed in the hips' frame, taken the moment the body went limp.
+        /// While limp the root is kept at <c>hips × hipsToRoot</c>, so the replicated root carries
+        /// the body's orientation to every watcher and they can reconstruct the pelvis from it.
+        /// </summary>
+        private Quaternion hipsToRoot = Quaternion.identity;
+
         public bool IsLimp { get; private set; }
 
         /// <summary>
@@ -439,6 +446,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 PreLimpPosition = transform.position;
                 PreLimpRotation = transform.rotation;
+                if (Hips != null) hipsToRoot = Quaternion.Inverse(Hips.rotation) * transform.rotation;
                 IsLimp = true;
                 limpSeconds = 0f;
                 blendRemaining = 0f;
@@ -755,45 +763,65 @@ namespace SpaceGame.Gameplay.Ragdoll
         // ── Per-frame ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// A watcher's half of the split described on <see cref="Drives"/>: hold the body at the
-        /// root the wire is writing, and let physics do everything else.
+        /// The one place a limp body's root and pelvis are written each physics step: the driver
+        /// drags the root after the body (<see cref="FollowHips"/>), a watcher pins the body to the
+        /// root the wire is writing (<see cref="PinHipsToRoot"/>).
+        ///
+        /// <para>
+        /// In FixedUpdate because both are physics writes, and the correction has to land in the
+        /// same step the solver reads it.
+        /// </para>
+        ///
+        /// <para>
+        /// Neither runs once the body has settled. Writing a transform or driving the pelvis wakes
+        /// the Rigidbodies involved, so a follow or pin that kept running would put the body
+        /// straight back to sleep and wake it again every step — which is not sleeping at all, just
+        /// a more elaborate way of never settling, and on a watcher the one machine whose copy of a
+        /// corpse never stops shivering. A settled body is not moving, and neither is its root, so
+        /// there is nothing left to keep up with.
+        /// </para>
+        /// </summary>
+        private void FixedUpdate()
+        {
+            if (!IsLimp || (sleepWhenSettled && IsSettled)) return;
+
+            if (Drives) FollowHips();
+            else PinHipsToRoot();
+        }
+
+        /// <summary>
+        /// A watcher's half of the split described on <see cref="Drives"/>: hold the pelvis at the
+        /// root the wire is writing — position AND orientation — and let physics do everything else.
         ///
         /// <para>
         /// The hips are kinematic here and everything below them is not, so this drags one bone and
-        /// the body flails from it. That is the division wanted: position comes from the machine
-        /// that owns the truth, and the tumble — the part a watcher can derive perfectly well on
-        /// its own, and the part that makes a corpse read as a corpse — stays local and free.
-        ///
-        /// <para>
-        /// MovePosition rather than a direct assignment, because a kinematic body moved by
-        /// assignment teleports without telling the solver it moved: the limbs hanging off it get
-        /// no sweep between the two positions and are left behind, snapping after the pelvis a step
-        /// later. MovePosition is the interpolated move the joints can follow.
-        /// </para>
+        /// the body flails from it. That is the division wanted: where the body is and which way it
+        /// lies come from the machine that owns the truth, and the tumble of the limbs — the part a
+        /// watcher can derive perfectly well on its own, and the part that makes a corpse read as a
+        /// corpse — stays local and free. Without the rotation a watcher sees an upright pelvis
+        /// with the rest of the body hanging off it while the owner's copy lies on its side.
         /// </para>
         ///
         /// <para>
-        /// In FixedUpdate because it is a physics write, and the correction has to land in the same
-        /// step the solver reads it.
+        /// The root IS the hips while a body is limp — see <see cref="FollowHips"/> for why there
+        /// is no positional offset between them; reintroducing one here would put every watcher's
+        /// copy of the body at a different height from the machine that owns it. The rotation is
+        /// undone through <see cref="hipsToRoot"/>, the same offset the driver applied.
+        /// </para>
+        ///
+        /// <para>
+        /// MovePosition/MoveRotation rather than direct assignment, because a kinematic body moved
+        /// by assignment teleports without telling the solver it moved: the limbs hanging off it
+        /// get no sweep between the two poses and are left behind, snapping after the pelvis a step
+        /// later. The Move calls are the interpolated move the joints can follow.
         /// </para>
         /// </summary>
-        private void FixedUpdate() => PinHipsToRoot();
-
         private void PinHipsToRoot()
         {
-            if (!IsLimp || Drives || Hips == null) return;
-            if (bones.Count == 0 || bones[0].Body == null) return;
+            if (Hips == null || bones.Count == 0 || bones[0].Body == null) return;
 
-            // Same reason the driver stops following once settled: driving the pelvis every step
-            // keeps the limbs jointed to it awake, so a watcher would be the one machine whose copy
-            // of a corpse never stops shivering. A settled body's root is not moving either, so
-            // there is nothing to keep up with.
-            if (sleepWhenSettled && IsSettled) return;
-
-            // The root IS the hips while a body is limp — see FollowHips for why there is no offset
-            // between them. Reintroducing one here would put every watcher's copy of the body at a
-            // different height from the machine that owns it.
             bones[0].Body.MovePosition(transform.position);
+            bones[0].Body.MoveRotation(transform.rotation * Quaternion.Inverse(hipsToRoot));
         }
 
         private void LateUpdate()
@@ -806,18 +834,7 @@ namespace SpaceGame.Gameplay.Ragdoll
                             && FastestAngularSpeed <= settleAngularSpeed;
                 slowSeconds = slow ? slowSeconds + Time.deltaTime : 0f;
 
-                // Sleep BEFORE the follow, and skip the follow once asleep. Writing a transform
-                // wakes the Rigidbody it belongs to, so a FollowHips that kept running would put
-                // the body straight back to sleep and wake it again on every single frame — which
-                // is not sleeping at all, just a more elaborate way of never settling. Once the
-                // body is asleep it is not moving, so there is nothing left for the root to follow.
-                if (sleepWhenSettled && IsSettled)
-                {
-                    SleepBones();
-                    return;
-                }
-
-                if (Drives) FollowHips();
+                if (sleepWhenSettled && IsSettled) SleepBones();
                 return;
             }
 
@@ -836,7 +853,23 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </para>
         ///
         /// <para>
-        /// The hips are put back afterwards because moving the root drags them: they are its child.
+        /// Everything is read from the bodies' PHYSICS poses, never from the transforms, and it runs
+        /// in FixedUpdate so the write lands before the solver's next step. A transform is the
+        /// interpolated pose — a fraction of a step behind the body — and writing it back into the
+        /// body teleports the body into the past: every frame, which is jitter and a body that
+        /// never settles.
+        /// </para>
+        ///
+        /// <para>
+        /// Moving the root moves every transform under it, not only the hips — including branches
+        /// that are jointed to the hips without being their children. So every simulated bone is
+        /// re-seated to its own body's pose afterwards, and the sync into PhysX before the next step
+        /// is a no-op instead of a teleport.
+        /// </para>
+        ///
+        /// <para>
+        /// The root takes the hips' orientation too, through <see cref="hipsToRoot"/>, so the
+        /// replicated root tells every watcher which way the body lies, not only where.
         /// </para>
         ///
         /// <para>
@@ -859,15 +892,17 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private void FollowHips()
         {
-            if (Hips == null) return;
+            if (Hips == null || bones.Count == 0 || bones[0].Body == null) return;
 
-            Vector3 hipWorld = Hips.position;
-            Quaternion hipRotation = Hips.rotation;
+            Rigidbody hips = bones[0].Body;
+            transform.SetPositionAndRotation(hips.position, hips.rotation * hipsToRoot);
 
-            transform.position = hipWorld;
-
-            Hips.position = hipWorld;
-            Hips.rotation = hipRotation;
+            // Moving the root moved every transform under it. Put each simulated bone back where
+            // its body actually is — parents first, which is the order bones are kept in — so the
+            // sync into PhysX before the next step is a no-op instead of a teleport.
+            foreach (Bone bone in bones)
+                if (bone.Body != null)
+                    bone.Transform.SetPositionAndRotation(bone.Body.position, bone.Body.rotation);
         }
 
         /// <summary>
@@ -892,17 +927,25 @@ namespace SpaceGame.Gameplay.Ragdoll
             }
 
             // Yaw only. The body's own tilt is where it fell, and carrying that into the root would
-            // stand the creature up sideways.
-            Vector3 facing = Vector3.ProjectOnPlane(Hips.forward, Vector3.up);
+            // stand the creature up sideways. Measured through hipsToRoot, so "forward" is the
+            // root's forward as the body now carries it, not whichever way the hip bone's own axes
+            // happen to point on this rig.
+            Vector3 facing = Vector3.ProjectOnPlane(hipRotation * hipsToRoot * Vector3.forward, Vector3.up);
             if (facing.sqrMagnitude < 1e-4f)
-                facing = Vector3.ProjectOnPlane(Hips.up, Vector3.up);
+                facing = Vector3.ProjectOnPlane(hipRotation * hipsToRoot * Vector3.up, Vector3.up);
+
+            // Moving the root drags every bone under it, not just the hips, so every bone's world
+            // pose is taken first and put back after — the blend starts from where the body lay.
+            var worldPoses = new (Vector3, Quaternion)[bones.Count];
+            for (int i = 0; i < bones.Count; i++)
+                worldPoses[i] = (bones[i].Transform.position, bones[i].Transform.rotation);
 
             transform.position = grounded;
             if (facing.sqrMagnitude > 1e-4f)
                 transform.rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
 
-            Hips.position = hipWorld;
-            Hips.rotation = hipRotation;
+            for (int i = 0; i < bones.Count; i++)
+                bones[i].Transform.SetPositionAndRotation(worldPoses[i].Item1, worldPoses[i].Item2);
         }
 
         /// <summary>
@@ -1091,7 +1134,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             }
 
             // Never this component's own transform. It is the entity, not a bone: FollowHips moves
-            // it to wherever the hips ended up and puts the hips back afterwards, which is a no-op
+            // it to wherever the hips ended up and re-seats the bones afterwards, which is a no-op
             // if they are the same object — so a body whose root were its own hips would flail
             // twenty metres away and leave its transform, its NetworkTransform and its save record
             // standing where it died.

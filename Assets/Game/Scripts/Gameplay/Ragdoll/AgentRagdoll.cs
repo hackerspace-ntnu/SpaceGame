@@ -74,6 +74,7 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         private bool suspended;
         private bool bodyWasKinematic;
+        private RigidbodyInterpolation bodyInterpolation;
         private bool controllerWasEnabled;
         private bool locomotionWasEnabled;
         private bool colliderWasEnabled;
@@ -428,6 +429,11 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 bodyWasKinematic = body.isKinematic;
                 body.isKinematic = true;
+
+                // Interpolation would write a lagged root over the one the rig sets, dragging
+                // every bone with it.
+                bodyInterpolation = body.interpolation;
+                body.interpolation = RigidbodyInterpolation.None;
             }
         }
 
@@ -449,6 +455,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // component itself switched off has no such ordering to get wrong.
             if (bodyCollider != null && colliderWasEnabled) bodyCollider.enabled = true;
             if (body != null) body.isKinematic = bodyWasKinematic;
+            if (body != null) body.interpolation = bodyInterpolation;
 
             if (locomotion != null && locomotionWasEnabled) locomotion.enabled = true;
             SelfDrivingMotor?.ResumeSelfDrive();

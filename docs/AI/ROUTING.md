@@ -141,6 +141,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a joining client fails with 'Scene Hash N does not exist in the HashToBuildIndex table | [Multiplayer](systems/Multiplayer.md) |
 | a ladder can be climbed from behind or grabbed in mid-air | [Ladders](systems/Ladders.md) |
 | a landed pack stands on the sand with its flames still lit | [Jetpack](systems/Jetpack.md) |
+| a knocked-down body keeps twitching and never comes to rest | [Combat](systems/Combat.md) |
 | a laser beam through a live lasso rope does nothing | [Lasso](systems/Lasso.md) |
 | a laser beam through a tied rope does nothing | [LeashSystem](systems/LeashSystem.md) |
 | a lasso throw goes where I point only if I aim at the creature's feet | [Lasso](systems/Lasso.md) |
@@ -553,6 +554,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one press seated the player in all four ship chairs at once | [Vehicles](systems/Vehicles.md) |
 | one prop type turns out to be a quarter of a model's whole triangle count | [ArtPipeline](systems/ArtPipeline.md) |
 | one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
+| on a client a corpse's pelvis stands upright with the body hanging off it | [Combat](systems/Combat.md) |
 | one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
@@ -1504,4 +1506,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1103 symptoms, 375 paths, 57 docs -->
+<!-- 1105 symptoms, 375 paths, 57 docs -->

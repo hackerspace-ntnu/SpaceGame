@@ -71,6 +71,7 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         private bool suspended;
         private bool bodyWasKinematic;
+        private RigidbodyInterpolation bodyInterpolation;
         private bool movementWasEnabled;
         private bool lookWasEnabled;
         private bool inputWasEnabled;
@@ -459,6 +460,11 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 bodyWasKinematic = body.isKinematic;
                 body.isKinematic = true;
+
+                // Interpolation would write a lagged root over the one the rig sets, dragging
+                // every bone with it.
+                bodyInterpolation = body.interpolation;
+                body.interpolation = RigidbodyInterpolation.None;
             }
 
             if (!Drives) return;
@@ -496,6 +502,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // this component quietly taking control away on a frame it was not asked to.
             if (bodyCollider != null && colliderWasEnabled) bodyCollider.enabled = true;
             if (body != null) body.isKinematic = bodyWasKinematic;
+            if (body != null) body.interpolation = bodyInterpolation;
 
             if (!Drives) return;
 

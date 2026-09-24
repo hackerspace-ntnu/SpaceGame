@@ -619,5 +619,52 @@ namespace SpaceGame.EditorTools
                     $"{t.name} keeps an interpolated body that fights the animator");
             }
         }
+
+        [Test]
+        public void Recovery_StartsTheBlendFromWhereTheBodyLay()
+        {
+            Physics.gravity = Vector3.zero;
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            Transform hips = Find(root, "Hips");
+
+            // Lying on its side, the way a fall leaves it: the bodies turned over, then the root
+            // dragged after them — so the tilt sits in the root and the hips' local pose is rest.
+            rig.GoLimp(Vector3.zero);
+            root.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
+            Physics.SyncTransforms();
+            StepPhysics(1);
+            Invoke(rig, "FollowHips");
+            Quaternion lying = hips.rotation;
+            Assert.Greater(Quaternion.Angle(lying, Quaternion.identity), 80f,
+                "the fixture has to lie the body down, or an upright blend start is not a snap");
+
+            rig.Recover();
+            Invoke(rig, "WriteRecoveryTarget");
+            Invoke(rig, "BlendRecovery", 0.01f);
+
+            Assert.Less(Quaternion.Angle(hips.rotation, lying), 5f,
+                "one hundredth of a second into getting up, the lying body already stands vertical");
+
+            for (int frame = 0; frame < 10; frame++)
+            {
+                Invoke(rig, "WriteRecoveryTarget");
+                Invoke(rig, "BlendRecovery", 0.05f);
+            }
+            Assert.AreEqual(0f, RigField<float>(rig, "blendRemaining"), "the blend never finished");
+
+            Quaternion animated = Quaternion.Euler(30f, 0f, 0f);
+            hips.localRotation = animated;
+            Invoke(rig, "Update");
+            Assert.Less(Quaternion.Angle(hips.localRotation, animated), 0.01f,
+                "the recovery target is still written over the animator after the blend has ended");
+        }
+
+        /// <summary>Reads one of <see cref="RagdollRig"/>'s private fields.</summary>
+        private static T RigField<T>(RagdollRig rig, string name)
+        {
+            FieldInfo field = typeof(RagdollRig).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(field, $"RagdollRig.{name} no longer exists");
+            return (T)field.GetValue(rig);
+        }
     }
 }

@@ -701,13 +701,8 @@ namespace SpaceGame.Gameplay.Ragdoll
             Vector3 from = PreLimpPosition;
             Quaternion fromRotation = PreLimpRotation;
 
-            // Snapshot before the bodies are switched off, or the blend starts from whatever the
-            // animator writes on its first frame back — which is the standing pose, i.e. no blend
-            // at all and a corpse that snaps upright.
             foreach (Bone bone in bones)
             {
-                bone.RecoverFrom = bone.Transform.localRotation;
-                bone.RecoverFromPosition = bone.Transform.localPosition;
                 bone.Body.isKinematic = true;
 
                 // Off while the animator owns the bone. An interpolated kinematic body writes its
@@ -725,7 +720,21 @@ namespace SpaceGame.Gameplay.Ragdoll
                     if (owned.Collider != null) owned.Collider.enabled = owned.WasEnabled;
             }
 
+            // The colliders go back above, before the root moves: the ground probe must not land
+            // on the body's own bones.
             PlaceRootUnderHips();
+
+            // The blend's start, taken only now that the root is standing. While limp the root is
+            // kept at hips × hipsToRoot, so the hips' LOCAL pose reads as the rest pose however the
+            // body lies — the tilt is all in the root. Standing the root up moves that tilt into
+            // the bones, and a snapshot taken before it would start the blend from "rest": the
+            // lying body snapping vertical on the first frame. And before the animator is
+            // switched back on, or the blend starts from its standing pose — no blend at all.
+            foreach (Bone bone in bones)
+            {
+                bone.RecoverFrom = bone.Transform.localRotation;
+                bone.RecoverFromPosition = bone.Transform.localPosition;
+            }
 
             IsLimp = false;
             RagdollBudget.Unregister(this);

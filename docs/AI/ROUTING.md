@@ -34,6 +34,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a bevelled bezel has a chamfer groove running across its face at every corner | [ArtPipeline](systems/ArtPipeline.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a blob is visibly bigger than the area that caught the player inside it | [FoamGun](systems/FoamGun.md) |
+| a body lying on its side snaps vertical the instant it starts getting up instead of rising through the blend | [Combat](systems/Combat.md) |
 | a body that was knocked down once looks smeared when it moves afterwards | [Combat](systems/Combat.md) |
 | a booster stuck to a creature burns and the creature walks off unaffected | [StrapOnBooster](systems/StrapOnBooster.md) |
 | a booster stuck to a mounted rider does nothing | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -1511,4 +1512,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1108 symptoms, 375 paths, 57 docs -->
+<!-- 1109 symptoms, 375 paths, 57 docs -->

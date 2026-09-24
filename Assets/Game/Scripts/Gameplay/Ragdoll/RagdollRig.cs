@@ -38,8 +38,9 @@ namespace SpaceGame.Gameplay.Ragdoll
     ///
     /// <para>
     /// This component knows nothing about death, damage or the netcode. What it knows is bones.
-    /// Deciding WHEN a body goes limp, and what else has to stop driving it while it is, belongs to
-    /// <see cref="AgentRagdoll"/> and <see cref="PlayerRagdoll"/>.
+    /// Deciding WHEN a body goes limp and for how long belongs to <see cref="RagdollController"/>;
+    /// what else has to stop driving it while it is, to its subclasses <see cref="AgentRagdoll"/>
+    /// and <see cref="PlayerRagdoll"/>.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
@@ -154,9 +155,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         [SerializeField] private float settleSeconds = 0.45f;
 
         [Tooltip("Longest a CORPSE keeps simulating before it is called settled and put to sleep, " +
-                 "seconds — settled or not. Bounds how long a body wedged against a rock grinds " +
-                 "there. Knockdown timing is not this: it belongs to KnockdownTuning on the body's " +
-                 "RagdollController.")]
+                 "seconds — settled or not, counted from the last time it was thrown. Bounds how " +
+                 "long a body wedged against a rock grinds there. Living bodies are never timed " +
+                 "out: knockdown timing belongs to KnockdownTuning on the body's RagdollController, " +
+                 "and a held body sleeps only once it has actually come to rest.")]
         [SerializeField] private float maxLimpSeconds = 4f;
 
         [Header("Recovery")]
@@ -362,14 +364,22 @@ namespace SpaceGame.Gameplay.Ragdoll
         public Quaternion PreLimpRotation { get; private set; }
 
         /// <summary>
-        /// Is the body at rest, or has it been limp long enough that the answer stops mattering?
+        /// Is the body at rest — or, for a corpse, has it been limp long enough that the answer
+        /// stops mattering?
         ///
-        /// The timeout half is the ceiling described on <see cref="maxLimpSeconds"/>: a body that
-        /// never settles must still be put to sleep, and a corpse still be evictable.
+        /// <para>
+        /// The timeout half is the ceiling described on <see cref="maxLimpSeconds"/>: a corpse that
+        /// never settles must still be put to sleep, and still be evictable. It is a CORPSE's
+        /// ceiling only. A living body has its own (<c>KnockdownTuning.settleGraceSeconds</c>), and
+        /// can be limp far longer than four seconds for good reason — a net, a tie — during which
+        /// the timeout slept it and, worse, stopped <see cref="FixedUpdate"/> dragging the root
+        /// after it: a captive hauled on a tether left their root, their save record and every
+        /// watcher's copy of them behind.
+        /// </para>
         /// </summary>
         public bool IsSettled =>
             !IsLimp
-            || limpSeconds >= maxLimpSeconds
+            || (IsCorpse && limpSeconds >= maxLimpSeconds)
             || RagdollSkeleton.IsSettled(FastestLinearSpeed, FastestAngularSpeed, slowSeconds,
                                          settleLinearSpeed, settleAngularSpeed, settleSeconds);
 
@@ -484,7 +494,6 @@ namespace SpaceGame.Gameplay.Ragdoll
                 PreLimpRotation = transform.rotation;
                 if (Hips != null) hipsToRoot = Quaternion.Inverse(Hips.rotation) * transform.rotation;
                 IsLimp = true;
-                limpSeconds = 0f;
 
                 // A body knocked down again while it is still getting up holds a half-blended pose,
                 // not a standing one. Its rest pose is still the one taken before the first knockdown.
@@ -555,7 +564,12 @@ namespace SpaceGame.Gameplay.Ragdoll
                     if (!bone.Body.isKinematic) bone.Body.AddForce(impulse, ForceMode.VelocityChange);
             }
 
+            // Every call, not only the first: a body thrown again — a knockdown landing on one
+            // already down, a death arriving on a body already knocked flat — is moving again, and
+            // a ceiling still counting from the first throw put a corpse killed near the end of a
+            // knockdown to sleep in mid-air.
             slowSeconds = 0f;
+            limpSeconds = 0f;
         }
 
         /// <summary>

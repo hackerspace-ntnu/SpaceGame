@@ -27,7 +27,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>Health left AFTER the hit as a share of max health, 0..1. 1 for a body with no health.</summary>
         public readonly float HealthLeftFraction;
 
-        /// <summary>Speed of the impulse the event carries, m/s. 0 for a plain hit.</summary>
+        /// <summary>
+        /// Speed of the impulse the event carries, m/s. A hit carries its controller's
+        /// <c>hitImpulse</c>, so every hit is priced with that much knockback; 0 for a fall.
+        /// </summary>
         public readonly float KnockbackSpeed;
 
         public KnockdownEvent(RagdollCause cause, float damageFraction, float healthLeftFraction,

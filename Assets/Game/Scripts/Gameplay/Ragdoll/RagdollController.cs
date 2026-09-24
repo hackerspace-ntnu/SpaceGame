@@ -28,7 +28,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         [SerializeField] private KnockdownTuning knockdown = new KnockdownTuning();
 
         [Tooltip("Speed a knockdown-worthy HIT throws the body at, m/s, away from the attacker. The " +
-                 "hit carries no knockback of its own, so this is the fall's shape, not its price.")]
+                 "hit carries no knockback of its own, so this stands in for it in the price too: " +
+                 "KnockdownPolicy counts it as the hit's knockback, and raising it makes hits both " +
+                 "knock down more easily and keep the body down longer.")]
         [SerializeField] private float hitImpulse = 3f;
 
         protected RagdollRig rig;
@@ -257,6 +259,20 @@ namespace SpaceGame.Gameplay.Ragdoll
 
             RagdollController ragdoll = Of(victim);
             if (ragdoll != null) ragdoll.KnockHere(cause, impulse, damageFraction);
+        }
+
+        /// <summary>
+        /// Would <see cref="Knock"/> find a body to put on the ground here? Asked through the same
+        /// entity-scoped lookup, so a caller choosing between a knockdown and some fallback (a
+        /// mount's leap) can never ask one body and knock another — a vessel's seated passenger,
+        /// say, when the blast only caught the hull.
+        /// </summary>
+        public static bool CanKnock(GameObject victim)
+        {
+            if (victim == null) return false;
+
+            RagdollController ragdoll = Of(victim);
+            return ragdoll != null && ragdoll.CanBeKnockedDown;
         }
 
         /// <summary>
@@ -516,8 +532,10 @@ namespace SpaceGame.Gameplay.Ragdoll
             // Not Restore() directly: TickStandUp owns the recovery, and it waits for the body to
             // come to rest, or for the settle grace to run out, so a body released mid-tumble does
             // not snap upright out of a roll. Now, not zero: the grace is measured from standAt,
-            // and a floor of zero would have run out long ago.
-            standAt = Time.time;
+            // and a floor of zero would have run out long ago. Never EARLIER than it already is,
+            // though: a knockdown that landed during the hold set a stand-up time of its own,
+            // and a release is no reason to cut it short.
+            standAt = Mathf.Max(standAt, Time.time);
         }
 
         // ── Handing the body over and back ────────────────────────────────────

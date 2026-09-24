@@ -779,6 +779,44 @@ namespace SpaceGame.EditorTools
                 "the recovery target is still written over the animator after the blend has ended");
         }
 
+        [Test]
+        public void ReleasingAHold_KeepsAKnockdownThatLandedDuringIt()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+            var net = new object();
+
+            Assert.IsTrue(ragdoll.HoldDown(net), "the fixture has to hold the body down");
+            Knock(ragdoll, 2f);
+            float standAt = ControllerField<float>(ragdoll, "standAt");
+
+            ragdoll.ReleaseHold(net);
+
+            Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"),
+                "letting go of the net cut short a knockdown that landed while it held");
+        }
+
+        [Test]
+        public void LimpTimeout_SleepsOnlyCorpses_AndRestartsWhenThrownAgain()
+        {
+            Physics.gravity = Vector3.zero;
+            NewHumanoidRig(out RagdollRig rig);
+            FieldInfo limpSeconds = typeof(RagdollRig).GetField("limpSeconds", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(limpSeconds, "RagdollRig.limpSeconds no longer exists");
+
+            rig.GoLimp(Vector3.zero);
+            limpSeconds.SetValue(rig, 60f);
+            Assert.IsFalse(rig.IsSettled,
+                "a living body held down past the timeout was called settled — it sleeps and its root stops following");
+
+            rig.IsCorpse = true;
+            Assert.IsTrue(rig.IsSettled, "a corpse past the timeout must still be put to sleep");
+
+            rig.GoLimp(Vector3.up);
+            Assert.IsFalse(rig.IsSettled, "a corpse thrown again was put straight back to sleep in mid-air");
+        }
+
         /// <summary>Reads one of <see cref="RagdollRig"/>'s private fields.</summary>
         private static T RigField<T>(RagdollRig rig, string name)
         {

@@ -3497,7 +3497,7 @@ namespace SpaceGame.EditorTools
 
             int givenBack = IndexAfter(source, "rig.BudgetExempt = false;", releaseHold,
                                        path + ".ReleaseHold never gives the exemption back.");
-            int releaseEnd = IndexAfter(source, "standAt = Time.time;", releaseHold,
+            int releaseEnd = IndexAfter(source, "standAt = Mathf.Max(standAt, Time.time);", releaseHold,
                                         path + ".ReleaseHold stopped restarting the stand-up clock.");
             Assert.Less(givenBack, releaseEnd, path + ": the release has to be inside ReleaseHold.");
 

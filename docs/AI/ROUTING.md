@@ -184,6 +184,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a new gauge I added is invisible and never draws anything | [Visor](systems/Visor.md) |
 | a nomad build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects | [EditorTooling](systems/EditorTooling.md) |
 | a netted body snaps upright mid-tumble the moment the net lets go | [Combat](systems/Combat.md) |
+| a netted captive dragged along stops taking their body with them after a few seconds and their root stays behind | [Combat](systems/Combat.md) |
 | a nomad town is skipped with no level ground of radius N m left | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a pack I left closed on the sand is lying open again after a save and reload | [Backpack](systems/Backpack.md) |
 | a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
@@ -1516,4 +1517,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1113 symptoms, 375 paths, 57 docs -->
+<!-- 1114 symptoms, 375 paths, 57 docs -->

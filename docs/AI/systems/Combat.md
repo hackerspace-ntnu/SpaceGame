@@ -33,8 +33,9 @@ symptoms:
   - "firing a gun near wildlife or a guard provokes no reaction at all"
   - "my worn gear is flung off my body when I die"
   - "the backpack's flaps move on their own after a death"
+  - "a creature stands up frozen in its ragdoll pose and slides around"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-16
+updated: 2026-09-24
 ---
 
 # Combat
@@ -76,7 +77,7 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 | `AgentWeaponDefinition` / `AgentFireProfile` / `AgentAimProfile` | [agents/Weapons/](Assets/Game/Scripts/agents/Weapons/) | ScriptableObjects: damage+prefab, range/cadence/burst, spread+lead |
 | `RagdollRig` | [RagdollRig.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollRig.cs) | Builds bodies/joints on first limp; `GoLimp`/`Recover`/`Freeze`, `Drives`, `IsSettled` |
 | `RagdollSkeleton` | [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) | Pure math: `SelectRigNodes`, `NearestRigNode`, `SubtreeBulk`, `CarriedVolume`, `SelectBones`, settle test. Unit-testable |
-| `RagdollBudget` | [RagdollBudget.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollBudget.cs) | Static per-process cap; freezes the oldest *settled* body |
+| `RagdollBudget` | [RagdollBudget.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollBudget.cs) | Static per-process cap; freezes the oldest settled **corpse** (living bodies are never evicted) |
 | `AgentRagdoll` / `PlayerRagdoll` | [Gameplay/Ragdoll/](Assets/Game/Scripts/Gameplay/Ragdoll/) | Decide *when* to go limp and suspend the layers that own the transform |
 | `DamageNumbers` / `PlayerNameplates` | [Presentation/UI/World/](Assets/Game/Scripts/Presentation/UI/World/) | Screen-space overlays hosted by `WorldOverlay` |
 | `PlayerAimRig` / `AimPose` / `AimIkRelay` | [Characters/Player/Combat/](Assets/Game/Scripts/Characters/Player/Combat/) | Upper-body hold + aim layer and hand IK; runs on every machine |
@@ -157,7 +158,7 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 - **Recovery restores each collider, it does not switch the body's `detectCollisions` off.** A bone that inherited an authored proxy is holding the creature's own collision — how it blocks and how it is hit — and taking that down with the ragdoll leaves a creature that stood up and can no longer be touched. Everything the rig *created* was born disabled and goes back to disabled, so a purely skinned body is left exactly as it was.
 - **A bone can be destroyed out from under the rig.** The skeleton is built over transforms `RagdollRig` does not own, and a body wears things that come and go — a gauntlet stripped, a backpack swapped, a held item unequipped, each an `Instantiate` onto a bone and a `Destroy` later. `Build` takes any node under the root that carries geometry, so gear worn at the moment of the first limp can end up holding bodies. Reading one of those transforms afterwards throws a `MissingReferenceException`, and from `Recover` that exception escapes through `HealthComponent`'s revive event: the rest of the revive never runs and the player is left dead with their controls never handed back — seen as a respawn button that does nothing on a world entered dead. `DropLostBones` forgets a bone whose transform or body is gone, at the top of `GoLimp` and `Recover`. Anything new that iterates `bones` must tolerate the same loss.
 - **Two owners of one transform.** A `NavMeshAgent` writes the transform every enabled frame and `LeggedLocomotion` rewrites it from world-space foot state every `LateUpdate`. `AgentRagdoll` resolves `ISelfDrivingMotor` lazily because caching it in `Awake` races `AgentController.Awake` — and a null motor is a body that glitches rather than falls, decided by component order on the prefab.
-- **A ragdoll frozen out from under you.** `RagdollBudget` may `Freeze` a limp rig; `AgentRagdoll.Update` watches for `!rig.IsLimp` and restores, or the creature stays suspended with its brain off forever.
+- `RagdollBudget` only evicts corpses (`RagdollRig.IsCorpse`). It used to freeze living knocked-down bodies, and `Recover` returned early on the frozen rig, so the creature got its brain back while stuck in its ragdoll pose. `Recover` on a frozen rig now thaws it (`Thaw`).
 - **`Weapon.ExternallyAimed`** must be set when an NPC or turret holds a weapon, or `UpdateWeaponRotation` passes its ownership test on the server and swings every NPC's barrel to follow the host's head.
 - **Loot/enrage replaying on every load.** Anything acting on `OnDeath` or a threshold must check `HealthComponent.IsRestoring` — state yes, announcements no.
 - **A blast must deduplicate by body, not by collider.** A rig is many colliders hanging off its bones, so `OverlapSphere` returns a creature four or five times and a naive loop bills it four or five times. `RadiusDamage` resolves each collider up to the object owning the `HealthComponent` (or the `IDamageable`) and bills that once. Written out by hand this was got wrong: `LightningSpell` deduplicated `HealthComponent` bodies correctly but fell back to `collider.gameObject` for props, so a three-collider `IDamageable` crate took triple damage. Use the helper; do not hand-roll another sweep.

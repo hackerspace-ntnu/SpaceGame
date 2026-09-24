@@ -261,6 +261,20 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         public bool BudgetExempt { get; set; }
 
+        /// <summary>
+        /// Is this body dead? Set by the adapter on death and cleared on revive.
+        ///
+        /// <para>
+        /// Only corpses may be evicted by <see cref="RagdollBudget"/>. A living body is limp for a
+        /// few seconds and then stands up; freezing one in between left it frozen in its ragdoll
+        /// pose while its brain came back on.
+        /// </para>
+        /// </summary>
+        public bool IsCorpse { get; set; }
+
+        /// <summary>Did <see cref="Freeze"/> take this body off physics while it was limp?</summary>
+        private bool frozen;
+
         /// <summary>The bone the body hangs from. Null until the rig has been built.</summary>
         public Transform Hips { get; private set; }
 
@@ -400,6 +414,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             Drives = drives;
             if (!built) Build();
+            frozen = false;
             DropLostBones();
             if (bones.Count == 0) return;
 
@@ -570,6 +585,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         public TeleportMove Recover()
         {
+            if (frozen) return Thaw();
             if (!IsLimp) return new TeleportMove(transform.position, transform.rotation,
                                                  transform.position, transform.rotation);
 
@@ -609,6 +625,20 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
+        /// Give a frozen body back to its animation. The bones stay where they were frozen and the
+        /// root does not move: there is no body left to measure, and a corpse revived out of the
+        /// budget is the only way here.
+        /// </summary>
+        private TeleportMove Thaw()
+        {
+            frozen = false;
+            if (animator != null) animator.enabled = true;
+
+            return new TeleportMove(transform.position, transform.rotation,
+                                    transform.position, transform.rotation);
+        }
+
+        /// <summary>
         /// Stop simulating and leave the bones exactly where they lie.
         ///
         /// What <see cref="RagdollBudget"/> calls on the oldest corpse once too many are limp at
@@ -621,6 +651,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (!built) return;
 
             IsLimp = false;
+            frozen = true;
             blendRemaining = 0f;
 
             // The guard comes back here too. A frozen body is no longer being driven by physics, so

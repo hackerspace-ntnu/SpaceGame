@@ -68,7 +68,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>What the eviction scan does with one candidate.</summary>
         public enum Verdict
         {
-            /// <summary>Not a candidate at all: it is the rig that just registered, or it is held.</summary>
+            /// <summary>Not a candidate at all: it is the rig that just registered, it is held, or it is alive.</summary>
             Skip,
 
             /// <summary>Evictable but still moving. Worth taking only if nothing better turns up.</summary>
@@ -79,10 +79,12 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
-        /// What to do with one candidate, as a function of nothing but its three facts.
+        /// What to do with one candidate, as a function of nothing but its four facts: whether it
+        /// is the rig that just registered, whether it is held, whether it is a corpse, and whether
+        /// it has come to rest. Living bodies are always skipped.
         ///
         /// <para>
-        /// Pulled out of the loop because the interesting mistakes live in how these three combine,
+        /// Pulled out of the loop because the interesting mistakes live in how these facts combine,
         /// and inside the loop they were unreachable from a test: every rig a scene-free test can
         /// build is unbuilt, and an unbuilt rig reports <c>IsSettled</c> true off <c>!IsLimp</c>, so
         /// the <see cref="Verdict.Consider"/> branch could never be entered. That left the exemption
@@ -99,9 +101,12 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// internals here — the same reason <c>SnareCatch.Advance</c> is public.
         /// </para>
         /// </summary>
-        public static Verdict Judge(bool excluded, bool exempt, bool settled)
+        public static Verdict Judge(bool excluded, bool exempt, bool corpse, bool settled)
         {
-            if (excluded || exempt) return Verdict.Skip;
+            // A living body is never a candidate. A knockdown ends by itself within seconds, and
+            // freezing one mid-knockdown left it standing in its ragdoll pose with its brain back
+            // on — the budget exists to reclaim corpses, which are the bodies that never end.
+            if (excluded || exempt || !corpse) return Verdict.Skip;
 
             return settled ? Verdict.Take : Verdict.Consider;
         }
@@ -139,7 +144,8 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 if (live[i] == null) continue;
 
-                switch (Judge(live[i] == exclude, live[i].BudgetExempt, live[i].IsSettled))
+                switch (Judge(live[i] == exclude, live[i].BudgetExempt, live[i].IsCorpse,
+                              live[i].IsSettled))
                 {
                     case Verdict.Take:
                         return i;

@@ -150,5 +150,35 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(6, rig.BoneCount, "hips, spine, two thighs, two shins");
             Assert.AreEqual(5, rig.JointCount, "every bone but the hips is jointed to its parent");
         }
+
+        [Test]
+        public void Judge_NeverEvictsALivingBody()
+        {
+            Assert.AreEqual(RagdollBudget.Verdict.Skip,
+                RagdollBudget.Judge(excluded: false, exempt: false, corpse: false, settled: true),
+                "a knocked-down body that is still alive stands up within seconds — freezing it " +
+                "leaves it standing in its ragdoll pose with its brain switched back on");
+            Assert.AreEqual(RagdollBudget.Verdict.Take,
+                RagdollBudget.Judge(excluded: false, exempt: false, corpse: true, settled: true));
+            Assert.AreEqual(RagdollBudget.Verdict.Consider,
+                RagdollBudget.Judge(excluded: false, exempt: false, corpse: true, settled: false));
+        }
+
+        [Test]
+        public void Recover_AfterFreeze_GivesTheAnimatorBack()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            Animator animator = root.AddComponent<Animator>();
+            Invoke(rig, "Awake");   // re-resolve the animator now that it exists
+
+            rig.GoLimp(Vector3.zero);
+            Assert.IsFalse(animator.enabled);
+
+            rig.Freeze();
+            rig.Recover();
+
+            Assert.IsTrue(animator.enabled,
+                "Freeze took the body off physics; nothing else will ever switch the animator on");
+        }
     }
 }

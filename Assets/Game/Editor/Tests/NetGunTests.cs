@@ -3250,11 +3250,17 @@ namespace SpaceGame.EditorTools
             // means these three tests only ever exercise OldestEvictable's "prefer a settled body"
             // branch, never its fallback. Nothing below says anything about how an exempt rig
             // interacts with a body that is still falling.
+            //
+            // All three are corpses, because only a corpse is evictable at all: the held one too, so
+            // that it is the exemption keeping it live and not merely its being alive.
             var held = NewObject("Held").AddComponent<RagdollRig>();
+            held.IsCorpse = true;
             held.BudgetExempt = true;
 
             var ordinary = NewObject("Ordinary").AddComponent<RagdollRig>();
+            ordinary.IsCorpse = true;
             var filler = NewObject("Filler").AddComponent<RagdollRig>();
+            filler.IsCorpse = true;
 
             try
             {
@@ -3286,8 +3292,11 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Budget_StillEvictsOrdinaryBodies()
         {
+            // Corpses: the budget only ever evicts the dead, so an "ordinary body" here is one.
             var first = NewObject("First").AddComponent<RagdollRig>();
+            first.IsCorpse = true;
             var second = NewObject("Second").AddComponent<RagdollRig>();
+            second.IsCorpse = true;
 
             try
             {
@@ -3317,8 +3326,12 @@ namespace SpaceGame.EditorTools
             // spin, and a spinning Register never reaches an Assert to fail. What is pinned here is
             // the state on the way out. If this test ever stops reporting at all, that is the
             // result.
+            // Corpses, so that the exemption is the only thing refusing them — a living rig is
+            // refused anyway and would pass this without testing the exemption at all.
             var a = NewObject("HeldA").AddComponent<RagdollRig>();
             var b = NewObject("HeldB").AddComponent<RagdollRig>();
+            a.IsCorpse = true;
+            b.IsCorpse = true;
             a.BudgetExempt = true;
             b.BudgetExempt = true;
 
@@ -3492,9 +3505,11 @@ namespace SpaceGame.EditorTools
                         path + ": the exemption clear has to be inside " + method + ".");
         }
 
-        // Every combination of the three facts the eviction scan has about one candidate. Exhaustive
-        // rather than sampled, because the mistake this exists to catch is a plausible-looking
-        // conjunction — `settled && !exempt` reads like a correct guard and evicts a captive
+        // Every combination of the three facts the eviction scan has about one corpse — corpse is
+        // pinned true here, because a living body is skipped outright (RagdollRigTests covers that
+        // rule) and would make every row below read Skip. Exhaustive rather than sampled, because
+        // the mistake this exists to catch is a plausible-looking conjunction — `settled &&
+        // !exempt` reads like a correct guard and evicts a captive
         // whenever nothing in the budget has come to rest yet, which is a fresh blast: the one case
         // the budget exists for. The Budget_* tests below cannot see it, because every rig a
         // scene-free test can build is unbuilt and an unbuilt rig reports IsSettled true.
@@ -3509,7 +3524,7 @@ namespace SpaceGame.EditorTools
         public void Budget_JudgesACandidateOnAllThreeFacts(bool excluded, bool exempt, bool settled,
                                                            RagdollBudget.Verdict expected)
         {
-            Assert.AreEqual(expected, RagdollBudget.Judge(excluded, exempt, settled),
+            Assert.AreEqual(expected, RagdollBudget.Judge(excluded, exempt, corpse: true, settled),
                             "excluded=" + excluded + " exempt=" + exempt + " settled=" + settled +
                             ". An exempt body is not a worse candidate than a moving one, it is " +
                             "not a candidate — so exemption has to outrank settling rather than " +

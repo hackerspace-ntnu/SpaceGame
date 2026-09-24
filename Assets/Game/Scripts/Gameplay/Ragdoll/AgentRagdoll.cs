@@ -168,6 +168,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // RagdollBudget is forbidden to reclaim.
             holders.Clear();
             rig.BudgetExempt = false;
+            rig.IsCorpse = true;
 
             // A save being loaded, not a kill — the same rule HealthReactionModule.HandleDeath
             // follows and for the same reason. The corpse's resting POSITION is already in the save
@@ -222,6 +223,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // See PlayerRagdoll.OnRevive: unreachable today, permanent and silent if it ever is.
             holders.Clear();
             rig.BudgetExempt = false;
+            rig.IsCorpse = false;
 
             if (rig.IsLimp) Restore();
         }

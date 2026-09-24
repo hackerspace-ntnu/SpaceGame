@@ -76,6 +76,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a creature let go at altitude sinks at walking pace instead of falling | [CarriedAgent](systems/CarriedAgent.md) |
 | a creature or mount inside a cave is pulled back out of the interior scene a moment later | [SceneTransitions](systems/SceneTransitions.md) |
 | a creature or vehicle reappears at its authored position instead of where I left it | [Persistence](systems/Persistence.md) |
+| a creature stands up frozen in its ragdoll pose and slides around | [Combat](systems/Combat.md) |
 | a creature stays on fire for as long as it stands in the flames and never burns out | [Flamethrower](systems/Flamethrower.md) |
 | a creature streamed out mid-hoist comes back unable to move at all | [CarriedAgent](systems/CarriedAgent.md) |
 | a creature under a hovering pilot resets its path every physics step | [CarriedAgent](systems/CarriedAgent.md) |
@@ -1501,4 +1502,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1100 symptoms, 375 paths, 57 docs -->
+<!-- 1101 symptoms, 375 paths, 57 docs -->

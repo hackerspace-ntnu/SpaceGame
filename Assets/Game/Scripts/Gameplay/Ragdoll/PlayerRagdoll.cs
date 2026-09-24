@@ -196,6 +196,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // is to let somebody stand up.
             holders.Clear();
             rig.BudgetExempt = false;
+            rig.IsCorpse = true;
 
             // On a peer's machine a networked death arrives through RestoreHealth, which sets
             // IsRestoring — so this is true both for a save being loaded and for a remote player's
@@ -223,6 +224,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // everything that asks and never netted again, for the rest of its life.
             holders.Clear();
             rig.BudgetExempt = false;
+            rig.IsCorpse = false;
 
             if (rig.IsLimp) Restore();
         }

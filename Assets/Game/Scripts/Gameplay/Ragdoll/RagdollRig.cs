@@ -323,6 +323,14 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         public bool IsCorpse { get; set; }
 
+        /// <summary>
+        /// Stand up facing the way the root faced before the knockdown, instead of the way the body
+        /// came to lie. Set by the player's adapter: a player's view hangs off this root, so facing
+        /// the ragdoll's landing turned their camera for them. A creature has no view to keep and
+        /// faces where it fell.
+        /// </summary>
+        public bool KeepsFacingOnRecover { get; set; }
+
         /// <summary>Did <see cref="Freeze"/> take this body off physics while it was limp?</summary>
         private bool frozen;
 
@@ -1047,6 +1055,12 @@ namespace SpaceGame.Gameplay.Ragdoll
 
             for (int i = 0; i < bones.Count; i++)
                 bones[i].Transform.SetPositionAndRotation(worldPoses[i].Item1, worldPoses[i].Item2);
+
+            // Transforms are not auto-synced here, so the root's own Rigidbody would go on reading
+            // the tilt it had while limp until the next step. PlayerLook turns the player with
+            // MoveRotation(body.rotation * yaw), and the first mouse movement after getting up
+            // wrote that stale tilt straight back: a rolled view that nothing ever levelled.
+            Physics.SyncTransforms();
         }
 
         /// <summary>
@@ -1057,11 +1071,14 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// creature up sideways. Measured through <see cref="hipsToRoot"/>, so "forward" is the
         /// root's forward as the body now carries it, not whichever way the hip bone's own axes
         /// happen to point on this rig. A body lying exactly along the vertical has no facing to
-        /// read, and keeps the root's current rotation.
+        /// read, and keeps the root's current rotation. A body that <see cref="KeepsFacingOnRecover"/>
+        /// takes the yaw it had before the knockdown instead.
         /// </para>
         /// </summary>
         private Quaternion UprightRotation()
         {
+            if (KeepsFacingOnRecover) return Quaternion.Euler(0f, PreLimpRotation.eulerAngles.y, 0f);
+
             Quaternion carried = Hips.rotation * hipsToRoot;
 
             Vector3 facing = Vector3.ProjectOnPlane(carried * Vector3.forward, Vector3.up);

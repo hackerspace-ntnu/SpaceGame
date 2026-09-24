@@ -66,12 +66,6 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private float stoodUpAt = float.NegativeInfinity;
 
-        /// <summary>
-        /// The deciding machine has knocked this body down for a fall and the fall's damage has not
-        /// landed yet. See <see cref="OnDamaged"/>.
-        /// </summary>
-        private bool fallDamagePending;
-
         public KnockdownTuning Tuning => knockdown;
 
         /// <summary>Is something holding this body down right now?</summary>
@@ -326,7 +320,6 @@ namespace SpaceGame.Gameplay.Ragdoll
             if ((RagdollCause)arg.A != RagdollCause.Fall) return;
             if (!Network.MayActFor(NetChannel.RootOf(this), sender)) return;
 
-            fallDamagePending = true;
             Knock(gameObject, RagdollCause.Fall, Vector3.zero);
         }
 
@@ -334,9 +327,14 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             if (dead || !CanBeKnockedDown) return;
 
-            // Measured only while standing: a body already down is being knocked again, not
-            // re-knocked, and OnKnockdown merges the two by keeping the later stand-up time.
-            if (!rig.IsLimp && KnockdownPolicy.Immune(cause, Time.time - stoodUpAt, knockdown)) return;
+            // A hit on a body already down does not keep it down. Every round of automatic fire into
+            // a downed body used to push its stand-up time out again, so under fire nobody ever got
+            // up. A blast still can: it is a deliberate throw, and OnKnockdown keeps the later of
+            // the two stand-up times. This is also what keeps a fall's own damage from being
+            // priced as a hit — the fall's request arrives first and the body is already down.
+            if (rig.IsLimp && cause == RagdollCause.Hit) return;
+
+            if (KnockdownPolicy.Immune(cause, Time.time - stoodUpAt, knockdown)) return;
 
             float healthLeft = health != null && health.GetMaxHealth > 0
                 ? (float)health.GetHealth / health.GetMaxHealth
@@ -361,27 +359,17 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// health is not a hit.
         ///
         /// <para>
-        /// Nor is a fall's own damage: the fall already knocked the body down for exactly
-        /// <c>fallSeconds</c> by its own rule, and pricing its damage as a hit as well would stretch
-        /// a hard landing to the hit's 1–2 s. The request arrives first (see
-        /// <see cref="RequestFallKnockdown"/>) and the fall's damage has no source, so the next
-        /// sourceless damage after it is the fall's. The mark is dropped at stand-up too
-        /// (<see cref="Restore"/>): damage that never lands — the body was already dead — must not
-        /// leave it waiting to swallow some later, unrelated sourceless hit.
+        /// Nor, in effect, is a fall's own damage: the fall's request arrives first (see
+        /// <see cref="RequestFallKnockdown"/>), so its damage lands on a body already down, and a
+        /// hit on a downed body does not knock it (<see cref="KnockHere"/>).
         /// </para>
         /// </summary>
         private void OnDamaged(int amount)
         {
             if (!Network.Decides || health == null || health.IsRestoring) return;
+            if (health.GetHealth <= 0 || health.GetMaxHealth <= 0) return;
 
             Transform source = health.LastDamageSource;
-            if (source == null && fallDamagePending)
-            {
-                fallDamagePending = false;
-                return;
-            }
-
-            if (health.GetHealth <= 0 || health.GetMaxHealth <= 0) return;
 
             Vector3 away = source != null
                 ? Vector3.ProjectOnPlane(transform.position - source.position, Vector3.up).normalized
@@ -553,8 +541,6 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         private void Restore()
         {
-            // Ahead of the guard: a revive runs this on a body that may not be suspended.
-            fallDamagePending = false;
             if (!suspended) return;
             suspended = false;
             standAt = 0f;

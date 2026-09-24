@@ -45,19 +45,20 @@ namespace SpaceGame.Gameplay.Ragdoll
 
     /// <summary>
     /// The knobs, one set per body prefab so a boss and a rat can price the same blast differently.
-    /// Field initialisers are the agreed defaults (2026-09-24): fall 1 s, hits 1–2 s.
+    /// Field initialisers are the agreed defaults: fall 0.1 s, hits 0.1–0.2 s — a tenth of the
+    /// first cut (2026-09-24), which playtesting found kept bodies down far too long.
     /// </summary>
     [Serializable]
     public sealed class KnockdownTuning
     {
         [Tooltip("Seconds down after a landing that dealt fall damage.")]
-        public float fallSeconds = 1f;
+        public float fallSeconds = 0.1f;
 
         [Tooltip("Seconds down for the lightest hit or blast that knocks down at all.")]
-        public float minSeconds = 1f;
+        public float minSeconds = 0.1f;
 
         [Tooltip("Seconds down for the hardest.")]
-        public float maxSeconds = 2f;
+        public float maxSeconds = 0.2f;
 
         [Tooltip("Severity a HIT must reach to knock down. Below it the body flinches and keeps " +
                  "going — the reason automatic fire does not stun-lock. Blasts ignore it.")]
@@ -82,7 +83,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         [Tooltip("Once the down-time is up, how much longer to wait for a still-tumbling body to " +
                  "come to rest before standing it up anyway, seconds. The ceiling that keeps a body " +
                  "wedged against a rock from never getting up (GDC-L1-FEEL-0002).")]
-        public float settleGraceSeconds = 1.5f;
+        public float settleGraceSeconds = 0.15f;
 
         [Tooltip("Seconds after standing up during which HITS cannot knock the body down again. " +
                  "0 disables. Blasts and falls ignore it.")]

@@ -12,7 +12,7 @@ namespace SpaceGame.EditorTools
         public void Seconds_Fall_IsFlat()
         {
             var fall = new KnockdownEvent(RagdollCause.Fall, 0.5f, 0.1f, 30f);
-            Assert.AreEqual(1f, KnockdownPolicy.Seconds(fall, Tuning()), 1e-4f);
+            Assert.AreEqual(Tuning().fallSeconds, KnockdownPolicy.Seconds(fall, Tuning()), 1e-4f);
         }
 
         [Test]

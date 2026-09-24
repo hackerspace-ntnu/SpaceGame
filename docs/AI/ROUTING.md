@@ -143,6 +143,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a jetpack cannot lift the creature I roped, it just skids along the ground | [CarriedAgent](systems/CarriedAgent.md) |
 | a jetpack pilot cannot lift the player they have roped, or lifts a crate they should not | [LeashSystem](systems/LeashSystem.md) |
 | a joining client fails with 'Scene Hash N does not exist in the HashToBuildIndex table | [Multiplayer](systems/Multiplayer.md) |
+| a knocked-down body never gets up while it is being shot | [Combat](systems/Combat.md) |
 | a ladder can be climbed from behind or grabbed in mid-air | [Ladders](systems/Ladders.md) |
 | a landed pack stands on the sand with its flames still lit | [Jetpack](systems/Jetpack.md) |
 | a knocked-down body keeps twitching and never comes to rest | [Combat](systems/Combat.md) |
@@ -295,6 +296,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | after a quickload the old caravan is still standing beside the new one | [Persistence](systems/Persistence.md) |
 | after a quickload the old caravan is still standing beside the new one and the population counter is one too high | [AgentSystem](systems/AgentSystem.md) |
 | after closing the body screen the view is black with only the HUD, and there is no sound | [BodyEquipment](systems/BodyEquipment.md) |
+| after getting up from a ragdoll the camera is tilted, rolled or facing a different way | [Combat](systems/Combat.md) |
 | after landing I could not look around from the seat until I stood up | [Cutscenes](systems/Cutscenes.md) |
 | after loading a save the rider is standing next to the mount instead of in the seat | [Vehicles](systems/Vehicles.md) |
 | after loading, a corpse lies stiff as a board, floating above the sand and shifted a body length from where it fell | [Combat](systems/Combat.md) |
@@ -933,6 +935,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ragdoll audit reports unfiltered: 0 on a body that visibly tears itself apart | [Combat](systems/Combat.md) |
 | the ragdoll is only the creature's neck, or a single body, and the rest of the animal is missing | [Combat](systems/Combat.md) |
 | the ragdoll jitters and vibrates instead of falling limp | [Combat](systems/Combat.md) |
+| the ragdoll lasts far too long | [Combat](systems/Combat.md) |
 | the ragdoll's neck, spine or arms twist until the mesh collapses | [Combat](systems/Combat.md) |
 | the rain is a wall of grey cubes instead of falling water | [StormFlask](systems/StormFlask.md) |
 | the raymarched storm disappears when the camera does not produce a depth texture | [StormFlask](systems/StormFlask.md) |
@@ -1517,4 +1520,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1114 symptoms, 375 paths, 57 docs -->
+<!-- 1117 symptoms, 375 paths, 57 docs -->

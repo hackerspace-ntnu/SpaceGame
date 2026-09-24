@@ -86,6 +86,10 @@ namespace SpaceGame.Gameplay.Ragdoll
             body = GetComponent<Rigidbody>();
             bodyCollider = GetComponent<Collider>();
 
+            // The player gets up looking where they were looking: the view hangs off this body,
+            // and turning it to face wherever the ragdoll landed moved their camera for them.
+            rig.KeepsFacingOnRecover = true;
+
             if (health == null)
                 Debug.LogWarning($"{name}: PlayerRagdoll needs a HealthComponent to know when this " +
                                  "player dies.", this);

@@ -346,8 +346,8 @@ namespace SpaceGame.EditorTools
             Invoke(ragdoll, "Awake");
             Invoke(ragdoll, "OnEnable");
 
-            // Wounded first, so the fall's damage on its own would be a hit knockdown of about
-            // 1.65 s — long enough to show whether it was priced.
+            // Wounded first, so the fall's damage on its own would be a hit knockdown longer than
+            // the fall's — long enough to show whether it was priced.
             health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.05f), null);
             Assert.IsFalse(rig.IsLimp, "the fixture's first hit has to leave the body standing");
 
@@ -357,8 +357,6 @@ namespace SpaceGame.EditorTools
 
             Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"),
                 "the fall's damage was priced as a hit as well — a hard landing outlasted fallSeconds");
-            Assert.IsFalse(ControllerField<bool>(ragdoll, "fallDamagePending"),
-                "the fall's damage did not use up the mark, so the next sourceless hit will be swallowed");
 
             Invoke(ragdoll, "TickStandUp",
                    Time.time + ragdoll.Tuning.fallSeconds + ragdoll.Tuning.settleGraceSeconds + 0.01f);
@@ -777,6 +775,92 @@ namespace SpaceGame.EditorTools
             Invoke(rig, "Update");
             Assert.Less(Quaternion.Angle(hips.localRotation, animated), 0.01f,
                 "the recovery target is still written over the animator after the blend has ended");
+        }
+
+        /// <summary>
+        /// Lies the rig down on its side facing <paramref name="lyingYaw"/>, the way a fall leaves
+        /// it: the bodies turned over and the root dragged after them.
+        /// </summary>
+        private void LieDown(GameObject root, RagdollRig rig, float lyingYaw)
+        {
+            rig.GoLimp(Vector3.zero);
+            root.transform.rotation = Quaternion.Euler(0f, lyingYaw, 90f);
+            Physics.SyncTransforms();
+            StepPhysics(1);
+            Invoke(rig, "FollowHips");
+            StepPhysics(1);
+        }
+
+        /// <summary>
+        /// The player's body is a Rigidbody with every rotation axis frozen, and PlayerLook turns it
+        /// with <c>MoveRotation(body.rotation * yaw)</c> — reading the PHYSICS rotation. Transforms
+        /// are not auto-synced in this project, so a root stood upright by assignment still reads
+        /// back as the tilt it had while limp until the next step, and the first mouse movement
+        /// after getting up wrote that tilt back for good: a rolled view that never levelled.
+        /// </summary>
+        [Test]
+        public void Recover_LeavesTheRootBodyUpright_ForWhatReadsItNext()
+        {
+            Physics.gravity = Vector3.zero;
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var rootBody = root.AddComponent<Rigidbody>();
+            rootBody.isKinematic = true;
+
+            LieDown(root, rig, 0f);
+            Assert.Greater(Vector3.Angle(rootBody.rotation * Vector3.up, Vector3.up), 45f,
+                "the fixture has to tilt the root's body, or a stale read is not a tilt");
+
+            rig.Recover();
+
+            Assert.Less(Vector3.Angle(rootBody.rotation * Vector3.up, Vector3.up), 1f,
+                "the root's Rigidbody still reads the lying tilt after the body stood up");
+        }
+
+        /// <summary>
+        /// A player stands up looking where they were looking. The body is theirs to steer and the
+        /// view hangs off it; turning them to face wherever the ragdoll happened to land took the
+        /// camera away from them a second time, after the knockdown already had.
+        /// </summary>
+        [Test]
+        public void Recover_KeepingFacing_StandsUpTheWayTheBodyFacedBefore()
+        {
+            Physics.gravity = Vector3.zero;
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            root.transform.rotation = Quaternion.Euler(0f, 30f, 0f);
+            rig.KeepsFacingOnRecover = true;
+
+            LieDown(root, rig, 150f);
+            rig.Recover();
+
+            Assert.AreEqual(30f, root.transform.eulerAngles.y, 1f,
+                "the player stood up facing the way the ragdoll lay, not the way they were looking");
+            Assert.Less(Vector3.Angle(root.transform.up, Vector3.up), 1f, "stood up tilted");
+        }
+
+        /// <summary>
+        /// Every hit landing on a body that is already down used to restart its down-time, and hit
+        /// immunity is only measured while standing — so under automatic fire nobody ever got up.
+        /// A hit on a downed body no longer knocks it; a blast still can.
+        /// </summary>
+        [Test]
+        public void HitOnADownedBody_DoesNotKeepItDown()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+            Invoke(ragdoll, "OnEnable");
+
+            RagdollController.Knock(root, RagdollCause.Blast, Vector3.zero);
+            Assert.IsTrue(rig.IsLimp);
+            float standAt = ControllerField<float>(ragdoll, "standAt");
+
+            RagdollController.Knock(root, RagdollCause.Hit, Vector3.forward * 3f, 0.9f);
+            Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"), 1e-4f,
+                "a hit on a body already down pushed its stand-up time out again");
+
+            RagdollController.Knock(root, RagdollCause.Blast, Vector3.forward * 40f);
+            Assert.Greater(ControllerField<float>(ragdoll, "standAt"), standAt,
+                "a blast on a downed body must still be able to keep it down");
         }
 
         [Test]

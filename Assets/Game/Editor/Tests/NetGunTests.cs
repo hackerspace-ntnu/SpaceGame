@@ -3509,7 +3509,7 @@ namespace SpaceGame.EditorTools
                                  "a captive who dies still netted keeps an un-evictable place in " +
                                  "RagdollBudget for the rest of the session.");
 
-            AssertClearsTheClaim(source, path, "OnRevive", "if (rig.IsLimp) Restore();",
+            AssertClearsTheClaim(source, path, "OnRevive", "Restore();",
                                  "Restore calls rig.Recover, which unregisters from the budget " +
                                  "while leaving the claim set standing — and HoldDown answers a " +
                                  "stale claim rather than taking a fresh one, so that body would " +
@@ -3522,7 +3522,9 @@ namespace SpaceGame.EditorTools
         ///
         /// The bound matters: asserting the two lines merely EXIST anywhere in the file passes on
         /// an implementation that clears them somewhere else entirely, which is most of the ways
-        /// this can be got wrong.
+        /// this can be got wrong. The end statement is itself bounded by the method's closing
+        /// brace, so a bare anchor such as OnRevive's <c>Restore();</c> cannot be satisfied by the
+        /// same call in whatever method follows.
         /// </summary>
         private static void AssertClearsTheClaim(string source, string path, string method,
                                                  string endsBefore, string cost)
@@ -3530,9 +3532,15 @@ namespace SpaceGame.EditorTools
             int start = source.IndexOf("private void " + method + "()", System.StringComparison.Ordinal);
             Assert.Greater(start, -1, path + " lost " + method + ".");
 
-            int end = IndexAfter(source, endsBefore, start,
-                                 path + "." + method + " no longer contains `" + endsBefore + "`, " +
-                                 "which this test uses to bound it. Re-read the method.");
+            int methodEnd = IndexAfter(source, "\n        }", start,
+                                       path + "." + method + " has no closing brace at member " +
+                                       "indentation, which this test uses to find its end.");
+
+            int end = source.IndexOf(endsBefore, start, methodEnd - start,
+                                     System.StringComparison.Ordinal);
+            Assert.Greater(end, -1,
+                           path + "." + method + " no longer contains `" + endsBefore + "`, " +
+                           "which this test uses to bound it. Re-read the method.");
 
             int flag = IndexAfter(source, "holders.Clear();", start,
                                   path + "." + method + " does not empty the claim set. Cost: " + cost);

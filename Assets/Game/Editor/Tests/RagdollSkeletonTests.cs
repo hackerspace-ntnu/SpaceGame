@@ -221,5 +221,26 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(1f, twist.magnitude, 1e-4f);
             Assert.AreEqual(0f, Vector3.Dot(twist, swing), 1e-4f);
         }
+
+        [Test]
+        public void ClampMassRatios_RaisesLightChildren_DownTheWholeChain()
+        {
+            // torso 30 → forearm 1 → hand 0.6, and a thigh of 12 straight off the torso.
+            float[] masses = { 30f, 1f, 0.6f, 12f };
+            int[] parents = { -1, 0, 1, 0 };
+
+            float[] clamped = RagdollSkeleton.ClampMassRatios(masses, parents, 8f);
+
+            Assert.AreEqual(30f, clamped[0], 1e-4f, "the root is never changed");
+            Assert.AreEqual(3.75f, clamped[1], 1e-4f, "30 / 8");
+            Assert.AreEqual(1f, masses[1], 1e-4f, "the input is not modified");
+            Assert.AreEqual(0.6f, clamped[2], 1e-4f, "0.6 already clears its CLAMPED parent's 3.75 / 8");
+            Assert.AreEqual(12f, clamped[3], 1e-4f, "already within the ratio");
+
+            // A hand far too light for its clamped forearm is raised against the clamped value.
+            float[] chain = RagdollSkeleton.ClampMassRatios(new[] { 64f, 1f, 0.1f }, new[] { -1, 0, 1 }, 8f);
+            Assert.AreEqual(8f, chain[1], 1e-4f);
+            Assert.AreEqual(1f, chain[2], 1e-4f, "judged against the raised forearm, not the original 1 kg");
+        }
     }
 }

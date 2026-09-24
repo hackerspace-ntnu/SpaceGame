@@ -81,6 +81,10 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "more than about ten to one apart is the classic ragdoll explosion.")]
         [SerializeField] private float minBoneMass = 0.6f;
 
+        [Tooltip("Heaviest a body may be relative to a body jointed to it. Light children are raised " +
+                 "to meet it. Around ten to one is where PhysX joint chains start to explode.")]
+        [SerializeField, Range(2f, 12f)] private float maxJointMassRatio = 8f;
+
         [Header("Settling down")]
         [Tooltip("Rotational drag on every bone.\n\n" +
                  "The single most important number for whether a body comes to rest. With no " +
@@ -1016,6 +1020,19 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (parent != null && bodies.TryGetValue(parent, out Rigidbody parentBody))
                     made.Parent = parentBody;
             }
+
+            var masses = new float[bones.Count];
+            var parents = new int[bones.Count];
+            for (int i = 0; i < bones.Count; i++)
+            {
+                masses[i] = bones[i].Body.mass;
+                parents[i] = bones[i].Parent != null
+                    ? bones.FindIndex(b => b.Body == bones[i].Parent)
+                    : (i == 0 ? -1 : 0);
+            }
+
+            float[] balanced = RagdollSkeleton.ClampMassRatios(masses, parents, maxJointMassRatio);
+            for (int i = 0; i < bones.Count; i++) bones[i].Body.mass = balanced[i];
         }
 
         /// <summary>

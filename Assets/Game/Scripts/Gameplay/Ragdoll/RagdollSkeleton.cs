@@ -284,6 +284,33 @@ namespace SpaceGame.Gameplay.Ragdoll
                && slowSeconds >= settleSeconds;
 
         /// <summary>
+        /// Raise every body that is too light for the body it is jointed to.
+        ///
+        /// <para>
+        /// A joint between bodies more than about ten to one apart is the classic ragdoll
+        /// explosion, and a flat per-bone floor does not prevent it: 0.6 kg is fine on a forearm and
+        /// fifty to one on a torso. Walked root-first so a raised parent raises its children in turn.
+        /// Children only — lowering a parent would take mass out of the body.
+        /// </para>
+        /// </summary>
+        public static float[] ClampMassRatios(float[] masses, int[] parents, float maxRatio)
+        {
+            if (masses == null || parents == null) return System.Array.Empty<float>();
+
+            var clamped = (float[])masses.Clone();
+            float ratio = Mathf.Max(maxRatio, 1f);
+
+            for (int i = 0; i < clamped.Length; i++)
+            {
+                int parent = parents[i];
+                if (parent >= 0 && parent < i)
+                    clamped[i] = Mathf.Max(clamped[i], clamped[parent] / ratio);
+            }
+
+            return clamped;
+        }
+
+        /// <summary>
         /// The two axes a <c>CharacterJoint</c> needs, in the bone's local space: twist down the
         /// bone, swing perpendicular to it.
         ///

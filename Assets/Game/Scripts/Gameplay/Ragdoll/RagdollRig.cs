@@ -846,6 +846,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             if (Hips == null || bones.Count == 0 || bones[0].Body == null) return;
 
+            // The NetworkTransform moved the root in Update and dragged the hips' transform with it;
+            // pushed into PhysX at the start of the step, that stale pose would overwrite these targets.
+            Physics.SyncTransforms();
+
             bones[0].Body.MovePosition(transform.position);
             bones[0].Body.MoveRotation(transform.rotation * Quaternion.Inverse(hipsToRoot));
         }

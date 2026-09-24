@@ -397,6 +397,35 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void DroppedBody_ComesToRest_AndSleeps()
+        {
+            Physics.gravity = new Vector3(0f, -18f, 0f);
+
+            GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            spawned.Add(ground);
+            ground.transform.position = new Vector3(0f, -0.5f, 0f);
+            ground.transform.localScale = new Vector3(20f, 1f, 20f);
+
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            rig.GoLimp(new Vector3(2f, 1f, 0f));
+
+            StepPhysics(100);   // two seconds to land and stop
+
+            float fastest = 0f;
+            for (int i = 0; i < 50; i++)   // the next second must be still
+            {
+                StepPhysics(1);
+                foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
+                    if (!body.isKinematic) fastest = Mathf.Max(fastest, body.linearVelocity.magnitude);
+            }
+
+            Assert.Less(fastest, 0.05f, "a body on flat ground is still jittering after two seconds");
+
+            foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
+                if (!body.isKinematic) Assert.IsTrue(body.IsSleeping(), $"{body.name} never went to sleep");
+        }
+
+        [Test]
         public void Recovery_ReturnsEveryBoneToItsPose_EvenWithNoAnimator()
         {
             Physics.gravity = new Vector3(0f, -18f, 0f);

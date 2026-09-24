@@ -112,6 +112,11 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "outright, and anything that hits the body afterwards wakes it again by itself.")]
         [SerializeField] private bool sleepWhenSettled = true;
 
+        [Tooltip("Energy per kg under which PhysX puts a bone to sleep. Unity's default suits loose " +
+                 "props; a jointed chain keeps trading tiny corrections above it and never sleeps, " +
+                 "which is the shiver of a body lying on flat ground.")]
+        [SerializeField] private float boneSleepThreshold = 0.05f;
+
         [Header("Joints")]
         [Tooltip("Let the body's own bones collide with each other.\n\n" +
                  "OFF, and not as a shortcut. Colliders here are ESTIMATED from bone lengths and " +
@@ -1492,6 +1497,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             body.angularDamping = angularDamping;
             body.linearDamping = linearDamping;
             body.solverIterations = solverIterations;
+            body.sleepThreshold = boneSleepThreshold;
 
             // The gauntlet launches at 48 m/s. A discrete body at that speed is through the terrain
             // between two ticks and gone.

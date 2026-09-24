@@ -250,6 +250,48 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// A client learns of every death through <c>RestoreHealth</c>, so <c>IsRestoring</c> is true
+        /// for a fresh death there as much as for a save. Only a load may lay a corpse down unthrown.
+        /// </summary>
+        [Test]
+        public void ReplicatedDeath_FallsLikeAnyDeath_ButALoadedCorpseIsNotThrown()
+        {
+            Physics.gravity = Vector3.zero;
+
+            GameObject replicated = NewHumanoidRig(out RagdollRig replicatedRig);
+            HealthComponent replicatedHealth = DyingBody(replicated);
+            replicatedHealth.RestoreHealth(0);
+
+            Assert.IsTrue(replicatedRig.IsLimp);
+            Assert.Greater(FastestBone(replicated), 0.1f,
+                "a death arriving over the wire was treated as a save load and dropped without its impulse");
+
+            GameObject loaded = NewHumanoidRig(out RagdollRig loadedRig);
+            HealthComponent loadedHealth = DyingBody(loaded);
+            loadedHealth.LoadHealth(0);
+
+            Assert.IsTrue(loadedRig.IsLimp);
+            Assert.Less(FastestBone(loaded), 1e-4f, "a corpse loaded from a save was thrown again");
+        }
+
+        private static HealthComponent DyingBody(GameObject root)
+        {
+            var health = root.AddComponent<HealthComponent>();
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+            Invoke(ragdoll, "OnEnable");
+            return health;
+        }
+
+        private static float FastestBone(GameObject root)
+        {
+            float fastest = 0f;
+            foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
+                if (!body.isKinematic) fastest = Mathf.Max(fastest, body.linearVelocity.magnitude);
+            return fastest;
+        }
+
+        /// <summary>
         /// The whole server path, offline: <c>Network.Decides</c> is true and with no relay on the
         /// body <c>NetSendTo(…, NetTo.All)</c> dispatches straight to the channel OnEnable
         /// registered, so damage → OnDamaged → Knock → NetMsg.Knockdown → OnKnockdown all run.

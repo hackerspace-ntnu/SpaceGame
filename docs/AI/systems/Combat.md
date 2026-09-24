@@ -45,6 +45,8 @@ symptoms:
   - "a netted body snaps upright mid-tumble the moment the net lets go"
   - "a body lying on its side snaps vertical the instant it starts getting up instead of rising through the blend"
   - "a frozen player hit by a blast or a hard shot collapses into a heap with the camera stuck inside their head"
+  - "on my own client my player dies standing up and stays frozen upright, while the others see my pelvis dragged into the ground"
+  - "on a client a creature that dies tips over stiff as a plank instead of collapsing"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
 updated: 2026-09-24
 ---
@@ -63,7 +65,7 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 - **Exactly one copy of a shot bills the target.** Every peer instantiates its own bullet. `Projectile.Cosmetic` / `AgentProjectile.Cosmetic` suppress the `NetDamage` call on the non-deciding copies; impact VFX and sound deliberately run on all of them.
 - **Aim travels, it is never recomputed.** `Weapon.OnRequestUse` stamps `arg.P` (spawn point) and `arg.R` (look rotation) from the owner's own aim. `GetAimPoint`/`GetFireDirection` prefer `UseArg` and only fall back to the local one. That local answer comes from the holder's [`AimProvider`](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) — `Camera.main` is the *host's* camera on a server, and is not the mount's orbit camera either (that one is deliberately left `Untagged`), so the `aimCamera`/`Camera.main` path is now the fallback for a weapon with no player behind it. Range is `aimRange` (500 m), serialized, and used by all three of the aim paths.
 - **Health replicates by assignment, not delta.** `NetworkedHealthComponent` holds a `NetworkVariable<int>` (read Everyone / write Server — Owner permission published server-owned creatures to nobody) and clients apply it via `RestoreHealth`, which is the "this value is now the truth" path.
-- **Death is `HealthComponent.OnDeath`**, raised both by a killing blow and by a save restoring a lethal value. `IsRestoring` tells them apart: state must be re-applied, consequences (loot, death sound, despawn timer, ragdoll impulse) must not repeat.
+- **Death is `HealthComponent.OnDeath`**, raised by a killing blow, by a client receiving the server's lethal value (`RestoreHealth`), and by a save loading one (`HealthSaveable` → `LoadHealth` → `RestoreHealth`). `IsRestoring` is true for the last two: state must be re-applied, consequences (loot, death sound, despawn timer) must not repeat. `IsLoading` is true for the save alone, and it is what the ragdoll asks: a replicated death is *fresh* and falls like any other (thrown by its driver, pinned to the wire on watchers); only a loaded corpse lies down unthrown. Treating every restore as a load froze a dying client's own player upright and dropped every watched creature as a stiff plank.
 - **Ragdolls are derived, never authored.** `CharacterJoint` appears nowhere on disk; [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) picks bones by the share of the creature each one carries, so one implementation covers all ten rigs.
 - **Bodies go on the RIG, never on the meshes hanging off it.** Both kinds of model here have one — a skinned character binds its surface to a skeleton, a hard-surface creature parents rigid pieces onto one — and only the rig knows where a limb bends. Meshes are leaves, so a skeleton built on them can find no parent to joint to and collapses into a star around one hub. `SelectRigNodes` picks the articulating nodes; `NearestRigNode` says which of them carries each piece of geometry.
 - **Importance is a volume, not a vertex count.** A bone's share of its renderer's weight, scaled by that renderer's own bounds (`CarriedVolume`) — the one unit that ranks a skinned bone and a bolted-on rigid part together, and the only one that survives a model built from several meshes at different densities.
@@ -72,13 +74,13 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 
 | Type | File | Role |
 | --- | --- | --- |
-| `HealthComponent` | [HealthComponent.cs](Assets/Game/Scripts/Gameplay/Health/HealthComponent.cs) | The value + `OnDamage/OnHeal/OnDeath/OnRevive/OnRestored`, `LastDamageSource`, `IsRestoring`, static `AnyDamaged` |
+| `HealthComponent` | [HealthComponent.cs](Assets/Game/Scripts/Gameplay/Health/HealthComponent.cs) | The value + `OnDamage/OnHeal/OnDeath/OnRevive/OnRestored`, `LastDamageSource`, `IsRestoring`, `IsLoading` (`LoadHealth`, saves only), static `AnyDamaged` |
 | `IDamageable` | [IDamageable.cs](Assets/Game/Scripts/Gameplay/Health/IDamageable.cs) | `Damage(int)` + `Alive` for things with no HealthComponent |
 | `NetDamage` | [NetDamage.cs](Assets/Game/Scripts/Gameplay/Health/NetDamage.cs) | Static `Apply` — the only sanctioned way to hurt anything |
 | `RadiusDamage` | [RadiusDamage.cs](Assets/Game/Scripts/Gameplay/Health/RadiusDamage.cs) | Blasts: `Collect`/`Apply` over a sphere, deduplicated to one bill per body |
 | `NetworkedHealthComponent` | [NetworkedHealthComponent.cs](Assets/Game/Scripts/Gameplay/Health/NetworkedHealthComponent.cs) | Replication + `NetMsg.Damage` handler + static `DamageAnnounced` |
 | `DamageFeedback` | [DamageFeedback.cs](Assets/Game/Scripts/Gameplay/Health/DamageFeedback.cs) | Camera shake + hurt Sfx off local `OnDamage` |
-| `HealthSaveable` | [HealthSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/HealthSaveable.cs) | Persists current HP; `max` stored but never applied |
+| `HealthSaveable` | [HealthSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/HealthSaveable.cs) | Persists current HP through `LoadHealth` (so `IsLoading` is set); `max` stored but never applied |
 | `HealthReactionModule` | [HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold latches, death anim/noise/despawn, `disableAgentOnDeath` |
 | `Weapon` | [Weapon.cs](Assets/Game/Scripts/Weapons/Core/Weapon.cs) | `UsableItem` base: ammo, fire rate, aim, charging, `ShotDealsDamage`, item-state capture; `Magazine` ([Magazine.cs](Assets/Game/Scripts/Weapons/Core/Magazine.cs)) is its per-weapon ammo container, auto-added by `Weapon.OnEnable` |
 | `Projectile` | [Projectile.cs](Assets/Game/Scripts/Weapons/Projectiles/Projectile.cs) | Abstract: `Initialize`, `HandleHit`, `OnImpact`, `Cosmetic`, `CrossPortal`; `IChargeable` ([IChargeable.cs](Assets/Game/Scripts/Weapons/Projectiles/IChargeable.cs)) is the two-press charge contract a projectile implements |
@@ -149,13 +151,13 @@ Messages: `NetMsg.Damage` (10, → server on the *target's* relay, `A` = amount,
 | State | Where |
 | --- | --- |
 | Current HP (players, agents, props) | `HealthSaveable`, key `health`. Auto-attached by [SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) to anything with a `HealthComponent`; it covers `NetworkedHealthComponent` too |
-| Death state | Implicit: HP 0 restores → `RestoreHealth` raises `OnDeath` with `IsRestoring == true` |
+| Death state | Implicit: HP 0 restores → `LoadHealth` → `RestoreHealth` raises `OnDeath` with `IsRestoring` and `IsLoading` true |
 | Threshold latches + the modules a reaction switched | `HealthReactionSaveable` → `HealthReactionModule.RestoreThresholds` (re-applies module enable/disable *silently*, no UnityEvent) |
 | Weapon ammo + cooldown | `Weapon.CaptureItemState`/`RestoreItemState` in the item's `ItemState` (`ammo`, `cd`). Cooldown stored as time **remaining** |
 | NPC fire cooldowns, bursts, aim tracking | `CombatCadenceSaveable` (one saver, three module types) |
-| Ragdoll pose | **Not saved.** The rig follows the hips into the transform, so `TransformSaveable` records where the corpse lies; the root carries the body's orientation too, so a reloaded corpse starts tilted the way it lay. On load it goes limp `settled: true` with zero impulse. A knockdown is not saved: a body saved mid-knockdown reloads standing upright, because `RagdollRig` answers `ISavedRotation` with yaw only while a *living* body is limp — the root's tilt would otherwise outlive the knockdown (`PlayerLook` only adds yaw to the rotation it finds) |
+| Ragdoll pose | **Not saved.** The rig follows the hips into the transform, so `TransformSaveable` records where the corpse lies; the root carries the body's orientation too, so a reloaded corpse starts tilted the way it lay. On load (`IsLoading` — not merely `IsRestoring`, which a client's replicated death also sets) it goes limp `settled: true` with zero impulse. A knockdown is not saved: a body saved mid-knockdown reloads standing upright, because `RagdollRig` answers `ISavedRotation` with yaw only while a *living* body is limp — the root's tilt would otherwise outlive the knockdown (`PlayerLook` only adds yaw to the rotation it finds) |
 
-Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `maxHealth` → `OnRestored` (replication) then `OnDeath`/`OnRevive`. `IsRestoring` is set for the whole call and cleared in a `finally`, so a throwing listener cannot make every later death in the session look like a restore. `PlayerController` re-checks `playerHealth.Alive` on enable because an event cannot be replayed into a delegate that was empty when it fired.
+Ordering on load: the record lands → `LoadHealth` → `RestoreHealth` clamps to the prefab's `maxHealth` → `OnRestored` (replication) then `OnDeath`/`OnRevive`. `IsRestoring` is set for the whole call and cleared in a `finally`, so a throwing listener cannot make every later death in the session look like a restore. `PlayerController` re-checks `playerHealth.Alive` on enable because an event cannot be replayed into a delegate that was empty when it fired.
 
 ## Gotchas
 

@@ -562,6 +562,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one prop type turns out to be a quarter of a model's whole triangle count | [ArtPipeline](systems/ArtPipeline.md) |
 | one robot spots me and the rest of its camp keeps patrolling | [AgentSystem](systems/AgentSystem.md) |
 | on a client a corpse's pelvis stands upright with the body hanging off it | [Combat](systems/Combat.md) |
+| on a client a creature that dies tips over stiff as a plank instead of collapsing | [Combat](systems/Combat.md) |
+| on my own client my player dies standing up and stays frozen upright, while the others see my pelvis dragged into the ground | [Combat](systems/Combat.md) |
 | one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
@@ -1513,4 +1515,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1110 symptoms, 375 paths, 57 docs -->
+<!-- 1112 symptoms, 375 paths, 57 docs -->

@@ -161,7 +161,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | Playing a world scene opened directly in the editor | `Save ignored: no world is active` — no `WorldSession`, so nothing saves | Enter via the main menu |
 | Saver on a child under a nested `SaveableEntity` | State lands in the child's record | Collection stops at any nested `SaveableEntity` |
 | A saver caching its component in `Awake` | EditMode round-trip tests cannot exercise it | Lazy `GetComponent` property |
-| Restoring 0 HP unguarded | Loot re-dropped, death reaction replayed each load | Check `HealthComponent.IsRestoring` |
+| Restoring 0 HP unguarded | Loot re-dropped, death reaction replayed each load | Check `HealthComponent.IsRestoring`. It is also true on a client applying the server's value, so a reaction that must tell an OLD death (a save) from a fresh one asks `IsLoading` — set only by `HealthSaveable`'s `LoadHealth`; the ragdoll does, so a replicated death still falls |
 
 ## Extending
 

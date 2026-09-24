@@ -212,16 +212,17 @@ namespace SpaceGame.Gameplay.Ragdoll
             rig.BudgetExempt = false;
             rig.IsCorpse = true;
 
-            // True both for a save being loaded and for a remote death arriving through
-            // RestoreHealth. Both want the same thing: the body lies down where it is, without
-            // being thrown again — a corpse relaunched on every load walks its way across the
-            // desert one reload at a time.
-            bool restoring = health != null && health.IsRestoring;
-            Vector3 carried = restoring ? Vector3.zero : CarriedVelocity;
+            // A save being loaded: the body lies down where the record put it, without being
+            // thrown again — a corpse relaunched on every load walks its way across the desert one
+            // reload at a time. NOT IsRestoring, which is also a client learning of a fresh death
+            // through RestoreHealth: that body must fall like any other. Its owner (a client's own
+            // player) throws it; a watcher ignores the impulse and takes the body off the wire.
+            bool loading = health != null && health.IsLoading;
+            Vector3 carried = loading ? Vector3.zero : CarriedVelocity;
 
             Suspend(standing: false);
-            rig.GoLimp(restoring ? Vector3.zero : DeathImpulse() + carried,
-                       settled: restoring, drives: Drives);
+            rig.GoLimp(loading ? Vector3.zero : DeathImpulse() + carried,
+                       settled: loading, drives: Drives);
         }
 
         private void OnRevive()

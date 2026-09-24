@@ -231,11 +231,32 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             if (!Network.Decides || victim == null) return;
 
-            // Up, then down: a hit hands over the body itself, but a blast hands over the root of
-            // whatever collider it caught, and a creature's controller can sit below that.
-            RagdollController ragdoll = victim.GetComponentInParent<RagdollController>();
-            if (ragdoll == null) ragdoll = victim.GetComponentInChildren<RagdollController>();
+            RagdollController ragdoll = Of(victim);
             if (ragdoll != null) ragdoll.KnockHere(cause, impulse, damageFraction);
+        }
+
+        /// <summary>
+        /// The controller of the entity <paramref name="victim"/> belongs to. Up, then down: a hit
+        /// hands over the body itself, but a blast hands over the root of whatever collider it
+        /// caught, and a creature's controller can sit below that.
+        ///
+        /// <para>
+        /// Down only within the victim's OWN entity. A sky vessel or a caravan mount has its seated
+        /// passengers parented beneath it, each its own NetworkObject, and the first controller
+        /// found below a vessel with none of its own is a passenger — who would be knocked down by
+        /// a blast that only caught the hull.
+        /// </para>
+        /// </summary>
+        private static RagdollController Of(GameObject victim)
+        {
+            RagdollController ragdoll = victim.GetComponentInParent<RagdollController>();
+            if (ragdoll != null) return ragdoll;
+
+            GameObject entity = NetChannel.RootOf(victim.transform);
+            foreach (RagdollController below in victim.GetComponentsInChildren<RagdollController>())
+                if (NetChannel.RootOf(below) == entity) return below;
+
+            return null;
         }
 
         private void KnockHere(RagdollCause cause, Vector3 impulse, float damageFraction)

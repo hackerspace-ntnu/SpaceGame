@@ -268,6 +268,12 @@ namespace SpaceGame.EditorTools
 
             health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.4f), null);
             Assert.IsTrue(rig.IsLimp, "a 40% hit on a wounded body did not knock it down");
+
+            // Lethal and harder still, so a Hit knockdown would push the stand-up time later.
+            float standAt = ControllerField<float>(ragdoll, "standAt");
+            health.Damage(health.GetHealth, null);
+            Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"),
+                "a killing blow was priced as a hit knockdown — death's business, not the policy's");
         }
 
         [Test]
@@ -282,11 +288,17 @@ namespace SpaceGame.EditorTools
 
             Assert.IsFalse(ragdoll.HoldDown(new object()), "the fixture has to reproduce a refused hold");
 
-            FieldInfo stoodUpAt = typeof(RagdollController).GetField(
-                "stoodUpAt", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.IsNotNull(stoodUpAt, "RagdollController.stoodUpAt no longer exists");
-            Assert.AreEqual(float.NegativeInfinity, (float)stoodUpAt.GetValue(ragdoll),
+            Assert.AreEqual(float.NegativeInfinity, ControllerField<float>(ragdoll, "stoodUpAt"),
                 "a body that never went down was made immune to hits as though it had stood up");
+        }
+
+        /// <summary>Reads one of <see cref="RagdollController"/>'s private fields.</summary>
+        private static T ControllerField<T>(RagdollController ragdoll, string name)
+        {
+            FieldInfo field = typeof(RagdollController).GetField(
+                name, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(field, $"RagdollController.{name} no longer exists");
+            return (T)field.GetValue(ragdoll);
         }
 
         [Test]
@@ -299,6 +311,27 @@ namespace SpaceGame.EditorTools
             Knock(ragdoll, 1f);
 
             Assert.IsFalse(rig.IsLimp, "a rider went limp in the saddle and will be dragged through the ground");
+        }
+
+        /// <summary>
+        /// Seated as a watcher sees it: parented under a carrier. The authority's other half, the
+        /// CarriedBody claim, is the same one-line query PlayerRagdoll already makes, and staging
+        /// it here would mean a Rigidbody and a static record to clean up after.
+        /// </summary>
+        [TestCase(typeof(SpaceGame.Agents.NpcPassenger))]
+        [TestCase(typeof(SpaceGame.Vehicles.VesselSeats))]
+        public void Knockdown_RefusedWhileSeatedAsPassenger(System.Type carrierKind)
+        {
+            var carrier = new GameObject("Carrier", carrierKind);
+            spawned.Add(carrier);
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            root.transform.SetParent(carrier.transform, false);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+
+            Knock(ragdoll, 1f);
+
+            Assert.IsFalse(rig.IsLimp, "a seated passenger went limp and will be dragged along by its carrier");
         }
 
         /// <summary>A controller that answers "someone is carrying me" — the saddle/seat case.</summary>

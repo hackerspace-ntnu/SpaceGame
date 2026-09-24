@@ -31,8 +31,9 @@ namespace SpaceGame.Items
     /// players via NetMsg.Flung applied by their own machine (FlungBody), and everything with a
     /// skeleton is put on the ground by RagdollController.Knock, which prices the down-time from
     /// the victim's own KnockdownTuning and broadcasts NetMsg.Knockdown for every machine to
-    /// present as a ragdoll of its own. The one exception is a creature carrying a rider — ragdolling under one would
-    /// drag them through the ground — which is thrown as a leap via IMountLeapMotor instead.
+    /// present as a ragdoll of its own. The one exception is a creature carrying a rider —
+    /// ragdolling under one would drag them through the ground — which is thrown as a leap via
+    /// IMountLeapMotor instead.
     /// Cosmetics (cone, ring, dust, thunder, hurt flinches, recoil on the caster) run per machine
     /// in <see cref="Present"/>. A press the magazine refuses travels as <see cref="MissVerb"/> and
     /// presents nothing at all.

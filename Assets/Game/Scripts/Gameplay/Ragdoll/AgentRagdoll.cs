@@ -2,6 +2,7 @@ using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Locomotion;
 using SpaceGame.Teleporting;
+using SpaceGame.Vehicles;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -123,16 +124,46 @@ namespace SpaceGame.Gameplay.Ragdoll
                 : Vector3.zero;
 
         /// <summary>
-        /// Is there someone on this creature's back?
+        /// Is there someone on this creature's back, or is this creature itself sitting on
+        /// something?
         ///
         /// A rider is PARENTED to the seat, so a mount that goes limp underneath one drags them
         /// through the ground with it — and on a player that is a body the server does not own and
         /// cannot put back. Mounts keep the leap the gauntlet already gives them instead. Both
         /// riding systems have to be asked: <c>NpcPassenger</c> deliberately does not go through
-        /// <c>MountModule</c>, because MountModule's rider contract is PlayerMovement.
+        /// <c>MountModule</c>, because MountModule's rider contract is PlayerMovement. The same
+        /// hazard from the other end is <see cref="IsSeated"/>.
         /// </summary>
         protected override bool RefusesToGoDown => (mount != null && mount.IsMounted)
-                                                   || (passenger != null && passenger.HasRider);
+                                                   || (passenger != null && passenger.HasRider)
+                                                   || IsSeated;
+
+        /// <summary>
+        /// Is this creature cargo — a nomad in a caravan animal's saddle (<c>NpcPassenger</c>) or on
+        /// a sky vessel's deck (<c>VesselSeats</c>)? Parented to the carrier, so limp there it is
+        /// dragged along exactly as a player in a saddle would be. Hits knock the damaged body
+        /// itself, so a shot rider would otherwise be the first to find out.
+        ///
+        /// <para>
+        /// Asked two ways because the two machines know different things. Seating is decided on
+        /// the authority alone, and only there does <see cref="CarriedBody"/> hold the seat's claim —
+        /// the question <c>PlayerRagdoll</c> asks, and the one that also covers any future carrier.
+        /// A watcher learns of the seat only through the replicated parenting, which is what the
+        /// hierarchy check reads, and it has to refuse a hold the authority refused, or the body
+        /// lies limp on its screen alone.
+        /// </para>
+        /// </summary>
+        private bool IsSeated
+        {
+            get
+            {
+                if (CarriedBody.IsCarriedRigidly(gameObject)) return true;
+
+                Transform carrier = transform.parent;
+                return carrier != null && (carrier.GetComponentInParent<NpcPassenger>() != null ||
+                                           carrier.GetComponentInParent<VesselSeats>() != null);
+            }
+        }
 
         /// <summary>
         /// Away from whatever killed it, and up. Reading the damage source rather than picking a

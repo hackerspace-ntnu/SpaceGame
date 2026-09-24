@@ -238,6 +238,30 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void Joints_BoneWithItsMeshAtItsOrigin_TwistsAlongTheParentToBoneLine()
+        {
+            // The hard-surface shape: the leg's only child is its mesh, sitting exactly on the bone.
+            var root = new GameObject("HardSurface");
+            spawned.Add(root);
+
+            Transform hips = Bone(root.transform, "Hips", new Vector3(0f, 1f, 0f),
+                                  new Vector3(0.4f, 0.3f, 0.3f), Vector3.zero);
+            Transform leg = Bone(hips, "Leg", new Vector3(0.2f, -0.4f, 0f),
+                                 new Vector3(0.15f, 0.6f, 0.15f), Vector3.zero);
+            leg.localRotation = Quaternion.Euler(0f, 0f, 30f);
+
+            RagdollRig rig = Rig(root);
+            rig.GoLimp(Vector3.zero);
+
+            var joint = leg.GetComponent<CharacterJoint>();
+            Assert.IsNotNull(joint, "the fixture has to joint the leg to the hips");
+
+            Vector3 alongLeg = leg.InverseTransformDirection(leg.position - hips.position);
+            Assert.Less(Vector3.Angle(joint.axis, alongLeg), 1f,
+                "a zero-offset mesh child was read as the bone's direction and the twist fell back to X");
+        }
+
+        [Test]
         public void SecondKnockdown_LimitsAreRelativeToTheNewPose()
         {
             Physics.gravity = Vector3.zero;

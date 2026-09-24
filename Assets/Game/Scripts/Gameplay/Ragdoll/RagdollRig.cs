@@ -558,10 +558,15 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private void RebuildJoints()
         {
+            // The joint takes its rest frame from the body's physics pose, and the animator has
+            // moved the transforms since physics last read them.
+            Physics.SyncTransforms();
+
             foreach (Joint joint in joints)
                 if (joint != null) DestroyImmediate(joint);
             joints.Clear();
 
+            Transform[] simulated = BoneTransforms();
             foreach (Bone bone in bones)
             {
                 if (bone == bones[0]) continue;
@@ -569,7 +574,7 @@ namespace SpaceGame.Gameplay.Ragdoll
                 // A parent destroyed with worn gear leaves the branch hanging off the root bone —
                 // the same fallback Build uses for a branch with no simulated ancestor.
                 Rigidbody parent = bone.Parent != null ? bone.Parent : bones[0].Body;
-                joints.Add(BuildJoint(bone, parent));
+                joints.Add(BuildJoint(bone, parent, simulated));
             }
         }
 
@@ -1522,13 +1527,13 @@ namespace SpaceGame.Gameplay.Ragdoll
             return filter != null ? filter.sharedMesh : null;
         }
 
-        private Joint BuildJoint(Bone bone, Rigidbody parent)
+        private Joint BuildJoint(Bone bone, Rigidbody parent, IList<Transform> simulated)
         {
             var joint = bone.Transform.gameObject.AddComponent<CharacterJoint>();
             joint.connectedBody = parent;
             joint.enablePreprocessing = false;
 
-            RagdollSkeleton.JointAxes(LocalBoneDirection(bone.Transform, BoneTransforms()),
+            RagdollSkeleton.JointAxes(LocalBoneDirection(bone.Transform, simulated),
                                       out Vector3 twist, out Vector3 swing);
             joint.axis = twist;
             joint.swingAxis = swing;
@@ -1575,24 +1580,52 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
+        /// Closer than this, a child says nothing about which way its bone runs. Geometry, not a
+        /// tunable: a millimetre is far below any bone length and far above float noise.
+        /// </summary>
+        private const float MinChildOffset = 1e-3f;
+
+        /// <summary>
         /// Which way the bone runs, in its own local space: toward its first simulated child, else
-        /// its first child, else onward from its parent (a hand, a head, a foot).
+        /// its first other child, else onward from its parent (a hand, a head, a foot).
+        ///
+        /// <para>
+        /// Children sitting on the bone's own origin are skipped. A hard-surface rig usually hangs
+        /// its mesh piece exactly at the bone, and that offset is zero — read as a direction it
+        /// sends <see cref="RagdollSkeleton.JointAxes"/> to its fallback axis, which is the same
+        /// across-the-limb twist this exists to prevent.
+        /// </para>
         /// </summary>
         private static Vector3 LocalBoneDirection(Transform bone, IList<Transform> simulated)
         {
-            for (int i = 0; i < bone.childCount; i++)
-            {
-                Transform child = bone.GetChild(i);
-                if (simulated.Contains(child))
-                    return bone.InverseTransformDirection(child.position - bone.position);
-            }
-
-            if (bone.childCount > 0)
-                return bone.InverseTransformDirection(bone.GetChild(0).position - bone.position);
+            if (TryChildDirection(bone, simulated, out Vector3 local)) return local;
+            if (TryChildDirection(bone, null, out local)) return local;
 
             return bone.parent != null
                 ? bone.InverseTransformDirection(bone.position - bone.parent.position)
                 : Vector3.up;
+        }
+
+        /// <summary>
+        /// Bone-local direction to the first child set off from the bone's origin, among the
+        /// simulated ones when <paramref name="simulated"/> is given, else among all of them.
+        /// </summary>
+        private static bool TryChildDirection(Transform bone, IList<Transform> simulated, out Vector3 local)
+        {
+            for (int i = 0; i < bone.childCount; i++)
+            {
+                Transform child = bone.GetChild(i);
+                if (simulated != null && !simulated.Contains(child)) continue;
+
+                Vector3 offset = child.position - bone.position;
+                if (offset.sqrMagnitude < MinChildOffset * MinChildOffset) continue;
+
+                local = bone.InverseTransformDirection(offset);
+                return true;
+            }
+
+            local = Vector3.zero;
+            return false;
         }
 
         /// <summary>The bone's local axis pointing down its own segment, and which way along it.</summary>

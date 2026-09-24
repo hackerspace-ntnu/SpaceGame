@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SpaceGame.Persistence;
 using SpaceGame.Teleporting;
 using SpaceGame.World.Safety;
 using UnityEngine;
@@ -42,7 +43,7 @@ namespace SpaceGame.Gameplay.Ragdoll
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public class RagdollRig : MonoBehaviour
+    public class RagdollRig : MonoBehaviour, ISavedRotation
     {
         [Header("Which bones get a body")]
         [Tooltip("Share of the mesh a bone must carry to be simulated, 0..1. The floor that " +
@@ -917,7 +918,6 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (Hips == null) return;
 
             Vector3 hipWorld = Hips.position;
-            Quaternion hipRotation = Hips.rotation;
 
             Vector3 grounded = hipWorld - Vector3.up * standingHipHeight;
             if (Physics.Raycast(hipWorld + Vector3.up * 0.1f, Vector3.down, out RaycastHit hit,
@@ -926,13 +926,7 @@ namespace SpaceGame.Gameplay.Ragdoll
                 grounded = hit.point;
             }
 
-            // Yaw only. The body's own tilt is where it fell, and carrying that into the root would
-            // stand the creature up sideways. Measured through hipsToRoot, so "forward" is the
-            // root's forward as the body now carries it, not whichever way the hip bone's own axes
-            // happen to point on this rig.
-            Vector3 facing = Vector3.ProjectOnPlane(hipRotation * hipsToRoot * Vector3.forward, Vector3.up);
-            if (facing.sqrMagnitude < 1e-4f)
-                facing = Vector3.ProjectOnPlane(hipRotation * hipsToRoot * Vector3.up, Vector3.up);
+            Quaternion upright = UprightRotation();
 
             // Moving the root drags every bone under it, not just the hips, so every bone's world
             // pose is taken first and put back after — the blend starts from where the body lay.
@@ -940,13 +934,49 @@ namespace SpaceGame.Gameplay.Ragdoll
             for (int i = 0; i < bones.Count; i++)
                 worldPoses[i] = (bones[i].Transform.position, bones[i].Transform.rotation);
 
-            transform.position = grounded;
-            if (facing.sqrMagnitude > 1e-4f)
-                transform.rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
+            transform.SetPositionAndRotation(grounded, upright);
 
             for (int i = 0; i < bones.Count; i++)
                 bones[i].Transform.SetPositionAndRotation(worldPoses[i].Item1, worldPoses[i].Item2);
         }
+
+        /// <summary>
+        /// The root's rotation stood upright under the body: yaw only, facing the way the body lies.
+        ///
+        /// <para>
+        /// The body's own tilt is where it fell, and carrying that into the root would stand the
+        /// creature up sideways. Measured through <see cref="hipsToRoot"/>, so "forward" is the
+        /// root's forward as the body now carries it, not whichever way the hip bone's own axes
+        /// happen to point on this rig. A body lying exactly along the vertical has no facing to
+        /// read, and keeps the root's current rotation.
+        /// </para>
+        /// </summary>
+        private Quaternion UprightRotation()
+        {
+            Quaternion carried = Hips.rotation * hipsToRoot;
+
+            Vector3 facing = Vector3.ProjectOnPlane(carried * Vector3.forward, Vector3.up);
+            if (facing.sqrMagnitude < 1e-4f)
+                facing = Vector3.ProjectOnPlane(carried * Vector3.up, Vector3.up);
+
+            return facing.sqrMagnitude > 1e-4f
+                ? Quaternion.LookRotation(facing.normalized, Vector3.up)
+                : transform.rotation;
+        }
+
+        /// <summary>
+        /// What a save records for the root: upright while a LIVING body is knocked down.
+        ///
+        /// <para>
+        /// A knockdown is not saved — on load the body is alive, not limp, and nothing would ever
+        /// run <see cref="PlaceRootUnderHips"/> to undo a tilt recorded mid-fall; a player would
+        /// stay rolled on its side for good, because the look rig only ever adds yaw to the
+        /// rotation it finds. A corpse is different: it goes limp again on load, and keeping the
+        /// tilt lets it start lying the way it lay.
+        /// </para>
+        /// </summary>
+        public Quaternion RotationToSave =>
+            IsLimp && !IsCorpse && Hips != null ? UprightRotation() : transform.rotation;
 
         /// <summary>
         /// Ease the bones from where they came to rest into whatever is animating them now.

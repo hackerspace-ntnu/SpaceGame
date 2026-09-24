@@ -27,7 +27,7 @@ symptoms:
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
   - "after a quickload the old caravan is still standing beside the new one"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
-updated: 2026-09-17
+updated: 2026-09-24
 ---
 
 # Persistence / Save-Load
@@ -63,7 +63,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | `WorldSession` | [Runtime/WorldSession.cs](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs) | Static: which world, its config GUID, `IsNew`, the staged document (`Consume()` once) |
 | `PlayerSaveSync` / `PlayerSaveBinder` / `PlayerProfile` | [Runtime/](Assets/Game/Scripts/Core/Persistence/Runtime/) | Owner claims its profile over RPC / offline binding / per-instance GUID in PlayerPrefs |
 | `SaveHotkeys` | [Runtime/SaveHotkeys.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveHotkeys.cs) | F5 quicksave, F9 quickload (reloads the scene through Netcode's SceneManager so clients follow) |
-| `ISaveable` / `IDeferredSaveable` | [Format/ISaveable.cs](Assets/Game/Scripts/Core/Persistence/Format/ISaveable.cs) | `SaveKey`/`CaptureState`/`RestoreState`; deferred adds `OnLoadComplete` + `LoadOrder` (`Early -100` / `Default 0` / `Late 100`) |
+| `ISaveable` / `IDeferredSaveable` / `ISavedRotation` | [Format/ISaveable.cs](Assets/Game/Scripts/Core/Persistence/Format/ISaveable.cs) | `SaveKey`/`CaptureState`/`RestoreState`; deferred adds `OnLoadComplete` + `LoadOrder` (`Early -100` / `Default 0` / `Late 100`). `ISavedRotation` lets an object answer the rotation a pose capture records; every capture (`TransformSaveable`, `PlayerSaveService`, `WorldSaveStore`) reads it through `SavedRotation.Of` — `RagdollRig` answers yaw-only while a living body is knocked down |
 | `IPersistentEntity` | [Format/IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) | Empty marker = "I am mutable world" — the declared opt-in for kinematic rigs and rootless vehicles |
 | `SaveRef` / `ISaveRefBinder` | [Format/SaveRef.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveRef.cs) | `{kind:player|entity, id}`; live half is [SaveRefBinder.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveRefBinder.cs) installed on `SaveRefBinding.Active` |
 | `SaveDocument`/`SaveHeader`/`PlayerRecord`/`WorldRecord`/`EntityRecord`/`SceneKey` | [Format/SaveDocument.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveDocument.cs) | The file shape |

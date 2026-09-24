@@ -231,7 +231,7 @@ namespace SpaceGame.Core.Persistence
             }
 
             record.Position = player.transform.position;
-            record.Rotation = player.transform.rotation;
+            record.Rotation = SavedRotation.Of(player.transform);
 
             SaveableEntity entity = player.GetComponent<SaveableEntity>();
             if (entity == null) return;

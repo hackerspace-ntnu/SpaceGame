@@ -32,7 +32,7 @@ namespace SpaceGame.Core.Persistence
         public object CaptureState() => new State
         {
             position = transform.position,
-            rotation = transform.rotation,
+            rotation = SavedRotation.Of(transform),
             scale = transform.localScale,
         };
 

@@ -38,6 +38,7 @@ symptoms:
   - "after a blast the ragdoll's limbs stretch away from the body"
   - "a knocked-down body keeps twitching and never comes to rest"
   - "on a client a corpse's pelvis stands upright with the body hanging off it"
+  - "after loading a save made while knocked down, the player stands tilted"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
 updated: 2026-09-24
 ---
@@ -139,7 +140,7 @@ Messages: `NetMsg.Damage` (10, → server on the *target's* relay, `A` = amount,
 | Threshold latches + the modules a reaction switched | `HealthReactionSaveable` → `HealthReactionModule.RestoreThresholds` (re-applies module enable/disable *silently*, no UnityEvent) |
 | Weapon ammo + cooldown | `Weapon.CaptureItemState`/`RestoreItemState` in the item's `ItemState` (`ammo`, `cd`). Cooldown stored as time **remaining** |
 | NPC fire cooldowns, bursts, aim tracking | `CombatCadenceSaveable` (one saver, three module types) |
-| Ragdoll pose | **Not saved.** The rig follows the hips into the transform, so `TransformSaveable` records where the corpse lies; the root carries the body's orientation too, so a reloaded corpse starts tilted the way it lay. On load it goes limp `settled: true` with zero impulse |
+| Ragdoll pose | **Not saved.** The rig follows the hips into the transform, so `TransformSaveable` records where the corpse lies; the root carries the body's orientation too, so a reloaded corpse starts tilted the way it lay. On load it goes limp `settled: true` with zero impulse. A knockdown is not saved: a body saved mid-knockdown reloads standing upright, because `RagdollRig` answers `ISavedRotation` with yaw only while a *living* body is limp — the root's tilt would otherwise outlive the knockdown (`PlayerLook` only adds yaw to the rotation it finds) |
 
 Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `maxHealth` → `OnRestored` (replication) then `OnDeath`/`OnRevive`. `IsRestoring` is set for the whole call and cleared in a `finally`, so a throwing listener cannot make every later death in the session look like a restore. `PlayerController` re-checks `playerHealth.Alive` on enable because an event cannot be replayed into a delegate that was empty when it fired.
 

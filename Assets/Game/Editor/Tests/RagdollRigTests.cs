@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay.Ragdoll;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -353,12 +354,46 @@ namespace SpaceGame.EditorTools
 
             rig.GoLimp(Vector3.zero, drives: false);
             root.transform.rotation = Quaternion.Euler(0f, 0f, 90f);   // the wire says: lying on its side
+            hips.rotation = Quaternion.identity;   // the root's turn dragged the hips along; undo it,
+                                                   // so only the pin can bring them to the root
 
             Invoke(rig, "PinHipsToRoot");
             StepPhysics(1);
 
             Assert.Less(Quaternion.Angle(hips.rotation, root.transform.rotation), 1f,
                 "a watcher's pelvis stays upright while the owner's body lies down");
+        }
+
+        [Test]
+        public void SaveTakenMidKnockdown_RecordsTheRootUpright()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var saver = root.AddComponent<TransformSaveable>();
+
+            rig.GoLimp(Vector3.zero);
+            root.transform.rotation = Quaternion.Euler(0f, 40f, 90f);   // lying on its side, as FollowHips leaves it
+
+            var saved = (TransformSaveable.State)saver.CaptureState();
+
+            Assert.Less(Quaternion.Angle(saved.rotation, Quaternion.Euler(0f, 40f, 0f)), 1f,
+                "a body saved while knocked down reloads alive and not limp, and stays tilted forever");
+        }
+
+        [Test]
+        public void SaveTakenOfACorpse_KeepsTheTilt()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var saver = root.AddComponent<TransformSaveable>();
+
+            rig.IsCorpse = true;
+            rig.GoLimp(Vector3.zero);
+            Quaternion lying = Quaternion.Euler(0f, 40f, 90f);
+            root.transform.rotation = lying;
+
+            var saved = (TransformSaveable.State)saver.CaptureState();
+
+            Assert.Less(Quaternion.Angle(saved.rotation, lying), 1f,
+                "a corpse goes limp again on load and should start lying the way it lay");
         }
     }
 }

@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace SpaceGame.Persistence
 {
@@ -86,5 +87,27 @@ namespace SpaceGame.Persistence
 
         /// <summary>Runs after ordinary deferred savers.</summary>
         public const int Late = 100;
+    }
+
+    /// <summary>
+    /// Implemented by a component whose object's live rotation is not the one a save should keep.
+    ///
+    /// A knocked-down body is the case this exists for: while limp its root carries the body's
+    /// tilt so that every watcher can rebuild the pelvis from it, but a knockdown is not saved — on
+    /// load the body is alive and standing, and nothing would ever turn a root recorded lying on its
+    /// side upright again. The object answers for itself here rather than every place that records
+    /// a pose learning about ragdolls. Read it through <see cref="SavedRotation.Of"/>.
+    /// </summary>
+    public interface ISavedRotation
+    {
+        /// <summary>The rotation to record for this object's transform right now.</summary>
+        Quaternion RotationToSave { get; }
+    }
+
+    /// <summary>The one way a pose capture reads a rotation. See <see cref="ISavedRotation"/>.</summary>
+    public static class SavedRotation
+    {
+        public static Quaternion Of(Transform transform) =>
+            transform.TryGetComponent(out ISavedRotation saved) ? saved.RotationToSave : transform.rotation;
     }
 }

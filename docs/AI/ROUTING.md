@@ -292,6 +292,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | after loading a save the rider is standing next to the mount instead of in the seat | [Vehicles](systems/Vehicles.md) |
 | after reloading, the ship hangs in the sky nose-down and never comes down level | [PlayerShip](systems/PlayerShip.md) |
 | after the crash-landing intro the player walks and steers but never falls | [WorldStreaming](systems/WorldStreaming.md) |
+| after loading a save made while knocked down, the player stands tilted | [Combat](systems/Combat.md) |
 | agents refuse to cross a gap or take a jump link | [NavMeshSystem](systems/NavMeshSystem.md) |
 | agents with an 80 m sight range only notice the player at arm's length | [AgentSystem](systems/AgentSystem.md) |
 | an ambience or engine loop keeps playing after the object was destroyed | [audio](systems/audio.md) |
@@ -1506,4 +1507,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1105 symptoms, 375 paths, 57 docs -->
+<!-- 1106 symptoms, 375 paths, 57 docs -->

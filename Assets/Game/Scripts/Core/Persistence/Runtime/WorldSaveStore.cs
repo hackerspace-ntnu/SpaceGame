@@ -395,7 +395,7 @@ namespace SpaceGame.Core.Persistence
             record.Scene = sceneKey;
             record.Authored = entity.IsAuthored;
             record.Position = entity.transform.position;
-            record.Rotation = entity.transform.rotation;
+            record.Rotation = SavedRotation.Of(entity.transform);
             record.Scale = entity.transform.localScale;
             record.HasScale = true;
 

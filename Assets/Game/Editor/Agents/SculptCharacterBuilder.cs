@@ -12,14 +12,16 @@ using SpaceGame.Core.Persistence.EditorTools;
 namespace SpaceGame.EditorTools
 {
     /// <summary>
-    /// Builds the sculpt-base drifter NPCs -- Human, Alien, Crumpy and Gary -- from their
+    /// Builds the sculpt-base drifter NPCs -- Human, Alien, Crumpy, Gary and Raxy -- from their
     /// imported FBX, and owns how every one of them behaves and what it says.
     ///
     /// <para>
-    /// They are one model four ways: the same sculpt pushed into four shapes, the same 52-bone
-    /// Humanoid skeleton, the same object and material names. So they are one builder and one
-    /// recipe type, for the reason the nomad prefabs are one builder for nine nomads -- four
-    /// copies of this wiring is four chances for one of them to drift out of step with its
+    /// They are one family: the same Humanoid bone names, the same object and material names.
+    /// Four are one sculpt pushed into four shapes on the same 52-bone skeleton; Raxy is resculpted
+    /// from Gary onto a skeleton refitted to its own body -- a thumb and three fingers a hand, plus
+    /// ear, eye and toe bones the Humanoid mapping ignores. So they are one builder and one
+    /// recipe type, for the reason the nomad prefabs are one builder for nine nomads -- five
+    /// copies of this wiring is five chances for one of them to drift out of step with its
     /// siblings.
     /// </para>
     ///
@@ -85,7 +87,7 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// How the FBX names its eye material -- <c>alien_eyes</c>, <c>human_eyes</c>,
-        /// <c>crumpy_eyes</c>, <c>gary_eyes</c>. It is the only thing in the imported model that
+        /// <c>crumpy_eyes</c>, <c>gary_eyes</c>, <c>raxy_eyes</c>. It is the only thing in the imported model that
         /// says which slot is an eye; see <see cref="ApplySkin"/>.
         /// </summary>
         private const string EyeMaterialSuffix = "_eyes";
@@ -266,6 +268,33 @@ namespace SpaceGame.EditorTools
                     "Anyone else hungry? Just me? Just me.",
                     "I think that rock is looking at me.",
                     "Found a bolt. Good day.",
+                },
+            },
+            new SculptRecipe
+            {
+                Name = "Drifter_Raxy",
+                FbxPath = ModelFolder + "/Raxy/raxy.fbx",
+                TexturePath = ModelFolder + "/Raxy/Textures/raxy_BaseColor.png",
+                PrefabPath = CharacterFolder + "/Drifter_Raxy.prefab",
+                // A big black pupil in an orange ball, against the blue skin.
+                EyeStyle = "Tangerine",
+                // The ears are the character: it hears everything first, which is what the band's
+                // noise and alert modules actually do (GDC-L1-NARR-0001).
+                DialogLines = new[]
+                {
+                    "Shh. Hear that? No? Ears like these, you hear everything out here.",
+                    "I heard your ship come down. Three dunes over. Very loud.",
+                    "The machines hum before they come. I hear them long before you'd see them. We walk the other way.",
+                    "Don't sneak up on me. You can't. But don't try.",
+                    "Everyone asks about the ears. Nobody asks about the feet.",
+                    "The wind talks at night. Mostly nonsense. Sometimes where the water is.",
+                    "We don't fight. But start something and I'll hear it first. So will the others.",
+                },
+                IdleChatter = new[]
+                {
+                    "Something's moving out there. Small. Probably.",
+                    "Ears are cold. Ears are always cold.",
+                    "Quiet today. Good quiet.",
                 },
             },
         };

@@ -45,6 +45,12 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             if (rig == null) return;
 
+            // A rig destroyed without its OnDestroy running (a scene torn down around it, an
+            // EditMode test that raised Awake by hand) never gave its place back. Dead entries
+            // still counted towards the cap, and the budget froze a living corpse to make room for
+            // bodies that no longer exist.
+            live.RemoveAll(entry => entry == null);
+
             live.Remove(rig);
             live.Add(rig);
 

@@ -201,6 +201,52 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// Keep the body on its feet: the collider stays on and the camera stays in the helmet,
         /// because nothing is going to go limp under it. See <see cref="HoldStanding"/>.
         /// </param>
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            this.NetOn(NetMsg.GetUpRequest, OnGetUpRequest);
+            this.NetOn(NetMsg.GotUp, OnGotUp);
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            this.NetOff(NetMsg.GetUpRequest, OnGetUpRequest);
+            this.NetOff(NetMsg.GotUp, OnGotUp);
+        }
+
+        /// <summary>
+        /// Jump, pressed while knocked down, on the machine that owns this player: ask to get up.
+        ///
+        /// <para>
+        /// A request rather than getting up on the spot, because every machine runs its own copy
+        /// of the ragdoll: an owner that stood up alone would walk off while everyone else still
+        /// watched the body lie there until its own timer ran out. The server answers with
+        /// <see cref="NetMsg.GotUp"/> to all of them.
+        /// </para>
+        /// </summary>
+        private void RequestGetUp()
+        {
+            if (!CanGetUpEarly) return;
+
+            NetMessaging.NetSendTo(gameObject, NetMsg.GetUpRequest, default, NetTo.Server);
+        }
+
+        /// <summary>
+        /// Server: a player asked to get up. Only the player may ask for their own body, and only
+        /// a body this machine also has down is worth announcing.
+        /// </summary>
+        private void OnGetUpRequest(in NetArg arg, ulong sender)
+        {
+            if (!Network.MayActFor(NetChannel.RootOf(this), sender)) return;
+            if (!CanGetUpEarly) return;
+
+            NetMessaging.NetSendTo(gameObject, NetMsg.GotUp, default, NetTo.All);
+        }
+
+        /// <summary>Every machine: the server let this player up.</summary>
+        private void OnGotUp(in NetArg arg, ulong sender) => GetUpNow();
+
         protected override void SuspendLayers(bool standing)
         {
             // Recorded rather than assumed. A player can go limp while already frozen by something
@@ -236,6 +282,15 @@ namespace SpaceGame.Gameplay.Ragdoll
             // death freeze documents the same trap.
             if (controller != null && controller.Input != null) controller.Input.enabled = false;
 
+            // Jump gets a knocked-down player up — its own action, switched on only now that the
+            // input it lives beside has been switched off (see PlayerInputManager.OnGetUpPressed).
+            // Not for a standing hold: a frozen or netted body is held, not knocked down.
+            if (!standing && controller != null && controller.Input != null)
+            {
+                controller.Input.OnGetUpPressed += RequestGetUp;
+                controller.Input.SetGetUpEnabled(true);
+            }
+
             // Only a body that is about to go limp needs the camera out of its skull. A held-
             // standing body keeps the pose it had, so the helmet stays where the eye already is —
             // and detaching it there would leave an unparented camera looking at the inside of a
@@ -255,6 +310,14 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (!Drives) return;
 
             AttachCamera();
+
+            // Before the input comes back, so the get-up action is off again by the time Jump is
+            // listening for real. Safe after a standing hold, which never switched it on.
+            if (controller != null && controller.Input != null)
+            {
+                controller.Input.SetGetUpEnabled(false);
+                controller.Input.OnGetUpPressed -= RequestGetUp;
+            }
 
             if (movement != null && movementWasEnabled) movement.enabled = true;
             if (look != null && lookWasEnabled) look.enabled = true;

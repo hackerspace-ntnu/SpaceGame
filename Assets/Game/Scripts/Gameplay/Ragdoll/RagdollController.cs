@@ -539,6 +539,21 @@ namespace SpaceGame.Gameplay.Ragdoll
             SuspendLayers(standing);
         }
 
+        /// <summary>
+        /// Is this body down in a way its owner may cut short — limp from a knockdown, alive, and
+        /// not held by a net, a tie or a freeze?
+        /// </summary>
+        protected bool CanGetUpEarly => suspended && !dead && !IsHeld && !ControlsLocked && rig.IsLimp;
+
+        /// <summary>
+        /// Stand the body up now, skipping whatever is left of its down-time. Every machine calls
+        /// this off the same message, so the body gets up everywhere at once.
+        /// </summary>
+        protected void GetUpNow()
+        {
+            if (CanGetUpEarly) Restore();
+        }
+
         private void Restore()
         {
             if (!suspended) return;

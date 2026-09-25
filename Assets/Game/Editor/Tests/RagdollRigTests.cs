@@ -838,6 +838,33 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// Jump gets a knocked-down player up at once — but only out of a knockdown. A net or a tie
+        /// is a hold, not a knockdown, and a corpse is not getting up at all.
+        /// </summary>
+        [Test]
+        public void GetUpNow_EndsAKnockdown_ButNotAHoldOrADeath()
+        {
+            GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var ragdoll = root.AddComponent<AgentRagdoll>();
+            Invoke(ragdoll, "Awake");
+
+            Knock(ragdoll, 5f);
+            Invoke(ragdoll, "GetUpNow");
+            Assert.IsFalse(rig.IsLimp, "getting up early did not end a five-second knockdown");
+
+            object net = new object();
+            Assert.IsTrue(ragdoll.HoldDown(net));
+            Invoke(ragdoll, "GetUpNow");
+            Assert.IsTrue(rig.IsLimp, "getting up early freed a captive from a hold");
+            ragdoll.ReleaseHold(net);
+            Invoke(ragdoll, "TickStandUp", Time.time + 60f);
+
+            Invoke(ragdoll, "OnDeath");
+            Invoke(ragdoll, "GetUpNow");
+            Assert.IsTrue(rig.IsLimp, "a corpse got up");
+        }
+
+        /// <summary>
         /// Every hit landing on a body that is already down used to restart its down-time, and hit
         /// immunity is only measured while standing — so under automatic fire nobody ever got up.
         /// A hit on a downed body no longer knocks it; a blast still can.

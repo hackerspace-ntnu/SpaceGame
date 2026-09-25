@@ -654,8 +654,15 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </para>
         ///
         /// <para>
-        /// DestroyImmediate, not Destroy: this runs on the frame the body goes dynamic, and a
-        /// deferred destroy would leave two joints on one bone for that frame's physics step.
+        /// The old joints are RETIRED, not destroyed on the spot. A knockdown very often starts
+        /// inside a physics callback — a projectile's or a landing's OnCollisionEnter deals the
+        /// damage that prices the hit — and Unity refuses DestroyImmediate there. The refusal is
+        /// only a console error: the old joints stayed, the new set went on top of them, and every
+        /// knockdown stacked another set whose limits were measured from a different pose. Joints
+        /// fighting joints is what a ragdoll shaking uncontrollably was, and it got worse with
+        /// every knockdown. A retired joint has its limits thrown wide open for the one step it
+        /// outlives the rebuild — it shares the new joint's anchor, so with no limits of its own
+        /// it holds nothing the new one does not — and is destroyed at the end of the frame.
         /// </para>
         /// </summary>
         private void RebuildJoints()
@@ -665,7 +672,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             Physics.SyncTransforms();
 
             foreach (Joint joint in joints)
-                if (joint != null) DestroyImmediate(joint);
+                if (joint != null) Retire(joint);
             joints.Clear();
 
             Transform[] simulated = BoneTransforms();
@@ -679,6 +686,35 @@ namespace SpaceGame.Gameplay.Ragdoll
                 joints.Add(BuildJoint(bone, parent, simulated));
             }
         }
+
+        /// <summary>
+        /// Take a joint out of the body without DestroyImmediate — see <see cref="RebuildJoints"/>.
+        /// Outside play mode (EditMode tests) there is no frame end to defer to and no physics
+        /// callback to be inside, so it goes at once.
+        /// </summary>
+        private static void Retire(Joint joint)
+        {
+            if (!Application.isPlaying)
+            {
+                DestroyImmediate(joint);
+                return;
+            }
+
+            if (joint is CharacterJoint character)
+            {
+                var open = new SoftJointLimit { limit = MaxJointLimit };
+                character.swing1Limit = open;
+                character.swing2Limit = open;
+                character.lowTwistLimit = new SoftJointLimit { limit = -MaxJointLimit };
+                character.highTwistLimit = open;
+                character.enableProjection = false;
+            }
+
+            Destroy(joint);
+        }
+
+        /// <summary>The widest limit a CharacterJoint accepts, degrees.</summary>
+        private const float MaxJointLimit = 177f;
 
         /// <summary>
         /// Forget bones whose transform has been destroyed since the skeleton was built.

@@ -654,5 +654,14 @@ namespace SpaceGame.Core
         // RagdollController.Knock, which broadcasts Knockdown (82). A client cannot broadcast, and a
         // fall is only ever measured by the machine that owns the body — hence the round trip.
         public const ushort KnockdownRequest = 116; // owner → server, on the VICTIM's relay
+
+        // Owner → server, on the PLAYER's relay: "I pressed Jump while knocked down — let me up".
+        // The server checks Network.MayActFor and answers with GotUp (118). Players only; handled
+        // by PlayerRagdoll.
+        public const ushort GetUpRequest = 117; // owner → server, on the PLAYER's relay
+
+        // Server → everyone, on the PLAYER's relay: stand this knocked-down player up now. Every
+        // machine runs its own copy of the ragdoll, so every machine has to be told.
+        public const ushort GotUp = 118; // server → everyone, on the PLAYER's relay
     }
 }

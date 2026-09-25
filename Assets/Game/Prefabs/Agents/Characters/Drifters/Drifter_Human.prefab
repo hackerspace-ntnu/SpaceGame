@@ -1448,7 +1448,6 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.0074075
   measuredRunSpeed: 3.5
-  upperBodyGestureBlend: 0.08
   strideEndPhases: []
 --- !u!114 &1041204777782767962
 MonoBehaviour:
@@ -2302,11 +2301,9 @@ MonoBehaviour:
   active: 1
   attackRange: 2.76
   rangeExitFactor: 1.15
-  attackCooldown: 0.9
+  attackCooldown: 1.4
   attackDamage: 12
   attackCommitDuration: 0.32
-  impactDelay: 0.2
-  strikeOnTheMove: 1
   knockbackSpeed: 0
   knockbackLift: 0.3
   knockbackLeapDistance: 4
@@ -2314,9 +2311,7 @@ MonoBehaviour:
   knockbackLeapDuration: 0.55
   knockbackMassReference: 80
   knockbackMassScale: {x: 0.4, y: 2.5}
-  attackAnimTrigger: Punch
-  upperBodySwing: 1
-  upperBodySwingSeconds: 0.55
+  attackAnimTrigger: Meele
   OnAttack:
     m_PersistentCalls:
       m_Calls: []

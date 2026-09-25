@@ -12,17 +12,18 @@ using SpaceGame.Core.Persistence.EditorTools;
 namespace SpaceGame.EditorTools
 {
     /// <summary>
-    /// Builds the sculpt-base drifter NPCs -- Human, Alien, Crumpy, Gary and Raxy -- from their
-    /// imported FBX, and owns how every one of them behaves and what it says.
+    /// Builds the sculpt-base drifter NPCs -- Human, Alien, Crumpy, Gary, and Raxy with its Classic,
+    /// Violet, Teal and Pink variants -- from their imported FBX, and owns how every one of them
+    /// behaves and what it says.
     ///
     /// <para>
     /// They are one family: the same Humanoid bone names, the same object and material names.
     /// Four are one sculpt pushed into four shapes on the same 52-bone skeleton; Raxy is resculpted
     /// from Gary onto a skeleton refitted to its own body -- a thumb and three fingers a hand, plus
-    /// ear, eye and toe bones the Humanoid mapping ignores. So they are one builder and one
-    /// recipe type, for the reason the nomad prefabs are one builder for nine nomads -- five
-    /// copies of this wiring is five chances for one of them to drift out of step with its
-    /// siblings.
+    /// ear, eye and toe bones the Humanoid mapping ignores -- and Raxy Classic is its earlier head,
+    /// kept as a variant. So they are one builder and one recipe type, for the reason the nomad
+    /// prefabs are one builder for nine nomads -- nine copies of this wiring is nine chances for one
+    /// of them to drift out of step with its siblings.
     /// </para>
     ///
     /// <para>
@@ -146,30 +147,42 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float FallbackClipSpeed = 1.35f;
 
-        // Fists, thrown on the run. The swing is the player's own punch -- Punch Right/Left on the
-        // masked Upper Body layer, 0.77 s -- and not the Nomad's "Meele", a full-body spear throw
-        // that roots the legs for 2.4 s and only releases at ~2.0 s: on it a drifter stopped dead,
-        // wound up, and swung long after its damage had landed, at a player already out of reach.
-        // Reach is the Nomad's (both are 3 m people). Damage and pace still sit under an armed
-        // Nomad's 18 every 1.1 s -- 13 dps against 16 -- because a drifter fights back rather
-        // than fights.
+        // Fists. Reach and commit are the Nomad's: both are 3 m people playing the same "Meele"
+        // swing (HumanM@ThrowSpear01_R, full body). Damage and pace sit under an armed Nomad's
+        // 18 every 1.1 s, because a drifter fights back rather than fights.
         private const float PunchRange = 2.76f;
-        private const int PunchDamage = 12;
-        private const float PunchCooldown = 0.9f;
-        // On the move nothing plants the feet; this only keeps the body on the target through
-        // the strike.
         private const float PunchCommit = 0.32f;
-        private const string PunchTrigger = "Punch";
-        // Punch Right Level reaches full extension between frames 6 and 7 of 23, at 30 fps.
-        private const float PunchImpact = 0.2f;
-        // Under the clip's 0.77 s, so the layer has blended down before the state exits at 0.73 s.
-        private const float PunchLayerSeconds = 0.55f;
+        private const int PunchDamage = 12;
+        private const float PunchCooldown = 1.4f;
 
         // The drifters' writing. They are castaways and wanderers with nothing worth taking, so
         // everything they say is about getting by, each other, and not wanting a fight -- and the
         // machines leave them alone (GlobalRelationships), which is why they can say so
         // (GDC-L1-NARR-0001: what they say has to match what they do). Their past is implied,
         // never explained, and none of it is needed to play (GDC-L1-NARR-0006).
+        //
+        // Raxy's lines are shared by both of its variants, and declared above Drifters because
+        // static initialisers run in order: below it they would still be null when it is built.
+        // The ears are the character: it hears everything first, which is what the band's noise
+        // and alert modules actually do (GDC-L1-NARR-0001).
+        private static readonly string[] RaxyDialogLines =
+        {
+            "Shh. Hear that? No? Ears like these, you hear everything out here.",
+            "I heard your ship come down. Three dunes over. Very loud.",
+            "The machines hum before they come. I hear them long before you'd see them. We walk the other way.",
+            "Don't sneak up on me. You can't. But don't try.",
+            "Everyone asks about the ears. Nobody asks about the feet.",
+            "The wind talks at night. Mostly nonsense. Sometimes where the water is.",
+            "We don't fight. But start something and I'll hear it first. So will the others.",
+        };
+
+        private static readonly string[] RaxyIdleChatter =
+        {
+            "Something's moving out there. Small. Probably.",
+            "Ears are cold. Ears are always cold.",
+            "Quiet today. Good quiet.",
+        };
+
         public static readonly SculptRecipe[] Drifters =
         {
             new SculptRecipe
@@ -276,30 +289,47 @@ namespace SpaceGame.EditorTools
                 FbxPath = ModelFolder + "/Raxy/raxy.fbx",
                 TexturePath = ModelFolder + "/Raxy/Textures/raxy_BaseColor.png",
                 PrefabPath = CharacterFolder + "/Drifter_Raxy.prefab",
-                // A big black pupil in an orange ball, against the blue skin.
-                EyeStyle = "Tangerine",
-                // The ears are the character: it hears everything first, which is what the band's
-                // noise and alert modules actually do (GDC-L1-NARR-0001).
-                DialogLines = new[]
-                {
-                    "Shh. Hear that? No? Ears like these, you hear everything out here.",
-                    "I heard your ship come down. Three dunes over. Very loud.",
-                    "The machines hum before they come. I hear them long before you'd see them. We walk the other way.",
-                    "Don't sneak up on me. You can't. But don't try.",
-                    "Everyone asks about the ears. Nobody asks about the feet.",
-                    "The wind talks at night. Mostly nonsense. Sometimes where the water is.",
-                    "We don't fight. But start something and I'll hear it first. So will the others.",
-                },
-                IdleChatter = new[]
-                {
-                    "Something's moving out there. Small. Probably.",
-                    "Ears are cold. Ears are always cold.",
-                    "Quiet today. Good quiet.",
-                },
+                // Orange against the blue skin, picked by eye.
+                EyeStyle = "Amber",
+                DialogLines = RaxyDialogLines,
+                IdleChatter = RaxyIdleChatter,
             },
+            new SculptRecipe
+            {
+                // The first Raxy: ears spread flat to the sides rather than hanging like a hood.
+                Name = "Drifter_RaxyClassic",
+                FbxPath = ModelFolder + "/RaxyClassic/raxy_classic.fbx",
+                TexturePath = ModelFolder + "/RaxyClassic/Textures/raxy_classic_BaseColor.png",
+                PrefabPath = CharacterFolder + "/Drifter_RaxyClassic.prefab",
+                EyeStyle = "Amber",
+                DialogLines = RaxyDialogLines,
+                IdleChatter = RaxyIdleChatter,
+            },
+            // Raxy in other skins: its blue texture hue-rotated in OKLCH, lightness and chroma kept so
+            // the mottling reads the same. Hues chosen away from the desert's sand and from the band's
+            // other skins (tan, orange, mint, sand, blue); each wears eyes in its complement -- the
+            // pairing that makes the blue Raxy's Amber eyes pop.
+            RaxyColourVariant("Violet", "Lime"),
+            RaxyColourVariant("Teal", "Rose"),
+            RaxyColourVariant("Pink", "Moss"),
         };
 
-        // Shared by all four: one people, one temperament. Barked by AggressionTelegraphModule as
+        /// <summary>
+        /// A Raxy in another skin: the same FBX and lines, its own texture beside the base one
+        /// (<c>raxy_&lt;colour&gt;_BaseColor.png</c>) and its own eye style.
+        /// </summary>
+        private static SculptRecipe RaxyColourVariant(string colour, string eyeStyle) => new SculptRecipe
+        {
+            Name = "Drifter_Raxy" + colour,
+            FbxPath = ModelFolder + "/Raxy/raxy.fbx",
+            TexturePath = ModelFolder + "/Raxy/Textures/raxy_" + colour.ToLowerInvariant() + "_BaseColor.png",
+            PrefabPath = CharacterFolder + "/Drifter_Raxy" + colour + ".prefab",
+            EyeStyle = eyeStyle,
+            DialogLines = RaxyDialogLines,
+            IdleChatter = RaxyIdleChatter,
+        };
+
+        // Shared by every drifter: one people, one temperament. Barked by AggressionTelegraphModule as
         // the meter climbs. Neutral, not pacifist: a gun kept on them, or shots around them, climb
         // the meter to a fight like a hit does, so the last warning has to say so plainly -- it is
         // the one chance the player gets to read the rule before it bites (GDC-L1-SYS-0006).
@@ -1313,11 +1343,6 @@ namespace SpaceGame.EditorTools
             SetFloat(so, "attackCommitDuration", PunchCommit);
             SetInt(so, "attackDamage", PunchDamage);
             SetFloat(so, "attackCooldown", PunchCooldown);
-            SetFloat(so, "impactDelay", PunchImpact);
-            SetBool(so, "strikeOnTheMove", true);
-            SerializedFields.SetString(so, "attackAnimTrigger", PunchTrigger);
-            SetBool(so, "upperBodySwing", true);
-            SetFloat(so, "upperBodySwingSeconds", PunchLayerSeconds);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

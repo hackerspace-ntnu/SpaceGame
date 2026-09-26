@@ -30,7 +30,7 @@ symptoms:
   - "the pupil shows a grid of flat facets under the key light"
   - "a re-unwrapped eye still renders the old mesh although its normals and file are correct"
 reads_with: [ArtPipeline, AgentSystem, PlayerCharacter]
-updated: 2026-09-24
+updated: 2026-09-25
 ---
 
 # Stylized Eyes
@@ -48,7 +48,7 @@ Eye looks authored as assets and baked into equirectangular albedo (and emission
 - **The gaze sits at the middle of the map, uv(0.5, 0.5).** That parks the wrap seam at u=0/1, which is the back of the eyeball, inside the head.
 - **The pupil is deliberately huge** — 25° of a 45° iris on the seeded styles, leaving the colour as a ring around it. That proportion is what makes these read as cartoon eyes rather than as an eyeball with a dot on it; it is not a mis-set default. `Ivory` pulls back from it (22° of 38°) because it is the human one.
 - **Eight styles, and the assets are the truth.** The live look (2026-09-23) puts the colour in the **sclera** — a bright coloured ball, a huge dark pupil (35.9° of a 47.1° iris) leaving the iris as a thin rim, both nudged up 5°, hot white emission on that rim. `Ivory` is the same shape in bone-white with no glow; `Blank` keeps its missing pupil. **`EyeStylePresets` still seeds the OLDER look** — bright iris on a near-black ball — because it only ever creates assets that are absent and never overwrites one. Delete an asset and re-seed and you get the old look back, not this one.
-- **A character claims a style by the asset's NAME**, through `SculptCharacterBuilder.SculptRecipe.EyeStyle`: Human `Ivory`, Alien `Amber`, Crumpy `Ember`, Gary `Acid`, Raxy and Raxy Classic `Amber`, Raxy Violet `Lime`, Raxy Teal `Rose`, Raxy Pink `Moss` — each Raxy's eyes the complement of its skin. The recipe only applies on a new build; Raxy Classic's eyes were set to Amber by hand, and are also rolled ±34.5° there, which is a prefab edit the builder never touches.
+- **A character claims a style by the asset's NAME**, through `SculptCharacterBuilder.SculptRecipe.EyeStyle`: Human `Ivory`, Alien `Amber`, Crumpy `Ember`, Gary `Acid`, and every Raxy — Classic, the Slate, Sage, Ash and Mauve skins and the Poncho and Armor outfits included — `Raxy`, the style the user made for it (Amber until 2026-09-25, when the existing prefabs were switched too). The recipe only applies on a new build; Raxy Classic's eyes were set by hand, and are also rolled ±34.5° there, which is a prefab edit the builder never touches.
 - **Colour cannot be changed in the Inspector at runtime** — baking puts it in the pixels. The texture and the `.mat` are rewritten at the same paths, so every reference survives a re-bake.
 - **Every eye material is on `SpaceGame/Characters/StylizedEye`**, which lights the map as URP/Lit did (Lit's keyword set for a dynamic opaque; same property names, so the old URP/Lit `.mat`s moved over on one re-bake with byte-identical textures) and paints **two eyelids over the ball**. The lids are paint, not geometry: the eyes bulge out of the head, so the visible ball is the only place a lid is ever seen.
 - **A lid hinges on the eye map's own horizontal axis.** Each point's angle about it (0 at the pupil, ±180° behind) comes off the UV, so the lid follows the pupil wherever the eye is turned. The upper lid covers everything above `_LidEdges.x`, the lower everything below `.y`; a dark band `.z` wide on the lid side of each edge (`.w` darker) is what makes a shut eye read as shut.

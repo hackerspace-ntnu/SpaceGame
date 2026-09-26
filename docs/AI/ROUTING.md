@@ -19,6 +19,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Symptom | Read |
 | --- | --- |
 | [BurningVisual] No fire prefab at Resources/Effects/BodyFire | [Flamethrower](systems/Flamethrower.md) |
+| [CharacterActions] 'X' has no state for action 'Y' — it was added after the controller was built | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | [Fault] something threw (x5) — QUARANTINED, this feature is now off | [Diagnostics](systems/Diagnostics.md) |
 | [InputRestoreGuard] ... no input for 6.1s with no menu, cutscene, death or mount to explain it | [Diagnostics](systems/Diagnostics.md) |
 | [InteriorManager] Failed to load interior X: SceneEventInProgress | [SceneTransitions](systems/SceneTransitions.md) |
@@ -62,6 +63,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client walks through a door and nothing happens | [SceneTransitions](systems/SceneTransitions.md) |
 | a client's booster clamps to whatever the host was looking at | [StrapOnBooster](systems/StrapOnBooster.md) |
 | a client's damage arcs never point anywhere, but the host's do | [Visor](systems/Visor.md) |
+| a clothes prefab shows nothing when opened or dropped into a scene | [CharacterClothes](systems/CharacterClothes.md) |
 | a collider a tool added is on the prefab but nothing ever hits it | [EditorTooling](systems/EditorTooling.md) |
 | a component I added to PlayerShip.prefab by hand disappeared after a rebuild | [PlayerShip](systems/PlayerShip.md) |
 | a continuous item only affects what the crosshair is exactly on, and its visible spray does nothing | [Artifacts](systems/Artifacts.md) |
@@ -88,6 +90,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a double tap of Space does not deploy the wings | [BodyEquipment](systems/BodyEquipment.md) |
 | a double tap of Space does nothing while I am standing on the ground | [Wingsuit](systems/Wingsuit.md) |
 | a double tap of Space lifts me off and then puts me straight back down | [Jetpack](systems/Jetpack.md) |
+| a drifter prefab renders nothing after its FBX gained a bone, or deforms with its old ear positions | [ArtPipeline](systems/ArtPipeline.md) |
 | a dropped creature sinks metres through an intact rope | [CarriedAgent](systems/CarriedAgent.md) |
 | a dropped item cannot be shoved out of the way, and a rope tied to it drags it without turning it | [Inventory](systems/Inventory.md) |
 | a dropped item is buried up to its middle in the ground | [Inventory](systems/Inventory.md) |
@@ -103,6 +106,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0) | [EditorTooling](systems/EditorTooling.md) |
 | a gadget with a tank saves its fill but a client never sees it | [SupplyCharge](systems/SupplyCharge.md) |
 | a gameplay hotkey still fires while a menu or the chat box is open | [CoreServices](systems/CoreServices.md) |
+| a garment dropped onto a character does not follow the body | [CharacterClothes](systems/CharacterClothes.md) |
 | a gauge draws a full bar before the player has finished spawning | [Visor](systems/Visor.md) |
 | a gauge flickers between two colours while the value sits on a threshold | [Visor](systems/Visor.md) |
 | a gauntlet floats over my arm with nothing underneath it | [BodyEquipment](systems/BodyEquipment.md) |
@@ -110,6 +114,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a gauntlet sitting correctly on the gear screen's rail is badged as misplaced | [BodyEquipment](systems/BodyEquipment.md) |
 | a generated prefab has an empty motor slot and no error was logged | [EntitySystem](systems/EntitySystem.md) |
 | a geometric test is documented as failing on purpose, and the thing it measures really is too big | [Backpack](systems/Backpack.md) |
+| a gesture restarts halfway through on a remote player's body | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a ghostly second lander floats inside the cockpit where the terminal stands | [ShipSchematic](systems/ShipSchematic.md) |
 | a grapple swing's speed vanishes the moment the wings deploy | [Ornithopter](systems/Ornithopter.md) |
 | a grazing animal never puts its head down | [AgentSystem](systems/AgentSystem.md) |
@@ -132,6 +137,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a huge black shape sticks out of the pack once a bottle is in its socket, far bigger than the pack itself | [Backpack](systems/Backpack.md) |
 | a huge black shape sticks out of the pack once a bottle is in its socket, far bigger than the pack itself | [Oxygen](systems/Oxygen.md) |
 | a hull module is drawn smaller on the gear wall than the launcher beside it | [PlayerShip](systems/PlayerShip.md) |
+| a humanoid preview render stands in bind pose while the numbers say the bones moved | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a jetpack cannot lift the creature I roped, it just skids along the ground | [CarriedAgent](systems/CarriedAgent.md) |
 | a jetpack pilot cannot lift the player they have roped, or lifts a crate they should not | [LeashSystem](systems/LeashSystem.md) |
 | a joining client fails with 'Scene Hash N does not exist in the HashToBuildIndex table | [Multiplayer](systems/Multiplayer.md) |
@@ -163,6 +169,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a mid-air quicksave reloads standing still in the sky | [Wingsuit](systems/Wingsuit.md) |
 | a mid-air save reloads with the ornithopter falling out of the sky | [Ornithopter](systems/Ornithopter.md) |
 | a module I just resized no longer fits the backpack rack at any angle | [PlayerShip](systems/PlayerShip.md) |
+| a moment is raised but the body does nothing | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a mount carries its rider into a cave and the rider still sees the exterior's lighting | [SceneTransitions](systems/SceneTransitions.md) |
 | a mount that walked into a cave cannot walk back out of it | [SceneTransitions](systems/SceneTransitions.md) |
 | a mounted NPC never fights back and can be shot off its animal at leisure | [Vehicles](systems/Vehicles.md) |
@@ -190,6 +197,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a player being dragged breaks the rope by holding one movement key | [LeashSystem](systems/LeashSystem.md) |
 | a player loaded from a save cannot move and nothing in the log says why | [Hogtie](systems/Hogtie.md) |
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
+| a player's punch shows BLOCKED and does no damage | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a PNG named after a Blender image appeared beside the .blend after an export | [ArtPipeline](systems/ArtPipeline.md) |
 | A polygon of Mesh ... is self-intersecting and has been discarded | [ArtPipeline](systems/ArtPipeline.md) |
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
@@ -201,9 +209,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a provoked drifter follows me around and never hits back | [AgentSystem](systems/AgentSystem.md) |
 | a provoked NPC walks toward me instead of running | [AgentSystem](systems/AgentSystem.md) |
 | a pupil that looks right in the Inspector fills the whole eye on the character | [StylizedEyes](systems/StylizedEyes.md) |
+| a Quaternius clip plays with the character turned round, facing away from where it walks | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a quicksave in mid-air cools the pack down for free | [Jetpack](systems/Jetpack.md) |
 | a ramp cannot be climbed until a few seconds after it is sprayed | [FoamGun](systems/FoamGun.md) |
 | a ramp will not build any higher no matter how long the trigger is held | [FoamGun](systems/FoamGun.md) |
+| a Raxy stands with its lower lip pushed up into its upper lip | [TalkingMouth](systems/TalkingMouth.md) |
 | a raycast right after moving something reads the collider's old position | [ProjectConfig](systems/ProjectConfig.md) |
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
 | a re-unwrapped eye still renders the old mesh although its normals and file are correct | [StylizedEyes](systems/StylizedEyes.md) |
@@ -213,6 +223,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a renamed or newly added test never runs and the old one keeps failing with identical text | [Testing](systems/Testing.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
+| a resculpted character's whole left side follows the right side's bones | [ArtPipeline](systems/ArtPipeline.md) |
 | a resculpted drifter's head deforms wrong in game after a clean re-export | [ArtPipeline](systems/ArtPipeline.md) |
 | a rider arrives twice the aperture separation past the exit | [Portals](systems/Portals.md) |
 | a rider is left behind, or arrives twice as far, when its mount teleports | [SceneTransitions](systems/SceneTransitions.md) |
@@ -273,6 +284,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a tool logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
 | a tool's collider query says everything is already in the right place and nothing moves | [EditorTooling](systems/EditorTooling.md) |
 | a torso item is worn rotated to a random angle | [BodyEquipment](systems/BodyEquipment.md) |
+| a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
 | a war party stops at an old position and never follows me again | [AgentSystem](systems/AgentSystem.md) |
@@ -290,6 +302,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | after the crash-landing intro the player walks and steers but never falls | [WorldStreaming](systems/WorldStreaming.md) |
 | agents refuse to cross a gap or take a jump link | [NavMeshSystem](systems/NavMeshSystem.md) |
 | agents with an 80 m sight range only notice the player at arm's length | [AgentSystem](systems/AgentSystem.md) |
+| an action plays on the owner's screen and never on anyone else's | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| an aimed arm snaps level on every shot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | an ambience or engine loop keeps playing after the object was destroyed | [audio](systems/audio.md) |
 | an animal in the air leans into the dune underneath it | [CarriedAgent](systems/CarriedAgent.md) |
 | an artifact's tank refills itself when I stow it on the pack | [SupplyCharge](systems/SupplyCharge.md) |
@@ -332,11 +346,15 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an NPC spawned on the sky city has no NavMesh under it | [SkyTribe](systems/SkyTribe.md) |
 | an NPC spawns and then stands still forever with a clean console | [NavMeshSystem](systems/NavMeshSystem.md) |
 | an NPC stands bolt upright on a dune instead of leaning into it | [AgentSystem](systems/AgentSystem.md) |
+| an NPC talks with its arms hanging still | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| an NPC talks with its mouth shut | [TalkingMouth](systems/TalkingMouth.md) |
 | an NPC turns to face me when I aim at it but never says anything | [AgentSystem](systems/AgentSystem.md) |
 | an NPC vanishes for clients when its old chunk unloads but the host still has it | [WorldStreaming](systems/WorldStreaming.md) |
 | an NPC walking into the parked ship pushes it around, but the player cannot move it at all | [PlayerShip](systems/PlayerShip.md) |
 | an NPC's chatter mutes every other NPC of the same kind | [audio](systems/audio.md) |
+| an NPC's punch never lands although the arm visibly reaches you | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject | [Multiplayer](systems/Multiplayer.md) |
+| an outfit prefab is missing a piece of clothing | [CharacterClothes](systems/CharacterClothes.md) |
 | an oxygen tank stands on end on the mat and eats a third of the leaf | [Oxygen](systems/Oxygen.md) |
 | AnimationEvent 'X' has no receiver! Are you missing a component?, once per step | [ArtPipeline](systems/ArtPipeline.md) |
 | another player disconnecting blacks out my long-throw lighting | [Flashlight](systems/Flashlight.md) |
@@ -368,6 +386,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Copied Avatar Rig Configuration mis-match: Transform not found in HumanDescription | [ArtPipeline](systems/ArtPipeline.md) |
 | copies of my gear are falling below the terrain at thousands of metres down | [Persistence](systems/Persistence.md) |
 | Could not start a local session on port N / another program may be using it | [Multiplayer](systems/Multiplayer.md) |
+| Creating missing CharacterActions component for PlayerEmotes in PlayerCharacterNetworked | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | creatures path through geometry that is no longer there | [NavMeshSystem](systems/NavMeshSystem.md) |
 | creatures take burn damage from the flamethrower but no flames ever appear on them | [Flamethrower](systems/Flamethrower.md) |
 | creatures walk over a rained-on patch as if it were dry sand | [NavMeshSystem](systems/NavMeshSystem.md) |
@@ -387,6 +406,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every bone of a re-exported character imports at scale 100 | [ArtPipeline](systems/ArtPipeline.md) |
 | every bubble in the spray is the same colour and the same brightness | [FoamGun](systems/FoamGun.md) |
 | every client's shot follows the host's crosshair instead of their own aim | [Artifacts](systems/Artifacts.md) |
+| every clip cut from one CMU take plays the same motion | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| every CMU clip shorter than a second comes out exactly one second long | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | every creature and NPC hovers a hand's width above the sand | [AgentSystem](systems/AgentSystem.md) |
 | every creature standing in one patch takes damage once per player in the session | [Flamethrower](systems/Flamethrower.md) |
 | every eye colour variant looks like the same pale white blob in game | [StylizedEyes](systems/StylizedEyes.md) |
@@ -396,7 +417,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every left-side vertex group of a copied character is empty | [ArtPipeline](systems/ArtPipeline.md) |
 | every limb of the ragdoll is jointed straight to one hub instead of down the limb | [Combat](systems/Combat.md) |
 | every module on the schematic reads MISSING on a ship that is clearly whole | [ShipSchematic](systems/ShipSchematic.md) |
+| every NPC of one prefab stands in the same idle and steps off on the same foot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
+| every NPC throws the same jab and cross | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| every piece of clothing wears the character's skin texture | [CharacterClothes](systems/CharacterClothes.md) |
 | every reload of the world adds another sky city's worth of nomads | [AgentSystem](systems/AgentSystem.md) |
 | every reload of the world adds another sky city's worth of nomads | [SkyTribe](systems/SkyTribe.md) |
 | everyone except the host drops straight into a half-built world with no loading screen | [UI](systems/UI.md) |
@@ -597,6 +621,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | right-clicking opens the wrong door on the other machine | [InteractionSystem](systems/InteractionSystem.md) |
 | right-clicking the terminal does nothing and the crosshair says Terminal | [Terminal](systems/Terminal.md) |
 | ropes from the previous world are still hanging in the newly loaded one | [LeashSystem](systems/LeashSystem.md) |
+| rotating a bone between two renders in one editor command changes nothing in either picture | [TalkingMouth](systems/TalkingMouth.md) |
 | runtime objects from a test turn up saved inside persistentScene | [Testing](systems/Testing.md) |
 | sampling the skin around the eyes finds no vertices near either socket | [StylizedEyes](systems/StylizedEyes.md) |
 | scenes are full of missing prefab instances a GUID grep cannot find | [EditorTooling](systems/EditorTooling.md) |
@@ -644,6 +669,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
 | the beam whips around whenever I fire a gauntlet | [Flashlight](systems/Flashlight.md) |
+| the body pokes through the poncho mid-stride | [CharacterClothes](systems/CharacterClothes.md) |
 | the body screen is open but I have a cursor, no controls and no camera | [BodyEquipment](systems/BodyEquipment.md) |
 | the booster clamps to a crate but the crate does not move | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the booster hangs in the air instead of riding the thing it is stuck to | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -667,7 +693,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the camera shake accessibility slider has no effect | [Cutscenes](systems/Cutscenes.md) |
 | the camera shakes constantly while the trigger is held | [FoamGun](systems/FoamGun.md) |
 | the camera stays behind me after I land | [Jetpack](systems/Jetpack.md) |
+| the character it is on has no bone, so the garment cannot be worn by it | [CharacterClothes](systems/CharacterClothes.md) |
 | the character stands in the idle pose instead of the hold pose, or glides while walking | [Artifacts](systems/Artifacts.md) |
+| the clothes show a noise pattern in game | [CharacterClothes](systems/CharacterClothes.md) |
 | the cloud's underside is as bright as its top | [StormFlask](systems/StormFlask.md) |
 | the collar is drawn in one place and the rope goes taut against another | [Lasso](systems/Lasso.md) |
 | the colours are right but the world looks flat and detail-free, whole cliff faces one colour | [Environment](systems/Environment.md) |
@@ -706,6 +734,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the door opens for the host and stays shut for clients | [InteractionSystem](systems/InteractionSystem.md) |
 | the effect applies on the server and is silently overwritten a tick later | [Artifacts](systems/Artifacts.md) |
 | the effect renders from one half of the compass and is completely invisible from the other half | [Artifacts](systems/Artifacts.md) |
+| the emote wheel opens but letting go of V plays nothing | [UI](systems/UI.md) |
 | the entry burn is still blazing when the screen fades to black at the impact | [PlayerShip](systems/PlayerShip.md) |
 | the entry fire is drawn over the inside of the cabin as well as out of the window | [PlayerShip](systems/PlayerShip.md) |
 | the exported FBX is nowhere in the project and nothing imports it | [ArtPipeline](systems/ArtPipeline.md) |
@@ -794,6 +823,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the item scanner is powered but its screen is blank green | [Artifacts](systems/Artifacts.md) |
 | the item scanner sits on the far flank of my wrist, where I have to twist my arm to read it | [BodyEquipment](systems/BodyEquipment.md) |
 | the item scanner switches on but the arm stays down and the screen faces the ground | [Artifacts](systems/Artifacts.md) |
+| the jaw pops at the start and end of every line | [TalkingMouth](systems/TalkingMouth.md) |
 | the jet comes out of the middle of the barrel instead of the bell | [FoamGun](systems/FoamGun.md) |
 | the jet swings rigidly with the barrel instead of staying where it was thrown | [Flamethrower](systems/Flamethrower.md) |
 | the jet swings rigidly with the gun instead of hanging in the air | [FoamGun](systems/FoamGun.md) |
@@ -837,6 +867,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the motors do not sit on the backpack rig, they float out beside the body | [Jetpack](systems/Jetpack.md) |
 | the mouse goes dead the moment the wings come out, and I can only turn with A and D | [Wingsuit](systems/Wingsuit.md) |
 | the mouse turns my body while the wings are out, and the flight fights it | [Wingsuit](systems/Wingsuit.md) |
+| the mouth keeps flapping after the player skipped to the end of the line | [TalkingMouth](systems/TalkingMouth.md) |
 | the muzzle blast never fires on the first press of the trigger | [FoamGun](systems/FoamGun.md) |
 | the name and prompt move around the screen while I am reading them | [Visor](systems/Visor.md) |
 | the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk | [Scenes](systems/Scenes.md) |
@@ -880,6 +911,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the plant clunks and hisses its way through a reload | [Oxygen](systems/Oxygen.md) |
 | the plant is missing from the ship after a rebuild, with one warning in the console | [Oxygen](systems/Oxygen.md) |
 | the plant's lamp is dark with a power cell fitted, or lit with none | [Oxygen](systems/Oxygen.md) |
+| the player bows or falls over when picking something up | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | the player build fails with BuildFailedException about the world NavMesh | [NavMeshSystem](systems/NavMeshSystem.md) |
 | the player comes out of a ceiling portal lying down in mid-air | [Portals](systems/Portals.md) |
 | the player falls down the gap at the top of a ladder instead of climbing down | [Ladders](systems/Ladders.md) |
@@ -1143,6 +1175,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/gear/ghost_mount_frame.blend` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
+| `Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/SingularityWell.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/SandstormSaveable.cs` | [Environment](systems/Environment.md) |
@@ -1179,6 +1212,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs` | [Placeables](systems/Placeables.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackPlacement.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs` | [Saddles](systems/Saddles.md) |
+| `Assets/Game/Scripts/Presentation/Appearance/SkinnedGarment.cs` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller` | [UI](systems/UI.md) |
 | `Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs` | [Flashlight](systems/Flashlight.md) |
@@ -1188,9 +1222,11 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamBlob.prefab` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Prefabs/agents/Characters/Drifters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
+| `Assets/Game/Scripts/Presentation/Appearance/TalkingMouth.cs` | [TalkingMouth](systems/TalkingMouth.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/agents/Modules/Movement/WanderModule.cs` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab` | [FoamGun](systems/FoamGun.md) |
@@ -1231,6 +1267,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
+| `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs` | [Portals](systems/Portals.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs` | [Hogtie](systems/Hogtie.md) |
@@ -1243,6 +1280,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.hlsl` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormVeil.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StrapOnBooster` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Scripts/Items/Equipped/BoneResolver.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1321,9 +1359,10 @@ Longest match wins.
 | `Assets/Game/Art/Models/Characters/EyeMeshes` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/VisualEffects/Lightning.vfx` | [Artifacts](systems/Artifacts.md) |
+| `Assets/Game/Editor/Agents/DrifterClothes.cs` | [CharacterClothes](systems/CharacterClothes.md) |
+| `Assets/Game/Editor/Agents/DrifterRigSync.cs` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Editor/Agents/EyeStyleEditor.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Items/WornGearPreview.cs` | [BodyEquipment](systems/BodyEquipment.md) |
-| `Assets/Game/Editor/PlayerGlideLayerSetup.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Tests/AgentCarryTests.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Editor/Tests/GroundFireTests.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab` | [UI](systems/UI.md) |
@@ -1335,9 +1374,11 @@ Longest match wins.
 | `Assets/Game/Tests/EditMode/WalkerTestRig.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Editor/Tests/FoamFieldTests.cs` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Ghosts` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Presentation/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Art/Materials/Characters/Raxy` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Models/Items/squirter.fbx` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Editor/Agents/EyelidWiring.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/` | [SceneTransitions](systems/SceneTransitions.md) |
@@ -1348,6 +1389,7 @@ Longest match wins.
 | `Assets/Game/Settings/SkyCityNavMesh.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `ProjectSettings/EditorBuildSettings.asset` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Art/Textures/Characters/Eyes` | [StylizedEyes](systems/StylizedEyes.md) |
+| `Assets/Game/Editor/Agents/MouthWiring.cs` | [TalkingMouth](systems/TalkingMouth.md) |
 | `Assets/Game/Resources/AudioCatalog.asset` | [audio](systems/audio.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Presentation/Cameras` | [Backpack](systems/Backpack.md) |
@@ -1355,6 +1397,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/HogtieTests.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Editor/Tests/LadderTests.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scenes/Core/Bootstrap.unity` | [CoreServices](systems/CoreServices.md) |
+| `Assets/Game/ScriptableObjects/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Presentation/Audio/` | [audio](systems/audio.md) |
 | `Assets/Game/Scripts/Presentation/Cloth/` | [Cutscenes](systems/Cutscenes.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD` | [InteractionSystem](systems/InteractionSystem.md) |
@@ -1388,6 +1431,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Placeables` | [Placeables](systems/Placeables.md) |
 | `Assets/Game/Scripts/Presentation/UI/` | [UI](systems/UI.md) |
 | `Assets/Game/Scripts/World/Streaming/` | [WorldStreaming](systems/WorldStreaming.md) |
+| `Assets/Game/Art/Animations/Humanoid` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Prefabs/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Gear/JumpingRod` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
@@ -1417,6 +1461,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Art/Shaders/Portal/` | [Portals](systems/Portals.md) |
 | `Assets/Game/Editor/Environment/` | [Environment](systems/Environment.md) |
+| `Assets/Game/Resources/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Core/Input/` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/Scripts/Core/Input/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Locomotion/` | [Locomotion](systems/Locomotion.md) |
@@ -1428,8 +1473,10 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Wall` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Editor/Creatures/` | [AgentSystem](systems/AgentSystem.md) |
 | `Assets/Game/Scripts/Vehicles/` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Editor/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Portals/` | [Portals](systems/Portals.md) |
 | `Assets/Game/Scripts/Weapons/` | [Combat](systems/Combat.md) |
+| `Assets/ThirdParty/Quaternius` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Backpack` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Editor/Terrain/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Prefabs/Camera/` | [Environment](systems/Environment.md) |
@@ -1446,6 +1493,7 @@ Longest match wins.
 | `tools/palette_preview.py` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Art/Models` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Packages/manifest.json` | [ProjectConfig](systems/ProjectConfig.md) |
+| `Assets/ThirdParty/CMU` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Scenes/` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Audio/` | [audio](systems/audio.md) |
@@ -1454,4 +1502,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1092 symptoms, 336 paths, 58 docs -->
+<!-- 1124 symptoms, 352 paths, 61 docs -->

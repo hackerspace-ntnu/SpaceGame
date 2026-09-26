@@ -35,7 +35,7 @@ symptoms:
   - "the torch came back on after a reload but the world is still dark for everyone else"
   - "changing beam length or spot angle in the Inspector does nothing at runtime"
 reads_with: [PlayerCharacter, BodyEquipment, Artifacts, Multiplayer, Persistence, Environment]
-updated: 2026-09-13
+updated: 2026-09-25
 ---
 
 # Flashlight
@@ -74,7 +74,7 @@ A player torch in three layers: a URP spot light, a global-uniform long-throw co
 | `PlayerArmAim` | [PlayerArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs) | Points a posed forearm at the look. `SetPointer`/`ClearPointer` per arm; runs on every machine off `PlayerViewNetwork.AimPivot`. Added by `PlayerAimRig.Awake`, never authored on a prefab |
 | `ArmAim` | [ArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs) | The maths with no frame in it: `Convergence`, the clamped `Swing`, and `Point` — shoulder share then elbow passes. Pinned by `ArmAimTests` |
 | `PlayerAimRig.SetWornStyle` | [PlayerAimRig.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs) | The pose a working gauntlet on one arm asks for — **shared with the Item Scanner**, which asks for it while powered ([Artifacts.md](Artifacts.md)). `PoseStyle` lets a held item override it, `PoseMirrored` says which arm asked, `Posing` is what the layer weight follows, `LeftArmStyle` is what the second (left-arm) layer plays when both arms ask at once |
-| `PlayerUpperBodySetup` | [PlayerUpperBodySetup.cs](Assets/Game/Editor/PlayerUpperBodySetup.cs) | *Tools ▸ SpaceGame ▸ Player ▸ Build Upper Body Layer*. Builds both masked layers, their masks and every hold/raise/mirrored state. Idempotent; re-run it after adding a hold style |
+| `HumanoidControllerBuilder` | [HumanoidControllerBuilder.cs](Assets/Game/Editor/Animation/HumanoidControllerBuilder.cs) | *Tools ▸ SpaceGame ▸ Animation ▸ Rebuild Humanoid Controller*. Generates both masked layers, their masks and every hold/raise/mirrored state from the humanoid profile ([HumanoidAnimation.md](HumanoidAnimation.md)) |
 
 Consumers of the long-throw layer: [StylizedTerrain.shader](Assets/Game/Art/Shaders/Terrain/StylizedTerrain.shader), [CaveTriplanar.shader](Assets/Game/Art/Shaders/caves/CaveTriplanar.shader), [AlgaeRock.shader](Assets/Game/Art/Shaders/caves/AlgaeRock.shader) — each does `lit += SampleFlashlight(IN.positionWS, N, wrap);` after its normal lighting.
 
@@ -131,5 +131,5 @@ Body-slot bags are saved by `BodyEquipmentSaveable` through `GearSaveCodec.Captu
 4. Per-player long throw would need the globals replaced by an array plus a loop in `SampleFlashlight`, and `OwnsSingleSlotEffects` dropped.
 5. Changing the lamp's shape or where it points: edit `gauntlet_flashlight.py`'s constants, re-export with `gauntlet_flashlight_export.py`, then re-run *Tools ▸ SpaceGame ▸ Items ▸ Build Flashlight Gauntlet*. The builder re-finds `Emitter` and `Mesh_Flashlight_Bulb` by name, so renaming either in the model silently unwires it — the builder's `VERIFY` lines say so.
 6. Aim tuning is on `PlayerArmAim`, on the player, not on the gauntlet: `convergeRange` (where the beam and the crosshair agree exactly), `maxSwing` (how far the arm will follow), `shoulderShare` (how much of the swing is shoulder rather than elbow), `elbowPasses`, `aimBlendTime`. Any other worn device that should point where the player looks calls `SetPointer(WornOn, <its own emitter>)` in `OnEquipped` and `ClearPointer` in `OnUnequipped` — the Item Scanner deliberately does not, because its screen has to face the wearer.
-7. Changing the pose: `litPose` on the prefab's `FlashlightGauntletArtifact` — `OneHanded` is the ordinary item pose, `Relaxed` carries it lower. A new style needs a row in `PlayerUpperBodySetup.HoldStyles` and nothing else: the mirrored twin and the `Worn Left` state are both built from that row. Changing what those poses *are* changes them for every held item too; that is [Artifacts.md](Artifacts.md)'s `HoldStyle`, not this system's.
+7. Changing the pose: `litPose` on the prefab's `FlashlightGauntletArtifact` — `OneHanded` is the ordinary item pose, `Relaxed` carries it lower. A new style is an appended `ItemGrip.HoldStyle` value plus a pose in the humanoid profile, then *Rebuild Humanoid Controller*: the mirrored twin and the `Worn Left` state are both generated from that one entry. Changing what those poses *are* changes them for every held item too; that is [Artifacts.md](Artifacts.md)'s `HoldStyle`, not this system's.
 8. A second torch (a lantern, a vehicle lamp) is a new item carrying its own `Flashlight`; only one may own the long-throw slot, and today that is whichever the owner's `PlayerViewNetwork` was handed last.

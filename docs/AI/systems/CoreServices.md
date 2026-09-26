@@ -16,7 +16,7 @@ symptoms:
   - "my asmdef cannot see PlayerController / GameServices / NetMessaging"
   - "a gameplay hotkey still fires while a menu or the chat box is open"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-09-07
+updated: 2026-09-25
 ---
 
 # Core Services
@@ -86,7 +86,7 @@ Asset: [InputSystem_Actions.inputactions](Assets/Game/Settings/Input/InputSystem
 | Map | Actions |
 | --- | --- |
 | `Player` | Move, Look, Use, Interact (**right mouse**), Crouch (**C**), Jump, Previous, Next, Sprint (**Shift**, read by the body and by mounts), Dash, Vertical, Turn (Q/E, mounts), Backpack, GauntletLeft (**Q**), GauntletRight (**E**) |
-| `UI` | Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevice*, Hotkey, Map, Pause, DevInventory (**O**), Chat, Hud, BodyInventory (**I**) |
+| `UI` | Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevice*, Hotkey, Map, Pause, DevInventory (**O**), Chat, Hud, BodyInventory (**I**), EmoteWheel (**V** / d-pad down, held), EmotePage (Q/E, scroll, shoulders), EmoteAim (right stick) |
 | `Hotbar` | Hotbar1–Hotbar10, Drop, HotbarScroll |
 
 Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.

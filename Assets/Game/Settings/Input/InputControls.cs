@@ -1001,6 +1001,33 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""EmoteWheel"",
+                    ""type"": ""Button"",
+                    ""id"": ""4b0f6c2e-8d57-4a3e-9f21-6b7d3c1e5a90"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""EmotePage"",
+                    ""type"": ""Value"",
+                    ""id"": ""9e3a1d74-2c5b-4f86-a0d9-3b8e7f41c62d"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""EmoteAim"",
+                    ""type"": ""Value"",
+                    ""id"": ""c7d25e19-6a4f-4b3c-8e02-5f9a1b7d4e36"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -1619,6 +1646,116 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""BodyInventory"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""1f8c3a52-7e94-4d0b-b6a1-2c5e9d7f3b48"",
+                    ""path"": ""<Keyboard>/v"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""EmoteWheel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6a2e9b41-3c7d-4f58-9e0a-8b1d5c3f7e26"",
+                    ""path"": ""<Gamepad>/dpad/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""EmoteWheel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""Keyboard"",
+                    ""id"": ""2d7f4c83-9a1e-4b65-8c30-7e5b2a9d1f47"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""8b3e1f96-4d2a-4c7e-a5f0-1d9c6b3e8a25"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""5c9a2d71-8e3f-4b06-9d14-6a2f8e1c5b93"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""Gamepad"",
+                    ""id"": ""3e6b8f25-1a9d-4c47-b0e3-9f5c2d7a4e18"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""7f1d4a39-6c2e-4b85-8a07-3e9b5d1f6c24"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""0a5c7e13-9b4d-4f26-a8e1-5c3f9d2b7a64"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4e8a6c27-3f1b-4d90-b2c5-7a9e1d4f8b36"",
+                    ""path"": ""<Mouse>/scroll/y"",
+                    ""interactions"": """",
+                    ""processors"": ""Invert"",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""EmotePage"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9c2f5b48-7d3a-4e61-8f0b-2e6a9c4d1f75"",
+                    ""path"": ""<Gamepad>/rightStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""EmoteAim"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -1971,6 +2108,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_Chat = m_UI.FindAction("Chat", throwIfNotFound: true);
         m_UI_Hud = m_UI.FindAction("Hud", throwIfNotFound: true);
         m_UI_BodyInventory = m_UI.FindAction("BodyInventory", throwIfNotFound: true);
+        m_UI_EmoteWheel = m_UI.FindAction("EmoteWheel", throwIfNotFound: true);
+        m_UI_EmotePage = m_UI.FindAction("EmotePage", throwIfNotFound: true);
+        m_UI_EmoteAim = m_UI.FindAction("EmoteAim", throwIfNotFound: true);
         // Hotbar
         m_Hotbar = asset.FindActionMap("Hotbar", throwIfNotFound: true);
         m_Hotbar_Hotbar1 = m_Hotbar.FindAction("Hotbar1", throwIfNotFound: true);
@@ -2345,6 +2485,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_Chat;
     private readonly InputAction m_UI_Hud;
     private readonly InputAction m_UI_BodyInventory;
+    private readonly InputAction m_UI_EmoteWheel;
+    private readonly InputAction m_UI_EmotePage;
+    private readonly InputAction m_UI_EmoteAim;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -2425,6 +2568,18 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @BodyInventory => m_Wrapper.m_UI_BodyInventory;
         /// <summary>
+        /// Provides access to the underlying input action "UI/EmoteWheel".
+        /// </summary>
+        public InputAction @EmoteWheel => m_Wrapper.m_UI_EmoteWheel;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/EmotePage".
+        /// </summary>
+        public InputAction @EmotePage => m_Wrapper.m_UI_EmotePage;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/EmoteAim".
+        /// </summary>
+        public InputAction @EmoteAim => m_Wrapper.m_UI_EmoteAim;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_UI; }
@@ -2501,6 +2656,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @BodyInventory.started += instance.OnBodyInventory;
             @BodyInventory.performed += instance.OnBodyInventory;
             @BodyInventory.canceled += instance.OnBodyInventory;
+            @EmoteWheel.started += instance.OnEmoteWheel;
+            @EmoteWheel.performed += instance.OnEmoteWheel;
+            @EmoteWheel.canceled += instance.OnEmoteWheel;
+            @EmotePage.started += instance.OnEmotePage;
+            @EmotePage.performed += instance.OnEmotePage;
+            @EmotePage.canceled += instance.OnEmotePage;
+            @EmoteAim.started += instance.OnEmoteAim;
+            @EmoteAim.performed += instance.OnEmoteAim;
+            @EmoteAim.canceled += instance.OnEmoteAim;
         }
 
         /// <summary>
@@ -2563,6 +2727,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @BodyInventory.started -= instance.OnBodyInventory;
             @BodyInventory.performed -= instance.OnBodyInventory;
             @BodyInventory.canceled -= instance.OnBodyInventory;
+            @EmoteWheel.started -= instance.OnEmoteWheel;
+            @EmoteWheel.performed -= instance.OnEmoteWheel;
+            @EmoteWheel.canceled -= instance.OnEmoteWheel;
+            @EmotePage.started -= instance.OnEmotePage;
+            @EmotePage.performed -= instance.OnEmotePage;
+            @EmotePage.canceled -= instance.OnEmotePage;
+            @EmoteAim.started -= instance.OnEmoteAim;
+            @EmoteAim.performed -= instance.OnEmoteAim;
+            @EmoteAim.canceled -= instance.OnEmoteAim;
         }
 
         /// <summary>
@@ -3124,6 +3297,27 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnBodyInventory(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "EmoteWheel" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnEmoteWheel(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "EmotePage" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnEmotePage(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "EmoteAim" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnEmoteAim(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Hotbar" which allows adding and removing callbacks.

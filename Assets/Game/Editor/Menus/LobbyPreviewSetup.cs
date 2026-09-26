@@ -41,8 +41,7 @@ namespace SpaceGame.EditorTools
         private const string ModelPath =
             "Assets/Game/Art/Models/Characters/Astronaut/astronaut.fbx";
 
-        private const string ControllerPath =
-            "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        private const string ControllerPath = HumanoidControllerBuilder.ControllerPath;
 
         private const string PlayerPrefabPath =
             "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";

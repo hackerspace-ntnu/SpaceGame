@@ -415,6 +415,26 @@ Characters' eyes are painted, not lit: a pupil, a coloured iris that darkens tow
 
 **Worth knowing:** The eyeballs arrived from the sculpt with their wrapping broken in a way that looks perfectly fine until you paint on one, at which point a single pupil comes out as two or four pointing different ways. The build fixes the wrapping itself rather than trusting what shipped.
 
+### A mouth that moves when it talks *(TalkingMouth)*
+
+A character with a jaw opens and shuts its mouth while the speech bubble types out what it is saying. The mouth follows the letters: wide on an "a" or an "o", half open on the other vowels, barely open on consonants, and shut on an "m", a "b", a "p" and between words. So it pauses where the text pauses, and stops the moment you skip to the end of the line. Raxy is the first to have one: its lip line was cut open onto a jaw bone, with a dark mouth behind it.
+
+**Worth knowing:** Unity's humanoid animation drives the jaw on every frame, and it drives it slightly clenched, so the mouth has to hold its own jaw shut between lines. Remove it and every Raxy stands with its lower lip pushed into its upper one.
+
+### Clothes *(CharacterClothes)*
+
+Clothes are modelled on the character in Blender and then each one becomes its own piece in the game: a poncho, pants, shorts, armour, straps, a belt, a backpack and bracelets for Raxy, each in its own colour. A character wears them by having them placed on it, and they bend with its body as it walks. Two dressed Raxys come ready-made, one in the poncho and one in the armour, and any Raxy can be dressed by dragging clothes onto it.
+
+**Worth knowing:** The clothes were modelled with a faceted, low-poly look, and in the game that faceting read as a noisy speckle across the cloth, so they are now smoothed. Loose clothes still let an arm or a hip poke through mid-stride; the fix for that is in how each piece is weighted in Blender.
+
+### How people move, gesture and fight *(HumanoidAnimation)*
+
+Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and patrol robot — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
+
+On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About three hundred animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
+
+**Worth knowing:** The player's body is animated only on its owner's machine and copied to everyone else, while an NPC is animated on every machine at once; mixing the two up is how a gesture ends up playing twice or not at all for other players.
+
 ### The build menus *(EditorTooling)*
 
 Roughly fifty menu commands sit behind the editor's Tools menu and cover almost everything: rebuilding a creature, vehicle, weapon or item from its model; carving the world into streamed chunks and baking navigation into it; generating item icons; registering things for multiplayer; checking that saving is wired up. Commands named Audit, Report or Validate only look; commands named Build, Wire, Apply, Fix or Bake write to disk, and the two are kept as separate twins on purpose. Two hooks run automatically whenever a model is imported; everything else you invoke deliberately.

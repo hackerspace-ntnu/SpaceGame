@@ -40,8 +40,11 @@ namespace SpaceGame.Gameplay
         public UnityEvent onNoChosen;
     }
 
-    public class DialogInteraction : MonoBehaviour, IInteractable, IContextualInteractable
+    public class DialogInteraction : MonoBehaviour, IInteractable, IInteractionMoment, IContextualInteractable
     {
+        /// <summary>Nothing on the body: a conversation has its own motion.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         [Header("Dialog")]
         [SerializeField] private DialogMode dialogMode = DialogMode.PredefinedSequence;
         [TextArea(2, 5)]
@@ -455,7 +458,8 @@ namespace SpaceGame.Gameplay
                     currentLineIndex = ResolveNextIndex(step.noNextStepIndex, currentLineIndex + 1);
                     lastInteractionTime = Time.time;
                     HandleBranchingInteraction(interactor);
-                });
+                },
+                transform);
         }
 
         private int ResolveNextIndex(int configuredIndex, int fallbackIndex)
@@ -680,7 +684,7 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private void SpeakLine(string line)
         {
-            NpcDialogPopupUI.Instance.Show(ResolveTokens(line), popupDuration);
+            NpcDialogPopupUI.Instance.Show(ResolveTokens(line), popupDuration, transform);
 
             Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
         }
@@ -759,7 +763,8 @@ namespace SpaceGame.Gameplay
                     lastInteractionTime = Time.time;
                     EndDialogueSessionWithDelay();
                     onNo?.Invoke();
-                });
+                },
+                transform);
 
             return true;
         }

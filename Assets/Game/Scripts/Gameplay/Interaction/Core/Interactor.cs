@@ -7,6 +7,7 @@ using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Diagnostics;
+using SpaceGame.Presentation;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Gameplay
@@ -175,11 +176,18 @@ namespace SpaceGame.Gameplay
                     Fault.Run(target, "Interactable.Interact", () => interactable.Interact(this));
                 else
                     interactable.Interact(this);
+
+                // Shown whether or not the server then agrees, like the press's own sound: the body
+                // answers the player's hand, not the outcome (GDC-L1-ANIM-0002).
+                BodyLanguage.React(this, InteractionMoments.Of(interactable));
                 return;
             }
 
             if (PressPicksUp(interactable, available) && interactable is IRetrievable retrievable)
+            {
                 retrievable.Retrieve(this);
+                BodyLanguage.React(this, CharacterMoment.PickedUp);
+            }
         }
 
         /// <summary>

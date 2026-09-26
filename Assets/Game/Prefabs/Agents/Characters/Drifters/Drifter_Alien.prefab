@@ -2137,6 +2137,12 @@ GameObject:
   - component: {fileID: 6171106716006324648}
   - component: {fileID: 4147416084983116387}
   - component: {fileID: 4550177604145150724}
+  - component: {fileID: 917040169596990944}
+  - component: {fileID: 573130963636450334}
+  - component: {fileID: 7669641723806780056}
+  - component: {fileID: 1045739358276939085}
+  - component: {fileID: 5549793581118457405}
+  - component: {fileID: 2719277002209996244}
   m_Layer: 0
   m_Name: Drifter_Alien
   m_TagString: Untagged
@@ -2507,7 +2513,8 @@ MonoBehaviour:
   - You started this!
   - All right. You wanted a fight.
   - Drifters! On me!
-  aimWhileDrawn: 0
+  drawnAction: {fileID: 0}
+  waryAction: {fileID: 11400000, guid: d9403d33a047405d91dc92050ffee8a9, type: 2}
   standGroundWhileDrawn: 1
   facingPriority: 22
 --- !u!114 &5647846685334364661
@@ -2614,8 +2621,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.HealthReactionModule
   thresholdReactions: []
-  hurtAnimTrigger: Hurt
-  dieAnimTrigger: Death
+  hurtAnimTrigger: 
+  dieAnimTrigger: 
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
   hurtId: 409
@@ -3145,7 +3152,10 @@ MonoBehaviour:
   knockbackLeapDuration: 0.55
   knockbackMassReference: 80
   knockbackMassScale: {x: 0.4, y: 2.5}
-  attackAnimTrigger: Meele
+  attackCue: {fileID: 11400000, guid: 0cf54a492c8e4afaa988ee2a1b37058a, type: 2}
+  attackAction: {fileID: 11400000, guid: de2491007672440597f3b6f59dffea47, type: 2}
+  attackAnimTrigger: 
+  contactGrace: 0.25
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
@@ -3199,3 +3209,94 @@ MonoBehaviour:
     openTime: 0.15
     doubleBlinkChance: 0.25
     doubleBlinkGap: 0.08
+--- !u!114 &917040169596990944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f52e51190964b8c823adb8879936eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterActions
+  animator: {fileID: 0}
+--- !u!114 &573130963636450334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98aef13143c54bd6bfe9cd74867f3925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.IdleVariation
+  animator: {fileID: 0}
+  secondsPerIdle: 14
+  blendSeconds: 0.8
+  secondsPerFidget: 9
+--- !u!114 &7669641723806780056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e937dc32bd941ce8218cf5823caf7bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.HurtReaction
+--- !u!114 &1045739358276939085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f4f71220dd5483e81143d86bee11e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.BodyLanguage
+  actions: {fileID: 0}
+  reactions: {fileID: 0}
+  fullBody: 1
+  movingAbove: 0.5
+  holdRetrySeconds: 0.25
+--- !u!114 &5549793581118457405
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57709f2066f034082a823cf9c20543ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.SpeechGestures
+  talking: {fileID: 11400000, guid: 2434891c64e6747a395070d4b89aba13, type: 2}
+  beatEvery: {x: 1.1, y: 2.4}
+  firstBeatAfter: 0.5
+  newConversationAfter: 10
+--- !u!114 &2719277002209996244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9084312159628000530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 720de3d91bf642adb83d93d9320cee1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MeleeDefense
+  blockChance: 0.12
+  dodgeChance: 0.08
+  blockPassThrough: 0.25
+  facingCone: 120
+  cooldown: 3

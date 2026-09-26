@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Sit Cross Leg
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 0
+  playback: 1
+  variants:
+  - clip: {fileID: 6165092542995562600, guid: 329f55d5aa37646fca1a938c8154c757, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.2
+  fadeOut: 0.25
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: ab4b79ae333dd4c0e909288a8c5bc5a6, type: 2}
+  - {fileID: 11400000, guid: 13dbd2bce39e34fcdaad1700a00e7d68, type: 2}
+  postures: 0

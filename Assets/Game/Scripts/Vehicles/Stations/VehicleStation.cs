@@ -61,11 +61,15 @@ using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Vehicles
 {
-    public abstract class VehicleStation : MonoBehaviour, IInteractable
+    public abstract class VehicleStation : MonoBehaviour, IInteractable, IInteractionMoment
     {
+        /// <summary>Nothing on the body: taking the station seats the body at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         // ── Wire verbs. See the header for the table. ──
         private const int AskVerb = -1;
         private const int FreeVerb = 0;

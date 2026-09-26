@@ -235,7 +235,7 @@ namespace SpaceGame.Tests
             // Proves the presentation half is reachable at all before asserting that the handler
             // did not reach it — otherwise a renamed event would make the assertion below pass for
             // the wrong reason.
-            Invoke(module, "PresentSwing", Vector3.zero);
+            Invoke(module, "PresentSwing", Vector3.zero, null, -1);
             Assert.AreEqual(1, presented, "Fixture cannot present a swing at all.");
 
             NetArg arg = AgentActionRelay.Describe(AgentAction.Melee, Vector3.zero, Vector3.forward, Quaternion.identity);

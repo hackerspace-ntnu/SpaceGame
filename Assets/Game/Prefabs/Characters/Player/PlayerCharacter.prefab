@@ -168,6 +168,10 @@ GameObject:
   - component: {fileID: 5584379645804844159}
   - component: {fileID: 2667149556336272184}
   - component: {fileID: 2462562064392456293}
+  - component: {fileID: 1853165448607433757}
+  - component: {fileID: 1175561888287225135}
+  - component: {fileID: 4461348525464975764}
+  - component: {fileID: 5216251872559827799}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -798,7 +802,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAimRig
   animator: {fileID: 5496312837281773235}
   holdBlendTime: 0.18
-  defaultGestureSeconds: 2.5
   raiseBlendTime: 0.12
   raisePitchRange: 45
 --- !u!114 &6558388417224476658
@@ -1036,6 +1039,67 @@ MonoBehaviour:
   lineSnap: 12
   stepOffLift: 0.05
   bottomTolerance: 0.15
+  topEntryDrop: 0.5
+  mantleReach: 0.5
+  headSkin: 0.05
+--- !u!114 &1853165448607433757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f52e51190964b8c823adb8879936eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterActions
+  animator: {fileID: 0}
+--- !u!114 &1175561888287225135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98aef13143c54bd6bfe9cd74867f3925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.IdleVariation
+  animator: {fileID: 0}
+  secondsPerIdle: 14
+  blendSeconds: 0.8
+  secondsPerFidget: 9
+--- !u!114 &4461348525464975764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e937dc32bd941ce8218cf5823caf7bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.HurtReaction
+--- !u!114 &5216251872559827799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f4f71220dd5483e81143d86bee11e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.BodyLanguage
+  actions: {fileID: 0}
+  reactions: {fileID: 0}
+  fullBody: 0
+  movingAbove: 0.5
+  holdRetrySeconds: 0.25
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0

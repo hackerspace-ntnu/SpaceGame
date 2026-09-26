@@ -229,12 +229,8 @@ namespace SpaceGame.Characters
             inputs.OnJumpPressed += OnJump;
             inputs.OnDashPressed += OnDash;
 
-            var health = GetComponent<HealthComponent>();
-            if (health != null)
-            {
-                health.OnDamage += _ => TriggerAnimator("Hurt");
-                health.OnDeath += () => TriggerAnimator("Die");
-            }
+            // No hurt or death animation from here: the flinch is the server's (HurtReaction, on
+            // every machine) and death is the ragdoll's.
         }
 
         private void FixedUpdate()
@@ -650,12 +646,6 @@ namespace SpaceGame.Characters
 
             float planar = new Vector2(localVelocity.x, localVelocity.z).magnitude;
             return planar <= clipSpeed ? 1f : planar / clipSpeed;
-        }
-
-        private void TriggerAnimator(string triggerName)
-        {
-            if (animator && animator.runtimeAnimatorController != null)
-                animator.SetTrigger(triggerName);
         }
 
         public void ForceIdleAnimation()

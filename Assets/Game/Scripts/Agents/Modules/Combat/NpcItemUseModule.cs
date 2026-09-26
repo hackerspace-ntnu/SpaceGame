@@ -91,9 +91,9 @@ namespace SpaceGame.Agents
 
         [SerializeField] private int facingPriority = ModulePriority.RangedAttack;
 
-        [Header("Animation")]
-        [Tooltip("Animator trigger fired on each use. Leave empty to drive no animation.")]
-        [SerializeField] private string useAnimTrigger = string.Empty;
+        // No animation of its own: a use plays the ITEM's use action (UsableItem.useAction), on
+        // every machine, through the same PlayUse that plays its sound — so a watcher sees the
+        // shot as well as hearing it.
 
         // Side-effect only: this module says when to pull a trigger, never where to walk.
         public override bool ClaimsMovement => false;
@@ -109,7 +109,6 @@ namespace SpaceGame.Agents
 
         private EntityEquipmentController equipment;
         private HealthComponent health;
-        private Animator animator;
 
         private float cooldownTimer;
         private int burstRemaining;
@@ -127,7 +126,6 @@ namespace SpaceGame.Agents
         {
             equipment = GetComponent<EntityEquipmentController>();
             health = GetComponent<HealthComponent>();
-            animator = GetComponentInChildren<Animator>();
 
             if (equipment == null)
             {
@@ -285,10 +283,7 @@ namespace SpaceGame.Agents
             if (!Equip()) return;
 
             if (equipment.TryUseOnSelf())
-            {
                 cooldownTimer = cooldown;
-                FireAnimation();
-            }
         }
 
         private void TickIntervalTrigger()
@@ -297,10 +292,7 @@ namespace SpaceGame.Agents
             if (!Equip()) return;
 
             if (equipment.TryUseForward())
-            {
                 cooldownTimer = cooldown;
-                FireAnimation();
-            }
         }
 
         // ── Firing ───────────────────────────────────────────────────────────────
@@ -336,8 +328,7 @@ namespace SpaceGame.Agents
             facingPoint = target.position;
             hasFacingTarget = claimFacing;
 
-            if (equipment.TryUseAt(aim))
-                FireAnimation();
+            equipment.TryUseAt(aim);
 
             burstRemaining--;
             burstTimer = burstInterval;
@@ -351,12 +342,6 @@ namespace SpaceGame.Agents
                 equipment.EquipSlot(slotIndex);
 
             return equipment.HasItem;
-        }
-
-        private void FireAnimation()
-        {
-            if (animator != null && !string.IsNullOrEmpty(useAnimTrigger))
-                animator.SetTrigger(useAnimTrigger);
         }
 
         // ── Aim ──────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
@@ -25,9 +26,12 @@ namespace SpaceGame.Agents
     // Ostrich has a kinematic Rigidbody, no NavMeshAgent and no HealthComponent, so before this it
     // was invisible to the save system entirely. MountSaveable is added from here by SaveablePolicy.
     [DefaultExecutionOrder(1000)]
-    public partial class MountModule : BehaviourModuleBase, IInteractable, IContextualInteractable,
+    public partial class MountModule : BehaviourModuleBase, IInteractable, IInteractionMoment, IContextualInteractable,
                                        IPersistentEntity
     {
+        /// <summary>Nothing on the body: mounting seats the rider at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         public enum CameraPerspective
         {
             FirstPerson,

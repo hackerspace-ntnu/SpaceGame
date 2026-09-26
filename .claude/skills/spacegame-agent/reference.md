@@ -221,17 +221,16 @@ no `AgentAnimatorDriver` because nothing is keyframed.
 | `FallSpeed` | Float | world velocity Y |
 | `IsGrounded` | Bool | always `true` |
 | `IsImmobalized` | Bool (**misspelled in code and in the controllers**) | `Motor.IsImmobile` |
-| `IsAiming` | Bool | `SetIsAiming(bool)` |
 
-Triggers: `Hurt`, `Die`, `ShootRifle`, `SpearAttack`, plus `TriggerByName(string)`.
-Other components fire their own configurable triggers, and their **defaults do not match**:
-`CloseCombatModule.attackAnimTrigger = "Meele"`, `AgentRangedCombatModule.shootAnimTrigger =
-"AssualtShoot"`, `HealthReactionModule.hurtAnimTrigger = "Hurt"`, `dieAnimTrigger = "Death"`.
-`Assets/Game/Art/Animations/Creatures/Golem.controller` carries `Death` **and** `Die` for exactly
-this reason.
+Triggers: `TriggerHurt()` (only where the controller has a `Hurt` trigger — creatures) and
+`TriggerByName(string)`. Creature modules fire their own configurable triggers:
+`CloseCombatModule.attackAnimTrigger` (`"Meele"`, used when no `attackAction` is set),
+`HealthReactionModule.hurtAnimTrigger = "Hurt"`, `dieAnimTrigger = "Death"`.
+`Assets/Game/Art/Animations/Creatures/Golem.controller` carries `Death` **and** `Die`.
 
 Existing controllers: `Assets/Game/Art/Animations/Creatures/{Golem,Vrescal,DuneRat}.controller`,
-`Assets/Game/Art/Animations/Player/AstronautArmature.controller`.
+and the GENERATED `Assets/Game/Art/Animations/Humanoid/Humanoid.controller` every humanoid wears —
+never edit it; its actions are `CharacterAction` assets (docs/AI/systems/HumanoidAnimation.md).
 
 **Three fields set the walk cycle and they must agree:**
 1. `NavMeshAgent.speed` × `NavMeshAgentMotor.walkSpeedMultiplier` — how fast the body travels.

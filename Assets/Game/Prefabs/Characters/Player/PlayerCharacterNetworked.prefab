@@ -289,49 +289,7 @@ MonoBehaviour:
   NetworkAnimatorExpanded: 0
   AuthorityMode: 0
   m_Animator: {fileID: 8862626371871872524}
-  TransitionStateInfoList:
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 33332140
-    DestinationState: -1907200461
-    TransitionDuration: 0.25
-    TriggerNameHash: -1992750699
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -535349013
-    DestinationState: -1907200461
-    TransitionDuration: 0.1
-    TriggerNameHash: -1992750699
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -535349013
-    DestinationState: -1718659478
-    TransitionDuration: 0.15
-    TriggerNameHash: -801778589
-    TransitionIndex: 4
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -1288562623
-    DestinationState: -1718659478
-    TransitionDuration: 0.25
-    TriggerNameHash: -801778589
-    TransitionIndex: 3
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 1505629670
-    DestinationState: -1907200461
-    TransitionDuration: 0.1
-    TriggerNameHash: -1992750699
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 1486804723
-    DestinationState: 738289533
-    TransitionDuration: 0.05
-    TriggerNameHash: -1478861625
-    TransitionIndex: 1
+  TransitionStateInfoList: []
   AnimatorParameterEntries:
     ParameterEntries:
     - name: IdleIndex
@@ -360,34 +318,6 @@ MonoBehaviour:
       ParameterType: 4
     - name: IsImmobalized
       NameHash: -2061662632
-      Synchronize: 1
-      ParameterType: 4
-    - name: IsThrow
-      NameHash: -1992750699
-      Synchronize: 1
-      ParameterType: 9
-    - name: AssualtShoot
-      NameHash: -1478861625
-      Synchronize: 1
-      ParameterType: 9
-    - name: Death
-      NameHash: 646380074
-      Synchronize: 1
-      ParameterType: 9
-    - name: Hurt
-      NameHash: 1740614436
-      Synchronize: 1
-      ParameterType: 9
-    - name: Meele
-      NameHash: -801778589
-      Synchronize: 1
-      ParameterType: 9
-    - name: IsAiming
-      NameHash: 2025090383
-      Synchronize: 1
-      ParameterType: 4
-    - name: Hold
-      NameHash: -1074224583
       Synchronize: 1
       ParameterType: 4
     - name: MoveAnimSpeed
@@ -422,34 +352,50 @@ MonoBehaviour:
       NameHash: -1542630508
       Synchronize: 1
       ParameterType: 3
-    - name: Stab
-      NameHash: 1952376142
+    - name: CycleOffset
+      NameHash: -97425982
       Synchronize: 1
-      ParameterType: 9
-    - name: Gesturing
-      NameHash: 375919627
+      ParameterType: 1
+    - name: ActionMirrorFull
+      NameHash: 143714217
       Synchronize: 1
       ParameterType: 4
-    - name: Punch
-      NameHash: -316645540
+    - name: ActionSpeedFull
+      NameHash: -61310031
       Synchronize: 1
-      ParameterType: 9
-    - name: Wave
-      NameHash: 2050359991
+      ParameterType: 1
+    - name: ActionMirrorUpper
+      NameHash: 392923147
       Synchronize: 1
-      ParameterType: 9
-    - name: Cheer
-      NameHash: -813790127
+      ParameterType: 4
+    - name: ActionSpeedUpper
+      NameHash: 83089601
       Synchronize: 1
-      ParameterType: 9
-    - name: Shrug
-      NameHash: -1847043940
+      ParameterType: 1
+    - name: ActionMirrorLeftArm
+      NameHash: -281963784
       Synchronize: 1
-      ParameterType: 9
-    - name: Flex
-      NameHash: -1734177707
+      ParameterType: 4
+    - name: ActionSpeedLeftArm
+      NameHash: -1253052592
       Synchronize: 1
-      ParameterType: 9
+      ParameterType: 1
+    - name: ActionMirrorRightArm
+      NameHash: -1093204901
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedRightArm
+      NameHash: 1719685628
+      Synchronize: 1
+      ParameterType: 1
+    - name: ActionMirrorAdditive
+      NameHash: -903261661
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedAdditive
+      NameHash: 310249348
+      Synchronize: 1
+      ParameterType: 1
   AnimatorParametersExpanded: 0
 --- !u!114 &-3757295630438121014
 MonoBehaviour:
@@ -688,6 +634,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a8d5d2682cfcb14fbe8ad6008286ca3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerEmotes
+  endLoopAbove: 0.5
 --- !u!114 &7033699476868429178
 MonoBehaviour:
   m_ObjectHideFlags: 0

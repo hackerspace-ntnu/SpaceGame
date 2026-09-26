@@ -171,8 +171,31 @@ def _unmirror():
     return fixed
 
 
+def _triangulate():
+    """Triangulate every mesh's data, in memory. Returns how many meshes it triangulated.
+
+    Unity discards an n-gon it judges self-intersecting and leaves a hole, and its test does not
+    agree with any crossing test run in Blender -- resculpting twists n-gons, and Raxy's body
+    came in with a hole behind the neck. Shipping triangles only is what works.
+
+    Done on the mesh data with `bmesh.ops.triangulate`, not with a TRIANGULATE modifier: on an
+    n-gon a sculpt has folded over itself the modifier DROPS triangles, and Raxy's resculpt came
+    out 4 short with a 2 mm pinhole in each brow. bmesh keeps every one. Triangulating adds no
+    vertices, so every weight and shape key survives.
+    """
+    meshes = {o.data for o in bpy.data.objects if o.type == 'MESH'}
+    for me in meshes:
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:])
+        bm.to_mesh(me)
+        bm.free()
+    return len(meshes)
+
+
 def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
-           fix_inverted=False, keep_collection=None, prepare=None, scale_all=False):
+           fix_inverted=False, keep_collection=None, prepare=None, scale_all=False,
+           triangulate=False):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -208,6 +231,9 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     imports at scale 100, which anything parented to a hand then inherits. Off
     by default so nothing already shipping changes; Appa and the other
     creatures size their bone-parented colliders against that 100.
+
+    `triangulate` ships triangles only -- see `_triangulate`. Off by default so nothing
+    already shipping changes; turn it on for a resculpted mesh whose n-gons Unity rejects.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
@@ -215,6 +241,8 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     bpy.ops.wm.open_mainfile(filepath=src)
     if prepare is not None:
         prepare()
+    if triangulate:
+        print("  triangulating %d mesh(es) in memory" % _triangulate())
 
     if keep_collection is not None:
         coll = bpy.data.collections.get(keep_collection)

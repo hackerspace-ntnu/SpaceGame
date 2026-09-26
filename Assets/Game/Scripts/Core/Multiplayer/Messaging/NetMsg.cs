@@ -27,9 +27,11 @@ namespace SpaceGame.Core
         public const ushort ItemUseHeld = 5;  // server → peers: sustain the presentation
 
         // ── Combat ──
-        public const ushort Damage    = 10; // → server, on the TARGET's relay. A = amount, Target = source
+        public const ushort Damage    = 10; // → server, on the TARGET's relay. A = amount, B = DamageKind, Target = source
 
-        // server → peers, on the VICTIM's relay. A = amount, Target = the attacking PLAYER.
+        // server → peers, on the VICTIM's relay. A = amount, B = DamageDefense, Target = the
+        // attacking PLAYER. A is 0 when the victim blocked or dodged the whole blow — the one
+        // case B alone is the news.
         //
         // Damage above travels towards the server; this is the answer coming back, and it exists
         // because a client cannot see its own hits land. Weapon.Use() runs on the authority alone,
@@ -638,8 +640,18 @@ namespace SpaceGame.Core
         public const ushort ConjurerStruck = 114; // server → everyone: draw the bolt at P
 
         // ── Emotes ──
-        // A gesture with no item behind it: /wave and its siblings. On the PLAYER's relay.
-        //   A = index into PlayerEmotes.Table.
+        // A gesture with no item behind it, typed as /wave and its siblings. On the PLAYER's relay.
+        // The emote wheel sends nothing: it runs on the owner, who plays at once.
+        //   A = index into EmoteCatalog.Entries, which names the CharacterAction to play.
         public const ushort Emote = 115; // server → everyone
+
+        // ── Character actions ──
+        // Server → everyone else, on the BODY's relay: play (or stop) a CharacterAction on it.
+        // For the actions no existing message already carries — a flinch the server decided from
+        // damage, a dwell loop, a relayed dialogue gesture. On an NPC every machine plays it; on a
+        // player only the owner's play takes effect and NGO's NetworkAnimator carries it on.
+        //   A = CharacterActionCatalog index, or -1 - slot to stop that slot.
+        //   B = variant | arm << 8 (arm: 0 none, 1 left, 2 right).
+        public const ushort CharacterActed = 116; // server → everyone else
     }
 }

@@ -131,9 +131,13 @@ best template for a new creature builder.
     raycast passes `QueryTriggerInteraction.Ignore` — the project hits triggers by default.
 12. **Animation parameters** (NavMesh creatures) — a controller in
     `Assets/Game/Art/Animations/Creatures/` carrying exactly `SpeedX`, `SpeedY`, `FallSpeed`,
-    `IsGrounded`, `IsImmobalized` *(sic)*, `IsAiming`, plus whatever triggers the combat and health
+    `IsGrounded`, `IsImmobalized` *(sic)*, plus whatever triggers the combat and health
     modules are configured to fire. Then set `animatorSpeedScale = groundSpeed / strideSpeed` or
-    the feet skate.
+    the feet skate. **A humanoid** wears the generated `Humanoid.controller` instead: no triggers
+    at all — run *Tools ▸ SpaceGame ▸ Animation ▸ Wire Humanoid Prefabs* and give its modules
+    `CharacterAction`s (docs/AI/systems/HumanoidAnimation.md). For a new behaviour's gesture, prefer
+    raising a moment (`BodyLanguage.React(this, CharacterMoment.X)`, or `ReactEverywhere` from the
+    server) and a row in `Resources/Animation/MomentReactions.asset` over naming a clip.
 13. **Streaming** — `SceneTracked` with `policy = Migrate`, `keepChunksLoaded = false` for anything
     that roams between chunks.
 14. **Persistence** — `SaveableEntity` + `TransformSaveable` + `HealthSaveable`, and
@@ -352,8 +356,9 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Provoked NPC closes at a walking pace | `NavMeshAgent.speed` was set to the walk | Set it to the run; scale `walkSpeedMultiplier` down from it |
 | Character stands still after an FBX re-export, clean console | Unity downgraded the avatar: `isValid = true`, `isHuman = false` | Re-export via the model's export script (single armature, `add_leaf_bones=False`), reimport, re-check `isHuman` |
 | Creature freezes mid-stride when off screen | Bone-parented renderers give the Animator bind-pose bounds | `animator.cullingMode = AnimatorCullingMode.AlwaysAnimate` |
-| Melee NPC stands still, winds up for seconds and swings long after you moved | The attack clip plays raw — `"Meele"` is a 2.4 s full-body spear throw with ~0.9 s of standing prep | Speed the STATE in the controller (`AstronautArmature`'s `Meele`: `m_Speed` 2, transitions in at offset 0.35), not the prefab; see AgentSystem.md Gotchas |
-| Death animation never plays | `AgentAnimatorDriver.TriggerDie` fires `"Die"`; `HealthReactionModule.dieAnimTrigger` defaults to `"Death"` | Match the controller. `CloseCombatModule` defaults to `"Meele"` and `AgentRangedCombatModule` to `"AssualtShoot"` — both misspellings are real, and `Golem.controller` carries `Die` *and* `Death` |
+| A humanoid NPC's punch never lands although the arm reaches you | Damage waits for the `attackAction`'s Contact mark and is dropped if the target left reach or the tick came more than `contactGrace` late | Check the action's Contact mark against the clip, and that nothing out-ranks `CloseCombatModule` mid-swing |
+| `[CharacterActions] 'X' has no state for action 'Y'` | The action was added after the humanoid controller was built | *Tools ▸ SpaceGame ▸ Animation ▸ Rebuild Humanoid Controller* |
+| A creature's death/hurt animation never plays | Its trigger field names a parameter its own controller lacks (`HealthReactionModule.dieAnimTrigger` defaults to `"Death"`; `Golem.controller` carries `Die` *and* `Death`) | Match the controller; `HumanoidWiringAssetTests` lists every mismatch |
 | Every NPC swings its gun to follow the host's head | `Weapon.UpdateWeaponRotation` aims at `Camera.main` for the owner, and the server owns every NPC | `EntityEquipmentController` sets `Weapon.ExternallyAimed`; keep `aimHeldItem` on |
 | Agent shoots through walls, intermittently | `PerceptionModule.occlusionLayers` left at `Nothing` (it warns and falls back) | Set the mask explicitly on the prefab |
 | Remote clients see it slide with still feet | `LeggedLocomotion` was left in `NetAuthority.simulationDrivers` | Remove it — the legs must keep solving against the replicated body |

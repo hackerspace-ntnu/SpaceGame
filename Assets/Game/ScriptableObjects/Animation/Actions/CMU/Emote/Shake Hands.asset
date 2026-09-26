@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Shake Hands
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 0
+  playback: 0
+  variants:
+  - clip: {fileID: 413444035447125567, guid: dcf02bd103ad34ae8a641b2d5e62194a, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.2
+  fadeOut: 0.25
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: feaab96509bcc4035bc3c0f15610c7b4, type: 2}
+  postures: 0

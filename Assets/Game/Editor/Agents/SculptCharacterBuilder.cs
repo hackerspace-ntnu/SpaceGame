@@ -13,8 +13,8 @@ namespace SpaceGame.EditorTools
 {
     /// <summary>
     /// Builds the sculpt-base drifter NPCs -- Human, Alien, Crumpy, Gary, and Raxy with its Classic,
-    /// Violet, Teal and Pink variants -- from their imported FBX, and owns how every one of them
-    /// behaves and what it says.
+    /// Slate, Sage, Ash and Mauve variants and its Poncho and Armor outfits -- from their imported
+    /// FBX, and owns how every one of them behaves and what it says.
     ///
     /// <para>
     /// They are one family: the same Humanoid bone names, the same object and material names.
@@ -22,7 +22,7 @@ namespace SpaceGame.EditorTools
     /// from Gary onto a skeleton refitted to its own body -- a thumb and three fingers a hand, plus
     /// ear, eye and toe bones the Humanoid mapping ignores -- and Raxy Classic is its earlier head,
     /// kept as a variant. So they are one builder and one recipe type, for the reason the nomad
-    /// prefabs are one builder for nine nomads -- nine copies of this wiring is nine chances for one
+    /// prefabs are one builder for nine nomads -- ten copies of this wiring is ten chances for one
     /// of them to drift out of step with its siblings.
     /// </para>
     ///
@@ -76,6 +76,20 @@ namespace SpaceGame.EditorTools
 
             /// <summary>What it mutters unprompted when a player walks within earshot.</summary>
             public string[] IdleChatter;
+
+            /// <summary>
+            /// Where its body material lives. Null for the usual <c>&lt;Name&gt;_Body.mat</c> beside
+            /// every other drifter's; set for a character that keeps its materials in a folder of its
+            /// own, and to share one skin between prefabs -- Raxy's outfits wear the plain Raxy's.
+            /// </summary>
+            public string BodyMaterialPath;
+
+            /// <summary>
+            /// The clothes it is built wearing, by garment name: prefabs in the Clothes folder beside
+            /// its own (<see cref="DrifterClothes"/>). After that the outfit is the prefab's -- add or
+            /// remove garments in Prefab Mode rather than by a rebuild.
+            /// </summary>
+            public string[] Outfit;
         }
 
         // Lower-case "agents" is the real folder on disk, beside Nomad.prefab. macOS resolves
@@ -85,6 +99,14 @@ namespace SpaceGame.EditorTools
         private const string CharacterFolder = "Assets/Game/Prefabs/agents/Characters/Drifters";
         private const string ModelFolder = "Assets/Game/Art/Models/Characters";
         private const string MaterialFolder = "Assets/Game/Art/Materials/Characters";
+
+        // Raxy has folders of its own: six skins and heads and its outfits, with a prefab per garment
+        // in Clothes/ beside them, and their materials -- the FBX importer remaps the clothes' to
+        // Raxy_*.mat there.
+        private const string RaxyPrefabFolder = CharacterFolder + "/Raxy";
+        private const string RaxyMaterialFolder = MaterialFolder + "/Raxy";
+        private const string RaxyFbx = ModelFolder + "/Raxy/raxy.fbx";
+        private const string RaxyTexture = ModelFolder + "/Raxy/Textures/raxy_BaseColor.png";
 
         /// <summary>
         /// How the FBX names its eye material -- <c>alien_eyes</c>, <c>human_eyes</c>,
@@ -105,7 +127,7 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const string TemplateToCopyId = "sand-nomads";
 
-        private const string AnimatorPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        private const string AnimatorPath = HumanoidControllerBuilder.ControllerPath;
         private const string WalkClipPath = "Assets/Game/Art/Animations/Player/walking.fbx";
 
         /// <summary>
@@ -133,7 +155,7 @@ namespace SpaceGame.EditorTools
         // this much bigger covers proportionally more ground per step.
         private const float ReferenceHumanHeight = 1.7f;
 
-        // Forced by AstronautArmature.controller's own blend-tree sample positions, not picked.
+        // Forced by the humanoid locomotion set's move-cell positions (LocomotionSet), not picked.
         private const float WalkBlendSample = 4.0f;
         private const float RunBlendSample = 7.2f;
 
@@ -147,9 +169,10 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float FallbackClipSpeed = 1.35f;
 
-        // Fists. Reach and commit are the Nomad's: both are 3 m people playing the same "Meele"
-        // swing (HumanM@ThrowSpear01_R, full body). Damage and pace sit under an armed Nomad's
-        // 18 every 1.1 s, because a drifter fights back rather than fights.
+        // Fists. Reach and commit are the Nomad's: both are 3 m people throwing the same unarmed
+        // strike (CharacterActionWiring.UnarmedStrike), whose damage lands on its contact frame.
+        // Damage and pace sit under an armed Nomad's 18 every 1.1 s, because a drifter fights back
+        // rather than fights.
         private const float PunchRange = 2.76f;
         private const float PunchCommit = 0.32f;
         private const int PunchDamage = 12;
@@ -283,51 +306,58 @@ namespace SpaceGame.EditorTools
                     "Found a bolt. Good day.",
                 },
             },
-            new SculptRecipe
-            {
-                Name = "Drifter_Raxy",
-                FbxPath = ModelFolder + "/Raxy/raxy.fbx",
-                TexturePath = ModelFolder + "/Raxy/Textures/raxy_BaseColor.png",
-                PrefabPath = CharacterFolder + "/Drifter_Raxy.prefab",
-                // Orange against the blue skin, picked by eye.
-                EyeStyle = "Amber",
-                DialogLines = RaxyDialogLines,
-                IdleChatter = RaxyIdleChatter,
-            },
-            new SculptRecipe
-            {
-                // The first Raxy: ears spread flat to the sides rather than hanging like a hood.
-                Name = "Drifter_RaxyClassic",
-                FbxPath = ModelFolder + "/RaxyClassic/raxy_classic.fbx",
-                TexturePath = ModelFolder + "/RaxyClassic/Textures/raxy_classic_BaseColor.png",
-                PrefabPath = CharacterFolder + "/Drifter_RaxyClassic.prefab",
-                EyeStyle = "Amber",
-                DialogLines = RaxyDialogLines,
-                IdleChatter = RaxyIdleChatter,
-            },
-            // Raxy in other skins: its blue texture hue-rotated in OKLCH, lightness and chroma kept so
-            // the mottling reads the same. Hues chosen away from the desert's sand and from the band's
-            // other skins (tan, orange, mint, sand, blue); each wears eyes in its complement -- the
-            // pairing that makes the blue Raxy's Amber eyes pop.
-            RaxyColourVariant("Violet", "Lime"),
-            RaxyColourVariant("Teal", "Rose"),
-            RaxyColourVariant("Pink", "Moss"),
+            Raxy("Drifter_Raxy", RaxyFbx, RaxyTexture),
+            // The first Raxy: ears spread flat to the sides rather than hanging like a hood.
+            Raxy("Drifter_RaxyClassic", ModelFolder + "/RaxyClassic/raxy_classic.fbx",
+                 ModelFolder + "/RaxyClassic/Textures/raxy_classic_BaseColor.png"),
+            // Raxy in dull, animal-like skins: its blue texture hue-rotated in OKLCH and desaturated,
+            // lightness kept so the mottling still reads. Saturated variants were tried and rejected.
+            RaxyColourVariant("Slate"),
+            RaxyColourVariant("Sage"),
+            RaxyColourVariant("Ash"),
+            RaxyColourVariant("Mauve"),
+            // Raxy in the clothes modelled for it (raxy.blend's Clothes collection): the set the
+            // user left showing, and the one they left hidden beside it.
+            RaxyOutfit("Poncho", "Clothes_Poncho", "Clothes_Pants", "Clothes_Belt", "Clothes_Backpack",
+                       "Clothes_Bracelets"),
+            RaxyOutfit("Armor", "Clothes_Armor", "Clothes_ArmorStrap", "Clothes_Shorts"),
         };
 
         /// <summary>
-        /// A Raxy in another skin: the same FBX and lines, its own texture beside the base one
-        /// (<c>raxy_&lt;colour&gt;_BaseColor.png</c>) and its own eye style.
+        /// A Raxy: its lines, its own eye style (<c>Raxy</c>, made for it by the user and worn by
+        /// every Raxy), and a prefab and body material in Raxy's own folders.
         /// </summary>
-        private static SculptRecipe RaxyColourVariant(string colour, string eyeStyle) => new SculptRecipe
+        private static SculptRecipe Raxy(string name, string fbxPath, string texturePath) => new SculptRecipe
         {
-            Name = "Drifter_Raxy" + colour,
-            FbxPath = ModelFolder + "/Raxy/raxy.fbx",
-            TexturePath = ModelFolder + "/Raxy/Textures/raxy_" + colour.ToLowerInvariant() + "_BaseColor.png",
-            PrefabPath = CharacterFolder + "/Drifter_Raxy" + colour + ".prefab",
-            EyeStyle = eyeStyle,
+            Name = name,
+            FbxPath = fbxPath,
+            TexturePath = texturePath,
+            PrefabPath = RaxyPrefabFolder + "/" + name + ".prefab",
+            BodyMaterialPath = RaxyMaterialFolder + "/" + name + "_Body.mat",
+            EyeStyle = "Raxy",
             DialogLines = RaxyDialogLines,
             IdleChatter = RaxyIdleChatter,
         };
+
+        /// <summary>
+        /// A Raxy in another skin: the same FBX, its own texture beside the base one
+        /// (<c>raxy_&lt;colour&gt;_BaseColor.png</c>).
+        /// </summary>
+        private static SculptRecipe RaxyColourVariant(string colour) =>
+            Raxy("Drifter_Raxy" + colour, RaxyFbx,
+                 ModelFolder + "/Raxy/Textures/raxy_" + colour.ToLowerInvariant() + "_BaseColor.png");
+
+        /// <summary>
+        /// The blue Raxy dressed in <paramref name="clothes"/>. It wears the plain Raxy's skin rather
+        /// than a copy of the same texture on a material of its own.
+        /// </summary>
+        private static SculptRecipe RaxyOutfit(string outfit, params string[] clothes)
+        {
+            var recipe = Raxy("Drifter_Raxy" + outfit, RaxyFbx, RaxyTexture);
+            recipe.BodyMaterialPath = RaxyMaterialFolder + "/Drifter_Raxy_Body.mat";
+            recipe.Outfit = clothes;
+            return recipe;
+        }
 
         // Shared by every drifter: one people, one temperament. Barked by AggressionTelegraphModule as
         // the meter climbs. Neutral, not pacifist: a gun kept on them, or shots around them, climb
@@ -639,6 +669,11 @@ namespace SpaceGame.EditorTools
                         problems.Add($"{recipe.Name}: EyeBlink has no eye on {StylizedEyeBuilder.EyeShaderName}; it will never blink.");
                 }
 
+                // A jaw with nothing driving it is a mouth that never moves, and nothing says so.
+                if (MouthWiring.FindJaw(prefab.transform) != null && !MouthWiring.IsWired(prefab))
+                    problems.Add($"{recipe.Name}: its rig has a Jaw but no wired TalkingMouth; it will " +
+                                 "talk with its mouth shut. Run 'Update Drifter Behaviour'.");
+
                 var faction = FindComponent(prefab, "SpaceGame.Agents.EntityFaction");
                 if (faction != null)
                 {
@@ -712,8 +747,7 @@ namespace SpaceGame.EditorTools
             if (!EnsureHumanoidImport(recipe.FbxPath))
                 return null;
 
-            EnsureFolder(CharacterFolder);
-            EnsureFolder(MaterialFolder);
+            EnsureFolder(Path.GetDirectoryName(recipe.PrefabPath).Replace('\\', '/'));
 
             // The agent components live on their own root rather than on the model, because the
             // model has to move relative to them: the sculpt's soles do not sit on its origin,
@@ -740,6 +774,9 @@ namespace SpaceGame.EditorTools
                 AlignSoleToRoot(root, model);
 
                 ApplySkin(model, recipe);
+                string clothes = DrifterClothes.FolderFor(recipe.PrefabPath);
+                DrifterClothes.EnsurePrefabs(recipe.FbxPath, clothes);
+                DrifterClothes.Dress(model.transform, recipe.Outfit, clothes);
                 ConfigureAnimator(model);
                 ConfigurePhysics(root);
                 ApplyBehaviour(root, recipe);
@@ -828,6 +865,9 @@ namespace SpaceGame.EditorTools
 
             foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
             {
+                // The body stands on the ground, not a trouser hem.
+                if (DrifterClothes.IsPartOfGarment(renderer.transform)) continue;
+
                 Mesh mesh = renderer is SkinnedMeshRenderer skinned
                     ? skinned.sharedMesh
                     : renderer.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
@@ -915,6 +955,9 @@ namespace SpaceGame.EditorTools
             high = float.MinValue;
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
             {
+                // Measured without clothes, so every outfit of one character stands the same height.
+                if (DrifterClothes.IsPartOfGarment(renderer.transform)) continue;
+
                 low = Mathf.Min(low, renderer.bounds.min.y);
                 high = Mathf.Max(high, renderer.bounds.max.y);
             }
@@ -947,6 +990,12 @@ namespace SpaceGame.EditorTools
         /// An eye also gets its UVs rebuilt -- see <see cref="StylizedEyeBuilder.EnsureEyeMesh"/>
         /// for what is wrong with the ones the FBX ships.
         /// </para>
+        ///
+        /// <para>
+        /// A slot the model importer already remaps to a project material keeps it: Raxy's clothes
+        /// and the inside of its mouth are <c>Raxy_*.mat</c>, set on the FBX's import settings. Only
+        /// the materials embedded in the FBX are skin or eyes.
+        /// </para>
         /// </summary>
         private static void ApplySkin(GameObject model, SculptRecipe recipe)
         {
@@ -958,7 +1007,8 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            var body = EnsureMaterial(recipe.Name, texture);
+            var body = EnsureMaterial(recipe.BodyMaterialPath ?? $"{MaterialFolder}/{recipe.Name}_Body.mat",
+                                      texture);
             var eyes = StylizedEyeBuilder.Load(recipe.EyeStyle);
 
             int eyeSlots = 0;
@@ -968,6 +1018,8 @@ namespace SpaceGame.EditorTools
                 bool isEye = false;
                 for (int i = 0; i < materials.Length; i++)
                 {
+                    if (materials[i] != null && !AssetDatabase.IsSubAsset(materials[i])) continue;
+
                     bool eyeSlot = materials[i] != null &&
                                    materials[i].name.EndsWith(EyeMaterialSuffix,
                                                               System.StringComparison.OrdinalIgnoreCase);
@@ -1022,12 +1074,12 @@ namespace SpaceGame.EditorTools
             StylizedEyeBuilder.EnsureEyeMesh(eye, gaze, up, assetName);
         }
 
-        private static Material EnsureMaterial(string characterName, Texture2D texture)
+        private static Material EnsureMaterial(string path, Texture2D texture)
         {
-            string path = $"{MaterialFolder}/{characterName}_Body.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
             {
+                EnsureFolder(Path.GetDirectoryName(path).Replace('\\', '/'));
                 material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 AssetDatabase.CreateAsset(material, path);
             }
@@ -1108,6 +1160,13 @@ namespace SpaceGame.EditorTools
             // hand-tuned eyes carry: not their transforms, not their materials. The lid colour is
             // re-sampled from the skin each time, so it follows a repaint.
             EyelidWiring.Ensure(root);
+
+            // The same goes for the mouth: a rig with a Jaw bone talks. Nothing on the body changes.
+            MouthWiring.Ensure(root);
+
+            // The body's actions — a flinch, the strike, the warning point — and the components that
+            // play them. After ConfigureCombat, which only sets numbers the wiring leaves alone.
+            CharacterActionWiring.Ensure(root);
         }
 
         /// <summary>
@@ -1313,9 +1372,9 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The drifters' warnings, and no raised weapon: they have none, and the drawn pose is an
-        /// assault-rifle aim that would have them levelling an empty pair of hands. They plant
-        /// their feet and face you instead.
+        /// The drifters' warnings, and no raised weapon: they have none, so the telegraph's drawn
+        /// action stays empty rather than levelling an empty pair of hands. They plant their feet
+        /// and face you instead.
         /// </summary>
         private static void ConfigureTelegraph(GameObject root)
         {
@@ -1326,7 +1385,6 @@ namespace SpaceGame.EditorTools
             SetStrings(so, "warningLines", WarningLines);
             SetStrings(so, "lastWarningLines", LastWarningLines);
             SetStrings(so, "provokedLines", ProvokedLines);
-            SetBool(so, "aimWhileDrawn", false);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -1496,7 +1554,7 @@ namespace SpaceGame.EditorTools
             return existing != null ? existing : go.AddComponent<T>();
         }
 
-        private static void EnsureFolder(string folder)
+        internal static void EnsureFolder(string folder)
         {
             if (AssetDatabase.IsValidFolder(folder)) return;
 

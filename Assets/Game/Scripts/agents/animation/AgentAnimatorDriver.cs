@@ -145,16 +145,17 @@ namespace SpaceGame.Agents
         // fast, so anything above it was the transform being placed rather than turned.
         private const float TeleportYawRate = 1440f;
 
-        // Optional parameters -- TurnSpeed, and whatever dwell flags a creature's tasks name.
+        // Optional parameters -- TurnSpeed, Hurt, and whatever dwell flags a creature's tasks name.
         // Writing a parameter a controller does not have logs a warning every frame per agent in
         // the Editor, so the controller is asked once and the answer cached.
         private static readonly int TurnSpeedHash = Animator.StringToHash("TurnSpeed");
+        private static readonly int HurtHash = Animator.StringToHash("Hurt");
         private readonly System.Collections.Generic.Dictionary<int, bool> parameterCache
             = new System.Collections.Generic.Dictionary<int, bool>();
 
-        // Not only Awake's business. Components on one object awake in no guaranteed order, and
-        // AggressionTelegraphModule.OnEnable calls SetIsAiming straight away — on a nomad it can land
-        // before this component's Awake, while the field still holds the prefab's empty reference.
+        // Not only Awake's business: components on one object awake in no guaranteed order, so a
+        // caller's OnEnable can land before this component's Awake, while the field still holds the
+        // prefab's empty reference.
         private bool ResolveAnimator()
         {
             if (!animator)
@@ -537,16 +538,20 @@ namespace SpaceGame.Agents
             return heldLocalVelocity;
         }
 
-        public void TriggerHurt() => SetTriggerSafe("Hurt");
-        public void TriggerDie() => SetTriggerSafe("Die");
-        public void TriggerShootRifle() => SetTriggerSafe("ShootRifle");
-        public void TriggerSpearAttack() => SetTriggerSafe("SpearAttack");
-        public void TriggerByName(string triggerName) => SetTriggerSafe(triggerName);
-        public void SetIsAiming(bool aiming)
+        /// <summary>
+        /// A creature's flinch, raised per machine by the weapon that hit it. Only a creature's
+        /// controller has a <c>Hurt</c> trigger: a humanoid body flinches through
+        /// <c>HurtReaction</c>, which the server decides from the damage it dealt, so here it is
+        /// deliberately nothing.
+        /// </summary>
+        public void TriggerHurt()
         {
-            if (ResolveAnimator())
-                animator.SetBool("IsAiming", aiming);
+            if (ResolveAnimator() && animator.runtimeAnimatorController != null
+                && HasParameter(HurtHash, AnimatorControllerParameterType.Trigger))
+                animator.SetTrigger(HurtHash);
         }
+
+        public void TriggerByName(string triggerName) => SetTriggerSafe(triggerName);
 
         private void SetTriggerSafe(string triggerName)
         {

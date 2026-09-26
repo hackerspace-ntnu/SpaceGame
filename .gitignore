@@ -126,3 +126,7 @@ fmod_editor.log
 .superpowers/
 .agent-staging/
 
+
+# The raw CMU mocap pack (2,548 takes, 1.7 GB): source only, Unity-invisible. Curated cuts live
+# in Assets/ThirdParty/CMU/ and are what gets committed. See docs/AI/systems/HumanoidAnimation.md.
+Assets/Game/Art/Animations/_Packed~/

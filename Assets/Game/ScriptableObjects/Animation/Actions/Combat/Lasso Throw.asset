@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Lasso Throw
+  m_EditorClassIdentifier: 
+  slot: 1
+  playback: 0
+  variants:
+  - clip: {fileID: 3094330708855449807, guid: bbb2c7d1357a4a6479d0fa7e5e4fae30, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.05
+  fadeOut: 0.15
+  marks:
+  - mark: 1
+    normalizedTime: 0.45
+  cues:
+  - {fileID: 11400000, guid: 6ce019f4b02784628bd7a8c93349000e, type: 2}
+  postures: 0

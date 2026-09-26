@@ -8,6 +8,7 @@ using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Persistence;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
@@ -143,7 +144,8 @@ namespace SpaceGame.Items
         [SerializeField] private InputActionReference reelInAction;   // assign RightClick in Inspector
 
         [Header("Animation")]
-        [SerializeField] private string throwTrigger = "Throw";
+        [Tooltip("The thrower's arm as the rope leaves the hand. Empty for none.")]
+        [SerializeField] private CharacterAction throwAction;
         [SerializeField] private GameObject lassoModel;   // the held dummy mesh — hidden while rope is out
 
         [Header("Rope Visual")]
@@ -653,8 +655,7 @@ namespace SpaceGame.Items
             // holds it, so an arm that threw on the press played its throw seconds before the rope
             // left the hand. The wind-up is carried by the loop turning overhead instead, which is
             // what a wind-up actually looks like.
-            Animator animator = owner.GetComponentInChildren<Animator>();
-            if (animator != null) animator.SetTrigger(throwTrigger);
+            PlayOnHolder(throwAction, UsingArm);
 
             Vector3 start = GetRopeStart();
 

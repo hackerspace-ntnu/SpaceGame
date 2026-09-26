@@ -55,7 +55,7 @@ namespace SpaceGame.Items
         /// <c>ItemGrip.PackSize</c> both scale from that measurement — so a worn model left
         /// visible on the asset would have the wing pack measure 3.5 m in the hand and be shrunk
         /// to a sliver to fit the 1.26 m hold size. The wingsuit's flight wings shipped exactly
-        /// that bug once; see <c>WingsuitBuilder</c>.
+        /// that bug once.
         /// </para>
         /// </summary>
         public const string ChildName = "WornModel";

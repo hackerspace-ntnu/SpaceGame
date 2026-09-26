@@ -11,6 +11,7 @@
 //   DWELLING  — clear the goal so wander takes the frame, and count down. Yield on finish.
 using UnityEngine;
 using SpaceGame.Items;
+using SpaceGame.Presentation;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -287,6 +288,7 @@ namespace SpaceGame.Agents
 
             CollectYield();
             SetDwellFlag(null);
+            BodyLanguage.ReactEverywhere(this, CharacterMoment.TaskFinished);
             CurrentPhase = Phase.Choosing;
             phaseTimer = 0f;
         }

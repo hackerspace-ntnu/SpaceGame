@@ -39,7 +39,7 @@ namespace SpaceGame.Gear.JumpingRod
         [SerializeField] private Transform coil;
 
         [Tooltip("Piston stroke at full compression, metres. Must match TRAVEL in " +
-                 "_Source~/models/gear/jumping_rod.py.")]
+                 "the jumping rod model.")]
         [SerializeField, Min(0f)] private float travel = 0.11f;
 
         [Tooltip("How fast the shown compression chases the value it is given, 1/s. The clearance " +

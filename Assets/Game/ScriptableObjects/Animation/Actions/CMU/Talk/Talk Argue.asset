@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Talk Argue
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 1
+  playback: 1
+  variants:
+  - clip: {fileID: -466618537737841515, guid: e879f648786d445958c5da57904d250e, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.12
+  fadeOut: 0.18
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: 2434891c64e6747a395070d4b89aba13, type: 2}
+  - {fileID: 11400000, guid: f6e13f026fae94e1aa34330d1388141a, type: 2}
+  - {fileID: 11400000, guid: 5175e6c9b42744dfb9793abe512ce6a6, type: 2}
+  postures: 0

@@ -5,11 +5,8 @@ summary: "The lander's standing CRT console: right-click zooms onto its glass; t
 paths:
   - Assets/Game/Scripts/Gameplay/Terminal
   - Assets/Game/Scripts/Presentation/UI/World/Terminal
-  - Assets/Game/Editor/Environment/StandingTerminalBuilder.cs
-  - Assets/Game/Editor/Support/WorldCanvasBuilder.cs
   - Assets/Game/Prefabs/Environment/Structures/Facilities/StandingTerminal.prefab
   - Assets/Game/Art/Models/Props/standing_terminal.fbx
-  - "Assets/Game/Art/Models/_Source~/models/props/standing_terminal_export.py"
   - "Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend"
 symptoms:
   - "right-clicking the terminal does nothing and the crosshair says Terminal"
@@ -33,7 +30,7 @@ live 3D drawing of the hull whose missing modules glow red and can be turned, zo
 a status readout; a GPS readout with a crew radar — flipped with the tabs or the keys 1-3. Esc,
 right mouse again, or reaching for WASD hands everything back.
 
-**Scope:** [`Gameplay/Terminal/`](Assets/Game/Scripts/Gameplay/Terminal) (console, session, camera, telemetry, the pure geometry and text), [`Presentation/UI/World/Terminal/`](Assets/Game/Scripts/Presentation/UI/World/Terminal) (the screen), [`StandingTerminalBuilder`](Assets/Game/Editor/Environment/StandingTerminalBuilder.cs). The SHIP page's 3D hull is its own system: [ShipSchematic.md](ShipSchematic.md).
+**Scope:** [`Gameplay/Terminal/`](Assets/Game/Scripts/Gameplay/Terminal) (console, session, camera, telemetry, the pure geometry and text), [`Presentation/UI/World/Terminal/`](Assets/Game/Scripts/Presentation/UI/World/Terminal) (the screen), `StandingTerminalBuilder`. The SHIP page's 3D hull is its own system: [ShipSchematic.md](ShipSchematic.md).
 **Related:** [InteractionSystem.md](InteractionSystem.md) (the press), [PlayerShip.md](PlayerShip.md) (where it stands), [Backpack.md](Backpack.md) (the `FocusCamera` base it shares with the pack and body screens), [ArtPipeline.md](ArtPipeline.md) (the model).
 
 ## Model
@@ -77,8 +74,8 @@ right mouse again, or reaching for WASD hands everything back.
 | `ShipTelemetry` / `TelemetrySnapshot` / `ShipTelemetrySource` | [ShipTelemetry.cs](Assets/Game/Scripts/Gameplay/Terminal/ShipTelemetry.cs), [ShipTelemetrySource.cs](Assets/Game/Scripts/Gameplay/Terminal/ShipTelemetrySource.cs) | Snapshot struct, page text and pip states (pure, tested); the reader on the fixture. |
 | `TerminalScreen` | [Presentation/UI/World/Terminal/TerminalScreen.cs](Assets/Game/Scripts/Presentation/UI/World/Terminal/TerminalScreen.cs) | Tabs, pages, clock, cursor blink, the coloured subsystem strip, crew radar dots. `ShowPage` off the console's `PageChanged`; `Present(snapshot)`; `TryStepBack()` spends an Esc on the schematic. |
 | `ShipSchematicStage` / `ShipSchematicView` | [Presentation/UI/World/Terminal/](Assets/Game/Scripts/Presentation/UI/World/Terminal) | The SHIP page's 3D hull and its cursor — [ShipSchematic.md](ShipSchematic.md). Built onto the prefab by `StandingTerminalBuilder.BuildSchematicStage`. |
-| `StandingTerminalBuilder` | [Editor/Environment/StandingTerminalBuilder.cs](Assets/Game/Editor/Environment/StandingTerminalBuilder.cs) | **Tools ▸ SpaceGame ▸ Build Standing Terminal Prefab**: stands the model on its lowest point, patches material-less renderers, measures the glass, builds collider, components, `ScreenAnchor` and the whole canvas. |
-| `WorldCanvasBuilder` | [Editor/Support/WorldCanvasBuilder.cs](Assets/Game/Editor/Support/WorldCanvasBuilder.cs) | The millimetre world-space canvas, panel and label primitives. |
+| `StandingTerminalBuilder` | Editor/Environment/StandingTerminalBuilder.cs | **Tools ▸ SpaceGame ▸ Build Standing Terminal Prefab**: stands the model on its lowest point, patches material-less renderers, measures the glass, builds collider, components, `ScreenAnchor` and the whole canvas. |
+| `WorldCanvasBuilder` | Editor/Support/WorldCanvasBuilder.cs | The millimetre world-space canvas, panel and label primitives. |
 
 ## Flows
 

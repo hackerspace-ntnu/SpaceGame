@@ -254,53 +254,33 @@ yet*, and the correct response is to retry, never to guess a height.
 
 ---
 
-## The arena deathmatch
+## The arena deathmatch, and why it is gone
 
-Separately from Versus there is a bot deathmatch in a dedicated arena, with three gamemodes driven
-by one match orchestrator:
+There used to be a second competitive mode here: a bot deathmatch in a dedicated arena, with three
+gamemodes — team deathmatch, free-for-all and battle royale — sharing one scorekeeper.
 
-- **Team Deathmatch.** Two teams. Up to four bots per side. The host chooses the ending — a kill
-  target, a number of lives each, or last team standing. The host is always on the ally team, and
-  players joining later fill whichever side is thinner.
-- **Free-For-All.** Every participant is its own team with its own faction, up to fifteen bots.
-  Lives run from 1 to 10. With one life it collapses into last-standing.
-- **Battle Royale.** Free-for-all with lives forced to one, last-standing forced on, and no
-  respawns. The lives control is hidden because there is nothing to choose.
+It was deleted in September 2026. Not because anyone decided against the idea, but because it had
+already stopped existing in every way that matters: the arena scene had been emptied by a cleanup
+commit long before, no match orchestrator was placed in any scene or prefab, and no button in the
+menu reached it. The code was complete and completely unreachable, which is the worst state for a
+feature to sit in — it reads like something that works.
 
-Everything decisive is the server's: bots, teams, kills, the leaderboard, and the call on who won.
-The leaderboard is rebuilt whole and pushed out on each death or join rather than being incrementally
-patched. Friendly fire and suicides score nothing. When you are eliminated you go into spectator
-mode rather than being removed. At the end, the winning side sees Victory and everyone else sees
-Defeat, decided by comparing the winning team against your own.
+Two things that were learned building it are worth keeping, because they apply to any mode:
 
-One structural detail worth knowing because it is unusual: **respawning does not destroy and recreate
-you.** Your body is deactivated, then reactivated, healed, and moved. This matters for anything
-holding a reference to a player — that reference stays valid across a death.
+**Respawning does not destroy and recreate you.** Your body is deactivated, then reactivated, healed,
+and moved. Anything holding a reference to a player keeps it across a death. The ordinary respawn
+path still works this way.
 
-And a related trap that was found the hard way: a dead player's body stays in the world, so it has to
-be explicitly pulled out of the AI targeting registry when it dies. Without that, every survivor
-keeps aiming at a corpse and a last-standing match never ends.
-
-### The arena is currently not playable
-
-State this plainly, because nothing in the game will tell you: **the arena scene is empty.** No match
-orchestrator, no spawn points, and there is no baked navigation mesh anywhere in the project for it.
-The entire deathmatch code path — all three gamemodes, the leaderboard, the result screen — is
-written and orphaned, waiting for someone to author that scene. Nothing warns you; you just launch a
-minigame and nothing happens.
-
-A related known hazard for whoever does author it: if the arena's navigation mesh ends up split into
-disconnected islands, spawn points on the minority islands are dropped with a warning telling you to
-rebake. Without that guard a match can hang forever because two survivors literally cannot reach
-each other.
+**A dead player's body stays in the world**, so it has to be explicitly pulled out of the AI
+targeting registry when it dies. Without that, every survivor keeps aiming at a corpse.
 
 ---
 
 ## The story run
 
 The plain story run is the third family, and it is the smallest: a session timer and a win condition
-that loads a win scene. It belongs to solo and co-op play, not to Versus and not to the arena, and
-the three do not share machinery beyond the spawn plumbing.
+that loads a win scene. It belongs to solo and co-op play, not to Versus, and the two do not share
+machinery beyond the spawn plumbing.
 
 ---
 
@@ -308,9 +288,9 @@ the three do not share machinery beyond the spawn plumbing.
 
 Short version, expanded in the next document:
 
-- **Versus and arena match state is deliberately not saved.** Both are single-session. The values
-  that carry a mode across the scene load are explicitly cleared on the way out — and one of those
-  clears is the only thing stopping the next match starting on the previous match's spawn ring.
+- **Versus match state is deliberately not saved.** It is single-session. The values that carry a
+  mode across the scene load are explicitly cleared on the way out — and one of those clears is the
+  only thing stopping the next match starting on the previous match's spawn ring.
 - **Story-run session state is saved** — the timer and the game state — and restoring it never
   re-triggers the win.
 - **The day/night cycle is not replicated as a value.** Only an anchor point is; the actual time of
@@ -327,8 +307,7 @@ The dense, implementation-level versions of everything above:
   startup, how a client gets a body, the full list of silent-failure traps.
 - `docs/AI/systems/Lobby.md` — the session/screen split, the pure readers, the rate budget, the
   ghost-membership recovery.
-- `docs/AI/systems/GameModes.md` — Versus, all three arena gamemodes, spawn and score flows, and the
-  note that the arena scene is unauthored.
+- `docs/AI/systems/GameModes.md` — Versus, the story run, and the spawn and respawn flows.
 - `docs/AI/systems/WorldStreaming.md` — why client joins fail on folder casing, and how chunks reach
   clients.
 - `.claude/skills/spacegame-multiplayer/SKILL.md` — the working recipes for adding netcode to an

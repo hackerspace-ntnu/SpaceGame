@@ -105,7 +105,7 @@ namespace SpaceGame.Items
         // it is out of room and promises no order, so whichever hits it dropped are arbitrary —
         // including, sometimes, the nearest, which is the only one this reads. That is not a
         // theoretical worry here. The body screen is opened INSIDE the ship as often as out on the
-        // sand, and the ship's hull is not one collider: PlayerShipBuilder mounts a baked proxy of
+        // sand, and the ship's hull is not one collider: the ship prefab carries a baked proxy of
         // 420 separate convex hulls, and a sweep the length of a room crosses a great many of them.
         // Losing the nearest fails UNSAFE — the lens stays at its full distance, which is through
         // the bulkhead — so grow and re-cast rather than answer from a partial list, the same way

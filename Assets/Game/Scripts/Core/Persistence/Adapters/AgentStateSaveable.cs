@@ -81,7 +81,7 @@ namespace SpaceGame.Core.Persistence
             /// The GUID of the <c>TargetingProfile</c> that was live, or empty for an agent running
             /// its inline fields.
             ///
-            /// <c>AgentTargeting.ApplyProfile</c> is a runtime swap — MatchManager gives arena bots a
+            /// <c>AgentTargeting.ApplyProfile</c> is a runtime swap — a spawner may give its bots a
             /// more aggressive profile than the prefab ships with — and nothing recorded it, so Awake
             /// silently re-read the serialized one and a restored arena bot went back to open-world
             /// tuning.
@@ -90,7 +90,7 @@ namespace SpaceGame.Core.Persistence
 
             /// <summary>
             /// Vestigial. Patrol progress moved to its own saver, because <c>PatrolRobot</c> and
-            /// <c>DeathmatchBot</c> have a <c>PatrolModule</c> and no <c>AgentTargeting</c> — so this
+            /// the PatrolRobots have a <c>PatrolModule</c> and no <c>AgentTargeting</c> — so this
             /// saver was never added to them and their patrol was never saved at all.
             ///
             /// The fields stay in the struct, unwritten and unread, so a save file from before the

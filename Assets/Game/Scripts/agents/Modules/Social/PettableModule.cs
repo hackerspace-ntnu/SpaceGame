@@ -13,13 +13,17 @@ using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
     [RequireComponent(typeof(Collider))]
-    public class PettableModule : MonoBehaviour, IInteractable, IContextualInteractable,
+    public class PettableModule : MonoBehaviour, IInteractable, IInteractionMoment, IContextualInteractable,
                                   IInteractionReadout
     {
+        /// <summary>Nothing on the body: petting plays its own reach.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         [Header("Wiring")]
         [Tooltip("The agent root. Networking and animation both belong to it, not to this trigger " +
                  "— the NetworkObject and the AgentAnimatorDriver are up there.")]
@@ -40,13 +44,9 @@ namespace SpaceGame.Agents
                  "or fleeing the prompt does not appear at all, rather than appearing and refusing.")]
         [SerializeField] private FightOrFlightModule mood;
 
-        [Tooltip("Animator trigger fired on the PLAYER who petted, on every machine. Their " +
-                 "controller needs an Upper Body one-shot by this name — see PlayerPetGestureBuilder.")]
-        [SerializeField] private string petterTrigger = "Pet";
-
-        [Tooltip("How long the petter's gesture runs. Matches PetCreature.fbx (2.5 s); it keeps " +
-                 "the masked Upper Body layer raised for that long so the reach is visible.")]
-        [SerializeField] private float petGestureSeconds = 2.5f;
+        [Tooltip("What the PLAYER who petted does: the reach. Played on every machine that hears " +
+                 "of the pet; CharacterActions decides which of them actually writes the body.")]
+        [SerializeField] private CharacterAction petterAction;
 
         [Tooltip("Label the HUD shows on the crosshair.")]
         [SerializeField] private string label = "Appa";
@@ -148,32 +148,8 @@ namespace SpaceGame.Agents
 
             // The reaching arm belongs to the player, not to the creature. Resolve can come back
             // null on a machine that has not spawned that player yet — the animal still enjoys it.
-            if (petter == null || string.IsNullOrEmpty(petterTrigger)) return;
-
-            // Through the aim rig, not straight at the Animator. That component owns the masked
-            // Upper Body layer's weight and rewrites it every frame from whether an item is held —
-            // so a trigger set directly plays the clip on a layer weighted 0 and you see nothing,
-            // which is exactly what happened: you pet with a free hand.
-            var rig = petter.GetComponentInChildren<SpaceGame.Characters.PlayerAimRig>();
-            if (rig != null)
-            {
-                rig.PlayGesture(petterTrigger, petGestureSeconds);
-                return;
-            }
-
-            // Anything that is not a player still gets the trigger, if its controller has one.
-            Animator petterAnimator = petter.GetComponentInChildren<Animator>();
-            if (petterAnimator == null || petterAnimator.runtimeAnimatorController == null) return;
-
-            foreach (AnimatorControllerParameter parameter in petterAnimator.parameters)
-            {
-                if (parameter.type == AnimatorControllerParameterType.Trigger
-                    && parameter.name == petterTrigger)
-                {
-                    petterAnimator.SetTrigger(petterTrigger);
-                    return;
-                }
-            }
+            if (petter == null || petterAction == null) return;
+            petter.GetComponentInChildren<CharacterActions>()?.Play(petterAction);
         }
 
         /// <summary>

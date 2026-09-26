@@ -212,7 +212,7 @@ namespace SpaceGame.Tests
         /// the start speed, the gravity modifier and the longest life agree — and the symptom of
         /// their drifting apart is foam landing somewhere the stream was never seen to go, which
         /// reads as the gun being inaccurate rather than as a mismatch. The particle numbers live
-        /// in FoamGunSprayBuilder and reach the prefab only when it is re-run, which is the drift
+        /// on the spray prefab and reach the artifact only when it is rebuilt, which is the drift
         /// this catches.
         /// </para>
         /// </summary>

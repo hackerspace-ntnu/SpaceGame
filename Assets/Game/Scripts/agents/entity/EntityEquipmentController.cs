@@ -85,7 +85,6 @@ namespace SpaceGame.Agents
         // ── Published state ──────────────────────────────────────────────────────
 
         public int EquippedSlotIndex => equippedSlotIndex;
-        public GameObject EquippedObject => equippedObject;
         public UsableItem HeldUsable => equippedUsable;
         public bool HasItem => equippedUsable != null;
 

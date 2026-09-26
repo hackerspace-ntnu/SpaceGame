@@ -10,13 +10,10 @@ paths:
   - Assets/Game/Scripts/Items/Equipped/JetpackItem.cs
   - Assets/Game/Scripts/Items/Equipped/JetpackNozzles.cs
   - Assets/Game/Scripts/Presentation/UI/HelmetHUD/JetpackHeatGaugeSource.cs
-  - Assets/Game/Editor/Items/JetpackBuilder.cs
   - Assets/Game/Art/Shaders/Effects/JetFlame.shader
   - Assets/Game/Art/Shaders/Effects/JetSmoke.shader
   - Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab
   - "Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend"
-  - "Assets/Game/Art/Models/_Source~/models/gear/jetpack_export.py"
-  - "Assets/Game/Art/Models/_Source~/models/gear/jetpack_mirror.py"
 symptoms:
   - "a double tap of Space lifts me off and then puts me straight back down"
   - "the jetpack pushes me forward the instant I press W"
@@ -68,7 +65,7 @@ let go and you fall.** Nothing is
 spawned and nothing is mounted, the same bargain [Wingsuit](Wingsuit.md) makes.
 Design: [2026-09-07-jetpack-design.md](../../superpowers/specs/2026-09-07-jetpack-design.md).
 
-**Scope:** [Gear/Jetpack/](Assets/Game/Scripts/Gear/Jetpack) (own asmdef), [JetpackFlight.cs](Assets/Game/Scripts/Characters/Player/Movement/JetpackFlight.cs), [JetpackPose.cs](Assets/Game/Scripts/Characters/Player/Movement/JetpackPose.cs), [JetpackThirdPerson.cs](Assets/Game/Scripts/Characters/Player/Movement/JetpackThirdPerson.cs), [JetpackItem.cs](Assets/Game/Scripts/Items/Equipped/JetpackItem.cs), [JetpackNozzles.cs](Assets/Game/Scripts/Items/Equipped/JetpackNozzles.cs), [JetpackHeatGaugeSource.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/JetpackHeatGaugeSource.cs), [JetpackBuilder.cs](Assets/Game/Editor/Items/JetpackBuilder.cs), [JetFlame.shader](Assets/Game/Art/Shaders/Effects/JetFlame.shader), [JetSmoke.shader](Assets/Game/Art/Shaders/Effects/JetSmoke.shader).
+**Scope:** [Gear/Jetpack/](Assets/Game/Scripts/Gear/Jetpack) (own asmdef), [JetpackFlight.cs](Assets/Game/Scripts/Characters/Player/Movement/JetpackFlight.cs), [JetpackPose.cs](Assets/Game/Scripts/Characters/Player/Movement/JetpackPose.cs), [JetpackThirdPerson.cs](Assets/Game/Scripts/Characters/Player/Movement/JetpackThirdPerson.cs), [JetpackItem.cs](Assets/Game/Scripts/Items/Equipped/JetpackItem.cs), [JetpackNozzles.cs](Assets/Game/Scripts/Items/Equipped/JetpackNozzles.cs), [JetpackHeatGaugeSource.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/JetpackHeatGaugeSource.cs), JetpackBuilder.cs, [JetFlame.shader](Assets/Game/Art/Shaders/Effects/JetFlame.shader), [JetSmoke.shader](Assets/Game/Art/Shaders/Effects/JetSmoke.shader).
 **Related:** [BodyEquipment.md](BodyEquipment.md) (the torso slot, the double-Space), [PlayerCharacter.md](PlayerCharacter.md) (the body it takes over), [Wingsuit.md](Wingsuit.md), [LeashSystem.md](LeashSystem.md) (what a lift is lifting), [Multiplayer.md](Multiplayer.md), [Persistence.md](Persistence.md), [Visor.md](Visor.md).
 
 ## Model
@@ -105,7 +102,7 @@ Design: [2026-09-07-jetpack-design.md](../../superpowers/specs/2026-09-07-jetpac
 | `JetpackItem` | [Items/Equipped/](Assets/Game/Scripts/Items/Equipped/JetpackItem.cs) | `UsableItem`, `UseAuthority.Owner`. The gesture, the hold stream, the save bags |
 | `JetpackNozzles` | [Items/Equipped/](Assets/Game/Scripts/Items/Equipped/JetpackNozzles.cs) | Every machine. Swings the pods, four flames, tip glow, smoke. `Resolve` is public |
 | `JetpackHeatGaugeSource` | [UI/HelmetHUD/](Assets/Game/Scripts/Presentation/UI/HelmetHUD/JetpackHeatGaugeSource.cs) | `IVisorGaugeSource`, inverted: it draws burn REMAINING |
-| `JetpackBuilder` | [Editor/Items/](Assets/Game/Editor/Items/JetpackBuilder.cs) | **Tools ▸ SpaceGame ▸ Items ▸ Build Jetpack**. Owns the whole prefab, and verifies it |
+| `JetpackBuilder` | Editor/Items/ | **Tools ▸ SpaceGame ▸ Items ▸ Build Jetpack**. Owns the whole prefab, and verifies it |
 
 ## Tunables
 

@@ -1,4 +1,4 @@
-// Rosters: deterministic draws and weights. The shipped Sand roster is RosterAssetTests' job.
+// Rosters: deterministic draws and weights.
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using NUnit.Framework;

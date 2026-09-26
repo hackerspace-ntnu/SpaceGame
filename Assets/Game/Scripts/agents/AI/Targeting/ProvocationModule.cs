@@ -176,13 +176,19 @@ namespace SpaceGame.Agents
             }
 
             if (health != null)
+            {
                 health.OnDamage += HandleDamage;
+                health.OnDefended += HandleDefended;
+            }
         }
 
         private void OnDisable()
         {
             if (health != null)
+            {
                 health.OnDamage -= HandleDamage;
+                health.OnDefended -= HandleDefended;
+            }
         }
 
         private void HandleDamage(int amount)
@@ -196,7 +202,25 @@ namespace SpaceGame.Agents
             if (health.IsRestoring)
                 return;
 
-            Transform source = health.LastDamageSource;
+            HandleAttack(health.LastDamageSource, amount);
+        }
+
+        /// <summary>
+        /// A blow its guard stopped whole still happened. OnDamage never fires for it, so without
+        /// this a player could block-bait a neutral camp forever without anyone minding — and a
+        /// blow that got partly through is already counted by <see cref="HandleDamage"/>, at the
+        /// amount that landed.
+        /// </summary>
+        private void HandleDefended(DamageHit hit)
+        {
+            if (health == null || health.IsRestoring || hit.Amount > 0)
+                return;
+
+            HandleAttack(hit.Source, hit.Attempted);
+        }
+
+        private void HandleAttack(Transform source, int amount)
+        {
             if (source == null)
                 return;
 

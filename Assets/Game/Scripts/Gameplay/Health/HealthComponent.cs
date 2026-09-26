@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Gameplay
@@ -37,7 +38,24 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public static event Action<HealthComponent, int, Vector3, bool> AnyDamagedFrom;
 
+        /// <summary>
+        /// Any health anywhere defending against a hit (a block, a dodge), on the machine that
+        /// decided it — the static twin of <see cref="OnDefended"/>, for the one screen-wide overlay
+        /// that tells an attacker their blow was stopped. Static for the reason
+        /// <see cref="AnyDamaged"/> is.
+        /// </summary>
+        public static event Action<HealthComponent, DamageHit> AnyDefended;
+
         public event Action<int> OnDamage;
+
+        /// <summary>
+        /// A filter defended against a hit, raised where the damage was decided, before any health
+        /// changes. <see cref="DamageHit.Amount"/> is what still lands — 0 for a hit stopped whole,
+        /// which raises this and nothing else: no <see cref="OnDamage"/>, so no flinch, no
+        /// provocation and no hurt noise — the body was not hurt.
+        /// </summary>
+        public event Action<DamageHit> OnDefended;
+
         public event Action<int> OnHeal;
         public event Action OnDeath;
         public event Action OnRevive;
@@ -72,6 +90,30 @@ namespace SpaceGame.Gameplay
         public Transform LastDamageSource { get; private set; }
 
         /// <summary>
+        /// How the last hit decided here was met. Readable from inside <see cref="OnDamage"/> and
+        /// <see cref="AnyDamaged"/>, the way <see cref="LastDamageSource"/> is: a block that let
+        /// part of a blow through still raises them, and a listener that shows the hit its own way
+        /// (the flinch) must know the guard already did.
+        /// </summary>
+        public DamageDefense LastDefense { get; private set; }
+
+        /// <summary>
+        /// The filters that get a say in every hit before it lands, in the order they registered.
+        /// A list on the victim rather than a lookup per hit: a hit is frequent, a guard being
+        /// switched on or off is not.
+        /// </summary>
+        private readonly List<IDamageFilter> filters = new List<IDamageFilter>();
+
+        /// <summary>Give <paramref name="filter"/> a say in every hit. Call from OnEnable; adding twice is harmless.</summary>
+        public void AddFilter(IDamageFilter filter)
+        {
+            if (filter != null && !filters.Contains(filter)) filters.Add(filter);
+        }
+
+        /// <summary>Take back what <see cref="AddFilter"/> gave. Call from OnDisable.</summary>
+        public void RemoveFilter(IDamageFilter filter) => filters.Remove(filter);
+
+        /// <summary>
         /// Announces a hit this machine did NOT resolve, for
         /// <see cref="AnyDamagedFrom"/>'s listeners only.
         ///
@@ -91,21 +133,41 @@ namespace SpaceGame.Gameplay
 
         public void Damage(int amount) => Damage(amount, null);
 
-        public void Damage(int amount, Transform source)
+        /// <summary>
+        /// Hurt this body, after every <see cref="IDamageFilter"/> has had its say. How the hit was
+        /// met comes back — <see cref="DamageDefense.None"/> for one taken in full — so a weapon
+        /// whose blow also shoves can leave a body that blocked or dodged it standing.
+        /// </summary>
+        public DamageDefense Damage(int amount, Transform source, DamageKind kind = DamageKind.Unspecified)
         {
-            if (amount <= 0 || !Alive) return;
+            if (amount <= 0 || !Alive) return DamageDefense.None;
+
+            var hit = new DamageHit(amount, source, kind);
+            // By index, not foreach: a filter whose reaction disables a component that unregisters
+            // must not invalidate an enumerator halfway through a hit.
+            for (int i = 0; i < filters.Count; i++) filters[i].Filter(this, ref hit);
+
+            LastDefense = hit.Defense;
+            if (hit.Defense != DamageDefense.None)
+            {
+                OnDefended?.Invoke(hit);
+                AnyDefended?.Invoke(this, hit);
+            }
+
+            if (hit.Amount <= 0) return hit.Defense;
 
             LastDamageSource = source;
-            currentHealth -= amount;
+            currentHealth -= hit.Amount;
 
-            OnDamage?.Invoke(amount);
+            OnDamage?.Invoke(hit.Amount);
 
             // After OnDamage and before the death check, so a killing blow still shows its number.
-            AnyDamaged?.Invoke(this, amount);
-            AnyDamagedFrom?.Invoke(this, amount, source != null ? source.position : Vector3.zero,
+            AnyDamaged?.Invoke(this, hit.Amount);
+            AnyDamagedFrom?.Invoke(this, hit.Amount, source != null ? source.position : Vector3.zero,
                                    source != null);
 
             if (currentHealth <= 0) OnDeath?.Invoke();
+            return hit.Defense;
         }
     
         // Full restore for respawns. Heal() can't be used for this: overkill damage

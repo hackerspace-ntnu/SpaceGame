@@ -9,7 +9,7 @@
 //   wary   the nomad stops what he is doing and looks at you, and says something.
 //   drawn  he plants his feet, brings his weapon up, and gives you a last warning. He will not
 //          talk to you while he is like this.
-//   grudge the existing fight, unchanged.
+//   grudge the existing fight, unchanged — announced with a line only when provokedLines has one.
 //
 // All three are reversible until the last. Look away inside wary or drawn and calmRate drains the
 // meter and he goes back to work, which is what makes menace a threat the player is making rather
@@ -20,6 +20,7 @@
 // that warns you first is not the fiction. Simply leave this component off those prefabs.
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
@@ -42,9 +43,19 @@ namespace SpaceGame.Agents
             "Do not make me.",
         };
 
+        [Tooltip("Said once on entering the grudge band, as the fight starts. Empty by default, " +
+                 "because a warrior needs no excuse — this is for agents whose fight has to read " +
+                 "as a RESPONSE, so the player knows it was their doing.")]
+        [SerializeField] private string[] provokedLines = System.Array.Empty<string>();
+
         [Header("Posture")]
-        [Tooltip("Raise the weapon (animator IsAiming) while drawn.")]
-        [SerializeField] private bool aimWhileDrawn = true;
+        [Tooltip("Held for as long as the agent is drawn: the weapon up, on the upper body so the " +
+                 "legs are free. Empty leaves the body in its hold pose.")]
+        [SerializeField] private CharacterAction drawnAction;
+
+        [Tooltip("Held for as long as the agent is wary: the warning gesture, a point at the " +
+                 "threat. Empty for none.")]
+        [SerializeField] private CharacterAction waryAction;
 
         [Tooltip("Plant the feet and face the threat while drawn. Off leaves the agent free to " +
                  "keep walking its errand with its gun up, which reads as indifference.")]
@@ -53,7 +64,7 @@ namespace SpaceGame.Agents
         [SerializeField] private int facingPriority = ModulePriority.RangedAttack;
 
         private ProvocationModule provocation;
-        private AgentAnimatorDriver animatorDriver;
+        private CharacterActions actions;
         private ChatterModule chatter;
         private AgentAuthority authority;
 
@@ -67,7 +78,7 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             provocation = GetComponent<ProvocationModule>();
-            animatorDriver = GetComponentInChildren<AgentAnimatorDriver>();
+            actions = GetComponent<CharacterActions>();
             chatter = GetComponent<ChatterModule>();
             authority = new AgentAuthority(this);
         }
@@ -96,16 +107,25 @@ namespace SpaceGame.Agents
 
             // Leave the body as we found it. An agent streamed out mid-warning would otherwise come
             // back holding an aim pose with nothing driving it.
-            if (animatorDriver != null && aimWhileDrawn)
-                animatorDriver.SetIsAiming(false);
+            if (actions != null)
+            {
+                actions.Stop(drawnAction);
+                actions.Stop(waryAction);
+            }
         }
 
         public int FacingPriority => facingPriority;
 
+        private void Hold(CharacterAction action, bool held)
+        {
+            if (held) actions.Play(action);
+            else actions.Stop(action);
+        }
+
         public override string ModuleDescription =>
             "Shows the aggression meter: a look and a bark when wary, weapon up and planted when " +
             "drawn, the ordinary fight at the top.\n\n" +
-            "• warningLines / lastWarningLines — said once per band entered\n" +
+            "• warningLines / lastWarningLines / provokedLines — said once per band entered\n" +
             "• Leave this OFF Clankers and Outlaws: they are Hostile by stance and never climb " +
             "the meter.";
 
@@ -141,13 +161,17 @@ namespace SpaceGame.Agents
 
         /// <summary>
         /// Put the body into <paramref name="band"/>'s posture. Runs on EVERY machine, and touches
-        /// nothing but the animator, the popup and a sound — a watcher that presented a swing is a
-        /// doubled swing, and the same rule holds for a stance.
+        /// nothing but the body's animation, the popup and a sound — a watcher that presented a
+        /// swing is a doubled swing, and the same rule holds for a stance. Each posture is held
+        /// for exactly as long as its band, so a band restored from a save comes back posed too.
         /// </summary>
         private void Present(AggressionBand band, bool bark)
         {
-            if (animatorDriver != null && aimWhileDrawn)
-                animatorDriver.SetIsAiming(band == AggressionBand.Drawn);
+            if (actions != null)
+            {
+                Hold(drawnAction, band == AggressionBand.Drawn);
+                Hold(waryAction, band == AggressionBand.Wary);
+            }
 
             if (!bark || chatter == null)
                 return;
@@ -156,6 +180,7 @@ namespace SpaceGame.Agents
             {
                 AggressionBand.Wary => warningLines,
                 AggressionBand.Drawn => lastWarningLines,
+                AggressionBand.Grudge => provokedLines,
                 _ => null,
             };
 

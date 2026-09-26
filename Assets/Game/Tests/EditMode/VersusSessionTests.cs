@@ -6,7 +6,7 @@ namespace SpaceGame.Tests
     /// <summary>
     /// The handful of values that have to cross the load into the world scene.
     ///
-    /// A static, like MatchSettings and WorldSession before it, because the menu that knows them is
+    /// A static, like WorldSession before it, because the menu that knows them is
     /// destroyed by the load that needs them. The tests here are mostly about the clearing: a
     /// static that outlives a match is exactly how the next one starts wearing the last one's
     /// colours.

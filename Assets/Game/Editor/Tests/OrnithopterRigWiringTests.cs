@@ -78,7 +78,7 @@ namespace SpaceGame.EditorTools
             var rig = new OrnithopterWingRig();
             Assert.DoesNotThrow(() => rig.Build(craft.transform),
                 "The rig failed to bind. The FBX must be exported WITH its armature — see " +
-                "Assets/Game/Art/Models/_Source~/models/vehicles/dune_ornithopter_export.py.");
+                "the dune ornithopter model.");
 
             Assert.IsTrue(rig.IsBuilt);
             Assert.IsNotNull(rig.Cradle, "No cradle bone — the rider has nowhere to lie.");

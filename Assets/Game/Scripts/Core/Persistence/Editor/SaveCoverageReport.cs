@@ -44,7 +44,6 @@ namespace SpaceGame.Core.Persistence.EditorTools
             ["Renderer"] = "presentation",
             ["NetworkObject"] = "netcode identity, rebuilt on spawn",
             ["NetworkTransform"] = "netcode replication of a pose the record already owns",
-            ["FlockingModule"] = "pure per-frame steering off neighbour buffers",
             ["AlertBroadcaster"] = "sends, never remembers",
         };
 

@@ -56,7 +56,7 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// On the wall rather than on <c>PackContainer</c>: a backpack has no crew. Wired by
-        /// <c>OxygenGearBuilder</c>, which owns what enters the game and where.
+        /// the shipped oxygen gear prefabs, which own what enters the game and where.
         /// </para>
         /// </summary>
         [Header("Crew stores")]

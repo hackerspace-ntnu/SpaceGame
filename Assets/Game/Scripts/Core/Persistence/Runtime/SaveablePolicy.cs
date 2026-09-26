@@ -306,12 +306,6 @@ namespace SpaceGame.Core.Persistence
                 go.AddComponent<FleeSaveable>();
                 parts.Add(nameof(FleeSaveable));
             }
-
-            if (go.GetComponent<CoverModule>() != null && go.GetComponent<CoverSaveable>() == null)
-            {
-                go.AddComponent<CoverSaveable>();
-                parts.Add(nameof(CoverSaveable));
-            }
         }
 
         /// <summary>
@@ -320,7 +314,7 @@ namespace SpaceGame.Core.Persistence
         private static void EnsureAgentRoutine(GameObject go, List<string> parts)
         {
             // Keyed off PatrolModule rather than AgentTargeting, which is where patrol progress used
-            // to ride. PatrolRobot and DeathmatchBot have the first and not the second, so the one
+            // to ride. PatrolRobot has the first and not the second, so the one
             // population whose whole identity IS a route was the population saving nothing about it.
             if (go.GetComponent<PatrolModule>() != null && go.GetComponent<PatrolSaveable>() == null)
             {
@@ -344,24 +338,7 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(WanderSaveable));
             }
 
-            if (go.GetComponent<AirWanderModule>() != null && go.GetComponent<AirWanderSaveable>() == null)
-            {
-                go.AddComponent<AirWanderSaveable>();
-                parts.Add(nameof(AirWanderSaveable));
-            }
-
-            if (go.GetComponent<WanderBehaviour>() != null &&
-                go.GetComponent<WanderBehaviourSaveable>() == null)
-            {
-                go.AddComponent<WanderBehaviourSaveable>();
-                parts.Add(nameof(WanderBehaviourSaveable));
-            }
-
-            // One saver for the three modules that resolve their own target: an agent almost never
-            // has more than one of them, and they hold the same two fields for the same reason.
-            if ((go.GetComponent<HuntModule>() != null ||
-                 go.GetComponent<KeepDistanceModule>() != null ||
-                 go.GetComponent<ApproachModule>() != null) &&
+            if (go.GetComponent<KeepDistanceModule>() != null &&
                 go.GetComponent<PursuitSaveable>() == null)
             {
                 go.AddComponent<PursuitSaveable>();
@@ -428,20 +405,11 @@ namespace SpaceGame.Core.Persistence
 
             // Includes where the barrel pointed, which lives on a CHILD transform and so is invisible
             // to TransformSaveable.
-            if (go.GetComponent<TurretSaveable>() == null &&
-                (go.GetComponent<TurretModule>() != null || go.GetComponent<RocketLauncherTurret>() != null))
+            if (go.GetComponent<RocketLauncherTurret>() != null &&
+                go.GetComponent<TurretSaveable>() == null)
             {
                 go.AddComponent<TurretSaveable>();
                 parts.Add(nameof(TurretSaveable));
-            }
-
-            // Asked of the subtree: a WeaponMount lives on a hand bone while the saver belongs on the
-            // entity — the same split ArticulatedPartsSaveable makes.
-            if (go.GetComponentInChildren<WeaponMount>(true) != null &&
-                go.GetComponent<WeaponMountSaveable>() == null)
-            {
-                go.AddComponent<WeaponMountSaveable>();
-                parts.Add(nameof(WeaponMountSaveable));
             }
 
             // EntityInventorySaveable keeps what is in the bag; this keeps what is in the hand, and
@@ -453,7 +421,7 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(EntityEquipmentSaveable));
             }
 
-            // Which side this entity is on. SetFaction is a runtime reassignment — MatchManager
+            // Which side this entity is on. SetFaction is a runtime reassignment — a spawner
             // re-teams every arena spawn — and nothing captured it, so a re-teamed entity reloaded on
             // its prefab's faction and either turned on its own side or became untargetable.
             if (go.GetComponent<EntityFaction>() != null && go.GetComponent<EntityFactionSaveable>() == null)

@@ -343,9 +343,9 @@ every time.
 
 Not everything is meant to. Being explicit about it:
 
-- **Versus and arena match state is not saved, deliberately.** Both are single-session by design. The
-  temporary faction and targeting changes a match makes to entities are specifically excluded from
-  capture, so an arena match does not leave the world's creatures with arena allegiances.
+- **Versus match state is not saved, deliberately.** It is single-session by design. The temporary
+  faction and targeting changes a match makes to entities are specifically excluded from capture, so
+  a match does not leave the world's creatures with match allegiances.
 - **The story run's session state does survive** — its timer and state — and restoring it never
   re-triggers the win.
 - **A late joiner is not placed into an interior other players are inside.** Known and open.

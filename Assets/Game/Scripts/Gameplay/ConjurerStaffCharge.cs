@@ -1,7 +1,7 @@
 // The charge that gathers on the staff while the conjurer holds it up.
 //
 // ConjurerCastModule spawns this on the frame a cast begins, parented to the
-// StaffTip bone -- the emitter staff.py puts above the turbine -- and destroys it
+// StaffTip bone -- the emitter above the turbine -- and destroys it
 // when the bolt lands. Everything below is therefore presentation with a known,
 // fixed lifetime: it never decides when to stop, and it must not touch anything
 // the server owns.
@@ -37,7 +37,7 @@
 // ---- why the fan is a radius and not a bone -----------------------------------
 //
 // The blades are three swept ribbons inside ONE mesh on ONE bone, because they
-// never move independently -- see staff.py on why that is one object and not four.
+// never move independently, which is why that is one object and not four.
 // There is therefore no per-blade-tip transform to hang an arc off, and adding
 // three empty bones purely so this script could find them would put geometry in
 // the FBX to serve a cosmetic. The turbine is a circle of known radius a known
@@ -80,7 +80,7 @@ namespace SpaceGame.Gameplay
 
         [Header("The turbine")]
         [Tooltip("Radius of the fan in metres, and how far below the emitter its " +
-                 "plane sits. staff.py's FAN_R1 and the gap from HUB_Z to TOP_Z, " +
+                 "plane sits. The fan radius and the gap from the hub to the top, " +
                  "converted by the model's import scale.")]
         [SerializeField] private float fanRadius = 1.2f;
         [SerializeField] private float fanDrop = 1.4f;

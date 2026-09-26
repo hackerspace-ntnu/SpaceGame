@@ -3,7 +3,7 @@
 // Placing an entity is not the same problem as moving it. The player's NetworkTransform is
 // owner-authoritative (AuthorityMode: Owner), which means the server does not get to write a remote
 // player's position: the owner's next state update overwrites it, within a tick, silently. Every
-// system in this project that teleports a player has run into that independently — MatchManager
+// system in this project that teleports a player has run into that independently — respawn
 // solved it with an RPC of its own, the respawn flow and the interior loader did not, and both of
 // those simply did nothing for anyone but the host.
 //

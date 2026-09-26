@@ -20,7 +20,7 @@
 // that away and flattens the part to identity on the first animated frame, which is what happened
 // to the item scanner's dial. Every value driven on THOSE is therefore rest * offset, off a rest
 // pose captured before anything moves. The sphere and the ring are the exception and are assigned
-// outright: they are generated primitives with no authored transform to lose (SingularityBuilder).
+// outright: they are generated primitives with no authored transform to lose.
 using SpaceGame.Audio;
 using UnityEngine;
 

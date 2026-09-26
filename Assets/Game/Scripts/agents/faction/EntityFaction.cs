@@ -42,7 +42,7 @@ namespace SpaceGame.Agents
         }
 
         // Assigns faction at runtime, before OnEnable registers this entity into
-        // EntityTargetRegistry. Used by MatchManager when spawning match entities
+        // EntityTargetRegistry. Used by spawners when placing entities
         // (bots and players) whose faction depends on chosen team/gamemode, not
         // on what's serialized in the prefab.
         public void SetFaction(FactionDefinition newFaction, FactionRelationshipTable table = null)
@@ -82,7 +82,7 @@ namespace SpaceGame.Agents
         /// <para>
         /// It lives here rather than on <see cref="AgentTargeting"/> because that is not the only
         /// thing that hunts. <c>DormantModule</c>, <c>FleeModule</c>, <c>WatchModule</c> and
-        /// <c>ApproachModule</c> all ask <see cref="EntityTargetRegistry"/> directly, and an
+        /// <c>KeepDistanceModule</c> all ask <see cref="EntityTargetRegistry"/> directly, and an
         /// exemption those cannot see is one a sleeping conjurer wakes up in spite of. Every
         /// registry query already takes the asking entity's <see cref="EntityFaction"/>, so putting
         /// the list here is what makes one check cover all of them.
@@ -134,7 +134,7 @@ namespace SpaceGame.Agents
         // missing one. Every spawn path should go through here.
         //
         // A silent null check is not good enough: the networked player prefab shipped without an
-        // EntityFaction, and because both MatchManager and the targeting modules simply skipped
+        // EntityFaction, and because the targeting modules simply skipped
         // entities that had none, no AI in either the open world or the arena could see a human
         // player — with no error anywhere to say so.
         public static EntityFaction Ensure(GameObject entity, FactionDefinition faction,

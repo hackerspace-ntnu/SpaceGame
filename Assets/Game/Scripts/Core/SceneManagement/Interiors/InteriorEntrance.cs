@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Core
 {
@@ -11,8 +12,11 @@ namespace SpaceGame.Core
     /// teleported back exactly where they entered — i.e. on top of this entrance. Without the
     /// lockout check a walk-in entrance would re-fire the same frame and yo-yo them straight back.
     /// </summary>
-    public class InteriorEntrance : MonoBehaviour, IInteractable
+    public class InteriorEntrance : MonoBehaviour, IInteractable, IInteractionMoment
     {
+        /// <summary>Nothing on the body: the press moves the body through the entrance at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         [SerializeField] private InteriorScene targetInterior;
 
         public void Initialize(InteriorScene def) => targetInterior = def;

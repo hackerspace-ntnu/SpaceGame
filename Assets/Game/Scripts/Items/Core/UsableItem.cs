@@ -52,7 +52,18 @@ namespace SpaceGame.Items
         [SerializeField] protected SfxId useSoundId = SfxId.None;
         [SerializeField] protected EventReference useSound;
 
+        [Tooltip("What the holder's body does on every use — a gun's recoil, a spell's cast. " +
+                 "Played on every machine alongside the sound. A gun takes an Additive-slot recoil " +
+                 "(Pistol Recoil, Rifle Recoil), which kicks from wherever the arm is aimed; an " +
+                 "overriding shot clip would snap the aimed arm level. Empty for none; an item that " +
+                 "picks its own moment for a gesture (a gauntlet's thrust) plays it through " +
+                 "PlayOnHolder instead.")]
+        [SerializeField] private CharacterAction useAction;
+
         private int currentUses = 0;
+
+        // The holder's action player, found once per equip. Null for a holder with no humanoid body.
+        private CharacterActions holderActions;
 
         protected GameObject owner;
 
@@ -189,6 +200,26 @@ namespace SpaceGame.Items
             Sfx.Play(useSoundId, transform.position, useSound, GetInstanceID());
 
             Present();
+            PlayOnHolder(useAction, UsingArm);
+        }
+
+        /// <summary>
+        /// Play <paramref name="action"/> on the holder's body. Call it from the presentation half
+        /// — <see cref="Present"/> or a hold tick — which runs on every machine; the holder's
+        /// <see cref="CharacterActions"/> decides which of them writes the body.
+        /// </summary>
+        protected bool PlayOnHolder(CharacterAction action, ItemGrip.Hand? arm = null) =>
+            action != null && holderActions != null && holderActions.Play(action, arm);
+
+        /// <summary>The arm this item is used with: the forearm it is worn on, or the hand gripping it.</summary>
+        protected ItemGrip.Hand? UsingArm
+        {
+            get
+            {
+                if (Worn) return WornOn;
+                var grip = GetComponent<ItemGrip>();
+                return grip != null ? grip.HeldIn : (ItemGrip.Hand?)null;
+            }
         }
 
         // ── Per-instance state ─────────────────────────────────────────────────
@@ -386,6 +417,7 @@ namespace SpaceGame.Items
             // holder to describe a use — an aim ray, a muzzle, a velocity — would otherwise find
             // null exactly once per equip.
             owner = holder;
+            holderActions = holder != null ? holder.GetComponentInChildren<CharacterActions>(true) : null;
 
             // A worn item — a gauntlet on the forearm, a pack on the back — must never pose the
             // arm as though gripping it: the hand is free to hold something else at the same time.
@@ -457,6 +489,7 @@ namespace SpaceGame.Items
         /// </summary>
         public virtual void OnUnequipped(GameObject holder)
         {
+            holderActions = null;
             var hold = GetComponent<HoldAnimator>();
             if (hold != null) hold.SetHeld(holder, false);
         }

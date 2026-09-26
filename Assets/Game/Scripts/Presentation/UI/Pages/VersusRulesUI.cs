@@ -38,7 +38,7 @@ namespace SpaceGame.Presentation
         /// to the menu, so without this a second visit would start from whatever the last match
         /// left behind rather than from <see cref="VersusRules.DefaultTeams"/> and
         /// <see cref="VersusRules.DefaultTeamSize"/> — the same reasoning
-        /// <c>MinigameConfigUI.Awake</c> gives for <c>MatchSettings.ResetToDefaults</c>.
+        /// a config screen gives for resetting its settings to defaults.
         /// </summary>
         public static VersusRulesUI Open(MainMenuUI owner)
         {

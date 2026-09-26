@@ -219,7 +219,7 @@ namespace SpaceGame.Tests
                 $"the jumping rod measures {footprint.x:F2} x {footprint.y:F2} m " +
                 $"({shape.Width}x{shape.Height} cells at a {PackGrid.Cell:F3} m cell) and fits none " +
                 $"of the pack's faces, even where they allow overhang: {faces}. Lower " +
-                $"ItemGrip.holdSize on {ItemPrefabPath} — JumpingRodBuilder.HoldSize owns that " +
+                $"ItemGrip.holdSize on {ItemPrefabPath} — the prefab owns that " +
                 "number — or widen a face in ExpeditionRigWiring.SurfaceTable.");
 
             // And the one face it can NOT go on, which is the claim in the note above: the lash

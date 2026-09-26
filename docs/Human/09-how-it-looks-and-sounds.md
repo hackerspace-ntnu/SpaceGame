@@ -59,8 +59,7 @@ These are not preferences. Each one exists because the obvious version of it is 
 
 **The front of the game** is a stack of menu pages over that one 3D set: the main menu, a
 two-or-three-answer question page (story or versus, host or join), world select — the only place a
-world is ever chosen, for single player and for multiplayer alike — versus team rules, and the
-pre-match gamemode configuration for the arena minigame.
+world is ever chosen, for single player and for multiplayer alike — and versus team rules.
 
 **The lobby** is the most elaborate screen in the game and worth looking at before designing
 anything else. It swaps between a join page and a roster page, and the player list is not a list of

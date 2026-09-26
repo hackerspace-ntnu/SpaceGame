@@ -8,7 +8,6 @@ paths:
   - Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab
   - Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset
   - Assets/Game/Art/Models/Items/strap_on_booster.fbx
-  - Assets/Game/Art/Models/_Source~/models/gear/strap_on_booster_export.py
   - Assets/Game/Editor/Tests/BoosterClampTests.cs
   - Assets/Game/Editor/Tests/BoosterWiringTests.cs
 symptoms:

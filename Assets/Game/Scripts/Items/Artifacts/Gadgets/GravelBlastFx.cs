@@ -28,7 +28,7 @@ namespace SpaceGame.Items
     public class GravelBlastFx : MonoBehaviour
     {
         [Header("Muzzle")]
-        [Tooltip("Where the blast leaves the pipes. Placed by GravelBlasterBuilder.")]
+        [Tooltip("Where the blast leaves the pipes. Placed on the prefab.")]
         [SerializeField] private Transform muzzle;
 
         [Tooltip("Tumbling rock chunks out of the muzzle.")]

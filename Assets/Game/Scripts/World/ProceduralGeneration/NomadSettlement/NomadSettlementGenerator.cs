@@ -21,7 +21,7 @@
 //
 // WIRING. PatrolModule, BasePatrolModule and HerdModule keep their settings in private
 // [SerializeField] fields, and no Configure method may be added to them. They are therefore wired
-// with SerializedObject, which is how NomadPrefabBuilder already sets WatchModule's private fields.
+// with SerializedObject, which is how the nomad prefabs already set WatchModule's private fields.
 // A field name that does not exist writes nothing and reports nothing, so Generate() counts what it
 // actually wired and says so in the console.
 using System.Collections.Generic;
@@ -44,12 +44,12 @@ namespace SpaceGame.World
         [Tooltip("One seed is one town. Change it and the town changes.")]
         public int seed = 1;
 
-        [Header("Prefabs (filled in by NomadSettlementPlacer)")]
+        [Header("Prefabs")]
         public GameObject[] largeBuildings;
         public GameObject[] mediumBuildings;
         public GameObject[] smallBuildings;
         [Tooltip("The freestanding shade sails only. The wall-mounted ones are already hung on the " +
-                 "buildings by NomadSettlementBuilder.")]
+                 "buildings.")]
         public GameObject[] tents;
         public GameObject[] nomads;
         public GameObject mountedNomad;
@@ -462,7 +462,7 @@ namespace SpaceGame.World
         /// NOT by reading Renderer.bounds. Two reasons, and the first one cost a whole build:
         ///
         ///   * Renderer.bounds on a prefab ASSET is not a reliable world measurement -- the renderer
-        ///     is not in a scene and has no world transform to be relative to. NomadSettlementBuilder
+        ///     is not in a scene and has no world transform to be relative to. The settlement prefabs
         ///     works around it by instantiating the prefab at the origin before measuring anything;
         ///     this does the arithmetic instead, so nothing has to be spawned to ask how big it is.
         ///   * mesh.bounds alone is just as wrong the other way: every nomad building is an FBX whose
@@ -471,12 +471,12 @@ namespace SpaceGame.World
         ///
         /// Transforming the corners goes through both, and the prefab root is at identity, so the
         /// result is honest root-local metres. The set measures 1.97-11.30 m across (TENTS.md and the
-        /// NomadSettlementBuilder size-class header), which is what the placer's report checks against.
+        /// the settlement size-class header), which is what the placer's report checks against.
         ///
         /// COLLIDERS, not renderers. Each building carries nested sail prefabs -- cloth canopies that
         /// stand several metres off its walls -- and measuring those in made a large building read as
         /// 52 m across, which is a clearance no town has room for and left four buildings of seven
-        /// unplaced. NomadSettlementBuilder gives every structural part a convex hull and gives the
+        /// unplaced. Every structural part carries a convex hull and the
         /// sails none on purpose ("cloth over head height"), so the collider set is exactly the
         /// building's own body. It is also the right question: a player walks into masonry, not shade.
         /// </summary>

@@ -80,6 +80,9 @@ namespace SpaceGame.Items
         [SerializeField] private LayerMask hookableLayers = ~0;
         [SerializeField] private float shootSpeed = 60f;   // dart travel speed, m/s
 
+        [Tooltip("The shooter's arm as the dart leaves. Empty for none.")]
+        [SerializeField] private CharacterAction fireAction;
+
         [Header("Winch — runs from the moment the dart bites")]
         [Tooltip("Acceleration toward the anchor, m/s². An acceleration and not a speed, so the " +
                  "pull has a ramp on it and adds to the swing already underway.")]
@@ -615,8 +618,7 @@ namespace SpaceGame.Items
 
             SpawnHead(start, _hookPoint - start);
 
-            Animator animator = owner.GetComponentInChildren<Animator>();
-            if (animator) animator.SetTrigger("ShootRifle");
+            PlayOnHolder(fireAction, UsingArm);
         }
 
         /// <summary>

@@ -32,13 +32,13 @@ namespace SpaceGame.EditorTools
         private const string NetworkedPlayerPrefabPath =
             "Assets/Game/Prefabs/Characters/Player/PlayerCharacterNetworked.prefab";
 
-        /// <summary>The Gun bracket of ItemScaleLadder, shared with Gun.prefab, PortalGun and GravelBlaster.</summary>
+        /// <summary>The Gun size bracket, shared with Gun.prefab, PortalGun and GravelBlaster.</summary>
         private const float GunBracket = 1.25f;
 
         /// <summary>
         /// What the gun measures everywhere that is not the hand — the mat, the ship's gear wall
         /// and the sand. The true 0.629 m model rounded up to the next 0.09 m webbing pitch; on
-        /// the mat that is 4 x 7 = 28 cells. See NetGunBuilder.PackSize for why the roster's extra
+        /// the mat that is 4 x 7 = 28 cells. See the prefab's packSize for why the roster's extra
         /// cell of margin is left off.
         /// </summary>
         private const float StowedSize = 0.63f;
@@ -108,12 +108,12 @@ namespace SpaceGame.EditorTools
 
             Assert.AreEqual(GunBracket, grip.HoldSize, 1e-3f,
                 "holdSize is the longest axis IN THE HAND, after EquipItemSocket rescales the mesh — " +
-                "not the size the model was built at. See ItemScaleLadder for the bracket table.");
+                "not the size the model was built at. See the size bracket table.");
             Assert.AreEqual(StowedSize, grip.PackSize, 1e-3f,
                 "packSize is back at the hand's bracket, so the gun is stowed and dropped at " +
                 "1.25 m — 7 x 14 = 98 of the rig's 255 cells for one pistol, and a 2.39 m gun " +
                 "lying in the sand. It carries its own true-metre size; see " +
-                "NetGunBuilder.PackSize and the row in PackSizeTests.");
+                "the prefab's packSize and the row in PackSizeTests.");
         }
 
         /// <summary>

@@ -212,7 +212,7 @@ namespace SpaceGame.Agents
         /// not an arbitrary renderer's own transform: a SkinnedMeshRenderer deforms to its BONES,
         /// so tilting the object holding that renderer moves nothing. Walking up from the root bone
         /// to the child of this agent lands on <c>Model</c> for the Nomad and BountyHunter,
-        /// <c>Armature</c> for the PatrolRobots and DeathmatchBot, and <c>Arm_DuneRat</c> /
+        /// <c>Armature</c> for the PatrolRobots, and <c>Arm_DuneRat</c> /
         /// <c>vrescal</c> for two of the creatures.
         /// </para>
         /// <para>

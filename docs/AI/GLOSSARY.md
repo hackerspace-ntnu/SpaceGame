@@ -15,7 +15,6 @@ they are the ones worth reading before you start grepping.
 | **AgentTargeting** | The single owner of "who does this agent fight"; auto-added in `AgentController.Awake` | [AgentSystem](systems/AgentSystem.md) |
 | **AimPivot** | Runtime child built by `PlayerViewNetwork`; the only place to hang things other players must see | [PlayerCharacter](systems/PlayerCharacter.md) |
 | **anchor** | Streaming: a transform chunks stay loaded around, server-only. Not `InteriorAnchor`, not a storm/sky clock anchor | [WorldStreaming](systems/WorldStreaming.md) |
-| **arena** | `MinigameArena.unity`, loaded additively ~16.5 km east of the grid for bot deathmatch — currently an empty scene | [GameModes](systems/GameModes.md) |
 | **arrival** | The one-time crash landing that opens a story world; a server-flown hull plus a local-only cutscene | [PlayerShip](systems/PlayerShip.md) |
 | **artifact** | A player-held usable item occupying a hotbar slot and firing on the shared `Player/Use` action — or worn (a gauntlet, the wing pack) and fired on its own key | [Artifacts](systems/Artifacts.md) |
 | **body slot** | One of the three worn slots — Back, LeftGauntlet, RightGauntlet — beside the three-slot hotbar; arranged on the F screen | [BodyEquipment](systems/BodyEquipment.md) |
@@ -35,7 +34,6 @@ they are the ones worth reading before you start grepping.
 | **EffectItem** | `UsableItem` subclass for a timed change to the holder's own body; `Use()` is sealed, override `ApplyEffect()` | [Artifacts](systems/Artifacts.md) |
 | **entity** | Not a base class: three independent marker components — `IPersistentEntity`, `SceneTracked`, `EntityFaction` | [EntitySystem](systems/EntitySystem.md) |
 | **EntityFaction** | The AI-targetability marker; without it a thing is invisible to every targeting module, silently | [AgentSystem](systems/AgentSystem.md) |
-| **EntityProfile_\*** | Data-only authoring *MonoBehaviours* with a Generate button (not ScriptableObjects); exactly four exist | [EntitySystem](systems/EntitySystem.md) |
 | **EntityTargetRegistry** | Static registry of `EntityFaction`s for AI targeting — nothing to do with `Registry<T>` or persistence | [EntitySystem](systems/EntitySystem.md) |
 | **EquipmentController** | Hand sockets plus the only place an item use is triggered across the network | [Inventory](systems/Inventory.md) |
 | **expedition rig** | The backpack prefab itself (`ExpeditionRig.prefab`), built from FBX by `ExpeditionRigWiring` | [Backpack](systems/Backpack.md) |
@@ -68,7 +66,6 @@ they are the ones worth reading before you start grepping.
 | **LeggedDriver** | The Assembly-CSharp motor that turns rider input and AI intent into a twist for a `LeggedLocomotion` | [Locomotion](systems/Locomotion.md) |
 | **LeggedLocomotion** | The kinematic base class owning procedural walking; it is the *sole* owner of the body transform | [Locomotion](systems/Locomotion.md) |
 | **LobbySession** | App-lifetime owner of UGS lobby state; `Instance` creates one on touch, use `Existing` to merely ask | [Lobby](systems/Lobby.md) |
-| **MatchManager** | Server orchestrator for all three arena gamemodes: bots, factions, kills, win check, leaderboard | [GameModes](systems/GameModes.md) |
 | **motor** | An `IMovementMotor`: the single owner of "how does this agent move" (NavMesh, rigidbody, hover, flight, legs) | [AgentSystem](systems/AgentSystem.md) |
 | **mount** | Taking a machine over — seat, camera and controls transfer to you. Contrast **station** | [Vehicles](systems/Vehicles.md) |
 | **MountModule** | One seat. A hull with four seats carries four of them, addressed positionally by `MountIndex` | [Vehicles](systems/Vehicles.md) |
@@ -93,7 +90,7 @@ they are the ones worth reading before you start grepping.
 | **portal** | A sprayable one-way-pair aperture you walk through; not a `NetworkObject` — placement replicates as a message | [Portals](systems/Portals.md) |
 | **prefabId** | Asset GUID answering "what do I instantiate"; no prefab on disk ships one until the wiring tool stamps it | [Persistence](systems/Persistence.md) |
 | **`Present()`** | Two unrelated things: the cosmetic every-machine half of an item use, and `MenuScreen.Present()`, which builds a menu page | [Artifacts](systems/Artifacts.md) |
-| **profile** | 5 senses: `TargetingProfile`, `EntityProfile_*`, a save `PlayerProfile` GUID, a UGS `SessionProfile`, a `SandstormProfile` | [EntitySystem](systems/EntitySystem.md) |
+| **profile** | 4 senses: `TargetingProfile`, a save `PlayerProfile` GUID, a UGS `SessionProfile`, a `SandstormProfile` | [AgentSystem](systems/AgentSystem.md) |
 | **ragdoll** | A skeleton *derived* at runtime from mesh vertex weights — no `CharacterJoint` is authored anywhere on disk | [Combat](systems/Combat.md) |
 | **Registry&lt;T&gt;** | The **item** registry (`Resources/Items`), keyed by string ID. Never wire an entity into it | [CoreServices](systems/CoreServices.md) |
 | **relay** | 4 senses: Unity Relay (transport), `NetRelay` (our wire), `AgentActionRelay`/`InteractorRelay`, `Unity.Relay.Editor` (AI sidecar) | [Multiplayer](systems/Multiplayer.md) |
@@ -117,7 +114,7 @@ they are the ones worth reading before you start grepping.
 | **station** | Keeping your body and camera while claiming one control on a walkable deck (`VehicleStation`). Contrast **mount** | [Vehicles](systems/Vehicles.md) |
 | **stow** | Backpack: putting an item onto a pack face (or reshouldering the pack). Vehicles: retracting a deployed part | [Backpack](systems/Backpack.md) |
 | **suit** | The player's colour swatch: one synced index recolouring seven materials matched by *name*, shared with ship livery | [PlayerCharacter](systems/PlayerCharacter.md) |
-| **TargetingProfile** | A ScriptableObject overriding every inline `AgentTargeting` field; `MatchManager` swaps it in for arena bots | [AgentSystem](systems/AgentSystem.md) |
+| **TargetingProfile** | A ScriptableObject overriding every inline `AgentTargeting` field; swapped in at runtime by `ApplyProfile` | [AgentSystem](systems/AgentSystem.md) |
 | **TerrainFeature** | An edit-time marching-cubes addition on top of authored terrain. Only two types remain: `Mesa = 2`, `Cliff = 4` | [ProceduralGeneration](systems/TerrainGeneration.md) |
 | **thopter** | Shorthand for the ornithopter | [Ornithopter](systems/Ornithopter.md) |
 | **ToolItem** | `UsableItem` subclass for an aimed, instant or world-changing use; adds `aimProvider` | [Artifacts](systems/Artifacts.md) |

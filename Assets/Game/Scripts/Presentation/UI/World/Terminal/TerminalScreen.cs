@@ -9,7 +9,7 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// What the standing terminal draws on its glass: a header with three tabs and a clock, one
-    /// page at a time under it, and a blinking cursor. Built by <c>StandingTerminalBuilder</c>
+    /// page at a time under it, and a blinking cursor. Authored on the terminal prefab
     /// as a world-space canvas laid 2 mm over the screen plate; this only ever moves text,
     /// colours and dots around inside it.
     ///

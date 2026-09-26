@@ -45,7 +45,7 @@ still has a tracked entity standing in it will not unload at all; that entity is
 radius of zero.
 
 If you leave the grid entirely, the nearest edge chunk stays loaded for up to two kilometres out.
-Beyond that (the deathmatch arena sits about sixteen and a half kilometres east) you hold nothing.
+Beyond that you hold nothing.
 
 ### Loading is a single-file queue
 
@@ -312,8 +312,8 @@ end and never at the top.
 
 In game, one **persistent scene** is loaded on its own and never unloads. It holds the managers, the
 streamer, the save system, the interior loader, the NPC simulation, the weather, the spawn point and
-the arrival director. Everything else stacks additively on top of it: world chunks, interiors, and the
-arena.
+the arrival director. Everything else stacks additively on top of it: world chunks and
+interiors.
 
 Two facts about scenes that have bitten people:
 

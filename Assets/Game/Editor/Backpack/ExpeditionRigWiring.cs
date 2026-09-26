@@ -90,9 +90,9 @@ namespace SpaceGame.EditorTools
         // PackOverhang for the rule and its limits.
         //
         // DEEPENED 2026-08-25 by the .blend's `LEAF_EXTRA` (0.30 m at the board's leading edge,
-        // 0.20 m before the enlargement), after ItemScaleLadder roughly doubled the gear. These
+        // 0.20 m before the enlargement), after the gear was roughly doubled in size. These
         // numbers are measurements of the model, not preferences: they must equal the `SURFACES`
-        // table in `_Source~/components/props/expedition_rig.py`, and `Verify` below re-reads the
+        // table baked into the expedition rig model, and `Verify` below re-reads the
         // built prefab to say so out loud. Changing one without the other lays gear out over sand.
         //
         // RE-CELLED 2026-08-25 (second pass): every rectangle is an EXACT multiple of
@@ -112,7 +112,7 @@ namespace SpaceGame.EditorTools
         // transform, so no mask, no shape and no capacity moved — only how big the rig is.
         // Written out at their current values rather than as `PackScale.Apply(...)` because these
         // are measurements read by eye off the model, and a reader comparing this table against
-        // the .blend must be able to see the same numbers in both — `expedition_rig_scale.py`
+        // the .blend must be able to see the same numbers in both — the rig's baked scale
         // prints exactly this list. Verify below re-reads the built prefab and checks the cell
         // counts.
         private static readonly (string node, PackSurfaceId id, Vector2 size)[] SurfaceTable =
@@ -385,7 +385,7 @@ namespace SpaceGame.EditorTools
             if (importer == null)
             {
                 log.Append("  MISSING  ").Append(path)
-                   .Append(" — run components/props/expedition_rig_export.py first.\n");
+                   .Append(" — re-export the expedition rig first.\n");
                 return false;
             }
 

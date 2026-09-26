@@ -9,12 +9,16 @@
 using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Vehicles
 {
     [RequireComponent(typeof(Collider))]
-    public class MountStation : MonoBehaviour, IInteractable
+    public class MountStation : MonoBehaviour, IInteractable, IInteractionMoment
     {
+        /// <summary>Nothing on the body: taking the station seats the body at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         [Tooltip("Vehicle this station drives. Auto-resolved from the parents if left empty.")]
         [SerializeField] private MountModule mount;
 

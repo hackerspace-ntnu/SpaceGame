@@ -1,0 +1,245 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7efcd758a8af4661822cf7bbdab345dd, type: 3}
+  m_Name: EmoteCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.EmoteCatalog
+  entries:
+  - word: wave
+    action: {fileID: 11400000, guid: 6db6b32809444c118d7f6b62aeb9ff18, type: 2}
+    line: '{0} waves.'
+    category: Gestures
+    icon: {fileID: 0}
+  - word: cheer
+    action: {fileID: 11400000, guid: a6c072feadd946c8a3ea3762fd49b10d, type: 2}
+    line: '{0} cheers!'
+    category: Gestures
+    icon: {fileID: 0}
+  - word: shrug
+    action: {fileID: 11400000, guid: 1a4b52a24e5d446ebee128cf8dccf766, type: 2}
+    line: '{0} shrugs.'
+    category: Gestures
+    icon: {fileID: 0}
+  - word: flex
+    action: {fileID: 11400000, guid: cdebac0fa5eb49729b76206c7f5d6b3e, type: 2}
+    line: '{0} flexes.'
+    category: Gestures
+    icon: {fileID: 0}
+  - word: dance
+    action: {fileID: 11400000, guid: 87bc77c9ea1a4533882bcd2de7c70f8d, type: 2}
+    line: '{0} dances.'
+    category: Gestures
+    icon: {fileID: 0}
+  - word: point
+    action: {fileID: 11400000, guid: d9403d33a047405d91dc92050ffee8a9, type: 2}
+    line: 
+    category: Gestures
+    icon: {fileID: 0}
+  - word: kneel
+    action: {fileID: 11400000, guid: bd9d07272bbd4ba881d5c34af807cc9b, type: 2}
+    line: '{0} kneels.'
+    category: Gestures
+    icon: {fileID: 0}
+  - word: think
+    action: {fileID: 11400000, guid: a092946f9e43649cb9c2acedb8a02978, type: 2}
+    line: 
+    category: Idle
+    icon: {fileID: 0}
+  - word: bow
+    action: {fileID: 11400000, guid: 5fda37cb11ced4336b6d54f09f539cc9, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: curtsey
+    action: {fileID: 11400000, guid: 2b154e1b0867c4608a362ed068485a25, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: hello
+    action: {fileID: 11400000, guid: 8fb55ed2742964526865cb9abb4ba727, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: highfive
+    action: {fileID: 11400000, guid: 38cf6a87ae2844b16a4598a6246e91f8, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: handshake
+    action: {fileID: 11400000, guid: 3af29d0c079154226ae2d3cfac1967a5, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: give
+    action: {fileID: 11400000, guid: fc29df3a0a52740d9936372d86a63b0f, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: laugh
+    action: {fileID: 11400000, guid: 2f2bd5a4f107e4a9bb127850d031e5eb, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: cry
+    action: {fileID: 11400000, guid: bca78109819f54a17b39f87e6ef96f94, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: sigh
+    action: {fileID: 11400000, guid: f57c3705f7bb944a1aad314783c45f25, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: joy
+    action: {fileID: 11400000, guid: d5ef8c6043835444c9f27cf532812b02, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: cower
+    action: {fileID: 11400000, guid: c7406108b2f7647539b23c44553e404e, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: upset
+    action: {fileID: 11400000, guid: 8d515144533974b89938f8dfd18469cf, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: shiver
+    action: {fileID: 11400000, guid: a159d4b25a3e54e1a8d70a812d5be920, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: yawn
+    action: {fileID: 11400000, guid: a3f5f2fb58b064e00a1317396979ead8, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: stretch
+    action: {fileID: 11400000, guid: 4bfb68838e17a40f79b3cd4825891f8d, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: peekaboo
+    action: {fileID: 11400000, guid: 8e406f432b44642999f9a4abe3ac316d, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: mope
+    action: {fileID: 11400000, guid: 3d11b1950bd284eba85968e385cfd241, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: airplane
+    action: {fileID: 11400000, guid: 93b7c64aac2e2402cb5a6eb64b042401, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: comfort
+    action: {fileID: 11400000, guid: 4f52874ef8fae4e45a19c43b8365cc4d, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: jacks
+    action: {fileID: 11400000, guid: a3f68de5c670d4a079359d2b47d8c4ac, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: taichi
+    action: {fileID: 11400000, guid: 15990ad55b9fd42a2b1eac61b2ac8fd3, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: yoga
+    action: {fileID: 11400000, guid: 4c240df2f04c1414087e9ef333d918f1, type: 2}
+    line: 
+    category: Emote
+    icon: {fileID: 0}
+  - word: chicken
+    action: {fileID: 11400000, guid: 64dc0fa916ac546d2ba20a07405edb8a, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: macarena
+    action: {fileID: 11400000, guid: 9f4c4e7451cf94de383f400a001fe37d, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: twist
+    action: {fileID: 11400000, guid: 6759d47319f494beba458cf4e917e507, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: salsa
+    action: {fileID: 11400000, guid: 7b85ac9439cc54856a6ab79d82f67200, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: charleston
+    action: {fileID: 11400000, guid: 55e436c0b042a4926a04876acbf557cc, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: cossack
+    action: {fileID: 11400000, guid: e1a1fdc627a7b4f5d80d6334dffe4e99, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: moonwalk
+    action: {fileID: 11400000, guid: 1b4464fca2970489c9ece11b4db69ba9, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: breakdance
+    action: {fileID: 11400000, guid: 3a5cbe694ef514b78b106340ebc8ac81, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: heelclick
+    action: {fileID: 11400000, guid: 0ef38d280ac144345b8e0dc74c017211, type: 2}
+    line: 
+    category: Dance
+    icon: {fileID: 0}
+  - word: fists
+    action: {fileID: 11400000, guid: 40fcf2a89e1254bd3afced0355860a9c, type: 2}
+    line: 
+    category: Unarmed
+    icon: {fileID: 0}
+  - word: drink
+    action: {fileID: 11400000, guid: f11169326e3da46f1a03a926c23ad941, type: 2}
+    line: 
+    category: EatDrink
+    icon: {fileID: 0}
+  - word: eat
+    action: {fileID: 11400000, guid: 45038d4abf5564a37be34cd5663125e2, type: 2}
+    line: 
+    category: EatDrink
+    icon: {fileID: 0}
+  - word: sit
+    action: {fileID: 11400000, guid: 0d7462a5726cb4002b9c86d3bd01a49e, type: 2}
+    line: 
+    category: Sit
+    icon: {fileID: 0}
+  - word: sleep
+    action: {fileID: 11400000, guid: 3dd08bcb7df3645488ae35c431652896, type: 2}
+    line: 
+    category: Sit
+    icon: {fileID: 0}
+  - word: cartwheel
+    action: {fileID: 11400000, guid: 0492325056b014dc885279ccdbe197b6, type: 2}
+    line: 
+    category: Acrobatics
+    icon: {fileID: 0}
+  - word: backflip
+    action: {fileID: 11400000, guid: 4b790eefc03cc4bfb9e54eee757210ea, type: 2}
+    line: 
+    category: Acrobatics
+    icon: {fileID: 0}

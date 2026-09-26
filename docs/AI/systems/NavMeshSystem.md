@@ -6,7 +6,6 @@ paths:
   - Assets/Game/Scripts/World/Streaming/NavMesh/
   - Assets/Game/Settings/WorldNavMesh.asset
   - Assets/Game/Settings/SkyCityNavMesh.asset
-  - Assets/Game/Editor/Environment/SkyCityNavMeshBaker.cs
   - Assets/Game/Scripts/agents/Modules/Movement/WanderModule.cs
   - Assets/Game/Scripts/agents/AI/Motors/
   - ProjectSettings/NavMeshAreas.asset
@@ -43,7 +42,7 @@ One NavMesh for the whole streamed world, baked at author time into a single ass
 - **Bake mirrors the runtime.** The baker snaps each chunk's `Terrain` to its grid X/Z (mirroring `WorldStreamer.CacheTerrainForChunk`) and calls `TerrainFeatureSpawner.SpawnBaked()` before collecting, then discards those edits. Skip either and the mesh is silently offset from the ground.
 - **Staleness is enforced at build time.** [WorldNavMeshStaleness](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) compares each chunk's `AssetDatabase.GetAssetDependencyHash` against the stamp recorded at bake; `WorldNavMeshBuildCheck : IPreprocessBuildWithReport` throws `BuildFailedException` when they differ.
 - **Caves are separate surfaces**, not part of the world mesh — see Gotchas.
-- **So is the Sky City.** `SkyCityFleet` stands in `persistentScene`, which the world bake never scans. [SkyCityNavMeshBaker](Assets/Game/Editor/Environment/SkyCityNavMeshBaker.cs) bakes the fleet prefab's collision **in prefab space** into [SkyCityNavMesh.asset](Assets/Game/Settings/SkyCityNavMesh.asset) (a bare `NavMeshData`, ~130 KB), with the world bake's settings and layer mask read from `WorldNavMesh.asset` and its collider filter/mapping (`WorldNavMeshBaker.IsBakeable` / `TryColliderToSource`). [StaticNavMeshData](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) on the fleet prefab root adds it at the instance's position and rotation, so moving the fleet in the scene needs no re-bake.
+- **So is the Sky City.** `SkyCityFleet` stands in `persistentScene`, which the world bake never scans. SkyCityNavMeshBaker bakes the fleet prefab's collision **in prefab space** into [SkyCityNavMesh.asset](Assets/Game/Settings/SkyCityNavMesh.asset) (a bare `NavMeshData`, ~130 KB), with the world bake's settings and layer mask read from `WorldNavMesh.asset` and its collider filter/mapping (`WorldNavMeshBaker.IsBakeable` / `TryColliderToSource`). [StaticNavMeshData](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) on the fleet prefab root adds it at the instance's position and rotation, so moving the fleet in the scene needs no re-bake.
 - **The ground gets a say.** `NavMeshAgentMotor.ApplyGroundGrip` asks [GroundGrip](Assets/Game/Scripts/Gameplay/Grip/GroundGrip.cs) what the surface under the agent is worth and scales `agent.acceleration` by it, so a [SurfaceCoat](Artifacts/SurfaceCoat.md) patch slows how fast an NPC can change velocity without touching its top speed — it overshoots and cannot brake. **Acceleration only, never `angularSpeed`:** an agent that cannot turn cannot follow its path off the patch, which is stuck rather than sliding. Same reason `LeggedLocomotion.ApplyGroundGrip` leaves yaw alone.
 - **Two motor families:** [NavMeshAgentMotor](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) drives a real `NavMeshAgent`; [LeggedDriver](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) has no agent component and only calls `NavMesh.CalculatePath` (the legs own the transform).
 
@@ -80,15 +79,14 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 | `WorldNavMeshProvider` | [WorldNavMeshProvider.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) | `AddNavMeshData` on enable; `LogError` (never a silent fallback) if unassigned |
 | `WorldNavMeshBaker` | [Editor/WorldNavMeshBaker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) | `World/Streaming/Bake World NavMesh` menu item; asset path `Assets/Game/Settings/WorldNavMesh.asset` |
 | `StaticNavMeshData` | [StaticNavMeshData.cs](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) | `AddNavMeshData(data, transform.position, transform.rotation)` on enable, remove on disable; `LogError` if unassigned. No scale |
-| `SkyCityNavMeshBaker` | [Editor/Environment/SkyCityNavMeshBaker.cs](Assets/Game/Editor/Environment/SkyCityNavMeshBaker.cs) | `World/Streaming/Bake Sky City NavMesh`; bakes `SkyCityFleet.prefab` into `Assets/Game/Settings/SkyCityNavMesh.asset` and puts `StaticNavMeshData` on the fleet root |
+| `SkyCityNavMeshBaker` | Editor/Environment/SkyCityNavMeshBaker.cs | `World/Streaming/Bake Sky City NavMesh`; bakes `SkyCityFleet.prefab` into `Assets/Game/Settings/SkyCityNavMesh.asset` and puts `StaticNavMeshData` on the fleet root |
 | `WorldNavMeshStaleness` / `WorldNavMeshBuildCheck` | [Editor/WorldNavMeshStaleness.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) | `World/Streaming/Check World NavMesh Is Current`; fails the player build when stale |
 | `WorldStreamer.SnapAgentsToNavMesh` | [WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) (~L1229) | Re-enables + `Warp`s a loaded chunk's agents onto the mesh |
 | `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) | `IMovementMotor` over `NavMeshAgent`; `[DefaultExecutionOrder(-100)]` |
 | `LeggedDriver` | [LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Path-only consumer: `NavMesh.CalculatePath`, no `NavMeshAgent` |
 | `DeferredNavMeshWarp` | [DeferredNavMeshWarp.cs](Assets/Game/Scripts/Core/Persistence/Runtime/DeferredNavMeshWarp.cs) | Retries a save-restore `Warp` for 10 s, sample radius 4 m |
 | `CaveSpawner` | [CaveSpawner.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveSpawner.cs) | Own `NavMeshSurface`; `SpawnBaked()` adds a pre-baked `NavMeshData` instance |
-| `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `MatchManager`, `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` all call it |
-| `MatchManager` / `SpawnReachability` | [MatchManager.cs](Assets/Game/Scripts/Gameplay/Minigame/Runtime/MatchManager.cs), [SpawnReachability.cs](Assets/Game/Scripts/Gameplay/Minigame/Core/SpawnReachability.cs) | Snaps arena spawns to the mesh, keeps only the largest mutually-pathable group |
+| `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` both call it |
 
 ## Flows
 
@@ -116,7 +114,7 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 
 ## Multiplayer
 
-Yes — every machine has the identical mesh. `WorldNavMeshProvider` is a plain scene component in `persistentScene`, and the baked data ships in the build, so host and client both `AddNavMeshData` the same bytes locally (`StaticNavMeshData` on the Sky City fleet likewise runs on every machine); nothing about the NavMesh is replicated. Pathing runs wherever the agent simulates: `AgentController`/motor ticks are gated by `NetAuthority`, so the **server** paths NPCs and clients see replicated transforms. `MatchManager` spawn reachability is server-side. A client never disagrees about the mesh, only about who is allowed to drive an agent along it.
+Yes — every machine has the identical mesh. `WorldNavMeshProvider` is a plain scene component in `persistentScene`, and the baked data ships in the build, so host and client both `AddNavMeshData` the same bytes locally (`StaticNavMeshData` on the Sky City fleet likewise runs on every machine); nothing about the NavMesh is replicated. Pathing runs wherever the agent simulates: `AgentController`/motor ticks are gated by `NetAuthority`, so the **server** paths NPCs and clients see replicated transforms. A client never disagrees about the mesh, only about who is allowed to drive an agent along it.
 
 ## Persistence
 
@@ -137,7 +135,6 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 - **The bake can be silently wrong.** Nothing at runtime checks freshness; only `World/Streaming/Check World NavMesh Is Current` and the build preprocessor do. In the Editor a stale bake just means NPCs navigate a world that no longer exists.
 - **No off-mesh links exist.** Zero `NavMeshLink` / `OffMeshLink` components in any scene or prefab; the baker never sets `GenerateLinks`. The `m_AutoTraverseOffMeshLink` fields on agent prefabs are inert. Agents cannot cross a gap — jumps and leaps are `NavMeshAgentMotor`'s `baseOffset`/arc simulation, not navigation.
 - **`persistentScene` still has a legacy `NavMeshSurface`** on the same `NavMesh` GameObject, `m_Enabled: 0` with `m_NavMeshData: {fileID: 0}`. It contributes nothing. Do not enable it; do not treat it as the world surface.
-- **`MinigameArena.unity` is an empty scene** (`SceneRoots: []`) — no geometry, no surface, no baked data. `MatchManager.KeepMutuallyReachable` therefore hits its "no NavMesh at all" branch and returns the authored spawn positions unfiltered. The code comments about steep arena terrain splitting the mesh into islands describe an arena that is no longer in the scene.
 - **The `Interior` layer is excluded from the world bake**, so cave interiors never merge with the world mesh; each `CaveSpawner` adds its own `NavMeshData` instance and removes it in `ClearPrevious`/disable. A cave without `bakedMesh` + `bakedNavMeshData` assigned generates and bakes live on `Start` — seconds of stall.
 - **The layer mask is only defaulted at asset creation** (`LoadOrCreateAsset`). Adding a new layer later does *not* update the existing asset's mask; a new walkable layer above bit 10 is included by accident, a new character layer must be excluded by hand.
 - **`MeshCollider` sources need readable meshes** — `TryColliderToSource` silently returns `false` for `isReadable == false`, so the geometry vanishes from the bake with no error. Watch the reported source count (currently 130); a sudden drop means geometry went missing.

@@ -1,4 +1,5 @@
 using System.Linq;
+using SpaceGame.Presentation;
 using UnityEngine;
 
 namespace SpaceGame.Gameplay
@@ -14,7 +15,7 @@ namespace SpaceGame.Gameplay
     /// here would be a second, invisible authority test in front of the target's own, and the two
     /// would eventually disagree.
     /// </summary>
-    public class InteractableProxy : MonoBehaviour, IInteractable
+    public class InteractableProxy : MonoBehaviour, IInteractable, IInteractionMoment
     {
         [SerializeField] Transform target;
         private IInteractable targetInteractable;
@@ -46,5 +47,8 @@ namespace SpaceGame.Gameplay
         {
             targetInteractable?.Interact(interactor);
         }
+
+        /// <summary>Whatever the target shows: the redirect is invisible to the body too.</summary>
+        public CharacterMoment InteractionMoment => InteractionMoments.Of(targetInteractable);
     }
 }

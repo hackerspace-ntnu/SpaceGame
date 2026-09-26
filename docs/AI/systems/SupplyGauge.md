@@ -5,7 +5,6 @@ summary: "The fill bar on a tank or battery: built geometry, bound by name so a 
 paths:
   - Assets/Game/Scripts/Items/Supplies/SupplyGauge.cs
   - Assets/Game/Scripts/Presentation/EmissiveLamp.cs
-  - Assets/Game/Editor/Items/OxygenGearBuilder.cs
 symptoms:
   - "the tank in my hand shows its level but the one on the pack mat always looks full"
   - "an empty battery still reads as part charged"
@@ -25,7 +24,7 @@ green → amber → red. The number it draws belongs to [SupplyCharge.md](Supply
 how it is shown.
 
 **Scope:** [SupplyGauge.cs](Assets/Game/Scripts/Items/Supplies/SupplyGauge.cs) ·
-[OxygenGearBuilder.cs](Assets/Game/Editor/Items/OxygenGearBuilder.cs)
+OxygenGearBuilder.cs
 
 ## Model
 
@@ -52,7 +51,7 @@ how it is shown.
 | `SupplyGauge` | [Supplies/SupplyGauge.cs](Assets/Game/Scripts/Items/Supplies/SupplyGauge.cs) | The handle. `Bind` walks the hierarchy once, `Paint` does not. `Full`/`Mid`/`Low`/`MidStop`/`ColourAt` are the ramp. |
 | `EmissiveLamp.Paint` | [Presentation/EmissiveLamp.cs](Assets/Game/Scripts/Presentation/EmissiveLamp.cs) | Tints the fill through a `MaterialPropertyBlock`, so the shared palette material is untouched. |
 | `EmissiveLamp.Bake` | same | Writes a colour into a material **asset**. Only for materials this project generated — never a palette one. |
-| `OxygenGearBuilder` | [Editor/Items/OxygenGearBuilder.cs](Assets/Game/Editor/Items/OxygenGearBuilder.cs) | Measures the gauge off the model and builds the bar. `MeasureGauge` is the geometry. |
+| `OxygenGearBuilder` | Editor/Items/OxygenGearBuilder.cs | Measures the gauge off the model and builds the bar. `MeasureGauge` is the geometry. |
 
 ## Flows
 

@@ -245,6 +245,9 @@ namespace SpaceGame.Agents
             string[] lines = roster != null && roster.hostileLines != null ? roster.hostileLines.lines : null;
             if (lines == null || lineIndex < 0 || lineIndex >= lines.Length) return;
 
+            // The body shouts even when the popup is busy with someone else's line: the war cry is
+            // the party's tell that it has seen you (GDC-L1-ANIM-0003).
+            BodyLanguage.React(this, CharacterMoment.WarCry);
             TrySayNow(lines[lineIndex]);
         }
 
@@ -252,7 +255,7 @@ namespace SpaceGame.Agents
         {
             nextGlobalSpeakTime = Time.time + Mathf.Max(0f, globalCooldown);
 
-            NpcDialogPopupUI.Instance.Show(line, popupDuration);
+            NpcDialogPopupUI.Instance.Show(line, popupDuration, transform);
 
             // At this transform, not through the popup: the popup is screen-space and has no
             // position, so a mumble emitted there would come from nowhere and would not fall off as

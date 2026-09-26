@@ -680,8 +680,7 @@ MonoBehaviour:
   happySound: 401
   cooldown: 3
   mood: {fileID: 3442566600463821447}
-  petterTrigger: Pet
-  petGestureSeconds: 2.5
+  petterAction: {fileID: 11400000, guid: d0d42a3c84c2421896c090d2934b2226, type: 2}
   label: Appa
 --- !u!1 &1814779097349124444
 GameObject:

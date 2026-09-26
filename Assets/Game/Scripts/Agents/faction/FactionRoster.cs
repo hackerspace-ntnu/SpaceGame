@@ -57,7 +57,7 @@ namespace SpaceGame.Agents
         public RosterMember[] members = Array.Empty<RosterMember>();
 
         [Tooltip("Weapons a member may draw at spawn. Baked into each nomad's NpcRandomLoadout by " +
-                 "NomadPrefabBuilder; a test fails if the two differ.")]
+                 "the shipped nomad prefabs; a test fails if the two differ.")]
         public InventoryItem[] handItems = Array.Empty<InventoryItem>();
 
         [Tooltip("Shouted by a war party on first sight of the player it is hunting.")]

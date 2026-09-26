@@ -37,6 +37,21 @@ namespace SpaceGame.Presentation
         private Action yesChoiceCallback;
         private Action noChoiceCallback;
 
+        // Who said the line on screen, and the letter the typewriter revealed last -- what a
+        // TalkingMouth moves its jaw to.
+        private Transform speaker;
+        private string typedMessage = string.Empty;
+        private int typedIndex = -1;
+
+        /// <summary>Who said the line on screen, or null. Stale once the popup hides: check <see cref="IsVisible"/>.</summary>
+        public Transform Speaker => speaker;
+
+        /// <summary>The line on screen, in full.</summary>
+        public string Line => typedMessage;
+
+        /// <summary>Counts every line shown, so a reader can tell a new line from the same one.</summary>
+        public int LineNumber { get; private set; }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -84,14 +99,19 @@ namespace SpaceGame.Presentation
             }
         }
 
-        public void Show(string message, float duration = -1f)
+        /// <param name="speaker">The character saying it, whose mouth moves while it types. Null
+        /// for a line nobody in the world says.</param>
+        public void Show(string message, float duration = -1f, Transform speaker = null)
         {
             ClearQuestionState();
+            this.speaker = speaker;
             ShowInternal(message, duration, autoHide: true);
         }
 
-        public void ShowQuestion(string message, string yesLabel, string noLabel, Action onYes, Action onNo)
+        public void ShowQuestion(string message, string yesLabel, string noLabel, Action onYes, Action onNo,
+                                 Transform speaker = null)
         {
+            this.speaker = speaker;
             yesChoiceCallback = onYes;
             noChoiceCallback = onNo;
             isQuestionActive = true;
@@ -133,6 +153,7 @@ namespace SpaceGame.Presentation
 
             float showDuration = duration > 0f ? duration : defaultDuration;
 
+            LineNumber++;
             popupRoot.SetActive(true);
             isTyping = false;
             skipTypingRequested = false;
@@ -151,6 +172,21 @@ namespace SpaceGame.Presentation
             showRoutine = StartCoroutine(ShowRoutine(message, showDuration, autoHide));
         }
 
+        /// <summary>
+        /// While the typewriter is revealing a line <paramref name="who"/> said, the letter it
+        /// revealed last. False once the line is fully shown, skipped, hidden, or said by someone else.
+        /// </summary>
+        public bool TryGetSpokenCharacter(Transform who, out char character)
+        {
+            character = default;
+            if (!isTyping || who == null || who != speaker ||
+                typedIndex < 0 || typedIndex >= typedMessage.Length)
+                return false;
+
+            character = typedMessage[typedIndex];
+            return true;
+        }
+
         public void Hide()
         {
             if (showRoutine != null)
@@ -159,6 +195,7 @@ namespace SpaceGame.Presentation
                 showRoutine = null;
             }
 
+            speaker = null;
             isTyping = false;
             skipTypingRequested = false;
             isQuestionActive = false;
@@ -191,6 +228,8 @@ namespace SpaceGame.Presentation
 
             dialogText.text = message;
             dialogText.maxVisibleCharacters = useTypewriter && charactersPerSecond > 0f ? 0 : int.MaxValue;
+            typedMessage = message;
+            typedIndex = -1;
 
             float elapsed = 0f;
             isTyping = false;
@@ -210,6 +249,7 @@ namespace SpaceGame.Presentation
 
                     char character = message[i];
                     dialogText.maxVisibleCharacters = i + 1;
+                    typedIndex = i;
 
                     float delay = baseDelay;
                     if (character == '.' || character == ',' || character == '!' || character == '?' || character == ';' || character == ':')

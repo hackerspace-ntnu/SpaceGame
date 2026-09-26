@@ -341,8 +341,7 @@ MonoBehaviour:
   bladeReturnTime: 0.35
   mouthSparks: {fileID: 8737226023388070791}
   hitId: 209
-  stabTrigger: Stab
-  stabSeconds: 1.2
+  stabAction: {fileID: 11400000, guid: 04fb311137354dc999186529d7b23c27, type: 2}
 --- !u!114 &-5575716750263393426
 MonoBehaviour:
   m_ObjectHideFlags: 0

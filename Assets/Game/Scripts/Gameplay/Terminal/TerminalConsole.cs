@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Gameplay
 {
@@ -22,8 +23,11 @@ namespace SpaceGame.Gameplay
     /// is saved — a page selection is session state, not world state.
     /// </para>
     /// </summary>
-    public class TerminalConsole : NetworkBehaviour, IInteractable, IContextualInteractable, IInteractionReadout
+    public class TerminalConsole : NetworkBehaviour, IInteractable, IInteractionMoment, IContextualInteractable, IInteractionReadout
     {
+        /// <summary>Nothing on the body: the terminal takes the camera.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         public const int PageCount = 3;
         public static readonly string[] PageNames = { "SHIP", "STATUS", "GPS" };
 

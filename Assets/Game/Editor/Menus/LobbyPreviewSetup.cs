@@ -35,14 +35,13 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The player body. Must stay the same file PlayerCharacter.prefab uses, and the one
-        /// astronaut_export.py writes — the menu figure and the player are the same character, so a
+        /// the astronaut FBX carries — the menu figure and the player are the same character, so a
         /// second copy of the model means skinning fixes land on one of them and not the other.
         /// </summary>
         private const string ModelPath =
             "Assets/Game/Art/Models/Characters/Astronaut/astronaut.fbx";
 
-        private const string ControllerPath =
-            "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        private const string ControllerPath = HumanoidControllerBuilder.ControllerPath;
 
         private const string PlayerPrefabPath =
             "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";

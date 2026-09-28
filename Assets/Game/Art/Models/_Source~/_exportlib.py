@@ -195,7 +195,7 @@ def _triangulate():
 
 def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
            fix_inverted=False, keep_collection=None, prepare=None, scale_all=False,
-           triangulate=False):
+           triangulate=False, animations=False):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -234,9 +234,16 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
 
     `triangulate` ships triangles only -- see `_triangulate`. Off by default so nothing
     already shipping changes; turn it on for a resculpted mesh whose n-gons Unity rejects.
+
+    `animations` bakes every action in the file as its own take, named
+    `<object>|<action>` and bounded by the action's own manual frame range (set
+    `use_frame_range`, or the take runs the scene's 1..250). Requires
+    `keep_armature`. Off by default: every other model ships no takes.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
+    if animations and not keep_armature:
+        raise SystemExit("animations=True needs keep_armature=True")
 
     bpy.ops.wm.open_mainfile(filepath=src)
     if prepare is not None:
@@ -286,14 +293,26 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
         print("  keeping %d armature(s), %d bone(s)" % (len(rigs), bones))
     else:
         print("  dropped %d armature(s); meshes flattened in place" % dropped)
+    if animations:
+        print("  baking %d action(s) as takes: %s" % (
+            len(bpy.data.actions), ", ".join(sorted(a.name for a in bpy.data.actions))))
 
-    _write_fbx(dst, types, scale_all=scale_all)
+    _write_fbx(dst, types, scale_all=scale_all, animations=animations)
     # Deliberately no save_mainfile: the .blend is the source of truth.
 
 
-def _write_fbx(dst, types, use_selection=False, scale_all=False):
+def _write_fbx(dst, types, use_selection=False, scale_all=False, animations=False):
     """The twelve load-bearing flags, in one place. See the module docstring."""
     os.makedirs(os.path.dirname(dst), exist_ok=True)
+    anim = dict(
+        bake_anim=True,
+        bake_anim_use_all_bones=True,
+        bake_anim_use_nla_strips=False,
+        bake_anim_use_all_actions=True,
+        bake_anim_force_startend_keying=True,
+        bake_anim_step=1.0,
+        bake_anim_simplify_factor=0.0,
+    ) if animations else dict(bake_anim=False)
     bpy.ops.export_scene.fbx(
         filepath=dst,
         use_selection=use_selection,
@@ -304,11 +323,11 @@ def _write_fbx(dst, types, use_selection=False, scale_all=False):
         mesh_smooth_type='FACE',
         use_mesh_modifiers=True,
         add_leaf_bones=False,
-        bake_anim=False,
         armature_nodetype='NULL',
         bake_space_transform=False,
         path_mode='COPY',
         embed_textures=False,
+        **anim,
     )
     print("  wrote %s (%.1f MB)" % (dst, os.path.getsize(dst) / 1e6))
 

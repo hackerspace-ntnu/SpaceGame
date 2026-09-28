@@ -43,6 +43,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | [SceneTransitions](systems/SceneTransitions.md) | Additive interior scenes any body can walk into, the door/threshold orchestrator, and the one instant move | [Portals](systems/Portals.md), [Persistence](systems/Persistence.md), [Cutscenes](systems/Cutscenes.md), [InteractionSystem](systems/InteractionSystem.md) |
 | [Scenes](systems/Scenes.md) | Map of every .unity scene, its role, and the build-settings order runtime scene loads depend on | [WorldStreaming](systems/WorldStreaming.md), [Multiplayer](systems/Multiplayer.md), [SceneTransitions](systems/SceneTransitions.md) |
 | [TerrainGeneration](systems/TerrainGeneration.md) | Edit-time marching-cubes terrain features, SDF caves, a ring-based settlement generator, and the site registry | [WorldStreaming](systems/WorldStreaming.md), [NavMeshSystem](systems/NavMeshSystem.md), [Environment](systems/Environment.md), [SceneTransitions](systems/SceneTransitions.md), [SkyTribe](systems/SkyTribe.md) |
+| [WeathervanePuzzle](systems/WeathervanePuzzle.md) | A ring of cranked weathervanes that, all pointed up the plateau, opens a gust carrying players to the top | [InteractionSystem](systems/InteractionSystem.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md), [ArtPipeline](systems/ArtPipeline.md) |
 | [WorldStreaming](systems/WorldStreaming.md) | Server-authoritative additive loading of chunk scenes around moving anchors, plus scene membership | [TerrainGeneration](systems/TerrainGeneration.md), [Persistence](systems/Persistence.md), [SceneTransitions](systems/SceneTransitions.md), [NavMeshSystem](systems/NavMeshSystem.md) |
 
 ### Characters — player, creatures, locomotion, combat
@@ -144,4 +145,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 61 system docs, 6 redirects -->
+<!-- 62 system docs, 6 redirects -->

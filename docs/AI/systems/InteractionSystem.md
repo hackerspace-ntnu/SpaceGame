@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation]
-updated: 2026-09-25
+updated: 2026-09-28
 ---
 
 # Interaction
@@ -62,7 +62,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `ICrosshairReadout` / `CrosshairReadout` | [Core/ICrosshairReadout.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/ICrosshairReadout.cs) | Names something the crosshair is on that cannot be an `IInteractable`. Lives on the player; only [`WallAimController`](Assets/Game/Scripts/Items/Wall/WallAimController.cs) implements it. |
 | `InteractionBlocker` | [Core/InteractionBlocker.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs) | Marker on a trigger collider: see through it, do not reach through it. Blocks from **outside** only. |
 | `InteractionPromptResolver` / `InteractionDisplay` | [Core/InteractionPromptResolver.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPromptResolver.cs) | Interactable → drawable text. `SafeCanInteract` swallows author exceptions. |
-| `NetLatch` + `ILatchHost` | [Core/NetLatch.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs) | One networked bit: request → server decides → `NetMsg.LatchState` to all; late-joiner ask; `oneWay`; `Restore()`. Plain class, driven from the fixture's `OnEnable`/`OnDisable`. |
+| `NetLatch` + `ILatchHost` | [Core/NetLatch.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs) | One networked bit: request → server decides → `NetMsg.LatchState` to all; late-joiner ask (via `NetJoin.AskWhenSpawned`); `oneWay`; `Restore()`. Plain class, driven from the fixture's `OnEnable`/`OnDisable`. |
 | `InteractorRelay` | [Core/InteractorRelay.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractorRelay.cs) | `GetComponentInParent<NetworkObject>()` out, `GetComponentInChildren<Interactor>(true)` back. |
 | `ITriggerable` | [Core/ITriggerable.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/ITriggerable.cs) | "Fire this action for an initiator" — scene transitions, cutscenes, portals. |
 | `VisorReticle` / `CrosshairUI` | [UI/HelmetHUD/VisorReticle.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorReticle.cs), [UI/HUD/CrosshairUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/CrosshairUI.cs) | The visor's info box reads `HoveredInteractable` each frame (self-finds the Interactor) and draws beside the target bracket; see [Visor.md](Visor.md). Crosshair's hover half is unwired on `PlayerHUD.prefab`. |
@@ -93,6 +93,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `SpaceshipLaunchInteract` | [Spaceship/SpaceshipLaunchInteract.cs](Assets/Game/Scripts/Spaceship/SpaceshipLaunchInteract.cs) | Launches the ship; `NetLatch` (`ILatchHost`). |
 | `InteriorEntrance` | [Core/SceneManagement/Interiors/InteriorEntrance.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorEntrance.cs) | `InteriorManager.EnterInterior`, unless lock-out is active. |
 | `CaveExitCover` | [World/…/CaveExitCover.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveExitCover.cs) | Leaves the cave (also a walk-in volume). Exits whichever body `InteriorManager.ResolveOccupant` names — a rider's press-E leaves on the **mount's** record. |
+| `WeathervaneCrank` | [Puzzles/Weathervane/WeathervaneCrank.cs](Assets/Game/Scripts/Gameplay/Puzzles/Weathervane/WeathervaneCrank.cs) | Turns its vane and the next a quarter via the ring's `VaneTurn`/`VaneState`; refuses once solved or before a client has heard the arrangement. See [WeathervanePuzzle.md](WeathervanePuzzle.md). |
 
 ## Flows
 
@@ -132,8 +133,9 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | Oxygen plant: cell fitted, bottle docked | [`OxygenGeneratorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) → `RestoreDock`. Baked into the fixture prefab and collected by the hull's root entity, like the station's | `oxygen` |
 | Projector powered | [`ProjectorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ProjectorSaveable.cs) → `RestorePowered` | `projector` |
 | Trader stock + decline cooldown (remaining seconds, not a deadline) | [`TraderSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TraderSaveable.cs) → `RestoreOffers` | `trader` |
+| Weathervane ring positions | [`WeathervaneRingSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/WeathervaneRingSaveable.cs) → `RestorePositions` | `weathervanes` |
 
-All five are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
+All six are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
 
 ## Gotchas
 

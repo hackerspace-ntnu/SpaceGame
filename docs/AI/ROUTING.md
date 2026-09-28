@@ -60,6 +60,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData | [Multiplayer](systems/Multiplayer.md) |
 | a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes | [WorldStreaming](systems/WorldStreaming.md) |
 | a client sees no damage numbers at all, or its own shots do nothing | [Combat](systems/Combat.md) |
+| a client sees the gust open for a moment on joining, or can turn a crank the host has not seen | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | a client sits on the loading screen forever and the console repeats still waiting on terrain streaming | [UI](systems/UI.md) |
 | a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing | [WorldStreaming](systems/WorldStreaming.md) |
 | a client walks through a door and nothing happens | [SceneTransitions](systems/SceneTransitions.md) |
@@ -176,6 +177,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a MeshCollider I added is missing from the bake and nothing errors | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a mid-air quicksave reloads standing still in the sky | [Wingsuit](systems/Wingsuit.md) |
 | a mid-air save reloads with the ornithopter falling out of the sky | [Ornithopter](systems/Ornithopter.md) |
+| a model placed from an editor script lies on its side, though the FBX previews upright | [ArtPipeline](systems/ArtPipeline.md) |
 | a module I just resized no longer fits the backpack rack at any angle | [PlayerShip](systems/PlayerShip.md) |
 | a moment is raised but the body does nothing | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a mount carries its rider into a cave and the rider still sees the exterior's lighting | [SceneTransitions](systems/SceneTransitions.md) |
@@ -318,6 +320,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an aimed arm snaps level on every shot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | an ambience or engine loop keeps playing after the object was destroyed | [audio](systems/audio.md) |
 | an animal in the air leans into the dune underneath it | [CarriedAgent](systems/CarriedAgent.md) |
+| an animated creature exports with no takes at all | [ArtPipeline](systems/ArtPipeline.md) |
 | an artifact's tank refills itself when I stow it on the pack | [SupplyCharge](systems/SupplyCharge.md) |
 | an authored interior fog volume fades out as soon as I step into the room it is in | [Environment](systems/Environment.md) |
 | an effect on a worn item stops the moment the item goes on the body | [BodyEquipment](systems/BodyEquipment.md) |
@@ -426,6 +429,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every creature and NPC hovers a hand's width above the sand | [AgentSystem](systems/AgentSystem.md) |
 | every creature standing in one patch takes damage once per player in the session | [Flamethrower](systems/Flamethrower.md) |
 | every eye colour variant looks like the same pale white blob in game | [StylizedEyes](systems/StylizedEyes.md) |
+| every face of a scripted mesh wears the same material after its slots were rebuilt | [ArtPipeline](systems/ArtPipeline.md) |
 | every hull module is the same square on the mat and on the ship's gear wall | [PlayerShip](systems/PlayerShip.md) |
 | every item aims straight down, or at the vehicle itself, while I am riding | [Vehicles](systems/Vehicles.md) |
 | every item fires straight down while I am riding something, whatever I am pointing at | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -819,6 +823,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the gun fires at the ground, or at the vehicle, while its holder is mounted | [Combat](systems/Combat.md) |
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
 | the gun points backwards out of the player's hands | [FoamGun](systems/FoamGun.md) |
+| the gust drops me halfway up, or carries me past the plateau | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
+| the gust particles spray out sideways instead of rising | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
 | the health bar is gone after I pressed H | [Visor](systems/Visor.md) |
 | the heat gauge never appears, or fills toward danger instead of emptying | [Jetpack](systems/Jetpack.md) |
@@ -965,6 +971,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
+| the ring is scrambled again after loading a save | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
 | the rope is drawn in a wood texture, smeared once along its whole length | [Lasso](systems/Lasso.md) |
@@ -1079,6 +1086,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the white sphere is opaque, or disappears when the camera is inside it | [BottledSingularity](systems/BottledSingularity.md) |
 | the whole terrain chunk caught fire as one object | [Flamethrower](systems/Flamethrower.md) |
 | the whole world is missing from high up and the console is clean | [Environment](systems/Environment.md) |
+| the wind vent stands on its edge like a wall | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the wing billows at the WRIST end instead of at the hem | [Wingsuit](systems/Wingsuit.md) |
 | the wing pack floats off the back instead of sitting on the pack's cross bar | [BodyEquipment](systems/BodyEquipment.md) |
 | the wing pack is worn as a folded bundle instead of as wings | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1127,6 +1135,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | throwing the bottle shoves the thrower sideways | [BottledSingularity](systems/BottledSingularity.md) |
 | throwing the pack down shoves me through the floor I am standing on | [Backpack](systems/Backpack.md) |
 | timing the jump on the pogo stick's landing makes the hop shorter instead of higher | [Artifacts](systems/Artifacts.md) |
+| turning a crank also turns the vane next to it | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | two doors log a duplicate TransitionId and one loses its effects | [SceneTransitions](systems/SceneTransitions.md) |
 | two focus overlays outline things at each other's line thickness | [Backpack](systems/Backpack.md) |
 | two lumps meet with a visible seam or a fillet welded onto empty air | [FoamGun](systems/FoamGun.md) |
@@ -1172,6 +1181,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/WeathervaneRingSaveable.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicModel.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1209,6 +1219,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/weathervane.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormCloud.mat` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitPose.cs` | [Wingsuit](systems/Wingsuit.md) |
@@ -1230,6 +1241,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/SkinnedGarment.cs` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller` | [UI](systems/UI.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/mesa_rock.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/wind_vent.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs` | [Flashlight](systems/Flashlight.md) |
@@ -1250,6 +1263,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
+| `Assets/Game/Scripts/Core/Multiplayer/Messaging/NetJoin.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Shaders/Effects/LightningVFX.shadergraph` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Art/Shaders/UI/Terminal/SchematicHull.shader` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1269,6 +1283,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Shaders/Effects/FlameBillboard.shader` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Shaders/Effects/FlashlightBeam.shader` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Editor/Tests/WeathervanePositionsTests.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Body/Focus/InspectStance.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1317,6 +1332,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/World/Scanner` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
+| `Assets/Game/Scripts/Gameplay/Puzzles/Weathervane` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Flamethrower` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Items/Body/ForearmBracers.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1518,4 +1534,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1140 symptoms, 352 paths, 61 docs -->
+<!-- 1149 symptoms, 359 paths, 62 docs -->

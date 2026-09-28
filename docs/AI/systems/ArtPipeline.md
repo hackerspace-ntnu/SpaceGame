@@ -42,8 +42,11 @@ symptoms:
   - "a resculpted character's whole left side follows the right side's bones"
   - "a settlement of one species reads exactly as tall as the humans standing in it, or bigger, after a resculpt"
   - "a nomad sail tent towers over the settlement at 6-12 m and the LODGroup's own m_Size looks unremarkable"
+  - "a model placed from an editor script lies on its side, though the FBX previews upright"
+  - "an animated creature exports with no takes at all"
+  - "every face of a scripted mesh wears the same material after its slots were rebuilt"
 reads_with: [Vehicles, PlayerShip, AgentSystem, Backpack, CharacterClothes, TalkingMouth]
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 # Art Pipeline
@@ -75,7 +78,7 @@ How a 3D asset gets from a `.blend` in the Unity-invisible source library to an 
 | Directory | Contains | Visible to Unity? |
 |---|---|---|
 | [`Assets/Game/Art/Models/_Source~/`](Assets/Game/Art/Models/_Source~) | `.blend` masters, `palette.blend`, `_exportlib.py`, `_collisionlib.py` | **No** — trailing `~`; no `.meta` files, no Blender install needed to open the project |
-| [`_Source~/components/{structural,props,mechanical,organic,apparel,nomad_settlement}/`](Assets/Game/Art/Models/_Source~/components) | reusable component `.blend`s, variations as `Coll_*` collections | No |
+| [`_Source~/components/{structural,props,mechanical,organic,apparel,nomad_settlement,sprite_hamlet}/`](Assets/Game/Art/Models/_Source~/components) | reusable component `.blend`s, variations as `Coll_*` collections | No |
 | [`_Source~/models/{buildings,characters,creatures,gear,props,vehicles}/`](Assets/Game/Art/Models/_Source~/models) | assembled model `.blend`s | No |
 | [`Assets/Game/Art/Models/_backups~/`](Assets/Game/Art/Models/_backups~) | pre-surgery snapshots (`vrescal_before_legs.blend`, …) | No |
 | [`Assets/Game/Art/Models/<Category>/`](Assets/Game/Art/Models) | exported/imported `.fbx` + `.meta` | Yes |
@@ -88,9 +91,18 @@ How a 3D asset gets from a `.blend` in the Unity-invisible source library to an 
 
 FBX live under `Assets/Game/Art/Models/`, split by category: `Environment`, `Vehicles`, `Items`, `Creatures`, `Weapons`, `Props`, `Characters`. Older/imported assets are `camelCase` or `PascalCase`; assets exported from this library are `snake_case`.
 
+**The sprite hamlet** is a knee-high fairy-garden village. It has models only: no agent, no prefab, no save or netcode wiring yet.
+
+- **Creatures:** two generic-rigged species in `models/creatures/`. `bellcap.blend` is 0.62 m to its hat tip and 0.38 m across the brim, with a bluebell hat and a held acorn on the `Prop_R` bone. `dewling.blend` is 0.57 m, with a glass bubble head. Its glowing spirit hangs on its own `Spirit` bone, so it can float inside the bubble.
+- **Creature FBX:** they export to `Creatures/Organic/{Bellcap,Dewling}/` with `Idle` (48 f) and `Walk` (24 f) takes. Controllers are `Animations/Creatures/{Bellcap,Dewling}.controller`, where Idle→Walk is driven by `SpeedY`.
+- **Hat colours** are material swaps on the `Bellcap_Hat` renderer, not separate meshes. The swaps are `Materials/Characters/SpriteHamlet/Bellcap_Hat_{Lilac,White}.mat`.
+- **Dwellings and props** are two contact sheets: eight dwellings in `models/buildings/sprite_hamlet.blend` and eighteen props in `components/sprite_hamlet/props.blend`. They export one FBX per `Coll_*` to `Environment/Structures/SpriteHamlet/sh_*.fbx` and `Props/SpriteHamlet/sh_*.fbx`.
+- **Doors** are 0.72 × 0.42 m, sized to the bellcap's hat and not to the player.
+- **Where to see it:** a placed layout is under `SpriteHamlet` in `Tests/Marius test scene.unity`.
+
 ## Materials
 
-- **One shared palette** in `palette.blend`: materials named `Mat_<Category>_<Descriptor>` — `Mat_Metal_Steel_Worn`, `Mat_Emissive_Portal_Blue` — across Emissive, Fabric, Foliage, Glass, Hide, Metal, Neutral, Paint, Plastic and Wood.
+- **One shared palette** in `palette.blend`: materials named `Mat_<Category>_<Descriptor>` — `Mat_Metal_Steel_Worn`, `Mat_Emissive_Portal_Blue` — across Emissive, Fabric, Foliage, Glass, Hide, Metal, Neutral, Paint, Plastic, Stone and Wood. `Stone` (`Mat_Stone_Sandstone_Warm/_Dark`, `Mat_Stone_Sand_Crust`, `Mat_Stone_Carved_Pale`) was added 2026-09-28 for the weathervane mesa, **saved with Blender 5.1** because no 5.2 install was on the machine; the pre-edit file is `_backups~/palette_before_stone_2026-09-28.blend`.
 - **How a mesh gets its material:** face material indices are stamped in Blender from linked palette slots → `_exportlib` calls `make_local()` (a *linked* material does not survive into the FBX; without this the meshes arrive untextured) → Unity imports them as **sub-assets of the FBX** (`materialLocation: 1`, `materialName: 0`, `materialSearch: 1` on every model FBX meta), regenerated on every reimport. `raxy.fbx` is the exception. Its clothes and mouth materials are remapped on its import settings to `Materials/Characters/Raxy/Raxy_*.mat` ([CharacterClothes.md](CharacterClothes.md)); only its `raxy_body`/`raxy_eyes` stay embedded, for the drifter builder to replace.
 - Because they are sub-assets, per-material flags cannot be edited in place. [`DoubleSidedMaterials.Apply()`](Assets/Game/Editor/Support/DoubleSidedMaterials.cs) copies each to `Assets/Game/Art/Materials/Vehicles/<name> (DoubleSided).mat` and rewires the renderers. Vehicle hulls are modelled as surfaces, so back-face culling makes cabins see-through.
 - Hand-authored `.mat` assets (terrain, portal, surfaces, VFX) live in the domain folders under [`Materials/`](Assets/Game/Art/Materials) and are unrelated to the palette.
@@ -104,7 +116,7 @@ FBX live under `Assets/Game/Art/Models/`, split by category: `Environment`, `Veh
 | Avatar source | [`Characters/Astronaut/AstronautArmature.fbx`](Assets/Game/Art/Models/Characters/Astronaut/AstronautArmature.fbx) is `avatarSetup: 1` (Create From This Model). The Mixamo clips in [`Animations/Player/`](Assets/Game/Art/Animations/Player) are `avatarSetup: 2` (Copy From Other Avatar) pointing at it; the Blender-authored ones there (Sit Idle, Glide, the gestures, Point/Punch/Stab) and the Quaternius library are `avatarSetup: 1`, each on its own avatar |
 
 - Humanoid clips are retargeted FBX driving the generated [`Humanoid.controller`](Assets/Game/Art/Animations/Humanoid/Humanoid.controller) — never edit it; see [HumanoidAnimation.md](HumanoidAnimation.md). Clips under `Assets/ThirdParty/Quaternius/` are imported by [`QuaterniusClipImporter`](Assets/Game/Editor/AssetPipeline/QuaterniusClipImporter.cs): Humanoid, `*_Loop`/`*_Idle`/`*_Aim_*` loop, pose baked with orientation from the body (the library's root faces backwards), events stripped, a loud error on any non-humanoid clip. CMU mocap takes under `Assets/ThirdParty/CMU/Takes/` are cut into clips by [`CmuClipImporter`](Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs) from `cuts.json` (seconds × the take's sample rate, root motion baked in place); their FBX `TimeMode` must be 6, not the pack's 7, or Unity reads them as 1 fps.
-- Creature clips are authored in Blender and land as `.anim` next to a `.controller` in [`Animations/Creatures/`](Assets/Game/Art/Animations/Creatures) (Vrescal, Golem, DuneRat, Appa).
+- Creature clips are authored in Blender and land as `.anim` next to a `.controller` in [`Animations/Creatures/`](Assets/Game/Art/Animations/Creatures) (Vrescal, Golem, DuneRat, Appa), or ship as takes inside the FBX (Sandloper, Bellcap, Dewling) through `_exportlib.export(..., keep_armature=True, animations=True)`. That bakes every action as a take named `<armature>|<action>` over the action's manual frame range. The importer's `clipAnimations` then renames each clip to the part after the `|` and sets `loopTime`/`loopPose` on the loops.
 - Export keeps the rig only when Unity drives bones: `export(..., keep_armature=True)`. `add_leaf_bones=False` is always set — Blender's `<bone>_end` tips otherwise appear as real transforms and break bone-walking code.
 - Rigid-part rigs (meshes parented to bones, not skinned) are the ones the root-motion stripper exists for; skinned rigs never get a root curve.
 
@@ -162,6 +174,10 @@ N/A for the art assets themselves. A spawnable prefab must carry a prefab id, or
 - **`_Source~` and `_backups~` are invisible to Unity.** No `.meta`, no GUIDs, nothing there can be referenced from a scene or prefab. Conversely, an export written to the pre-restructure `Assets/Models/` path is an orphan nothing imports — always go through `_exportlib.unity_path()`.
 - **A model whose primary structure is MERGED meshes cannot get its collision from a per-renderer rule.** `sky_city` merges keel, cage, decks, prow, stern gear and gantry into one mesh each, spanning the whole 125 m ship, so a box over the decks mesh is a 22 × 112 m slab hanging in mid-air and a convex hull is worse. Its colliders come from convex islands authored in Blender (`COL_SkyCity_####`). **Convert the axes once and write both values down**: Blender `(bx, by, bz)` arrives at Unity `(-bx, bz, -by)`. Verify by raycast, not by eye.
 - **Ship collision islands as separate objects, not one mesh to split in Unity.** The FBX import splits vertices along hard edges, so a mesh's islands have to be re-found by welding positions — and two boxes that merely share a corner weld into one island whose convex hull fills the space between them. **Route-check with the player's WORLD size**: the player is 3.0 m tall (2 m capsule, transform scaled 1.5 in Y).
+- **A single-mesh FBX carries its axis conversion on the ROOT, and a script that sets the rotation erases it.** Unity collapses an FBX whose only node is one mesh, so the model prefab's root transform itself holds the `(-90, 0, 0)` rotation and scale 100. `PrefabUtility.InstantiatePrefab(...)` then `transform.rotation = yaw` overwrites that rotation, and the model lies on its side. This happened to every single-collection `export_collections` FBX (all `sh_*` dwellings and props). An FBX with an armature keeps an unrotated root and stands up fine, which hides the pattern. **Compose, never assign:** `rotation = yaw * prefab.transform.localRotation`.
+- **`_exportlib` wrote no animation before 2026-09-28.** `_write_fbx` hard-coded `bake_anim=False`, so every `export()` shipped without takes. Pass `animations=True` (it requires `keep_armature=True`). The flag bounds each take by the action's manual frame range, so set `use_frame_range` on every action, or the take runs the scene's 1..250 (the `Scene` gotcha above).
+- **In a Blender script, `mesh.materials.clear()` zeroes every face's `material_index`.** Rebuilding a mesh's slots (for example, dropping unused ones before a contact-sheet export) and writing the remapped indices *before* the clear leaves the whole mesh on slot 0, one flat colour. Read the indices out first, rebuild the slots, then `polygons.foreach_set("material_index", ...)`.
+- **Blender 5.1 also opens the library.** `palette.blend` was last saved by 5.1.29, and the sprite hamlet files were built with `C:/Program Files/Blender Foundation/Blender 5.1/blender.exe`. The portable 5.2.1 named above is not on every machine.
 
 ## Extending
 

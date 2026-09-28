@@ -114,6 +114,12 @@ Sprayable pairs of openings you walk through, treated as doors rather than windo
 
 **Worth knowing:** trigger volumes never worked here — the collider is on a child object, so Unity never delivered the messages — and the crossing is instead swept by hand once per frame; reintroducing triggers would break it again.
 
+### The weathervane puzzle *(WeathervanePuzzle)*
+
+A ring of four tall weathervanes stands round a grated wind vent at the foot of a sheer mesa. Each has a crank at its base, and a turn swings its own arrow a quarter and drags the next vane round with it, so the players have to work out an order. When every arrow points up the plateau, the vent opens a column of wind that lifts whoever steps in, carries them across to the top and sets them down gently. Once solved it stays open for good.
+
+**Worth knowing:** the ring is always scrambled by turning cranks from the solved position, never by picking random directions, because some arrangements of four coupled vanes cannot be solved at all.
+
 ## Characters and creatures
 
 ### The astronaut you play *(PlayerCharacter)*

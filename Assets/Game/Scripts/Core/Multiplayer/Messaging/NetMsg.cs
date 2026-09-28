@@ -653,5 +653,17 @@ namespace SpaceGame.Core
         //   A = CharacterActionCatalog index, or -1 - slot to stop that slot.
         //   B = variant | arm << 8 (arm: 0 none, 1 left, 2 right).
         public const ushort CharacterActed = 116; // server → everyone else
+
+        // ── Weathervane ring ──
+        // A ring of vanes whose cranks each turn their own vane and the next one round. The vane
+        // positions are one small number of shared world state — two bits a vane — so the whole
+        // ring travels in A rather than one message per vane, and a machine can never hold half a
+        // turn. The same ask/announce shape as LatchSet/LatchState, on the RING's relay.
+        //
+        //   VaneTurn   A = the crank's vane index, or -1 for "what state is the ring in?".
+        //   VaneState  A = every position, packed (WeathervanePositions). B = the vane whose crank
+        //              was turned, or -1 to land instantly — a joiner's answer, or a load.
+        public const ushort VaneTurn  = 117; // player → server, on the RING's relay
+        public const ushort VaneState = 118; // server → everyone, on the RING's relay
     }
 }

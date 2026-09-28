@@ -19,7 +19,7 @@ symptoms:
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-26
+updated: 2026-09-28
 ---
 
 # Multiplayer / Netcode core
@@ -47,6 +47,7 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 | `NetArg` | [NetArg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetArg.cs) | Fixed payload `Target,A,B,P,R`; `.With(go)` also keeps an **unserialized** local ref so `Resolve()` works offline; `HasOrientation` |
 | `NetMsg` | [NetMsg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs) | Id catalog (47 ids, highest 97). Append only; 3 (Equip) and 30 (LaunchCraft) burned |
 | `NetChannel` | [NetChannel.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetChannel.cs) | Per-entity handler table, plain MonoBehaviour added on demand; re-entrant `Dispatch` off a static buffer pool; `IndexOf<T>` numbers sibling components; `WarnUnrelayed` |
+| `NetJoin` | [NetJoin.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetJoin.cs) | The late joiner's ask: `ShouldAsk` (a client of a live session) and `AskWhenSpawned` (wait for the root's spawn, then send). Used by `NetLatch` and `WeathervaneRing` |
 | `NetRelay` | [NetRelay.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetRelay.cs) | The wire: `ToServerRpc`/`ToAllRpc`/`ToOthersRpc`. Requires a `NetworkObject` |
 | `NetTo`/`NetTarget`/`NetHandler` | [NetTo.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetTo.cs) | Directions, `Self` sentinel, `void (in NetArg, ulong sender)` |
 | `Vocabulary/*` | [AgentAction.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/Vocabulary/AgentAction.cs) | Constants some ids put in `A`/`B` (`GrappleVerb`, `LassoVerb`, `SceneEffectPhase`) |

@@ -487,6 +487,13 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(LeverSaveable));
             }
 
+            if (go.GetComponent<SpaceGame.Gameplay.Puzzles.WeathervaneRing>() != null &&
+                go.GetComponent<WeathervaneRingSaveable>() == null)
+            {
+                go.AddComponent<WeathervaneRingSaveable>();
+                parts.Add(nameof(WeathervaneRingSaveable));
+            }
+
             // A cell and a bottle left in the plant are items out of somebody's hotbar. Without
             // this they are simply gone on the next load, and the machine comes back dark needing
             // a cell nobody has any more.

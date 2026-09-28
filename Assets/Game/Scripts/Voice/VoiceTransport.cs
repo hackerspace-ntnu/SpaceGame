@@ -1,4 +1,4 @@
-// Voice on the wire, over NGO's named messages rather than RPCs.
+﻿// Voice on the wire, over NGO's named messages rather than RPCs.
 //
 // ## Why not a NetworkBehaviour, the way ChatNetwork does it
 //
@@ -48,8 +48,11 @@ namespace SpaceGame.Voice
         /// <summary>Listener side: <c>(speaker, buffer, length)</c> for a frame to play.</summary>
         public event Action<ulong, byte[], int> FrameToPlay;
 
-        private readonly byte[] inbound = new byte[VoiceFormat.MaxPacketBytes + SpeakerIdBytes];
-        private readonly byte[] payload = new byte[VoiceFormat.MaxPacketBytes];
+        // Not readonly, and not an oversight: FastBufferReader.ReadBytesSafe takes its destination
+        // by ref (it will grow the array if it has to), and a readonly field cannot be passed that
+        // way. Both are allocated once here and never reassigned by this class.
+        private byte[] inbound = new byte[VoiceFormat.MaxPacketBytes + SpeakerIdBytes];
+        private byte[] payload = new byte[VoiceFormat.MaxPacketBytes];
 
         private NetworkManager registeredOn;
 

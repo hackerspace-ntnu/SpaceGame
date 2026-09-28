@@ -133,17 +133,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningSpell
   maxUses: 3
-  useSoundId: 0
   useSound:
     Guid:
       Data1: 1785186576
       Data2: 1245510835
       Data3: -1836278379
       Data4: 1511765510
-    Path: event:/SFX/MetalPickup
+    Path: event:/SFX/Interact/MetalPickup
   lightningVFXPrefab: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
   spawnHeightOffset: 10
   raycastDistance: 500
+  damage: 120
+  damageRadius: 3.5
+  damageMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  damagesCaster: 0
 --- !u!54 &7457431611418640877
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -185,7 +190,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: d8687029645eadc48aac1213f4448f06, type: 2}
-  pickupId: 503
   pickupSound:
     Guid:
       Data1: 0

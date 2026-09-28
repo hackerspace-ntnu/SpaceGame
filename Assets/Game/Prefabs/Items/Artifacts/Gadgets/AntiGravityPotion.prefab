@@ -162,14 +162,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntiGravityPotion
   maxUses: 1
-  useSoundId: 0
   useSound:
     Guid:
       Data1: -1179107196
       Data2: 1337426091
       Data3: -1864092773
       Data4: 339326117
-    Path: event:/SFX/Slurp
+    Path: event:/SFX/Misc/Slurp
 --- !u!114 &5075579139318363498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -184,7 +183,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: d903465090fa37d4cb8a639608107afc, type: 2}
-  pickupId: 503
   pickupSound:
     Guid:
       Data1: 0

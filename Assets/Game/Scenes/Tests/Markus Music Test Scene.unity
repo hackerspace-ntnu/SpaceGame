@@ -369,6 +369,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &447436640
 MeshFilter:
@@ -670,14 +671,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 965935529}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -880,7 +881,7 @@ MonoBehaviour:
       Data2: 1245510835
       Data3: -1836278379
       Data4: 1511765510
-    Path: event:/SFX/MetalPickup
+    Path: event:/SFX/Interact/MetalPickup
   Event: 
   EventPlayTrigger: 2
   EventStopTrigger: 0

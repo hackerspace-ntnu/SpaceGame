@@ -90,14 +90,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrapplingHookArtifact
   maxUses: -1
-  useSoundId: 0
   useSound:
     Guid:
       Data1: 1209704560
       Data2: 1259274395
       Data3: -1562606685
       Data4: 1967096403
-    Path: event:/SFX/Wham
+    Path: event:/SFX/Misc/Wham
   maxRange: 50
   hookableLayers:
     serializedVersion: 2
@@ -149,7 +148,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: a8ed2d0bd649a40a689b18f4aea02731, type: 2}
-  pickupId: 503
   pickupSound:
     Guid:
       Data1: 0

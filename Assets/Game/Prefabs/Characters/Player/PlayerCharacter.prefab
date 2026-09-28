@@ -395,7 +395,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   health: {fileID: -6402392480385526436}
   shakeData: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
-  damageId: 105
   damageSound:
     Guid:
       Data1: -1233848556
@@ -506,8 +505,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
   prefabId: 9ab1ff9f9caaf86469f66c4bd3fb3b2e
-  instanceId: 
-  authored: 0
+  instanceId: c2d2a46cb2f34c7799f77ab9c942d78d
+  authored: 1
   scope: 1
 --- !u!114 &8160784556367248615
 MonoBehaviour:
@@ -569,7 +568,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85b911fa8902d44d3abb378f5b59ce0c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.PlayerAudioModule
-  footstepId: 100
   footstepSound:
     Guid:
       Data1: 0
@@ -579,7 +577,6 @@ MonoBehaviour:
     Path: 
   strideLength: 2.2
   movementThreshold: 0.6
-  jumpId: 101
   jumpSound:
     Guid:
       Data1: 0
@@ -587,10 +584,14 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  landId: 102
-  landHeavyId: 103
+  landSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   heavyLandSpeed: -8
-  dashId: 104
   dashSound:
     Guid:
       Data1: 0
@@ -598,9 +599,27 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  hurtId: 105
-  deathId: 106
-  respawnId: 107
+  hurtSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  deathSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  respawnSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
 --- !u!114 &8810500734875081020
 MonoBehaviour:
   m_ObjectHideFlags: 0

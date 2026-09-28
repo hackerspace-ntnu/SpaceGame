@@ -136,14 +136,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxUses: -1
-  useSoundId: 0
   useSound:
     Guid:
       Data1: 984865563
       Data2: 1210358750
       Data3: 1245207699
       Data4: 1455594882
-    Path: event:/SFX/Implosion
+    Path: event:/SFX/Misc/Implosion
   muzzle: {fileID: 8884324833336084954}
   coneHalfAngleDegrees: 45
   maxBeamDistance: 20
@@ -161,14 +160,13 @@ MonoBehaviour:
   debugLogAim: 1
   pulseMaterial: {fileID: 2100000, guid: bf58a5e62834426eb6faca9b192702ad, type: 2}
   pulseDuration: 1.2
-  discoveryId: 507
   discoverySound:
     Guid:
       Data1: 244983765
       Data2: 1082068725
       Data3: 1235189431
       Data4: -2011481048
-    Path: event:/SFX/ElectricHum
+    Path: event:/SFX/Misc/ElectricHum
 --- !u!114 &4383163331634120986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -208,7 +206,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: ddc806d4e9f24024954706f300b743aa, type: 2}
-  pickupId: 503
   pickupSound:
     Guid:
       Data1: 0

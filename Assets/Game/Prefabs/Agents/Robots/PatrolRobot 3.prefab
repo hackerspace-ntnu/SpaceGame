@@ -700,14 +700,13 @@ MonoBehaviour:
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
-  spotId: 407
   spotSound:
     Guid:
       Data1: 984865563
       Data2: 1210358750
       Data3: 1245207699
       Data4: 1455594882
-    Path: event:/SFX/Implosion
+    Path: event:/SFX/Misc/Implosion
 --- !u!114 &4607886519339218409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -725,7 +724,6 @@ MonoBehaviour:
   searchDuration: 4
   stopDistance: 0.6
   speedMultiplier: 1.1
-  searchId: 408
   searchSound:
     Guid:
       Data1: 0
@@ -815,19 +813,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 056784ad4e16d46cfa8fbc9ad9b7a182, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityAudioModule
-  footstepId: 411
   footstepSound:
     Guid:
       Data1: 2109535426
       Data2: 1125007156
       Data3: -1137650264
       Data4: 1632573456
-    Path: event:/SFX/Footstep
+    Path: event:/SFX/DefaultFootstep
   footstepInterval: 0.45
   movementThreshold: 0.3
   footstepNoiseRadius: 8
   emitFootstepNoise: 1
-  aggroId: 406
   aggroSound:
     Guid:
       Data1: 0
@@ -836,14 +832,13 @@ MonoBehaviour:
       Data4: 0
     Path: 
   aggroNoiseRadius: 14
-  ambientId: 400
   ambientSound:
     Guid:
       Data1: 244983765
       Data2: 1082068725
       Data3: 1235189431
       Data4: -2011481048
-    Path: event:/SFX/ElectricHum
+    Path: event:/SFX/Misc/ElectricHum
   ambientMinInterval: 5
   ambientMaxInterval: 12
 --- !u!114 &8005158377296034571
@@ -891,27 +886,25 @@ MonoBehaviour:
   dieAnimTrigger: 
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 1785186576
       Data2: 1245510835
       Data3: -1836278379
       Data4: 1511765510
-    Path: event:/SFX/MetalPickup
+    Path: event:/SFX/Interact/MetalPickup
   onDeath:
     m_PersistentCalls:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
-  deathId: 410
   deathSound:
     Guid:
       Data1: -1486019807
       Data2: 1229043757
       Data3: -1953646154
       Data4: -696340387
-    Path: event:/SFX/PlayerDie
+    Path: event:/SFX/Player/Death
   despawnDelay: 12
   disableAgentOnDeath: 1
 --- !u!114 &5659964076644315265

@@ -30,7 +30,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: useSound.Path
-      value: event:/SFX/Thunder
+      value: event:/SFX/Misc/Thunder
       objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: enableCharging
@@ -276,7 +276,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: d605743f174310540b335f13c8228851, type: 2}
-  pickupId: 503
   pickupSound:
     Guid:
       Data1: 0

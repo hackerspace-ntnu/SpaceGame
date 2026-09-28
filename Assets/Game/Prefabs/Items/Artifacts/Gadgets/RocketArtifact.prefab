@@ -199,7 +199,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: 4559dd622ce394875b1b03822c33181b, type: 2}
-  pickupId: 503
   pickupSound:
     Guid:
       Data1: 0
@@ -236,14 +235,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RocketTurretArtifact
   maxUses: -1
-  useSoundId: 0
   useSound:
     Guid:
       Data1: 568073404
       Data2: 1232003800
       Data3: -533523275
       Data4: -1075932117
-    Path: event:/SFX/Hit
+    Path: event:/SFX/Misc/Hit
   launcherPrefab: {fileID: 431438388529227558, guid: 906da3c4fbcf24bafbbb3a8bfba925ea, type: 3}
   spawnDistance: 3
   groundProbeHeight: 2

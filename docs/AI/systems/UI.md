@@ -28,7 +28,7 @@ symptoms:
   - "the map hologram in the ship shows the world with me off in a corner of it"
   - "the emote wheel opens but letting go of V plays nothing"
 reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics]
-updated: 2026-09-25
+updated: 2026-09-26
 ---
 
 # UI
@@ -77,7 +77,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 
 | Screen/Widget | File | Purpose |
 | --- | --- | --- |
-| `MainMenuUI` | [Pages/MainMenuUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MainMenuUI.cs) | Front menu in `MainMenu.unity`; owns `gameScene`, `worldConfig` and the menu button prefab lent to every page it opens. Methods bound **by name** from the scene. |
+| `MainMenuUI` | [Pages/MainMenuUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MainMenuUI.cs) | Front menu in `MainMenu.unity`; owns `gameScene`, `worldConfig` and the menu button prefab lent to every page it opens. Methods bound **by name** from the scene. `StartDisposable` skips `WorldSelectUI` entirely and calls `EnterWorld()` straight off `WorldSession.StageNew(..., disposable: true)` — no name to type, no world to pick — see [GameModes](GameModes.md). |
 | `MenuChoiceUI` | [Pages/MenuChoiceUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MenuChoiceUI.cs) | One question, 2–3 answers + Back (story/VS, host/join). |
 | `WorldSelectUI` | [Pages/WorldSelectUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/WorldSelectUI.cs) | The only place a world is chosen: list / name-new / confirm-delete, for both SP and lobby destinations. The list is stretched across the whole content band (`MenuEntry.ContentTop` → the status line); **New world**, **Delete** and **Start** are all footer actions. |
 | `VersusRulesUI` | [Pages/VersusRulesUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/VersusRulesUI.cs) | Teams and team size before a VS lobby; stages into statics the lobby reads. |

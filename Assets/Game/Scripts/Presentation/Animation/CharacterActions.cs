@@ -287,7 +287,14 @@ namespace SpaceGame.Presentation
         /// <summary>What <paramref name="slot"/> is playing on this machine, or null. The same caveat as <see cref="IsPlaying"/>.</summary>
         public CharacterAction PlayingOn(CharacterAction.Slot slot) => tracks[(int)slot].Action;
 
-        private void Update()
+        // LateUpdate, not Update: CrossFadeInFixedTime (called from Play, itself called from other
+        // components' Update — CloseCombatModule among them) is not reflected in
+        // GetCurrentAnimatorStateInfo/IsInTransition until the Animator evaluates, which happens
+        // between Update and LateUpdate. Checking here in Update read last frame's state, so the
+        // very frame an action started, its layer still read as resting in Empty and this zeroed
+        // the weight back out before the Animator ever rendered a single frame of it — every
+        // one-shot action played and was immediately, invisibly cancelled.
+        private void LateUpdate()
         {
             if (!Ready() || !WritesAnimator) return;
 

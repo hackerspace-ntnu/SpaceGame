@@ -30,6 +30,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | [WorldService] Spawn('Clanker') called on a client while playing | [AgentSystem](systems/AgentSystem.md) |
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
 | a .blend in the library will not open: 'not a blend file | [ArtPipeline](systems/ArtPipeline.md) |
+| a belt or pouch near the hip gets dragged along by a swinging arm | [CharacterClothes](systems/CharacterClothes.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a blob is visibly bigger than the area that caught the player inside it | [FoamGun](systems/FoamGun.md) |
 | a booster stuck to a creature burns and the creature walks off unaffected | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -39,6 +40,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a bubble cuts across the ground as a hard ellipse | [FoamGun](systems/FoamGun.md) |
 | a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects | [EditorTooling](systems/EditorTooling.md) |
 | a builder run over unity-mcp reports success and writes the values from the previous version of the script | [StylizedEyes](systems/StylizedEyes.md) |
+| a building placed by a Settlement reads half-size even though the settlement's own transform is scaled up | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a burning crate takes damage but shows no flames at all | [Flamethrower](systems/Flamethrower.md) |
 | a captive unties themselves by walking to the far knot and clicking there | [LeashSystem](systems/LeashSystem.md) |
 | a caravan comes back with different guns after walking out of range | [AgentSystem](systems/AgentSystem.md) |
@@ -83,8 +85,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a cutscene played for one player only, or moved a body the server overwrote | [Cutscenes](systems/Cutscenes.md) |
 | a dab passes through foam that is already there and lands on the ground behind it | [FoamGun](systems/FoamGun.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
+| a decoration or tent placed by a Settlement renders enormous even though its own prefab measures correctly outside the settlement | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a deployed pack casts a shadow on the sand but I cannot see the pack itself | [Backpack](systems/Backpack.md) |
 | a disabled menu row stays stuck in its hover colour and never resets | [UI](systems/UI.md) |
+| a disposable session's ship is standing on the ground already with no descent or blackout | [GameModes](systems/GameModes.md) |
+| a disposable session's ship is standing on the ground already, with no descent, fire or blackout | [PlayerShip](systems/PlayerShip.md) |
 | a docked item pops in or out much later, at the unrelated moment something else changes | [Oxygen](systems/Oxygen.md) |
 | a door or lever is back in its authored state after loading a save | [InteractionSystem](systems/InteractionSystem.md) |
 | a double tap of Space does not deploy the wings | [BodyEquipment](systems/BodyEquipment.md) |
@@ -97,6 +102,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a dropped item is far smaller than the same item was on the ship's gear wall | [Inventory](systems/Inventory.md) |
 | a dropped rifle rolls across the sand like a marble, or spins on the deck and never settles | [Inventory](systems/Inventory.md) |
 | a dropped tank is full again when I pick it up | [SupplyCharge](systems/SupplyCharge.md) |
+| a duplicated garment has vertex GROUPS with the right bone names but does nothing when posed | [CharacterClothes](systems/CharacterClothes.md) |
 | a failed join throws a bare NullReferenceException instead of a readable service error | [Lobby](systems/Lobby.md) |
 | a fast or lightly-charged throw passes straight through a thin target and reports a miss | [Lasso](systems/Lasso.md) |
 | a feature stopped working mid-session and the chat says it was switched off | [Diagnostics](systems/Diagnostics.md) |
@@ -107,6 +113,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a gadget with a tank saves its fill but a client never sees it | [SupplyCharge](systems/SupplyCharge.md) |
 | a gameplay hotkey still fires while a menu or the chat box is open | [CoreServices](systems/CoreServices.md) |
 | a garment dropped onto a character does not follow the body | [CharacterClothes](systems/CharacterClothes.md) |
+| a garment sits fine at rest and shears into a giant sheet the moment the rig poses | [CharacterClothes](systems/CharacterClothes.md) |
+| a garment's sleeve or hem stays frozen in place while the rest of it moves | [CharacterClothes](systems/CharacterClothes.md) |
 | a gauge draws a full bar before the player has finished spawning | [Visor](systems/Visor.md) |
 | a gauge flickers between two colours while the value sits on a threshold | [Visor](systems/Visor.md) |
 | a gauntlet floats over my arm with nothing underneath it | [BodyEquipment](systems/BodyEquipment.md) |
@@ -178,7 +186,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a moving part of a held item snaps out of place the moment the item is switched on | [Artifacts](systems/Artifacts.md) |
 | a NavMesh or map bake silently skips chunks | [WorldStreaming](systems/WorldStreaming.md) |
 | a new gauge I added is invisible and never draws anything | [Visor](systems/Visor.md) |
-| a nomad town is skipped with no level ground of radius N m left | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a nomad sail tent towers over the settlement at 6-12 m and the LODGroup's own m_Size looks unremarkable | [ArtPipeline](systems/ArtPipeline.md) |
 | a pack I left closed on the sand is lying open again after a save and reload | [Backpack](systems/Backpack.md) |
 | a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
 | a painted eye texture comes out as two or four pupils, mirrored, on one eyeball | [StylizedEyes](systems/StylizedEyes.md) |
@@ -220,6 +228,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a readout writes a ValueText and the number never appears on screen | [Visor](systems/Visor.md) |
 | a refused click beeps on the body but is silent on the rail | [BodyEquipment](systems/BodyEquipment.md) |
 | a renamed [SerializeField] and the wiring pass quietly stopped setting it | [EditorTooling](systems/EditorTooling.md) |
+| a renamed garment object leaves its old garment prefab rendering nothing, still nested in an outfit | [CharacterClothes](systems/CharacterClothes.md) |
 | a renamed or newly added test never runs and the old one keeps failing with identical text | [Testing](systems/Testing.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
@@ -260,6 +269,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a second copy of the item I am holding appears at my feet and falls through the world | [Inventory](systems/Inventory.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
+| a Settlement configured for several decorations of the same kind (e.g. tents) only ever places one, with a clean console | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a Settlement generates buildings/decorations fine but zero characters ever spawn, with a clean console | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a settlement of one species reads exactly as tall as the humans standing in it, or bigger, after a resculpt | [ArtPipeline](systems/ArtPipeline.md) |
 | a settlement's spawner logs Spawn called on a client and nothing appears | [AgentSystem](systems/AgentSystem.md) |
 | a shader compiles clean, reports isSupported and zero messages, and still draws as the magenta error shader | [StormFlask](systems/StormFlask.md) |
 | a singularity opened at the world origin instead of where I threw it | [BottledSingularity](systems/BottledSingularity.md) |
@@ -338,6 +350,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an NPC behind a waist-high wall never sees me standing there | [AgentSystem](systems/AgentSystem.md) |
 | an NPC holding an item slides along in a frozen gun-aim pose, legs not moving, with a valid avatar | [Inventory](systems/Inventory.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
+| an NPC just stands there mid-fight and takes/lands hits with no swing ever visible | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | an NPC on wet ground turns on the spot and never gets anywhere | [NavMeshSystem](systems/NavMeshSystem.md) |
 | an NPC or a creature disappears the moment a booster is strapped to it | [CarriedAgent](systems/CarriedAgent.md) |
 | an NPC or a creature disappears the moment a booster is strapped to it | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -372,6 +385,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | carried or worn items duplicate in the world, one more copy after every load | [Persistence](systems/Persistence.md) |
 | chairs are boardable from outside again after a hull mesh was deleted in the .blend | [PlayerShip](systems/PlayerShip.md) |
 | changing beam length or spot angle in the Inspector does nothing at runtime | [Flashlight](systems/Flashlight.md) |
+| characters placed by a Settlement read spread far apart even with a tiny minSpacing | [TerrainGeneration](systems/TerrainGeneration.md) |
 | chunks never unload, or a caravan drags loaded chunks around with it | [WorldStreaming](systems/WorldStreaming.md) |
 | chunks stay loaded around every spot where somebody dropped something | [WorldStreaming](systems/WorldStreaming.md) |
 | clicking a downed player with the leash ropes them instead of tying them up | [Hogtie](systems/Hogtie.md) |
@@ -382,6 +396,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | client join fails with Scene Hash N does not exist in the HashToBuildIndex table | [WorldStreaming](systems/WorldStreaming.md) |
 | closing focus mode leaves a black screen with only the HUD, and no sound | [Backpack](systems/Backpack.md) |
 | collisions inside the ship went weird once there was gear on the wall | [Backpack](systems/Backpack.md) |
+| combat feels unnaturally slow or untimed even though damage lands on schedule | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | console warns No prefab registered for id when loading a world | [EntitySystem](systems/EntitySystem.md) |
 | Copied Avatar Rig Configuration mis-match: Transform not found in HumanDescription | [ArtPipeline](systems/ArtPipeline.md) |
 | copies of my gear are falling below the terrain at thousands of metres down | [Persistence](systems/Persistence.md) |
@@ -595,6 +610,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | pointing an empty hand at a receptacle does nothing and says nothing | [Oxygen](systems/Oxygen.md) |
 | pointing at a worn tile on the gear screen lights nothing on the character | [BodyEquipment](systems/BodyEquipment.md) |
 | pressing B or F again during the fly-out kills my own camera for the rest of the session | [Backpack](systems/Backpack.md) |
+| pressing F5 in a disposable session says the save was ignored | [GameModes](systems/GameModes.md) |
+| pressing F5 warns that this is a disposable session and is never saved | [Persistence](systems/Persistence.md) |
 | pressing H does nothing at all — no gauges, no bracket, no message-stack change | [Visor](systems/Visor.md) |
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
 | pressing Play shows only the skybox through a stray Main Camera instead of the game | [Testing](systems/Testing.md) |
@@ -875,7 +892,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the net arrives as a crumpled hank of rope instead of a sheet lying on the sand | [Artifacts](systems/Artifacts.md) |
 | the net gun fires, the net lands, and it never catches anything at all | [Artifacts](systems/Artifacts.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
-| the nomad buildings in a new world stand on top of each other with no streets between them | [TerrainGeneration](systems/TerrainGeneration.md) |
 | the nozzle tips never go red however hot the pack gets | [Jetpack](systems/Jetpack.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
 | the off hand grips empty air in front of a one-handed item | [Inventory](systems/Inventory.md) |
@@ -1222,7 +1238,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamBlob.prefab` | [FoamGun](systems/FoamGun.md) |
-| `Assets/Game/Prefabs/agents/Characters/Drifters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
@@ -1282,6 +1297,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab` | [Jetpack](systems/Jetpack.md) |
+| `Assets/Game/Prefabs/agents/Characters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StrapOnBooster` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Scripts/Items/Equipped/BoneResolver.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Items/Equipped/OutlineShell.cs` | [Backpack](systems/Backpack.md) |
@@ -1502,4 +1518,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1124 symptoms, 352 paths, 61 docs -->
+<!-- 1140 symptoms, 352 paths, 61 docs -->

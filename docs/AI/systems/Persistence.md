@@ -26,8 +26,9 @@ symptoms:
   - "a save file's item records sit at y = -30000 and get deeper on every load"
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
   - "after a quickload the old caravan is still standing beside the new one"
+  - "pressing F5 warns that this is a disposable session and is never saved"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
-updated: 2026-09-17
+updated: 2026-09-26
 ---
 
 # Persistence / Save-Load
@@ -99,7 +100,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 
 **Teardown** (`SaveManager.HandleNetworkShuttingDown`, on `NetworkManager.OnPreShutdown`): the same `Capturing` + `CaptureLoadedScenes()` a save takes, then `worldStore.Seal()` — after which every `Dehydrate`/`DehydrateLoaded` is a no-op and the quit-save that follows writes this capture instead of redoing it. Needed because Netcode's shutdown destroys every dynamically spawned NetworkObject, and in the editor that whole shutdown runs from Netcode's own `playModeStateChanged` hook at ExitingPlayMode — *before* Unity delivers any `OnApplicationQuit`, whatever its execution order. Players are not part of it: `PlayerSaveSync` captures each one as it despawns.
 
-**World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, config, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world and reloads via `NetworkManager.SceneManager.LoadScene(Single)`.
+**World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, config, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world and reloads via `NetworkManager.SceneManager.LoadScene(Single)`. `StageNew(name, config, disposable: true)` — the main menu's **Disposable** entry ([GameModes](GameModes.md)) — stages a session `SaveManager.Save` never writes; see Gotchas.
 
 **Deferred pass** runs: once per world load, again on **every** `PlayerBound`, and again per scene hydrated after the first pass (`HandleSceneHydrated`). `OnLoadComplete` must be idempotent.
 
@@ -131,6 +132,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 
 | Trap | Silent symptom | Correct move |
 |---|---|---|
+| Adding a new save trigger without routing it through `SaveManager.Save` | It writes for every world, including a disposable one — the whole point of `WorldSession.Disposable` is that every trigger (entry write, autosave timer, F5, pause-menu exit, quit) funnels through that one method, which refuses at the top when the flag is set | Call `SaveManager.Save`/`.QuickSave()`, never `SaveFileStore.Write` or `BuildDocument` directly |
 | Letting a runtime-spawned world object stay in the **persistent scene** | Its record is filed under `persistent`, which is hydrated in `SaveManager.Start` **before any chunk exists**. A body with gravity is rebuilt over nothing, falls, and is captured lower by the next save — so every load resumes the fall. Dropped items reached y = -30000 this way, four generations deep, with nothing logged | A thing that lies in the world belongs to the chunk it lies in: `SceneTracked` with `Migrate` and `keepChunksLoaded: false`, which `SaveablePolicy.EnsureSpawned` now gives every pickup. `WorldSaveStore.HasGroundToLandOn` is the failsafe under it, and lands the records already written that way |
 | Reading a payload by probing `JObject` tokens | `StackOverflowException` in `Vector3.normalized` | `state.ToObject<State>(SaveSerializer.Serializer)` |
 | `CaptureState` returning a bare list/int/string | Key dropped (error logged, capture survives) — see [StateBag.Set](Assets/Game/Scripts/Core/Persistence/Format/StateBag.cs#L44) | Wrap in a public-field struct |

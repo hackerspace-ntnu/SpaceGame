@@ -38,6 +38,17 @@ public class MainMenuUI : MonoBehaviour
     public void StartSinglePlayer() => WorldSelectUI.Open(this, WorldSelectUI.Destination.Singleplayer);
 
     /// <summary>
+    /// Front-menu entry: a throwaway singleplayer session for trying something out — no world
+    /// naming, no crash-landing cutscene (the ship starts already down), and nothing is ever
+    /// written to disk. Bound by name from MainMenu.unity; do not rename.
+    /// </summary>
+    public void StartDisposable()
+    {
+        WorldSession.StageNew("Disposable", worldConfig, disposable: true);
+        EnterWorld();
+    }
+
+    /// <summary>
     /// Front-menu entry: singleplayer or multiplayer, before anything else — the Story route's own
     /// version of the host/join fork below. Bound by name from MainMenu.unity; do not rename.
     /// </summary>

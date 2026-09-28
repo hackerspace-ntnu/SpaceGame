@@ -1,7 +1,7 @@
 ---
 system: GameModes
 layer: presentation
-summary: Versus team PvP in the streamed world and the plain story run
+summary: Versus team PvP, the plain story run, and the disposable never-saved sandbox
 paths:
   - Assets/Game/Scripts/Gameplay/Versus/
   - Assets/Game/Scripts/Gameplay/Game/
@@ -15,13 +15,15 @@ symptoms:
   - "I died in versus and respawned in the enemy team's ship"
   - "respawning put me on open sand at the world's starting coordinates instead of back in my ship"
   - "I respawned still roped, still under the net, or still on fire"
+  - "pressing F5 in a disposable session says the save was ignored"
+  - "a disposable session's ship is standing on the ground already with no descent or blackout"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
-updated: 2026-09-22
+updated: 2026-09-26
 ---
 
 # Game Modes
 
-**Versus** — team PvP in the streamed world, everyone starts in a team ship — plus the plain story run.
+**Versus** — team PvP in the streamed world, everyone starts in a team ship — the plain story run — and **Disposable**, a throwaway singleplayer sandbox that skips the crash and never saves.
 
 A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one `MatchManager`), was deleted on 2026-09-22. Its arena scene had been empty since commit `7cbccf9f`, no `MatchManager` existed in any scene or prefab, and no menu button reached it, so the whole path was unreachable. If a bot arena is wanted again it is a new build, not a restore.
 
@@ -38,6 +40,7 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 - **A respawn lets go of everything holding the body, and death does not.** [`RespawnRelease.Everything`](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) cuts every rope on the player (leash, lasso, grapple), takes them out of the net they are under, unties a hogtie and clears every status condition — run by both respawn paths, on the deciding machine, immediately **before** the move. A corpse stays roped and netted on purpose: dragging a body somewhere is a thing players do.
 - [`Game.Mode`](Assets/Game/Scripts/Gameplay/Game/State/Game.cs) (`Singleplayer`/`Multiplayer`) and [`GameManager`](Assets/Game/Scripts/Gameplay/Game/State/GameManager.cs) belong to the **story run** (timer + `WinGame` → win scene), not to VS.
 - Team identity is one integer everywhere: index into `VersusRules.Names`, into the team colour array, and into the ship layout.
+- **Disposable is a flag on the story run, not a third code path.** [`WorldSession.Disposable`](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs) (set by `WorldSession.StageNew(..., disposable: true)`, cleared by `StageExisting`/`Clear`) is read in exactly two places: `SaveManager.Save` refuses every write while it is set (see [Persistence](Persistence.md) Gotchas), and `NetworkGameManager`'s spawn coroutine calls [`ArrivalDirector.SpawnAlreadyLanded`](Assets/Game/Scripts/Gameplay/Arrival/Runtime/ArrivalDirector.cs) instead of `SpawnIntoArrival` before checking `IsPending` — see [PlayerShip](PlayerShip.md) Flows. Everything else about the session (spawning, saving items, oxygen, combat) runs the ordinary story-run path with no branching at all.
 
 ## Key types
 
@@ -66,12 +69,15 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 | --- | --- | --- |
 | Versus (PvP world) | `Versus/**`, `Arrival/**`, `NetworkGameManager.Versus.cs` | 2–8 teams × 1–12, product ≤ 24 seats. One identical ship per team on a ring. No scoring, no win condition, no end — the mode ends when people leave. |
 | Story / singleplayer | `Gameplay/Game/State/**` | Host of one; `GameManager.GameTimer` + `WinGame()` → `onWinScene` through Netcode's scene manager. |
+| Disposable | `WorldSession.Disposable`, `ArrivalDirector.SpawnAlreadyLanded` | The story run with two things turned off: the crash-landing cutscene (the ship is put down already landed at the same spot it would have crashed) and every save trigger. No world name, no file, no F5/F9. |
 
 ## Flows
 
 **Start a VS match** — 1. `MainMenuUI.HostVersus` → `VersusRulesUI` stages teams/size (statics) → lobby. 2. Lobby writes team count/size/colours/per-player team into Unity Lobby data ([`LobbyTeams`](Assets/Game/Scripts/Core/Multiplayer/Lobby/Data/LobbyTeams.cs), [`VersusSetup`](Assets/Game/Scripts/Core/Multiplayer/Lobby/Data/VersusSetup.cs)). 3. On load, **every** peer runs `AdoptVersusSessionFromLobby()` in `NetworkGameManager.OnNetworkSpawn` → `VersusSession.Begin` (or `Clear`). 4. Client sends `ReportVersusTeamServerRpc`; server `VersusTeamRoster.Claim`s it (index validated against `TeamCount`). 5. `SpawnWhenReady` sees `VersusSession.IsActive` + a `VersusShipSpawner.Instance` → `SpawnIntoTeamShip`: wait for team → preload chunks around **every** team anchor → `ArrivalDirector.SpawnIntoVersusArrival` (whole formation or nothing) or fall back to `TryClaimSeat` → `SpawnManager.SpawnPlayerForClient(pos, rot)` → `PublishTeam` writes `PlayerIdentity.SetTeam`.
 
 **Spawn / respawn** — `SpawnManager.SpawnPlayerForClient` ensures the default faction, then `SpawnAsPlayerObject`. Respawn is a **state change on the living object** (`SetActive`, `ResetToFull`, re-enable `EntityFaction` + `AgentController`), never despawn/respawn. Movement is routed by `TeleportRpc` to the **owner** because the player's `NetworkTransform` is owner-authoritative.
+
+**Start a disposable session** — `MainMenuUI.StartDisposable` calls `WorldSession.StageNew("Disposable", worldConfig, disposable: true)` and enters the world exactly like singleplayer does — no `WorldSelectUI`, no typed name, because there is no file to name. In the world, `NetworkGameManager`'s spawn coroutine sees `WorldSession.Disposable` and calls `ArrivalDirector.SpawnAlreadyLanded(spawnPos)` *before* its `IsPending` check: that measures the same landing spot `EnsureStoryFlight` would have flown a descent onto (`ShipGrounding.TryResolveHullLanding`), spawns the ship prefab straight there with `HasArrived` set true, and the existing `IsPending` check then reads false for every client — so the ordinary "arrival already happened" path spawns everyone on the ground beside a ship that looks like it has been sitting there the whole session.
 
 ## Multiplayer
 
@@ -85,6 +91,8 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 ## Persistence
 
 N/A for match state, deliberately: a VS match is single-session and nothing in `Versus/` implements `ISaveable`. The statics are session-scoped and explicitly cleared. Only the **story run**'s session state persists, via [`GameStateSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/GameStateSaveable.cs) (key `gameState`: `GameManager.GameTimer` + `GameState`, restored through `RestoreTimer`/`RestoreState`, which never re-trigger `WinGame`). Runtime faction/targeting swaps are excluded from saves — see the notes in [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) and [`AgentStateSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/AgentStateSaveable.cs).
+
+**Disposable is N/A for a different reason: it is the story run with saving switched off, not a mode with nothing to save.** Every saver still runs normally in memory — items, oxygen, agent state, the works — `SaveManager.Save` just refuses at its one choke point every time something tries to write it out (autosave timer, the entry write, F5, exit, quit). See [Persistence](Persistence.md) Gotchas.
 
 ## Gotchas
 

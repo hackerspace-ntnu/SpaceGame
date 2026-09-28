@@ -30,6 +30,7 @@ they are the ones worth reading before you start grepping.
 | **gauntlet** | An artifact worn on a forearm (`EquipKind.Gauntlet`), fired on Q (left) or E (right); inert in the hotbar. Six today | [BodyEquipment](systems/BodyEquipment.md) |
 | **DefaultNetworkPrefabs.asset** | The live network prefab list under `ScriptableObjects/Networking/`; the copy at the repo root is stale and unused | [Multiplayer](systems/Multiplayer.md) |
 | **deferred pass** | `IDeferredSaveable.OnLoadComplete`, re-run per player bind and per late chunk — must be idempotent | [Persistence](systems/Persistence.md) |
+| **disposable session** | `WorldSession.Disposable`: the main menu's throwaway story run — ship already landed, nothing ever saved | [GameModes](systems/GameModes.md) |
 | **DuneFoil** (the **foil**) | The sand sailer: no mount at all, a walkable deck with claimable stations and a wheel that turns the foil | [Vehicles](systems/Vehicles.md) |
 | **EffectItem** | `UsableItem` subclass for a timed change to the holder's own body; `Use()` is sealed, override `ApplyEffect()` | [Artifacts](systems/Artifacts.md) |
 | **entity** | Not a base class: three independent marker components — `IPersistentEntity`, `SceneTracked`, `EntityFaction` | [EntitySystem](systems/EntitySystem.md) |

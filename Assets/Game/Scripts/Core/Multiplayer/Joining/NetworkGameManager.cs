@@ -288,6 +288,17 @@ namespace SpaceGame.Core
                 // spawnPos is handed on rather than re-resolved, for the reason written out above:
                 // a second resolve returns a different point from the one the terrain was streamed
                 // around.
+                // A disposable session skips the crash entirely: the ship is put down already
+                // landed, at the same spot the arrival would have flown to, and the arrival is
+                // marked done before IsPending is even asked below — so every client just falls
+                // through to the ordinary spawn beneath it, on the ground beside a ship that has
+                // apparently been sitting there the whole time.
+                if (WorldSession.Disposable && ArrivalDirector.Instance != null &&
+                    ArrivalDirector.Instance.IsPending)
+                {
+                    yield return ArrivalDirector.Instance.SpawnAlreadyLanded(spawnPos);
+                }
+
                 if (ArrivalDirector.Instance != null && ArrivalDirector.Instance.IsPending)
                 {
                     yield return ArrivalDirector.Instance.SpawnIntoArrival(clientId, spawnPos);

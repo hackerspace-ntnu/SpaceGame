@@ -66,7 +66,7 @@ The main world is 4000 by 3000 metres cut into 48 tiles of 500 metres square, an
 
 ### Generated landmarks, caves and settlements *(TerrainGeneration)*
 
-Three separate generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, caves grown from a seeded room-and-corridor graph, and tile-based settlements. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand.
+Several generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, and caves grown from a seeded room-and-corridor graph. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand. One settlement generator rings buildings, patrols and vehicles around a core structure from a recipe of prefabs and counts; it built the one Clanker robot settlement in the world today. A second, general-purpose settlement generator scatters buildings, decorations and characters from a simple prefab-and-count list around wherever you place it, reshaping the ground under and around them so buildings sit flat without leaving an obvious flattened circle — its layout comes from where you put it in the world, so the same list of buildings can be dropped in many places and always look a little different.
 
 **Worth knowing:** only two landmark types survive, mesas and cliffs; a dozen others were deleted, and because scenes store the type as a number, those numbers must never be renumbered or reused.
 
@@ -397,7 +397,7 @@ Hosting, browsing, joining, the roster and the team rules, built on Unity's lobb
 
 ### Match types *(GameModes)*
 
-Two ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *story run* is the ordinary game with a timer and a win scene.
+Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *story run* is the ordinary game with a timer and a win scene. *Disposable* is a throwaway sandbox off the main menu for trying something out: it skips the crash-landing cutscene entirely — the ship is already sitting there, landed — and nothing about the session is ever written to disk, so there is no world to name, save or come back to.
 
 **Worth knowing:** a third mode, a bot deathmatch arena, was deleted in September 2026. Its scene had been empty for months, no match orchestrator was placed anywhere, and no menu button reached it.
 

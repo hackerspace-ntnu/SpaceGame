@@ -29,8 +29,10 @@ symptoms:
   - "every NPC throws the same jab and cross"
   - "an aimed arm snaps level on every shot"
   - "a player's punch shows BLOCKED and does no damage"
+  - "an NPC just stands there mid-fight and takes/lands hits with no swing ever visible"
+  - "combat feels unnaturally slow or untimed even though damage lands on schedule"
 reads_with: [PlayerCharacter, AgentSystem, ArtPipeline, Multiplayer, Combat, InteractionSystem, TalkingMouth]
-updated: 2026-09-25
+updated: 2026-09-26
 ---
 
 # Humanoid Animation
@@ -110,6 +112,16 @@ None. Everything is seconds long or re-asserted by gameplay state that already s
 
 ## Gotchas
 
+- **`CharacterActions`'s layer-cleanup pass runs in `LateUpdate`, not `Update` — moved there
+  2026-09-26 after every NPC swing played invisibly.** `Play` calls `CrossFadeInFixedTime`, but the
+  Animator doesn't evaluate that crossfade until its own update phase, which Unity runs between
+  `Update` and `LateUpdate`. The cleanup pass checks whether a layer's current state has returned
+  to `Empty` (meaning the last one-shot finished) and zeroes its weight if so. In `Update` that
+  check ran on stale state — the very frame `Play` was called, from another component's `Update`
+  (`CloseCombatModule.Attack` among them), the layer still read `Empty` because the Animator hadn't
+  evaluated yet, so the cleanup pass wiped the weight back to 0 before a single frame of the action
+  rendered. The pick, the timers and the damage were all correct; the fight just looked like nobody
+  was swinging. `LateUpdate` sees this frame's evaluated state, not last frame's.
 - **Never hand-edit the controller** — run Audit first to see what a rebuild would erase.
 - **`CharacterActions` has no `Awake`, on purpose.** Other modules call it from their own `OnEnable` during `Instantiate`, and Unity raises Awake/OnEnable per component in list order; the wiring adds it LAST, so `AggressionTelegraphModule.OnEnable` reached it first and threw a NullReferenceException on every nomad spawn. Its tracks are built by a field initializer and everything else resolves on first use — keep it that way.
 - **Authority is `IsServerAuthoritative() ? IsServer : IsOwner`, never `HasAuthority`** (that means IsServer in client-server mode and hands the host every client's body).

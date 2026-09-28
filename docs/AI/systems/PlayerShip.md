@@ -75,8 +75,9 @@ symptoms:
   - "a passenger sitting down in a chair takes the ship off the pilot"
   - "the deck sails out from under me while somebody else is flying the ship"
   - "a status applied to the ship — burning, foamed — is only seen on the machine that applied it"
+  - "a disposable session's ship is standing on the ground already, with no descent, fire or blackout"
 reads_with: [Vehicles, Cutscenes, Multiplayer, Persistence, Oxygen, Terminal]
-updated: 2026-09-12
+updated: 2026-09-26
 ---
 
 # PlayerShip
@@ -124,7 +125,7 @@ The crashed lander: a script-generated, walkable, drivable 60-tonne hover vehicl
 
 **Arrival (story world)** — entry is [NetworkGameManager.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs) `:291`:
 
-1. NGM resolves the spawn anchor from a `SpawnPoint`, streams chunks around it, resolves `spawnPos` **once**, and hands that same point in as the impact site. A restored save returns before this — a loaded world never re-crashes.
+1. NGM resolves the spawn anchor from a `SpawnPoint`, streams chunks around it, resolves `spawnPos` **once**, and hands that same point in as the impact site. A restored save returns before this — a loaded world never re-crashes. A **disposable session** ([GameModes](GameModes.md)) also skips it, a different way: `WorldSession.Disposable` makes NGM call `ArrivalDirector.SpawnAlreadyLanded(spawnPos)` first, which measures the exact same landing spot this flow plans its descent onto (`ShipGrounding.TryResolveHullLanding`, the same call `EnsureStoryFlight` makes below) and spawns the ship prefab straight there — belly on the ground, yaw only, no flight — before setting `HasArrived = true`. Everything from step 2 on then sees `IsPending` already false and never runs.
 2. `SpawnIntoArrival` waits (≤ `seatResolveTimeout` 20 s) for `ShipGrounding` to measure ground; `fatal` (no prefab, zero lateral budget) short-circuits to `SpawnNormally`, which sets `HasArrived = true`.
 3. Ship is spawned via `GameServices.World.Spawn` at `ArrivalTrajectory.Evaluate(0)` — top of the arc, `StartAltitude` 2200 m, `LateralBudget` 900 m.
 4. Each client gets a body spawned **at the hull**, then one frame later `SeatedRider.Seat(player, seatIndex)`.

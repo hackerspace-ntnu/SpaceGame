@@ -90,6 +90,12 @@ namespace SpaceGame.EditorTools
             /// remove garments in Prefab Mode rather than by a rebuild.
             /// </summary>
             public string[] Outfit;
+
+            /// <summary>
+            /// This species' standing height in metres, overriding <see cref="TargetHeight"/>. Null
+            /// for every human-scale drifter; Raxy's is set by <see cref="Raxy"/>.
+            /// </summary>
+            public float? Height;
         }
 
         // Lower-case "agents" is the real folder on disk, beside Nomad.prefab. macOS resolves
@@ -102,8 +108,9 @@ namespace SpaceGame.EditorTools
 
         // Raxy has folders of its own: six skins and heads and its outfits, with a prefab per garment
         // in Clothes/ beside them, and their materials -- the FBX importer remaps the clothes' to
-        // Raxy_*.mat there.
-        private const string RaxyPrefabFolder = CharacterFolder + "/Raxy";
+        // Raxy_*.mat there. Moved out of Drifters/ to sit beside it, in an uncommitted restructure
+        // this branch already had in flight -- a sibling of CharacterFolder, not a child of it.
+        private const string RaxyPrefabFolder = "Assets/Game/Prefabs/agents/Characters/Raxy";
         private const string RaxyMaterialFolder = MaterialFolder + "/Raxy";
         private const string RaxyFbx = ModelFolder + "/Raxy/raxy.fbx";
         private const string RaxyTexture = ModelFolder + "/Raxy/Textures/raxy_BaseColor.png";
@@ -149,7 +156,14 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float TargetHeight = 3.0f;
 
-        private const float BodyRadius = TargetHeight * 0.208f;
+        private const float BodyRadiusRatio = 0.208f;
+
+        /// <summary>
+        /// Raxy stands shorter than the human baseline -- 15% under <see cref="TargetHeight"/>,
+        /// the user's call after a settlement of them read exactly as tall as the humans beside
+        /// them. See <see cref="Raxy"/> and <see cref="SculptRecipe.Height"/>.
+        /// </summary>
+        private const float RaxyHeight = TargetHeight * 0.85f;
 
         // The clip's actor. Humanoid retargeting scales stride with the skeleton, so a character
         // this much bigger covers proportionally more ground per step.
@@ -337,6 +351,7 @@ namespace SpaceGame.EditorTools
             EyeStyle = "Raxy",
             DialogLines = RaxyDialogLines,
             IdleChatter = RaxyIdleChatter,
+            Height = RaxyHeight,
         };
 
         /// <summary>
@@ -457,6 +472,78 @@ namespace SpaceGame.EditorTools
                 WireProjectWide();
 
             Debug.Log($"[SculptCharacterBuilder] Updated the behaviour of {updated} drifter NPC(s).");
+        }
+
+        /// <summary>
+        /// This recipe's standing height: <see cref="SculptRecipe.Height"/> if it has one of its
+        /// own, else the shared human baseline.
+        /// </summary>
+        private static float HeightFor(SculptRecipe recipe) => recipe.Height ?? TargetHeight;
+
+        /// <summary>
+        /// Re-measures every existing drifter prefab and rescales its <c>Model</c> to its recipe's
+        /// height, in place -- the correction <see cref="BuildPrefab"/> only ever applies once, at
+        /// first build. Needed whenever a resculpt changes a mesh's real height (the old bake goes
+        /// stale silently) or a recipe's <see cref="SculptRecipe.Height"/> changes, as Raxy's did:
+        /// it was baked to the human <see cref="TargetHeight"/> like every other drifter and had no
+        /// way to come out shorter. Safe to re-run: a prefab already at its target height gets a
+        /// scale factor of ~1.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Fix Drifter Scale")]
+        public static void FixScaleAll()
+        {
+            int fixedCount = 0;
+            foreach (var recipe in Drifters)
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(recipe.PrefabPath) == null)
+                {
+                    Debug.LogWarning($"[SculptCharacterBuilder] No prefab for {recipe.Name}; " +
+                                     "run 'Build Drifter NPCs' first.");
+                    continue;
+                }
+
+                FixScale(recipe.PrefabPath, HeightFor(recipe));
+                fixedCount++;
+            }
+
+            if (fixedCount > 0)
+                Debug.Log("[SculptCharacterBuilder] Run 'Update Drifter Behaviour' afterward too, " +
+                          "so the gait's stride scale matches each drifter's corrected height.");
+
+            Debug.Log($"[SculptCharacterBuilder] Re-measured and rescaled {fixedCount} drifter prefab(s).");
+        }
+
+        /// <summary>
+        /// Re-measures and rescales one prefab to <paramref name="targetHeight"/>, in place. The
+        /// worker behind <see cref="FixScaleAll"/>, exposed for a hand-built variant that never
+        /// went through a <see cref="SculptRecipe"/> at all -- a role prefab duplicated from
+        /// <c>Drifter_Raxy</c> (<c>Raxy_Jock</c>, <c>Raxy_poor</c>, ...) still needs Raxy's height,
+        /// but has no recipe entry to carry it. Safe to re-run: a prefab already at its target
+        /// height gets a scale factor of ~1.
+        /// </summary>
+        public static void FixScale(string prefabPath, float targetHeight)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                Debug.LogError($"[SculptCharacterBuilder] No prefab at {prefabPath}.");
+                return;
+            }
+
+            CorrectScaleAndSole(prefab, prefabPath, targetHeight);
+
+            var root = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                ConfigurePhysics(root, targetHeight);
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath, out bool ok);
+                if (!ok)
+                    Debug.LogError($"[SculptCharacterBuilder] Failed to save {prefabPath}.");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         /// <summary>
@@ -778,7 +865,7 @@ namespace SpaceGame.EditorTools
                 DrifterClothes.EnsurePrefabs(recipe.FbxPath, clothes);
                 DrifterClothes.Dress(model.transform, recipe.Outfit, clothes);
                 ConfigureAnimator(model);
-                ConfigurePhysics(root);
+                ConfigurePhysics(root, HeightFor(recipe));
                 ApplyBehaviour(root, recipe);
 
                 saved = PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out ok);
@@ -796,7 +883,7 @@ namespace SpaceGame.EditorTools
                 return null;
             }
 
-            saved = CorrectScaleAndSole(saved, recipe.PrefabPath);
+            saved = CorrectScaleAndSole(saved, recipe.PrefabPath, HeightFor(recipe));
             Debug.Log($"[SculptCharacterBuilder] Wrote {recipe.PrefabPath}");
             return saved;
         }
@@ -911,7 +998,7 @@ namespace SpaceGame.EditorTools
         /// rather than where the bones put it.
         /// </para>
         /// </summary>
-        private static GameObject CorrectScaleAndSole(GameObject prefab, string prefabPath)
+        private static GameObject CorrectScaleAndSole(GameObject prefab, string prefabPath, float targetHeight)
         {
             var probe = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             try
@@ -930,10 +1017,10 @@ namespace SpaceGame.EditorTools
                 float rendered = high - low;
                 if (rendered > 1e-3f)
                 {
-                    float factor = TargetHeight / rendered;
+                    float factor = targetHeight / rendered;
                     model.localScale *= factor;
                     Debug.Log($"[SculptCharacterBuilder] {prefab.name} drew {rendered:0.###} m; " +
-                              $"scaling by {factor:0.####} to stand {TargetHeight:0.##} m tall.");
+                              $"scaling by {factor:0.####} to stand {targetHeight:0.##} m tall.");
                 }
 
                 // Re-measure: the scale just moved everything, the soles included.
@@ -1107,12 +1194,14 @@ namespace SpaceGame.EditorTools
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
         }
 
-        private static void ConfigurePhysics(GameObject root)
+        private static void ConfigurePhysics(GameObject root, float targetHeight)
         {
+            float bodyRadius = targetHeight * BodyRadiusRatio;
+
             var capsule = GetOrAdd<CapsuleCollider>(root);
-            capsule.height = TargetHeight;
-            capsule.radius = BodyRadius;
-            capsule.center = new Vector3(0f, TargetHeight * 0.5f, 0f);
+            capsule.height = targetHeight;
+            capsule.radius = bodyRadius;
+            capsule.center = new Vector3(0f, targetHeight * 0.5f, 0f);
 
             var body = GetOrAdd<Rigidbody>(root);
             // The NavMeshAgent owns movement, so physics must not also push this thing around.
@@ -1121,8 +1210,8 @@ namespace SpaceGame.EditorTools
             body.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
             var agent = GetOrAdd<NavMeshAgent>(root);
-            agent.radius = BodyRadius;
-            agent.height = TargetHeight;
+            agent.radius = bodyRadius;
+            agent.height = targetHeight;
             agent.acceleration = 8f;
             agent.angularSpeed = 120f;
             agent.stoppingDistance = 0.5f;
@@ -1148,7 +1237,7 @@ namespace SpaceGame.EditorTools
             ConfigureProvocation(root);
             ConfigureTelegraph(root);
             ConfigureCombat(root);
-            ConfigureGait(root);
+            ConfigureGait(root, HeightFor(recipe));
 
             // Every component this prefab needs must be added HERE or in AddAgentStack, never by
             // hand in the Inspector: a hand-added module is invisible to this list, so the next
@@ -1408,12 +1497,12 @@ namespace SpaceGame.EditorTools
         /// Ties the three numbers that decide whether the feet skate: how fast the body moves,
         /// which clip the blend tree picks, and how fast that clip plays.
         /// </summary>
-        private static void ConfigureGait(GameObject root)
+        private static void ConfigureGait(GameObject root, float targetHeight)
         {
             // What the animation wants: the clip's own ground speed, scaled up by how much bigger
             // this character is than the actor the clip was cut for.
             float clipSpeed = MeasureWalkClipSpeed();
-            float strideSpeed = clipSpeed * (TargetHeight / ReferenceHumanHeight);
+            float strideSpeed = clipSpeed * (targetHeight / ReferenceHumanHeight);
 
             // Forced by the blend tree's own sample positions, not picked.
             float runSpeed = WalkSpeed * (RunBlendSample / WalkBlendSample);

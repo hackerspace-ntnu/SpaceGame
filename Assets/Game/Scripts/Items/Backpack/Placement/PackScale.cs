@@ -27,8 +27,8 @@ namespace SpaceGame.Items
     /// <see cref="WallDrawn"/> is why: the wall is sized by the room it stands in, so it is
     /// pinned in the ORIGINAL frame and is drawn at exactly the same size at any
     /// <see cref="Factor"/>. Its grid was re-cut from 60 x 30 to 30 x 22 on 2026-09-01 — 1800
-    /// cells to 660 — in <c>InventoryWallBuilder.SurfaceCellsAcross</c>/<c>Up</c> and in
-    /// <c>inventory_wall.py</c>. That is a decision about a room, not about this factor.
+    /// cells to 660 — in the wall's SurfaceCellsAcross/Up and in
+    /// the wall model. That is a decision about a room, not about this factor.
     /// </para>
     /// <para>
     /// <b>Why a factor rather than 30 re-typed numbers.</b> Half of the lengths involved are baked
@@ -63,7 +63,7 @@ namespace SpaceGame.Items
         /// <para>
         /// Moving it is a similarity transform and costs no capacity, but it is NOT free: it
         /// restates <see cref="PackGrid.Cell"/>, <c>ExpeditionRigWiring.SurfaceTable</c>,
-        /// <c>expedition_rig_scale.py</c>'s <c>SCALE</c> and every uv already in a save file. All
+        /// the expedition rig's baked SCALE and every uv already in a save file. All
         /// five have to move in the same change — <c>PackScaleTests</c>,
         /// <c>PackSurfaceTests.SurfaceTable_MatchesTheRigsCellCounts</c> and the codec's version
         /// are what notice when one of them does not.
@@ -98,13 +98,13 @@ namespace SpaceGame.Items
         public const float EnlargedCell = 0.135f;
 
         /// <summary>
-        /// The scale <c>inventory_wall.blend</c> is BAKED at: <c>inventory_wall_scale.py</c>'s
+        /// The scale <c>inventory_wall.blend</c> is BAKED at: the model's
         /// <c>TOTAL</c>, stamped into the mesh data itself and carried by the exported FBX.
         ///
         /// <para>
         /// Kept separate from <see cref="WallDrawn"/> so the drawn size can move without the
         /// <c>.blend</c> — which carries hand edits the generator would destroy — being
-        /// regenerated. <c>InventoryWallBuilder</c> applies the residual
+        /// regenerated. The wall prefab carries the residual
         /// <c>WallDrawn / WallModel</c> as a uniform scale on the prefab root, and everything
         /// that maps uvs divides a transform's lossy scale back out, so the two frames meet on
         /// the same webbing lines. Change this only when the model is actually re-baked at a new
@@ -129,20 +129,20 @@ namespace SpaceGame.Items
         /// <b>It stands over the aft room's measured budget, deliberately.</b> The fitting is
         /// 2.580 m tall in this frame (all-mesh bounds of <c>inventory_wall.blend</c> at
         /// <see cref="LegacyCell"/>), and rays cast up from the deck over its footprint against
-        /// the ship's BAKED COLLISION, at <c>PlayerShipBuilder.WallRibClearance</c>, find 4.383 m
+        /// the ship's BAKED COLLISION, at the wall rib clearance, find 4.383 m
         /// of headroom on the 2026-09-02 ship — capped by the hull skin's convex-decomposition
         /// fill, not by the visible deckhead. With the 0.25 m gap the old guard required, that
         /// budget allows 1.602; the wall stood at 1.59 under it until 2026-09-02, when the user
         /// chose the bigger board over the clearance — and then hand-placed the fitting
-        /// (<c>PlayerShipBuilder.WallPlacementNudge</c>) with its back tucked into that fill. The
+        /// (the wall placement nudge) with its back tucked into that fill. The
         /// guards (<c>WallInventoryTests.TheWallIsDrawnAtItsDecidedSize</c> and
-        /// <c>PlayerShipTests.PlayerShip_InventoryWallFaceIsAimableFromTheRoom</c>) pin the
+        /// the ship's own wall probes) pin the
         /// decision and the face's usability instead of the old clearance.
         /// </para>
         /// <para>
         /// A future resize needs no <c>.blend</c> work — move this constant, re-run the wall and
         /// ship builders, and re-measure the two guards' numbers. Shrinking the grid instead
-        /// (<c>InventoryWallBuilder.SurfaceCellsUp</c> with <c>inventory_wall.py</c>'s
+        /// (the wall's SurfaceCellsUp with the model's
         /// <c>GRID_H</c>) is the lever that DOES need the model regenerated, hand edits and all.
         /// </para>
         /// </summary>
@@ -173,7 +173,7 @@ namespace SpaceGame.Items
         /// <b>The drawn board and the drawn uvs still have to agree</b>: the bay dividers are six
         /// cells apart and the webbing is on a two-cell pitch, so a model out of step with the
         /// mapping puts every line the player drops gear onto in the wrong place. The model's
-        /// geometry carries <see cref="WallModel"/> baked in, and <c>InventoryWallBuilder</c>
+        /// geometry carries <see cref="WallModel"/> baked in, and the wall prefab
         /// scales the prefab root by the residual <c>WallDrawn / WallModel</c> — which is safe
         /// precisely because <see cref="PackSurface.ToLocal"/>, <c>BackpackItemVisual</c> and
         /// <c>HolderBuilder</c> all divide a transform's lossy scale back out and follow THIS

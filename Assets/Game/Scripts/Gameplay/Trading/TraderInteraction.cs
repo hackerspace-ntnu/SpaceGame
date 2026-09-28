@@ -93,7 +93,7 @@ namespace SpaceGame.Gameplay.Trading
                 if (profile != null && !string.IsNullOrWhiteSpace(profile.soldOutLine) &&
                     NpcDialogPopupUI.Instance != null)
                 {
-                    NpcDialogPopupUI.Instance.Show(profile.soldOutLine, 2.5f);
+                    NpcDialogPopupUI.Instance.Show(profile.soldOutLine, 2.5f, transform);
                     return true;
                 }
 
@@ -114,7 +114,7 @@ namespace SpaceGame.Gameplay.Trading
                     nextOfferTime = Time.time + declineCooldown;
 
                     if (NpcDialogPopupUI.Instance != null && !string.IsNullOrWhiteSpace(DeclineLine))
-                        NpcDialogPopupUI.Instance.Show(DeclineLine, 2f);
+                        NpcDialogPopupUI.Instance.Show(DeclineLine, 2f, transform);
                 });
         }
 

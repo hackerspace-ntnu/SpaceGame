@@ -6,7 +6,6 @@ paths:
   - Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs
   - Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs
   - Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs
-  - Assets/Game/Editor/Creatures/SaddleBuilder.cs
   - "Assets/Game/Art/Models/_Source~/models/gear"
 symptoms:
   - "the animal cannot be ridden, or can be ridden with no saddle on it"
@@ -29,7 +28,7 @@ updated: 2026-09-07
 
 A saddle turns an animal into something you can ride and something that carries gear. It is an assembly of three systems rather than a new one, which is why it has its own page: no single one of them owns it.
 
-**Scope:** `SaddleSocket` / `SaddleRemover` ([Riding/](Assets/Game/Scripts/agents/Modules/Riding)), [`SaddlePlacement`](Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs), [`SaddleBuilder`](Assets/Game/Editor/Creatures/SaddleBuilder.cs), and the model under `_Source~/models/gear/`.
+**Scope:** `SaddleSocket` / `SaddleRemover` ([Riding/](Assets/Game/Scripts/agents/Modules/Riding)), [`SaddlePlacement`](Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs), `SaddleBuilder`, and the model under `_Source~/models/gear/`.
 **Related:** [AgentSystem.md](AgentSystem.md) (the animal), [Backpack.md](Backpack.md) (the container), [Artifacts.md](Artifacts.md) (the item), [Vehicles.md](Vehicles.md) (`MountModule`).
 
 ## Model

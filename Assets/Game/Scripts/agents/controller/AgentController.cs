@@ -1,7 +1,6 @@
 // Main runtime coordinator for entity agents.
 // Each frame: ticks all side-effect modules (ClaimsMovement==false) unconditionally, then
 // evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins.
-// Also supports the legacy IAgentBrain interface so old prefabs don't break immediately.
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Diagnostics;
@@ -21,10 +20,6 @@ namespace SpaceGame.Agents
         [SerializeField] private MonoBehaviour MotorComponent;
         [SerializeField] private AgentAnimatorDriver animatorDriver;
 
-        [Header("Nearby Agents (Flocking)")]
-        [Tooltip("Radius within which nearby agents are gathered for FlockingModule. 0 = disabled.")]
-        [SerializeField] private float nearbyAgentScanRadius = 0f;
-        [SerializeField] private LayerMask nearbyAgentLayer;
 
         [Header("Speed Variation")]
         [Tooltip("How much the agent's speed can drift above and below its base. 0.1 = ±10%.")]
@@ -37,16 +32,11 @@ namespace SpaceGame.Agents
         private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
         private IBehaviourModule[] presentationModules; // IPresentationModule — ticked on every machine
         private IFacingModule[] facingModules;        // separate facing channel, priority-sorted
-        private IAgentBrain legacyBrain;
         private HerdModule herdModule;
         private AgentTargeting targeting;
         private AgentGoal goal;
         private float speedVariationPhase;
 
-        // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
-        private readonly Collider[] neighbourBuffer = new Collider[32];
-        private readonly Vector3[] nearbyPositionBuffer = new Vector3[32];
-        private readonly Vector3[] nearbyVelocityBuffer = new Vector3[32];
 
         private AgentAuthority authority;
 
@@ -294,26 +284,6 @@ namespace SpaceGame.Agents
                 Goal = goal,
             };
 
-            if (nearbyAgentScanRadius > 0f)
-            {
-                int count = Physics.OverlapSphereNonAlloc(transform.position, nearbyAgentScanRadius, neighbourBuffer, nearbyAgentLayer);
-                int written = 0;
-                for (int i = 0; i < count && written < nearbyPositionBuffer.Length; i++)
-                {
-                    Transform t = neighbourBuffer[i].transform;
-                    if (t == transform)
-                        continue;
-                    nearbyPositionBuffer[written] = t.position;
-                    // Populate velocity from NavMeshAgentMotor if available.
-                    IMovementMotor neighbourMotor = t.GetComponent<IMovementMotor>();
-                    nearbyVelocityBuffer[written] = neighbourMotor != null ? neighbourMotor.Velocity : Vector3.zero;
-                    written++;
-                }
-                ctx.NearbyAgentPositions = nearbyPositionBuffer;
-                ctx.NearbyAgentVelocities = nearbyVelocityBuffer;
-                ctx.NearbyAgentCount = written;
-            }
-
             return ctx;
         }
 
@@ -322,10 +292,8 @@ namespace SpaceGame.Agents
         /// the authority for a body that is riding as cargo (<see cref="RidesAsPassenger"/>).
         ///
         /// A separate method rather than a flag on <see cref="BuildContext"/>, because the two are
-        /// not the same query with an option: this one may not touch the motor (it has been parked,
-        /// and its Velocity would be a stale zero dressed up as a measurement) and must not run the
-        /// neighbour OverlapSphere, which is the single most expensive thing an agent does and the
-        /// whole reason a client should not be paying for agents it does not own.
+        /// not the same query with an option: this one may not touch the motor, which has been
+        /// parked, and whose Velocity would be a stale zero dressed up as a measurement.
         /// </summary>
         private AgentContext BuildPresentationContext() => new AgentContext
         {
@@ -409,10 +377,6 @@ namespace SpaceGame.Agents
                     }
                 }
             }
-
-            // Fall back to legacy brain if present (old NpcBrain / EnemyBrain on same prefab).
-            if (legacyBrain != null)
-                return legacyBrain.Tick(in context, deltaTime);
 
             return MoveIntent.Idle();
         }
@@ -516,18 +480,8 @@ namespace SpaceGame.Agents
             // read by whoever moves. Auto-added so a prefab needs no extra step to be sendable.
             goal = AgentGoal.GetOrAdd(gameObject);
 
-            // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
-            foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (mb is IAgentBrain brain && mb is not IBehaviourModule)
-                {
-                    legacyBrain = brain;
-                    break;
-                }
-            }
-
-            if (movementModules.Length == 0 && legacyBrain == null)
-                Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule or IAgentBrain. Add at least one module.", this);
+            if (movementModules.Length == 0)
+                Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule. Add at least one module.", this);
         }
 
         private void ResolveMotor()

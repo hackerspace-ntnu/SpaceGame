@@ -81,7 +81,7 @@ namespace SpaceGame.Items
         [Tooltip("How far the cold reaches, in metres. Three times the flamethrower's six, " +
                  "because the flame is a cone that catches a crowd at arm's length and this is a " +
                  "single line held on one target — the reach is what the narrowness buys. The " +
-                 "visible plume is built to the same number: see CryoPlumeBuilder.\n\n" +
+                 "visible plume is built to the same number.\n\n" +
                  "This value is SERIALIZED on the prefab, which is what actually ships. Changing " +
                  "the default here alone changes nothing in the game.")]
         [SerializeField] private float range = 18f;
@@ -536,7 +536,7 @@ namespace SpaceGame.Items
         /// <summary>
         /// Keep the cone that freezes and the cone that is drawn in step.
         ///
-        /// A warning rather than an assignment: the plume is authored by <c>CryoPlumeBuilder</c>
+        /// A warning rather than an assignment: the plume is authored on the prefab
         /// and the nozzle may be missing altogether on a stripped display copy, so silently taking
         /// the visual's angle would make what freezes depend on what happens to be on the prefab.
         /// Same rule, and the same reason, as the builder's reach check.

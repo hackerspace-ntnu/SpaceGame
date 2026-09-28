@@ -51,7 +51,7 @@ namespace SpaceGame.Items
         private static readonly string[] ExhaustRoles = { "ExhaustInner", "ExhaustOuter" };
 
         /// <summary>
-        /// What <c>JetpackBuilder</c> calls the generated plume cones.
+        /// What the prefab calls the generated plume cones.
         ///
         /// <para>
         /// They are SIBLINGS of the nozzles rather than children of them — the builder hangs them
@@ -156,7 +156,7 @@ namespace SpaceGame.Items
         ///
         /// Exposed because the resolution happens in <c>Awake</c> against NAMES in a hand-built
         /// model, which is precisely the kind of binding that breaks quietly on a re-export — and
-        /// a check that can only be run by flying about is a check nobody runs. <c>JetpackBuilder</c>
+        /// a check that can only be run by flying about is a check nobody runs. The build pass
         /// instantiates the built prefab and reads this.
         /// </summary>
         public int PodCount => pods.Count;
@@ -205,7 +205,7 @@ namespace SpaceGame.Items
         /// binds is a NAME in a hand-built model, which is the binding most likely to break on a
         /// re-export — and <c>Awake</c> does not run in the editor, so every edit-mode check of it
         /// lies. That is the trap the wingsuit paid for with a pack scaled to a sliver. Exposing
-        /// the resolution lets <c>JetpackBuilder</c> instantiate the finished prefab and assert
+        /// the resolution lets the build pass instantiate the finished prefab and assert
         /// the counts without entering play mode; calling it twice is safe.
         /// </para>
         ///
@@ -380,7 +380,7 @@ namespace SpaceGame.Items
             Debug.LogError(
                 $"JetpackNozzles: found {pods.Count} pod(s) and {flames} flame(s); expected 4 and 8 " +
                 "(a pair for the carried model and a pair for the worn one). Check the part names " +
-                "against jetpack_export.py, then re-run Tools/SpaceGame/Items/Build Jetpack.", this);
+                "against the jetpack model.", this);
         }
 
         private void LateUpdate() => Tick(Time.deltaTime);
@@ -394,7 +394,7 @@ namespace SpaceGame.Items
         /// is public.</b> The editor never calls <c>LateUpdate</c> and <c>Time.deltaTime</c> is
         /// zero there, so nothing outside play mode could exercise the emit path — and the smoke
         /// was switched off by <c>WornVisual</c> for the whole of the pack's life without one
-        /// error anywhere. <c>JetpackBuilder</c> drives this and asserts that puffs come out.
+        /// error anywhere. The build pass drove this and asserted that puffs come out.
         /// </para>
         /// </summary>
         public void Tick(float dt)

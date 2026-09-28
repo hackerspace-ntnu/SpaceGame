@@ -60,6 +60,24 @@ namespace SpaceGame.EditorTools
             if (p != null) p.vector3Value = value;
         }
 
+        public static void SetColor(SerializedObject so, string name, Color value)
+        {
+            SerializedProperty p = Find(so, name);
+            if (p != null) p.colorValue = value;
+        }
+
+        /// <summary>An array or list of object references, replaced wholesale.</summary>
+        public static void SetObjects<T>(SerializedObject so, string name, System.Collections.Generic.IReadOnlyList<T> values)
+            where T : Object
+        {
+            SerializedProperty p = Find(so, name);
+            if (p == null) return;
+
+            p.arraySize = values.Count;
+            for (int i = 0; i < values.Count; i++)
+                p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
+
         /// <summary>
         /// An enum by NAME. Enums here carry explicit numbers (<c>SfxId</c> is a numbered catalogue),
         /// so writing an index would silently pick a different entry the day one is inserted.

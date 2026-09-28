@@ -24,6 +24,7 @@ using UnityEngine.AI;
 using UnityEngine.Events;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 using SpaceGame.Weapons;
 using SpaceGame.World;
 
@@ -52,15 +53,19 @@ namespace SpaceGame.Agents
         [Tooltip("When true, spawns the weapon model from the weapon asset at runtime. " +
                  "Disable if the weapon is already placed in the prefab hierarchy (e.g. parented to a hand bone).")]
         [SerializeField] private bool spawnWeaponModel = false;
-        [Tooltip("Optional. When assigned (or found on this object), overrides weapon and muzzleSocket with the active slot.")]
-        [SerializeField] private WeaponMount weaponMount;
-
         [Header("Animation")]
-        [SerializeField] private Animator animator;
-        [Tooltip("Trigger to fire on each shot. Leave empty to disable.")]
-        [SerializeField] private string shootAnimTrigger = "AssualtShoot";
-        [Tooltip("Bool to set while the agent is in firing range and aiming. Leave empty to disable.")]
-        [SerializeField] private string aimAnimBool = "IsAiming";
+        [Tooltip("Played on each shot, on every machine. Use an Additive-slot recoil (Pistol Recoil, " +
+                 "Rifle Recoil): it kicks over the aim pose at whatever pitch the arm is at, where " +
+                 "an Upper-slot shot would replace the aim pose with a level one. Empty for none.")]
+        [SerializeField] private CharacterAction shootAction;
+
+        [Tooltip("Held while the agent is in firing range and aiming, on the upper body. Empty for none.")]
+        [SerializeField] private CharacterAction aimAction;
+
+        [Tooltip("Watching machines only: seconds past the fire cooldown the agent keeps its aim " +
+                 "pose after a shot arrives. A watcher never runs Tick, so the next shot is its only " +
+                 "news that the agent is still engaged; without this it shoots with its arms down.")]
+        [SerializeField, Min(0f)] private float watcherAimGrace = 0.5f;
 
         [Header("Events")]
         public UnityEvent<Vector3> OnFire;
@@ -68,6 +73,11 @@ namespace SpaceGame.Agents
         public event Action OnFireEvent;
         public event Action OnKillEvent;
 
+        private CharacterActions actions;
+
+        // Watcher only: when the aim pose shown from the last replicated shot lapses. Zero while
+        // nothing is held, and always zero on the deciding machine, whose Tick owns the pose.
+        private float watcherAimUntil;
         private float cooldownTimer;
         private int burstRemaining;
         private float burstTimer;
@@ -94,20 +104,10 @@ namespace SpaceGame.Agents
         public float MaxRange => fireProfile != null ? fireProfile.maxRange : 0f;
 
         /// <summary>
-        /// The weapon this barrel is firing right now — the mounted slot when there is a
-        /// WeaponMount, the serialized fallback otherwise.
-        ///
-        /// <para>
-        /// A watching machine resolves it the same way and lands on the same asset, because nothing
-        /// swaps a WeaponMount slot on its own: <see cref="WeaponMount.Equip"/> is only reachable
-        /// from a UnityEvent or a script, so both machines are reading the same serialized index.
-        /// If something ever does start swapping mid-fight, the index belongs in the message's
-        /// spare <see cref="NetArg.B"/> and a mismatch should drop the shot — which is the rule
-        /// EntityEquipmentController already applies to a hotbar slot.
-        /// </para>
+        /// The weapon this barrel is firing right now. Serialized, so a watching machine resolves
+        /// the same asset and agrees on projectile speed without anything being sent.
         /// </summary>
-        private AgentWeaponDefinition ActiveWeapon =>
-            weaponMount != null ? weaponMount.ActiveDefinition : weapon;
+        private AgentWeaponDefinition ActiveWeapon => weapon;
 
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
@@ -186,6 +186,7 @@ namespace SpaceGame.Agents
 
         private void OnDisable()
         {
+            watcherAimUntil = 0f;
             SetAiming(false);
             this.NetOff(NetMsg.AgentActed, OnAgentActed);
         }
@@ -201,10 +202,7 @@ namespace SpaceGame.Agents
             gun?.SetActive(IsActive);
             if (!muzzleSocket && gun != null)
                 muzzleSocket = gun.transform;
-            if (!animator)
-                animator = GetComponentInChildren<Animator>();
-            if (!weaponMount)
-                weaponMount = GetComponentInChildren<WeaponMount>();
+            actions = GetComponent<CharacterActions>();
             perception = GetComponent<PerceptionModule>();
         }
 
@@ -415,7 +413,7 @@ namespace SpaceGame.Agents
         private void FireOne(Transform target)
         {
             AgentWeaponDefinition activeWeapon = ActiveWeapon;
-            Transform activeMuzzle = weaponMount != null ? weaponMount.ActiveMuzzle : muzzleSocket;
+            Transform activeMuzzle = muzzleSocket;
 
             if (activeWeapon == null || activeWeapon.projectilePrefab == null)
             {
@@ -514,8 +512,7 @@ namespace SpaceGame.Agents
 
             Sfx.Play(activeWeapon.fireId, reportPosition, activeWeapon.fireSound, GetInstanceID());
 
-            if (animator && !string.IsNullOrEmpty(shootAnimTrigger))
-                animator.SetTrigger(shootAnimTrigger);
+            if (actions != null) actions.Play(shootAction);
 
             // The muzzle flash. AgentWeaponDefinition has no VFX slot, so OnFire is where a
             // designer hangs one — that makes it presentation, and presentation runs everywhere.
@@ -550,12 +547,33 @@ namespace SpaceGame.Agents
             if (!AgentActionRelay.TryReadRay(in arg, out Vector3 origin, out Vector3 direction))
                 return;
 
+            HoldAimAfterShot();
             PresentShot(origin, origin, direction, cosmetic: true);
         }
 
-        // Lead prediction uses the weapon actually being fired, not the serialized fallback — a
-        // WeaponMount slot swap changes projectile speed, and aiming with the old number puts every
-        // shot behind or ahead of a moving target.
+        /// <summary>
+        /// Watcher: raise the aim pose for as long as another shot could still be coming. The
+        /// deciding machine holds it from Tick every frame of the engagement; a watcher has no Tick
+        /// and nothing replicates "engaged", but every shot does arrive, and the authority fires at
+        /// least once per fire cooldown while it stays engaged and able to fire.
+        /// </summary>
+        private void HoldAimAfterShot()
+        {
+            float cooldown = fireProfile != null ? fireProfile.fireCooldown : 0f;
+            watcherAimUntil = Time.time + cooldown + watcherAimGrace;
+            SetAiming(true);
+        }
+
+        private void Update()
+        {
+            if (watcherAimUntil <= 0f || Time.time < watcherAimUntil) return;
+
+            watcherAimUntil = 0f;
+            SetAiming(false);
+        }
+
+        // Lead prediction uses the weapon actually being fired, so aiming never lags a moving
+        // target by a stale projectile speed.
         private Vector3 ComputeAimDirection(Transform target, Vector3 from, AgentWeaponDefinition activeWeapon)
         {
             if (!target)
@@ -609,8 +627,9 @@ namespace SpaceGame.Agents
 
         private void SetAiming(bool aiming)
         {
-            if (animator && !string.IsNullOrEmpty(aimAnimBool))
-                animator.SetBool(aimAnimBool, aiming);
+            if (actions == null) return;
+            if (aiming) actions.Play(aimAction);
+            else actions.Stop(aimAction);
         }
 
         private GameObject FindChildByName(string childName)

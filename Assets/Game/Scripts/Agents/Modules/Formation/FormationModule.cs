@@ -97,7 +97,6 @@ namespace SpaceGame.Agents
         /// </summary>
         private int restoredOrder = -1;
 
-        public string FormationId => formationId;
         public bool IsLeader => isLeader;
 
         private void Reset() => SetPriorityDefault(ModulePriority.Social);

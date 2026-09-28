@@ -306,49 +306,14 @@ namespace SpaceGame.World
 
         private readonly Dictionary<GameObject, Vector2> footprintCache = new();
 
+        /// <summary>A prefab's XZ footprint, measured from its mesh bounds. Cached per prefab since this generator queries it repeatedly for spacing checks.</summary>
         private Vector2 GetPrefabFootprint(GameObject prefab)
         {
             if (footprintCache.TryGetValue(prefab, out var cached)) return cached;
 
-            // Walk the prefab hierarchy in local space and find the XZ extents of all meshes.
-            var filters = prefab.GetComponentsInChildren<MeshFilter>(true);
-            if (filters.Length == 0)
-            {
-                footprintCache[prefab] = new Vector2(recipe.buildingFootprint, recipe.buildingFootprint);
-                return footprintCache[prefab];
-            }
-
-            Bounds? combined = null;
-            Transform prefabRoot = prefab.transform;
-            foreach (var mf in filters)
-            {
-                if (mf.sharedMesh == null) continue;
-                Bounds local = mf.sharedMesh.bounds;
-                Vector3 c = local.center;
-                Vector3 e = local.extents;
-                Bounds wb = new Bounds();
-                bool init = false;
-                for (int i = 0; i < 8; i++)
-                {
-                    Vector3 corner = c + new Vector3(
-                        (i & 1) == 0 ? -e.x : e.x,
-                        (i & 2) == 0 ? -e.y : e.y,
-                        (i & 4) == 0 ? -e.z : e.z);
-                    Vector3 worldCorner = mf.transform.TransformPoint(corner);
-                    Vector3 inRoot = prefabRoot.InverseTransformPoint(worldCorner);
-                    if (!init) { wb = new Bounds(inRoot, Vector3.zero); init = true; }
-                    else wb.Encapsulate(inRoot);
-                }
-                if (combined == null) combined = wb;
-                else { var cb = combined.Value; cb.Encapsulate(wb); combined = cb; }
-            }
-
-            Vector2 size = combined.HasValue
-                ? new Vector2(combined.Value.size.x, combined.Value.size.z)
-                : new Vector2(recipe.buildingFootprint, recipe.buildingFootprint);
-
-            footprintCache[prefab] = size;
-            return size;
+            Vector2 footprint = SettlementPlacementUtil.ComputeFootprint(prefab, new Vector2(recipe.buildingFootprint, recipe.buildingFootprint));
+            footprintCache[prefab] = footprint;
+            return footprint;
         }
 
         private float BuildingClearanceRadius(GameObject prefab)
@@ -526,17 +491,8 @@ namespace SpaceGame.World
             return false;
         }
 
-        private bool SampleGround(Vector3 worldXZ, out float groundY)
-        {
-            Vector3 origin = new Vector3(worldXZ.x, worldXZ.y + 500f, worldXZ.z);
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 2000f, terrainMask, QueryTriggerInteraction.Ignore))
-            {
-                groundY = hit.point.y;
-                return true;
-            }
-            groundY = worldXZ.y;
-            return false;
-        }
+        private bool SampleGround(Vector3 worldXZ, out float groundY) =>
+            SettlementPlacementUtil.SampleGround(worldXZ, out groundY, terrainMask);
 
         private void MaybeAddFoundationPad(Transform building, Vector3 worldXZ, float baseY, Transform root, Vector2 prefabFootprint, Quaternion buildingRot)
         {

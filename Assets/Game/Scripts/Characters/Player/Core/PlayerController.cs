@@ -251,7 +251,7 @@ namespace SpaceGame.Characters
 
         // Paired with OnDeath: without this a respawned player keeps the frozen
         // movement/look from the death that preceded it. HealthComponent raises
-        // OnRevive when health is restored from zero, which is what MatchManager's
+        // OnRevive when health is restored from zero, which is what a
         // respawn does, so this is the natural place to hand control back.
         private void OnRevive()
         {
@@ -277,7 +277,7 @@ namespace SpaceGame.Characters
 
         private SpectatorCamera spectator;
 
-        // Called (via MatchManager, on the owning client) only when this player is
+        // Called on the owning client only when this player is
         // out of the match for good — not on a death they'll respawn from, which
         // would swap the player camera out and never hand it back.
         public void EnterSpectatorMode()

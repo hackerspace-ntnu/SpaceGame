@@ -209,6 +209,7 @@ MonoBehaviour:
       Data3: -1733396809
       Data4: 1766842722
     Path: event:/SFX/Explosion
+  useAction: {fileID: 11400000, guid: dd3b15f80a5ba46dc9fd9741283b39b4, type: 2}
   aimCamera: {fileID: 0}
   firePoint: {fileID: 6642809435290787583}
   handle1: {fileID: 7525129472516688383}
@@ -218,6 +219,7 @@ MonoBehaviour:
   aimMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  aimRange: 500
   magazine: {fileID: 7406318919699059623}
   ammoPerShot: 1
   fireSoundId: 200
@@ -236,6 +238,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  gunshotNoiseRadius: 40
   enableCharging: 0
   chargeDuration: 3
   chargeProgressCurve:
@@ -399,6 +402,7 @@ MonoBehaviour:
   holdSize: 1.25
   packSize: 0
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2090690742223491146
 MonoBehaviour:

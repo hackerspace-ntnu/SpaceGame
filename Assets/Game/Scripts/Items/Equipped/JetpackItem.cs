@@ -34,7 +34,7 @@ namespace SpaceGame.Items
     public class JetpackItem : UsableItem, IItemDeferredRestore
     {
         [Tooltip("The pods: the vectoring parts, the four flames, the heat glow and the smoke. On " +
-                 "this prefab, wired by JetpackBuilder.")]
+                 "this prefab.")]
         [SerializeField] private JetpackNozzles nozzles;
 
         [Tooltip("How fast the shown nozzle angle catches up to the streamed one, per second. It " +

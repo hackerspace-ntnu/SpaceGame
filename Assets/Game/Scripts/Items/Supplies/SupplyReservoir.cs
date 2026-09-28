@@ -255,7 +255,7 @@ namespace SpaceGame.Items
             }
         }
 
-        // No OnValidate repaint. The bar's length IS serialized — OxygenGearBuilder bakes the anchor
+        // No OnValidate repaint. The bar's length IS serialized — the prefab bakes the anchor
         // at the starting charge — so the prefab, its icon and every display copy already read
         // correctly on disk, and an OnValidate here would write to the asset behind the builder's
         // back.

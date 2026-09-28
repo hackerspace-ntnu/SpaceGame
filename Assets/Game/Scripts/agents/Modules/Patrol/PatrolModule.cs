@@ -15,6 +15,15 @@ namespace SpaceGame.Agents
 {
     public enum PatrolMode { RadiusBased, PatrolPoints }
 
+    // Lived on WanderBehaviour until that legacy brain was deleted; PatrolModule is the
+    // only thing that has ever read it, so it moved here with the field that uses it.
+    public enum PatrolSelectionMode
+    {
+        SequentialLoop,
+        PingPong,
+        Random
+    }
+
     public class PatrolModule : BehaviourModuleBase
     {
         [Header("Mode")]
@@ -42,7 +51,7 @@ namespace SpaceGame.Agents
 
         [Tooltip("While pausing between patrol points, claim the frame and stand still (a guard holding " +
                  "a post). Uncheck to yield the pause to lower-priority modules instead — required when " +
-                 "something below this module should run during the wait, e.g. HuntModule on arena bots.")]
+                 "something below this module should run during the wait, e.g. a wander module.")]
         [SerializeField] private bool holdPositionWhileWaiting = true;
 
         private Vector3 spawnAnchor;

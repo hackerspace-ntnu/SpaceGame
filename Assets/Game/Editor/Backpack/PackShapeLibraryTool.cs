@@ -65,7 +65,7 @@ namespace SpaceGame.EditorTools
         /// </para>
         /// <para>
         /// It is needed because a seeded row is a snapshot of a size that can move afterwards.
-        /// <c>ItemScaleLadder</c> resized twelve items on 2026-08-25 and every one of their rows
+        /// Twelve items were resized on 2026-08-25 and every one of their rows
         /// still described the old size — which does not shrink the item, because the pack draws
         /// gear at true size regardless. It makes the item overhang the cells the layout reserved
         /// for it and lie through whatever is in the next cell along, which is what

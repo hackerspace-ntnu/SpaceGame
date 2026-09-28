@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Characters;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
@@ -104,18 +105,18 @@ namespace SpaceGame.Items
         /// Does this holder wear the player's layered controller without the player's rig?
         ///
         /// <para>
-        /// The sand nomads do: they animate with <c>AstronautArmature</c>, whose Base Layer answers
-        /// the legacy <c>Hold</c> bool by parking the WHOLE body in a static gun-aim state — legs
-        /// included, so a nomad handed a gun walked the desert as a statue sliding on its feet,
-        /// with a valid avatar and a clean console. The player never trips this because
+        /// Every humanoid NPC does: they animate with the generated humanoid controller. The old
+        /// one's Base Layer answered the legacy <c>Hold</c> bool by parking the WHOLE body in a
+        /// static gun-aim state — legs included, so a nomad handed a gun walked the desert as a
+        /// statue sliding on its feet, with a valid avatar and a clean console. The player never trips this because
         /// <see cref="PlayerAimRig"/> drives <c>HoldStyle</c> and the masked Upper Body layer
         /// instead. A holder with that layer and that parameter is held the same way.
         /// </para>
         /// </summary>
         private static bool HasLayeredHold(Animator a) =>
             a != null && a.runtimeAnimatorController != null
-            && a.GetLayerIndex(PlayerAimRig.UpperBodyLayer) >= 0
-            && HasParam(a, Animator.StringToHash(PlayerAimRig.HoldStyleParameter));
+            && a.GetLayerIndex(HumanoidLayers.UpperBody) >= 0
+            && HasParam(a, Animator.StringToHash(HumanoidParams.HoldStyle));
 
         /// <summary>
         /// The layered hold without the rig's easing: the style into <c>HoldStyle</c> and the
@@ -126,8 +127,8 @@ namespace SpaceGame.Items
         {
             if (resolvedAnimator == null) return;
             bool held = style != ItemGrip.HoldStyle.None;
-            resolvedAnimator.SetInteger(PlayerAimRig.HoldStyleParameter, (int)style);
-            resolvedAnimator.SetLayerWeight(resolvedAnimator.GetLayerIndex(PlayerAimRig.UpperBodyLayer), held ? 1f : 0f);
+            resolvedAnimator.SetInteger(HumanoidParams.HoldStyle, (int)style);
+            resolvedAnimator.SetLayerWeight(resolvedAnimator.GetLayerIndex(HumanoidLayers.UpperBody), held ? 1f : 0f);
             wroteLayered = held;
         }
 

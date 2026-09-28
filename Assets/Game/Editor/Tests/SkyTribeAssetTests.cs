@@ -1,7 +1,7 @@
 // The Sky Tribe faction asset, read off disk — sky-tribe-and-vessels plan Task 1.
 //
 // FactionAssetTests already covers the four renamed core factions and the Fauna/Wildlife rules;
-// this file is the Sky-specific half: the asset RosterAuthoring.AuthorSkyTribeFaction owns, and the
+// this file is the Sky-specific half: the shipped Sky tribe faction asset, and the
 // relationship rows it mirrors from Sand. Reads the asset, never the class default (INVARIANTS.md;
 // FactionAssetTests' own header explains why that distinction has already bitten this project once).
 //

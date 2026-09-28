@@ -139,9 +139,6 @@ namespace SpaceGame.Agents
         /// True while an AI route is being followed rather than a straight line to the destination.
         public bool IsFollowingPath => hasPath && path.HasPath;
 
-        /// True while this machine is being steered as a planar drive rather than a heading.
-        public bool CanStrafe => lateralSteering;
-
         /// Drive externally: both in -1..1. For debug tools and cutscenes.
         public void SetInput(float forwardInput, float turnInput)
             => SetInput(forwardInput, turnInput, 0f);

@@ -1,5 +1,5 @@
 // Everything that makes a roster broken, in one list. OnValidate prints it as warnings while a
-// designer works; RosterAssetTests fails on it for the shipped roster (spec §3, CONTENT-0004).
+// designer works; it is an error for the shipped roster (spec §3, CONTENT-0004).
 using System.Collections.Generic;
 using SpaceGame.Items;
 

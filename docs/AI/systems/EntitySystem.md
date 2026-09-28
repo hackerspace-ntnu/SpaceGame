@@ -4,7 +4,6 @@ layer: characters
 summary: How a GameObject becomes an entity — identity, save opt-in, and following the streaming grid between chunks
 paths:
   - Assets/Game/Scripts/agents/Entity/
-  - Assets/Game/Scripts/agents/Profiles/
   - Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs
   - Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs
   - Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs
@@ -15,17 +14,16 @@ symptoms:
   - "dead NPCs re-instantiate themselves on every reload"
   - "a generated prefab has an empty motor slot and no error was logged"
   - "an NPC is completely invisible to AI targeting"
-  - "EntityProfile_RobotPhil / _DesertRat is referenced but does not exist"
   - "a moving NPC keeps nine chunks loaded around itself"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-09-16
+updated: 2026-09-22
 ---
 
 # Entity System
 
 How a GameObject becomes a first-class **entity** in SpaceGame: how it is authored or spawned, how it gets a stable identity, and how it follows the streaming grid between chunk scenes.
 
-**Scope:** [Assets/Game/Scripts/agents/Entity/](Assets/Game/Scripts/agents/Entity/), [Assets/Game/Scripts/agents/Profiles/](Assets/Game/Scripts/agents/Profiles/), [Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs), [SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs), [IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs), [SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs), [SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs), [Assets/Game/Editor/Agents/EntityProfileEditors.cs](Assets/Game/Editor/Agents/EntityProfileEditors.cs)
+**Scope:** [Assets/Game/Scripts/agents/Entity/](Assets/Game/Scripts/agents/Entity/), [Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs), [SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs), [IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs), [SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs), [SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs)
 **Related:** [AgentSystem.md](AgentSystem.md) (behaviour modules, factions, perception) · [Persistence.md](Persistence.md) (record/save format) · [WorldStreaming.md](WorldStreaming.md) (chunk load/unload) · [MountSystem.md](MountSystem.md)
 
 ## Model
@@ -37,18 +35,18 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 - **Is it targetable by AI?** → [`EntityFaction`](Assets/Game/Scripts/agents/Faction/EntityFaction.cs), which self-registers into [`EntityTargetRegistry`](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) on enable. Factionless ⇒ invisible to all targeting. Details in [AgentSystem.md](AgentSystem.md).
 - An AI-driven entity additionally carries the agent stack: `Rigidbody` (kinematic) + `CapsuleCollider` + `NavMeshAgent` + `NavMeshAgentMotor` + [`AgentController`](Assets/Game/Scripts/agents/Controller/AgentController.cs) + `AgentAnimatorDriver` + `HealthComponent` + [`HealthReactionModule`](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs).
 
-## Profiles
+## Authoring an agent prefab
 
-**These are not ScriptableObject assets.** Every `EntityProfile_*` is a data-only `MonoBehaviour` you drop on a prefab, configure, and hit **⚙ Generate** on (button drawn by [EntityProfileEditors.cs](Assets/Game/Editor/Agents/EntityProfileEditors.cs)); the component is then removed. Generation is idempotent (`GetOrAdd` + `SerializedProperty` writes). **Four exist:**
+There is no generator any more. The four `EntityProfile_*` authoring components and their
+`EntityProfileEditors` **Generate** button were deleted on 2026-09-22: nothing had used them for a
+long time, and every creature added recently was built by a dedicated editor script under
+[Assets/Game/Editor/Creatures/](Assets/Game/Editor/Creatures) instead. Copy the closest of those —
+`AppaBuilder`, `GolemBuilder`, `SandloperBuilder`, `VrescalBuilder`, `RobotHorseBuilder`,
+`DuneRatBuilder`, `CrabWalkerBuilder`, `LightningConjurerBuilder` — or compose the stack by hand.
 
-| Profile | Source file | Generates / used by |
-| --- | --- | --- |
-| `EntityProfile_BaseAgent` | [Profiles/EntityProfile_BaseAgent.cs](Assets/Game/Scripts/agents/Profiles/EntityProfile_BaseAgent.cs) | Base stack + `EntityFaction`, `EntityAudioModule`, `NoiseEmitter`, `EntityInventoryComponent`, `EntityLootTable`. Starting point before hand-adding modules. |
-| `EntityProfile_NPC` | [Profiles/EntityProfile_NPC.cs](Assets/Game/Scripts/agents/Profiles/EntityProfile_NPC.cs) | Base stack + `FleeModule`+`WanderModule` (enabled), `WatchModule`/`ApproachModule`/`KeepDistanceModule` (added, disabled), `InteractionFocusModule`, inventory. |
-| `EntityProfile_GenericEnemy` | [Profiles/EntityProfile_GenericEnemy.cs](Assets/Game/Scripts/agents/Profiles/EntityProfile_GenericEnemy.cs) | Base-patrol + herd + perception + alerts + melee/ranged/kiting (`RobotHerdAttackStyle`). Has `OnValidate` clamping. |
-| `EntityProfile_Vehicle` | [Profiles/EntityProfile_Vehicle.cs](Assets/Game/Scripts/agents/Profiles/EntityProfile_Vehicle.cs) | Base stack + `WanderModule` + `MountModule` + `SteerModule`; sizes the capsule and tunes the `NavMeshAgent`. |
-
-**No prefab, scene or asset in the repo currently references any of the four** (GUID grep over `Prefabs/`, `Scenes/`, `Resources/`) — as designed, since the profile is stripped after Generate. [EntitySystemSetup.cs](Assets/Game/Scripts/agents/Profiles/EntitySystemSetup.cs) is an empty static class holding a comment-only setup guide; **it is itself stale** and still names deleted profiles (`EntityProfile_RobotPhil`, `_RobotCath`, `_DesertRat`, `_MountableAnt`, `_BountyHunter`, `_HostileRobot`).
+Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEnemy`, `_Vehicle`,
+`_RobotPhil`, `_Cath`, `_Ernst`, `_Roberto`, `_DesertRat`, `_MountableAnt`, `_BountyHunter`,
+`_HostileRobot`, `_RobotHerdPatrol` or `EntitySystemSetup` is describing files that no longer exist.
 
 ## Key types
 
@@ -118,7 +116,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 ## Gotchas
 
 - **No prefab on disk ships a stamped `prefabId`.** Runtime spawns therefore warn and are captured-but-not-restorable until the prefab is put under `Resources/Saveable/`, registered with NGO, or stamped via `Tools ▸ Save System ▸ Wire Saveable Prefabs`.
-- **`EntityProfile_*` are components, not ScriptableObjects,** and there are exactly four. Any doc, comment or memory naming `EntityProfile_RobotPhil`/`_Cath`/`_Ernst`/`_Roberto`/`_DesertRat`/`_MountableAnt`/`_BountyHunter`/`_HostileRobot`/`_RobotHerdPatrol` is describing files that no longer exist.
+- **There are no `EntityProfile_*` components.** All four, and the `EntityProfileEditors` Generate button, were deleted on 2026-09-22 — see "Authoring an agent prefab" above. An agent prefab is built by an editor script under `Assets/Game/Editor/Creatures/` or composed by hand.
 - **`Core/Registry/` is the item registry.** It has nothing to do with entities; the entity-side lookups are `SaveableEntity.LiveEntities` (persistence) and `EntityTargetRegistry` (targeting). Don't wire an entity into `Registry<T>`.
 - **`SetObject(controller, "MotorComponent", …)` is case-sensitive.** `FindProperty` returns null for the wrong casing and `SetObject` swallows it, leaving an empty motor slot on every generated prefab, silently.
 - **A `Migrate` entity with no `NetworkObject` desyncs silently for clients** — the warning fires once, per object, and is easy to miss. Prefer `Pin` or add a `NetworkObject`.
@@ -132,7 +130,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 ## Extending
 
 1. Decide what the thing is. Moves between chunks → add `SceneTracked` and pick a policy. Static but stateful (door, lever, beacon) → implement `IPersistentEntity` on its own component instead.
-2. If it has AI: run the closest `EntityProfile_*` over the prefab, hit Generate, delete the profile component. Otherwise add the agent stack by hand.
+2. If it has AI: copy the closest builder in [Assets/Game/Editor/Creatures/](Assets/Game/Editor/Creatures), or add the agent stack by hand.
 3. Add `EntityFaction` (+ faction asset and relationship table) if anything should target it or it should target anything.
 4. If it holds state a saver does not already cover, add an `ISaveable` and a clause in `SaveablePolicy.Ensure` so it is auto-attached — see [Persistence.md](Persistence.md).
 5. If it is ever spawned at runtime: give the prefab a `NetworkObject`, register it in the network prefab list, and put it under `Resources/Saveable/` (or reimport so `prefabId` is stamped). Spawn through `WorldService.Spawn`, never raw `Instantiate`.

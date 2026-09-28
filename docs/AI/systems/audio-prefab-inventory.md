@@ -66,10 +66,10 @@ Legend for the **State** column:
 |---|---|---|---|
 | Walk cycle (`footstepInterval` 0.45s) | `EntityFootstep` 411 | Servo-driven metal footfall | **pinned** `event:/SFX/Footstep` (all five) |
 | Idle ambience (every 5–12 s) | `NpcMumbleNeutral` 400 | Machine idle chatter / servo whine | **pinned** `event:/SFX/ElectricHum` (all five) |
-| Spots a target | `EntityAlert` 407 | Detection ping | **pinned** `event:/SFX/Implosion` on `1`, `2`, `3`; unassigned on `PatrolRobot`, `DeathmatchBot` |
+| Spots a target | `EntityAlert` 407 | Detection ping | **pinned** `event:/SFX/Implosion` on `1`, `2`, `3`; unassigned on `PatrolRobot` |
 | Loses target, starts searching | `EntitySearch` 408 | Scanning sweep, quieter | catalog (unassigned on all) |
 | Aggro on target | `EntityAggro` 406 | Threat klaxon / lock-on | catalog (unassigned on all) |
-| Takes damage | `EntityHurt` 409 | Metal impact + sparks | **pinned**: `Hit` on `PatrolRobot`/`DeathmatchBot`, `MetalPickup` on `2`/`3`, `PlayerDie` on `1` |
+| Takes damage | `EntityHurt` 409 | Metal impact + sparks | **pinned**: `Hit` on `PatrolRobot`, `MetalPickup` on `2`/`3`, `PlayerDie` on `1` |
 | Dies | `EntityDeath` 410 | Power-down + collapse | **pinned** `event:/SFX/PlayerDie` (all five) |
 | Melee attack | `EntityAttack` 412 | Servo swing | catalog |
 | Fires ranged weapon → `WPN_RobotPistol.asset` | `WeaponGunFire` 200 (default) | Robot pistol crack | **pinned** `event:/SFX/Hit` on the *ScriptableObject*, shared by all five bots |

@@ -68,6 +68,13 @@ namespace SpaceGame.Core.Persistence
                 return;
             }
 
+            if (WorldSession.Disposable)
+            {
+                Debug.LogWarning("[Save] Quicksave ignored: this is a disposable session and is " +
+                                 "never saved.");
+                return;
+            }
+
             // Checked here as well as inside SaveManager, so the message names the player's actual
             // situation rather than the system's rule. A guest in someone else's game cannot save it.
             if (Network.IsNetworked && !Network.Server)
@@ -94,6 +101,13 @@ namespace SpaceGame.Core.Persistence
             if (!WorldSession.IsActive)
             {
                 Debug.LogWarning("[Save] Quickload pressed with no active world.");
+                return;
+            }
+
+            if (WorldSession.Disposable)
+            {
+                Debug.LogWarning("[Save] Quickload ignored: this is a disposable session and was " +
+                                 "never saved, so there is nothing on disk to load.");
                 return;
             }
 

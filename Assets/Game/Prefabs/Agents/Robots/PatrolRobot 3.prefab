@@ -571,6 +571,12 @@ GameObject:
   - component: {fileID: 4869711800729039213}
   - component: {fileID: 8086553153096647864}
   - component: {fileID: 8035998129230325313}
+  - component: {fileID: 6151886823939042633}
+  - component: {fileID: 1096404430826263832}
+  - component: {fileID: 9171026445669408242}
+  - component: {fileID: 3189773731439449466}
+  - component: {fileID: 3463260705106906780}
+  - component: {fileID: 2289859480996573943}
   m_Layer: 0
   m_Name: PatrolRobot 3
   m_TagString: Untagged
@@ -666,10 +672,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
   MotorComponent: {fileID: 836584490720039465}
   animatorDriver: {fileID: 4092899636993295912}
-  nearbyAgentScanRadius: 30
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &6054718628419241840
@@ -1024,6 +1026,7 @@ MonoBehaviour:
   sampleDistance: 15
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 0.5
   maxWaitTime: 2
   stopDistance: 0.2
@@ -1049,10 +1052,9 @@ MonoBehaviour:
   muzzleSocket: {fileID: 0}
   muzzleForwardOffset: 0.4
   spawnWeaponModel: 0
-  weaponMount: {fileID: 0}
-  animator: {fileID: 164182178236826577}
-  shootAnimTrigger: AssaultShoot
-  aimAnimBool: IsAiming
+  shootAction: {fileID: 11400000, guid: dd3b15f80a5ba46dc9fd9741283b39b4, type: 2}
+  aimAction: {fileID: 11400000, guid: 51da97be6032488fa5be5ef220e8d3ca, type: 2}
+  watcherAimGrace: 0.5
   OnFire:
     m_PersistentCalls:
       m_Calls: []
@@ -1638,6 +1640,97 @@ MonoBehaviour:
     Response: 2
   - Kind: 4
     Response: 2
+--- !u!114 &6151886823939042633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f52e51190964b8c823adb8879936eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterActions
+  animator: {fileID: 0}
+--- !u!114 &1096404430826263832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98aef13143c54bd6bfe9cd74867f3925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.IdleVariation
+  animator: {fileID: 0}
+  secondsPerIdle: 14
+  blendSeconds: 0.8
+  secondsPerFidget: 9
+--- !u!114 &9171026445669408242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e937dc32bd941ce8218cf5823caf7bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.HurtReaction
+--- !u!114 &3189773731439449466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f4f71220dd5483e81143d86bee11e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.BodyLanguage
+  actions: {fileID: 0}
+  reactions: {fileID: 0}
+  fullBody: 1
+  movingAbove: 0.5
+  holdRetrySeconds: 0.25
+--- !u!114 &3463260705106906780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57709f2066f034082a823cf9c20543ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.SpeechGestures
+  talking: {fileID: 11400000, guid: 2434891c64e6747a395070d4b89aba13, type: 2}
+  beatEvery: {x: 1.1, y: 2.4}
+  firstBeatAfter: 0.5
+  newConversationAfter: 10
+--- !u!114 &2289859480996573943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 720de3d91bf642adb83d93d9320cee1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MeleeDefense
+  blockChance: 0.12
+  dodgeChance: 0.08
+  blockPassThrough: 0.25
+  facingCone: 120
+  cooldown: 3
 --- !u!1 &993558174326219863
 GameObject:
   m_ObjectHideFlags: 0

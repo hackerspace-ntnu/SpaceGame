@@ -8,8 +8,6 @@ paths:
   - Assets/Game/Scripts/Gameplay/Status/BodyVeil.cs
   - Assets/Game/Scripts/Core/SceneManagement/Interiors/SingularityVoid.cs
   - Assets/Game/Scripts/Core/Safety/Guards/SingularityVoidGuard.cs
-  - Assets/Game/Editor/Items/SingularityBuilder.cs
-  - Assets/Game/Editor/World/SingularityVoidBuilder.cs
   - Assets/Game/Prefabs/Items/Artifacts/Gadgets/BottledSingularity.prefab
   - Assets/Game/Prefabs/Items/Artifacts/Gadgets/SingularityWell.prefab
   - Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset

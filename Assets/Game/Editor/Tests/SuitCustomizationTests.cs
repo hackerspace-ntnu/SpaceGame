@@ -22,7 +22,7 @@ namespace SpaceGame.Tests
     public class SuitCustomizationTests
     {
         /// <summary>
-        /// The model actually in use — the one astronaut_export.py writes and both
+        /// The model actually in use — the shipped astronaut FBX, which both
         /// PlayerCharacter.prefab and LobbyPreviewAstronaut.prefab are built from. Pointing this at
         /// a stale second copy would let the test pass while the shipped suit stopped recolouring.
         /// </summary>

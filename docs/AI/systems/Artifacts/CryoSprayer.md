@@ -109,7 +109,7 @@ the barrel — that rime is the same `_Freeze` property as the ice on the target
 `CryoSprayerNozzle` and never fully cleared (`restRime`, so the gun reads as cold at rest).
 
 The plume is authored by **`Tools/SpaceGame/Items/Build Cryo Plume`**
-([CryoPlumeBuilder](Assets/Game/Editor/Items/CryoPlumeBuilder.cs)) — three particle systems on the
+(CryoPlumeBuilder) — three particle systems on the
 prefab (`Jet` with `Shards` and `Mist` under it, plus `Bite` and `Blowoff`) and three materials off
 one shader, [`SpaceGame/Effects/CryoVapour`](Assets/Game/Art/Shaders/Effects/CryoVapour.shader).
 That shader is `FlameBillboard`'s opposite number: same quantized bands and world-space noise, but

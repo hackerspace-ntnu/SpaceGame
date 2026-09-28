@@ -10,7 +10,6 @@ using SpaceGame.World;
 public class MainMenuUI : MonoBehaviour
 {
     [SerializeField] private SceneReference gameScene;
-    [SerializeField] private SceneReference minigameScene;
 
     [Header("World selection")]
     [Tooltip("The world these saves belong to. Recorded in every save's header so a save cannot " +
@@ -37,6 +36,17 @@ public class MainMenuUI : MonoBehaviour
 
     /// <summary>Opens the world list; entering a world is WorldSelectUI's job.</summary>
     public void StartSinglePlayer() => WorldSelectUI.Open(this, WorldSelectUI.Destination.Singleplayer);
+
+    /// <summary>
+    /// Front-menu entry: a throwaway singleplayer session for trying something out — no world
+    /// naming, no crash-landing cutscene (the ship starts already down), and nothing is ever
+    /// written to disk. Bound by name from MainMenu.unity; do not rename.
+    /// </summary>
+    public void StartDisposable()
+    {
+        WorldSession.StageNew("Disposable", worldConfig, disposable: true);
+        EnterWorld();
+    }
 
     /// <summary>
     /// Front-menu entry: singleplayer or multiplayer, before anything else — the Story route's own
@@ -159,38 +169,6 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void EnterLobby() => LobbyUI.Open(this, LobbyRoute.StoryHost);
 
-    // Wired to the menu's Minigame button. The match is configured first — the
-    // config screen calls LaunchMinigame() once the host has picked a gamemode.
-    public void StartMinigame()
-    {
-        MinigameConfigUI.Open(this);
-    }
-
-    public void LaunchMinigame()
-    {
-        // Tell NetworkGameManager's auto-spawn coroutine to hold off until minigameScene has
-        // loaded and gone active, otherwise it spawns the player at persistentScene's own
-        // SpawnPoint the instant persistentScene finishes loading. Must be set before StartHost()
-        // so it's in place before OnNetworkSpawn fires.
-        NetworkGameManager.PendingSceneNameToWaitFor = minigameScene.SceneName;
-
-        // Waits on the arena, not gameScene: the arena is loaded additively on top and is the
-        // scene the player actually ends up in.
-        LoadingScreenUI.ShowUntilReady(minigameScene.SceneName);
-
-        NetworkManager.Singleton.StartHost();
-
-        void OnLoaded(string sceneName, LoadSceneMode mode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
-        {
-            if (sceneName != gameScene.SceneName) return;
-            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnLoaded;
-            NetworkManager.Singleton.SceneManager.LoadScene(minigameScene.SceneName, LoadSceneMode.Additive);
-        }
-
-        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnLoaded;
-        NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
-    }
-    
     public void QuitGame()
     {
         Application.Quit();

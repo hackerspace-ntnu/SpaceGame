@@ -221,9 +221,9 @@ namespace SpaceGame.EditorTools
         /// axis is its own up, which is the shape of an item balanced on its end. It is not
         /// balanced on anything: the mesh carries 0.0130 m² of down-facing geometry in its bottom
         /// 5 mm, an annulus from r 0.018 to r 0.0505 m against a bottle radius of 0.0589, and
-        /// <c>portal_gun.py</c> puts the origin at the centre of that ring expressly so the bottle
+        /// The model puts the origin at the centre of that ring expressly so the bottle
         /// "stands on a surface without a Z nudge". A foot is the exception Backpack.md carves out
-        /// of "put the smallest axis up", and PortalContentBuilder carries the full reasoning.
+        /// of "put the smallest axis up".
         /// </para>
         /// <para>
         /// The bug this catches is a capacity one and it is silent. Laid on its side the gun
@@ -245,7 +245,7 @@ namespace SpaceGame.EditorTools
 
             Assert.AreEqual(1, ItemFootprint.MaxAxis(size),
                 $"the portal gun measures {size.ToString("F3")} and no longer stands on its base " +
-                "ring. If that was deliberate, read PortalContentBuilder's note on why it is not " +
+                "ring. If that was deliberate, re-read why it is not " +
                 "laid down before changing this test.");
 
             GameObject rig = AssetDatabase.LoadAssetAtPath<GameObject>(RigPath);
@@ -270,7 +270,7 @@ namespace SpaceGame.EditorTools
         ///
         /// <para>
         /// <c>ItemGrip.packSize</c> of <c>0</c> does not mean "unset". It means "follow
-        /// <c>holdSize</c>", which is the HAND's number off <c>ItemScaleLadder</c>'s bracket
+        /// <c>holdSize</c>", which is the HAND's number off the size bracket
         /// ladder — a ladder that is deliberately not life size, because the astronaut's hand is
         /// about 1.7x a human's. This gun is a 0.4445 m fire extinguisher that was on the Gun
         /// bracket at 1.25 m, so through that fallback the pack drew it 1.875 m tall on a 1.08 m
@@ -300,17 +300,17 @@ namespace SpaceGame.EditorTools
 
             Assert.Greater(grip.PackSize, 0f,
                 "the portal gun's packSize is 0, so its size on the mat is wired to holdSize and " +
-                "moves with the hand's bracket ladder. PortalContentBuilder.PackSize owns the " +
+                "moves with the hand's bracket ladder. The prefab's packSize owns the " +
                 "number — run SpaceGame ▸ Portals ▸ Build Portal Gun Content.");
 
             // Not merely non-zero: a mat size that has drifted back up toward the hand's is the
             // same defect wearing a different number.
             Assert.AreEqual(0.54f, grip.PackSize, 1e-3f,
-                "the portal gun's mat size is no longer the 0.54 m PortalContentBuilder derives " +
+                "the portal gun's mat size is no longer the 0.54 m the prefab derives " +
                 "from its true 0.4445 m model. Read that constant's note before changing this.");
 
             Assert.AreEqual(0.73f, grip.HoldSize, 1e-3f,
-                "holdSize moved. It is the ItemScaleLadder BigTool bracket and the hand's number " +
+                "holdSize moved. It is the BigTool size bracket and the hand's number " +
                 "only — sizing the gun for the mat must not touch how it is held. It left the Gun " +
                 "bracket's 1.25 m on 2026-09-06 (backlog GEAR-02): that number is a REACH and " +
                 "holdSize is a LONGEST AXIS, which on a bottle gripped at the top is its height.");

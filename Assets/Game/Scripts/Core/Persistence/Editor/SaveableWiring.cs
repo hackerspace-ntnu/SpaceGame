@@ -97,7 +97,7 @@ namespace SpaceGame.Core.Persistence.EditorTools
         /// <remarks>
         /// The outcome is a return value and not just a console error because this pass is called by
         /// BUILD SCRIPTS as well as by a human, and a script cannot read the console. It cost the
-        /// PlayerShip exactly that: <c>PlayerShipBuilder.Build()</c> was run from the menu while the
+        /// PlayerShip exactly that: its build pass was run from the menu while the
         /// editor happened to be in Play mode, this pass refused on the line below, and the builder
         /// carried on and saved a hull with no <c>prefabId</c> and five missing savers. Nothing about
         /// the ship looked wrong afterwards; the wreck simply stopped surviving a reload. Any

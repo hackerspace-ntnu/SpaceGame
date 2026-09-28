@@ -5,7 +5,6 @@ summary: "Ladder volumes, and the LadderClimber that climbs, slides down and ste
 paths:
   - Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs
   - Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs
-  - Assets/Game/Editor/Traversal/LadderClimberWiring.cs
   - Assets/Game/Editor/Tests/LadderTests.cs
 symptoms:
   - "walking into a ladder does nothing"
@@ -24,9 +23,9 @@ and which volume counts as being at it; `LadderClimber` on the player does the c
 
 **Scope:** [Ladder.cs](Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs) ·
 [LadderClimber.cs](Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs) ·
-[LadderClimberWiring.cs](Assets/Game/Editor/Traversal/LadderClimberWiring.cs)
+LadderClimberWiring.cs
 **Where ladders come from:** the Sky City's seven `LAD_SkyCity_##` markers —
-[`SkyCityBuilder`](Assets/Game/Editor/Environment/SkyCityBuilder.cs) adds a `Ladder` to each, wired to
+`SkyCityBuilder` adds a `Ladder` to each, wired to
 its `_Top` and `_Exit` children (see [ArtPipeline.md](ArtPipeline.md) and `sky_city_BUILD.md`).
 
 ## Model

@@ -10,44 +10,23 @@
 // style and the gauntlet raise — are pushed in from components that already run everywhere.
 using UnityEngine;
 using SpaceGame.Items;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Characters
 {
     [DisallowMultipleComponent]
     public class PlayerAimRig : MonoBehaviour
     {
-        /// <summary>Int parameter the Upper Body layer's Any State transitions compare against.</summary>
-        // Public: HoldAnimator drives the same parameter and layer on an NPC that wears this
-        // controller without a rig, so the names live in one place.
-        public const string HoldStyleParameter = "HoldStyle";
-
-        /// <summary>
-        /// Bool selecting the mirrored copy of whichever hold state <see cref="HoldStyleParameter"/>
-        /// names. Every hold clip is right-handed — the one-handed pose puts the RIGHT hand forward
-        /// and leaves the left at the hip — so a pose struck for something on the LEFT arm has to
-        /// be the mirror of it or the wrong arm comes up.
-        /// </summary>
-        private const string HoldMirrorParameter = "HoldMirror";
-
-        /// <summary>Name of the masked layer this component owns outright.</summary>
-        public const string UpperBodyLayer = "Upper Body";
-
-        /// <summary>
-        /// Name of the second masked layer, which covers the LEFT arm alone.
-        ///
-        /// <para>
-        /// It exists because the layer above answers exactly one ask. A player wearing a working
-        /// device on each forearm — a lit torch and a powered scanner — makes two, and the right
-        /// one used to win outright: the left arm hung at the side with its lamp lighting the
-        /// ground, which is the device's own on/off state reported wrongly (GDC-L1-ANIM-0003).
-        /// This layer carries the left arm's pose for that case and only that case; see
-        /// <see cref="LeftArmStyle"/>.
-        /// </para>
-        /// </summary>
-        public const string WornLeftLayer = "Worn Left";
-
-        /// <summary>Int parameter the Worn Left layer's Any State transitions compare against.</summary>
-        private const string WornLeftStyleParameter = "WornLeftStyle";
+        // Owns two layers of the generated humanoid controller outright: Upper Body (the held or
+        // worn pose, and the gauntlet raise) and Worn Left (the LEFT arm alone). The second exists
+        // because the first answers exactly one ask: a player wearing a working device on each
+        // forearm — a lit torch and a powered scanner — makes two, and the right one used to win
+        // outright, the left arm hanging with its lamp lighting the ground, which is the device's
+        // own on/off state reported wrongly (GDC-L1-ANIM-0003). See LeftArmStyle.
+        //
+        // Every hold clip is right-handed — the one-handed pose puts the RIGHT hand forward and
+        // leaves the left at the hip — so HoldMirror selects the mirrored twin for a pose struck
+        // for something on the LEFT arm, or the wrong arm comes up.
 
         [Header("References")]
         [SerializeField] private Animator animator;
@@ -58,9 +37,6 @@ namespace SpaceGame.Characters
         [SerializeField] private float holdBlendTime = 0.18f;
 
         [Header("Gauntlet raise")]
-        [Tooltip("Seconds a one-shot gesture keeps the Upper Body layer up after it starts. Set from the clip length by whoever plays it; this is only the fallback.")]
-        [SerializeField] private float defaultGestureSeconds = 2.5f;
-
         [Tooltip("Seconds for a gauntlet arm to come up when its item fires, and to drop after.")]
         [SerializeField] private float raiseBlendTime = 0.12f;
 
@@ -71,16 +47,6 @@ namespace SpaceGame.Characters
 
         private PlayerController controller;
         private PlayerViewNetwork view;
-
-        /// <summary>Int the Upper Body layer's raise states are entered on: 0 none, 1 left, 2 right, 3 both.</summary>
-        // Held true while a one-shot gesture plays, so the Upper Body layer's states can gate on
-        // it and an AnyState transition cannot evict the gesture mid-play.
-        private const string GesturingParameter = "Gesturing";
-
-        private const string ArmRaiseParameter = "ArmRaise";
-
-        /// <summary>Float the raise states blend on: the look pitch in degrees, up positive.</summary>
-        private const string AimPitchParameter = "AimPitch";
 
         private int upperBodyLayerIndex = -1;
         private int wornLeftLayerIndex = -1;
@@ -101,16 +67,6 @@ namespace SpaceGame.Characters
         // One raise per arm: the decision, and its blend.
         private bool raiseLeft;
         private bool raiseRight;
-        private int gesturingHash;
-
-        // Counts down while a gesture plays. Holds the masked layer up so the gesture is visible
-        // with EMPTY hands, which is the whole point: you pet an animal with a free hand, and the
-        // layer is otherwise only raised by holding an item or by a gauntlet firing.
-        private float gestureTimer;
-
-        // Which arm the running gesture plays on, when the gesture said. Null means the hold
-        // pose's own rule (PoseMirrored). Lives only as long as gestureTimer does.
-        private bool? gestureMirror;
 
         private float raiseLeftT;
         private float raiseRightT;
@@ -199,7 +155,7 @@ namespace SpaceGame.Characters
         /// </para>
         /// </summary>
         public bool Posing =>
-            (PoseStyle != ItemGrip.HoldStyle.None || gestureTimer > 0f)
+            PoseStyle != ItemGrip.HoldStyle.None
             && !Relaxed
             && (controller == null || !controller.IsDead);
 
@@ -218,32 +174,31 @@ namespace SpaceGame.Characters
             // parts of this character off, and the Animator is still the one we must drive.
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
 
-            holdStyleHash = Animator.StringToHash(HoldStyleParameter);
-            holdMirrorHash = Animator.StringToHash(HoldMirrorParameter);
-            wornLeftStyleHash = Animator.StringToHash(WornLeftStyleParameter);
-            gesturingHash = Animator.StringToHash(GesturingParameter);
-            armRaiseHash = Animator.StringToHash(ArmRaiseParameter);
-            aimPitchHash = Animator.StringToHash(AimPitchParameter);
+            holdStyleHash = Animator.StringToHash(HumanoidParams.HoldStyle);
+            holdMirrorHash = Animator.StringToHash(HumanoidParams.HoldMirror);
+            wornLeftStyleHash = Animator.StringToHash(HumanoidParams.WornLeftStyle);
+            armRaiseHash = Animator.StringToHash(HumanoidParams.ArmRaise);
+            aimPitchHash = Animator.StringToHash(HumanoidParams.AimPitch);
 
             if (animator == null) return;
 
-            upperBodyLayerIndex = animator.GetLayerIndex(UpperBodyLayer);
-            wornLeftLayerIndex = animator.GetLayerIndex(WornLeftLayer);
+            upperBodyLayerIndex = animator.GetLayerIndex(HumanoidLayers.UpperBody);
+            wornLeftLayerIndex = animator.GetLayerIndex(HumanoidLayers.WornLeft);
 
             // Loud, because everything else about this component will look like it is working:
             // the blend runs, the parameters are written, and nothing appears on screen.
             if (upperBodyLayerIndex < 0)
-                Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{UpperBodyLayer}' " +
-                               "layer. Run Tools/SpaceGame/Player/Build Upper Body Layer.", this);
+                Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{HumanoidLayers.UpperBody}' " +
+                               "layer. Run Tools/SpaceGame/Animation/Rebuild Humanoid Controller.", this);
 
             // Equally loud and for the same reason, but on its own line: a rig with the main layer
             // and without this one works for everything except the one case this layer exists for,
             // and that case is two worn devices at once — easy to miss and impossible to diagnose
             // from what is on screen.
             if (wornLeftLayerIndex < 0)
-                Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{WornLeftLayer}' " +
+                Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{HumanoidLayers.WornLeft}' " +
                                "layer, so a left-arm device cannot pose while the right arm is " +
-                               "posing. Run Tools/SpaceGame/Player/Build Upper Body Layer.", this);
+                               "posing. Run Tools/SpaceGame/Animation/Rebuild Humanoid Controller.", this);
         }
 
         /// <summary>
@@ -261,37 +216,6 @@ namespace SpaceGame.Characters
         /// machine, since the use is presented on every machine — so a peer sees the same arm come
         /// up that the wearer does.
         /// </summary>
-        /// <summary>
-        /// Play a one-shot on the masked Upper Body layer, and hold the layer up while it runs.
-        ///
-        /// <para>
-        /// Routed through this component rather than set on the Animator directly because this
-        /// component owns the layer weight - it writes it every frame from holdT, so a trigger
-        /// fired from outside plays a clip on a layer weighted 0 and nothing appears.
-        /// </para>
-        /// </summary>
-        public void PlayGesture(string trigger, float seconds = 0f) => PlayGesture(trigger, seconds, null);
-
-        /// <summary>
-        /// As above, on a named arm. An aimed gesture (the wrist blade's stab, the puncher's
-        /// punch) belongs to the forearm its device is worn on, which is not what
-        /// <see cref="PoseMirrored"/> says when a second device is worn on the other arm; the
-        /// device knows its arm (<c>UsableItem.WornOn</c>) and says so here. The mirror bool is
-        /// written now, on the frame the trigger is raised — the Any State transition reads it on
-        /// that frame — and held for the gesture's length over the per-frame rewrite in Update.
-        /// </summary>
-        public void PlayGesture(string trigger, float seconds, ItemGrip.Hand? arm)
-        {
-            if (animator == null || animator.runtimeAnimatorController == null) return;
-            if (string.IsNullOrEmpty(trigger)) return;
-
-            gestureTimer = Mathf.Max(gestureTimer, seconds > 0f ? seconds : defaultGestureSeconds);
-            gestureMirror = arm.HasValue ? arm.Value == ItemGrip.Hand.Left : (bool?)null;
-            animator.SetBool(holdMirrorHash, gestureMirror ?? PoseMirrored);
-            animator.SetBool(gesturingHash, true);
-            animator.SetTrigger(trigger);
-        }
-
         public void RaiseArm(ItemGrip.Hand hand, bool raised)
         {
             if (hand == ItemGrip.Hand.Left) raiseLeft = raised;
@@ -381,9 +305,6 @@ namespace SpaceGame.Characters
 
         private void Blend(float deltaTime)
         {
-            if (gestureTimer > 0f)
-                gestureTimer -= deltaTime;
-
             // The pose comes off entirely while dead, whatever is in the hand. The death clip runs
             // on the Base Layer, and an Upper Body layer left at weight 1 would override its arms
             // and leave the corpse holding its rifle out in front of it. That rule lives in Posing.
@@ -414,9 +335,7 @@ namespace SpaceGame.Characters
             // The mirror is a second parameter rather than more values of the first, so every hold
             // style gets a left-armed twin without the enum growing a mirrored half.
             animator.SetInteger(holdStyleHash, (int)PoseStyle);
-            if (gestureTimer <= 0f) gestureMirror = null;
-            animator.SetBool(holdMirrorHash, gestureMirror ?? PoseMirrored);
-            animator.SetBool(gesturingHash, gestureTimer > 0f);
+            animator.SetBool(holdMirrorHash, PoseMirrored);
 
             // The raise is a state on the same layer — three pointing clips blended on the look
             // pitch — not an IK goal: the layer sits in Empty whenever the hands are empty, which

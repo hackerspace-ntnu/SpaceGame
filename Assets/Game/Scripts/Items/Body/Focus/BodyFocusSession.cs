@@ -18,7 +18,7 @@ namespace SpaceGame.Items
     /// transform in the world.
     ///
     /// <para>
-    /// Lives on the player prefab (wired by <c>GearGhostBuilder</c>) because the shot and the ghost
+    /// Lives on the player prefab because the shot and the ghost
     /// prefabs are things to tune in the Inspector, not constants. Like <see cref="PackFocusSession"/>:
     /// nothing pauses, every exit is instant, and every exit path — I, Esc, death, the component
     /// being disabled — comes through <see cref="Exit"/>.
@@ -534,11 +534,11 @@ namespace SpaceGame.Items
         {
             if (gauntletPlaceholder == null)
                 Debug.LogError("BodyFocusSession: 'gauntletPlaceholder' is not assigned — an empty forearm will " +
-                               "show nothing at all. Build and wire the ghost prefabs with GearGhostBuilder.", this);
+                               "show nothing at all. The ghost prefabs must be wired on the player prefab.", this);
 
             if (backPlaceholder == null)
                 Debug.LogError("BodyFocusSession: 'backPlaceholder' is not assigned — an empty back will " +
-                               "show nothing at all. Build and wire the ghost prefabs with GearGhostBuilder.", this);
+                               "show nothing at all. The ghost prefabs must be wired on the player prefab.", this);
         }
 
         /// <summary>

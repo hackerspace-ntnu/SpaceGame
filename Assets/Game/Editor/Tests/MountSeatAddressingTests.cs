@@ -1,7 +1,7 @@
 // Why stepping out of a PlayerShip chair used to leave the player walking around with gravity off.
 //
 // NetChannel is keyed by the ENTITY — the NetworkObject root — and dispatches a message to every
-// handler registered for its id under that root. PlayerShipBuilder gives every chair its own
+// handler registered for its id under that root. The ship prefab gives every chair its own
 // MountModule + MountNetworkSync (NetMsg.cs says so where SeatRequest/SeatRelease were retired), so
 // one ship carries four of them on one NetworkObject and a single NetMsg.Mount reached all four.
 // One press seated the same player in all four chairs.

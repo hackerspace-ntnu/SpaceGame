@@ -19,7 +19,7 @@ namespace SpaceGame.Agents
         ///
         /// <para>
         /// Which faction an entity belongs to is not authoring: <see cref="EntityFaction.SetFaction"/>
-        /// is a runtime reassignment, and <c>MatchManager</c> re-teams every bot and player it spawns.
+        /// is a runtime reassignment, which a spawner may do for every bot and player it places.
         /// So a save has to be able to name a faction, and a save file cannot hold an object
         /// reference. The display name is not usable as the key — it is a designer-facing string that
         /// is expected to change — and a list index moves the moment a faction is added.

@@ -9,11 +9,16 @@ using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
     public class CloseCombatModule : BehaviourModuleBase
     {
+        // A byte for the variant in a melee message — the same room CharacterActions.PackVariant gives it.
+        private const int VariantBits = 8;
+        private const int VariantMask = (1 << VariantBits) - 1;
+
         [Header("Attack")]
         [SerializeField] private float attackRange = 5f;
         [Tooltip("Fraction of attackRange the target must exceed before the agent gives up the swing " +
@@ -51,8 +56,26 @@ namespace SpaceGame.Agents
         [SerializeField] private Vector2 knockbackMassScale = new Vector2(0.4f, 2.5f);
 
         [Header("Animation")]
-        [Tooltip("Trigger to fire on each attack. Leave empty to disable.")]
+        [Tooltip("Humanoid bodies: the moveset — a cue ('brawl', 'swordplay') whose tagged actions " +
+                 "this fighter picks one from per attack, never the same move twice running while " +
+                 "another fits. A move must fit the body's posture, so a full-body kick waits for " +
+                 "it to stand still; when none fits, Attack Action is swung instead.")]
+        [SerializeField] private CharacterCue attackCue;
+
+        [Tooltip("Humanoid bodies: the swing when the moveset has nothing that fits (or there is " +
+                 "none). One variant is picked per attack and every machine plays that one. Its " +
+                 "Contact mark is when the blow lands — the damage waits for it, so the wind-up is " +
+                 "a warning the target can step out of (GDC-L1-ANIM-0003). Leave empty on a " +
+                 "creature with its own controller and use the trigger below.")]
+        [SerializeField] private CharacterAction attackAction;
+
+        [Tooltip("Creatures with their own controller: trigger fired on each attack, damage landing " +
+                 "at once. Unused when Attack Action is set.")]
         [SerializeField] private string attackAnimTrigger = "Meele";
+
+        [Tooltip("Seconds a blow may land after its contact frame before it counts as interrupted — " +
+                 "the attacker knocked down, killed or out-prioritised mid-swing — and is dropped.")]
+        [SerializeField, Min(0f)] private float contactGrace = 0.25f;
 
         [Header("Events")]
         public UnityEvent<Transform> OnAttack;
@@ -70,6 +93,21 @@ namespace SpaceGame.Agents
         // the hysteresis: entering costs attackRange, leaving costs attackRange * rangeExitFactor.
         private bool engaged;
         private Animator animator;
+        private CharacterActions actions;
+        private BodyLanguage body;
+
+        // The blow in flight: who it is aimed at and when it lands. Authority only, never saved —
+        // a save taken mid-swing drops it, which errs in the victim's favour.
+        private Transform pendingTarget;
+        private float landsAt;
+
+        /// <summary>What a swing in flight does on a given frame.</summary>
+        public enum BlowOutcome
+        {
+            Wait,
+            Land,
+            Drop
+        }
 
         // Whose swing this is. Cached rather than resolved per message — see AgentAuthority. Only
         // ever read on the receiving side here: the deciding side is gated one level up, in
@@ -120,6 +158,7 @@ namespace SpaceGame.Agents
                 commitTimer = 0f;
                 engaged = false;
             }
+            pendingTarget = null;
 
             // Watching machines listen so the authority can tell them a swing happened. The
             // authority registers too and simply never receives its own broadcast — NetRelay
@@ -137,6 +176,8 @@ namespace SpaceGame.Agents
             authority = new AgentAuthority(this);
             FindChildByName("Sword")?.SetActive(IsActive);
             animator = GetComponentInChildren<Animator>();
+            actions = GetComponent<CharacterActions>();
+            body = BodyLanguage.Of(this);
         }
 
         // Being carried — onto a walker's deck, into a seat — moves this agent under a different
@@ -149,6 +190,7 @@ namespace SpaceGame.Agents
             // and so the commit window decays even on frames we're not returning an intent.
             cooldownTimer -= deltaTime;
             commitTimer -= deltaTime;
+            ResolvePendingBlow();
 
             AgentTargeting targeting = context.Targeting;
             Transform target = targeting != null && targeting.HasTarget ? targeting.Target : null;
@@ -179,14 +221,14 @@ namespace SpaceGame.Agents
             {
                 Attack(target);
                 cooldownTimer = attackCooldown;
-                commitTimer = attackCommitDuration;
             }
 
             return MoveIntent.StopAndFace(target.position);
         }
 
         /// <summary>
-        /// One swing. Runs on the machine that simulates this agent and on no other.
+        /// Start one swing: the wind-up now, on every machine, and the blow at the swing's contact
+        /// frame. Runs on the machine that simulates this agent and on no other.
         ///
         /// <para>
         /// There is deliberately no authority check here, and that is worth stating because the
@@ -204,8 +246,123 @@ namespace SpaceGame.Agents
         /// <see cref="NetMsg.AgentActed"/> — see <see cref="PresentSwing"/>, which is the half of
         /// this method that runs everywhere.
         /// </para>
+        /// <para>
+        /// The damage used to land on the frame the swing was decided, half a second before the
+        /// arm got there, so nothing the target did after seeing the wind-up mattered. It now
+        /// waits for the move's Contact mark (<see cref="ResolvePendingBlow"/>) — the picked
+        /// variant's own when it has one, since a kick and a jab do not land at the same moment —
+        /// timed by this machine's own clock from the same speed every machine plays the clip at,
+        /// never by an animation event, which a culled NPC animator would not raise.
+        /// </para>
         /// </summary>
         private void Attack(Transform target)
+        {
+            CharacterAction move = PickMove();
+            int variant = actions != null ? actions.PickVariant(move) : -1;
+            float speed = actions != null ? actions.PlaybackSpeed(move) : 1f;
+            float delay = ContactDelay(move, variant, speed);
+
+            pendingTarget = target;
+            landsAt = Time.time + delay;
+
+            // The whole move, not only its wind-up: a moveset mixes a half-second jab with a
+            // two-second kick, and a full-body move whose recovery Chase walks out of slides the
+            // body across the floor on one leg.
+            float moveSeconds = move != null ? move.Seconds(variant, speed) : 0f;
+            commitTimer = Mathf.Max(attackCommitDuration, Mathf.Max(delay, moveSeconds));
+
+            // The agent's own position, matching where the sound was played from before this was
+            // split — a swing has no muzzle, so its origin is the body that made it.
+            Vector3 origin = transform.position;
+            Vector3 direction = target.position - origin;
+
+            PresentSwing(origin, move, variant);
+
+            // Once per swing, from inside the cooldown gate in Tick — never per frame. A committed
+            // swing already holds the agent still for its commit, so the wire rate is bounded by
+            // attackCooldown and nothing else. The move and its variant ride in NetArg.B so every
+            // machine plays the same one — a watcher re-picking from the moveset would throw a
+            // different punch from the one the damage is timed to.
+            AgentActionRelay.Broadcast(this, AgentAction.Melee, origin, direction, PackMove(WireIndex(move), variant));
+
+            if (delay <= 0f) ResolvePendingBlow();
+        }
+
+        /// <summary>
+        /// This attack's move: one of the moveset that fits the body right now — its posture
+        /// decides, so a full-body kick only from a standing body — else <see cref="attackAction"/>.
+        /// Deciding machine only; the pick travels.
+        /// </summary>
+        private CharacterAction PickMove()
+        {
+            CharacterAction move = attackCue != null && body != null ? body.Pick(attackCue) : null;
+            return move != null ? move : attackAction;
+        }
+
+        /// <summary>
+        /// The catalog index <paramref name="move"/> travels as, or -1 for the fallback swing — which
+        /// a watcher then plays from its own <see cref="attackAction"/>, as before moves were sent.
+        /// </summary>
+        private int WireIndex(CharacterAction move)
+        {
+            if (move == null || move == attackAction || CharacterActionCatalog.Default == null) return -1;
+            return CharacterActionCatalog.Default.IndexOf(move);
+        }
+
+        /// <summary>
+        /// A move and its variant in one int — <see cref="NetArg.B"/> of a melee
+        /// <see cref="NetMsg.AgentActed"/>. The low byte is the variant, exactly what B carried
+        /// before moves were sent; above it the move's catalog index plus one, so 0 there means
+        /// the receiver's own <see cref="attackAction"/>.
+        /// </summary>
+        public static int PackMove(int catalogIndex, int variant) =>
+            (variant & VariantMask) | ((catalogIndex + 1) << VariantBits);
+
+        /// <summary>
+        /// The exact inverse of <see cref="PackMove"/>. A negative index means the fallback swing;
+        /// a negative variant means "pick one".
+        /// </summary>
+        public static (int catalogIndex, int variant) UnpackMove(int packed)
+        {
+            int variant = packed & VariantMask;
+            return ((packed >> VariantBits) - 1, variant == VariantMask ? -1 : variant);
+        }
+
+        /// <summary>Land the blow in flight if its contact frame has come, or drop it if it went stale.</summary>
+        private void ResolvePendingBlow()
+        {
+            if (pendingTarget == null) return;
+
+            Vector3 offset = pendingTarget.position - transform.position;
+            float reach = attackRange * rangeExitFactor;
+            BlowOutcome outcome = Blow(Time.time, landsAt, contactGrace, offset.sqrMagnitude, reach * reach);
+            if (outcome == BlowOutcome.Wait) return;
+
+            Transform target = pendingTarget;
+            pendingTarget = null;
+            if (outcome == BlowOutcome.Land) LandBlow(target);
+        }
+
+        /// <summary>
+        /// The rule for a blow in flight, free of the scene so it can be tested: wait until the
+        /// contact frame; then land it if the target is still within reach, and drop it if the
+        /// target stepped away or the frame was missed by more than <paramref name="grace"/>.
+        /// </summary>
+        public static BlowOutcome Blow(float now, float landsAt, float grace, float distanceSqr, float reachSqr)
+        {
+            if (now < landsAt) return BlowOutcome.Wait;
+            if (now > landsAt + grace) return BlowOutcome.Drop;
+            return distanceSqr <= reachSqr ? BlowOutcome.Land : BlowOutcome.Drop;
+        }
+
+        /// <summary>Seconds from the start of the swing to its contact frame; 0 lands at once.</summary>
+        private float ContactDelay(CharacterAction move, int variant, float speed)
+        {
+            if (move == null || actions == null || variant < 0) return 0f;
+            return move.SecondsTo(CharacterAction.Mark.Contact, variant, speed);
+        }
+
+        private void LandBlow(Transform target)
         {
             var health = target.GetComponentInChildren<HealthComponent>();
             if (health != null && health.Alive)
@@ -223,25 +380,13 @@ namespace SpaceGame.Agents
             // exists so that watchers never have to guess at. A handler holding the victim is one
             // edit away from being a second machine that can damage it.
             OnAttack?.Invoke(target);
-
-            // The agent's own position, matching where the sound was played from before this was
-            // split — a swing has no muzzle, so its origin is the body that made it.
-            Vector3 origin = transform.position;
-            Vector3 direction = target.position - origin;
-
-            PresentSwing(origin);
-
-            // Once per swing, from inside the cooldown gate in Tick — never per frame. A committed
-            // swing already holds the agent still for attackCommitDuration, so the wire rate is
-            // bounded by attackCooldown and nothing else.
-            AgentActionRelay.Broadcast(this, AgentAction.Melee, origin, direction);
         }
 
         /// <summary>
         /// Throw the victim away from the attacker.
         ///
         /// <para>
-        /// Authority only — it is called from <see cref="Attack"/>, which is the deciding side.
+        /// Authority only — it is called from <see cref="LandBlow"/>, which is the deciding side.
         /// Running it on a watcher would shove the same victim once per machine in the session,
         /// which is the movement equivalent of the damage bug the <c>Cosmetic</c> split exists to
         /// prevent.
@@ -280,17 +425,19 @@ namespace SpaceGame.Agents
         /// watcher because the authority said it happened.
         ///
         /// <para>
-        /// Idempotent by construction: it starts a sound and sets an animator trigger and reads no
-        /// state at all, so a message that arrived twice would be a doubled sound rather than a
-        /// doubled swing. Nothing below this line may damage, spawn or consume anything — that is
-        /// the whole boundary, and <see cref="Attack"/> above it is the only side that decides.
+        /// Idempotent by construction: it starts a sound and a swing and reads no state at all, so
+        /// a message that arrived twice would be a doubled sound rather than a doubled blow.
+        /// Nothing below this line may damage, spawn or consume anything — that is the whole
+        /// boundary, and <see cref="Attack"/> above it is the only side that decides.
         /// </para>
         /// </summary>
-        private void PresentSwing(Vector3 origin)
+        private void PresentSwing(Vector3 origin, CharacterAction move, int variant)
         {
             Sfx.Play(attackId, origin, attackSound, GetInstanceID());
 
-            if (animator && !string.IsNullOrEmpty(attackAnimTrigger))
+            if (move != null)
+                actions?.Play(move, null, variant);
+            else if (animator && !string.IsNullOrEmpty(attackAnimTrigger))
                 animator.SetTrigger(attackAnimTrigger);
 
             OnAttackEvent?.Invoke();
@@ -315,7 +462,20 @@ namespace SpaceGame.Agents
             // machine decides" and therefore presents nothing.
             if (authority == null || authority.SimulatedHere) return;
 
-            PresentSwing(arg.P);
+            (int catalogIndex, int variant) = UnpackMove(arg.B);
+            PresentSwing(arg.P, MoveAt(catalogIndex), variant);
+        }
+
+        /// <summary>
+        /// The move a message names. The fallback swing for none — and for an index this build's
+        /// catalog does not have, where a swing is still better than a watcher seeing nothing.
+        /// </summary>
+        private CharacterAction MoveAt(int catalogIndex)
+        {
+            CharacterAction move = catalogIndex >= 0 && CharacterActionCatalog.Default != null
+                ? CharacterActionCatalog.Default.At(catalogIndex)
+                : null;
+            return move != null ? move : attackAction;
         }
 
         private GameObject FindChildByName(string childName)

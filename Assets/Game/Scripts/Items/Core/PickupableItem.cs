@@ -8,6 +8,7 @@ using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.Persistence;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
@@ -49,8 +50,11 @@ namespace SpaceGame.Items
     /// the record.
     /// </para>
     /// </summary>
-    public class PickupableItem : NetworkBehaviour, IInteractable, IScanTarget, IInteractionReadout, ISaveable
+    public class PickupableItem : NetworkBehaviour, IInteractable, IInteractionMoment, IScanTarget, IInteractionReadout, ISaveable
     {
+        /// <summary>The body shows taking it.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.PickedUp;
+
        [SerializeField] private InventoryItem item;
 
        /// <summary>

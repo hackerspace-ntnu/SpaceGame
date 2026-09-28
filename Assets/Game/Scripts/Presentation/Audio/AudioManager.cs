@@ -3,7 +3,7 @@ using FMODUnity;
 using UnityEngine;
 using SpaceGame.Core;
 
-namespace SpaceGame.Presentation
+namespace SpaceGame
 {
     public class AudioManager : MonoBehaviour
     {
@@ -101,29 +101,6 @@ namespace SpaceGame.Presentation
             sfx.setVolume(sfxVolume);
             ui.setVolume(uiVolume);
             reverb.setVolume(reverbVolume);
-        }
-
-        public void PlayTestMusic()
-        {
-            RuntimeManager.PlayOneShot("event:/Music/TestSong");
-        } //Todo: Make more flexible
-
-        public void PlayEvent(EventReference myevent) {
-            RuntimeManager.PlayOneShot(myevent);
-        }
-
-        public void PlayEvent(EventReference myevent, Vector3 position) {
-            RuntimeManager.PlayOneShot(myevent, position);
-        }
-
-        public void PlaySFX(string sound)
-        {
-            RuntimeManager.PlayOneShot(sound);
-        } //Todo: Find easy way to hear and assign sound effects:
-
-        public void PlaySFX3d(string sound, Vector3 worldPos)
-        {
-            RuntimeManager.PlayOneShot(sound, worldPos);
         }
 
         // Dragging a slider in the inspector during play still previews that level, but it is a

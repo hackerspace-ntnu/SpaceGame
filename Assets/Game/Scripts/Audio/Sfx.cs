@@ -2,224 +2,172 @@ using System;
 using System.Collections.Generic;
 using FMOD.Studio;
 using FMODUnity;
+using Mono.Cecil.Cil;
 using UnityEngine;
 
 namespace SpaceGame.Audio
 {
-    /// <summary>
-    /// How the game asks for a sound. One call, no setup, safe to call from anywhere at any time.
-    ///
-    /// <para>
-    /// Every overload takes an optional <c>overrideRef</c>. When a component already carries an
-    /// EventReference assigned in the inspector, pass it — it wins over the catalog. That is what
-    /// lets the thirty-nine assignments already sitting in prefabs keep working untouched while
-    /// everything that was never assigned starts making noise.
-    /// </para>
-    ///
-    /// <para>
-    /// Nothing in here throws. FMOD raises on an event that is not in a loaded bank, and a sound
-    /// failing is never worth losing the frame it was called from, so lookups that miss are logged
-    /// once per id and then silently skipped.
-    /// </para>
-    /// </summary>
     public static class Sfx
     {
-        // Cooldown bookkeeping. Keyed on the pair (sound, whoever asked) so that one chatty NPC
-        // rate-limits itself without muting the NPC standing next to it.
-        private static readonly Dictionary<long, float> LastPlayed = new Dictionary<long, float>(128);
 
-        // Missing events are a content problem, not a runtime one. Say it once per id, then drop it.
-        private static readonly HashSet<SfxId> Complained = new HashSet<SfxId>();
-
-        private const int PruneThreshold = 512;
-
-        /// <summary>Plays a positioned one-shot. The everyday call.</summary>
-        public static void Play(SfxId id, Vector3 position, int sourceKey = 0)
+        private static HashSet<EventReference> Babying = new HashSet<EventReference>();
+        
+        //Plays oneshot, no transform. for menus, HUD, UI
+        public static void Play(EventReference eventReference)
         {
-            PlayInternal(id, position, null, sourceKey, default, false);
+            RuntimeManager.PlayOneShot(eventReference);    
+        }
+        
+        //plays oneshot with pos
+        public static void Play(EventReference eventReference, Vector3 position)
+        {
+            PlayInternal(eventReference, position, null);    
         }
 
-        /// <summary>
-        /// Plays a positioned one-shot, preferring an inspector-assigned event when there is one.
-        /// </summary>
-        public static void Play(SfxId id, Vector3 position, EventReference overrideRef, int sourceKey = 0)
+        //plays oneshot at transform pos. no ratelimiting bullshit
+        public static void Play(EventReference eventReference, Transform source)
         {
-            PlayInternal(id, position, null, sourceKey, overrideRef, true);
+            PlayInternal(eventReference, source.position, null);    
         }
 
-        /// <summary>Plays at a transform's position, using it as the rate-limiting source.</summary>
-        public static void Play(SfxId id, Transform source)
+        public static void PlayAttached(EventReference eventReference, GameObject attachTo)
         {
-            if (source == null) return;
-
-            PlayInternal(id, source.position, null, source.GetInstanceID(), default, false);
+            PlayInternal(eventReference, Vector3.zero, attachTo);
+        }            
+        //Play oneshot with a parameter set
+        public static void PlayWithParameter(EventReference eventReference, string parameterName, float parameter)
+        {
+            PlayInternal(eventReference, Vector3.zero, null, parameterName, parameter);
         }
-
-        /// <summary>Plays at a transform's position, preferring an inspector-assigned event.</summary>
-        public static void Play(SfxId id, Transform source, EventReference overrideRef)
+        public static void PlayWithParameter(EventReference eventReference, Vector3 position, string parameterName, float parameter)
         {
-            if (source == null) return;
-
-            PlayInternal(id, source.position, null, source.GetInstanceID(), overrideRef, true);
+            PlayInternal(eventReference, position, null, parameterName, parameter);
         }
-
-        /// <summary>
-        /// Plays a one-shot that follows a moving object. Worth the extra cost only for sounds long
-        /// enough that the object will have moved before they finish.
-        /// </summary>
-        public static void PlayAttached(SfxId id, GameObject follow, EventReference overrideRef = default)
+        public static void PlayWithParameter(EventReference eventReference, GameObject attachTo, string parameterName, float parameter)
         {
-            if (follow == null) return;
-
-            PlayInternal(id, follow.transform.position, follow, follow.GetInstanceID(),
-                         overrideRef, !overrideRef.IsNull);
+            PlayInternal(eventReference, Vector3.zero, attachTo, parameterName, parameter);
         }
+        
 
-        /// <summary>
-        /// Plays without a position — menus, HUD, anything that should not pan or fall off with
-        /// distance. Skips the distance cull for the same reason.
-        /// </summary>
-        public static void Play2D(SfxId id, EventReference overrideRef = default)
+        private static void PlayInternal(EventReference eventRef, Vector3 position, GameObject attachTo, string? paramName= null, float? parameter = null)
         {
-            PlayInternal(id, Vector3.zero, null, 0, overrideRef, !overrideRef.IsNull, ignoreDistance: true);
-        }
-
-        private static void PlayInternal(SfxId id, Vector3 position, GameObject attachTo, int sourceKey,
-                                         EventReference overrideRef, bool hasOverride,
-                                         bool ignoreDistance = false)
-        {
-            if (id == SfxId.None && !hasOverride) return;
-
-            AudioCatalog.Entry entry = null;
-            AudioCatalog catalog = AudioCatalog.Default;
-            if (catalog != null) catalog.TryGet(id, out entry);
-
-            // An inspector assignment beats the catalog, but the catalog still supplies the tuning
-            // (cooldown, range, trim) for that slot — those describe the situation, not the asset.
-            EventReference chosen = hasOverride && !overrideRef.IsNull
-                ? overrideRef
-                : entry != null ? entry.eventRef : default;
-
-            if (chosen.IsNull)
+            if (eventRef.IsNull && Babying.Add(eventRef))
             {
-                if (id != SfxId.None && Complained.Add(id))
-                {
-                    Debug.LogWarning($"[Audio] {id} has no event assigned in the AudioCatalog and no " +
-                                     "inspector override. It will stay silent.");
-                }
+                Debug.LogWarning($"FUCK YOU BITCH {eventRef.ToString()} IS NOTHING, QUIET, NADA");
                 return;
             }
-
-            float cooldown = entry?.cooldown ?? 0f;
-            if (cooldown > 0f && IsOnCooldown(id, sourceKey, cooldown)) return;
-
-            float maxDistance = entry?.maxDistance ?? 0f;
-            if (!ignoreDistance && maxDistance > 0f && StudioListener.ListenerCount > 0)
-            {
-                // Squared comparison — this runs on every footstep of every entity in the level.
-                if (StudioListener.DistanceSquaredToNearestListener(position) > maxDistance * maxDistance)
-                    return;
-            }
-
-            float volume = entry?.volume ?? 1f;
-
+            
             try
             {
                 // PlayOneShot cannot take a volume, so anything trimmed has to go the long way round.
-                if (volume >= 0.999f && attachTo == null)
+                if (!parameter.HasValue)
                 {
-                    RuntimeManager.PlayOneShot(chosen, position);
-                }
-                else if (volume >= 0.999f)
-                {
-                    RuntimeManager.PlayOneShotAttached(chosen, attachTo);
+                    if (attachTo == null)
+                    {
+                        RuntimeManager.PlayOneShot(eventRef, position);
+                    }
+                    else
+                    {
+                        RuntimeManager.PlayOneShotAttached(eventRef, attachTo);
+                    }
                 }
                 else
                 {
-                    EventInstance instance = RuntimeManager.CreateInstance(chosen);
-                    instance.setVolume(volume);
-
+                    EventInstance instance = RuntimeManager.CreateInstance(eventRef);
+                    instance.setParameterByName(paramName, parameter.Value); 
                     if (attachTo != null)
+                    {
                         RuntimeManager.AttachInstanceToGameObject(instance, attachTo);
+                    }
                     else
+                    {
                         instance.set3DAttributes(RuntimeUtils.To3DAttributes(position));
+                    }
 
                     instance.start();
-
                     // Released immediately: FMOD keeps it alive until it finishes, then reclaims it.
                     // Skipping this is the classic way to leak every one-shot the game ever plays.
+
+                    // uhhh... yeah whatever
                     instance.release();
                 }
             }
             catch (EventNotFoundException)
             {
-                if (Complained.Add(id))
+                if (Babying.Add(eventRef))
                 {
-                    Debug.LogWarning($"[Audio] {id} points at '{chosen}', which is not in any loaded bank. " +
+                    Debug.LogWarning($"{eventRef} is not in any loaded bank. " +
                                      "Check the bank list and the event path.");
                 }
             }
             catch (Exception e)
             {
-                // Sound must never be able to take gameplay down with it.
-                //
-                // FMOD's RuntimeManager throws a bare NullReferenceException out of
-                // GetEventDescription when it has no banks loaded at all — which is not an
-                // EventNotFoundException and so sailed straight through the catch above. Any context
-                // without banks hits it: an EditMode test, a headless server, a build whose banks
-                // failed to ship. The caller is always a gameplay action — a swing, a shot, a door —
-                // and none of them should fail because the audio system is not there.
-                if (Complained.Add(id))
+                // catch everythin else. Blablabla
+                if (Babying.Add(eventRef))
                 {
-                    Debug.LogWarning($"[Audio] {id} could not be played ({e.GetType().Name}: " +
+                    Debug.LogWarning($"[Audio] {eventRef} could not be played ({e.GetType().Name}: " +
                                      $"{e.Message}). Audio is unavailable; gameplay continues.");
                 }
             }
         }
-
-        private static bool IsOnCooldown(SfxId id, int sourceKey, float cooldown)
+    
+        public class Looper
         {
-            long key = ((long)(int)id << 32) ^ (uint)sourceKey;
-            float now = Time.unscaledTime;
-
-            if (LastPlayed.TryGetValue(key, out float last) && now - last < cooldown)
-                return true;
-
-            if (LastPlayed.Count > PruneThreshold) Prune(now);
-
-            LastPlayed[key] = now;
-            return false;
-        }
-
-        /// <summary>
-        /// Drops stale cooldown entries. Sources are GameObjects that get destroyed, so without this
-        /// the table grows for the whole session.
-        /// </summary>
-        private static void Prune(float now)
-        {
-            var stale = new List<long>();
-
-            foreach (var kvp in LastPlayed)
+            private EventInstance instance;
+            private bool daShitWorks => instance.isValid();
+            private bool started => instance.isValid() &&
+                                    instance.getPlaybackState(out PLAYBACK_STATE x) == FMOD.RESULT.OK &&
+                                    x == PLAYBACK_STATE.PLAYING; 
+        
+            private void InitSound(EventReference daLoopinSoundEfffect)
             {
-                // 30s outlives every cooldown the catalog can sensibly hold, so anything older than
-                // that cannot be gating anything.
-                if (now - kvp.Value > 30f) stale.Add(kvp.Key);
+                try
+                {
+                    instance = RuntimeManager.CreateInstance(daLoopinSoundEfffect);
+                }
+                catch (EventNotFoundException)
+                {
+                    Debug.LogWarning($"[Audio] Looping event '{daLoopinSoundEfffect}' is not in any loaded bank.");
+                    return;
+                }
+            }
+            public void PlayUI(EventReference daLoopinSoundEfffect)
+            {
+                InitSound(daLoopinSoundEfffect);
+                instance.start();
             }
 
-            for (int i = 0; i < stale.Count; i++) LastPlayed.Remove(stale[i]);
-        }
+            public void PlayAndAttach(EventReference daLoopinSoundEfffect, GameObject attachTo)
+            {
+                if (!daShitWorks) return;
+                if (started) return;
+                InitSound(daLoopinSoundEfffect);
+                if (attachTo != null) RuntimeManager.AttachInstanceToGameObject(instance, attachTo);
+                instance.start();
+            }
+            public void PlayAndPosition(EventReference daLoopinSoundEfffect, Vector3 pos)
+            {
+                if (!daShitWorks) return;
+                if (started) return;
+                InitSound(daLoopinSoundEfffect);
+                instance.set3DAttributes(RuntimeUtils.To3DAttributes(pos));
+                instance.start();
+            }
 
-        /// <summary>Forgets all cooldowns and warnings. For entering play mode with domain reload off.</summary>
-        public static void Reset()
-        {
-            LastPlayed.Clear();
-            Complained.Clear();
-            AudioCatalog.ClearCache();
+            public void Stop(bool allowFadeOut = true)
+            {
+                if (!daShitWorks) return;
+                RuntimeManager.DetachInstanceFromGameObject(instance);
+                instance.stop(allowFadeOut ? FMOD.Studio.STOP_MODE.ALLOWFADEOUT : FMOD.Studio.STOP_MODE.IMMEDIATE);
+                instance.release();
+                instance.clearHandle();                
+            }
+        
+            public void SetParameter(string name, float value)
+            {
+                if (!started || string.IsNullOrEmpty(name)) return;
+                instance.setParameterByName(name, value);
+            }
         }
-
-#if UNITY_EDITOR
-        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetOnPlay() => Reset();
-#endif
     }
 }

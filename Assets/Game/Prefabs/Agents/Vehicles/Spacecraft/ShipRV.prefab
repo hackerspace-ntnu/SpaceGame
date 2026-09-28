@@ -5150,6 +5150,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 224ea88323b7644c2a480ebc564c8756, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &4456266824167829280
 GameObject:
   m_ObjectHideFlags: 0
@@ -9960,8 +9961,16 @@ PrefabInstance:
     m_TransformParent: {fileID: 8892000217540182618}
     m_Modifications:
     - target: {fileID: -3249809796324482755, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
+      propertyPath: authored
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -3249809796324482755, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
       propertyPath: prefabId
       value: 9c015ee1c083044af964655f72bec4c8
+      objectReference: {fileID: 0}
+    - target: {fileID: -3249809796324482755, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
+      propertyPath: instanceId
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 7100000, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
       propertyPath: m_Name

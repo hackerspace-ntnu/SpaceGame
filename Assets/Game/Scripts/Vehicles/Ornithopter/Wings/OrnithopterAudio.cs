@@ -40,7 +40,7 @@ namespace SpaceGame.Vehicles.Ornithopter
         [Tooltip("WingSpread above this counts as deployed, below as folded.")]
         [SerializeField, Range(0f, 1f)] private float spreadThreshold = 0.5f;
 
-        private readonly LoopingEmitter wind = new LoopingEmitter();
+        private readonly Sfx.Looper wind = new Sfx.Looper();
 
         private IOrnithopterFlightState flight;
 

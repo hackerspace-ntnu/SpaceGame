@@ -1244,7 +1244,7 @@ namespace SpaceGame.EditorTools
         /// Writes an enum field by its UNDERLYING value, not its ordinal.
         /// <para>
         /// `enumValueIndex` is a position in the enum's name list, which is only the same thing
-        /// when the enum starts at 0 and has no gaps. SfxId does neither -- NpcMumbleFriendly is
+        /// when the enum starts at 0 and has no gaps. EventReference does neither -- NpcMumbleFriendly is
         /// 401 -- so assigning through enumValueIndex there silently picks whatever sound happens
         /// to sit at that ordinal.
         /// </para>

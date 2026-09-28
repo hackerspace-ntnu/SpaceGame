@@ -97,7 +97,6 @@ namespace SpaceGame.Items
 
         [Header("Audio")]
         [Tooltip("Sound played when the pulse exposes at least one secret (in addition to the base useSound).")]
-        [SerializeField] private SfxId discoveryId = SfxId.InteractScannerDiscovery;
         [SerializeField] private EventReference discoverySound;
 
         /// <summary>
@@ -234,7 +233,7 @@ namespace SpaceGame.Items
             // ---- Discovery audio cue ----
             // Went through AudioManager, which is null in any scene not entered via Bootstrap.
             if (revealed.Count > 0)
-                Sfx.Play(discoveryId, muzzleT.position, discoverySound, GetInstanceID());
+                Sfx.Play(discoverySound, muzzleT.position);
         }
 
         private Vector3 ResolveHorizontalAim(Vector3 aimDir)

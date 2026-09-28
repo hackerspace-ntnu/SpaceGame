@@ -33,11 +33,9 @@ namespace SpaceGame.Weapons
         // These were plain strings fed to AudioManager.PlaySFX3d, which resolves an FMOD path at call
         // time and throws EventNotFoundException on a typo — a weapon could take the game down by
         // being fired. They also required an AudioManager in the scene, which is why every weapon
-        // ran FindObjectOfType on enable. SfxId is checked by the compiler and needs no manager.
+        // ran FindObjectOfType on enable. EventReference is checked by the compiler and needs no manager.
         [Header("Audio")]
-        [SerializeField] protected SfxId fireSoundId = SfxId.WeaponGunFire;
         [SerializeField] protected EventReference fireSound;
-        [SerializeField] protected SfxId chargeStartSoundId = SfxId.WeaponEnergyChargeLoop;
         [SerializeField] protected EventReference chargeStartSound;
 
         [Header("Charging")]
@@ -633,13 +631,13 @@ namespace SpaceGame.Weapons
         /// <summary>Fires the weapon's shot sound at the muzzle.</summary>
         protected virtual void PlayFireSound()
         {
-            Sfx.Play(fireSoundId, GetFireOrigin().position, fireSound, GetInstanceID());
+            Sfx.Play(fireSound, GetFireOrigin().position);
         }
 
         /// <summary>Fires the spin-up sound when a chargeable weapon starts charging.</summary>
         protected virtual void PlayChargeStartSound()
         {
-            Sfx.Play(chargeStartSoundId, GetFireOrigin().position, chargeStartSound, GetInstanceID());
+            Sfx.Play(chargeStartSound, GetFireOrigin().position);
         }
     }
 }

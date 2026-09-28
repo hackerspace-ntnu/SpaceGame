@@ -117,9 +117,8 @@ namespace SpaceGame.Gameplay
         }
 
         [Header("Audio")]
-        [SerializeField] private SfxId acceptedId = SfxId.InteractWorkstationRepair;
         [SerializeField] private EventReference acceptedSound;
-        [SerializeField] private SfxId rejectedId = SfxId.InteractDenied;
+        [SerializeField] private EventReference rejectedSound;
 
         // Interacting with a finished machine does nothing, so let the crosshair say so.
         public bool CanInteract() => !IsRepaired;
@@ -266,8 +265,7 @@ namespace SpaceGame.Gameplay
             // This already runs on every client — it is the path that exists so accept/reject
             // feedback is not confined to the deciding server — which makes it the one place the
             // sound can go and be heard by everyone who is standing there.
-            Sfx.Play(accepted ? acceptedId : rejectedId, transform.position,
-                     accepted ? acceptedSound : default, GetInstanceID());
+            Sfx.Play(accepted ? acceptedSound : rejectedSound, transform.position);
 
             if (accepted)
             {

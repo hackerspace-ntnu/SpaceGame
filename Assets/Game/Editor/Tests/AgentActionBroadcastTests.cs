@@ -294,7 +294,7 @@ namespace SpaceGame.Tests
 
             var definition = ScriptableObject.CreateInstance<AgentWeaponDefinition>();
             definition.projectilePrefab = bullet;
-            definition.fireId = SpaceGame.Audio.SfxId.None;   // keeps the audio catalog out of it
+            //definition.fireSound;   add custom sound here??? reminder you can add a custom sound?
             assets.Add(definition);
 
             Plant(module, "weapon", definition);

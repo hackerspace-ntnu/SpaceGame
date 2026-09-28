@@ -17,9 +17,7 @@ namespace SpaceGame.Presentation
         [SerializeField] private Button button;
     
         [Header("Sound")]
-        [SerializeField] private SfxId hoverId = SfxId.UiHover;
         [SerializeField] private EventReference hoverSound;
-        [SerializeField] private SfxId pressId = SfxId.UiPress;
         [SerializeField] private EventReference pressSound;
 
         [SerializeField] private Animator animator;
@@ -49,7 +47,7 @@ namespace SpaceGame.Presentation
             // directly in MainMenu.unity left it null and the NRE aborted the handler before
             // SetState below, so the visible symptom was "buttons don't highlight". Sfx needs no
             // manager at all, which removes the hazard rather than null-guarding it.
-            Sfx.Play2D(hoverId, hoverSound);
+            Sfx.Play(hoverSound);
 
             SetState(ButtonState.Highlighted);
         }
@@ -65,7 +63,7 @@ namespace SpaceGame.Presentation
         {
             if (IsDisabled) return;
         
-            Sfx.Play2D(pressId, pressSound);
+            Sfx.Play(pressSound);
 
             SetState(ButtonState.Pressed);
         }

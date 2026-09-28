@@ -37,9 +37,7 @@ namespace SpaceGame.Gameplay
         private Transform _rightDoor;
 
         [Header("Audio")]
-        [SerializeField] private SfxId openId = SfxId.InteractDoorOpen;
         [SerializeField] private EventReference openSound;
-        [SerializeField] private SfxId closeId = SfxId.InteractDoorClose;
         [SerializeField] private EventReference closeSound;
 
         /// <summary>How far each leaf swings. Mirrored, so the pair opens outwards.</summary>
@@ -173,8 +171,7 @@ namespace SpaceGame.Gameplay
             // Played at the leaf that actually swings where there is one, so a wide double door is
             // heard at the door rather than at the pivot its logic happens to sit on.
             Vector3 soundAt = _leftDoor != null ? _leftDoor.position : transform.position;
-            Sfx.Play(open ? openId : closeId, soundAt,
-                     open ? openSound : closeSound, GetInstanceID());
+            Sfx.Play(open ? openSound : closeSound, soundAt);
 
             _leftFrom = _leftDoor != null ? _leftDoor.localRotation : _leftShut;
             _rightFrom = _rightDoor != null ? _rightDoor.localRotation : _rightShut;

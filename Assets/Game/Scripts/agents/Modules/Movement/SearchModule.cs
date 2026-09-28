@@ -19,7 +19,6 @@ namespace SpaceGame.Agents
         [SerializeField] private float speedMultiplier = 1.1f;
 
         [Header("Audio")]
-        [SerializeField] private SfxId searchId = SfxId.EntitySearch;
         [SerializeField] private EventReference searchSound;
 
         private bool isSearching;
@@ -97,7 +96,7 @@ namespace SpaceGame.Agents
                 isSearching = true;
                 searchTimer = searchDuration;
 
-                Sfx.Play(searchId, transform.position, searchSound, GetInstanceID());
+                Sfx.Play(searchSound, transform.position);
             }
 
             hadTarget = hasTarget;

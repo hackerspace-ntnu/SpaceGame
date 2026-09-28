@@ -96,7 +96,7 @@ Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModu
 | Death | `EntityDeath` 410 | Per-creature death | catalog |
 
 > All three share ids with the robots, so a single catalog slot is currently doing stone, rodent,
-> insect and machine. **These want per-creature pins or their own SfxId numbers.**
+> insect and machine. **These want per-creature pins or their own EventReference numbers.**
 
 ### `agents/Caravan/NomadOstrich.prefab`, `agents/Caravan/BountyHunter.prefab`
 

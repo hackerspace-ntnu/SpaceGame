@@ -1,8 +1,11 @@
+// WHAT THE FUCK IS THIS. WE USE FMOD. FUCK YOU CLAUDE. "ON PURPOSE" MY ASSHOLE. 
+// YOU JUST DONT WANT TO ADMIT YOU'RE LIMITED AND CANT MAKE FMOD EVENTS
+//
 // The sound of being in it.
 //
 // A plain Unity AudioSource rather than an FMOD event, on purpose: the storm's roar is one
 // continuous loop whose volume and filter track a single number, and routing that through the
-// SfxId catalog would mean editing an FMOD project this repository no longer has. Sfx stays the
+// EventReference catalog would mean editing an FMOD project this repository no longer has. Sfx stays the
 // right tool for one-shots; this is not one.
 //
 // Put it anywhere — the loop is 2D, so it does not matter where the object sits. What matters is

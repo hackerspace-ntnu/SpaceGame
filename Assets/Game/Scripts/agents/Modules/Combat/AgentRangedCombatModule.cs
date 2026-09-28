@@ -505,7 +505,7 @@ namespace SpaceGame.Agents
             if (rb != null)
                 rb.linearVelocity = aimDir * activeWeapon.projectileSpeed;
 
-            Sfx.Play(activeWeapon.fireId, reportPosition, activeWeapon.fireSound, GetInstanceID());
+            Sfx.Play(activeWeapon.fireSound, reportPosition);
 
             if (animator && !string.IsNullOrEmpty(shootAnimTrigger))
                 animator.SetTrigger(shootAnimTrigger);

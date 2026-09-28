@@ -56,7 +56,6 @@ namespace SpaceGame.Gameplay
         [SerializeField] private bool replayOnJoin = true;
 
         [Header("Audio")]
-        [SerializeField] private SfxId pullId = SfxId.InteractLever;
         [SerializeField] private EventReference pullSound;
 
         private NetLatch latch;
@@ -157,7 +156,7 @@ namespace SpaceGame.Gameplay
 
             // At the start of the swing rather than the end: the clunk belongs to the moment the
             // player pulled it, not to whatever the lever eventually triggers.
-            Sfx.Play(pullId, transform.position, pullSound, GetInstanceID());
+            Sfx.Play(pullSound, transform.position);
 
             Quaternion from = handle.localRotation;
             float t = 0f;

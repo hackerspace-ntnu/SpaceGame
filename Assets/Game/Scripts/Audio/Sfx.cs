@@ -9,7 +9,7 @@ namespace SpaceGame.Audio
 {
     public static class Sfx
     {
-
+        
         private static HashSet<EventReference> Babying = new HashSet<EventReference>();
         
         //Plays oneshot, no transform. for menus, HUD, UI
@@ -49,7 +49,7 @@ namespace SpaceGame.Audio
         }
         
 
-        private static void PlayInternal(EventReference eventRef, Vector3 position, GameObject attachTo, string? paramName= null, float? parameter = null)
+        private static void PlayInternal(EventReference eventRef, Vector3 position, GameObject attachTo, string paramName = null, float? parameter = null)
         {
             if (eventRef.IsNull && Babying.Add(eventRef))
             {
@@ -60,7 +60,7 @@ namespace SpaceGame.Audio
             try
             {
                 // PlayOneShot cannot take a volume, so anything trimmed has to go the long way round.
-                if (!parameter.HasValue)
+                if (paramName != "" && !parameter.HasValue)
                 {
                     if (attachTo == null)
                     {
@@ -111,11 +111,23 @@ namespace SpaceGame.Audio
             }
         }
     
+        public class ASound
+        {
+            public EventReference daEvent;
+            public ASound(EventReference eventReference)
+            {
+                ///<summary>
+                /// YOU USE EventReferene YOU DINGUS
+                ///</summary>
+                daEvent = eventReference;
+            }
+        }
+
         public class Looper
         {
             private EventInstance instance;
             private bool daShitWorks => instance.isValid();
-            private bool started => instance.isValid() &&
+            public bool playing => instance.isValid() &&
                                     instance.getPlaybackState(out PLAYBACK_STATE x) == FMOD.RESULT.OK &&
                                     x == PLAYBACK_STATE.PLAYING; 
         
@@ -140,7 +152,7 @@ namespace SpaceGame.Audio
             public void PlayAndAttach(EventReference daLoopinSoundEfffect, GameObject attachTo)
             {
                 if (!daShitWorks) return;
-                if (started) return;
+                if (playing) return;
                 InitSound(daLoopinSoundEfffect);
                 if (attachTo != null) RuntimeManager.AttachInstanceToGameObject(instance, attachTo);
                 instance.start();
@@ -148,7 +160,7 @@ namespace SpaceGame.Audio
             public void PlayAndPosition(EventReference daLoopinSoundEfffect, Vector3 pos)
             {
                 if (!daShitWorks) return;
-                if (started) return;
+                if (playing) return;
                 InitSound(daLoopinSoundEfffect);
                 instance.set3DAttributes(RuntimeUtils.To3DAttributes(pos));
                 instance.start();
@@ -165,7 +177,7 @@ namespace SpaceGame.Audio
         
             public void SetParameter(string name, float value)
             {
-                if (!started || string.IsNullOrEmpty(name)) return;
+                if (!playing || string.IsNullOrEmpty(name)) return;
                 instance.setParameterByName(name, value);
             }
         }

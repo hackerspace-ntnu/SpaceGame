@@ -61,7 +61,6 @@ namespace SpaceGame.Agents
         [SerializeField] private bool silentWhileFighting = true;
 
         [Header("Voice")]
-        [SerializeField] private SfxId voiceId = SfxId.NpcMumbleNeutral;
         [SerializeField] private EventReference voiceSound;
 
         // Shared across every ChatterModule. Static state survives leaving play mode with domain
@@ -179,7 +178,7 @@ namespace SpaceGame.Agents
             // At this transform, not through the popup: the popup is screen-space and has no
             // position, so a mumble emitted there would come from nowhere and would not fall off as
             // the player walks away — the same reason DialogInteraction.SpeakLine does it here.
-            Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
+            Sfx.Play(voiceSound, transform.position);
         }
 
         private float RollInterval() =>

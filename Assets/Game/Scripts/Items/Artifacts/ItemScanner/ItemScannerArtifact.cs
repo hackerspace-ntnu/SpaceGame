@@ -70,11 +70,9 @@ namespace SpaceGame.Items
 
         [Header("Audio")]
         [Tooltip("Click when the set is switched on or off.")]
-        [SerializeField] private SfxId toggleId = SfxId.InteractLever;
         [SerializeField] private EventReference toggleSound;
 
         [Tooltip("Contact ping. Rate rises as the nearest contact gets closer, like a detector.")]
-        [SerializeField] private SfxId pingId = SfxId.InteractScannerDiscovery;
         [SerializeField] private EventReference pingSound;
 
         [Tooltip("Seconds between pings with a contact at arm's length.")]
@@ -113,7 +111,7 @@ namespace SpaceGame.Items
             powered = !powered;
 
             if (screen != null) screen.SetOn(powered);
-            Sfx.Play(toggleId, transform.position, toggleSound, GetInstanceID());
+            Sfx.Play(toggleSound, transform.position);
 
             if (powered)
             {
@@ -330,7 +328,7 @@ namespace SpaceGame.Items
             float t = Mathf.Clamp01(nearest / Mathf.Max(1f, range));
             nextPingTime = Time.time + Mathf.Lerp(pingIntervalNear, pingIntervalFar, t);
 
-            Sfx.Play(pingId, transform.position, pingSound, GetInstanceID());
+            Sfx.Play(pingSound, transform.position);
         }
 
         private void OnValidate()

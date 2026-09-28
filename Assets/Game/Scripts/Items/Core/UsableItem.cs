@@ -47,7 +47,6 @@ namespace SpaceGame.Items
         // plays its own fire sound, so anything non-None here would double up on every shot. Items
         // that want a use sound opt in, per item.
         [Tooltip("Sound this item makes when used. Leave at None for items whose own logic makes the noise.")]
-        [SerializeField] protected SfxId useSoundId = SfxId.None;
         [SerializeField] protected EventReference useSound;
 
         private int currentUses = 0;
@@ -142,7 +141,7 @@ namespace SpaceGame.Items
             owner = useOwner;
             UseArg = arg;
 
-            Sfx.Play(useSoundId, transform.position, useSound, GetInstanceID());
+            Sfx.Play(useSound, transform.position);
 
             Present();
         }

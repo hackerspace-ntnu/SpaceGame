@@ -2,6 +2,7 @@
 
 _Generated 2026-08-16. Regenerate the catalog with `gen_catalog.py`._
 
+INTIKSU HERE I GOT MY EYE ON YOUR BITCH ASS USELESS ASS THIS IS GONNA BE BULLSHIT I KNOW IT
 
 ## What this is
 
@@ -36,7 +37,7 @@ each slot at one is a content pass with no code changes.
 Components expose **both**, and the inspector field wins:
 
 ```csharp
-[SerializeField] private SfxId footstepId = SfxId.EntityFootstep;  // catalog default
+[SerializeField] private EventReference footstepId = SfxId.EntityFootstep;  // catalog default
 [SerializeField] private EventReference footstepSound;             // hard override
 
 Sfx.Play(footstepId, transform.position, footstepSound, GetInstanceID());
@@ -65,7 +66,7 @@ untouched while every field nobody ever assigned started making noise.
 
 ### Player
 
-| | SfxId | # | Plays | Cooldown | Max dist | Vol |
+| | EventReference | # | Plays | Cooldown | Max dist | Vol |
 |---|---|---|---|---|---|---|
 | ✓ | `PlayerFootstep` | 100 | `event:/SFX/Footstep` | — | 30 m | 1.00 |
 | ✓ | `PlayerJump` | 101 | `event:/SFX/Jump` | — | 30 m | 1.00 |
@@ -78,7 +79,7 @@ untouched while every field nobody ever assigned started making noise.
 
 ### Weapons
 
-| | SfxId | # | Plays | Cooldown | Max dist | Vol |
+| | EventReference | # | Plays | Cooldown | Max dist | Vol |
 |---|---|---|---|---|---|---|
 | ~ | `WeaponGunFire` | 200 | `event:/SFX/Wham` | — | 90 m | 0.70 |
 | ~ | `WeaponGunReload` | 201 | `event:/SFX/MetalPickup` | — | 25 m | 0.90 |
@@ -124,7 +125,7 @@ untouched while every field nobody ever assigned started making noise.
 
 ### Wings
 
-| | SfxId | # | Plays | Cooldown | Max dist | Vol |
+| | EventReference | # | Plays | Cooldown | Max dist | Vol |
 |---|---|---|---|---|---|---|
 | ✓ | `WingsDeploy` | 600 | `event:/SFX/Takeoff` | — | 60 m | 0.90 |
 | ~ | `WingsFlap` | 601 | `event:/SFX/Antigravity` | — | 45 m | 0.55 |

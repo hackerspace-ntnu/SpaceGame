@@ -41,7 +41,6 @@ namespace SpaceGame.Agents
 
         [Header("Audio")]
         [SerializeField] private bool playSpotSound = true;
-        [SerializeField] private SfxId spotId = SfxId.EntityAlert;
         [SerializeField] private EventReference spotSound;
 
         public Vector3 LastKnownPosition { get; private set; }
@@ -202,7 +201,7 @@ namespace SpaceGame.Agents
                 noiseEmitter.Emit(NoiseType.Alert, spotNoiseRadius);
 
             if (playSpotSound)
-                Sfx.Play(spotId, transform.position, spotSound, GetInstanceID());
+                Sfx.Play(spotSound, transform.position);
         }
 
         private Vector3 GetForward() => transform.forward;

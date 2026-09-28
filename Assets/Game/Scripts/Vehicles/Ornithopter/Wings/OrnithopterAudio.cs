@@ -13,30 +13,27 @@ namespace SpaceGame.Vehicles.Ornithopter
     public class OrnithopterAudio : MonoBehaviour
     {
         [Header("Wind")]
-        [SerializeField] private SfxId windLoopId = SfxId.WingsWindLoop;
         [SerializeField] private EventReference windLoopSound;
         [Tooltip("Airspeed in m/s at which wind noise reaches full volume.")]
         [SerializeField] private float windFullVolumeSpeed = 30f;
         [Tooltip("Quietest the wind gets when the craft is barely moving. Not zero — a gliding " +
                  "ornithopter with silence over the canopy reads as broken, not as calm.")]
-        [SerializeField, Range(0f, 1f)] private float windMinVolume = 0.15f;
-        [Tooltip("Optional FMOD parameter fed normalised airspeed, if the event has one.")]
         [SerializeField] private string windSpeedParameter = "";
 
         [Header("Flap")]
-        [SerializeField] private SfxId flapId = SfxId.WingsFlap;
         [SerializeField] private EventReference flapSound;
         [Tooltip("Below this flap effort the stroke is too gentle to be worth a sound.")]
         [SerializeField, Range(0f, 1f)] private float flapEffortThreshold = 0.12f;
 
         [Header("Stall")]
-        [SerializeField] private SfxId stallId = SfxId.WingsStall;
+        [SerializeField] private EventReference stallSound;
+
         [Tooltip("Seconds before the stall warning may sound again.")]
         [SerializeField] private float stallRepeatDelay = 2f;
 
         [Header("Deploy")]
-        [SerializeField] private SfxId deployId = SfxId.WingsDeploy;
-        [SerializeField] private SfxId foldId = SfxId.WingsFold;
+        [SerializeField] private EventReference deploySound;
+        [SerializeField] private EventReference foldSound;
         [Tooltip("WingSpread above this counts as deployed, below as folded.")]
         [SerializeField, Range(0f, 1f)] private float spreadThreshold = 0.5f;
 
@@ -88,21 +85,19 @@ namespace SpaceGame.Vehicles.Ornithopter
 
         private void StartWind()
         {
-            wind.Play(windLoopId, gameObject, windLoopSound);
+            wind.PlayAndAttach(windLoopSound, gameObject);
         }
 
         private void Update()
         {
             if (!initialised) return;
 
-            if (!wind.IsPlaying) StartWind();
+            if (!wind.playing) StartWind();
 
             float airspeed = flight.Airspeed;
             float normalised = Mathf.Clamp01(airspeed / Mathf.Max(0.1f, windFullVolumeSpeed));
 
-            wind.SetVolume(Mathf.Lerp(windMinVolume, 1f, normalised));
-            if (!string.IsNullOrEmpty(windSpeedParameter))
-                wind.SetParameter(windSpeedParameter, normalised);
+            wind.SetParameter("Windy", normalised);
 
             HandleFlap();
             HandleStall();
@@ -129,7 +124,7 @@ namespace SpaceGame.Vehicles.Ornithopter
             if (effort < flapEffortThreshold) return;
             if (flight.WingSpread < spreadThreshold) return;
 
-            Sfx.Play(flapId, transform.position, flapSound, GetInstanceID());
+            Sfx.Play(flapSound, transform.position);
         }
 
         private void HandleStall()
@@ -143,7 +138,7 @@ namespace SpaceGame.Vehicles.Ornithopter
             if (!justStalled || stallCooldown > 0f) return;
 
             stallCooldown = stallRepeatDelay;
-            Sfx.Play(stallId, transform.position, default, GetInstanceID());
+            Sfx.Play(stallSound, transform.position);
         }
 
         private void HandleDeploy()
@@ -152,7 +147,7 @@ namespace SpaceGame.Vehicles.Ornithopter
             if (deployed == wasDeployed) return;
 
             wasDeployed = deployed;
-            Sfx.Play(deployed ? deployId : foldId, transform.position, default, GetInstanceID());
+            Sfx.Play(deployed ? deploySound : foldSound, transform.position);
         }
 
         private void OnValidate()

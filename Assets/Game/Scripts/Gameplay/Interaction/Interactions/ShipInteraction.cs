@@ -21,7 +21,6 @@ namespace SpaceGame.Gameplay
         [SerializeField] private InventoryItem scrapItem;
 
         [Header("Audio")]
-        [SerializeField] private SfxId depositId = SfxId.ShipRepair;
         [SerializeField] private EventReference depositSound;
 
         public bool CanInteract()
@@ -37,7 +36,7 @@ namespace SpaceGame.Gameplay
             // scrap would otherwise hear nothing. Unlike RepairWorkstation there is no replicated
             // accept/reject channel here to hang it on, so this fires on the attempt rather than on
             // the outcome and a rejected deposit still makes a noise.
-            Sfx.Play(depositId, transform.position, depositSound, GetInstanceID());
+            Sfx.Play(depositSound, transform.position);
 
             Network.Execute(
                 local: () => ExecuteInteraction(interactor),

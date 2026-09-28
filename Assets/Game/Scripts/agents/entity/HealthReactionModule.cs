@@ -39,14 +39,12 @@ namespace SpaceGame.Agents
         [Header("On Damage")]
         [SerializeField] private bool emitNoiseOnDamage = true;
         [SerializeField] private float damageNoiseRadius = 15f;
-        [SerializeField] private SfxId hurtId = SfxId.EntityHurt;
         [SerializeField] private EventReference hurtSound;
 
         [Header("On Death")]
         [SerializeField] private UnityEvent onDeath;
         [SerializeField] private bool emitNoiseOnDeath = true;
         [SerializeField] private float deathNoiseRadius = 20f;
-        [SerializeField] private SfxId deathId = SfxId.EntityDeath;
         [SerializeField] private EventReference deathSound;
         [Tooltip("Destroy or disable the GameObject after this delay. 0 = never.")]
         [SerializeField] private float despawnDelay = 8f;
@@ -181,7 +179,7 @@ namespace SpaceGame.Agents
             if (emitNoiseOnDamage && noiseEmitter)
                 noiseEmitter.Emit(NoiseType.Hurt, damageNoiseRadius, health.LastDamageSource);
 
-            Sfx.Play(hurtId, transform.position, hurtSound, GetInstanceID());
+            Sfx.Play(hurtSound, transform.position);
 
             CheckThresholds();
         }
@@ -204,7 +202,7 @@ namespace SpaceGame.Agents
             if (emitNoiseOnDeath && noiseEmitter)
                 noiseEmitter.Emit(NoiseType.Death, deathNoiseRadius);
 
-            Sfx.Play(deathId, transform.position, deathSound, GetInstanceID());
+            Sfx.Play(deathSound, transform.position);
 
             onDeath?.Invoke();
 

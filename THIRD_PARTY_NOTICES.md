@@ -1,4 +1,4 @@
-# Third-party notices
+﻿# Third-party notices
 
 Assets in this repository that were not made here, with the licence each one carries. Keep
 this file current: a licence with an attribution clause is a promise the shipped game has to
@@ -46,3 +46,31 @@ downloaded 2026-09-17.
 
 **Licence:** Creative Commons Zero (CC0 1.0), <http://creativecommons.org/publicdomain/zero/1.0/>.
 Nothing is owed; crediting Kenney (www.kenney.nl) is invited, not required.
+
+## Concentus — the Opus voice codec
+
+**What:** the portable C# implementation of the Opus audio codec, vendored as source under
+[`Assets/ThirdParty/Concentus/`](Assets/ThirdParty/Concentus/). Used by the proximity voice
+chat to encode and decode speech, and its Speex resampler port converts microphones that do
+not record at 48 kHz. Compiled as its own assembly (`Concentus.asmdef`).
+
+**From:** <https://github.com/lostromb/concentus>, version 2.2.2, commit
+`3885c4e46513ef0fc81fca100189e54f1714c6ca` (2025-09-27).
+
+**What was left out:** `AssemblyInfo.cs` (`InternalsVisibleTo` entries for the upstream test
+projects) and `Concentus.csproj`. Everything else is upstream, unmodified — including
+`Native/`, which is never called: the voice code constructs `OpusEncoder`/`OpusDecoder`
+directly rather than going through `OpusCodecFactory`, so no native libopus is ever probed
+for or P/Invoked. Keeping the tree unpatched is what makes it updatable.
+
+**Licence:** BSD 3-Clause, © Xiph.Org Foundation, Skype Limited, CSIRO, Microsoft Corp.,
+Jean-Marc Valin, Gregory Maxwell, Mark Borgerding, Timothy B. Terriberry and Logan Stromberg.
+Full text in [`Assets/ThirdParty/Concentus/LICENSE.md`](Assets/ThirdParty/Concentus/LICENSE.md).
+
+**What the licence asks of us:**
+
+1. Keep the copyright notice and licence text with the source (done: the file above).
+2. Reproduce the notice in the documentation or materials shipped with a build (this file
+   ships with the game).
+3. Do not use the names of Xiph.Org, the IETF, the Internet Society or the contributors to
+   endorse this game without written permission.

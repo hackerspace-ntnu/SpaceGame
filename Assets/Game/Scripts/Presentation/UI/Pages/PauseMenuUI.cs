@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Voice;
 
 namespace SpaceGame.Presentation
 {
@@ -72,6 +73,13 @@ namespace SpaceGame.Presentation
         private TextMeshProUGUI menuButtonLabel;
         private ScrollRect scroll;
 
+        // The microphone test is a loose GameObject rather than a component on the menu, because
+        // it owns FMOD handles that must die the moment the page goes away — tying it to its own
+        // object makes that one Destroy instead of a teardown path per exit.
+        private MicrophoneTest micTest;
+        private SettingsWidgets.Row micTestRow;
+        private SettingsWidgets.Row micMeterRow;
+
         private float confirmExpiry;
 
         private struct TabWidgets
@@ -117,6 +125,8 @@ namespace SpaceGame.Presentation
         private void OnDestroy()
         {
             if (instance == this) instance = null;
+
+            StopMicrophoneTest();
 
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
 
@@ -200,6 +210,8 @@ namespace SpaceGame.Presentation
             // then hit M on is the name that ends up published.
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
 
+            StopMicrophoneTest();
+
             GameSettings.Save();
             GameplayMenuScope.Exit(this);
         }
@@ -220,6 +232,7 @@ namespace SpaceGame.Presentation
                 group.interactable = false;
             }
 
+            StopMicrophoneTest();
             GameplayMenuScope.Abandon();
         }
 
@@ -244,6 +257,10 @@ namespace SpaceGame.Presentation
 
             if (open && confirmExpiry > 0f && Time.unscaledTime > confirmExpiry)
                 DisarmConfirm();
+
+            // A level meter is a live signal, so it repaints per frame — but only while there is
+            // actually a test running to read a level from.
+            if (open && micTest != null) micMeterRow?.Refresh();
         }
 
         // --------------------------------------------------------------------- build
@@ -577,6 +594,117 @@ namespace SpaceGame.Presentation
                 () => GameSettings.AmbienceVolume, v => GameSettings.AmbienceVolume = v, Percent, 0.01f));
 
             SettingsWidgets.Caption(page, "Levels apply live to the FMOD buses — drag one and listen.");
+
+            SettingsWidgets.Heading(page, "Voice");
+
+            Track(SettingsWidgets.Cycler(page, "Microphone",
+                DescribeMicrophone,
+                () => StepMicrophone(1),
+                () => StepMicrophone(-1)));
+
+            Track(SettingsWidgets.Slider(page, "Voice volume", 0f, 1f,
+                () => GameSettings.VoiceVolume, v => GameSettings.VoiceVolume = v, Percent, 0.01f));
+
+            Track(SettingsWidgets.Toggle(page, "Push to talk",
+                () => GameSettings.VoicePushToTalk, v => GameSettings.VoicePushToTalk = v));
+
+            Track(SettingsWidgets.Slider(page, "Mic threshold",
+                GameSettings.MinVoiceGateThreshold, GameSettings.MaxVoiceGateThreshold,
+                () => GameSettings.VoiceGateThreshold, v => GameSettings.VoiceGateThreshold = v,
+                Percent, 0.005f));
+
+            // Not Tracked: this one repaints per frame from Update, not on the page's Refresh.
+            micMeterRow = SettingsWidgets.Meter(page, "Input level",
+                () => micTest != null ? micTest.InputLevel : 0f,
+                () => micTest != null && micTest.GateOpen);
+
+            micTestRow = SettingsWidgets.Action(page, "Microphone test", "TEST",
+                ToggleMicrophoneTest, null, DescribeMicrophoneTest);
+            Track(micTestRow);
+
+            SettingsWidgets.Caption(page,
+                "The test plays your microphone back through the voice codec — what everyone else hears.");
+            SettingsWidgets.Caption(page,
+                "Set the threshold so the bar lights when you speak, but not when you type.");
+        }
+
+        // ---------------------------------------------------------------- microphone
+
+        private static string DescribeMicrophone() =>
+            string.IsNullOrEmpty(GameSettings.VoiceInputDevice)
+                ? "System default"
+                : GameSettings.VoiceInputDevice;
+
+        /// <summary>
+        /// Steps through the connected microphones, with the system default as the first choice.
+        /// <para>
+        /// The stored value is a NAME, and an empty one means "whatever the OS considers default" —
+        /// which is why that entry is an empty string in this list rather than a device of its own.
+        /// </para>
+        /// </summary>
+        private void StepMicrophone(int direction)
+        {
+            var names = new List<string> { string.Empty };
+            foreach (VoiceDevices.Device device in VoiceDevices.Connected())
+                names.Add(device.Name);
+
+            if (names.Count <= 1) return;
+
+            int current = Mathf.Max(0, names.IndexOf(GameSettings.VoiceInputDevice ?? string.Empty));
+            int next = ((current + direction) % names.Count + names.Count) % names.Count;
+
+            GameSettings.VoiceInputDevice = names[next];
+
+            // A test already running is listening to the old device; reopen it on the new one.
+            // Deliberately not `micTest?.Restart()`: ?. tests for a real null, while a destroyed
+            // GameObject is only null to Unity's overloaded ==, so ?. would call into it.
+            if (micTest != null) micTest.Restart();
+        }
+
+        private string DescribeMicrophoneTest()
+        {
+            if (micTest == null) return "TEST";
+            return string.IsNullOrEmpty(micTest.Error) ? "STOP" : "FAILED";
+        }
+
+        private void ToggleMicrophoneTest()
+        {
+            if (micTest != null)
+            {
+                StopMicrophoneTest();
+                return;
+            }
+
+            micTest = MicrophoneTest.Create();
+
+            // A microphone that will not open is the commonest voice problem there is, and a test
+            // that silently does nothing is the worst possible way to report it.
+            if (!string.IsNullOrEmpty(micTest.Error))
+                Debug.LogWarning($"[Voice] Microphone test could not start: {micTest.Error}");
+
+            micTestRow?.Refresh();
+        }
+
+        /// <summary>
+        /// Ends the test and releases the microphone. Called from every exit — closing, forced
+        /// close, leaving the Audio tab and destruction — because each is a different path and a
+        /// microphone left open is a recording light that never goes out.
+        /// </summary>
+        private void StopMicrophoneTest()
+        {
+            // == also catches a test whose GameObject was destroyed under us by a scene load;
+            // clearing the field there is what stops a stale reference lingering forever.
+            if (micTest == null)
+            {
+                micTest = null;
+                return;
+            }
+
+            Destroy(micTest.gameObject);
+            micTest = null;
+
+            micMeterRow?.Refresh();
+            micTestRow?.Refresh();
         }
 
         private void BuildVideoPage(RectTransform page)
@@ -775,6 +903,10 @@ namespace SpaceGame.Presentation
 
         private void SelectTab(Tab tab)
         {
+            // The test lives on the Audio page; walking away from it should not leave the
+            // microphone open behind a page nobody is looking at.
+            if (tab != Tab.Audio) StopMicrophoneTest();
+
             activeTab = tab;
 
             foreach (KeyValuePair<Tab, RectTransform> entry in pages)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Characters;
@@ -44,6 +44,15 @@ namespace SpaceGame.Core
         public const float MaxFieldOfView = 110f;
         public const int MaxNameLength = 20;
 
+        /// <summary>
+        /// Bounds for the voice gate, as peak amplitude rather than decibels — the same scale
+        /// <see cref="Voice.VoiceCapture.InputLevel"/> reports, so the slider and the input meter
+        /// on the audio page are directly comparable. The floor is deliberately above zero: at
+        /// exactly zero the gate never closes and a player with an open mic transmits their room.
+        /// </summary>
+        public const float MinVoiceGateThreshold = 0.005f;
+        public const float MaxVoiceGateThreshold = 0.3f;
+
         /// <summary>Frame cap choices offered by the video page. 0 means uncapped.</summary>
         public static readonly int[] FrameRateCaps = { 0, 30, 60, 90, 120, 144, 165, 240 };
 
@@ -59,6 +68,10 @@ namespace SpaceGame.Core
         private static float sfxVolume;
         private static float uiVolume;
         private static float ambienceVolume;
+        private static float voiceVolume;
+        private static bool voicePushToTalk;
+        private static float voiceGateThreshold;
+        private static string voiceInputDevice;
         private static float mouseSensitivity;
         private static float cameraShakeIntensity;
         private static bool invertLookY;
@@ -149,6 +162,67 @@ namespace SpaceGame.Core
         {
             get { EnsureLoaded(); return ambienceVolume; }
             set => SetFloat(ref ambienceVolume, value, 0f, 1f, "AmbienceVolume");
+        }
+
+        // -------------------------------------------------------------------- voice
+
+        /// <summary>
+        /// How loud other players' voices are. Separate from <see cref="SfxVolume"/> because voice
+        /// is the one sound a player cannot afford to lose under the mix — turning the world down
+        /// to hear a teammate should not be the only option.
+        /// </summary>
+        public static float VoiceVolume
+        {
+            get { EnsureLoaded(); return voiceVolume; }
+            set => SetFloat(ref voiceVolume, value, 0f, 1f, "VoiceVolume");
+        }
+
+        /// <summary>
+        /// Transmit only while the push-to-talk key is held, instead of whenever the gate opens.
+        /// <para>
+        /// Off by default: proximity chat is meant to feel like talking to the person next to you,
+        /// and a key you have to hold undoes that. It is the answer for a player on speakers rather
+        /// than headphones, whose microphone would otherwise echo the whole session back.
+        /// </para>
+        /// </summary>
+        public static bool VoicePushToTalk
+        {
+            get { EnsureLoaded(); return voicePushToTalk; }
+            set => SetBool(ref voicePushToTalk, value, "VoicePushToTalk");
+        }
+
+        /// <summary>
+        /// Peak level the microphone has to reach before the gate opens, on the same 0-1 scale as
+        /// the input meter. Applies in push-to-talk too, where it is a plain noise gate.
+        /// </summary>
+        public static float VoiceGateThreshold
+        {
+            get { EnsureLoaded(); return voiceGateThreshold; }
+            set => SetFloat(ref voiceGateThreshold, value, MinVoiceGateThreshold,
+                            MaxVoiceGateThreshold, "VoiceGateThreshold");
+        }
+
+        /// <summary>
+        /// Which microphone to record from, by NAME. Empty means the system default.
+        /// <para>
+        /// Stored by name rather than by index because device indices are reassigned whenever
+        /// anything is plugged in or removed — a stored index quietly starts recording from a
+        /// different microphone than the one the player chose.
+        /// </para>
+        /// </summary>
+        public static string VoiceInputDevice
+        {
+            get { EnsureLoaded(); return voiceInputDevice; }
+            set
+            {
+                EnsureLoaded();
+                string name = value ?? string.Empty;
+                if (name == voiceInputDevice) return;
+
+                voiceInputDevice = name;
+                PlayerPrefs.SetString(Prefix + "VoiceInputDevice", voiceInputDevice);
+                Raise();
+            }
         }
 
         // ----------------------------------------------------------------- controls
@@ -417,6 +491,7 @@ namespace SpaceGame.Core
                 "PlayerName", "SuitColorIndex", "MasterVolume", "MusicVolume", "SfxVolume", "UiVolume", "AmbienceVolume",
                 "MouseSensitivity", "InvertLookY", "InvertHotbarScroll", "DevMode", "FieldOfView",
                 "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap",
+                "VoiceVolume", "VoicePushToTalk", "VoiceGateThreshold", "VoiceInputDevice",
                 "VisorDetail", "ReduceVisorMotion", "Version",
             })
             {
@@ -468,6 +543,10 @@ namespace SpaceGame.Core
             sfxVolume = PlayerPrefs.GetFloat(Prefix + "SfxVolume", 1f);
             uiVolume = PlayerPrefs.GetFloat(Prefix + "UiVolume", 0.85f);
             ambienceVolume = PlayerPrefs.GetFloat(Prefix + "AmbienceVolume", 1f);
+            voiceVolume = PlayerPrefs.GetFloat(Prefix + "VoiceVolume", 1f);
+            voicePushToTalk = PlayerPrefs.GetInt(Prefix + "VoicePushToTalk", 0) == 1;
+            voiceGateThreshold = PlayerPrefs.GetFloat(Prefix + "VoiceGateThreshold", 0.03f);
+            voiceInputDevice = PlayerPrefs.GetString(Prefix + "VoiceInputDevice", string.Empty);
 
             mouseSensitivity = PlayerPrefs.GetFloat(Prefix + "MouseSensitivity", 1f);
             invertLookY = PlayerPrefs.GetInt(Prefix + "InvertLookY", 0) == 1;
@@ -492,6 +571,9 @@ namespace SpaceGame.Core
             sfxVolume = Mathf.Clamp01(sfxVolume);
             uiVolume = Mathf.Clamp01(uiVolume);
             ambienceVolume = Mathf.Clamp01(ambienceVolume);
+            voiceVolume = Mathf.Clamp01(voiceVolume);
+            voiceGateThreshold = Mathf.Clamp(voiceGateThreshold, MinVoiceGateThreshold,
+                                             MaxVoiceGateThreshold);
             mouseSensitivity = Mathf.Clamp(mouseSensitivity, MinSensitivity, MaxSensitivity);
             cameraShakeIntensity = Mathf.Clamp(cameraShakeIntensity, MinCameraShake, MaxCameraShake);
             fieldOfView = Mathf.Clamp(fieldOfView, MinFieldOfView, MaxFieldOfView);

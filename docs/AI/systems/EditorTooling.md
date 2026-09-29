@@ -18,7 +18,7 @@ symptoms:
   - "a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects"
   - "the menu item a doc names is not in the Tools menu"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-26
+updated: 2026-09-28
 ---
 # Editor Tooling
 
@@ -107,7 +107,7 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | `AssetPostprocessor.OnPostprocessAnimation` | [RootMotionCurveStripper.cs](Assets/Game/Editor/AssetPipeline/RootMotionCurveStripper.cs) | Every imported clip — deletes empty-path `m_Local*` curves that would teleport the object to the origin (hits rigid-part rigs, not skinned ones) |
 | `AssetPostprocessor.OnPostprocessAllAssets` | [ItemFootprintCacheInvalidator.cs](Assets/Game/Scripts/Items/Backpack/Placement/Editor/ItemFootprintCacheInvalidator.cs) | Any import/move/delete — clears `ItemFootprint`'s size cache unconditionally |
 | `[InitializeOnLoad]` | [PlayModeTransportTeardown.cs](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs) | Shuts the NGO session down at `ExitingPlayMode` to limit UDP socket leaks |
-| `[InitializeOnLoadMethod]` | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Resumes a `SessionState`-pending test run across domain reloads |
+| `[InitializeOnLoadMethod]` | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Resumes a `SessionState`-pending test run across domain reloads, and cancels a run or drops a request older than `MaxRequestAge` |
 
 Custom inspectors: [TerrainGenManagerEditor](Assets/Game/Editor/Terrain/TerrainGenManagerEditor.cs) (Bake All / Regenerate / Clear), [TerrainFeatureSpawnerEditor](Assets/Game/Editor/Terrain/TerrainFeatureSpawnerEditor.cs) + [TerrainFeatureHandles](Assets/Game/Editor/Terrain/TerrainFeatureHandles.cs) (scene-view footprint handles, live preview, Bake & Save Mesh via [TerrainFeatureBakeUtility](Assets/Game/Editor/Terrain/TerrainFeatureBakeUtility.cs)), [CaveSpawnerEditor](Assets/Game/Editor/Terrain/CaveSpawnerEditor.cs) (Bake & Save NavMesh), [WorldStreamerEditor](Assets/Game/Scripts/World/Streaming/Editor/WorldStreamerEditor.cs), [PackShapeLibraryEditor](Assets/Game/Scripts/Items/Backpack/Placement/Editor/PackShapeLibraryEditor.cs) (paintable mask grid), [BehaviourModuleEditor](Assets/Game/Editor/Agents/BehaviourModuleEditor.cs), [RoverBogieIKEditor](Assets/Game/Scripts/Vehicles/Rover/Editor/RoverBogieIKEditor.cs).
 

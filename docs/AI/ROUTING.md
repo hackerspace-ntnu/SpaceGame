@@ -471,6 +471,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
 | has waited over 30 s for its ground chunks to load' logged and the settlement never spawns anyone | [AgentSystem](systems/AgentSystem.md) |
 | hauling somebody on a rope overheats the pack much sooner than flying alone | [Jetpack](systems/Jetpack.md) |
+| headless_tests.txt says CANCELLED, or my queued test run was discarded as too old | [Testing](systems/Testing.md) |
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
 | holding W does the same thing whether I look up or down | [Jetpack](systems/Jetpack.md) |
 | how do I actually prove this works on a client and not just the host | [Testing](systems/Testing.md) |
@@ -749,6 +750,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the deployed rig is too big — it reads as a tent rather than a pack | [Backpack](systems/Backpack.md) |
 | the display-copy tests are all green and gear on the wall still shoves me around | [Backpack](systems/Backpack.md) |
 | the door opens for the host and stays shut for clients | [InteractionSystem](systems/InteractionSystem.md) |
+| the editor adds objects to my scene while I am doing nothing and no agent is running | [Testing](systems/Testing.md) |
 | the effect applies on the server and is silently overwritten a tick later | [Artifacts](systems/Artifacts.md) |
 | the effect renders from one half of the compass and is completely invisible from the other half | [Artifacts](systems/Artifacts.md) |
 | the emote wheel opens but letting go of V plays nothing | [UI](systems/UI.md) |
@@ -1518,4 +1520,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1140 symptoms, 352 paths, 61 docs -->
+<!-- 1142 symptoms, 352 paths, 61 docs -->

@@ -27,8 +27,8 @@ symptoms:
   - "damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled"
   - "the map hologram in the ship shows the world with me off in a corner of it"
   - "the emote wheel opens but letting go of V plays nothing"
-reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics]
-updated: 2026-09-26
+reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics, Objectives]
+updated: 2026-09-28
 ---
 
 # UI

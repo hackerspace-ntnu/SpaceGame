@@ -104,8 +104,9 @@ grep -i 'client' docs/AI/ROUTING.md
 | [GameModes](systems/GameModes.md) | Versus team PvP, the plain story run, and the disposable never-saved sandbox | [Multiplayer](systems/Multiplayer.md), [Lobby](systems/Lobby.md), [PlayerShip](systems/PlayerShip.md), [Persistence](systems/Persistence.md) |
 | [HumanoidAnimation](systems/HumanoidAnimation.md) | One generated controller for every humanoid, its action assets, and the cues and moments that trigger them | [PlayerCharacter](systems/PlayerCharacter.md), [AgentSystem](systems/AgentSystem.md), [ArtPipeline](systems/ArtPipeline.md), [Multiplayer](systems/Multiplayer.md), [Combat](systems/Combat.md), [InteractionSystem](systems/InteractionSystem.md), [TalkingMouth](systems/TalkingMouth.md) |
 | [Lobby](systems/Lobby.md) | Unity Lobby session state plus the disposable lobby screen: hosting, joining, roster and team rules | [UI](systems/UI.md), [GameModes](systems/GameModes.md), [Multiplayer](systems/Multiplayer.md) |
+| [Objectives](systems/Objectives.md) | The crew's shared quest chain after the crash: one asset per step, briefings, visor panel, waypoint | [PlayerShip](systems/PlayerShip.md), [Visor](systems/Visor.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md) |
 | [TalkingMouth](systems/TalkingMouth.md) | A character's jaw opens and shuts in step with the speech popup typing out the line it said | [ArtPipeline](systems/ArtPipeline.md), [UI](systems/UI.md), [AgentSystem](systems/AgentSystem.md), [InteractionSystem](systems/InteractionSystem.md), [StylizedEyes](systems/StylizedEyes.md), [HumanoidAnimation](systems/HumanoidAnimation.md) |
-| [UI](systems/UI.md) | Menus, HUD, full-screen overlays and world-anchored labels, all built in C# at runtime, no UI art | [Lobby](systems/Lobby.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md) |
+| [UI](systems/UI.md) | Menus, HUD, full-screen overlays and world-anchored labels, all built in C# at runtime, no UI art | [Lobby](systems/Lobby.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md), [Objectives](systems/Objectives.md) |
 | [Visor](systems/Visor.md) | The helmet's projected blue readout layer — one design language, two sublayers, gauges bound to sources | [UI](systems/UI.md), [Combat](systems/Combat.md), [PlayerCharacter](systems/PlayerCharacter.md), [Multiplayer](systems/Multiplayer.md), [InteractionSystem](systems/InteractionSystem.md) |
 | [audio](systems/audio.md) | FMOD behind an SfxId vocabulary; one Resources AudioCatalog maps meaning to event and tuning. | [Multiplayer](systems/Multiplayer.md), [AgentSystem](systems/AgentSystem.md), [Combat](systems/Combat.md), [Cutscenes](systems/Cutscenes.md) |
 
@@ -144,4 +145,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 61 system docs, 6 redirects -->
+<!-- 62 system docs, 6 redirects -->

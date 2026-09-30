@@ -319,7 +319,7 @@ namespace SpaceGame.Core
         //
         // A message of its own rather than a flag on Flung, because Flung is shared three ways and
         // one of them is self-inflicted: GravelBlasterArtifact flings the HOLDER as self-propulsion
-        // (GravelBlasterArtifact.Backfire). A ragdoll hung off Flung would knock players down every
+        // (GravelBlasterArtifact.MisfireUse, its backfire). A ragdoll hung off Flung would knock players down every
         // time they fired their own gravel blaster.
         public const ushort Knockdown = 82; // server → everyone, on the VICTIM's relay
 

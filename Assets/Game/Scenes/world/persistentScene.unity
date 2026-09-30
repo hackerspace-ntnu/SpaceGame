@@ -326,10 +326,12 @@ MonoBehaviour:
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 4
     tasks:
     - label: running goods between the trade posts
@@ -346,6 +348,14 @@ MonoBehaviour:
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: watering the birds
       targetSite: 4
       searchRadius: 1200
@@ -360,6 +370,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: picking over an old wreck
       targetSite: 2
       searchRadius: 1600
@@ -374,6 +392,14 @@ MonoBehaviour:
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 3.2
     startNearSite: 1
     useStartPosition: 1
@@ -401,18 +427,22 @@ MonoBehaviour:
     - prefab: {fileID: 154119959528579656, guid: c3ae6b451d3393043b8ad3f1c9f152b0, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
     - prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     tasks:
     - label: running goods between the trade posts
@@ -429,6 +459,14 @@ MonoBehaviour:
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: filling the water skins
       targetSite: 4
       searchRadius: 1200
@@ -443,6 +481,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: picking over an old wreck
       targetSite: 2
       searchRadius: 1600
@@ -457,6 +503,14 @@ MonoBehaviour:
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 2.6
     startNearSite: 1
     useStartPosition: 1
@@ -476,6 +530,120 @@ MonoBehaviour:
       LongitudinalJitter: 1.3
       DriftAmplitude: 0.8
       DriftRate: 0.07
+  - id: strider-city
+    displayName: Strider City
+    tribe: {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 3920125714913502079, guid: ade2c352218d0654aa42348edd37b947, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+    - prefab: {fileID: 3920125714913502079, guid: ade2c352218d0654aa42348edd37b947, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+    - prefab: {fileID: 7855985018472554799, guid: 0fcc8e79bec6440beb2c49c1343c14a4, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+    - prefab: {fileID: 8245780198159841428, guid: 81b4e2cd12bc1944b9da1bd214bb35de, type: 3}
+      role: 2
+      isLeader: 0
+      crew: 0
+      count: 2
+    - prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 3
+    - prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 3
+    - prefab: {fileID: 8997635125253337859, guid: 57171156033888b4ebe929745c331d22, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+    - prefab: {fileID: 0}
+      role: 1
+      isLeader: 0
+      crew: 1
+      count: 9
+    - prefab: {fileID: 0}
+      role: 0
+      isLeader: 0
+      crew: 1
+      count: 9
+    tasks:
+    - label: picking over a ruin
+      targetSite: 2
+      searchRadius: 2500
+      searchFromHome: 0
+      dwellSeconds: {x: 90, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Old metal. Good metal.
+      - Set the legs down, we're working.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 25
+      travelSpeedMultiplier: 0.45
+      levelGround:
+        footprintRadius: 217.53503
+        maxSlopeDegrees: 3
+        searchRadius: 200
+        searchStep: 100
+        attempts: 8
+        sampleReach: 30
+        sampleTolerance: 10
+    - label: working a scrap field
+      targetSite: 3
+      searchRadius: 2500
+      searchFromHome: 0
+      dwellSeconds: {x: 90, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Crawlers out! Everything that isn't sand.
+      - Load the houses.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 25
+      travelSpeedMultiplier: 0.45
+      levelGround:
+        footprintRadius: 217.53503
+        maxSlopeDegrees: 3
+        searchRadius: 200
+        searchStep: 100
+        attempts: 8
+        sampleReach: 30
+        sampleTolerance: 10
+    travelSpeed: 2.6999998
+    startNearSite: 2
+    useStartPosition: 1
+    startPosition: {x: 3386.0542, y: 109.76766, z: 999.1703}
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 30
+      LaneSpacing: 30
+      LateralJitter: 2
+      LongitudinalJitter: 3
+      DriftAmplitude: 1
+      DriftRate: 0.05
   - id: sand-war-party
     displayName: Sand War Party
     tribe: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
@@ -501,6 +669,31 @@ MonoBehaviour:
       LongitudinalJitter: 1.3
       DriftAmplitude: 0.8
       DriftRate: 0.07
+  - id: strider-war-party
+    displayName: Strider War Party
+    tribe: {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
+    runtimeOnly: 1
+    members: []
+    tasks: []
+    travelSpeed: 14
+    startNearSite: 1
+    useStartPosition: 0
+    startPosition: {x: 3700, y: 100, z: 1560}
+    bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 18
+      LaneSpacing: 14
+      LateralJitter: 1.5
+      LongitudinalJitter: 2
+      DriftAmplitude: 1
+      DriftRate: 0.1
   - id: sky-war-party
     displayName: Sky War Party
     tribe: {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
@@ -534,10 +727,12 @@ MonoBehaviour:
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 3
     tasks: []
     travelSpeed: 4.4
@@ -567,6 +762,7 @@ MonoBehaviour:
     - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
     tasks:
     - label: grazing the open ground
@@ -581,6 +777,14 @@ MonoBehaviour:
       weight: 2
       arriveRadius: 25
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: drinking
       targetSite: 4
       searchRadius: 1500
@@ -593,6 +797,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 18
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: drifting across country
       targetSite: 7
       searchRadius: 2200
@@ -605,6 +817,14 @@ MonoBehaviour:
       weight: 0.6
       arriveRadius: 30
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 1.4
     startNearSite: 6
     useStartPosition: 0
@@ -665,6 +885,7 @@ MonoBehaviour:
   tribes:
   - {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
   - {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+  - {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
   crewFaction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   relationships: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
   thresholds:
@@ -3054,6 +3275,13 @@ MonoBehaviour:
   maxTrustedCorrection: 30
   releaseDelay: 1.6
   strandedSeatTimeout: 180
+  starterVehicle:
+    prefab: {fileID: 8457748342752500984, guid: faa6c05044fd22a488c1466f131e5bfb, type: 3}
+    hullOffset: {x: -22, y: 0}
+    yawFromHull: 0
+    probeAbove: 40
+    probeReach: 120
+    dropHeight: 0.5
 --- !u!4 &1845903061
 Transform:
   m_ObjectHideFlags: 0

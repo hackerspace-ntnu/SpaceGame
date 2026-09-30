@@ -30,6 +30,11 @@ namespace SpaceGame.Agents
                  "if none does, the first spawned takes it.")]
         public bool isLeader;
 
+        [Tooltip("Rides one of the group's carriers (a member with a CrewShift) instead of walking: " +
+                 "spawned seated on a free crew post while the group marches, on foot by its " +
+                 "carrier's gangway while the group is stopped.")]
+        public bool crew;
+
         [Min(1)]
         public int count = 1;
     }
@@ -228,6 +233,13 @@ namespace SpaceGame.Agents
         /// </summary>
         public bool Delivered;
 
+        /// <summary>
+        /// The group's crew is ashore (or on its way ashore/back) rather than seated aboard its
+        /// carriers. Saved (Record.crewAshore), so a walking city mid-disembark on save comes back
+        /// the same way rather than snapping its crew back aboard.
+        /// </summary>
+        public bool CrewAshore;
+
         /// <summary>The vessel flying this group in, or flying home after dropping it off. Runtime only.</summary>
         [NonSerialized] public GameObject Transport;
 
@@ -330,6 +342,10 @@ namespace SpaceGame.Agents
             // Appended 2026-09-17 (sky tribe plan, Task 7). Older saves read false: a party with a
             // transport flies in again; one without never reads it.
             public bool delivered;
+
+            // Appended 2026-09-24 (Striders walking city). Older saves read false: the group comes
+            // back marching, its crew seated, which is what every group without crew already does.
+            public bool crewAshore;
         }
 
         public Record ToRecord() => new Record
@@ -351,6 +367,7 @@ namespace SpaceGame.Agents
             tier = Tier,
             wipedOut = WipedOut,
             delivered = Delivered,
+            crewAshore = CrewAshore,
         };
 
         public void ApplyRecord(in Record record)
@@ -372,6 +389,7 @@ namespace SpaceGame.Agents
             Tier = Mathf.Max(0, record.tier);
             WipedOut = record.wipedOut;
             Delivered = record.delivered;
+            CrewAshore = record.crewAshore;
         }
     }
 }

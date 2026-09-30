@@ -4,7 +4,7 @@
 // the iris, the jet leaving it, and the loop that says it is running — all driven off one "is it
 // spraying" flag. This is the IMPACT: the gob that bursts where a dab landed, the blast that
 // punches out of the muzzle when the trigger goes down, and the kick that puts both into the
-// player's hands. The split is the same one GravelBlastFx draws for the gravel blaster, and for the
+// player's hands. The split is the same one PelletGunFx draws for the pellet guns, and for the
 // same reason: a bell that has to be told about landing points is a bell that has stopped being a
 // bell.
 //

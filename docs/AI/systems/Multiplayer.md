@@ -8,6 +8,7 @@ paths:
   - Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset
   - Assets/Game/Scripts/Gameplay/Health/NetDamage.cs
   - Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs
+  - Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs
 symptoms:
   - "it works when I host but the client sees nothing happen"
   - "an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject'"
@@ -18,8 +19,9 @@ symptoms:
   - "the game is laggy with five or six players but fine with two"
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
+  - "a builder-made NPC stops moving on clients when it walks into another chunk scene; its prefab has SceneMigrationSynchronization: 0"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-15
+updated: 2026-09-24
 ---
 
 # Multiplayer / Netcode core
@@ -68,6 +70,7 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 | `ChatNetwork`/`ChatLog`/`ChatCommands`/`ChatBuiltinCommands`/`ChatText`/`ChatMessage` | [ChatNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Chat/ChatNetwork.cs) | Own 3 RPCs (NetArg has no string, NetTo has no unicast); token-bucket throttle; static log survives scene loads. Commands are an open table: `/tp`, `/help` here, `/wave` `/cheer` `/shrug` `/flex` from [PlayerEmoteCommands](Assets/Game/Scripts/Characters/Player/PlayerEmoteCommands.cs) |
 | `MultiplayerAutotest`/`AutotestRunner.*`/`AutotestProbes` | [MultiplayerAutotest.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/MultiplayerAutotest.cs) | `-sgmode host\|client\|persist`; prints `[MPTEST] key=value` |
 | `NetworkPrefabRegistrar` | [NetworkPrefabRegistrar.cs](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) | `Tools/SpaceGame/Multiplayer/Sync Network Prefabs` |
+| `NetworkObjectDefaults` | [NetworkObjectDefaults.cs](Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs) | `KeepSceneMigrationSync(prefabPath)`: a prefab builder's last call on the saved asset |
 | Lobby (`LobbySession`, `LobbyJoinRecovery`, `LobbyTeams`, …) | [Lobby/](Assets/Game/Scripts/Core/Multiplayer/Lobby/) | Namespace `SpaceGame.Core.Lobbies` — see [Lobby.md](Lobby.md) |
 
 Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/Gameplay/Health/NetDamage.cs), [NetworkedHealthComponent.cs](Assets/Game/Scripts/Gameplay/Health/NetworkedHealthComponent.cs), [NetLatch.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs), [PlayerInventoryNetwork.cs](Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs), [NetworkPlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/NetworkPlayerController.cs), [SpawnManager.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/SpawnManager.cs).
@@ -104,6 +107,7 @@ The layer saves nothing itself; it *carries* persistence. `ReportProfileServerRp
 - **A message names a body, but nothing on the wire says the sender is entitled to it.** `NetArg.Target` is a `NetworkObjectId` a client chooses; the sender id is separate. A server handler that acts on `arg.Resolve()` without `Network.MayActFor` lets one player leave another's seat, claim another's station or drain a net holding another's captive — none of which the host can reproduce, because the host is always waved through as `ServerClientId`.
 - **The tag, the `Rigidbody` and the `NetworkObject` of a player must be on ONE GameObject.** Physics queries return the Rigidbody's object, `NetArg.Resolve` returns the NetworkObject's, and a tag check asks a third. Separate them and the object recorded locally is not the object announced, so the handler acts on the wrong body **on clients only and in silence** — the host still holds `NetArg.localTarget`, which never leaves the machine, so it is right by accident. `NetGunWiringTests.ThePlayerTagRigidbodyAndNetworkObjectShareOneGameObject` pins it.
 - **Unregistered network prefab = perfect host, blind clients.** Run `Sync Network Prefabs`. The live list is `Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset`; the root `Assets/DefaultNetworkPrefabs.asset` regenerates itself and is **not** what NetworkManager loads. A script-created `NetworkObject` ships `GlobalObjectIdHash: 0`, and duplicate 0s make NGO drop all but one prefab silently.
+- **A builder that works in an open scene bakes `SceneMigrationSynchronization` off.** `NetworkObject.OnValidate` treats any copy in a build-listed open scene — the scratch root a builder creates, or a probe instance it edits and `ApplyPrefabInstance`s back (`NomadPrefabBuilder.CorrectScaleAndSole`) — as in-scene placed and switches migration sync off; the save/apply writes that into the asset. Whether it happens depends only on which scene was open, so the same builder produces good and bad prefabs. A spawned agent with it off stops moving on clients once it migrates into another chunk scene. Call `NetworkObjectDefaults.KeepSceneMigrationSync(prefabPath)` on the **saved asset, after the last save or apply** — setting it on the scratch root is undone by a later apply. `StriderNetworkPrefabTests` pins the Strider prefabs and the DesertCrawler.
 - **`[Rpc]` on a non-`NetworkBehaviour` is silently inert** — ILPP only rewrites NetworkBehaviours.
 - **Sibling components share one channel.** A ship with four seats or a hull with two doors gets every message on all of them; number them with `NetChannel.IndexOf<T>` into `NetArg.A`. That index is *positional* and does not survive reordering prefab children between builds.
 - **Handlers must be idempotent and re-entrancy-safe** — on the host a request handler that answers with a broadcast re-enters `Dispatch` inline, applying state twice. Act only when it differs.

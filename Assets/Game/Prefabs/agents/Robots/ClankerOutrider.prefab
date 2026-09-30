@@ -1272,6 +1272,7 @@ GameObject:
   - component: {fileID: -3081636864419717085}
   - component: {fileID: 6264196981007672090}
   - component: {fileID: 8053404926183458829}
+  - component: {fileID: -2223607601577834730}
   m_Layer: 0
   m_Name: ClankerOutrider
   m_TagString: Untagged
@@ -2306,13 +2307,17 @@ MonoBehaviour:
   minRadius: 0.04
   totalMass: 70
   minBoneMass: 0.6
+  maxJointMassRatio: 8
   angularDamping: 0.6
   linearDamping: 0.05
   solverIterations: 14
   sleepWhenSettled: 1
+  boneSleepThreshold: 0.05
   selfCollision: 0
   swingLimit: 45
   twistLimit: 25
+  projectionDistance: 0.05
+  projectionAngle: 10
   settleLinearSpeed: 0.35
   settleAngularSpeed: 1.2
   settleSeconds: 0.45
@@ -2335,6 +2340,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  knockdown:
+    fallSeconds: 1
+    minSeconds: 1
+    maxSeconds: 2
+    threshold: 0.35
+    fullSeverity: 1
+    damageWeight: 1
+    lowHealthWeight: 0.5
+    knockbackWeight: 1
+    knockbackReferenceSpeed: 20
+    settleGraceSeconds: 1.5
+    reknockImmunitySeconds: 1
+  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
-  downedSeconds: 1.2
+--- !u!114 &-2223607601577834730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9222632965478916354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dba9c324820a2d3438abb638878e91eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CrewSaveable

@@ -89,6 +89,7 @@ namespace SpaceGame.EditorTools
             var member = new GameObject("Nomad");
             junk.Add(member);
             member.AddComponent<EntityFaction>();
+            member.AddComponent<HealthComponent>();
 
             var group = new NpcGroup { Id = "g" };
             GroupMembership membership = GroupMembership.Stamp(member, group, 3, tribe);
@@ -207,6 +208,28 @@ namespace SpaceGame.EditorTools
             const int seed = 55, member = 2, candidates = 7;
             Assert.AreEqual(RosterDraw.IndexFor(seed, member, candidates),
                             RosterDraw.IndexFor(seed, member, candidates));
+        }
+
+        [Test]
+        public void CrewAshore_RoundTripsThroughTheSaveSerializer()
+        {
+            var group = new NpcGroup { Id = "strider-city", TemplateId = "strider-city", CrewAshore = true };
+            JObject json = JObject.FromObject(group.ToRecord(), SaveSerializer.Serializer);
+            NpcGroup.Record back = json.ToObject<NpcGroup.Record>(SaveSerializer.Serializer);
+
+            var restored = new NpcGroup { Id = back.id, TemplateId = back.templateId };
+            restored.ApplyRecord(in back);
+            Assert.IsTrue(restored.CrewAshore);
+        }
+
+        [Test]
+        public void Record_FromAnOlderSave_ReadsCrewAboard()
+        {
+            var old = JObject.Parse("{\"id\":\"strider-city\",\"templateId\":\"strider-city\",\"taskIndex\":1}");
+            NpcGroup.Record record = old.ToObject<NpcGroup.Record>(SaveSerializer.Serializer);
+            var group = new NpcGroup { Id = record.id };
+            group.ApplyRecord(in record);
+            Assert.IsFalse(group.CrewAshore, "an old save spawns the city marching");
         }
     }
 }

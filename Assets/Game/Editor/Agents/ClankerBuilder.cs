@@ -29,22 +29,17 @@
 //   do not skate at a run; the patrol walk is a fraction of it and the blend tree's idle<->walk
 //   blend scales the stride to match.
 //
+// Only the body is this file's. Everything a Clanker DOES -- patrol, gun, faction, netcode,
+// savers -- is ClankerStack, shared with the three other bodies ClankerBodyBuilder dresses
+// (PatrolRobot 1/2/3). The one command builds all four, then registers, wires and verifies them.
+//
 // Re-run from: Tools > SpaceGame > Agents > Build Clanker Prefab
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
-using UnityEngine.AI;
-using SpaceGame.Agents;
-using SpaceGame.Core;
-using SpaceGame.Core.Persistence;
 using SpaceGame.Core.Persistence.EditorTools;
-using SpaceGame.Gameplay;
-using SpaceGame.Items;
-using SpaceGame.World;
-using SpaceGame.World.Safety;
-using Unity.Netcode;
 
 namespace SpaceGame.EditorTools
 {
@@ -56,69 +51,18 @@ namespace SpaceGame.EditorTools
         public const string PrefabPath = "Assets/Game/Prefabs/Agents/Robots/Clanker.prefab";
         private const string MaterialDir = "Assets/Game/Art/Materials/Characters";
 
-        private const string FactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
-        private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
-        // What a Clanker carries: a real InventoryItem, rolled at spawn by NpcRandomLoadout, held
-        // and fired through EntityEquipmentController + NpcItemUseModule -- the sand nomads' path,
-        // not the built-in AgentRangedCombatModule ray. The gun in its hand is the gun you loot
-        // off it, because it is the same prefab. Ranged artifacts only: NpcItemUseModule fires the
-        // held item at a target between minRange and maxRange, and a gauntlet or a scanner in the
-        // hand would be raised and "used" at nothing every cooldown.
-        // The same seven the sand nomads roll from (NomadPrefabBuilder): every one has been fired
-        // by an NpcItemUseModule in play. Not the flamethrower or the cryo sprayer, which have not.
-        private static readonly string[] HeldWeaponPaths =
-        {
-            "Assets/Game/Resources/Items/Artifacts/basicgun.asset",
-            "Assets/Game/Resources/Items/Artifacts/GravelBlaster.asset",
-            "Assets/Game/Resources/Items/Artifacts/NetGun.asset",
-            "Assets/Game/Resources/Items/Artifacts/LaserStaff.asset",
-            "Assets/Game/Resources/Items/Artifacts/BallLightningWeapon.asset",
-            "Assets/Game/Resources/Items/Artifacts/LightningSpell.asset",
-            "Assets/Game/Resources/Items/Artifacts/DragonBazooka.asset",
-        };
-
-        // What a Clanker is carrying HOME (design doc: they hunt artifacts). Bag slot 1, never
-        // drawn, dropped with the gun on death -- so a dead Clanker is worth looting and two dead
-        // Clankers are not the same loot. Half of them carry nothing but the gun.
-        private static readonly string[] CarriedArtifactPaths =
-        {
-            "Assets/Game/Resources/Items/Artifacts/Lantern.asset",
-            "Assets/Game/Resources/Items/Artifacts/StormFlask.asset",
-            "Assets/Game/Resources/Items/Artifacts/SlickCan.asset",
-            "Assets/Game/Resources/Items/Artifacts/AntiGravityPotion.asset",
-            "Assets/Game/Resources/Items/Artifacts/JumpingRod.asset",
-            "Assets/Game/Resources/Items/Artifacts/Flamethrower.asset",
-            "Assets/Game/Resources/Items/Artifacts/CryoSprayer.asset",
-            "Assets/Game/Resources/Items/Artifacts/FoamGun.asset",
-            "Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset",
-            "Assets/Game/Resources/Items/Artifacts/InflatorNozzle.asset",
-        };
-        private const int CarriedArtifactEmptyRolls = 10;
-        /// <summary>
-        /// The band the Clanker's held gun fires in. Public because a Clanker is not always the
-        /// thing that chooses where it stands — a mounted one is carried into range by its horse,
-        /// and <c>RobotHorseBuilder</c> picks the outrider's standoff against these two numbers.
-        /// </summary>
-        public const float GunMinRange = 4f;
-
-        /// <inheritdoc cref="GunMinRange"/>
-        public const float GunMaxRange = 28f;
+        /// <summary>The Rigify right hand the held gun parents to.</summary>
+        private const string HandBone = "DEF-hand.R";
 
         /// <summary>
-        /// How far a Clanker spots a person, and how far one can get before it gives up. The
-        /// inline AgentTargeting defaults (35 / 45 m) are a creature's; a sentry on open sand
-        /// with a gun that reaches 28 m should see you coming from well past that. Written into
-        /// a TargetingProfile asset so it can be tuned in the Inspector and saved by id.
+        /// Every Clanker body this command builds: the RPR body first (the outrider's rider and the
+        /// reference every other body's stack is tested against), then the Same Gev Dudios bodies.
         /// </summary>
-        public const float SightAcquireRange = 110f;
-        public const float SightLoseRange = 140f;
-        public const string TargetingProfilePath = "Assets/Game/ScriptableObjects/Targeting/Clanker.asset";
+        public static IReadOnlyList<string> AllPrefabPaths { get; } =
+            new[] { PrefabPath }.Concat(ClankerBodyBuilder.All.Select(r => r.PrefabPath)).ToArray();
 
         /// <summary>Animator bool NpcPassenger holds while the Clanker rides a robot horse.</summary>
         public const string SeatedParameter = "IsSeated";
-
-        /// <summary>How far one Clanker's sighting or hit carries to the others.</summary>
-        public const float AlertRadius = 60f;
 
         /// <summary>
         /// Height the body is scaled to. The astronaut is 3.25 m and the nomads 3 m; a Clanker
@@ -126,17 +70,17 @@ namespace SpaceGame.EditorTools
         /// </summary>
         public const float TargetHeight = 3.2f;
 
-        /// <summary>How far a Clanker on foot wanders from where it stood. A band's leader carries the band.</summary>
-        public const float PatrolRadius = 35f;
-
-        /// <summary>Patrol pace as a fraction of the run the stride was measured at.</summary>
-        public const float WalkFraction = 0.45f;
-
         /// <summary>
         /// Fraction of a walk cycle a foot spends on the ground. The clip does not say; 0.6 is a
         /// walking gait's usual duty factor and is what turns foot travel into ground speed.
         /// </summary>
         public const float StanceDuty = 0.6f;
+
+        /// <summary>
+        /// Capsule radius as a fraction of the bind pose's widest half-extent: the RPR body's
+        /// arms hang close, so most of that width is body.
+        /// </summary>
+        private const float FootprintFraction = 0.6f;
 
         // The palette copies these are made from. The (DoubleSided) assets under Materials/Vehicles
         // are the only standalone .mat files the palette has; every other palette material is a
@@ -174,23 +118,29 @@ namespace SpaceGame.EditorTools
 
             Material[] materials = BuildMaterials();
             AnimatorController controller = BuildController(clips, strideSpeed);
-            GameObject prefab = BuildPrefab(controller, materials, strideSpeed);
-            if (prefab == null) return;
+            if (BuildPrefab(controller, materials, strideSpeed) == null) return;
 
-            // Sync, not SyncMenu: the menu variant ends in a modal dialog, which parks the whole
-            // editor behind an OK button nobody driving this from a script can press.
+            // The other bodies run at the RPR stride speed too: one Clanker, one pace.
+            foreach (ClankerBodyBuilder.Recipe recipe in ClankerBodyBuilder.All)
+                if (ClankerBodyBuilder.Build(recipe, strideSpeed) == null) return;
+
+            // Once for all four bodies. Sync, not SyncMenu: the menu variant ends in a modal
+            // dialog, which parks the whole editor behind an OK button nobody driving this from a
+            // script can press.
             Debug.Log(NetworkPrefabRegistrar.Sync(out _, out _));
             if (!SaveableWiring.TryWirePrefabs())
                 Debug.LogError("[ClankerBuilder] Save wiring failed; run Tools > Save System > Wire Saveable Prefabs by hand.");
             RagdollWiring.WirePrefabs();
 
-            if (!Verify(out string report))
-            {
-                Debug.LogError("[ClankerBuilder] " + report);
-                return;
-            }
+            Report(PrefabPath, Verify(out string report), report);
+            foreach (ClankerBodyBuilder.Recipe recipe in ClankerBodyBuilder.All)
+                Report(recipe.PrefabPath, ClankerBodyBuilder.Verify(recipe, out string bodyReport), bodyReport);
+        }
 
-            Debug.Log($"[ClankerBuilder] Built {PrefabPath}. {report}", prefab);
+        private static void Report(string path, bool verified, string report)
+        {
+            if (verified) Debug.Log($"[ClankerBuilder] Built {path}. {report}");
+            else Debug.LogError($"[ClankerBuilder] {path}: {report}");
         }
 
         // ── import ───────────────────────────────────────────────────────────────
@@ -281,25 +231,6 @@ namespace SpaceGame.EditorTools
             }
         }
 
-        /// <summary>
-        /// A random pick into one bag slot. <paramref name="emptyRolls"/> null candidates are
-        /// appended so the roll can come up empty: NpcRandomLoadout treats a null pick as nothing.
-        /// </summary>
-        private static void AddLoadout(GameObject root, string[] paths, int slot, bool equip, int emptyRolls)
-        {
-            var loadout = root.AddComponent<NpcRandomLoadout>();
-            var so = new SerializedObject(loadout);
-            SerializedProperty candidates = so.FindProperty("candidates");
-            InventoryItem[] items = paths.Select(AssetDatabase.LoadAssetAtPath<InventoryItem>).Where(i => i != null).ToArray();
-            if (items.Length < paths.Length)
-                Debug.LogError($"[ClankerBuilder] An artifact in the slot {slot} loadout list is missing.");
-            candidates.arraySize = items.Length + emptyRolls;
-            for (int i = 0; i < items.Length; i++) candidates.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
-            SerializedFields.SetInt(so, "slot", slot);
-            so.FindProperty("equipAfterRoll").boolValue = equip;
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
         /// <summary>Uniform scale that brings the bind pose to <see cref="TargetHeight"/>.</summary>
         private static float ModelScale(GameObject instance)
         {
@@ -319,7 +250,7 @@ namespace SpaceGame.EditorTools
 
         private static Material[] BuildMaterials()
         {
-            EnsureFolder(MaterialDir);
+            StaticPropBuilder.EnsureFolder(MaterialDir);
             var result = new Material[Materials.Length];
             for (int i = 0; i < Materials.Length; i++)
             {
@@ -352,54 +283,11 @@ namespace SpaceGame.EditorTools
             return result;
         }
 
-        // ── targeting ────────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Creates or updates the Clanker's targeting profile in place (the GUID is its save id).
-        /// </summary>
-        private static TargetingProfile WriteTargetingProfile()
-        {
-            EnsureFolder(System.IO.Path.GetDirectoryName(TargetingProfilePath).Replace('\\', '/'));
-            var profile = AssetDatabase.LoadAssetAtPath<TargetingProfile>(TargetingProfilePath);
-            if (profile == null)
-            {
-                profile = ScriptableObject.CreateInstance<TargetingProfile>();
-                AssetDatabase.CreateAsset(profile, TargetingProfilePath);
-            }
-
-            profile.relationship = FactionRelationship.Hostile;
-            profile.acquisitionRange = SightAcquireRange;
-            profile.loseRange = SightLoseRange;
-            profile.memoryDuration = VisionBaseline.MinMemory;
-            profile.requireLineOfSightToAcquire = true;
-            EditorUtility.SetDirty(profile);
-            AssetDatabase.SaveAssets();
-
-            // The id is the asset GUID, the same key every other persisted ScriptableObject here
-            // uses. TargetingProfile.OnValidate stamps it for an asset edited in the Inspector, but
-            // one created and saved from code came back with an empty id even after a forced
-            // import (2026-09-07) -- and AgentStateSaveable records profileId, so an agent restored
-            // from a save would then reload on the inline 35 / 45 m defaults with nothing said.
-            // Stamped here, and refused if it is still empty afterwards.
-            string guid = AssetDatabase.AssetPathToGUID(TargetingProfilePath);
-            if (profile.ID != guid)
-            {
-                profile.ID = guid;
-                EditorUtility.SetDirty(profile);
-                AssetDatabase.SaveAssets();
-            }
-
-            profile = AssetDatabase.LoadAssetAtPath<TargetingProfile>(TargetingProfilePath);
-            if (string.IsNullOrEmpty(profile.ID))
-                throw new System.InvalidOperationException($"[ClankerBuilder] {TargetingProfilePath} has no id after saving.");
-            return profile;
-        }
-
         // ── controller ───────────────────────────────────────────────────────────
 
         private static AnimatorController BuildController(Dictionary<string, AnimationClip> clips, float strideSpeed)
         {
-            EnsureFolder(System.IO.Path.GetDirectoryName(ControllerPath).Replace('\\', '/'));
+            StaticPropBuilder.EnsureFolder(System.IO.Path.GetDirectoryName(ControllerPath).Replace('\\', '/'));
 
             // Emptied through the AnimatorController API and rebuilt in place. The first Clanker
             // build deleted and recreated the asset; the second wiped its sub-assets by hand and
@@ -513,183 +401,30 @@ namespace SpaceGame.EditorTools
             // it, one is added in the same place.
             Animator animator = model.GetComponent<Animator>();
             if (animator == null) animator = model.AddComponent<Animator>();
-            var importer = (ModelImporter)AssetImporter.GetAtPath(Fbx);
             animator.avatar = AssetDatabase.LoadAllAssetsAtPath(Fbx).OfType<Avatar>().FirstOrDefault();
             animator.runtimeAnimatorController = controller;
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
-            // -- physical presence, in true metres on the unscaled root --------------
-            float radius = Mathf.Max(bounds.extents.x, bounds.extents.z) * 0.6f;
-            var capsule = root.AddComponent<CapsuleCollider>();
-            capsule.radius = radius;
-            capsule.height = bounds.size.y;
-            capsule.center = new Vector3(0f, bounds.size.y * 0.5f, 0f);
-
-            var body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = false;
-            body.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-
-            float runSpeed = strideSpeed;
-            var agent = root.AddComponent<NavMeshAgent>();
-            agent.radius = radius;
-            agent.height = bounds.size.y;
-            agent.speed = runSpeed;
-            agent.angularSpeed = 200f;
-            agent.acceleration = 14f;
-            agent.stoppingDistance = 2f;
-            agent.autoBraking = true;
-
-            // -- motor, animation, brain ---------------------------------------------
-            var motor = root.AddComponent<NavMeshAgentMotor>();
-            SetField(motor, "agent", agent);
-            SetFloat(motor, "walkSpeedMultiplier", WalkFraction);
-
-            var driver = root.AddComponent<AgentAnimatorDriver>();
-            SetField(driver, "animator", animator);
-            SetFloat(driver, "animationSpeedMultiplier", 1f);
-            SetFloat(driver, "walkAnimBoost", 1f);
-            SetFloat(driver, "animatorSpeedScale", 1f);
-            SetFloat(driver, "measuredRunSpeed", runSpeed * 0.7f);
-
-            var brain = root.AddComponent<AgentController>();
-            SetField(brain, "MotorComponent", motor);
-            SetField(brain, "animatorDriver", driver);
-
-            var health = root.AddComponent<HealthComponent>();
-            SetInt(health, "maxHealth", 160);
-            SetInt(health, "currentHealth", 160);
-            root.AddComponent<HealthReactionModule>();
-
-            var faction = root.AddComponent<EntityFaction>();
-            SetField(faction, "faction", AssetDatabase.LoadAssetAtPath<FactionDefinition>(FactionPath));
-            SetField(faction, "relationshipTable", AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(RelationshipsPath));
-
-            // A machine watches a wide arc, and a robot cowboy sees a long way across open sand.
-            var perception = root.AddComponent<PerceptionModule>();
-            SetFloat(perception, "fieldOfViewAngle", VisionBaseline.MinFieldOfView);
-            SetFloat(perception, "eyeHeight", bounds.size.y * 0.9f);
-            SetFloat(perception, "memoryDuration", VisionBaseline.MinMemory);
-            SetInt(perception, "occlusionLayers", LayerMaskOf("Default", "Ground", "Interior"));
-
-            AgentTargeting targeting = root.GetComponent<AgentTargeting>();
-            if (targeting == null) targeting = root.AddComponent<AgentTargeting>();
-            SetField(targeting, "profile", WriteTargetingProfile());
-
-            // -- behaviour: a patrol that chases, kites and shoots ---------------------
-            // Script-added modules keep priority 0 (Unity does not call Reset for AddComponent),
-            // so every one is set explicitly or it ties with the patrol.
-            var patrol = root.AddComponent<PatrolModule>();
-            SetPriority(patrol, ModulePriority.Fallback);
-            SetFloat(patrol, "patrolRadius", PatrolRadius);
-            SetFloat(patrol, "minWaitTime", 2f);
-            SetFloat(patrol, "maxWaitTime", 6f);
-
-            // Bands. Inert on the prefab (no id); every placer that puts Clankers down together --
-            // the settlement generator, the squad placer, the town's spawner -- gives the group an
-            // id and makes one of them the leader. The leader patrols; the rest keep formation.
-            var formation = root.AddComponent<FormationModule>();
-            SetPriority(formation, ModulePriority.Social);
-            SetString(formation, "formationId", string.Empty);
-            SetBool(formation, "isLeader", false);
-
-            var chase = root.AddComponent<ChaseModule>();
-            SetPriority(chase, ModulePriority.Reactive);
-            SetFloat(chase, "chaseStopDistance", 6f);
-
-            var search = root.AddComponent<SearchModule>();
-            SetPriority(search, ModulePriority.Reactive - 1);
-
-            var keepDistance = root.AddComponent<KeepDistanceModule>();
-            SetPriority(keepDistance, ModulePriority.Ambient);
-
-            // -- the gun in its hand ---------------------------------------------------
-            Transform hand = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "DEF-hand.R");
-            if (hand == null) Debug.LogWarning("[ClankerBuilder] No DEF-hand.R bone; the held item falls back to a name search.");
-
-            var inventory = root.AddComponent<EntityInventoryComponent>();
-            SetInt(inventory, "inventorySize", 2);      // the gun, and what it is carrying home
-
-            var equipment = root.AddComponent<EntityEquipmentController>();
-            if (hand != null) SetField(equipment, "handSocket", hand);
-            SetInt(equipment, "startingSlot", 0);
-            SetBool(equipment, "aimHeldItem", true);
-            SetFloat(equipment, "eyeHeight", bounds.size.y * 0.85f);
-
-            AddLoadout(root, HeldWeaponPaths, slot: 0, equip: true, emptyRolls: 0);
-            AddLoadout(root, CarriedArtifactPaths, slot: 1, equip: false, emptyRolls: CarriedArtifactEmptyRolls);
-
-            var use = root.AddComponent<NpcItemUseModule>();
-            SetPriority(use, ModulePriority.RangedAttack);
-            SetInt(use, "slotIndex", 0);
-            SetEnum(use, "trigger", 0);                       // Trigger.TargetInRange
-            SetFloat(use, "minRange", GunMinRange);
-            SetFloat(use, "maxRange", GunMaxRange);
-            SetFloat(use, "cooldown", 0.9f);
-            SetInt(use, "burstCount", 1);
-            SetFloat(use, "reactionDelay", 0.3f);            // a machine, not a surprised person
-            SetFloat(use, "targetHeightOffset", 1.6f);       // chest height on a 3.2 m astronaut
-            SetString(use, "useAnimTrigger", "AssualtShoot");
-
-            // Drops whatever it was holding. No fixed loot entries: the gun IS the loot.
-            var loot = root.AddComponent<EntityLootTable>();
-            SetBool(loot, "dropInventoryContents", true);
-
-            var look = root.AddComponent<IdleLookAroundModule>();
-            SetPriority(look, ModulePriority.Ambient);
-
-            // A sighting or a hit is passed to every Clanker within the radius through the
-            // targeting registry (AlertBroadcaster); the receivers take it as a grudge and do not
-            // pass it on. The whole town is 260 m across, so the radius reaches the next ring.
-            var broadcaster = root.AddComponent<AlertBroadcaster>();
-            SetFloat(broadcaster, "alertRadius", AlertRadius);
-            var receiver = root.AddComponent<AlertReceiverModule>();
-            SetPriority(receiver, ModulePriority.Reactive - 1);
-            SetFloat(receiver, "alertDuration", 15f);
-
-            // Hostile by stance, so the grudge is redundant most of the time; it is here because
-            // an alert sticks through ProvocationModule and because a Clanker that is hit should
-            // announce its attacker to the others.
-            var provocation = root.AddComponent<ProvocationModule>();
-            SetFloat(provocation, "leashRange", SightLoseRange);
-            SetFloat(provocation, "calmDownDelay", 45f);
-
-            root.AddComponent<NoiseEmitter>();
-            var hearing = root.AddComponent<NoiseReceiverModule>();
-            SetPriority(hearing, ModulePriority.Reactive - 2);
-
-            var tracked = root.AddComponent<SceneTracked>();
-            SetEnum(tracked, "policy", (int)SceneTracked.UnloadPolicy.Migrate);
-            SetBool(tracked, "keepChunksLoaded", false);
-            root.AddComponent<UnderTerrainGuard>();
-
-            // -- netcode, NetworkObject first so the NetworkBehaviours have something to ride --
-            root.AddComponent<NetworkObject>();
-            root.AddComponent<ClientNetworkTransform>();
-            root.AddComponent<NetRelay>();
-            root.AddComponent<NetAuthority>();
-            root.AddComponent<NetworkedHealthComponent>();
-
-            // -- persistence: in the builder, because a rebuild overwrites the prefab wholesale --
-            root.AddComponent<SaveableEntity>();
-            root.AddComponent<TransformSaveable>();
-            root.AddComponent<HealthSaveable>();
-            root.AddComponent<AgentStateSaveable>();
-
-            AgentGroundConformWiring.Ensure(root);
-
-            EnsureFolder(System.IO.Path.GetDirectoryName(PrefabPath).Replace('\\', '/'));
-            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool ok);
-            Object.DestroyImmediate(root);
-            if (!ok)
+            ClankerStack.Apply(root, new ClankerBodyFit
             {
-                Debug.LogError($"[ClankerBuilder] Could not save {PrefabPath}.");
-                return null;
-            }
+                animator = animator,
+                bounds = bounds,
+                radius = Mathf.Max(bounds.extents.x, bounds.extents.z) * FootprintFraction,
+                handSocket = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == HandBone),
+                runSpeed = strideSpeed,
+                // The blend tree is built in true m/s at the measured stride (BuildController), so
+                // the driver passes velocity through unscaled and plays the clips at their own rate.
+                animationSpeedMultiplier = 1f,
+                walkAnimBoost = 1f,
+                animatorSpeedScale = 1f,
+            });
 
-            Debug.Log($"[ClankerBuilder] Body scaled {scale:F3} to {bounds.size.y:F2} m tall, capsule r {radius:F2}; " +
-                      $"run {runSpeed:F2} m/s, walk {runSpeed * WalkFraction:F2} m/s.");
+            GameObject saved = ClankerStack.Save(root, PrefabPath);
+            if (saved == null) return null;
+
+            Debug.Log($"[ClankerBuilder] RPR body scaled {scale:F3} to {bounds.size.y:F2} m tall; " +
+                      $"run {strideSpeed:F2} m/s, walk {strideSpeed * ClankerStack.WalkFraction:F2} m/s, animatorSpeedScale 1.");
             return saved;
         }
 
@@ -699,106 +434,23 @@ namespace SpaceGame.EditorTools
             if (prefab == null) { report = "prefab did not save"; return false; }
 
             var missing = new List<string>();
-            void Need<T>() where T : Component { if (prefab.GetComponentInChildren<T>(true) == null) missing.Add(typeof(T).Name); }
-            Need<Animator>(); Need<AgentController>(); Need<NavMeshAgent>(); Need<EntityFaction>();
-            Need<NpcItemUseModule>(); Need<EntityEquipmentController>(); Need<NpcRandomLoadout>(); Need<EntityLootTable>();
-            Need<NetworkObject>(); Need<NetAuthority>(); Need<SaveableEntity>();
-            Need<HealthComponent>(); Need<AgentGroundConform>();
+            ClankerStack.Verify(prefab, missing);
 
             var animator = prefab.GetComponentInChildren<Animator>(true);
             if (animator != null && animator.transform.Find("rig.001") == null)
                 missing.Add("Animator is not on the object that owns rig.001 -- the clips bind to nothing");
             var controller = animator != null ? animator.runtimeAnimatorController as AnimatorController : null;
-            if (controller == null)
-                missing.Add("Animator has no controller");
-            else if (controller.layers.Length == 0 || controller.layers[0].stateMachine.states.Length < 2)
+            if (controller != null && (controller.layers.Length == 0 || controller.layers[0].stateMachine.states.Length < 2))
                 missing.Add("the controller has no states -- the robot would stand in its bind pose");
 
             var skin = prefab.GetComponentInChildren<SkinnedMeshRenderer>(true);
             if (skin != null && skin.sharedMaterials.Any(m => m == null || m.name.StartsWith("Material.")))
                 missing.Add("a submesh still wears an FBX sub-asset material");
 
-            var netObj = prefab.GetComponent<NetworkObject>();
-            if (netObj != null && netObj.PrefabIdHash == 0)
-                missing.Add("NetworkObject GlobalObjectIdHash is 0 -- clients cannot spawn it");
-
-            var saveable = prefab.GetComponent<SaveableEntity>();
-            if (saveable == null || string.IsNullOrEmpty(saveable.PrefabId))
-                missing.Add("SaveableEntity has no prefabId -- it will vanish on load");
-
             report = missing.Count == 0
                 ? "verified: animator on rig root, palette materials, network hash, save id."
                 : "missing: " + string.Join("; ", missing);
             return missing.Count == 0;
-        }
-
-        // ── serialized-field helpers (SerializedFields warns on a renamed field) ────
-
-        private static void SetField(Object target, string field, Object value)
-        {
-            var so = new SerializedObject(target);
-            SerializedFields.Set(so, field, value);
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetFloat(Object target, string field, float value)
-        {
-            var so = new SerializedObject(target);
-            SerializedFields.SetFloat(so, field, value);
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetInt(Object target, string field, int value)
-        {
-            var so = new SerializedObject(target);
-            SerializedFields.SetInt(so, field, value);
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetBool(Object target, string field, bool value)
-        {
-            var so = new SerializedObject(target);
-            SerializedFields.SetBool(so, field, value);
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetString(Object target, string field, string value)
-        {
-            var so = new SerializedObject(target);
-            SerializedFields.SetString(so, field, value);
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetEnum(Object target, string field, int index)
-        {
-            var so = new SerializedObject(target);
-            SerializedProperty p = so.FindProperty(field);
-            if (p == null) { Debug.LogWarning($"[ClankerBuilder] {target.GetType().Name}.{field} not found."); return; }
-            p.enumValueIndex = index;
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetPriority(Component module, int priority) => SetInt(module, "priority", priority);
-
-        private static int LayerMaskOf(params string[] names)
-        {
-            int mask = 0;
-            foreach (string n in names)
-            {
-                int layer = LayerMask.NameToLayer(n);
-                if (layer < 0) Debug.LogWarning($"[ClankerBuilder] No layer named '{n}'.");
-                else mask |= 1 << layer;
-            }
-            return mask;
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            string parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
-            string leaf = System.IO.Path.GetFileName(path);
-            EnsureFolder(parent);
-            AssetDatabase.CreateFolder(parent, leaf);
         }
     }
 }

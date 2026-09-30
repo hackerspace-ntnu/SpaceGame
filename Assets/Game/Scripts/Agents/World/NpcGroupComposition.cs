@@ -12,20 +12,25 @@ namespace SpaceGame.Agents
         public readonly GameObject Prefab;
         public readonly bool Leads;
 
-        public PlannedMember(GameObject prefab, bool leads)
+        /// <summary>Rides one of the group's carriers instead of walking (NpcGroupMemberSpec.crew).</summary>
+        public readonly bool Crew;
+
+        public PlannedMember(GameObject prefab, bool leads, bool crew = false)
         {
             Prefab = prefab;
             Leads = leads;
+            Crew = crew;
         }
     }
 
     public static class NpcGroupComposition
     {
         /// <summary>
-        /// Whether a planned member boards the group's vessel. Every drawn member does today; one that
-        /// travels another way is left out here, and so is neither counted for the vessel nor seated.
+        /// Whether a planned member boards the group's vessel. Every drawn member does except crew,
+        /// who ride one of the group's own carriers; one that travels another way is left out here,
+        /// and so is neither counted for the vessel nor seated.
         /// </summary>
-        public static bool Rides(PlannedMember member) => member.Prefab != null;
+        public static bool Rides(PlannedMember member) => member.Prefab != null && !member.Crew;
 
         public static List<PlannedMember> Resolve(NpcGroup group, NpcGroupTemplate template)
         {
@@ -66,7 +71,7 @@ namespace SpaceGame.Agents
                         ? spec.prefab
                         : roster != null ? roster.Draw(spec.role, group.RosterSeed, plan.Count) : null;
 
-                    plan.Add(new PlannedMember(prefab, spec.isLeader));
+                    plan.Add(new PlannedMember(prefab, spec.isLeader, spec.crew));
                 }
             }
 

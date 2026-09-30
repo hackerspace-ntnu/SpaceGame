@@ -59,15 +59,30 @@ namespace SpaceGame.EditorTools
 
         private static void Build(int legCount)
         {
-            string modelPath = $"{ModelDir}/crab_walker_{legCount}.fbx";
+            GameObject root = BuildBody(legCount);
+            if (root == null) return;
+
             string prefabPath = $"{PrefabDir}/CrabWalker{legCount}.prefab";
+            string rigName = WalkerRig.FindArmature(root.transform).name;
+            System.IO.Directory.CreateDirectory(PrefabDir);
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            Object.DestroyImmediate(root);
+
+            Debug.Log($"[Crab] Built {prefabPath}: {legCount} legs on {rigName}.");
+        }
+
+        /// <summary>A crab walker body with its locomotion wired and nothing else, not yet saved.
+        /// Null when the model is missing. The caller owns (and destroys) the returned root.</summary>
+        public static GameObject BuildBody(int legCount)
+        {
+            string modelPath = $"{ModelDir}/crab_walker_{legCount}.fbx";
 
             GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (model == null)
             {
                 Debug.LogError($"[Crab] No model at {modelPath}. Run " +
                                "Assets/Game/Art/Models/_Source~/models/creatures/crab_walker_export.py first.");
-                return;
+                return null;
             }
 
             var root = new GameObject($"CrabWalker{legCount}");
@@ -91,7 +106,7 @@ namespace SpaceGame.EditorTools
                                "Expected bones named Coxa_/Hip_/Knee_/Ankle_/Foot_<id>. Was the FBX " +
                                "exported with object_types including ARMATURE?");
                 Object.DestroyImmediate(root);
-                return;
+                return null;
             }
 
             DropModelOntoHips(root, instance);
@@ -104,12 +119,8 @@ namespace SpaceGame.EditorTools
 
             WireLocomotion(root, armature);
 
-            string rigName = armature.name;
-            System.IO.Directory.CreateDirectory(PrefabDir);
-            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-            Object.DestroyImmediate(root);
-
-            Debug.Log($"[Crab] Built {prefabPath}: {legCount} legs on {rigName}, {boxes} collision boxes.");
+            Debug.Log($"[Crab] Body {root.name}: {boxes} collision boxes.");
+            return root;
         }
 
         /// The leg ids the armature actually carries, taken from the Coxa_ bones. Sorted so a rebuild
@@ -269,8 +280,8 @@ namespace SpaceGame.EditorTools
             SetFloat(dso, "turnSpeed", 20f);
             SetFloat(dso, "acceleration", 1.6f);
             SetFloat(dso, "defaultStopDistance", 5f);
-            SetFloat(dso, "cornerArriveRadius", 5f);
-            SetFloat(dso, "navMeshSampleDistance", 12f);
+            SetFloat(dso, "route.cornerArriveRadius", 5f);
+            SetFloat(dso, "route.navMeshSampleDistance", 12f);
             dso.ApplyModifiedPropertiesWithoutUndo();
 
             // Kinematic, gravity off. The locomotion writes the hull transform directly (invariant I4),

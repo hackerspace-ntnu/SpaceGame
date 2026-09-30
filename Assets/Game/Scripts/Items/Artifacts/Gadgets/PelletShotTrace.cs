@@ -5,13 +5,13 @@ using SpaceGame.Gameplay;
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Traces one gravel-blaster shot: seed in, one <see cref="Pellet"/> per piece of gravel out,
-    /// each carrying where it went and what it met.
+    /// Traces one <see cref="PelletGunArtifact"/> shot: seed in, one <see cref="Pellet"/> per
+    /// pellet out, each carrying where it went and what it met.
     ///
     /// <para>
     /// Extracted from the artifact because the AUTHORITY and every WATCHING machine must walk the
-    /// same shot — the server to bill it, the peers to draw thirty streaks that end exactly where
-    /// the damage landed. Two copies of this loop would drift, and the drift would be invisible:
+    /// same shot — the server to bill it, the peers to draw streaks that end exactly where the
+    /// damage landed. Two copies of this loop would drift, and the drift would be invisible:
     /// the spray would keep looking right while it stopped agreeing with the hits.
     /// </para>
     /// <para>
@@ -19,9 +19,9 @@ namespace SpaceGame.Items
     /// gameplay and this runs on every machine watching.
     /// </para>
     /// </summary>
-    public static class GravelShotTrace
+    public static class PelletShotTrace
     {
-        /// <summary>One piece of gravel: the line it flew, and the thing it stopped against.</summary>
+        /// <summary>One pellet: the line it flew, and the thing it stopped against.</summary>
         public readonly struct Pellet
         {
             /// <summary>Unit direction out of the muzzle.</summary>
@@ -80,7 +80,7 @@ namespace SpaceGame.Items
             if (into == null) return;
             into.Clear();
 
-            foreach (Vector3 dir in GravelBlastMath.PelletDirections(seed, aim, count, spreadDeg))
+            foreach (Vector3 dir in PelletShotMath.PelletDirections(seed, aim, count, spreadDeg))
             {
                 if (!Physics.Raycast(origin, dir, out RaycastHit hit, range, mask,
                                      QueryTriggerInteraction.Ignore)

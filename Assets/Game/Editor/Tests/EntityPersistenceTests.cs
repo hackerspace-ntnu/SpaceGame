@@ -70,6 +70,25 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void NeedsSaving_IsFalseForAFlownVesselItsOwnerRebuilds()
+        {
+            // The shape of the Sky Tribe's transports: health and a faction, which each qualify on
+            // their own, and the pilot that says the war party's group record rebuilds this hull.
+            // Wired, the prefab carried an entity and savers the design never meant it to have, and
+            // every builder ending in the project-wide pass put them back.
+            GameObject hull = New("Transport");
+            hull.AddComponent<Rigidbody>().isKinematic = true;
+            hull.AddComponent<HealthComponent>();
+            hull.AddComponent<EntityFaction>();
+            hull.AddComponent<SpaceGame.Vehicles.VesselPilot>();
+
+            Assert.IsFalse(SaveablePolicy.NeedsSaving(hull, out string why),
+                $"A piloted vessel is rebuilt by its war party, never saved on its own; the policy said '{why}'.");
+            Assert.IsFalse(SaveablePolicy.EnsureSpawned(hull), "the runtime spawn pass must agree");
+            Assert.IsNull(hull.GetComponent<SaveableEntity>());
+        }
+
+        [Test]
         public void MountModuleIsAPersistentEntity()
         {
             // Declared on the type rather than discovered per prefab, so this is a compile-time fact

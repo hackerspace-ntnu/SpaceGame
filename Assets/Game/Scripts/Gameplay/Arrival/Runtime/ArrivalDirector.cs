@@ -155,6 +155,11 @@ namespace SpaceGame.Gameplay.Arrival
                  "time, which is why it is minutes rather than seconds.")]
         [SerializeField] private float strandedSeatTimeout = 180f;
 
+        [Tooltip("The vehicle parked beside every hull once it is down — one per landed ship, so one " +
+                 "per team in versus. Spawned once per world: a loaded world never flies an arrival, " +
+                 "and the vehicle comes back through its own SaveableEntity.")]
+        [SerializeField] private ArrivalStarterVehicle starterVehicle = new();
+
         /// <summary>Every hull on its way down, by team. A story world files its one under -1.</summary>
         private readonly Dictionary<int, ArrivalFlight> flights = new();
 
@@ -842,6 +847,8 @@ namespace SpaceGame.Gameplay.Arrival
 
             flight.Landed = true;
             descending--;
+            // After the books balance: an optional extra that throws must not hold the crew's release.
+            DeliverStarterVehicle(flight);
         }
 
         /// <summary>A descent whose hull went away. The books still have to balance.</summary>
@@ -880,6 +887,27 @@ namespace SpaceGame.Gameplay.Arrival
                 GroundFlightAtRest(flight);
                 flight.Landed = true;
             }
+
+            // A second pass, so every hull is grounded before any optional extra can throw.
+            foreach (ArrivalFlight flight in flights.Values)
+                if (flight.Landed) DeliverStarterVehicle(flight);
+        }
+
+        /// <summary>
+        /// Parks this hull's starter vehicle beside it, once. Called from every path that finishes a
+        /// landing for good — the settle, the watchdog, the versus fallback — and deliberately NOT
+        /// from <see cref="GroundUnfinishedFlights"/>: that one runs inside a save's capture (and at
+        /// network shutdown), where spawning a networked object is the wrong thing to do, and the
+        /// descent it interrupts still lands and delivers normally afterwards.
+        /// </summary>
+        private void DeliverStarterVehicle(ArrivalFlight flight)
+        {
+            if (!flight.IsAlive || flight.StarterVehicleDelivered) return;
+
+            // Marked before the spawn, not after it: a spawn that fails has already logged why, and
+            // retrying from the next landing path would only log it again.
+            flight.StarterVehicleDelivered = true;
+            starterVehicle.Deliver(flight.Ship);
         }
 
         /// <summary>

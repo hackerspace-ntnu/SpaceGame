@@ -49,7 +49,7 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
-| [AgentSystem](systems/AgentSystem.md) | Creatures, NPCs, enemies and turrets: one AgentController ticking priority-arbitrated behaviour modules | [EntitySystem](systems/EntitySystem.md), [Vehicles](systems/Vehicles.md), [Combat](systems/Combat.md), [NavMeshSystem](systems/NavMeshSystem.md), [Diagnostics](systems/Diagnostics.md), [CarriedAgent](systems/CarriedAgent.md), [SkyTribe](systems/SkyTribe.md) |
+| [AgentSystem](systems/AgentSystem.md) | Creatures, NPCs, enemies and turrets: one AgentController ticking priority-arbitrated behaviour modules | [EntitySystem](systems/EntitySystem.md), [Vehicles](systems/Vehicles.md), [Combat](systems/Combat.md), [NavMeshSystem](systems/NavMeshSystem.md), [Diagnostics](systems/Diagnostics.md), [CarriedAgent](systems/CarriedAgent.md), [SkyTribe](systems/SkyTribe.md), [Striders](systems/Striders.md) |
 | [CarriedAgent](systems/CarriedAgent.md) | A rope or a rocket lifts a NavMesh creature off its mesh; the motor carries it, falls it, lands it | [AgentSystem](systems/AgentSystem.md), [LeashSystem](systems/LeashSystem.md), [Jetpack](systems/Jetpack.md), [Locomotion](systems/Locomotion.md), [NavMeshSystem](systems/NavMeshSystem.md) |
 | [Combat](systems/Combat.md) | Health, damage, weapons, projectiles, death and ragdolls through one server-decided damage pipeline | [Artifacts](systems/Artifacts.md), [AgentSystem](systems/AgentSystem.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md) |
 | [EntitySystem](systems/EntitySystem.md) | How a GameObject becomes an entity — identity, save opt-in, and following the streaming grid between chunks | [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [WorldStreaming](systems/WorldStreaming.md), [Vehicles](systems/Vehicles.md) |
@@ -57,7 +57,8 @@ grep -i 'client' docs/AI/ROUTING.md
 | [Ladders](systems/Ladders.md) | Ladder volumes, and the LadderClimber that climbs, slides down and steps off them | [PlayerCharacter](systems/PlayerCharacter.md), [ArtPipeline](systems/ArtPipeline.md), [Wingsuit](systems/Wingsuit.md) |
 | [Locomotion](systems/Locomotion.md) | Procedural legged walking: one LeggedLocomotion base plus four policy objects per creature or walker | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [Persistence](systems/Persistence.md) |
 | [PlayerCharacter](systems/PlayerCharacter.md) | The astronaut the player drives: rigidbody movement, first-person look, stances, upper-body rig, suit, death | [Persistence](systems/Persistence.md), [Inventory](systems/Inventory.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md), [Wingsuit](systems/Wingsuit.md) |
-| [SkyTribe](systems/SkyTribe.md) | The Sky Tribe end to end — faction, roster, city population and NPC-flown war-party vessels | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [NavMeshSystem](systems/NavMeshSystem.md), [Persistence](systems/Persistence.md), [TerrainGeneration](systems/TerrainGeneration.md) |
+| [SkyTribe](systems/SkyTribe.md) | The Sky Tribe end to end — faction, roster, city population and NPC-flown war-party vessels | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [NavMeshSystem](systems/NavMeshSystem.md), [Persistence](systems/Persistence.md), [TerrainGeneration](systems/TerrainGeneration.md), [Striders](systems/Striders.md) |
+| [Striders](systems/Striders.md) | The Striders end to end — faction, roster, and the walking city of crewed RigWalker houses | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [SkyTribe](systems/SkyTribe.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
 
 ### Items — inventory, gadgets, interaction
 
@@ -91,9 +92,11 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
+| [DuneBarge](systems/DuneBarge.md) | Walkable tracked barge: interior drawn on entry, ladders, crawl-through hatches, hinged doors | [Vehicles](systems/Vehicles.md), [Ladders](systems/Ladders.md), [PlayerCharacter](systems/PlayerCharacter.md), [SceneTransitions](systems/SceneTransitions.md), [ArtPipeline](systems/ArtPipeline.md) |
+| [Monowheel](systems/Monowheel.md) | Monowheel presentation: rings spin at ground speed, paddles throw sand into a 10–14 s dust cloud, hubs smoke | [Vehicles](systems/Vehicles.md), [Jetpack](systems/Jetpack.md), [AgentSystem](systems/AgentSystem.md) |
 | [Ornithopter](systems/Ornithopter.md) | Folded wing pack deployed mid-air; point-mass energy flight model, stalls, crash damage. | [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Backpack](systems/Backpack.md), [Wingsuit](systems/Wingsuit.md) |
 | [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, the entry burn, and the crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md), [Terminal](systems/Terminal.md) |
-| [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [Diagnostics](systems/Diagnostics.md), [SkyTribe](systems/SkyTribe.md) |
+| [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [Diagnostics](systems/Diagnostics.md), [SkyTribe](systems/SkyTribe.md), [Striders](systems/Striders.md), [Locomotion](systems/Locomotion.md) |
 
 ### Presentation — UI, cutscenes, audio, modes
 
@@ -140,4 +143,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 57 system docs, 6 redirects -->
+<!-- 60 system docs, 6 redirects -->

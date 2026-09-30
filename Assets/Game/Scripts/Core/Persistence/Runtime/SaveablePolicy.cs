@@ -75,6 +75,13 @@ namespace SpaceGame.Core.Persistence
             if (go.GetComponent<PlayerSaveBinder>() != null || go.GetComponent<PlayerSaveSync>() != null)
                 return false;
 
+            // A piloted transport belongs to the war party that launched it, and that party's group
+            // record rebuilds hull and passengers alike. Its HealthComponent and EntityFaction each
+            // qualify on their own, so without this every prefab builder ending in the project-wide
+            // wiring pass gave both sky transports an entity and savers the design never meant them
+            // to have.
+            if (go.GetComponent<VesselPilot>() != null) return false;
+
             foreach (Component c in go.GetComponents<Component>())
             {
                 if (c == null) continue;
@@ -188,6 +195,14 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<MountSaveable>();
                 parts.Add(nameof(MountSaveable));
+            }
+
+            // Whether seats that crew themselves on spawn were stood down — a group's vehicle a
+            // player took. Without it the load re-crews the player's vehicle with strangers.
+            if (go.GetComponent<ICrewedSeats>() != null && go.GetComponent<CrewSaveable>() == null)
+            {
+                go.AddComponent<CrewSaveable>();
+                parts.Add(nameof(CrewSaveable));
             }
 
             // Who this was fighting, and what it remembers. AgentTargeting rather than

@@ -136,9 +136,15 @@ Every creature, villager, enemy and gun emplacement is a body plus a stack of sm
 
 ### The tribe that lives in the sky *(SkyTribe)*
 
-A second neutral tribe, camped in a walking city that stands 228 metres up in the air on its own little NavMesh. Its people are the sand nomads wearing a different colour, and it goes to war the same way Sand does — except its war parties do not walk out to find you. A skiff or a freighter lifts off from the city, flies to wherever you are, looks for ground flat enough to land on and touches down, or hovers a few metres up and drops its passengers onto the nearest walkable ground if it cannot. The party then fights on foot like any other, and the empty hull flies itself home once you are out of sight.
+A second neutral tribe, camped in a city that stands 228 metres up in the air on its own little NavMesh. Its people are the sand nomads wearing a different colour, and it goes to war the same way Sand does — except its war parties do not walk out to find you. A skiff or a freighter lifts off from the city, flies to wherever you are, looks for ground flat enough to land on and touches down, or hovers a few metres up and drops its passengers onto the nearest walkable ground if it cannot. The party then fights on foot like any other, and the empty hull flies itself home once you are out of sight.
 
 **Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
+
+### The tribe that lives on walking machines *(Striders)*
+
+A third neutral tribe, dressed in rust red, whose home is a city that walks: three six-legged houses with a crew of six on each deck, two digging crawlers, two crab riders scouting alongside, and a column of one-wheeled monowheels — some ridden two-up with a gunner riding pillion — a pair of which are always off sweeping wide of the city and riding back in, all marching together from one salvage site to the next. At every stop the crew climb down one by one and work the ground while the crawlers spread out and dig; when the stay is over they are called back, and the city does not move off until the last of them is back aboard. Its war parties are convoys of those same monowheels, who dismount to fight on foot like every rider does.
+
+**Worth knowing:** the houses are the player's own walking rig with the helm taken out — you can climb onto a deck and ride along, but nobody can steer a Strider house except the city itself, and in this first version the machines cannot be destroyed.
 
 ### Picking a creature up off the ground *(CarriedAgent)*
 
@@ -360,6 +366,18 @@ Two motors on a bar across your back. Tap Space twice — standing on flat sand 
 **The view steps out behind you while you fly it**, because the machine is on your back — in first person every part of it, the swinging motors, the flames, the tips going red, is behind the camera. Each lit motor leaves a smoke trail, and once it starts overheating the trail thickens into something you can see from a long way off.
 
 **Worth knowing:** Height is the thing you are spending. Every metre you climb is a metre you fall back down, and the flames are lit only while you are actually holding Space — dark nozzles mean you are falling, whether you let go or the pack cut out on you. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so both an overheat and a careless drop pay for themselves.
+
+### The monowheels *(Monowheel)*
+
+The desert monowheels are tall iron rings with wooden paddles, which a rider sits inside (or two riders, on the double-wheeled ones). When one moves, its wheels turn with the ground they cover. The paddles fling sand, which hangs behind as a dust cloud for about five seconds, and smoke curls up out of each hub. It is all worked out from how the vehicle actually moves, so everyone in a multiplayer game sees the same thing without any extra network traffic.
+
+**Worth knowing:** The two-wheeled versions lean their wheels out at an angle, so each wheel's spin axis is measured from the model itself when the prefab is built, never assumed. A fixed axis made tilted wheels wobble.
+
+### The dune barge *(DuneBarge)*
+
+The dune barge is a rusted tracked land-ship you can walk around on and go inside. You reach its fenders by ladders at the front of each track, and you get in through a round armoured hatch in each side. Interact with a hatch and the lid swings up, you crawl through on your own, and it shuts behind you. Inside there is a hold, a gun deck at the stern and a stair up through the neck into the cockpit, with heavy steel doors between them. From outside you only ever see the hull. The rooms inside are drawn only once you are in them, or peering in through a hatch.
+
+**Worth knowing:** The barge is its own place in the world rather than a separate interior you load into. That is because it is built to be driven: a room you teleport into would stay behind while the barge drove on.
 
 ## What you see and hear
 

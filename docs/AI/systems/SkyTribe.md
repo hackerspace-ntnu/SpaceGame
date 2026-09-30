@@ -31,8 +31,9 @@ symptoms:
   - "right after loading, a sky transport turns straight around, flies home and comes back about 20 s later"
   - "Failed to create agent because it is not close enough to the NavMesh logged twice every time a Sky war party spawns"
   - "after a quickload an empty sky transport hull stays parked at the city and no party owns it"
-reads_with: [AgentSystem, Vehicles, NavMeshSystem, Persistence, TerrainGeneration]
-updated: 2026-09-17
+  - "after running a prefab builder the sky transports have SaveableEntity, savers and AgentRagdoll in their prefab diff"
+reads_with: [AgentSystem, Vehicles, NavMeshSystem, Persistence, TerrainGeneration, Striders]
+updated: 2026-09-24
 ---
 
 # Sky Tribe
@@ -95,6 +96,7 @@ Faction, roster and prefabs are authored assets, not save state. City residents 
 - **A transport's bow is not the model's fixed −Z.** The escort FBXs disagree with each other on which end is which (mesh names like `SternGear`/`Prow` are inherited from an unrelated part library and do not track it); `SkyVesselBuilder.Transport.ModelYawCorrection` is measured per vessel from the raw FBX's own geometry (both 0 today), not assumed. Seats/`Ramp`/`Drop` need no separate fix — they are read in or computed from the model's own (rotated) space.
 - **The Sky roster silently has fewer people than the code lists** whenever a `SkyTribePeople` recipe's prefab does not exist yet (`SkySoldier` today) — `AuthorSkyRoster` filters missing prefabs rather than failing, so nothing breaks, but the roster, the tiers' role counts and the city population all read four people, not five, until `Build Sky Soldier NPC` runs.
 - **Never rewrite `SkyCityBuilder`/`SkyFleetBuilder` wholesale** — the sky city art is finished; extend them (as the NavMesh bake and settlement wiring do, chained onto the end of `Build`) and never edit `sky_city.blend`/`.fbx`.
+- **The transports stay unwired because they carry a `VesselPilot`.** Their `HealthComponent` and `EntityFaction` each qualify for `SaveablePolicy.NeedsSaving`, and `HealthComponent` alone made `RagdollWiring` call them bodies, so every builder chaining `Wire Saveable Prefabs` → `RagdollWiring` re-added `SaveableEntity`, four savers, `RagdollRig` and `AgentRagdoll` to both prefabs until 2026-09-24. `NeedsSaving` and `RagdollWiring.IsBody` now refuse any root with a `VesselPilot`; a new vessel is covered by carrying one. `SkyTransportPrefabTests.TheVesselCarriesNoSaversAndNoRagdoll` reads both prefabs off disk.
 - **Chain a builder to its end, never to `SyncMenu()`.** Any menu that must run to completion in one pass (`Build Sky Nomad NPCs`, `Build Sky Transports`) calls `NetworkPrefabRegistrar.Sync(out _, out _)`, not `SyncMenu()` — the latter opens a modal "OK" dialog that parks the rest of the chain (savers, ragdolls) until a human clicks it.
 
 ## Extending

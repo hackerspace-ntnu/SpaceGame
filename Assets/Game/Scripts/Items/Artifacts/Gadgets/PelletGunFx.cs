@@ -1,18 +1,21 @@
 using System.Collections.Generic;
 using FirstGearGames.SmoothCameraShaker;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Everything the gravel blaster THROWS AT THE SENSES, on every machine: the muzzle blast, one
-    /// visible streak per pellet, an impact where each one lands, the pressure wave off the
-    /// barrels, and a camera kick dosed by distance.
+    /// Everything a <see cref="PelletGunArtifact"/> THROWS AT THE SENSES, on every machine: the
+    /// muzzle blast, one visible streak per pellet, an impact where each one lands, the pressure
+    /// wave off the barrel, and a camera kick dosed by distance.
     ///
     /// <para>
-    /// Split out of <see cref="GravelBlasterArtifact"/> so the artifact keeps only the shot's
-    /// authority and arithmetic. The layering is GDC-L1-FEEL-0004 taken at its word — the same
-    /// press lands on sight (flash, wave, thirty tracers, impact puffs), on hearing (the
+    /// Split out of the artifact so the artifact keeps only the shot's authority and arithmetic.
+    /// One component serves every pellet gun — the gravel blaster's thirty-streak spray and the
+    /// basic gun's single long tracer differ only in the emitters their builders hang off it and
+    /// the numbers below. The layering is GDC-L1-FEEL-0004 taken at its word — the same
+    /// press lands on sight (flash, wave, tracers, impact puffs), on hearing (the
     /// report, plus a separate impact layer that reports what was hit) and on the camera
     /// (GDC-L1-FEEL-0006, attenuated with distance and capped). It is amplification of a real
     /// event, not decoration: every streak is a pellet the server actually traced, and an impact
@@ -22,25 +25,30 @@ namespace SpaceGame.Items
     /// The per-pellet effects are ONE particle system emitting many particles rather than one
     /// system (or object) per pellet — thirty spawned GameObjects a shot is how a weapon that
     /// looks good in a screenshot becomes a frame spike in a firefight (GDC-L1-PERF-0004). The
-    /// emitters are world-space, so gravel already in the air keeps its arc when the gun swings.
+    /// emitters are world-space, so debris already in the air keeps its arc when the gun swings.
+    /// </para>
+    /// <para>
+    /// Every emitter is optional: a gun that has no use for one (the basic gun throws no gravel
+    /// and cannot backfire) simply leaves it unassigned.
     /// </para>
     /// </summary>
-    public class GravelBlastFx : MonoBehaviour
+    public class PelletGunFx : MonoBehaviour
     {
         [Header("Muzzle")]
-        [Tooltip("Where the blast leaves the pipes. Placed by GravelBlasterBuilder.")]
+        [Tooltip("Where the shot leaves the barrel. Placed by the gun's builder.")]
         [SerializeField] private Transform muzzle;
 
-        [Tooltip("Tumbling rock chunks out of the muzzle.")]
-        [SerializeField] private ParticleSystem gravelBurst;
+        [Tooltip("The main burst out of the muzzle — tumbling rock chunks on the gravel blaster.")]
+        [FormerlySerializedAs("gravelBurst")]
+        [SerializeField] private ParticleSystem muzzleBurst;
 
         [Tooltip("Sand-coloured powder cloud at the muzzle.")]
         [SerializeField] private ParticleSystem muzzleDust;
 
-        [Tooltip("Hot spring-steel sparks at the muzzle.")]
+        [Tooltip("Hot sparks at the muzzle.")]
         [SerializeField] private ParticleSystem muzzleSparks;
 
-        [Tooltip("The slow plume that hangs off the barrels after the shot has gone.")]
+        [Tooltip("The slow plume that hangs off the barrel after the shot has gone.")]
         [SerializeField] private ParticleSystem muzzleSmoke;
 
         [Tooltip("Brief muzzle flash. Enabled by PlayShot, cut by Update.")]
@@ -63,7 +71,7 @@ namespace SpaceGame.Items
         [SerializeField] private float tracerLinger = 0.04f;
 
         [Header("Impacts")]
-        [Tooltip("Sparks struck off whatever the gravel hits.")]
+        [Tooltip("Sparks struck off whatever a pellet hits.")]
         [SerializeField] private ParticleSystem impactSparks;
 
         [Tooltip("Dust punched out of the surface.")]
@@ -87,8 +95,8 @@ namespace SpaceGame.Items
         [SerializeField] private int maxImpactsDrawn = 14;
 
         [Header("Blast wave")]
-        [Tooltip("The pressure wave off the barrels: one big, fast, short-lived sheet that gives " +
-                 "the discharge a SHAPE, which thirty thin streaks on their own do not.")]
+        [Tooltip("The pressure wave off the barrel: one big, fast, short-lived sheet that gives " +
+                 "the discharge a SHAPE, which thin streaks on their own do not.")]
         [SerializeField] private ParticleSystem blastWave;
 
         [Header("Backfire")]
@@ -116,11 +124,11 @@ namespace SpaceGame.Items
         /// here has to be guessed or re-rolled.
         /// </summary>
         public void PlayShot(Vector3 origin, Vector3 aimDir,
-                             IReadOnlyList<GravelShotTrace.Pellet> pellets, bool firstPerson)
+                             IReadOnlyList<PelletShotTrace.Pellet> pellets, bool firstPerson)
         {
             Vector3 muzzlePoint = muzzle != null ? muzzle.position : origin;
 
-            PlayAimed(gravelBurst, aimDir);
+            PlayAimed(muzzleBurst, aimDir);
             PlayAimed(muzzleDust, aimDir);
             PlayAimed(muzzleSparks, aimDir);
             PlayAimed(muzzleSmoke, aimDir);
@@ -137,7 +145,7 @@ namespace SpaceGame.Items
             Shake(muzzlePoint, firstPerson);
         }
 
-        /// <summary>The gun failing in the holder's face. No tracers: nothing left the barrels.</summary>
+        /// <summary>The gun failing in the holder's face. No tracers: nothing left the barrel.</summary>
         public void PlayBackfire()
         {
             if (backfireBurst != null) backfireBurst.Play(true);
@@ -147,7 +155,7 @@ namespace SpaceGame.Items
         /// One streak per pellet, each living exactly as long as its pellet's flight so the line
         /// ends on the surface the pellet struck.
         /// </summary>
-        private void EmitTracers(Vector3 muzzlePoint, IReadOnlyList<GravelShotTrace.Pellet> pellets)
+        private void EmitTracers(Vector3 muzzlePoint, IReadOnlyList<PelletShotTrace.Pellet> pellets)
         {
             if (pelletTracers == null || pellets == null || tracerSpeed <= 0f) return;
 
@@ -171,17 +179,17 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// A puff, chips and sparks where the gravel landed. Emitted into shared world-space
+        /// A puff, chips and sparks where each pellet landed. Emitted into shared world-space
         /// systems at the hit point — one system, many particles.
         /// </summary>
-        private void EmitImpacts(IReadOnlyList<GravelShotTrace.Pellet> pellets)
+        private void EmitImpacts(IReadOnlyList<PelletShotTrace.Pellet> pellets)
         {
             if (pellets == null) return;
 
             int drawn = 0;
             for (int i = 0; i < pellets.Count && drawn < maxImpactsDrawn; i++)
             {
-                GravelShotTrace.Pellet pellet = pellets[i];
+                PelletShotTrace.Pellet pellet = pellets[i];
                 if (!pellet.Hit) continue;
                 drawn++;
 

@@ -43,6 +43,37 @@ namespace SpaceGame.EditorTools
             return prefab;
         }
 
+        [Test]
+        public void AFlownVesselIsNotARagdollBody()
+        {
+            // HealthComponent alone makes a prefab a body to RagdollWiring, and the transports have
+            // one so they can be shot down. The pilot is what says this is a hull, not a creature.
+            var hull = new GameObject("Transport");
+            spawned.Add(hull);
+            hull.AddComponent<HealthComponent>();
+            const string path = "Assets/Game/Prefabs/Vehicles/Sky/Transport.prefab";
+
+            Assert.IsTrue(RagdollWiring.IsBody(hull, path), "counter-case: health alone is a body");
+
+            hull.AddComponent<VesselPilot>();
+            Assert.IsFalse(RagdollWiring.IsBody(hull, path), "a piloted hull must not ragdoll");
+        }
+
+        [TestCaseSource(nameof(Transports))]
+        public void TheVesselCarriesNoSaversAndNoRagdoll(SkyVesselBuilder.Transport transport)
+        {
+            // Read off disk, because the failure is the project-wide wiring passes every prefab
+            // builder ends with, not anything the vessel builder does.
+            GameObject prefab = LoadBuilt(transport);
+
+            Assert.IsNull(prefab.GetComponent<SpaceGame.Core.Persistence.SaveableEntity>(),
+                "the war party's group record rebuilds the vessel; it is never saved on its own");
+            Assert.IsEmpty(prefab.GetComponentsInChildren<SpaceGame.Persistence.ISaveable>(true),
+                "savers without an entity are dead weight on a vessel nothing saves");
+            Assert.IsNull(prefab.GetComponent<SpaceGame.Gameplay.Ragdoll.AgentRagdoll>(), "AgentRagdoll");
+            Assert.IsNull(prefab.GetComponent<SpaceGame.Gameplay.Ragdoll.RagdollRig>(), "RagdollRig");
+        }
+
         [TestCaseSource(nameof(Transports))]
         public void TheVesselIsAServerFlownNetworkEntity(SkyVesselBuilder.Transport transport)
         {

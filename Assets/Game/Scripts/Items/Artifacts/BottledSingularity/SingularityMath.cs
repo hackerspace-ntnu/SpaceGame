@@ -1,6 +1,6 @@
 // Pure math for the bottled singularity: the throw's arc and the scatter its release is fanned out
 // by. Kept free of scene and network state so it is unit-testable, and so the machine that DECIDES
-// the throw and the machines that merely draw it provably agree — the same reason GravelBlastMath,
+// the throw and the machines that merely draw it provably agree — the same reason PelletShotMath,
 // DragonRocketFlight and NetGunFlight exist.
 //
 // NOTHING HERE ROLLS A NUMBER. The scatter is a closed-form function of the seed and of the

@@ -36,15 +36,26 @@ namespace SpaceGame.EditorTools
         /// decided yet should keep failing loudly in review rather than quietly joining a side.
         /// </para>
         /// <para>
-        /// The DesertCrawler is a Mechanics machine in the design and sits on the Sand Tribe until
-        /// that faction asset exists, so it is at least targetable in the meantime.
+        /// The DesertCrawler is a Strider worker: it follows the walking city's column and digs at
+        /// every stop. The walking city's house and its crab outrider are Striders too; their builders
+        /// call <see cref="Ensure"/> like the crawler's does. The house is a variant of the RigWalker,
+        /// which has no EntityFaction of its own, so it does not inherit a second one. The Strider
+        /// monowheels (<see cref="StriderMonowheelBuilder"/>) are Striders; the riderless player
+        /// monowheel is deliberately absent — a parked vehicle is on nobody's side.
         /// </para>
         /// </summary>
         private static readonly (string Prefab, string Faction)[] Assignments =
         {
             ("BountyHunter",  "OutlawFaction"),
             ("Ostrich",       "FaunaFaction"),
-            ("DesertCrawler", "SandTribeFaction"),
+            ("DesertCrawler", "StriderFaction"),
+            ("StriderHabitatWalker", "StriderFaction"),
+            ("StriderCrabOutrider",  "StriderFaction"),
+            ("StriderMonowheel_Runner",     "StriderFaction"),
+            ("StriderMonowheel_Hauler",     "StriderFaction"),
+            ("StriderMonowheel_Patched",    "StriderFaction"),
+            ("StriderMonowheel_Double",     "StriderFaction"),
+            ("StriderMonowheel_DoubleWide", "StriderFaction"),
             ("HumanoidRobot", "ClankerFaction"),
             ("CrabWalker6",   "ClankerFaction"),
         };

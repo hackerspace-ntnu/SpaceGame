@@ -187,5 +187,31 @@ namespace SpaceGame.EditorTools
             Assert.AreSame(only, new NpcGroupTransport { smallVessel = only }.VesselFor(99));
             Assert.IsFalse(new NpcGroupTransport().Flies);
         }
+
+        [Test]
+        public void CrewSpecs_ArePlannedAsCrew_OthersAreNot()
+        {
+            var house = new GameObject("House");
+            var person = new GameObject("Person");
+            try
+            {
+                var template = new NpcGroupTemplate
+                {
+                    id = "city",
+                    members = new[]
+                    {
+                        new NpcGroupMemberSpec { prefab = house, isLeader = true },
+                        new NpcGroupMemberSpec { prefab = person, crew = true, count = 2 },
+                    },
+                };
+                var plan = NpcGroupComposition.Resolve(new NpcGroup { Id = "city" }, template);
+                Assert.AreEqual(3, plan.Count);
+                Assert.IsFalse(plan[0].Crew);
+                Assert.IsTrue(plan[1].Crew && plan[2].Crew);
+                Assert.AreEqual(1, plan.Count(NpcGroupComposition.Rides),
+                    "crew ride their carriers: a crewed flying template must not size its vessel by them");
+            }
+            finally { Object.DestroyImmediate(house); Object.DestroyImmediate(person); }
+        }
     }
 }

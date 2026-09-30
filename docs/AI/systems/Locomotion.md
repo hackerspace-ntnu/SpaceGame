@@ -7,6 +7,8 @@ paths:
   - Assets/Game/Scripts/Creatures/
   - Assets/Game/Scripts/Vehicles/DesertCrawler/DesertCrawlerLocomotion.cs
   - Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs
+  - Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs
+  - Assets/Game/Scripts/agents/AI/Motors/NavPathFollowerSettings.cs
   - Assets/Game/Tests/EditMode/WalkerTestRig.cs
 symptoms:
   - "the walker stands frozen and never takes a step, with no error in the console"
@@ -18,7 +20,7 @@ symptoms:
   - "the creature stopped walking after I added a LateUpdate to its subclass"
   - "the feet trail behind the body, or a planted foot slips along the ground"
 reads_with: [AgentSystem, Vehicles, Persistence]
-updated: 2026-09-13
+updated: 2026-09-25
 ---
 
 # Locomotion
@@ -68,8 +70,9 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 | `AgentGrounding` / `AgentGroundingSettings` | [Ground/AgentGrounding.cs](Assets/Game/Scripts/Locomotion/Ground/AgentGrounding.cs) | Pure per-frame solve for a NavMesh agent's height correction and slope lean. No physics; reuses `WalkerSupportPlane.Tilt` for the lean |
 | `WalkerClimb` | [Ground/WalkerClimb.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerClimb.cs) | Sustained-grade + wall test over a sampled profile; pure arithmetic, no rays |
 | `BodyFeet` | [Ground/BodyFeet.cs](Assets/Game/Scripts/Locomotion/Ground/BodyFeet.cs) | How far *any* body's pivot sits above its soles (the player's is ~1 m off) |
-| `WalkerPath` / `WalkerSteering` | [Steering/](Assets/Game/Scripts/Locomotion/Steering) | Forward-only polyline cursor (flat arrival test); heading error → twist |
-| `LeggedDriver` | [agents/AI/Motors/LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Order 50. Rider (`IRiderControllable`) + AI (`IMovementMotor`) → `SetTwist`. Uses `NavMesh.CalculatePath`, never a `NavMeshAgent` |
+| `WalkerPath` / `WalkerSteering` | [Steering/](Assets/Game/Scripts/Locomotion/Steering) | Forward-only polyline cursor (flat arrival test; `TryGetCornerAfterCurrent` peeks one corner ahead without advancing); heading error → twist |
+| `NavPathFollower` | [agents/AI/Motors/NavPathFollower.cs](Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs) | Plain C# (Assembly-CSharp). Repath-on-stale NavMesh route following for any motor that steers its own body: `SteerTarget` returns the next corner, or the destination when there is no route; `TryGetCornerAfter` for slowing into turns. Corners come from a `CornerSource` delegate — `NavMeshCorners(sampleDistance)` is the real one (`NavMesh.CalculatePath`, never a `NavMeshAgent`), a test passes a fake. Tunables are a `[Serializable] NavPathFollowerSettings` ([NavPathFollowerSettings.cs](Assets/Game/Scripts/agents/AI/Motors/NavPathFollowerSettings.cs): `repathInterval`, `repathTolerance`, `cornerArriveRadius`, `navMeshSampleDistance`, `Validate()` floors); `new NavPathFollower(settings)` routes on the baked NavMesh |
+| `LeggedDriver` | [agents/AI/Motors/LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Order 50. Rider (`IRiderControllable`) + AI (`IMovementMotor`) → `SetTwist`. Delegates route following to a `NavPathFollower` built from its serialized `route` (`NavPathFollowerSettings`, defaults 0.5 s / 2 m / 6 m / 20 m; `MonowheelMotor` has its own `route`, 3 m tolerance / 8 m corners); keeps the climb detour itself |
 
 ## Creatures
 
@@ -132,6 +135,8 @@ Purely **cosmetic**: it removes one stumble per creature per load. Phase is assi
 - **Climb limits:** `maxClimbAngle` (35° default) is deliberately below the NavMesh bake slope limit. Refusal needs a *sustained grade* over the run **or** one segment that is both too steep and rises more than `stepUpHeight` (the tallest single leg lift — not leg reach, or a machine steps onto things taller than itself). Yaw is never gated, reverse probes behind, downhill is never gated — those three are what keep the gate from latching. Missing ground is **never** a refusal (unloaded chunk ≠ void); likewise a fall needs `hasGround && carrying == 0 && above the threshold`.
 - **Foothold clamp:** horizontal-only, and against the hip **at touchdown**. Clamping the 3D vector lifts the foothold off the ground and the machine levitates; clamping against the current hip drags every step short into a thrash.
 - **Don't add a `LateUpdate` to a subclass** — it hides the base's and the machine stops walking. Use a separate component at order 150+ (`CrabClaws` is the model).
+- **`NavPathFollower` copies its tunables when built.** `LeggedDriver` builds it lazily from `route` and `OnValidate` drops it, so an Inspector edit rebuilds it on the next tick. It is lazy rather than built in `Awake` because `AddComponent` in an EditMode test raises no `Awake`, and the old inline code tolerated a pre-`Awake` tick. Its `NavMeshPath` is created on first route for the same reason the old field was built in `Awake`: the constructor is native and forbidden during deserialisation.
+- **Builders write the route as `route.<field>`.** The four fields were flat on `LeggedDriver` until 2026-09-25; the six prefabs holding them were migrated in YAML (values unchanged). A builder still writing `"cornerArriveRadius"` gets `FindProperty` null — both `CrabWalkerBuilder` and `SerializedFields` only log a warning — and the value silently stays at the default.
 - `IsFalling`, `ClimbBlocked`/`ClimbScale` and `LastFrame` (`Diagnostics`) are the outside view; `ClimbBlocked` is only true while something is *asking* the machine to move.
 
 ## Extending

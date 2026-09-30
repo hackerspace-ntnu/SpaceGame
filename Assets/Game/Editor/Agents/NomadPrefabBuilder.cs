@@ -82,6 +82,10 @@ namespace SpaceGame.EditorTools
             /// and a wander point on one walks a nomad to the railing and stands him there.
             /// </summary>
             public bool WanderReachableOnly;
+
+            /// Walks to an AgentGoal someone else sets (GoalTravelModule). A walking city's crew are
+            /// sent back to their gangway this way; nobody else needs it.
+            public bool TravelsToGoals;
         }
 
         /// <summary>
@@ -167,6 +171,27 @@ namespace SpaceGame.EditorTools
             "Rust holds better than you'd think, a mile up.",
         };
 
+        // Heavy rust red with iron-dark scarves: the Striders read as a red column from across a
+        // dune (spec §2, GDC-L1-LEVEL-0001).
+        private static readonly ClothPalette StriderCloth = new ClothPalette
+        {
+            MaterialPrefix = "StriderNomadCloth",
+            Cloth = new Color(0.62f, 0.16f, 0.10f),
+            Accents = new[] { ("_Scarf_Long", new Color(0.22f, 0.20f, 0.19f)) },
+        };
+
+        private static readonly string[] StriderDialogLines =
+        {
+            "Mind the legs. They don't stop for anyone.",
+            "Everything out here is parts, if you look long enough.",
+            "We were walking before your ship fell. We'll be walking after.",
+            "Bring us scrap and we'll talk.",
+            "The houses carry us. We carry the houses. Fair trade.",
+            "Hear that grinding? That's the crawlers eating a hill.",
+            "Don't touch the rig. It bites.",
+            "Rust is just the metal remembering where it came from.",
+        };
+
         // Static initializers run in textual order: the palettes and lines above must precede every recipe.
         public static readonly NomadRecipe Nomad = new NomadRecipe
         {
@@ -220,6 +245,21 @@ namespace SpaceGame.EditorTools
 
         /// <summary>Everyone the Sky Tribe fields: its roster's members and the Sky City's inhabitants.</summary>
         public static readonly NomadRecipe[] SkyTribePeople = SkyNomads.Append(SkySoldier).ToArray();
+
+        private const string StriderCharacterFolder = CharacterFolder + "/Striders";
+
+        // The same four bodies, dyed rust red and sworn to the Striders. They walk back to their
+        // walking house by goal when it calls them (CrewShift).
+        public static readonly NomadRecipe[] StriderNomads = ArmedNomadVariants
+            .Select(variant =>
+            {
+                NomadRecipe recipe = ArmedNomad(variant, "StriderNomad_", StriderCharacterFolder,
+                                                RosterAuthoring.StriderFactionPath, RosterAuthoring.StriderRosterPath,
+                                                StriderCloth, StriderDialogLines);
+                recipe.TravelsToGoals = true;
+                return recipe;
+            })
+            .ToArray();
 
         private static NomadRecipe ArmedNomad(string variant, string namePrefix, string folder,
                                               string factionPath, string rosterPath,
@@ -371,6 +411,18 @@ namespace SpaceGame.EditorTools
                       "as network prefabs, wired their savers and ragdolls.");
         }
 
+        /// The four Strider nomads. Run twice on a fresh project, around Author Strider Roster: the
+        /// roster validates the prefabs' baked faction, and the prefabs bake the roster's hand items.
+        [MenuItem("Tools/SpaceGame/Agents/Build Strider Nomad NPCs")]
+        public static void BuildStriderNomads()
+        {
+            var prefabs = BuildArmedNomads(StriderNomads);
+            if (prefabs.Count == 0) return;
+            RegisterBuiltNomads();
+            Debug.Log($"[NomadPrefabBuilder] Built {prefabs.Count} Strider nomad(s), registered them " +
+                      "as network prefabs, wired their savers and ragdolls.");
+        }
+
         /// <summary>
         /// The sky soldier alone, then the same registration chain as <see cref="BuildSkyNomads"/>.
         /// A menu of its own so that adding him never rebuilds - and overwrites - the four sky nomads.
@@ -480,6 +532,7 @@ namespace SpaceGame.EditorTools
                 ConfigureFaction(root, recipe);
                 ConfigureWatch(root);
                 ConfigureWander(root, recipe);
+                ConfigureGoalTravel(root, recipe);
                 ConfigureAlerts(root);
                 ConfigureHearing(root);
                 ConfigureTelegraph(root);
@@ -513,6 +566,9 @@ namespace SpaceGame.EditorTools
             // After the body has been sized, never before: the staff hangs inside the hierarchy
             // CorrectScaleAndSole rescales, so it has to be measured against the finished character.
             if (recipe.CarriesStaff) saved = CorrectStaff(saved, recipe.PrefabPath);
+
+            // Last, because both corrections above apply a probe from the open scene back to the asset.
+            NetworkObjectDefaults.KeepSceneMigrationSync(recipe.PrefabPath);
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[NomadPrefabBuilder] Wrote {recipe.PrefabPath}");
@@ -957,6 +1013,10 @@ namespace SpaceGame.EditorTools
             // reason as the rest of this list: Chase reads sibling melee ranges to tighten its
             // stopping distance, and AgentTargeting widens its acquisition range to cover the
             // longest weapon it can find.
+            // Before AgentController, which collects its modules in Awake. See ConfigureGoalTravel.
+            if (recipe.TravelsToGoals)
+                components.Add("SpaceGame.Agents.GoalTravelModule");
+
             if (recipe.CarriesStaff)
                 components.Add("SpaceGame.Agents.CloseCombatModule");
 
@@ -1473,6 +1533,25 @@ namespace SpaceGame.EditorTools
 
             var so = new SerializedObject(wander);
             SetBool(so, "onlyReachableDestinations", recipe.WanderReachableOnly);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureGoalTravel(GameObject root, NomadRecipe recipe)
+        {
+            if (!recipe.TravelsToGoals) return;
+
+            var travel = FindComponent(root, "SpaceGame.Agents.GoalTravelModule");
+            if (travel == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No GoalTravelModule; he will never walk back " +
+                                 "to his walking house when it calls him.");
+                return;
+            }
+
+            // Fallback + 1: above wander, so a goal someone set wins; below everything reactive,
+            // so a fight still wins over walking home. Set by hand: AddComponent does not run Reset.
+            var so = new SerializedObject(travel);
+            SetInt(so, "priority", ModulePriority.Fallback + 1);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

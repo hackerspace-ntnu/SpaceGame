@@ -66,6 +66,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private float stoodUpAt = float.NegativeInfinity;
 
+        // TEMPORARY (2026-09-25): every ragdoll switched off to find out whether ragdolls cause the
+        // current lag. Deaths, knockdowns, hits and nets all stop here. Set back to false, or revert
+        // this file, to turn ragdolls on again.
+        private static readonly bool RagdollsDisabled = true;
+
         public KnockdownTuning Tuning => knockdown;
 
         /// <summary>Is something holding this body down right now?</summary>
@@ -207,6 +212,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             holders.Clear();
             rig.BudgetExempt = false;
             rig.IsCorpse = true;
+            if (RagdollsDisabled) return;
 
             // A save being loaded: the body lies down where the record put it, without being
             // thrown again — a corpse relaunched on every load walks its way across the desert one
@@ -325,6 +331,7 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         private void KnockHere(RagdollCause cause, Vector3 impulse, float damageFraction)
         {
+            if (RagdollsDisabled) return;
             if (dead || !CanBeKnockedDown) return;
 
             // A hit on a body already down does not keep it down. Every round of automatic fire into
@@ -394,6 +401,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private void OnKnockdown(in NetArg arg, ulong sender)
         {
+            if (RagdollsDisabled) return;
             // The same refusals Knock made on the deciding machine, asked again here: a standing
             // hold is claimed on every machine, and a watcher that laid the body down anyway would
             // show a heap where everyone else sees a statue.
@@ -446,6 +454,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </returns>
         public bool HoldDown(object holder)
         {
+            if (RagdollsDisabled) return false;
             // A corpse is already down and is not getting up. A hold that took one would set
             // BudgetExempt on a body nothing will ever release — the leak OnDeath exists to close,
             // arriving through a second door.

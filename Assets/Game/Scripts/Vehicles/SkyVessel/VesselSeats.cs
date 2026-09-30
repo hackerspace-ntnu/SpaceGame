@@ -63,6 +63,17 @@ namespace SpaceGame.Vehicles
 
         public GameObject OccupantAt(int seat) => IsSeat(seat) ? occupants[seat] : null;
 
+        /// <summary>Where an NPC in <paramref name="seat"/> sits, in world space — so one spawned for it is born there.</summary>
+        public (Vector3 position, Quaternion rotation) SeatPose(int seat)
+        {
+            EnsureSeatArrays();
+            if (!IsSeat(seat) || seats[seat] == null)
+                throw new ArgumentOutOfRangeException(nameof(seat), seat,
+                    $"'{name}' has no seat marker {seat} (it has {seats.Length} seats).");
+
+            return NpcSeating.SeatPoseIn(null, seats[seat], seatOffset, Vector3.zero);
+        }
+
         private void Awake()
         {
             EnsureSeatArrays();

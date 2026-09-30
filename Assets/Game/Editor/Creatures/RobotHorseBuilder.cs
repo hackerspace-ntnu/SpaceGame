@@ -124,8 +124,8 @@ namespace SpaceGame.EditorTools
         ///
         /// The horse carries; the Clanker in the saddle shoots. So this is not an attack range, it
         /// is a firing position handed to somebody else, and the only thing it has to get right is
-        /// landing inside the rider's own band (<see cref="ClankerBuilder.GunMinRange"/> to
-        /// <see cref="ClankerBuilder.GunMaxRange"/>). Well clear of the near edge, because the
+        /// landing inside the rider's own band (<see cref="ClankerStack.GunMinRange"/> to
+        /// <see cref="ClankerStack.GunMaxRange"/>). Well clear of the near edge, because the
         /// animal is 1.8x scale and stopping a horse on top of the player reads as a shove rather
         /// than a charge, and well inside the far edge so the rider opens fire on arrival.
         /// </summary>
@@ -525,7 +525,7 @@ namespace SpaceGame.EditorTools
             AgentTargeting targeting = root.GetComponent<AgentTargeting>();
             if (targeting == null) targeting = root.AddComponent<AgentTargeting>();
             if (!design.Wild)
-                SetField(targeting, "profile", AssetDatabase.LoadAssetAtPath<TargetingProfile>(ClankerBuilder.TargetingProfilePath));
+                SetField(targeting, "profile", AssetDatabase.LoadAssetAtPath<TargetingProfile>(ClankerStack.TargetingProfilePath));
 
             var provocation = root.AddComponent<ProvocationModule>();
             SetFloat(provocation, "leashRange", design.Wild ? 45f : 100f);
@@ -602,7 +602,7 @@ namespace SpaceGame.EditorTools
         /// the Clanker pistol's maxRange and outside its minRange, so a horse that has arrived has
         /// put its rider in the band the gun actually fires in.
         /// </summary>
-        private static void AddOutriderBehaviour(GameObject root)
+        internal static void AddOutriderBehaviour(GameObject root)
         {
             var chase = root.AddComponent<ChaseModule>();
             SetFloat(chase, "chaseStopDistance", ChaseStopDistance);
@@ -619,7 +619,7 @@ namespace SpaceGame.EditorTools
             SetInt(search, "priority", ModulePriority.Reactive - 1);
 
             var broadcaster = root.AddComponent<AlertBroadcaster>();
-            SetFloat(broadcaster, "alertRadius", ClankerBuilder.AlertRadius);
+            SetFloat(broadcaster, "alertRadius", ClankerStack.AlertRadius);
             var receiver = root.AddComponent<AlertReceiverModule>();
             SetInt(receiver, "priority", ModulePriority.Reactive - 1);
             SetFloat(receiver, "alertDuration", 15f);

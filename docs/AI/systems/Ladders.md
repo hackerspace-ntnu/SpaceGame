@@ -6,6 +6,7 @@ paths:
   - Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs
   - Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs
   - Assets/Game/Editor/Traversal/LadderClimberWiring.cs
+  - Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs
   - Assets/Game/Editor/Tests/LadderTests.cs
 symptoms:
   - "walking into a ladder does nothing"
@@ -14,7 +15,7 @@ symptoms:
   - "jumping near the top of a ladder pulls me onto it"
   - "a ladder can be climbed from behind or grabbed in mid-air"
 reads_with: [PlayerCharacter, ArtPipeline, Wingsuit]
-updated: 2026-09-17
+updated: 2026-09-25
 ---
 
 # Ladders
@@ -25,9 +26,13 @@ and which volume counts as being at it; `LadderClimber` on the player does the c
 **Scope:** [Ladder.cs](Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs) ·
 [LadderClimber.cs](Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs) ·
 [LadderClimberWiring.cs](Assets/Game/Editor/Traversal/LadderClimberWiring.cs)
-**Where ladders come from:** the Sky City's seven `LAD_SkyCity_##` markers —
-[`SkyCityBuilder`](Assets/Game/Editor/Environment/SkyCityBuilder.cs) adds a `Ladder` to each, wired to
-its `_Top` and `_Exit` children (see [ArtPipeline.md](ArtPipeline.md) and `sky_city_BUILD.md`).
+**Where ladders come from:**
+- the Sky City's seven `LAD_SkyCity_##` markers
+- the [dune barge](DuneBarge.md)'s five `LAD_*` markers
+
+Both builders call [`ModelMarkerImport.GatherLadders`](Assets/Game/Editor/Support/ModelMarkerImport.cs), which adds a `Ladder` to each marker, wired to its `_Top` and `_Exit` children (see [ArtPipeline.md](ArtPipeline.md) and `sky_city_BUILD.md`).
+
+`LadderClimberWiring` is now a thin caller of [`PlayerTraversalWiring.Ensure<T>`](Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs), which also wires the `HatchCrawler`.
 
 ## Model
 
@@ -106,7 +111,7 @@ they were and takes hold again. A teleport lets go.
 
 **A ladder somewhere else** — add `Ladder` to an object at the ladder's foot (on the rung line), with a
 `top` transform at the step-off height and an `exit` transform on the floor behind the rungs; or call
-`Configure` from a builder, as `SkyCityBuilder.GatherLadders` does. Nothing registers it but enabling it.
+`Configure` from a builder, as `ModelMarkerImport.GatherLadders` does. Nothing registers it but enabling it.
 Check it with a column test like `SkyCityPrefabTests.ThePlayerCanClimbEveryLadderAndStepOffAtTheTop`.
 
 **The player prefab lost the climber** (rebuilt, reverted) — **Tools ▸ SpaceGame ▸ Player ▸ Wire Ladder

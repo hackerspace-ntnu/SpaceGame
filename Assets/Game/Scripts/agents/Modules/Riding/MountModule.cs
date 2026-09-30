@@ -221,7 +221,7 @@ namespace SpaceGame.Agents
         /// Exactly the modules THIS mount switched off, so a dismount can switch exactly those back
         /// on and nothing else. See <see cref="RestoreModuleSuppression"/> for why that distinction
         /// is not pedantry.
-        private readonly List<MonoBehaviour> suppressedModules = new List<MonoBehaviour>();
+        private readonly ModuleSuppression suppressedModules = new ModuleSuppression();
         private bool riderDrives;
 
         // Animator state captured at mount time so root-motion-driven drift is suppressed while
@@ -643,21 +643,13 @@ namespace SpaceGame.Agents
 
         private void ApplyModuleSuppression()
         {
-            suppressedModules.Clear();
+            suppressedModules.Forget();
 
-            if (allowAISelfMovementWhenMounted || suppressibleModules == null)
+            if (allowAISelfMovementWhenMounted)
                 return;
 
-            foreach (MonoBehaviour mb in suppressibleModules)
-            {
-                // Already off, for reasons of its own. Not ours to take, and so not ours to give
-                // back — recording it here is what stops the dismount from switching it on.
-                if (!mb || !mb.enabled)
-                    continue;
-
-                mb.enabled = false;
-                suppressedModules.Add(mb);
-            }
+            // Only what is on: a module already off is not ours to give back (ModuleSuppression).
+            suppressedModules.Suppress(suppressibleModules);
         }
 
         /// <summary>
@@ -684,12 +676,6 @@ namespace SpaceGame.Agents
         /// question a restore may ask.
         /// </para>
         /// </summary>
-        private void RestoreModuleSuppression()
-        {
-            foreach (MonoBehaviour mb in suppressedModules)
-                if (mb) mb.enabled = true;
-
-            suppressedModules.Clear();
-        }
+        private void RestoreModuleSuppression() => suppressedModules.Restore();
     }
 }

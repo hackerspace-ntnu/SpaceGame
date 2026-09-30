@@ -88,7 +88,7 @@ namespace SpaceGame.Items
             arg.R = Quaternion.LookRotation(aim.direction);
 
             // One roll, in B. The release's whole scatter is derived from it by pure static math,
-            // so every machine fans the pile out the same way — the pattern GravelBlastMath and
+            // so every machine fans the pile out the same way — the pattern PelletShotMath and
             // DragonRocketFlight already use, and the reason nothing here calls Random again.
             arg.B = Random.Range(int.MinValue, int.MaxValue);
         }

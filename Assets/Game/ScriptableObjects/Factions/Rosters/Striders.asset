@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 186e034591c7b9d49b3e29f79d84439d, type: 3}
+  m_Name: Striders
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionRoster
+  faction: {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
+  members:
+  - role: 0
+    prefab: {fileID: 4756760863439920278, guid: be57c15e75ece284d84ea553247ea7fb, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 4744905822893513358, guid: a889ba1abf3ff4d429de7dee88dca905, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 5851642528916708546, guid: 0c41c615d357a714ba7a79146a95411c, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 343479618667777863, guid: 299dcf3fcbc734b4896b8ee5d7395da1, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 4756760863439920278, guid: be57c15e75ece284d84ea553247ea7fb, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 4744905822893513358, guid: a889ba1abf3ff4d429de7dee88dca905, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 5851642528916708546, guid: 0c41c615d357a714ba7a79146a95411c, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 343479618667777863, guid: 299dcf3fcbc734b4896b8ee5d7395da1, type: 3}
+    weight: 1
+  - role: 2
+    prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
+    weight: 3
+  - role: 2
+    prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
+    weight: 3
+  - role: 2
+    prefab: {fileID: 8997635125253337859, guid: 57171156033888b4ebe929745c331d22, type: 3}
+    weight: 3
+  - role: 2
+    prefab: {fileID: 5705080575746212662, guid: c575f358b1b813c4e8bda3b1d53ae74c, type: 3}
+    weight: 1
+  - role: 2
+    prefab: {fileID: 6812825112896388665, guid: 17934fd3b87156a4189e627e1beded79, type: 3}
+    weight: 1
+  handItems:
+  - {fileID: 11400000, guid: 4c3ecf8e279975a4985ffafb2b2e4e95, type: 2}
+  - {fileID: 11400000, guid: 389c3378f71bb489a923ddc9f01a635d, type: 2}
+  - {fileID: 11400000, guid: 8c681dba239b64a2bb05284dd50a53b0, type: 2}
+  hostileLines: {fileID: 11400000, guid: e565699a41061714bba1f7bb4dab387d, type: 2}
+  warPartyTiers:
+  - roles:
+    - role: 2
+      count: 2
+  - roles:
+    - role: 2
+      count: 3
+  - roles:
+    - role: 2
+      count: 5

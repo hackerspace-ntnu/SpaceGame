@@ -76,6 +76,22 @@ namespace SpaceGame.Locomotion
             return true;
         }
 
+        /// The corner beyond the one being steered at, without advancing anything. False on the
+        /// last leg, where there is nothing beyond it. Lets a machine that must brake for a turn
+        /// see the turn coming rather than discover it at the corner.
+        public bool TryGetCornerAfterCurrent(out Vector3 corner)
+        {
+            int next = index + 1;
+            if (next >= count)
+            {
+                corner = default;
+                return false;
+            }
+
+            corner = corners[next];
+            return true;
+        }
+
         /// Distance still to walk along the path from `position`, summed leg by leg. The straight
         /// line to the destination is shorter than this whenever the path bends around anything,
         /// which is exactly when the difference matters.

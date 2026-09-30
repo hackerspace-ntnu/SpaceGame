@@ -1609,7 +1609,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1016271408333728278}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.701836, y: -0.08617462, z: -0.08617464, w: 0.7018362}
+  m_LocalRotation: {x: -0.701836, y: -0.08617463, z: -0.08617464, w: 0.7018363}
   m_LocalPosition: {x: 0.028499998, y: -0.0040000007, z: 0.074999996}
   m_LocalScale: {x: 0.9999998, y: 0.9999998, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2595,7 +2595,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1757213403043467696}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.33182722, y: 0.6244123, z: -0.62441224, w: 0.33182722}
+  m_LocalRotation: {x: 0.33182722, y: 0.62441236, z: -0.62441224, w: 0.33182725}
   m_LocalPosition: {x: 0.005707531, y: 0.0027999282, z: 0.00845365}
   m_LocalScale: {x: 1.0000001, y: 1.0000002, z: 1.0000002}
   m_ConstrainProportionsScale: 0
@@ -5549,7 +5549,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3660704576471956282}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.4052321, y: 0.70698863, z: -0.5794712, w: 0.012935302}
+  m_LocalRotation: {x: 0.4052321, y: 0.7069886, z: -0.5794712, w: 0.0129353}
   m_LocalPosition: {x: 0.000000028610229, y: 0.000000014305114, z: 0.000000023841856}
   m_LocalScale: {x: 1, y: 0.99999976, z: 1.0000001}
   m_ConstrainProportionsScale: 0
@@ -6600,7 +6600,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4422053992421604529}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.701836, y: 0.08617462, z: 0.08617464, w: 0.7018362}
+  m_LocalRotation: {x: -0.701836, y: 0.08617463, z: 0.08617464, w: 0.7018363}
   m_LocalPosition: {x: -0.028499998, y: -0.0040000007, z: 0.074999996}
   m_LocalScale: {x: 0.9999998, y: 0.9999998, z: 1}
   m_ConstrainProportionsScale: 0
@@ -8022,59 +8022,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &5293824572965441577
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 6264447858541693800}
-  - component: {fileID: 8708614801087854511}
-  m_Layer: 0
-  m_Name: COL_CarryVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &6264447858541693800
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5293824572965441577}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 169916896569392171}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &8708614801087854511
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5293824572965441577}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 22.611828, y: 18.712914, z: 26.340885}
-  m_Center: {x: -0.0000009536743, y: 10.660285, z: -1.8008385}
 --- !u!1 &5347770738830114589
 GameObject:
   m_ObjectHideFlags: 0
@@ -8682,7 +8629,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5621419813755851452}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.6253307, y: 0.6375479, z: -0.32806778, w: 0.3080031}
+  m_LocalRotation: {x: 0.6253307, y: 0.63754785, z: -0.32806778, w: 0.30800307}
   m_LocalPosition: {x: -0, y: 0.0000000047683715, z: 0.000000009536743}
   m_LocalScale: {x: 1.3157759, y: 1.3157759, z: 1.3157761}
   m_ConstrainProportionsScale: 0
@@ -8974,7 +8921,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5810586805255207770}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.39720803, y: 0.58500075, z: -0.5850005, w: 0.3972081}
+  m_LocalRotation: {x: 0.39720803, y: 0.5850008, z: -0.5850005, w: 0.39720812}
   m_LocalPosition: {x: 0.0037628138, y: 0.0027999973, z: 0.009480584}
   m_LocalScale: {x: 1.0000001, y: 0.9999999, z: 1.0000001}
   m_ConstrainProportionsScale: 0
@@ -9571,7 +9518,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6164071287574138049}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.12982738, y: 0.0017022047, z: 0.0110557545, w: 0.9914735}
+  m_LocalRotation: {x: -0.12982738, y: 0.0017022048, z: 0.0110557545, w: 0.99147356}
   m_LocalPosition: {x: -0.0000000019371509, y: 0.046334695, z: 0.0000000013317912}
   m_LocalScale: {x: 1.0000001, y: 1.0000002, z: 1}
   m_ConstrainProportionsScale: 0
@@ -10411,7 +10358,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6752921759290077309}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.16604573, y: -0.51118773, z: 0.4450732, w: 0.7162583}
+  m_LocalRotation: {x: -0.16604573, y: -0.5111877, z: 0.4450732, w: 0.7162582}
   m_LocalPosition: {x: -0.0000000023841857, y: 0.03868463, z: 0.000000011920928}
   m_LocalScale: {x: 1, y: 0.99999994, z: 0.99999994}
   m_ConstrainProportionsScale: 0
@@ -10760,7 +10707,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7145676708606201465}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.4052321, y: 0.70698863, z: -0.5794712, w: 0.012935302}
+  m_LocalRotation: {x: 0.4052321, y: 0.7069886, z: -0.5794712, w: 0.0129353}
   m_LocalPosition: {x: 0.000000028610229, y: 0.000000014305114, z: 0.000000023841856}
   m_LocalScale: {x: 1, y: 0.99999976, z: 1.0000001}
   m_ConstrainProportionsScale: 0
@@ -11753,24 +11700,26 @@ GameObject:
   - component: {fileID: 915176694857654333}
   - component: {fileID: 722063332116353566}
   - component: {fileID: 8531651457280061493}
+  - component: {fileID: 6627079953563196145}
   - component: {fileID: 4663289707313987540}
   - component: {fileID: 2305755416913361533}
-  - component: {fileID: 3344671086156034919}
-  - component: {fileID: 3370609730646005318}
-  - component: {fileID: 2561974412733671353}
   - component: {fileID: 457735655140580723}
-  - component: {fileID: 8158592059638510580}
-  - component: {fileID: 6819805131744182806}
   - component: {fileID: 4850506689727008675}
-  - component: {fileID: -6736028191729949346}
-  - component: {fileID: -5636099328374491079}
-  - component: {fileID: 5340390027057344831}
-  - component: {fileID: -8015675217049827767}
-  - component: {fileID: 5582520173645095293}
-  - component: {fileID: -7655675379975840629}
+  - component: {fileID: 2561974412733671353}
   - component: {fileID: 7371218599211206636}
   - component: {fileID: 4007017711298590549}
   - component: {fileID: 5916352996411920773}
+  - component: {fileID: 3344671086156034919}
+  - component: {fileID: 3370609730646005318}
+  - component: {fileID: -8577930074004882394}
+  - component: {fileID: -7124066079369270654}
+  - component: {fileID: -4456827941107107793}
+  - component: {fileID: -3291174253448241782}
+  - component: {fileID: 6662301329301422635}
+  - component: {fileID: 2655361894524606913}
+  - component: {fileID: 2827046901499059120}
+  - component: {fileID: -6023089503858023745}
+  - component: {fileID: 1294288495399173161}
   m_Layer: 0
   m_Name: DesertCrawler
   m_TagString: Untagged
@@ -11792,7 +11741,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 553205145545624286}
-  - {fileID: 6264447858541693800}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4037301488168681446
@@ -11818,7 +11766,7 @@ MonoBehaviour:
   stepClearance: 0.08
   obstacleClearance: 1.5
   autoCalibrateRideHeight: 1
-  rideHeight: 11.070836
+  rideHeight: 0
   heightSmooth: 5
   fallGravity: 20
   maxFallSpeed: 40
@@ -11854,10 +11802,11 @@ MonoBehaviour:
   acceleration: 1.2
   defaultStopDistance: 12
   turnInPlaceAngle: 50
-  repathInterval: 0.5
-  repathTolerance: 2
-  cornerArriveRadius: 10
-  navMeshSampleDistance: 25
+  route:
+    repathInterval: 0.5
+    repathTolerance: 2
+    cornerArriveRadius: 10
+    navMeshSampleDistance: 25
   detourHoldTime: 2
   lateralSteering: 0
 --- !u!54 &6076024723287387452
@@ -11915,7 +11864,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
-  MotorComponent: {fileID: 4801885339896168093}
+  MotorComponent: {fileID: 0}
   animatorDriver: {fileID: 0}
   nearbyAgentScanRadius: 0
   nearbyAgentLayer:
@@ -11962,6 +11911,7 @@ MonoBehaviour:
   sampleDistance: 30
   minDestinationDistance: 25
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 4
   maxWaitTime: 12
   stopDistance: 8
@@ -12007,6 +11957,39 @@ MonoBehaviour:
   settleTime: 1.2
   clawPeriod: 7
   collectorPeriod: 11
+--- !u!114 &6627079953563196145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: 
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 4.5
+    LaneSpacing: 3
+    LateralJitter: 0.9
+    LongitudinalJitter: 1.2
+    DriftAmplitude: 0.7
+    DriftRate: 0.08
+  slotTolerance: 8
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 60
+  holdSlotAtRest: 0
+  regroupDistance: 150
+  navSampleDistance: 20
 --- !u!114 &4663289707313987540
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12078,7 +12061,7 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &3344671086156034919
+--- !u!114 &457735655140580723
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12087,11 +12070,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 7855985018472554799}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
-  ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &3370609730646005318
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 0fcc8e79bec6440beb2c49c1343c14a4
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &4850506689727008675
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12100,12 +12086,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 7855985018472554799}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
-  ShowTopMostFoldoutHeaderGroup: 1
-  simulationDrivers: []
-  freezePhysicsOnRemote: 1
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
+  keepChunksLoaded: 0
+  policy: 1
 --- !u!114 &2561974412733671353
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12126,133 +12111,6 @@ MonoBehaviour:
   groundWaitTimeout: 20
   structureFloorReach: 1.7
   logRecoveries: 1
---- !u!114 &457735655140580723
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 0fcc8e79bec6440beb2c49c1343c14a4
-  instanceId: 
-  authored: 0
-  scope: 0
---- !u!114 &8158592059638510580
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
---- !u!114 &6819805131744182806
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 21911023c0932417c9a2a12b2e7b8fd6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentStateSaveable
---- !u!114 &4850506689727008675
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
-  keepChunksLoaded: 0
-  policy: 1
---- !u!114 &-6736028191729949346
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e43b0c557f13f4220884e513b4eff4fc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderSaveable
---- !u!114 &-5636099328374491079
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c672eb793055441e0a2ba07913619da5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
-  drawGizmos: 1
---- !u!114 &5340390027057344831
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
---- !u!114 &-8015675217049827767
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
---- !u!114 &5582520173645095293
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
---- !u!114 &-7655675379975840629
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7855985018472554799}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f09b9193e5d8345e59d1322b9913d022, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.LeggedGaitSaveable
 --- !u!114 &7371218599211206636
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12298,7 +12156,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
-  faction: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  faction: {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
   relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
 --- !u!114 &5916352996411920773
 MonoBehaviour:
@@ -12312,6 +12170,143 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
+--- !u!114 &3344671086156034919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &3370609730646005318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
+  ShowTopMostFoldoutHeaderGroup: 1
+  simulationDrivers: []
+  freezePhysicsOnRemote: 1
+--- !u!114 &-8577930074004882394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &-7124066079369270654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21911023c0932417c9a2a12b2e7b8fd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentStateSaveable
+--- !u!114 &-4456827941107107793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43b0c557f13f4220884e513b4eff4fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderSaveable
+--- !u!114 &-3291174253448241782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c672eb793055441e0a2ba07913619da5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
+  drawGizmos: 1
+--- !u!114 &6662301329301422635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
+--- !u!114 &2655361894524606913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
+--- !u!114 &2827046901499059120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
+--- !u!114 &-6023089503858023745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &1294288495399173161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7855985018472554799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f09b9193e5d8345e59d1322b9913d022, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.LeggedGaitSaveable
 --- !u!1 &7877522406223312297
 GameObject:
   m_ObjectHideFlags: 0
@@ -13510,7 +13505,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8830023634712236823}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.16604567, y: 0.51118785, z: -0.44507325, w: 0.71625805}
+  m_LocalRotation: {x: -0.16604567, y: 0.5111879, z: -0.44507325, w: 0.7162581}
   m_LocalPosition: {x: -0.0000000047683715, y: 0.038684625, z: 0.0000000047683715}
   m_LocalScale: {x: 1, y: 0.99999994, z: 0.99999994}
   m_ConstrainProportionsScale: 0

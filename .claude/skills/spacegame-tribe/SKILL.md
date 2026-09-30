@@ -186,6 +186,13 @@ Verify in play: count the tribe's agents inside `countRadius`, check each with
 `NavMeshReach.CanWalk` from the anchor, save, reload the same world, and count again — the number
 must not grow.
 
+**A home that moves** (the Striders' walking city) is not a settlement but a seeded caravan template
+whose carriers hold the people: carrier prefabs with `VesselSeats` + `CrewShift` + a gangway marker,
+member specs with `crew: true` listed **after** the carriers, a carrier flagged `isLeader` with the
+task list (it holds the column's departure gate until its crew is back aboard), and
+`FormationModule.holdSlotAtRest` on anything too big to share a rest ring. Full recipe, build order
+and traps: [Striders.md](../../../docs/AI/systems/Striders.md).
+
 ## Related
 
 - [spacegame-agent](../spacegame-agent/SKILL.md) — building the people/mounts this roster fields.

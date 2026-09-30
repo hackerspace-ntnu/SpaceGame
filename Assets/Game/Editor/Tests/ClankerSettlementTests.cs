@@ -5,6 +5,7 @@
 // The recipe test reads the ASSET, not the class: a serialized slot keeps whatever was last saved
 // into it, and the builder's failure mode is an empty slot the generator silently skips.
 using System;
+using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -93,6 +94,10 @@ namespace SpaceGame.EditorTools
             Assert.IsNotEmpty(recipe.robotPrefabs, "garrison");
             foreach (GameObject robot in recipe.robotPrefabs)
                 Assert.IsNotNull(robot, "a garrison slot is empty");
+            // Every Clanker body stands in the town, so a patrol is a mix of them.
+            CollectionAssert.AreEquivalent(ClankerBuilder.AllPrefabPaths,
+                                           recipe.robotPrefabs.Select(AssetDatabase.GetAssetPath).ToArray(),
+                                           "the garrison is every Clanker body");
 
             // The mounted Clankers ride on their own slots, so the count is a promise rather
             // than a roll of the patrol-group dice.

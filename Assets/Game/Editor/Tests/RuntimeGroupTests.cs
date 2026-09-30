@@ -9,6 +9,8 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using SpaceGame.Agents;
+using SpaceGame.Vehicles;
+using SpaceGame.World;
 
 namespace SpaceGame.EditorTools
 {
@@ -174,6 +176,53 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void AFoldedCity_CallsItsCrewBackAboard_WhenItsStopEnds()
+        {
+            Call("Start");
+            NpcGroup group = sim.FindGroup("caravan");
+            group.CrewAshore = true;
+            group.DwellRemaining = 5f;
+
+            Call("TickGroup", group, 1f);
+            Assert.IsTrue(group.CrewAshore, "still at its stop: the crew stay ashore");
+
+            for (int i = 0; i < 5; i++) Call("TickGroup", group, 1f);
+            Assert.IsFalse(group.CrewAshore, "a record that left its stop must not unfold mid-march with its crew on foot");
+        }
+
+        [Test]
+        public void ACityFoldedMidStop_KeepsItsCrewAshore_ForTheRestOfTheLeadersStay()
+        {
+            Call("Start");
+            NpcGroup group = sim.FindGroup("caravan");
+            group.DwellRemaining = 0f;   // stale: only a virtual arrival ever sets it
+
+            // A live leader still working its stop, and a house with crew ashore.
+            var house = new GameObject("House"); junk.Add(house);
+            var seat = new GameObject("Seat_0").transform; seat.SetParent(house.transform);
+            var seats = house.AddComponent<VesselSeats>();
+            var so = new UnityEditor.SerializedObject(seats);
+            so.FindProperty("seats").arraySize = 1;
+            so.FindProperty("seats").GetArrayElementAtIndex(0).objectReferenceValue = seat;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            house.AddComponent<FormationModule>().SetFormation("fold-mid-stop", true);
+            var tasks = house.AddComponent<NpcTaskModule>();
+            tasks.SetTasks(new[] { new NpcTask { targetSite = SiteKind.Ruin } });
+            tasks.RestoreTaskState(NpcTaskModule.Phase.Dwelling, 0, "site", "site-1", 30f, 0f, -1, true, Vector3.zero);
+            var person = new GameObject("Crew"); junk.Add(person);
+            house.AddComponent<CrewShift>().Take(person, aboard: false);
+            group.Live.Add(house);
+
+            typeof(NpcWorldSim).GetMethod("ReadBackCrew", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { group });
+            group.Live.Clear();
+
+            Assert.AreEqual(30f, group.DwellRemaining, 0.001f, "the leader's stay is carried into the record");
+            Call("TickGroup", group, 1f);
+            Assert.IsTrue(group.CrewAshore, "folded mid-stop, the crew stay ashore until the stay runs out");
+        }
+
+        [Test]
         public void SteerSpawned_PointsTheRecordAtTheNewGoal()
         {
             NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
@@ -184,6 +233,60 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(group.HasGoal);
             Assert.AreEqual(new Vector3(300f, 0f, 40f), group.GoalPosition);
             Assert.AreEqual(20f, group.ArriveRadius);
+        }
+
+        [Test]
+        public void SteerSpawned_SteersTheMemberTheColumnFollows_WhenTheFlaggedLeaderIsParked()
+        {
+            NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
+            group.Spawned = true;
+            GameObject flagged = ColumnMember(group, "LeadWheel", leader: true);
+            GameObject next = ColumnMember(group, "NextWheel", leader: false);
+            flagged.GetComponent<FormationModule>().enabled = false;   // as MonowheelDriverGate parks a driverless wheel
+
+            sim.SteerSpawned(group, new Vector3(300f, 0f, 40f), 20f);
+
+            Assert.IsTrue(next.GetComponent<AgentGoal>().HasGoal, "the wheel that took the lead is sent after the quarry");
+            Assert.IsFalse(flagged.GetComponent<AgentGoal>().HasGoal, "the parked wheel cannot drive, so steering it stops the party");
+        }
+
+        [Test]
+        public void AHandedOnLead_PicksUpTheGroupsGoal_OnTheNextTick()
+        {
+            NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
+            GameObject flagged = ColumnMember(group, "LeadWheel", leader: true);
+            GameObject next = ColumnMember(group, "NextWheel", leader: false);
+            group.GoalPosition = new Vector3(0f, 0f, 90f);
+            group.ArriveRadius = 5f;
+            group.HasGoal = true;
+            flagged.GetComponent<FormationModule>().enabled = false;
+
+            Call("HandGoalToSteeringLeader", group);
+
+            Assert.IsTrue(next.GetComponent<AgentGoal>().HasGoal, "without it the party waits for the director's next out-of-sight trail");
+        }
+
+        [Test]
+        public void AFlaggedLeader_IsNeverHandedTheGroupsGoal()
+        {
+            NpcGroup group = sim.CreateGroup(caravan, "c", Vector3.zero);
+            GameObject flagged = ColumnMember(group, "Leader", leader: true);
+            group.GoalPosition = new Vector3(0f, 0f, 90f);
+            group.HasGoal = true;
+
+            Call("HandGoalToSteeringLeader", group);
+
+            Assert.IsFalse(flagged.GetComponent<AgentGoal>().HasGoal, "a caravan's task list clears its goal at every stop");
+        }
+
+        private GameObject ColumnMember(NpcGroup group, string name, bool leader)
+        {
+            var go = new GameObject(name);
+            junk.Add(go);
+            go.AddComponent<FormationModule>().SetFormation(group.Id, leader);
+            go.AddComponent<AgentGoal>();
+            group.Live.Add(go);
+            return go;
         }
 
         [Test]
@@ -263,6 +366,45 @@ namespace SpaceGame.EditorTools
             sim.ReportSighting(new Vector3(1f, 0f, 1f));
 
             Assert.IsFalse(group.HasLead);
+        }
+
+        [Test]
+        public void DespawnOrder_CrewBeforeTheirCarriers()
+        {
+            var group = new NpcGroup { Id = "city" };
+            var carrier = new GameObject("Carrier"); var crewman = new GameObject("Crew");
+            junk.Add(carrier); junk.Add(crewman);
+            group.Live.Add(carrier);
+            group.Live.Add(crewman);
+
+            var members = (List<GameObject>)typeof(NpcWorldSim)
+                .GetMethod("DespawnOrder", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { group });
+
+            CollectionAssert.AreEqual(new[] { crewman, carrier }, members,
+                "a carrier despawned first would strand its seated crew at the scene root");
+        }
+
+        [Test]
+        public void ReadBackCrew_MarksTheGroupAshore_WhenAnyHouseIs()
+        {
+            var group = new NpcGroup { Id = "city" };
+            var house = new GameObject("House"); junk.Add(house);
+            var seat = new GameObject("Seat_0").transform; seat.SetParent(house.transform);
+            var seats = house.AddComponent<VesselSeats>();
+            var so = new UnityEditor.SerializedObject(seats);
+            so.FindProperty("seats").arraySize = 1;
+            so.FindProperty("seats").GetArrayElementAtIndex(0).objectReferenceValue = seat;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var shift = house.AddComponent<CrewShift>();
+            var person = new GameObject("Crew"); junk.Add(person);
+            shift.Take(person, aboard: false);
+            group.Live.Add(house);
+
+            typeof(NpcWorldSim).GetMethod("ReadBackCrew", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { group });
+
+            Assert.IsTrue(group.CrewAshore);
         }
     }
 }

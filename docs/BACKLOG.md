@@ -10,7 +10,7 @@ IDs are never reused — when an item is fixed, mark it done rather than deletin
 | Inventory presentation | `INV` | 5 |
 | Interaction & HUD | `UI` | 3 |
 | Ship interior wall | `SHIP` | 2 |
-| Animation & ragdoll | `ANIM` | 3 |
+| Animation & ragdoll | `ANIM` | 4 |
 | Artifact behaviour | `ART` | 4 |
 | Enemy AI & pathfinding | `AI` | 1 |
 
@@ -496,6 +496,17 @@ adding one — gating the `AddComponent` alone left the opt-out silently undone 
 authored component on the prefab. No prefab or animator asset was touched.
 `HoldPoseTests` pins both (9/9 green; 7/9 with the fix reverted, and the two that go red
 are exactly the new ones). Not yet seen on a body in play.
+
+### ANIM-04 — Proper seated / gunner animation for NPCs on vehicles
+Recorded 2026-09-24 at the user's request, to look at later. NPCs seated on vehicles — walking-city
+crew on `VesselSeats` posts, Strider monowheel drivers (`NpcPassenger`) and the double monowheel's
+gunners (rear seat + inside each wheel) — use whatever seated pose exists today (`ChairPose`'s
+`Seated` bool / `NpcPassenger`'s `IsSeated`). Wanted: a real seated pose that fits each seat
+(upright deck post, low monowheel saddle with hands on the tiller, gunner leaning out of the wheel
+with the weapon raised), aim that still tracks the target from the seat, and a lookout "standing
+watch" pose for deck posts that are not seats. Check host and client (seated pose is derived per
+machine). Specs: `docs/superpowers/specs/2026-09-23-striders-walking-city-design.md`,
+`docs/superpowers/specs/2026-09-24-strider-monowheels-design.md`.
 
 ---
 

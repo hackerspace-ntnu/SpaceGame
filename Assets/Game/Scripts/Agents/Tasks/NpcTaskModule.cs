@@ -85,6 +85,22 @@ namespace SpaceGame.Agents
         private bool homeResolved;
         private int forcedTaskIndex = -1;
 
+        // Who else must agree before this NPC sets off. A walking city's leader waits here for
+        // its crew to be back aboard (CrewShift); null means nobody else has a say.
+        private System.Func<bool> departureGate;
+
+        /// <summary>Dwelling with time left on the stay. False once the stay is over, even while a
+        /// departure gate is still holding the NPC where it is.</summary>
+        public bool AtStop => CurrentPhase == Phase.Dwelling && phaseTimer > 0f;
+
+        /// <summary>
+        /// Something outside the task loop that can hold this NPC in place: consulted when a stay
+        /// ends and before a new destination is chosen. Server-side state, like the rest of the loop.
+        /// </summary>
+        public void SetDepartureGate(System.Func<bool> mayDepart) => departureGate = mayDepart;
+
+        private bool MayDepart => departureGate == null || departureGate();
+
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
         private void Awake()
@@ -203,6 +219,8 @@ namespace SpaceGame.Agents
 
         private void TickChoosing(float deltaTime)
         {
+            if (!MayDepart) return;
+
             if (phaseTimer > 0f)
             {
                 phaseTimer -= deltaTime;
@@ -282,8 +300,8 @@ namespace SpaceGame.Agents
 
         private void TickDwelling(float deltaTime)
         {
-            phaseTimer -= deltaTime;
-            if (phaseTimer > 0f) return;
+            phaseTimer = Mathf.Max(0f, phaseTimer - deltaTime);
+            if (phaseTimer > 0f || !MayDepart) return;
 
             CollectYield();
             SetDwellFlag(null);

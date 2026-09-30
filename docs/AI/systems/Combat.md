@@ -106,7 +106,7 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 
 | Weapon/Projectile | File | Notes |
 | --- | --- | --- |
-| `BasicGun` | [BasicGun.cs](Assets/Game/Scripts/Weapons/Firearms/BasicGun.cs) | Spawns `BasicProjectile`; must `override` (not hide) `OnEnable`/`GetSpawnPosition` |
+| Basic gun | [PelletGunArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/PelletGunArtifact.cs) | **Not a `Weapon` any more** (2026-09-24): a hitscan artifact shared with the gravel blaster — see [Artifacts.md](Artifacts.md). No held gun fires `BasicProjectile` any more |
 | `EnergyRifle` | [EnergyRifle.cs](Assets/Game/Scripts/Weapons/Firearms/EnergyRifle.cs) | Hitscan, `raysPerShot`/spread/dropoff; damage gated on `ShotDealsDamage` |
 | `BallLightningWeapon` | [BallLightningWeapon.cs](Assets/Game/Scripts/Weapons/BallLightning/BallLightningWeapon.cs) | The only charging weapon: press 1 spawns + charges, press 2 launches |
 | `BasicProjectile` | [BasicProjectile.cs](Assets/Game/Scripts/Weapons/Projectiles/BasicProjectile.cs) | Straight line, interval raycast from `lastPosition`, portal-aware |

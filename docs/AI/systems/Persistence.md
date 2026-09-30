@@ -26,8 +26,9 @@ symptoms:
   - "a save file's item records sit at y = -30000 and get deeper on every load"
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
   - "after a quickload the old caravan is still standing beside the new one"
+  - "a prefab builder's wiring passes add SaveableEntity, savers and AgentRagdoll to a prefab the design says is never saved"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
-updated: 2026-09-24
+updated: 2026-09-25
 ---
 
 # Persistence / Save-Load
@@ -108,7 +109,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 - **Server-only.** Every hydrate/dehydrate/save handler early-returns on `Network.IsNetworked && !Network.Server`. Singleplayer is a host of one, so the host path is the only path that ever writes.
 - Clients get world state through normal replication; a client F5 is refused with an explanation, and a client F9 is refused because reloading the scene would drop it out of the session.
 - Restored objects go through `SaveNetworking.SpawnIfNetworked`, which checks `NetworkConfig.Prefabs.NetworkPrefabOverrideLinks` for `PrefabIdHash` **itself** — NGO does not throw for an unregistered server-side dynamic spawn, the *client* silently fails to construct it.
-- **`SpawnIfNetworked` runs before `Restore`, not after.** A saver that puts a child back — `EntityEquipmentSaveable` (the NPC's weapon), `MountSaveable` (the rider) — attaches an object whose prefab carries a NetworkObject, and NGO refuses to spawn a root that already has one nested under it. Both restore sites (`WorldSaveStore.SpawnEntities`, `Captivity.Rebuild`) spawn first for this reason.
+- **`SpawnIfNetworked` runs before `Restore`, not after.** A saver that puts a child back — `EntityEquipmentSaveable` (the NPC's weapon), `MountSaveable` (the rider) — attaches an object whose prefab carries a NetworkObject, and NGO refuses to spawn a root that already has one nested under it. Both restore sites (`WorldSaveStore.SpawnEntities`, `Captivity.Rebuild`) spawn first for this reason. The flip side: anything an entity spawns in `OnNetworkSpawn` already exists when its savers restore — `CrewSaveable` (a player-taken war-party monowheel) therefore despawns the gunners a double just seated rather than trying to stop them ([Striders.md](Striders.md) Persistence).
 - Player pose is owner-authoritative, so placement goes through `PlayerSaveService.Bind` (skipped for the host, already placed), never a server teleport.
 - `SaveablePrefabRegistry` folds in the NetworkManager prefab list lazily on the first cache miss — scanning at load time races NetworkManager's `Awake`.
 
@@ -131,6 +132,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 
 | Trap | Silent symptom | Correct move |
 |---|---|---|
+| Leaving a component-qualified object that **its owner rebuilds** to the component rule | `NeedsSaving` says yes for `HealthComponent`/`EntityFaction`-bearing roots, and `SaveableWiring.TryWirePrefabs` (which every prefab builder chains at its end) bakes an entity and savers into the prefab file — the sky transports kept coming back wired after every `Build … Prefab` run, and `RagdollWiring` added `AgentRagdoll` to them for the same `HealthComponent`. Runtime `NpcSpawn.Create` disowned them, so nothing broke visibly | Exclude by the component that means "owned and rebuilt elsewhere": `NeedsSaving` returns false for `VesselPilot` (as it does for the player's binders), and `RagdollWiring.IsBody` refuses it. Guarded by `EntityPersistenceTests.NeedsSaving_IsFalseForAFlownVesselItsOwnerRebuilds` and `SkyTransportPrefabTests.TheVesselCarriesNoSaversAndNoRagdoll`. Neither pass removes savers it no longer wants — revert a prefab wired under the old rule by hand |
 | Letting a runtime-spawned world object stay in the **persistent scene** | Its record is filed under `persistent`, which is hydrated in `SaveManager.Start` **before any chunk exists**. A body with gravity is rebuilt over nothing, falls, and is captured lower by the next save — so every load resumes the fall. Dropped items reached y = -30000 this way, four generations deep, with nothing logged | A thing that lies in the world belongs to the chunk it lies in: `SceneTracked` with `Migrate` and `keepChunksLoaded: false`, which `SaveablePolicy.EnsureSpawned` now gives every pickup. `WorldSaveStore.HasGroundToLandOn` is the failsafe under it, and lands the records already written that way |
 | Reading a payload by probing `JObject` tokens | `StackOverflowException` in `Vector3.normalized` | `state.ToObject<State>(SaveSerializer.Serializer)` |
 | `CaptureState` returning a bare list/int/string | Key dropped (error logged, capture survives) — see [StateBag.Set](Assets/Game/Scripts/Core/Persistence/Format/StateBag.cs#L44) | Wrap in a public-field struct |
@@ -165,7 +167,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 
 ## Extending
 
-1. **Opt in.** `SaveablePolicy.NeedsSaving` already says yes for `IPersistentEntity`, `HealthComponent`, `PickupableItem`, `NavMeshAgent`, non-kinematic `Rigidbody` (and no for the `Transient` blacklist and anything with `PlayerSaveBinder`/`PlayerSaveSync`). A new vehicle/locomotion root matching none of those implements `SpaceGame.Persistence.IPersistentEntity`.
+1. **Opt in.** `SaveablePolicy.NeedsSaving` already says yes for `IPersistentEntity`, `HealthComponent`, `PickupableItem`, `NavMeshAgent`, non-kinematic `Rigidbody` (and no for the `Transient` blacklist, anything with `PlayerSaveBinder`/`PlayerSaveSync`, and anything with `VesselPilot` — a group record rebuilds those hulls). A new vehicle/locomotion root matching none of those implements `SpaceGame.Persistence.IPersistentEntity`.
 2. **Write the saver** in `Adapters/`, namespace `SpaceGame.Core.Persistence` (not the feature asmdef — that drags in Newtonsoft): `const string Key`, a plain public-field `State` struct, `CaptureState()` returning null at defaults, `RestoreState` via `SaveSerializer.Serializer`, lazy component lookup.
 3. **Auto-attach it**: add a clause to `SaveablePolicy.Ensure` (or the `EnsureAgent*` / `EnsureWorldInteractables` helpers) keyed off the component that implies it.
 4. **Cross-object state**: hold a `SaveRef`, add `IDeferredSaveable`, resolve in `OnLoadComplete`, consume on success only; use `LoadOrder = Early` if others read your result.

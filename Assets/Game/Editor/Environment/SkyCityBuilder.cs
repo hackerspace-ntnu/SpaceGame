@@ -75,16 +75,12 @@ namespace SpaceGame.EditorTools
         public const string CollisionGroup = "Collision";
         public const string LadderPrefix = "LAD_SkyCity_";
         public const string LadderGroup = "Ladders";
-        public const string LadderTop = "_Top";
-        public const string LadderExit = "_Exit";
+        public const string LadderTop = ModelMarkerImport.LadderTop;
+        public const string LadderExit = ModelMarkerImport.LadderExit;
         private const string RootName = "SkyCity";
 
         /// <summary>Uniform scale on the prefab root. See SCALE above for its upper bound.</summary>
         public const float Scale = 1.5f;
-
-        // Points of one island closer than this are one corner: Blender writes a
-        // box's corners exactly, and the import splits them per face.
-        private const float CornerTolerance = 0.001f;
 
         // One cull level, as on the buildings -- there are no decimated meshes
         // to hang a real chain off. See StaticPropBuilder.BuildLodGroup.
@@ -169,10 +165,11 @@ namespace SpaceGame.EditorTools
                     throw new System.InvalidOperationException(
                         $"{RootName} imported at lossyScale {ls:F4}, not 1 - the collision islands are in metres.");
 
-                CollisionCounts islands = BuildIslandColliders(root);
+                ModelMarkerImport.CollisionCounts islands = ModelMarkerImport.BuildIslandColliders(
+                    root, CollisionPrefix, CollisionGroup, HullsPath, "sky_city_export.py");
                 // The hulls must be on disk before the prefab that references them.
                 AssetDatabase.SaveAssets();
-                int ladders = GatherLadders(root);
+                int ladders = ModelMarkerImport.GatherLadders(root, LadderPrefix, LadderGroup, "sky_city_export.py");
                 StaticPropBuilder.FitCounts rules = StaticPropBuilder.ApplyFits(root, Rules);
 
                 Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
@@ -189,9 +186,7 @@ namespace SpaceGame.EditorTools
                     .Where(mf => mf != null && mf.sharedMesh != null)
                     .Sum(mf => mf.sharedMesh.triangles.Length / 3);
                 report.AppendLine($"  {renderers.Length} renderers, {tris} tris, root scale {Scale}");
-                report.AppendLine(
-                    $"  collision islands: {islands.Boxes} box + {islands.Hulls} convex hull" +
-                    (islands.Degenerate > 0 ? $", {islands.Degenerate} DEGENERATE skipped" : ""));
+                report.AppendLine($"  collision islands: {islands}");
                 report.AppendLine($"  renderer rules: {rules}");
                 report.AppendLine($"  {ladders} ladder markers under {LadderGroup}");
                 report.AppendLine($"  saved {PrefabPath} and {HullsPath}");
@@ -203,151 +198,6 @@ namespace SpaceGame.EditorTools
 
             AssetDatabase.SaveAssets();
             Debug.Log(report.ToString());
-        }
-
-        // -------------------------------------------------------------------
-        // COL_SkyCity_#### islands
-        // -------------------------------------------------------------------
-
-        private struct CollisionCounts
-        {
-            public int Boxes;
-            public int Hulls;
-            public int Degenerate;
-        }
-
-        private static CollisionCounts BuildIslandColliders(GameObject root)
-        {
-            var counts = new CollisionCounts();
-            var sources = root.GetComponentsInChildren<MeshFilter>(true)
-                .Where(mf => mf.name.StartsWith(CollisionPrefix, System.StringComparison.Ordinal))
-                .OrderBy(mf => mf.name, System.StringComparer.Ordinal)
-                .ToList();
-            if (sources.Count == 0)
-                throw new System.InvalidOperationException(
-                    $"No {CollisionPrefix}* objects in {FbxPath} - export it with sky_city_export.py.");
-
-            AssetDatabase.DeleteAsset(HullsPath);
-            var group = new GameObject(CollisionGroup).transform;
-            group.SetParent(root.transform, false);
-            Object hullAsset = null;
-
-            foreach (MeshFilter mf in sources)
-            {
-                Mesh mesh = mf.sharedMesh;
-                Matrix4x4 toRoot = root.transform.worldToLocalMatrix * mf.transform.localToWorldMatrix;
-                List<Vector3> corners = Corners(mesh.vertices.Select(v => toRoot.MultiplyPoint3x4(v)));
-                if (corners.Count < 4)
-                {
-                    counts.Degenerate++;
-                    continue;
-                }
-
-                string id = mf.name.Substring(CollisionPrefix.Length);
-                if (IsAxisAlignedBox(corners, out Bounds box))
-                {
-                    var go = new GameObject("Box_" + id);
-                    go.transform.SetParent(group, false);
-                    go.transform.localPosition = box.center;
-                    go.AddComponent<BoxCollider>().size = box.size;
-                    counts.Boxes++;
-                }
-                else
-                {
-                    Vector3 centre = corners.Aggregate(Vector3.zero, (a, b) => a + b) / corners.Count;
-                    var hull = new Mesh { name = "SkyCityHull_" + id };
-                    hull.SetVertices(corners.Select(c => c - centre).ToList());
-                    hull.SetTriangles(HullTriangles(mesh, toRoot, corners), 0);
-                    hull.RecalculateBounds();
-                    if (hullAsset == null)
-                    {
-                        AssetDatabase.CreateAsset(hull, HullsPath);
-                        hullAsset = hull;
-                    }
-                    else
-                    {
-                        AssetDatabase.AddObjectToAsset(hull, hullAsset);
-                    }
-
-                    var go = new GameObject("Hull_" + id);
-                    go.transform.SetParent(group, false);
-                    go.transform.localPosition = centre;
-                    var mc = go.AddComponent<MeshCollider>();
-                    mc.sharedMesh = hull;
-                    mc.convex = true;
-                    counts.Hulls++;
-                }
-                Object.DestroyImmediate(mf.gameObject);
-            }
-            return counts;
-        }
-
-        // The island's distinct corners: the import splits a vertex once per face
-        // it belongs to, and these are the same point written again.
-        private static List<Vector3> Corners(IEnumerable<Vector3> points)
-        {
-            var corners = new List<Vector3>();
-            foreach (Vector3 p in points)
-            {
-                if (!corners.Any(c => (c - p).sqrMagnitude < CornerTolerance * CornerTolerance))
-                    corners.Add(p);
-            }
-            return corners;
-        }
-
-        private static bool IsAxisAlignedBox(List<Vector3> corners, out Bounds bounds)
-        {
-            bounds = new Bounds(corners[0], Vector3.zero);
-            foreach (Vector3 c in corners) bounds.Encapsulate(c);
-            if (corners.Count != 8) return false;
-            Bounds b = bounds;
-            return corners.All(c =>
-                OnEither(c.x, b.min.x, b.max.x) && OnEither(c.y, b.min.y, b.max.y) && OnEither(c.z, b.min.z, b.max.z));
-        }
-
-        private static bool OnEither(float v, float a, float b) =>
-            Mathf.Abs(v - a) < CornerTolerance || Mathf.Abs(v - b) < CornerTolerance;
-
-        // The island's own triangles, re-indexed onto its distinct corners. A
-        // convex MeshCollider cooks its hull from the vertices; the triangles are
-        // kept so the mesh is also a truthful picture of the collider when drawn.
-        private static List<int> HullTriangles(Mesh mesh, Matrix4x4 toRoot, List<Vector3> corners)
-        {
-            Vector3[] v = mesh.vertices;
-            int[] source = mesh.triangles;
-            var tris = new List<int>(source.Length);
-            foreach (int i in source)
-            {
-                Vector3 p = toRoot.MultiplyPoint3x4(v[i]);
-                tris.Add(corners.FindIndex(c => (c - p).sqrMagnitude < CornerTolerance * CornerTolerance));
-            }
-            return tris;
-        }
-
-        // -------------------------------------------------------------------
-        // Ladders
-        // -------------------------------------------------------------------
-
-        private static int GatherLadders(GameObject root)
-        {
-            var group = new GameObject(LadderGroup).transform;
-            group.SetParent(root.transform, false);
-            var ladders = root.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name.StartsWith(LadderPrefix, System.StringComparison.Ordinal)
-                            && !t.name.EndsWith(LadderTop, System.StringComparison.Ordinal)
-                            && !t.name.EndsWith(LadderExit, System.StringComparison.Ordinal))
-                .ToList();
-            foreach (Transform ladder in ladders)
-            {
-                Transform top = ladder.Find(ladder.name + LadderTop);
-                Transform exit = ladder.Find(ladder.name + LadderExit);
-                if (top == null || exit == null)
-                    throw new System.InvalidOperationException(
-                        $"{ladder.name} has no {LadderTop}/{LadderExit} child - re-export with sky_city_export.py.");
-                ladder.SetParent(group, true);
-                ladder.gameObject.AddComponent<SpaceGame.Gameplay.Ladder>().Configure(top, exit);
-            }
-            return ladders.Count;
         }
     }
 }

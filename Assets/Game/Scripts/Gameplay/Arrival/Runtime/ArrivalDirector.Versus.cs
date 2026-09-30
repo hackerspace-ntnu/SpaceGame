@@ -202,6 +202,7 @@ namespace SpaceGame.Gameplay.Arrival
                 // so a grounded hull is indistinguishable from a landed one. GroundFlightAtRest is
                 // the shared tail of every path that finishes a landing without flying it.
                 GroundFlightAtRest(flight);
+                DeliverStarterVehicle(flight);
             }
         }
     }

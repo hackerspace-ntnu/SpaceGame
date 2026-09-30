@@ -25,7 +25,7 @@ symptoms:
   - "sky nomads walk to a railing and stand there staring up at a roof"
   - "an NPC on wet ground turns on the spot and never gets anywhere"
 reads_with: [WorldStreaming, AgentSystem, Locomotion, SkyTribe]
-updated: 2026-09-17
+updated: 2026-09-26
 ---
 
 # NavMesh
@@ -88,6 +88,7 @@ Areas: only Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not
 | `DeferredNavMeshWarp` | [DeferredNavMeshWarp.cs](Assets/Game/Scripts/Core/Persistence/Runtime/DeferredNavMeshWarp.cs) | Retries a save-restore `Warp` for 10 s, sample radius 4 m |
 | `CaveSpawner` | [CaveSpawner.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveSpawner.cs) | Own `NavMeshSurface`; `SpawnBaked()` adds a pre-baked `NavMeshData` instance |
 | `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `MatchManager`, `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` all call it |
+| `NavMeshGround` | [NavMeshGround.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshGround.cs) | `TryHeight(xz, probeY, reach, horizontalTolerance)`: the walkable height at a point, anywhere in the world — heightmaps and colliders exist only in loaded chunks, the baked mesh everywhere. False when nothing is within `reach` or the nearest mesh is more than the tolerance sideways (a hole under a rock or building, a ledge). The Strider city's stop search samples ground with it ([Striders.md](Striders.md)) |
 | `MatchManager` / `SpawnReachability` | [MatchManager.cs](Assets/Game/Scripts/Gameplay/Minigame/Runtime/MatchManager.cs), [SpawnReachability.cs](Assets/Game/Scripts/Gameplay/Minigame/Core/SpawnReachability.cs) | Snaps arena spawns to the mesh, keeps only the largest mutually-pathable group |
 
 ## Flows

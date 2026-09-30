@@ -1,4 +1,4 @@
-﻿// Which microphones FMOD can see.
+// Which microphones FMOD can see.
 //
 // Capture goes through FMOD rather than Unity's Microphone class on purpose. Unity's audio system
 // is switched off project-wide (ProjectSettings/AudioManager.asset, m_DisableAudio: 1) and there is

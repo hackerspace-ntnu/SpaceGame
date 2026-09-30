@@ -27,7 +27,7 @@ symptoms:
   - "damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled"
   - "the map hologram in the ship shows the world with me off in a corner of it"
 reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics]
-updated: 2026-09-12
+updated: 2026-09-30
 ---
 
 # UI
@@ -45,7 +45,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 - **Gameplay hotkeys gate on `GameplayMenuScope.AcceptsGameplayInput`** — local player exists AND its `PlayerInput` is enabled. This is the one shared check ([Flashlight.cs](Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs), [HelmetOverlayVisibility.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/HelmetOverlayVisibility.cs), [MapHologramTerrain.cs](Assets/Game/Scripts/Presentation/UI/Map/MapHologramTerrain.cs), [SeatedRider.cs](Assets/Game/Scripts/Gameplay/Arrival/Runtime/SeatedRider.cs)). The keys that *open* menus cannot use it — the pause menu and chat each own a private `InputControls` with only the `UI` map live, because `PlayerInputManager` disables the player's whole asset while a menu holds the scope.
 - **`GameplayMenuScope.FindLocalPlayer()` is the project's only answer to "which player is this peer driving"** — never a `"Player"` tag search (every player carries that tag). `FindLocalPlayer(this)` walks the parent chain instead, for per-player HUD components; it resolves during `OnNetworkSpawn`, where the session-wide lookup still returns null. Hits are cached, misses never are.
 - **HUD data sources are events, not polling:** `HealthComponent` events, `HealthComponent.AnyDamaged` + `NetMsg.Damaged`, `PlayerIdentity.All`, `ChatLog.Added`, `Interactor` + `InteractionPromptResolver`, `IPlayerInventory`, `GameSettings.Changed`, `MatchManager`, `EntityTargetRegistry`/`MapService`.
-- **Sorting-order ladder:** WorldOverlay `-1` · PlayerHUD `0` · world prompts `50` · MenuScreen/MinigameConfig `900` · MatchResult `1000` · MatchLeaderboard `1100` · Chat `1500` · PauseMenu `2000` · Trade `2050` · BodyInventory `2060` · DevInventory `2100` · LoadingScreen `5000`.
+- **Sorting-order ladder:** WorldOverlay `-1` · PlayerHUD `0` · world prompts `50` · MenuScreen/MinigameConfig `900` · MatchResult `1000` · MatchLeaderboard `1100` · VoiceSpeakingList `1200` · Chat `1500` · PauseMenu `2000` · Trade `2050` · BodyInventory `2060` · DevInventory `2100` · LoadingScreen `5000`.
 - **Nothing imports art.** [UITheme.cs](Assets/Game/Scripts/Presentation/UI/Theme/UITheme.cs) draws rounded rects/discs/chevrons into textures at runtime and 9-slices them; [HotbarStyle.cs](Assets/Game/Scripts/Presentation/UI/HUD/HotbarStyle.cs) does the same for item tiles, in the visor's palette. Three design languages: **menu navy over the live 3D set** ([MenuEntry.cs](Assets/Game/Scripts/Presentation/UI/Widgets/MenuEntry.cs)), **near-black panel + blue accent** (`UITheme`, for screens over gameplay), and **the visor** (`VisorStyle` — light projected on helmet glass; blue is the language, warm is the alarm, see [Visor.md](Visor.md)).
 
 ## Key types

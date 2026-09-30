@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Characters;
@@ -53,6 +53,14 @@ namespace SpaceGame.Core
         public const float MinVoiceGateThreshold = 0.005f;
         public const float MaxVoiceGateThreshold = 0.3f;
 
+        /// <summary>
+        /// Unbound: push-to-talk is off by default and not in use yet, so it ships without a key
+        /// rather than claiming one. When it wants a default, V is the conventional choice and is
+        /// free in this project's bindings — T is chat, and the rest of the left hand is already
+        /// movement and gear.
+        /// </summary>
+        public const string DefaultPushToTalkBinding = "";
+
         /// <summary>Frame cap choices offered by the video page. 0 means uncapped.</summary>
         public static readonly int[] FrameRateCaps = { 0, 30, 60, 90, 120, 144, 165, 240 };
 
@@ -72,6 +80,10 @@ namespace SpaceGame.Core
         private static bool voicePushToTalk;
         private static float voiceGateThreshold;
         private static string voiceInputDevice;
+        private static bool voiceSelfMuted;
+        private static bool voicePushToTalkToggle;
+        private static string voicePushToTalkBinding;
+        private static string voiceMuteBinding;
         private static float mouseSensitivity;
         private static float cameraShakeIntensity;
         private static bool invertLookY;
@@ -178,7 +190,8 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
-        /// Transmit only while the push-to-talk key is held, instead of whenever the gate opens.
+        /// Transmit only while the push-to-talk channel is open — the key held, or latched on in
+        /// toggle mode (<see cref="VoicePushToTalkToggle"/>) — instead of whenever the gate opens.
         /// <para>
         /// Off by default: proximity chat is meant to feel like talking to the person next to you,
         /// and a key you have to hold undoes that. It is the answer for a player on speakers rather
@@ -213,16 +226,45 @@ namespace SpaceGame.Core
         public static string VoiceInputDevice
         {
             get { EnsureLoaded(); return voiceInputDevice; }
-            set
-            {
-                EnsureLoaded();
-                string name = value ?? string.Empty;
-                if (name == voiceInputDevice) return;
+            set => SetString(ref voiceInputDevice, value, "VoiceInputDevice");
+        }
 
-                voiceInputDevice = name;
-                PlayerPrefs.SetString(Prefix + "VoiceInputDevice", voiceInputDevice);
-                Raise();
-            }
+        /// <summary>
+        /// The player has muted their own microphone. Persisted, because someone who muted
+        /// themselves expects to still be muted when they come back, not to rejoin live.
+        /// </summary>
+        public static bool VoiceSelfMuted
+        {
+            get { EnsureLoaded(); return voiceSelfMuted; }
+            set => SetBool(ref voiceSelfMuted, value, "VoiceSelfMuted");
+        }
+
+        /// <summary>
+        /// Push-to-talk as a toggle — each press flips the channel — rather than hold-to-talk.
+        /// Hold is the default because it cannot be left on by accident.
+        /// </summary>
+        public static bool VoicePushToTalkToggle
+        {
+            get { EnsureLoaded(); return voicePushToTalkToggle; }
+            set => SetBool(ref voicePushToTalkToggle, value, "VoicePushToTalkToggle");
+        }
+
+        /// <summary>Input System path of the push-to-talk key, e.g. <c>&lt;Keyboard&gt;/v</c>.</summary>
+        public static string VoicePushToTalkBinding
+        {
+            get { EnsureLoaded(); return voicePushToTalkBinding; }
+            set => SetString(ref voicePushToTalkBinding, value, "VoicePushToTalkBinding");
+        }
+
+        /// <summary>
+        /// Input System path of the key that toggles <see cref="VoiceSelfMuted"/>. Empty — unbound —
+        /// by default: it is an extra for players who want one, and an unexpected key that silences
+        /// your microphone is worse than no key at all.
+        /// </summary>
+        public static string VoiceMuteBinding
+        {
+            get { EnsureLoaded(); return voiceMuteBinding; }
+            set => SetString(ref voiceMuteBinding, value, "VoiceMuteBinding");
         }
 
         // ----------------------------------------------------------------- controls
@@ -492,6 +534,7 @@ namespace SpaceGame.Core
                 "MouseSensitivity", "InvertLookY", "InvertHotbarScroll", "DevMode", "FieldOfView",
                 "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap",
                 "VoiceVolume", "VoicePushToTalk", "VoiceGateThreshold", "VoiceInputDevice",
+                "VoiceSelfMuted", "VoicePushToTalkToggle", "VoicePushToTalkBinding", "VoiceMuteBinding",
                 "VisorDetail", "ReduceVisorMotion", "Version",
             })
             {
@@ -547,6 +590,11 @@ namespace SpaceGame.Core
             voicePushToTalk = PlayerPrefs.GetInt(Prefix + "VoicePushToTalk", 0) == 1;
             voiceGateThreshold = PlayerPrefs.GetFloat(Prefix + "VoiceGateThreshold", 0.03f);
             voiceInputDevice = PlayerPrefs.GetString(Prefix + "VoiceInputDevice", string.Empty);
+            voiceSelfMuted = PlayerPrefs.GetInt(Prefix + "VoiceSelfMuted", 0) == 1;
+            voicePushToTalkToggle = PlayerPrefs.GetInt(Prefix + "VoicePushToTalkToggle", 0) == 1;
+            voicePushToTalkBinding = PlayerPrefs.GetString(Prefix + "VoicePushToTalkBinding",
+                                                           DefaultPushToTalkBinding);
+            voiceMuteBinding = PlayerPrefs.GetString(Prefix + "VoiceMuteBinding", string.Empty);
 
             mouseSensitivity = PlayerPrefs.GetFloat(Prefix + "MouseSensitivity", 1f);
             invertLookY = PlayerPrefs.GetInt(Prefix + "InvertLookY", 0) == 1;
@@ -598,6 +646,17 @@ namespace SpaceGame.Core
 
             field = value;
             PlayerPrefs.SetInt(Prefix + key, value ? 1 : 0);
+            Raise();
+        }
+
+        private static void SetString(ref string field, string value, string key)
+        {
+            EnsureLoaded();
+            string text = value ?? string.Empty;
+            if (text == field) return;
+
+            field = text;
+            PlayerPrefs.SetString(Prefix + key, text);
             Raise();
         }
 

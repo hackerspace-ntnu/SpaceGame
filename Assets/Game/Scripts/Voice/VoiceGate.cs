@@ -1,4 +1,4 @@
-﻿// Decides whether the microphone is open, from the input level alone.
+// Decides whether the microphone is open, from the input level alone.
 //
 // Pure and stateful-but-tiny on purpose: no Unity types beyond Mathf, no FMOD, no netcode, so the
 // whole thing is exercised in an EditMode test by feeding it numbers. The same shape the lobby's

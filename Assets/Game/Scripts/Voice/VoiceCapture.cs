@@ -1,4 +1,4 @@
-﻿// Microphone capture: FMOD records into a looping ring, this drains it into whole Opus frames.
+// Microphone capture: FMOD records into a looping ring, this drains it into whole Opus frames.
 //
 // FMOD records at the DEVICE's sample rate -- it will not resample for us, and creating the record
 // sound at any other rate fails outright. 44.1 kHz microphones are common, so anything that is not

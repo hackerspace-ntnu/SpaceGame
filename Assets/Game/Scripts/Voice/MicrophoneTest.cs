@@ -1,4 +1,4 @@
-﻿// "Hear yourself" for the audio options page.
+// "Hear yourself" for the audio options page.
 //
 // It runs the REAL pipeline -- capture, Opus encode, Opus decode, FMOD playback -- rather than
 // echoing raw microphone samples, because the point of a microphone test is to hear what everyone

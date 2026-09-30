@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcaad905e15c5724e85d9aaccb79e2c4, type: 3}
+  m_Name: 03_FirstModule
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.RecoverModuleStep
+  id: first-module
+  title: 'Recover the belly motor'
+  briefing:
+  - 'Got a return: one of our belly motors came down about a hundred metres out. Follow the beacon.'
+  - 'Carry it home, hold it up to the red-lit socket on the hull and press left mouse to fit it.'
+  lookAtFocus: 1
+  item: {fileID: 11400000, guid: 8a752aa62f8ad44418da431b6d2157b2, type: 2}
+  placementTries: 8
+  probeHeight: 400
+  dropHeight: 0.5
+  searchRadius: 600
+  distance: {x: 90, y: 130}

@@ -38,7 +38,7 @@ symptoms:
   - "a second copy of the item I am holding appears at my feet and falls through the world"
   - "items multiply in the world: one more copy of each carried piece after every load"
 reads_with: [Artifacts, Backpack, BodyEquipment, Persistence, Combat, Oxygen]
-updated: 2026-09-09
+updated: 2026-09-28
 ---
 
 # Items & Inventory core
@@ -65,7 +65,7 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 | `InventoryItem` | [Core/InventoryItem.cs](Assets/Game/Scripts/Items/Core/InventoryItem.cs) | Item asset; `ID` = asset GUID, the save/registry key |
 | `UsableItem` | [Core/UsableItem.cs](Assets/Game/Scripts/Items/Core/UsableItem.cs) | Base held behaviour; `Use()`/`Present()` split, `maxUses`, equip hooks, `IItemStateCarrier` |
 | `ToolItem` / `EffectItem` | [Core/ToolItem.cs](Assets/Game/Scripts/Items/Core/ToolItem.cs), [Core/EffectItem.cs](Assets/Game/Scripts/Items/Core/EffectItem.cs) | Aimed/instant vs. timed effect on the holder's own body |
-| `PickupableItem` | [Core/PickupableItem.cs](Assets/Game/Scripts/Items/Core/PickupableItem.cs) | `IInteractable` + `IScanTarget`; world → inventory. Also `ISaveable` (key `itemstate`): **the custodian of a dropped item's `ItemState`** between the drop and the next pickup |
+| `PickupableItem` | [Core/PickupableItem.cs](Assets/Game/Scripts/Items/Core/PickupableItem.cs) | `IInteractable` + `IScanTarget`; world → inventory. Also `ISaveable` (key `itemstate`): **the custodian of a dropped item's `ItemState`** between the drop and the next pickup. `Item` names the asset it is a copy of |
 | `Inventory` / `InventorySlot` | [Inventory/Core/](Assets/Game/Scripts/Items/Inventory/Core/Inventory.cs) | Slot array, add/move/swap/restore; slot holds `Item` + `State` |
 | `IPlayerInventory` | [Inventory/Core/IPlayerInventory.cs](Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs) | The seam every caller (pickup, UI, dev browser, savers) uses. `TrySetSlot` is the server-only single-slot write a body move lands through |
 | `PlayerInventoryNetwork` | [Inventory/Components/](Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs) | `NetworkList<FixedString64Bytes>` of item IDs + `NetworkVariable<int>` selection |

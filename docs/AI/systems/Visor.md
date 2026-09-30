@@ -34,7 +34,7 @@ symptoms:
   - "the name and prompt move around the screen while I am reading them"
   - "the interact prompt sits above the target instead of under the crosshair"
 reads_with: [UI, Combat, PlayerCharacter, Multiplayer, InteractionSystem]
-updated: 2026-09-12
+updated: 2026-09-28
 ---
 
 # Visor
@@ -69,6 +69,8 @@ annotations that describe the world. One design language, built entirely in code
 | `VisorBoot` | [HelmetHUD/VisorBoot.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorBoot.cs) | The power-on rise. Purely visual; never gates input. |
 | `HelmetDangerVignette` | [HelmetHUD/HelmetDangerVignette.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/HelmetDangerVignette.cs) | Curved arcs that grow per hit and decay. `HitFrom` splits a hit across them by bearing. |
 | `VisorReticle` | [HelmetHUD/VisorReticle.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorReticle.cs) | Corner marks snapped around **the collider the `Interactor` arbitrated**, plus a look-at info box **pinned under the crosshair** (`infoAnchor`, 0.5 / 0.34 of the canvas) fed by `InteractionPromptResolver` (label, value, prompt). `FramedSubject` and `MarksHitPoint` are static and testable. Absorbed `InteractionPromptUI`, and since 2026-09-06 draws its box where that component did. The crosshair third of the design spec's `VisorReticle` is not built yet. |
+| `VisorObjective` | [HelmetHUD/VisorObjective.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Annotations. The crew's objective as a backed panel top-right under the integrity gauge — heading, large title, the step's `Status` lines (a checklist, a count), range — that pops and reads NEW OBJECTIVE for 3 s when the step changes; and a waypoint diamond on its target, pinned to the screen edge (dimmed) when off screen or behind. Reads `ObjectiveDirector` each frame, holds nothing. See [Objectives](Objectives.md). |
+| `VisorProjection` | [HelmetHUD/VisorProjection.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorProjection.cs) | Shared by the reticle and the waypoint: `TryScreenToLayer` (through `RectTransformUtility`, so `VisorSway`'s offset cannot drag a mark off its target) and the pure `PinToScreen`, which un-mirrors a point behind the eye before pinning it. |
 | `ICrosshairReadout` | [Interaction/Core/ICrosshairReadout.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/ICrosshairReadout.cs) | The seam for things the crosshair names that cannot be `IInteractable` — today only the inventory wall. Implemented on the **player**, asked only when nothing is hovered. See [InteractionSystem.md](InteractionSystem.md). |
 | `SystemMessages` | [HelmetHUD/SystemMessages.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/SystemMessages.cs) | The game's one system-voice channel. Static, id-addressed, four severities. |
 | `VisorMessageStack` | [HelmetHUD/VisorMessageStack.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorMessageStack.cs) | Draws `Info` / `Notice`, upper left. `DontDestroyOnLoad`, NOT under the visor canvas. |

@@ -401,6 +401,12 @@ Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 t
 
 **Worth knowing:** a third mode, a bot deathmatch arena, was deleted in September 2026. Its scene had been empty for months, no match orchestrator was placed anywhere, and no menu button reached it.
 
+### The opening objectives *(Objectives)*
+
+After the crash the crew share one short chain of objectives: try the basic controls, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
+
+**Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, repair ship) decides what finishes it. A new kind of step, such as following a lead to a settlement, is a new small class; the chain itself does not change.
+
 ## How the game gets made
 
 ### From Blender to the game *(ArtPipeline)*

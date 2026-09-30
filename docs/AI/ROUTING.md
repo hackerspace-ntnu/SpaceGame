@@ -86,6 +86,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a dab passes through foam that is already there and lands on the ground behind it | [FoamGun](systems/FoamGun.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
 | a decoration or tent placed by a Settlement renders enormous even though its own prefab measures correctly outside the settlement | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a decoration's glass, water or glow looks opaque or dark and it needs a shared material | [ArtPipeline](systems/ArtPipeline.md) |
 | a deployed pack casts a shadow on the sand but I cannot see the pack itself | [Backpack](systems/Backpack.md) |
 | a disabled menu row stays stuck in its hover colour and never resets | [UI](systems/UI.md) |
 | a disposable session's ship is standing on the ground already with no descent or blackout | [GameModes](systems/GameModes.md) |
@@ -211,6 +212,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a position 16 km out reads as terrain in the corner of the world | [WorldStreaming](systems/WorldStreaming.md) |
 | a pouch, ring or band on a nomad renders inside out in Unity but looks fine in Blender | [ArtPipeline](systems/ArtPipeline.md) |
+| a prefab builder written as a Unity RunCommand fails with 'Regex could not be found' or 'ISet<> is defined in an assembly that is not referenced', or JsonUtility returns null arrays | [ArtPipeline](systems/ArtPipeline.md) |
 | a prefab has no SaveableEntity right after I rebuilt it from its own builder | [PlayerShip](systems/PlayerShip.md) |
 | a prefab I deleted is still a row in the network prefab list, and re-running the sync says everything is already in sync | [Inventory](systems/Inventory.md) |
 | a probe that excludes one part of a prefab measures that part anyway | [Testing](systems/Testing.md) |
@@ -270,6 +272,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
 | a Settlement configured for several decorations of the same kind (e.g. tents) only ever places one, with a clean console | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a settlement decoration prefab has no collider and the player walks through it, or an agent paths straight through a wall or fence | [ArtPipeline](systems/ArtPipeline.md) |
 | a Settlement generates buildings/decorations fine but zero characters ever spawn, with a clean console | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a settlement of one species reads exactly as tall as the humans standing in it, or bigger, after a resculpt | [ArtPipeline](systems/ArtPipeline.md) |
 | a settlement's spawner logs Spawn called on a client and nothing appears | [AgentSystem](systems/AgentSystem.md) |
@@ -380,6 +383,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | astronauts in the lobby float above the sand or stand sunk into it | [Lobby](systems/Lobby.md) |
 | back gear sits half a metre off the pack's rail until I re-equip it | [BodyEquipment](systems/BodyEquipment.md) |
 | both status lamps on the pack are lit at once and flicker against each other | [Backpack](systems/Backpack.md) |
+| bounds computed from a decoration FBX's mesh data come out 100 times too small for a rug, decal or other single-mesh item | [ArtPipeline](systems/ArtPipeline.md) |
 | camera shake does nothing anywhere in the game | [Cutscenes](systems/Cutscenes.md) |
 | Can't remove SupplyReservoir (Script) because DockableSupply (Script) depends on it, logged on startup or whenever the pack rebuilds | [Backpack](systems/Backpack.md) |
 | carried or worn items duplicate in the world, one more copy after every load | [Persistence](systems/Persistence.md) |
@@ -1212,6 +1216,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormCloud.mat` | [StormFlask](systems/StormFlask.md) |
+| `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitPose.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/GearSaveCodec.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1383,6 +1388,7 @@ Longest match wins.
 | `Assets/Game/Editor/Items/WornGearPreview.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Editor/Tests/AgentCarryTests.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Editor/Tests/GroundFireTests.cs` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Prefabs/Environment/Decorations` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab` | [UI](systems/UI.md) |
 | `Assets/Game/Scripts/Core/DiagnosticsBridge/` | [Diagnostics](systems/Diagnostics.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Lobby/` | [Lobby](systems/Lobby.md) |
@@ -1520,4 +1526,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1142 symptoms, 352 paths, 61 docs -->
+<!-- 1146 symptoms, 354 paths, 61 docs -->

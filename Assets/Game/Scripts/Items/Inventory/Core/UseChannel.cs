@@ -53,6 +53,25 @@ namespace SpaceGame.Items
         private readonly GearArea area;
         private readonly Func<GearRef> slot;
         private readonly Func<UsableItem> item;
+        private readonly Func<InventoryItem> asset;
+
+        /// <summary>
+        /// A use was accepted on the server: the asset it was equipped from, and the body that
+        /// fired it. Raised once per press, whoever pressed — a client's request and the host's own
+        /// press both arrive through <see cref="OnUseRequested"/> — and never on a client, so a
+        /// listener deciding shared state hears each use exactly once.
+        ///
+        /// <para>
+        /// The ASSET rather than the <see cref="UsableItem"/>: the instance in the hand is a plain
+        /// <c>Instantiate</c> of <c>itemPrefab</c> with no way back to what it is, and "was the
+        /// jumping rod used" is a question about the item, not about one copy of it.
+        /// </para>
+        /// </summary>
+        public static event Action<InventoryItem, GameObject> UsedOnServer;
+
+        /// <summary>Static, so it outlives play mode with domain reload off. See INVARIANTS.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => UsedOnServer = null;
 
         /// <summary>Are hold ticks streaming? Not the same as the button being down — see <see cref="useButtonDown"/>.</summary>
         private bool useHeld;
@@ -78,12 +97,15 @@ namespace SpaceGame.Items
         /// <param name="area">Which slot list this channel fires for; decides which messages it <see cref="Owns"/>.</param>
         /// <param name="slot">The slot a press is stamped with, read at press time — the hotbar's moves with the selection.</param>
         /// <param name="item">The item currently in that slot, or null.</param>
-        public UseChannel(Component host, GearArea area, Func<GearRef> slot, Func<UsableItem> item)
+        /// <param name="asset">The asset <paramref name="item"/> was equipped from, or null.</param>
+        public UseChannel(Component host, GearArea area, Func<GearRef> slot, Func<UsableItem> item,
+                          Func<InventoryItem> asset)
         {
             this.host = host;
             this.area = area;
             this.slot = slot;
             this.item = item;
+            this.asset = asset;
         }
 
         public UsableItem Item => item();
@@ -284,6 +306,10 @@ namespace SpaceGame.Items
 
             // Everyone except the machine that already presented it locally.
             host.NetToOthers(NetMsg.ItemUsed, arg, except: sender);
+
+            // After the broadcast, so a listener that throws cannot cost the peers their copy of
+            // a use that did happen.
+            UsedOnServer?.Invoke(asset(), Holder);
         }
 
         /// <summary>Peer side: cosmetics only. The effect happened on the server.</summary>

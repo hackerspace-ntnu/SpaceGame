@@ -134,7 +134,8 @@ namespace SpaceGame.Items
             {
                 var slot = (BodySlot)i;
                 var entry = new Worn { Slot = slot };
-                entry.Channel = new UseChannel(this, GearArea.Body, () => GearRef.Body(slot), () => UsableOf(entry));
+                entry.Channel = new UseChannel(this, GearArea.Body, () => GearRef.Body(slot), () => UsableOf(entry),
+                                               () => entry.Item);
                 worn[i] = entry;
 
                 if (slot == BodySlot.Torso) continue;

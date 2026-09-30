@@ -81,7 +81,7 @@ symptoms:
   - "a torso item is worn rotated to a random angle"
   - "back gear sits half a metre off the pack's rail until I re-equip it"
 reads_with: [Inventory, Artifacts, Backpack, Persistence, Multiplayer, UI, Ornithopter, Wingsuit]
-updated: 2026-09-09
+updated: 2026-09-28
 ---
 
 # Body Equipment
@@ -124,7 +124,7 @@ merely a missing ability, it is darkness. Design: [2026-09-02-body-equipment-des
 | `IBodyEquipment` | [Body/IBodyEquipment.cs](Assets/Game/Scripts/Items/Body/IBodyEquipment.cs) | The seam: slots, `RequestMove`, server `RestoreSlots`/`TryPlaceInBody`, the overflow queue, `IsMounted` |
 | `BodyEquipmentNetwork` | [Body/BodyEquipmentNetwork.cs](Assets/Game/Scripts/Items/Body/BodyEquipmentNetwork.cs) | `NetworkList` of three ids + local `Inventory(3)` mirror; `MoveServerRpc` (owner permission); `startingBody` |
 | `BodyEquipmentController` | [Body/BodyEquipmentController.cs](Assets/Game/Scripts/Items/Body/BodyEquipmentController.cs) | Wears the instances from replicated state on every machine; owns the three channels; gates only the double-Space on not mounted |
-| `UseChannel` | [Inventory/Core/UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs) | One trigger's whole networked use pipeline. `EquipmentController` owns one, this owns three. `Presented` / `HoldPresented` fire wherever the use is shown |
+| `UseChannel` | [Inventory/Core/UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs) | One trigger's whole networked use pipeline. `EquipmentController` owns one, this owns three. `Presented` / `HoldPresented` fire wherever the use is shown. Static `UsedOnServer(InventoryItem, holder)` fires once per accepted press, server only, AFTER the `ItemUsed` broadcast — the asset comes from the owner's func (`HeldItemAsset` / `Worn.Item`); [Objectives](Objectives.md) listens |
 | `ArmRaiseLatch` | [Player/Combat/ArmRaiseLatch.cs](Assets/Game/Scripts/Characters/Player/Combat/ArmRaiseLatch.cs) | Pure: is the gauntlet arm up — tap lingers (`raiseLingerSeconds`, 0.6 s), a hold stays, a release lingers, a strip drops |
 | `DoubleTap` | [Inventory/Core/DoubleTap.cs](Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs) | Pure two-presses-in-a-window; a hit consumes both presses |
 | `WornFit` | [Equipped/WornFit.cs](Assets/Game/Scripts/Items/Equipped/WornFit.cs) | Where a torso item sits on its bone (local pose + size); on `WingPack.prefab`. For back gear the *position* is superseded by the rail whenever there is one. `holdsArmsOut` is the item saying the gear screen has to hold the wearer's arms out to show it — set on `Wingsuit.prefab` and nothing else. `inspectSize` is the span of the gear screen's own model, 0 when there is none — set on `WingPack.prefab` and nothing else |

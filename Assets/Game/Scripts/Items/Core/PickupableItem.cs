@@ -68,6 +68,9 @@ namespace SpaceGame.Items
        /// </summary>
        private ItemState carried;
 
+       /// <summary>The asset this pickup is a copy of — what it IS, as opposed to where it lies.</summary>
+       public InventoryItem Item => item;
+
        [Header("Audio")]
        [SerializeField] private SfxId pickupId = SfxId.InteractPickup;
        [SerializeField] private EventReference pickupSound;

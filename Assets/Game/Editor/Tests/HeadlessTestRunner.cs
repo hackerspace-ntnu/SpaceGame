@@ -8,6 +8,8 @@
 // flat class per command and hoists nested types out of it, which breaks any listener defined
 // inline. It also has to survive the command that started it, and a static holder is what keeps
 // the callback from being collected mid-run.
+using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using UnityEditor;
@@ -21,6 +23,12 @@ namespace SpaceGame.EditorTools
         /// <summary>Where results land. Temp/ is not imported by the AssetDatabase, so writing here
         /// does not kick off a domain reload in the middle of the run.</summary>
         public const string ResultPath = "Temp/headless_tests.txt";
+
+        /// <summary>How long a pending request or an in-flight run is trusted before it is treated
+        /// as stale. The Test Runner resumes a run across domain reloads by itself, so without this
+        /// an unattended run cut short by a script edit could resume much later, with nobody
+        /// watching, and write its fixtures into whatever scene happens to be open by then.</summary>
+        private static readonly TimeSpan MaxRequestAge = TimeSpan.FromMinutes(10);
 
         // Static so neither the api nor the listener is collected while the run is in flight.
         private static TestRunnerApi api;
@@ -44,11 +52,26 @@ namespace SpaceGame.EditorTools
             api = ScriptableObject.CreateInstance<TestRunnerApi>();
             listener = new ResultListener();
             api.RegisterCallbacks(listener);
-            api.Execute(new ExecutionSettings(filter));
+            string runId = api.Execute(new ExecutionSettings(filter));
+
+            SessionState.SetString(ActiveRunKey, runId);
+            SessionState.SetString(ActiveRunStartedKey, Stamp(DateTime.UtcNow));
+            WatchActiveRun();
         }
 
         /// <summary>Set while a deferred run is pending. Survives the domain reload — see below.</summary>
         private const string PendingKey = "SpaceGame.HeadlessTests.Pending";
+
+        /// <summary>When the pending request was made, so a stale one can be told apart from a
+        /// fresh one on the far side of however many domain reloads.</summary>
+        private const string PendingRequestedKey = "SpaceGame.HeadlessTests.PendingRequestedAt";
+
+        /// <summary>The guid <see cref="TestRunnerApi.Execute"/> returned for the run currently in
+        /// flight, so it can be cancelled if it runs long. Cleared once the run finishes.</summary>
+        private const string ActiveRunKey = "SpaceGame.HeadlessTests.ActiveRun";
+
+        /// <summary>When the active run started.</summary>
+        private const string ActiveRunStartedKey = "SpaceGame.HeadlessTests.ActiveRunStartedAt";
 
         /// <summary>
         /// As <see cref="RunEditMode"/>, but started once the editor is next idle.
@@ -67,11 +90,21 @@ namespace SpaceGame.EditorTools
         {
             if (File.Exists(ResultPath)) File.Delete(ResultPath);
             SessionState.SetString(PendingKey, groupName ?? string.Empty);
+            SessionState.SetString(PendingRequestedKey, Stamp(DateTime.UtcNow));
             Schedule();
         }
 
         [InitializeOnLoadMethod]
-        private static void ResumeAfterReload() => Schedule();
+        private static void ResumeAfterReload()
+        {
+            Schedule();
+            // A run in flight when the reload happened is resumed by the Test Runner itself on
+            // the far side of it, but the watcher that cancels a stale one is a plain update
+            // subscription and does not survive the reload with it. Re-arm unconditionally: if
+            // there is no active run, the next tick finds ActiveRunStartedKey missing, treats it
+            // as stale, and unsubscribes itself — a harmless no-op.
+            WatchActiveRun();
+        }
 
         /// <summary>
         /// Arms the pump below.
@@ -103,6 +136,16 @@ namespace SpaceGame.EditorTools
             string pending = SessionState.GetString(PendingKey, null);
             if (pending == null) return;
 
+            // A request that has outlived MaxRequestAge belongs to a caller that is long gone —
+            // starting it now would run in whatever scene happens to be open, for nobody watching.
+            if (IsStale(PendingRequestedKey))
+            {
+                ClearPending();
+                Debug.LogWarning("[HeadlessTestRunner] Discarded a pending EditMode run request because " +
+                                 $"it was more than {MaxRequestAge.TotalMinutes} minutes old. Re-request it.");
+                return;
+            }
+
             // Entering play mode is itself a domain reload, so a pending request left over from an
             // earlier session gets re-armed by ResumeAfterReload and lands here mid-Play. The test
             // framework's first step is SaveCurrentModifiedScenesIfUserWantsTo, which throws in play
@@ -110,7 +153,7 @@ namespace SpaceGame.EditorTools
             // EditMode run started from inside a play session was never what the caller asked for.
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
             {
-                SessionState.EraseString(PendingKey);
+                ClearPending();
                 Debug.LogWarning("[HeadlessTestRunner] Discarded a pending EditMode run because the " +
                                  "editor entered play mode. Re-request it from the edit-mode editor.");
                 return;
@@ -118,9 +161,64 @@ namespace SpaceGame.EditorTools
 
             // Cleared before starting, not after: a run that itself triggers a reload must not come
             // back round and start a second one.
-            SessionState.EraseString(PendingKey);
+            ClearPending();
             RunEditMode(string.IsNullOrEmpty(pending) ? null : pending);
         }
+
+        private static void ClearPending()
+        {
+            SessionState.EraseString(PendingKey);
+            SessionState.EraseString(PendingRequestedKey);
+        }
+
+        private static void WatchActiveRun()
+        {
+            EditorApplication.update -= CancelStaleRun;
+            EditorApplication.update += CancelStaleRun;
+        }
+
+        /// <summary>
+        /// Cancels the run once it is older than <see cref="MaxRequestAge"/>. The Test Runner resumes
+        /// a run on the far side of every domain reload by itself, so a run cut short by a script
+        /// edit can pick up again long after whoever started it has gone, in whatever scene is open
+        /// by then.
+        /// </summary>
+        private static void CancelStaleRun()
+        {
+            if (!IsStale(ActiveRunStartedKey)) return;
+
+            string runId = SessionState.GetString(ActiveRunKey, null);
+            ForgetActiveRun();
+            // False when the run already finished without our listener hearing it (a reload
+            // drops the listener), which is nothing to cancel.
+            if (runId == null || !TestRunnerApi.CancelTestRun(runId)) return;
+
+            File.WriteAllText(ResultPath, $"CANCELLED: still running {MaxRequestAge.TotalMinutes} minutes " +
+                                          "after it started\nDONE\n");
+            Debug.LogWarning("[HeadlessTestRunner] Cancelled an EditMode run that started more than " +
+                             $"{MaxRequestAge.TotalMinutes} minutes ago.");
+        }
+
+        private static void ForgetActiveRun()
+        {
+            EditorApplication.update -= CancelStaleRun;
+            SessionState.EraseString(ActiveRunKey);
+            SessionState.EraseString(ActiveRunStartedKey);
+        }
+
+        /// <summary>True when the timestamp under <paramref name="key"/> is older than
+        /// <see cref="MaxRequestAge"/>, or missing or unreadable — an undated request is treated
+        /// as stale rather than trusted.</summary>
+        private static bool IsStale(string key)
+        {
+            string stamp = SessionState.GetString(key, null);
+            if (!long.TryParse(stamp, NumberStyles.Integer, CultureInfo.InvariantCulture, out long ticks))
+                return true;
+
+            return DateTime.UtcNow - new DateTime(ticks, DateTimeKind.Utc) > MaxRequestAge;
+        }
+
+        private static string Stamp(DateTime utc) => utc.Ticks.ToString(CultureInfo.InvariantCulture);
 
         [MenuItem("Tools/Tests/Run EditMode Tests (headless)")]
         private static void RunAll() => RunEditMode();
@@ -140,6 +238,7 @@ namespace SpaceGame.EditorTools
                 sb.AppendLine("DONE");
 
                 File.WriteAllText(ResultPath, sb.ToString());
+                ForgetActiveRun();
 
                 if (api != null && listener != null) api.UnregisterCallbacks(listener);
                 api = null;

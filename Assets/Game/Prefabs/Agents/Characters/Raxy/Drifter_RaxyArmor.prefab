@@ -801,6 +801,21 @@ GameObject:
   - component: {fileID: 3535079115524346999}
   - component: {fileID: 1904666965743895723}
   - component: {fileID: 9190138724411237946}
+  - component: {fileID: 2467369241068343441}
+  - component: {fileID: 973599417720863890}
+  - component: {fileID: 6515656226467041045}
+  - component: {fileID: 1397632393387163219}
+  - component: {fileID: 443914099533002674}
+  - component: {fileID: 4446375780369173493}
+  - component: {fileID: 1217595431525232401}
+  - component: {fileID: 1190639298567282788}
+  - component: {fileID: 19951942304009873}
+  - component: {fileID: 4047033190855877332}
+  - component: {fileID: 4351232861385805270}
+  - component: {fileID: 4192824136752515653}
+  - component: {fileID: 6152807228772075540}
+  - component: {fileID: 2286141240087933832}
+  - component: {fileID: 2678622065758484170}
   m_Layer: 0
   m_Name: Drifter_RaxyArmor
   m_TagString: Untagged
@@ -1090,6 +1105,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertBroadcaster
   alertRadius: 30
   announceSightings: 1
+  callForHelpEvery: 1
 --- !u!114 &3791891495105619096
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1331,6 +1347,8 @@ MonoBehaviour:
     trespassGainPerSecond: 10
     calmRate: 10
     attackAt: 100
+    jostlesToFight: 0
+    settleSeconds: 0
   drawGizmos: 1
 --- !u!114 &1615638990963854982
 MonoBehaviour:
@@ -1982,6 +2000,264 @@ MonoBehaviour:
   blockPassThrough: 0.25
   facingCone: 120
   cooldown: 3
+--- !u!114 &2467369241068343441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fb0e7db94f43405db2609e0f833dd3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.Resident
+  archetype: {fileID: 0}
+  displayName: 
+  nerveOverride: -1
+  temperOverride: -1
+  bedtimeOffset: 0
+  index: 0
+  home: {fileID: 0}
+  campPosition: {x: 0, y: 0, z: 0}
+  seed: 0
+  bonds: []
+  settlement: {fileID: 0}
+--- !u!114 &973599417720863890
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c3e48dfaf0e433887b381f0fcde4ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.GoalTravelModule
+  priority: 1
+  active: 1
+  speedMultiplier: 1
+  run: 0
+  stopDistanceMargin: 0.5
+  holdReleaseMargin: 2
+  holdLookAhead: 2
+--- !u!114 &6515656226467041045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecc1d05668e7940b1a2f6dc9dbe98223, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentRoutine
+  priority: 10
+  active: 1
+  evaluateEvery: 0.5
+  spotArriveRadius: 0.6
+  placeArriveRadius: 1.2
+  looseArriveRadius: 3
+  observedWithin: 60
+  offstageAfterSeconds: 10
+  settleDistance: 30
+  doorstepDistance: 2
+  approachStandOff: 8
+--- !u!114 &1397632393387163219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1eb0ca627b5cf48afb0a41871caa2fce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentPresence
+  ShowTopMostFoldoutHeaderGroup: 1
+  propSocket: {fileID: 0}
+--- !u!114 &443914099533002674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96fc4a4cd214641719c9c826de767d9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentAwareness
+  priority: 10
+  active: 1
+  sweepInterval: 0.5
+  restateSeconds: 10
+  glanceSeconds: 3
+  workAreaRadius: 2.5
+  sprintIrritationScale: 2
+  shelterSeconds: 60
+--- !u!114 &4446375780369173493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5576a4698ef14eaaba6927effc431a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentVoice
+  addressRange: 6
+  focusAfterLine: 2
+  recentLines: 10
+  conversation: 04050706
+--- !u!114 &1217595431525232401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ae671be60b5140cdb59050e0534b93e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentSaveable
+--- !u!114 &1190639298567282788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b521a1acc7a34d8f80d46b5741c371dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetworkedTeleport
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &19951942304009873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4764c194bd4034455abe3b70a913c44d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.JostleSensor
+  priority: 10
+  active: 1
+  scanInterval: 0.1
+  contactSlack: 0.2
+  maxHeightGap: 2.5
+  minPushSpeed: 1
+  jostleCooldown: 1.5
+--- !u!114 &4047033190855877332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 367cf5f3e59d24fe392cb3df23b3c420, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityInventoryComponent
+  inventorySize: 4
+  startingItems: []
+--- !u!114 &4351232861385805270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c03ca8b264bf1426e9df2bdda0971901, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityEquipmentController
+  handSocket: {fileID: 0}
+  handBone: 18
+  handBoneNameHints:
+  - RightHand
+  - Hand_R
+  - R_Hand
+  - hand.R
+  - mixamorig:RightHand
+  startingSlot: 0
+  autoUse: 0
+  autoUseInterval: 1
+  aimHeldItem: 0
+  aimTurnSpeed: 540
+  holdScaleMultiplier: 1
+  eyeHeight: 1.5
+--- !u!114 &4192824136752515653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70907c7e318e24dc7a78b57f4ba82b6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.BeltCarrier
+  anchors:
+  - slot: 0
+    position: {x: 0.33, y: 1.45, z: 0}
+    euler: {x: 0, y: 90, z: 0}
+  - slot: 1
+    position: {x: -0.33, y: 1.45, z: 0}
+    euler: {x: 0, y: -90, z: 0}
+  - slot: 2
+    position: {x: 0, y: 1.5, z: -0.26}
+    euler: {x: 0, y: 180, z: 0}
+--- !u!114 &6152807228772075540
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2081b04aca7f4fdeb667ec8d0115e71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentCarry
+--- !u!114 &2286141240087933832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15c9c61659d834ef3b21a62c5ea5801a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityInventorySaveable
+--- !u!114 &2678622065758484170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3105438250342313871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ccab4434762d49a88cea06ccea44c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityEquipmentSaveable
 --- !u!1 &3115222846187065830
 GameObject:
   m_ObjectHideFlags: 0

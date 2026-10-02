@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8710727930565208842}
   - component: {fileID: 2870481058592396544}
+  - component: {fileID: 2652100190460706446}
   m_Layer: 0
   m_Name: Deco_ShelvingRack_Low
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.5, y: 1.4, z: 0.7}
   m_Center: {x: 0, y: 0.65, z: 0}
+--- !u!114 &2652100190460706446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4829034799530097796}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Shelves
+  description: Stores for the household.
+  scanClass: 1
+  lookSeconds: 6
 --- !u!1001 &3147774755501062974
 PrefabInstance:
   m_ObjectHideFlags: 0

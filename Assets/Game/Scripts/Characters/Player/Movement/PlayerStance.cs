@@ -10,7 +10,11 @@
 // read back out of the Animator, where ClientNetworkAnimator has already replicated it from the
 // owner. One value, one direction of travel, and no second network variable to keep in step with
 // the animation.
+//
+// A sprint is also LOUD: while it lasts the owner reports a throttled racket to the server, which
+// emits it as a Custom noise from its copy of the body — agents hear only where they tick.
 using UnityEngine;
+using SpaceGame.Agents;
 using SpaceGame.Core;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
@@ -66,6 +70,15 @@ namespace SpaceGame.Characters
                  "sooner — this is the worst case, not a fixed wait.")]
         [SerializeField] private float sprintRecharge = 5f;
 
+        [Header("Racket")]
+        [Tooltip("Metres a sprint carries as a Custom noise. Not a footstep: residents and other " +
+                 "listeners tell running about from walking about by this alone. 0 is silent.")]
+        [SerializeField] private float racketRadius = 12f;
+
+        [Tooltip("Seconds between two racket noises while the sprint lasts — one noise per this " +
+                 "many seconds, not one per frame.")]
+        [SerializeField] private float racketInterval = 2f;
+
         private PlayerInputManager inputs;
         private PlayerController controller;
 
@@ -81,6 +94,8 @@ namespace SpaceGame.Characters
         // already half spent.
         private float sprintCharge = 1f;
         private bool winded;
+
+        private float nextRacketTime;
 
         // 0 standing, 1 fully crouched, and what was last written out of it. Nothing is written
         // while those two agree, so a standing player's camera is left alone — mounting and
@@ -174,6 +189,7 @@ namespace SpaceGame.Characters
             isCrouching = wantsCrouch;
 
             UpdateSprint(driving);
+            if (isSprinting) ReportRacket();
 
             if (animator != null && animator.runtimeAnimatorController != null)
                 animator.SetBool(CrouchParameter, isCrouching);
@@ -225,6 +241,25 @@ namespace SpaceGame.Characters
             if (isSprinting) Spend(Time.deltaTime);
             else Recover(Time.deltaTime);
         }
+
+        /// <summary>
+        /// Owner side: tell the server a sprint is making noise, at most once per
+        /// <see cref="racketInterval"/>. Offline and on the host this runs <see cref="OnRacket"/>
+        /// directly.
+        /// </summary>
+        private void ReportRacket()
+        {
+            if (racketRadius <= 0f || Time.time < nextRacketTime) return;
+
+            nextRacketTime = Time.time + racketInterval;
+            this.NetToServer(NetMsg.SprintRacket);
+        }
+
+        /// <summary>Server side: the racket, heard from where the server has this body.</summary>
+        private void OnRacket(in NetArg arg, ulong sender) =>
+            Noise.Emit(NoiseType.Custom, transform.position, racketRadius, transform, transform);
+
+        private void OnEnable() => this.NetOn(NetMsg.SprintRacket, OnRacket);
 
         /// <summary>
         /// Burn a frame's worth of sprint, and cut it off when there is none left.
@@ -372,6 +407,8 @@ namespace SpaceGame.Characters
         /// </summary>
         private void OnDisable()
         {
+            this.NetOff(NetMsg.SprintRacket, OnRacket);
+
             isCrouching = false;
             isSprinting = false;
             forwardWasHeld = false;

@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3443357173169798723}
+  - component: {fileID: 5870299763544699903}
   m_Layer: 0
   m_Name: Deco_Hammock
   m_TagString: Untagged
@@ -33,6 +34,22 @@ Transform:
   - {fileID: 858498167800169320}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5870299763544699903
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6134322757469654269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Hammock
+  description: Strung in the shade for the hottest hours.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1 &8108616623815308223
 GameObject:
   m_ObjectHideFlags: 0

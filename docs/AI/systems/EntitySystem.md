@@ -16,7 +16,7 @@ symptoms:
   - "an NPC is completely invisible to AI targeting"
   - "a moving NPC keeps nine chunks loaded around itself"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-09-22
+updated: 2026-10-01
 ---
 
 # Entity System
@@ -55,7 +55,7 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 | `IPersistentEntity` | [Core/Persistence/Format/IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) | Empty marker: "this object is part of the mutable world". The primary `NeedsSaving` clause. |
 | `SceneTracked` | [World/Streaming/Core/SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) | `keepChunksLoaded` + `UnloadPolicy{Pin,Migrate,Despawn}`; `SetKeepChunksLoaded(bool)` re-registers. Self-registers in `OnEnable`. |
 | `SaveableEntity` | [Core/Persistence/Runtime/SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs) | `prefabId` / `instanceId` / `authored` / `SaveScope`; static `LiveEntities` dictionary; `DeriveAuthoredId`, `EnsureRuntime`, `DisownToExternal`, `MarkBuried`. |
-| `SaveablePolicy` | [Core/Persistence/Runtime/SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) | The one opt-in rule: `NeedsSaving` / `Ensure` / `EnsureScene(Scene)` / `EnsureSpawned(GameObject)`. |
+| `SaveablePolicy` | [Core/Persistence/Runtime/SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) | The one opt-in rule: `NeedsSaving` / `Ensure` / `EnsureScene(Scene)` / `EnsureSpawned(GameObject)`. Maps each component to its saver — e.g. `Resident` → `ResidentSaveable` (key `"resident"`, the resident's memory of players). |
 | `SaveablePrefabRegistry` | [Core/Persistence/Runtime/SaveablePrefabRegistry.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePrefabRegistry.cs) | `prefabId` (asset GUID) → prefab. Sources: `InventoryItem.itemPrefab`, `Resources/Saveable/`, NGO prefab list (lazy on first miss). |
 | `WorldStreamer` | [World/Streaming/Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) | Static `s_trackedEntities`; `UpdateSceneMembership` / `ResolveDesiredScene` / `MoveTracked` / `MigrateObjectRpc`. |
 | `EntityTargetRegistry` | [agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) | Static list of `EntityFaction`; `ResolveNearest(owner, relationship, pos)`. AI targeting only — no persistence link. |

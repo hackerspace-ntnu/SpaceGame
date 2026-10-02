@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation]
-updated: 2026-09-25
+updated: 2026-10-02
 ---
 
 # Interaction
@@ -82,6 +82,9 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `InteractableTrigger` | [Triggers/InteractableTrigger.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableTrigger.cs) | Forwards to the `ITriggerable` on the same GameObject. Ungated on purpose (unlike [`VolumeTrigger`](Assets/Game/Scripts/Gameplay/Interaction/Triggers/VolumeTrigger.cs), which is server-only). |
 | `InteractableProxy` | [Triggers/InteractableProxy.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableProxy.cs) | Redirects the same press to an `IInteractable` on another GameObject. Must stay netcode-free. |
 | `PickupableItem` | [Items/Core/PickupableItem.cs](Assets/Game/Scripts/Items/Core/PickupableItem.cs) | Picks the item up (`Network.Execute` → server). `IInteractionReadout`: the label is the item's own `itemName`, the same string the scanner uses — without it every piece of salvage in the world read "Pickupable Item". |
+| `SettlementFixture` | [World/…/Settlement/Props/SettlementFixture.cs](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/SettlementFixture.cs) | Reads the decoration's description on the visor (`SystemMessages`, local). `IInteractionReadout`: its name, and who is working there now. On ~99 `Deco_*` prefabs (forge, loom, tables, beds, stalls …), registered with the scanner. See [Errands.md](Errands.md). |
+| `SettlementProp` | [World/…/Settlement/Props/SettlementProp.cs](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/SettlementProp.cs) | Takes a settlement basket, crate or bucket into the bag (server-decided by its building's `SettlementPropSync`). Residents move the same props on errands. |
+| `DoorInteraction` on `NomadFenceGate` | [Prefabs/…/NomadSettlement/Props/NomadFenceGate.prefab](Assets/Game/Prefabs/Environment/Structures/NomadSettlement/Props/NomadFenceGate.prefab) | The animal keep's gates: one leaf on a `LeftDoors` hinge, authored shut, a carving `NavMeshObstacle` on the leaf. Replicates through the NetworkObject wrapper `Settlement.Generate` puts round the building; a hand-placed keep has none and swings per machine. |
 | `BackpackObject` | [Items/Backpack/BackpackObject.cs](Assets/Game/Scripts/Items/Backpack/BackpackObject.cs) | Grounded pack: open lid, or reshoulder it (server-decided). `IInteractionReadout`: prompt says *which* of the two verbs the press is on, `ValueText` says how much is stowed. No bar — a pack's limit is surface AREA, so there is no honest 0-1. |
 | `MountModule` | [agents/Modules/Riding/MountModule.cs](Assets/Game/Scripts/agents/Modules/Riding/MountModule.cs) | Mounts, via `MountNetworkSync.RequestMount`. Gated by `mountableByDirectInteraction`. |
 | `MountStation` | [Vehicles/Stations/MountStation.cs](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) | Same seat, but only from an authored control (cockpit, wheel). |
@@ -104,7 +107,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 5. Server validates again, mutates, broadcasts (`LatchState` / `NetworkVariable` / `SendTo.Everyone` feedback RPC); every machine applies in the same handler. Offline/host collapses to the same frame.
 
 **Trade**
-1. `TraderInteraction` is **not** an `IInteractable` (one `IInteractable` per collider). `DialogInteraction.Interact` calls `trader.TryOfferTrade(this, interactor)` first.
+1. `TraderInteraction` is **not** an `IInteractable` (one `IInteractable` per collider). `DialogInteraction.Interact` first asks every [`IDialogResponder`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/IDialogResponder.cs) on the character (`CanRespond(player)` → `Respond(player)`; the responder owns any networking — a resident decides on the host and sends `ResidentAddressed` from a client), then calls `trader.TryOfferTrade(this, interactor)`. The trader is not a responder: it needs the `Interactor` and the dialog's `AskQuestion`, which the seam does not carry.
 2. It gates on `offerBeforeDialog`, `TradeUI.IsOpen`, `declineCooldown`, stock; then asks via `DialogInteraction.AskQuestion` (Y/N in `NpcDialogPopupUI`). No stock ⇒ `soldOutLine` once, then silence for the cooldown. Decline ⇒ `declineLine` + cooldown.
 3. Yes ⇒ `TradeUI.Open(trader, interactor, onClosed)` — `GameplayMenuScope.Enter` frees the cursor, freezes time solo, puts the player in cutscene mode; panel is built with `UIBuilder`, redraws on `inventory.OnSlotChanged`.
 4. Click a row ⇒ `CanAfford` (slots held ≥ `wantsCount`, free slots + payment ≥ `givesCount`, `InStock`) ⇒ `TryExecute`: remove payment slots, add goods (player half is server-authoritative inventory), then the trader half — direct `SettleTraderSide` when `Network.Simulates(this)`, else `NetToServer(NetMsg.Trade)`.

@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 173029640748331084}
   - component: {fileID: 6653316011126109865}
+  - component: {fileID: 8366250159977860412}
   m_Layer: 0
   m_Name: Deco_WaterBasin_Carved
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.1, y: 0.9, z: 2.5}
   m_Center: {x: 0, y: 0.4, z: 0.2}
+--- !u!114 &8366250159977860412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5859147131915941424}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Water basin
+  description: Fresh water. Do not waste it.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1001 &664099954728802988
 PrefabInstance:
   m_ObjectHideFlags: 0

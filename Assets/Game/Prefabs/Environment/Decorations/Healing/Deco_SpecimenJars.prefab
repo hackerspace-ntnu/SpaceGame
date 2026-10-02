@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6511913488904293094}
   - component: {fileID: 5489158290920069941}
+  - component: {fileID: 6598510736229253515}
   m_Layer: 0
   m_Name: Deco_SpecimenJars
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.9, y: 1.6, z: 0.7}
   m_Center: {x: -0.3, y: 0.75, z: 0}
+--- !u!114 &6598510736229253515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3426795049362932358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Specimen jars
+  description: Odd creatures preserved in brine.
+  scanClass: 1
+  lookSeconds: 6
 --- !u!1001 &6477907442111894713
 PrefabInstance:
   m_ObjectHideFlags: 0

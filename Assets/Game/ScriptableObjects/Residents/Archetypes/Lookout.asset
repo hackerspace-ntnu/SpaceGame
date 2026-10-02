@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54862c0fb1d14b798837a1e081db32ca, type: 3}
+  m_Name: Lookout
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentArchetype
+  roleName: lookout
+  post: {fileID: 11400000, guid: d0cd8d9e427d4832820af3960150ed35, type: 2}
+  trips: 0
+  nerve: 0.6
+  temper: 0.5
+  heldItem: {fileID: 11400000, guid: c5dea2a31e207420e94bb37c370b7cb1, type: 2}
+  beltItems:
+  - {fileID: 11400000, guid: b28e2ac0707a74dd3a2f292d6a8a6a4b, type: 2}

@@ -19,7 +19,7 @@ symptoms:
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-26
+updated: 2026-10-01
 ---
 
 # Multiplayer / Netcode core
@@ -45,14 +45,14 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 | --- | --- | --- |
 | `NetMessaging` | [NetMessaging.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMessaging.cs) | Extension API: `NetOn`/`NetOff`, `NetToServer`/`NetToAll`/`NetToOthers`, `NetSendTo` |
 | `NetArg` | [NetArg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetArg.cs) | Fixed payload `Target,A,B,P,R`; `.With(go)` also keeps an **unserialized** local ref so `Resolve()` works offline; `HasOrientation` |
-| `NetMsg` | [NetMsg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs) | Id catalog (47 ids, highest 97). Append only; 3 (Equip) and 30 (LaunchCraft) burned |
+| `NetMsg` | [NetMsg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs) | Id catalog, append only, highest 119; 3 (Equip) and 30 (LaunchCraft) burned. 117 `ResidentAddressed` / 118 `ResidentSaid` ride the resident's relay — a `uint` line id travels bit-for-bit in the `int` `A` (`unchecked((int)id)` out, `unchecked((uint)arg.A)` back). 119 `SprintRacket` is owner → server on the player's relay |
 | `NetChannel` | [NetChannel.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetChannel.cs) | Per-entity handler table, plain MonoBehaviour added on demand; re-entrant `Dispatch` off a static buffer pool; `IndexOf<T>` numbers sibling components; `WarnUnrelayed` |
 | `NetRelay` | [NetRelay.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetRelay.cs) | The wire: `ToServerRpc`/`ToAllRpc`/`ToOthersRpc`. Requires a `NetworkObject` |
 | `NetTo`/`NetTarget`/`NetHandler` | [NetTo.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetTo.cs) | Directions, `Self` sentinel, `void (in NetArg, ulong sender)` |
 | `Vocabulary/*` | [AgentAction.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/Vocabulary/AgentAction.cs) | Constants some ids put in `A`/`B` (`GrappleVerb`, `LassoVerb`, `SceneEffectPhase`) |
 | `Network` | [Network.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/Network.cs) | `IsNetworked`, `Server`, `Client`, `LocalClientId`, `Simulates`, `Owns`, `Execute` |
 | `NetAuthority` | [NetAuthority.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs) | Disables simulation drivers + freezes the Rigidbody on remote copies; `IsSimulatedHere`; adopts spawn pose; idempotent `Refresh` on Start/spawn/ownership change |
-| `SimulationDrivers` | [SimulationDrivers.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/SimulationDrivers.cs) | What counts as a driver (`AgentController`, `IMovementMotor`, `NavMeshAgent`); `BelongsTo` stops the sweep at the `NetworkObject` boundary |
+| `SimulationDrivers` | [SimulationDrivers.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/SimulationDrivers.cs) | What counts as a driver (`IMovementMotor`, `NavMeshAgent` — **not** `AgentController`, which gates itself and ticks only presentation modules on a watcher); `BelongsTo` stops the sweep at the `NetworkObject` boundary |
 | `NetworkedTeleport` | [NetworkedTeleport.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs) | `Move(go,pos,rot)`: the owner performs it, server RPCs the owner; falls through to `SaveTeleport` |
 | `ClientNetworkTransform`/`ClientNetworkAnimator` | [ClientNetworkTransform.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/ClientNetworkTransform.cs) | Owner-authoritative overrides for client-driven bodies |
 | `SessionLauncher` (+`.Relay`, `.Direct`) | [SessionLauncher.cs](Assets/Game/Scripts/Core/Multiplayer/Session/SessionLauncher.cs) | The only place a session starts; never throws, returns `SessionResult`. `HostLocal` (solo), `HostRelayAsync`/`JoinRelayAsync` (players), `HostDirect`/`JoinDirect` (**test only**) |

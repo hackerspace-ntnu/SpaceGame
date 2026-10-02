@@ -251,15 +251,9 @@ namespace SpaceGame.World.NavMeshTools
                 foreach (var terrain in root.GetComponentsInChildren<Terrain>(true))
                 {
                     if (terrain.terrainData == null) continue;
-                    if (!InMask(mask, terrain.gameObject.layer)) continue;
+                    if (!NavMeshSources.InMask(mask, terrain.gameObject.layer)) continue;
 
-                    into.Add(new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Terrain,
-                        sourceObject = terrain.terrainData,
-                        transform = Matrix4x4.TRS(terrain.transform.position, Quaternion.identity, Vector3.one),
-                        area = 0,
-                    });
+                    into.Add(NavMeshSources.FromTerrain(terrain));
 
                     Encapsulate(ref bounds, ref haveBounds,
                         new Bounds(terrain.transform.position + terrain.terrainData.size * 0.5f,
@@ -269,8 +263,8 @@ namespace SpaceGame.World.NavMeshTools
                 foreach (var col in root.GetComponentsInChildren<Collider>(true))
                 {
                     if (col is TerrainCollider) continue;          // already covered by the Terrain
-                    if (!IsBakeable(col, mask)) continue;
-                    if (!TryColliderToSource(col, out var src)) continue;
+                    if (!NavMeshSources.IsBakeable(col, mask)) continue;
+                    if (!NavMeshSources.TryColliderToSource(col, out var src)) continue;
 
                     into.Add(src);
                     Encapsulate(ref bounds, ref haveBounds, col.bounds);
@@ -278,101 +272,10 @@ namespace SpaceGame.World.NavMeshTools
             }
         }
 
-        private static bool InMask(LayerMask mask, int layer) => (mask.value & (1 << layer)) != 0;
-
-        /// <summary>
-        /// Whether a collider is part of the ground the world walks on, as opposed to something
-        /// that walks on it or moves across it.
-        ///
-        /// <para>
-        /// Two things are excluded besides triggers and layers. A <b>non-kinematic</b> body is
-        /// scenery that moves; baking it fixes it in place forever. And anything under a
-        /// <see cref="NavMeshAgent"/> is a walker: every NavMesh creature here is a <b>kinematic</b>
-        /// body with a solid collider (AgentSystem.md), so the kinematic rule alone let a patrol
-        /// robot hand-placed in a chunk scene bake in as an obstacle — six robot-shaped holes in the
-        /// first Clanker settlement, each exactly where a robot would spawn and find no mesh under
-        /// its feet. Measured 2026-09-07: no mesh within 0.35 m of any of the four robots probed,
-        /// mesh everywhere around them.
-        /// </para>
-        /// </summary>
-        public static bool IsBakeable(Collider col, LayerMask mask)
-        {
-            if (col == null || col.isTrigger) return false;
-            if (!InMask(mask, col.gameObject.layer)) return false;
-
-            var body = col.attachedRigidbody;
-            if (body != null && !body.isKinematic) return false;
-
-            return col.GetComponentInParent<NavMeshAgent>(true) == null;
-        }
-
         private static void Encapsulate(ref Bounds bounds, ref bool have, Bounds b)
         {
             if (!have) { bounds = b; have = true; }
             else bounds.Encapsulate(b);
-        }
-
-        /// <summary>
-        /// Collider to NavMesh source. Lifted from the runtime <c>NavMeshSourceCache</c> this change
-        /// deletes — the mapping was correct, it was the per-frame rebuilding around it that was not.
-        /// </summary>
-        public static bool TryColliderToSource(Collider col, out NavMeshBuildSource src)
-        {
-            src = default;
-            var t = col.transform;
-
-            switch (col)
-            {
-                case MeshCollider mc:
-                    if (mc.sharedMesh == null || !mc.sharedMesh.isReadable) return false;
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Mesh,
-                        sourceObject = mc.sharedMesh,
-                        transform = t.localToWorldMatrix,
-                        area = 0,
-                    };
-                    return true;
-
-                case BoxCollider bc:
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Box,
-                        transform = Matrix4x4.TRS(t.TransformPoint(bc.center), t.rotation,
-                                                  Vector3.Scale(t.lossyScale, bc.size)),
-                        size = Vector3.one,
-                        area = 0,
-                    };
-                    return true;
-
-                case SphereCollider sc:
-                {
-                    float s = Mathf.Max(t.lossyScale.x, t.lossyScale.y, t.lossyScale.z);
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Sphere,
-                        transform = Matrix4x4.TRS(t.TransformPoint(sc.center), t.rotation, Vector3.one),
-                        size = Vector3.one * (sc.radius * 2f * s),
-                        area = 0,
-                    };
-                    return true;
-                }
-
-                case CapsuleCollider cc:
-                {
-                    float s = Mathf.Max(t.lossyScale.x, t.lossyScale.y, t.lossyScale.z);
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Capsule,
-                        transform = Matrix4x4.TRS(t.TransformPoint(cc.center), t.rotation, Vector3.one),
-                        size = new Vector3(cc.radius * 2f * s, cc.height * s, cc.radius * 2f * s),
-                        area = 0,
-                    };
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         // ─────────────────────────────────────────────

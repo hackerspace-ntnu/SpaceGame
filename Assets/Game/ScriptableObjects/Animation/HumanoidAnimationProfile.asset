@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 84db9d0b84234bd397b4e02bf4a8c9c5, type: 3}
   m_Name: HumanoidAnimationProfile
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   locomotion: {fileID: 11400000, guid: 17c42ea85cf7406a9497357efee841df, type: 2}
   locomotionVariants:
   - {fileID: 11400000, guid: f18aa680436a48efaed85afd7325ad73, type: 2}
@@ -29,6 +29,12 @@ MonoBehaviour:
     clip: {fileID: -4708846537797790282, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
   - style: 6
     clip: {fileID: 8324860437086164814, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+  - style: 7
+    clip: {fileID: 2931362099718132477, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+  - style: 8
+    clip: {fileID: 7994627924475153551, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+  - style: 9
+    clip: {fileID: 7400000, guid: 79ba4cfacfc0a4c7bb029bd05a2cc41b, type: 2}
   raiseOneArm:
     down: {fileID: -152358634275284821, guid: d4462d3fb1d84b91a7bd117135a6eb05, type: 3}
     level: {fileID: -814940555687654210, guid: c9da497a3dd24f7fba537a3424e5b7d0, type: 3}

@@ -1,7 +1,7 @@
-// Sculpts the ground under and around a settlement: pins the terrain flat under each building
-// (with a small padded margin), blends smoothly back to the natural surface, and fills everything
-// else with gentle seeded rises/dips so a settlement doesn't read as a flat disc stamped onto the
-// world. Edit-time only, like every other generator in ProceduralGeneration — heights are baked
+// Sculpts the ground under and around a settlement. A clustered settlement: pins the terrain flat
+// under each building (with a small padded margin), blends smoothly back to the natural surface, and
+// fills everything else with gentle seeded rises/dips so it doesn't read as a flat disc stamped onto
+// the world. A planned settlement: cuts it into the flat terraces of a SettlementTerraceField. Edit-time only, like every other generator in ProceduralGeneration — heights are baked
 // into the TerrainData asset and committed, not recomputed at runtime.
 using System;
 using System.Collections.Generic;
@@ -13,8 +13,8 @@ namespace SpaceGame.World
     {
         public struct BuildingFootprint
         {
-            public Vector3 worldPos;
-            public float radius;
+            /// <summary>World XZ.</summary>
+            public SettlementFootprint footprint;
             public float baseY;
         }
 
@@ -22,7 +22,10 @@ namespace SpaceGame.World
         [Serializable]
         public struct TerrainPatchBackup
         {
-            public Terrain terrain;
+            // The heightmap ASSET, not the Terrain: a settlement near a chunk edge sculpts its neighbours'
+            // tiles too, and a reference to a Terrain in another chunk scene is dropped when the scene is
+            // saved — Clear then skipped that tile and every regenerate sculpted on top of the last.
+            public TerrainData terrainData;
             public int x, y, width, height;
             public float[] heights;
         }
@@ -37,12 +40,36 @@ namespace SpaceGame.World
             float noiseAmplitude, float noiseScale, int seed,
             List<BuildingFootprint> buildings)
         {
+            return Sculpt(center, radius + blendDistance, (terrain, rect, heights) =>
+                ShapeHeights(terrain, rect, heights, center, radius, blendDistance, flattenPadding, noiseAmplitude, noiseScale, seed, buildings));
+        }
+
+        /// <summary>
+        /// Levels the ground to <paramref name="field"/> within <paramref name="radius"/> of
+        /// <paramref name="center"/>, then fades the field's correction at the edge out to the natural
+        /// ground over <paramref name="blendDistance"/>.
+        /// </summary>
+        public static List<TerrainPatchBackup> ShapeTerraces(
+            Vector3 center, float radius, float blendDistance, SettlementTerraceField field)
+        {
+            Vector2 centerXZ = new Vector2(center.x, center.z);
+            return Sculpt(center, radius + blendDistance, (terrain, rect, heights) =>
+                ForEachSample(terrain, rect, heights, (xz, naturalY) =>
+                {
+                    float fromCenter = Vector2.Distance(xz, centerXZ);
+                    if (fromCenter > radius + blendDistance) return naturalY;
+                    if (fromCenter <= radius) return field.TerrainHeight(xz, naturalY);
+
+                    Vector2 edge = centerXZ + (xz - centerXZ) * (radius / fromCenter);
+                    float t = Mathf.SmoothStep(0f, 1f, (fromCenter - radius) / blendDistance);
+                    return naturalY + field.CorrectionAt(edge) * (1f - t);
+                }));
+        }
+
+        /// <summary>Backs up, reshapes and writes back the height patch of every loaded terrain within <paramref name="outerRadius"/>.</summary>
+        private static List<TerrainPatchBackup> Sculpt(Vector3 center, float outerRadius, Action<Terrain, RectInt, float[,]> shape)
+        {
             var backups = new List<TerrainPatchBackup>();
-
-            float maxFootprint = 0f;
-            foreach (var b in buildings) if (b.radius > maxFootprint) maxFootprint = b.radius;
-            float outerRadius = radius + blendDistance + maxFootprint;
-
             foreach (Terrain terrain in Terrain.activeTerrains)
             {
                 if (terrain == null || terrain.terrainData == null) continue;
@@ -53,15 +80,33 @@ namespace SpaceGame.World
 
                 backups.Add(new TerrainPatchBackup
                 {
-                    terrain = terrain, x = rect.x, y = rect.y, width = rect.width, height = rect.height,
+                    terrainData = data, x = rect.x, y = rect.y, width = rect.width, height = rect.height,
                     heights = Flatten(heights),
                 });
 
-                ShapeHeights(terrain, rect, heights, center, radius, blendDistance, flattenPadding, noiseAmplitude, noiseScale, seed, buildings);
+                shape(terrain, rect, heights);
                 data.SetHeights(rect.x, rect.y, heights);
             }
-
             return backups;
+        }
+
+        /// <summary>Replaces every sample of the patch with <paramref name="worldHeight"/>(world XZ, current world Y).</summary>
+        private static void ForEachSample(Terrain terrain, RectInt rect, float[,] heights, Func<Vector2, float, float> worldHeight)
+        {
+            TerrainData data = terrain.terrainData;
+            Vector3 terrainPos = terrain.transform.position;
+            Vector3 size = data.size;
+            int res = data.heightmapResolution;
+            for (int row = 0; row < rect.height; row++)
+            {
+                for (int col = 0; col < rect.width; col++)
+                {
+                    var xz = new Vector2(terrainPos.x + ((rect.x + col) / (float)(res - 1)) * size.x,
+                                         terrainPos.z + ((rect.y + row) / (float)(res - 1)) * size.z);
+                    float y = worldHeight(xz, terrainPos.y + heights[row, col] * size.y);
+                    heights[row, col] = Mathf.Clamp01((y - terrainPos.y) / size.y);
+                }
+            }
         }
 
         /// <summary>Restores every backed-up patch, undoing a previous <see cref="Shape"/> call exactly.</summary>
@@ -71,8 +116,8 @@ namespace SpaceGame.World
 
             foreach (var backup in backups)
             {
-                if (backup.terrain == null || backup.terrain.terrainData == null || backup.heights == null) continue;
-                backup.terrain.terrainData.SetHeights(backup.x, backup.y, Unflatten(backup.heights, backup.width, backup.height));
+                if (backup.terrainData == null || backup.heights == null) continue;
+                backup.terrainData.SetHeights(backup.x, backup.y, Unflatten(backup.heights, backup.width, backup.height));
             }
         }
 
@@ -81,47 +126,32 @@ namespace SpaceGame.World
             float radius, float blendDistance, float flattenPadding,
             float noiseAmplitude, float noiseScale, int seed, List<BuildingFootprint> buildings)
         {
-            TerrainData data = terrain.terrainData;
-            Vector3 terrainPos = terrain.transform.position;
-            Vector3 size = data.size;
-            int res = data.heightmapResolution;
             Vector2 centerXZ = new Vector2(center.x, center.z);
-
-            for (int row = 0; row < rect.height; row++)
+            ForEachSample(terrain, rect, heights, (pointXZ, originalWorldY) =>
             {
-                for (int col = 0; col < rect.width; col++)
+                float distToCenter = Vector2.Distance(pointXZ, centerXZ);
+                if (distToCenter > radius + blendDistance) return originalWorldY;
+
+                float nearestSignedDist = float.PositiveInfinity;
+                float targetY = originalWorldY;
+                foreach (var b in buildings)
                 {
-                    float worldX = terrainPos.x + ((rect.x + col) / (float)(res - 1)) * size.x;
-                    float worldZ = terrainPos.z + ((rect.y + row) / (float)(res - 1)) * size.z;
-                    Vector2 pointXZ = new Vector2(worldX, worldZ);
-
-                    float distToCenter = Vector2.Distance(pointXZ, centerXZ);
-                    if (distToCenter > radius + blendDistance) continue;
-
-                    float originalWorldY = terrainPos.y + heights[row, col] * size.y;
-
-                    float nearestSignedDist = float.PositiveInfinity;
-                    float targetY = originalWorldY;
-                    foreach (var b in buildings)
-                    {
-                        float d = Vector2.Distance(pointXZ, new Vector2(b.worldPos.x, b.worldPos.z)) - (b.radius + flattenPadding);
-                        if (d < nearestSignedDist) { nearestSignedDist = d; targetY = b.baseY; }
-                    }
-
-                    float flattenWeight = buildings.Count > 0
-                        ? 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(nearestSignedDist / blendDistance))
-                        : 0f;
-
-                    // Fades the ambient noise out toward the settlement's outer edge so it blends
-                    // into the pristine terrain instead of stopping in a visible ring.
-                    float edgeFade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((distToCenter - radius) / blendDistance));
-                    float ambient = TerrainNoiseHelper.Fbm(new Vector3(worldX * noiseScale, 0f, worldZ * noiseScale), 1f, seed, 3)
-                                     * noiseAmplitude * edgeFade;
-
-                    float finalWorldY = Mathf.Lerp(originalWorldY + ambient, targetY, flattenWeight);
-                    heights[row, col] = Mathf.Clamp01((finalWorldY - terrainPos.y) / size.y);
+                    float d = b.footprint.SignedDistance(pointXZ) - flattenPadding;
+                    if (d < nearestSignedDist) { nearestSignedDist = d; targetY = b.baseY; }
                 }
-            }
+
+                float flattenWeight = buildings.Count > 0
+                    ? 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(nearestSignedDist / blendDistance))
+                    : 0f;
+
+                // Fades the ambient noise out toward the settlement's outer edge so it blends
+                // into the pristine terrain instead of stopping in a visible ring.
+                float edgeFade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((distToCenter - radius) / blendDistance));
+                float ambient = TerrainNoiseHelper.Fbm(new Vector3(pointXZ.x * noiseScale, 0f, pointXZ.y * noiseScale), 1f, seed, 3)
+                                 * noiseAmplitude * edgeFade;
+
+                return Mathf.Lerp(originalWorldY + ambient, targetY, flattenWeight);
+            });
         }
 
         private static bool TryGetHeightmapRect(Terrain terrain, Vector3 center, float outerRadius, out RectInt rect)

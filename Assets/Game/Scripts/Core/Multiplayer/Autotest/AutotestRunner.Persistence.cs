@@ -166,7 +166,7 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
-        /// How many of a creature's motors and brains are switched on, as "on/total".
+        /// How many of a creature's motors are switched on, as "on/total".
         ///
         /// The other half of "came back able to move", and the half a speed cannot answer: a
         /// creature whose driver was switched off by a runtime effect and then captured that way

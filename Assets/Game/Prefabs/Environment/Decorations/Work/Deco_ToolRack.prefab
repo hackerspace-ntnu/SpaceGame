@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3170475578960644820}
   - component: {fileID: 1107564395046656080}
+  - component: {fileID: 8365376783861409426}
   m_Layer: 0
   m_Name: Deco_ToolRack
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.9, y: 1.1, z: 1}
   m_Center: {x: 0, y: 0.5, z: 0.15}
+--- !u!114 &8365376783861409426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4952230644536632668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Tool rack
+  description: Tools, each hung in its own outline.
+  scanClass: 1
+  lookSeconds: 6
 --- !u!1001 &8463364793304855314
 PrefabInstance:
   m_ObjectHideFlags: 0

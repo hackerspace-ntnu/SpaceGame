@@ -15,22 +15,33 @@ MonoBehaviour:
   buildings:
   - prefab: {fileID: 3428557189900082357, guid: 0c36012fe2ba545daaae59edce277b0b, type: 3}
     count: 1
+    spawnChance: 1
   - prefab: {fileID: 6563565134816234893, guid: 2188d3e4c8d5a474cae8ec0d413f8fa4, type: 3}
     count: 1
+    spawnChance: 0.75
   - prefab: {fileID: 4481370591559357774, guid: 23edba37abb0142c2a2d2ee5dd18432d, type: 3}
     count: 1
+    spawnChance: 0.75
   - prefab: {fileID: 4683598867956909013, guid: 4f4cf2cc038604aeea6e163652d5cd8c, type: 3}
     count: 1
+    spawnChance: 0.75
   - prefab: {fileID: 191986076428647629, guid: 6586ab54e89544b81b57ca7fd1922faf, type: 3}
     count: 1
+    spawnChance: 0.75
   - prefab: {fileID: 2933431237966747623, guid: 0653fc000be604d25b579720cad1ca5a, type: 3}
     count: 2
+    spawnChance: 0.75
   - prefab: {fileID: 3808004275049042514, guid: 248745458a5784153911a6df31651193, type: 3}
     count: 2
+    spawnChance: 0.75
   decorations: []
-  characters: []
-  radius: 70
-  minSpacing: 4
+  characters:
+  - prefab: {fileID: 2578966956616729156, guid: d0f638635216a414e9bf763407759c52, type: 3}
+    count: 6
+    spawnChance: 0.75
+  minBuildingGap: 4
+  maxBuildingGap: 10
+  outskirts: 15
   decorationSpacing: 1.5
   characterSpacing: 0.6
   flattenPadding: 3

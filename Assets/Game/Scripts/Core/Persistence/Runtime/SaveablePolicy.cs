@@ -21,6 +21,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
+using SpaceGame.Agents.Residents;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Locomotion;
@@ -296,6 +297,14 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<NoiseInvestigationSaveable>();
                 parts.Add(nameof(NoiseInvestigationSaveable));
+            }
+
+            // A settlement resident's memory of players — familiarity and grudges. Its day is
+            // re-planned from the seed on load; what it remembers about you is not derivable.
+            if (go.GetComponent<Resident>() != null && go.GetComponent<ResidentSaveable>() == null)
+            {
+                go.AddComponent<ResidentSaveable>();
+                parts.Add(nameof(ResidentSaveable));
             }
 
             // Fleeing is hysteresis — trigger radius in, safe radius out — so it cannot be recomputed

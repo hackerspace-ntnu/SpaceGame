@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: Tool_OilRag
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: 1e7bca24d628f4ef48ee540b607b340d
+  itemName: Oil Rag
+  itemPrefab: {fileID: 6064786089358717171, guid: 24864ae871a914a52b0cbd96d72a3e74, type: 3}
+  icon: {fileID: 21300000, guid: ac1d9b7e657864b0e93b7b29252fd2f2, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0
+  menacing: 0
+  curiosity: 0
+  showInDevBrowser: 0

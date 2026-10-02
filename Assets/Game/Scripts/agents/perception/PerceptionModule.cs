@@ -66,6 +66,9 @@ namespace SpaceGame.Agents
         public float MemoryDuration => memoryDuration;
 
         private NoiseEmitter noiseEmitter;
+
+        // Read for AgentController.Offstage: an agent out of the scene's action neither forgets nor moves.
+        private AgentController controller;
         private Vector3 prevPosition;
         private bool isMoving;
 
@@ -90,6 +93,7 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             noiseEmitter = GetComponent<NoiseEmitter>();
+            controller = GetComponentInParent<AgentController>();
             prevPosition = transform.position;
 
             if (occlusionLayers == 0)
@@ -104,6 +108,14 @@ namespace SpaceGame.Agents
 
         private void Update()
         {
+            // Offstage: memory is frozen rather than aged, and a body being placed is not "moving".
+            if (controller != null && controller.Offstage)
+            {
+                isMoving = false;
+                prevPosition = transform.position;
+                return;
+            }
+
             if (HasLastKnownPosition)
                 TimeSinceLastSeen += Time.deltaTime;
 

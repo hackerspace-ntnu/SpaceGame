@@ -238,6 +238,11 @@ namespace SpaceGame.Gameplay
                 return;
             }
 
+            if (TryRespond(interactor.transform))
+            {
+                return;
+            }
+
             // A trader asks about trade before it says anything else, because that is what the
             // player walked over for. Routed through here rather than TraderInteraction being its
             // own IInteractable: Interactor resolves ONE IInteractable per collider, so a second
@@ -636,6 +641,23 @@ namespace SpaceGame.Gameplay
             return Time.time - lastInteractionTime >= restartFromBeginningAfterSeconds;
         }
 
+        /// <summary>
+        /// Hands the conversation to the first <see cref="IDialogResponder"/> on this character that
+        /// wants it. Asked before the trader and the authored lines: a responder is the character's
+        /// own mind answering, and the lines are what it says when it has none. A fresh array per
+        /// press rather than a shared buffer, because a responder may itself start a conversation.
+        /// </summary>
+        private bool TryRespond(Transform player)
+        {
+            foreach (IDialogResponder responder in GetComponents<IDialogResponder>())
+            {
+                if (!responder.CanRespond(player)) continue;
+                responder.Respond(player);
+                return true;
+            }
+            return false;
+        }
+
         private void FocusOnInteractor(Interactor interactor)
         {
             if (interactor == null)
@@ -676,7 +698,9 @@ namespace SpaceGame.Gameplay
         /// Shows one line and gives it a voice.
         ///
         /// <para>
-        /// Every dialog mode funnels through here. Playing at this transform rather than through the
+        /// Every dialog mode funnels through here. The popup says the line through this character's
+        /// <see cref="SpaceGame.Presentation.Speech.Speaker"/> on the Dialog channel, which is what
+        /// moves the mouth and hands. Playing the voice at this transform rather than through the
         /// popup UI matters: the popup is a screen-space singleton with no position, so a mumble
         /// emitted there would come from nowhere and would not fall off as the player walks away
         /// from whoever is talking.

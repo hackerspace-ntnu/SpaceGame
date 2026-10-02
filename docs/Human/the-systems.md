@@ -66,9 +66,21 @@ The main world is 4000 by 3000 metres cut into 48 tiles of 500 metres square, an
 
 ### Generated landmarks, caves and settlements *(TerrainGeneration)*
 
-Several generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, and caves grown from a seeded room-and-corridor graph. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand. One settlement generator rings buildings, patrols and vehicles around a core structure from a recipe of prefabs and counts; it built the one Clanker robot settlement in the world today. A second, general-purpose settlement generator scatters buildings, decorations and characters from a simple prefab-and-count list around wherever you place it, reshaping the ground under and around them so buildings sit flat without leaving an obvious flattened circle — its layout comes from where you put it in the world, so the same list of buildings can be dropped in many places and always look a little different.
+Several generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, and caves grown from a seeded room-and-corridor graph. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand. One settlement generator rings buildings, patrols and vehicles around a core structure from a recipe of prefabs and counts; it built the one Clanker robot settlement in the world today. A second, general-purpose settlement generator grows a tight cluster of buildings from a simple prefab-and-count list wherever you place it — each building a set number of metres from its neighbour, with a size dial that doubles it or adds a random half again — then fills it with decorations and people standing anywhere walkable, reshaping the ground under and around them so buildings sit flat without leaving an obvious flattened circle — its layout comes from where you put it in the world, so the same list of buildings can be dropped in many places and always look a little different.
 
 **Worth knowing:** only two landmark types survive, mesas and cliffs; a dozen others were deleted, and because scenes store the type as a number, those numbers must never be renumbered or reused.
+
+### Planned towns on terraces *(SettlementStreets)*
+
+The second way the general-purpose settlement generator can lay a town out. Instead of growing a loose cluster, it grows streets the way city generators do — a main street out of the centre, side streets branching off it, alleys off those — and lines both sides of every street with buildings facing it, the biggest ones on the main street near the middle. Every such town is built round a square, its town centre: its larger buildings ring an open plaza facing its centre, and two to four lanes leave the square between them with the rest of the houses along them. The middle of town is packed tight, with a second row of houses tucked behind the street-front ones and reached through narrow passages; the edges are looser, and every street ends at its last house. The ground is cut into flat terraces a man's half-height apart, with concrete retaining walls topped by a paved edge between them, and wherever a street climbs from one terrace to the next there is a flight of stairs. Streets and door paths are simple concrete slabs with gaps between them.
+
+**Worth knowing:** on steep ground this means a lot of wall — a big hillside town can run to thousands of wall blocks — because every 1.5 m of height is a terrace.
+
+### Clay roads, stone paths and long stairs *(SettlementTerraceKit)*
+
+A second set of pieces for the same planned towns, in the nomads' clay. Streets get one of three surfaces by how important they are: only the heart of the main street becomes a kerbed flagstone road (with a large round paved node at its crossings and a frayed end where it stops), the next most important stretches get plain concrete slabs, and everything else — the outskirts, every alley and the paths to front doors — is loose stepping stones in the sand. A small town gets no road at all. Stone paths simply climb with the hill; where a road or slab street climbs, it can take several terraces in one long flight of stairs with landings, framed at the top by two lantern pillars. Walls between buildings are stacked from stone courses instead of stretched, with pillars at the bends.
+
+**Worth knowing:** nothing in this kit is ever stretched, so the style's step height and stair lengths must match the models exactly — a test checks them.
 
 ### Where characters can walk *(NavMeshSystem)*
 
@@ -133,6 +145,24 @@ Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump h
 Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.
 
 **Worth knowing:** a creature with no faction is invisible to every targeting system with no error at all, and a species is peaceful precisely by having *zero* relationship rows — adding one "for completeness" makes the whole faction attack on sight.
+
+### The people who live in a settlement *(Residents)*
+
+A settlement is one component and one Generate button: it lays out the buildings, puts one villager in every bed the houses have (plus any one-of-a-kind characters, such as a quest giver, who always appear), and gives each a name, a trade, a home and a family. Everything a villager can do comes with the buildings themselves — the market stand brings a place behind its counter and places for customers, the hearth brings seats round the fire, a sail tent brings shade to sit in — so a new building or decoration brings new things to do without touching the settlement. The villagers live a day: they wake, walk to their work (the forge, the stall, the kitchen, the pen, the garden or the watch) and hold it, take staggered breaks so a post is never left empty, spend their free time on seats, in the shade and at the stalls — preferring wherever a friend already is — gather at the hearth in the evening and go home to bed, and a few leave in the morning to hunt or scout and come back before dusk. Each person's whole day is worked out in advance from the settlement's layout and the date, so loading a save, joining late or skipping the clock forward simply asks "where should they be now". How a villager treats you comes from two dials — how bold they are and how prickly — plus what they remember: whether they know you, and whether you hurt them or their family recently. What they say is picked from a spreadsheet of lines by matching the situation, and everyone nearby sees it as a speech bubble.
+
+**Worth knowing:** a punch or a shot is a fight on the spot, and the people nearby join it — the bold ones and anyone close to whoever you hurt — while the timid hurry home and stay out of it. Bumping into someone is what warns first: shove a villager and you get a warning, then a last warning, then a fight, and how many shoves that takes depends on their temper. Word of what you did gets round the settlement by itself — see the next entry.
+
+### Errands, wandering and the watch *(Errands)*
+
+On top of that day, villagers have errands. A gardener goes round the beds with a bucket, filling it at the well and watering each plant in turn; an apprentice carries ore from the pile to the smelter; a hauler carries goods between the stores and the stalls. People with nothing in particular to do wander the streets and drop in at the shops, and friends and relatives often walk in pairs, talking as they go. A settlement is also guarded: pairs of guards walk its perimeter a few metres outside the buildings, one pair the other way round from the next, and talk about keeping the peace as they walk, while a guard stands watch on each tower. Guards are quick to challenge anyone who goes armed or runs in their sight — a warning, then a last warning — but a single shove is never a fight.
+
+**Worth knowing:** none of this needs the settlement to be rebuilt by hand — a chore is just two kinds of place and a thing to carry, so a new decoration that offers one (a well, a plant bed, an ore pile) puts people to work the moment the settlement lists it. A guard on a tower is put up there, and taken down again, only while nobody is looking, because no one can walk up a ladder but you.
+
+### What a settlement says about you *(ResidentReputation)*
+
+Everything you do to a villager — or for one — becomes news. The person it happened to and anyone who saw it know at once, and they tell whoever is within earshot, who tell whoever is near them, so it walks across the settlement neighbour to neighbour. Each villager's opinion of you moves by what it was worth, and by how close they are to the person it happened to: the most for that person, then their family, their friends, their workmates, and a little for everyone else. Hit someone and the whole settlement likes you a little less and their family a lot less; step in when something is attacking a villager and they thank you, and the news warms everyone in the same way.
+
+**Worth knowing:** news only changes how people feel about you — the fighting spreads another way. A Raxy fighting you shouts for help every second, in a settlement or out in the dunes, and every Raxy and friendly character within earshot answers: the bold ones and the fighter's friends and family join in and start shouting too, the timid ones run home. Lost favor does not wear off with time — talking to people and doing them good is how you win it back.
 
 ### The tribe that lives in the sky *(SkyTribe)*
 
@@ -448,6 +478,12 @@ Some items are meant to be set down rather than carried: you point at a patch of
 The first one is a camp lantern: set it down and it lights the ground around it, pick it up and it is a lantern in your pack again.
 
 **Worth knowing:** Q is the "take that back" key everywhere, which is why it also strips a saddle off an animal. It is kept separate from E on purpose: a placed thing that *does* something keeps E for doing it, so a lamp lights with E and goes back in your pack with Q, and you never have to guess which one a single key meant this time. Placing refuses steep ground, and nothing is taken from your pack unless something actually appeared where you aimed.
+
+### Tools in the hand and on the belt *(HandTools)*
+
+Settlers carry things: hammers, spears, buckets, baskets, water tanks, carts and an electric harpoon gun, all modelled in the decoration library. A Raxy holds one in its fist and hangs the rest on its belt. They are props: using one does nothing except, for a few, a short body animation.
+
+**Worth knowing:** every resident with a trade carries its tools (17 trades; storytellers, elders and villagers carry none), and the harpoon gun does not fire.
 
 ### Saddling an animal *(Saddles)*
 

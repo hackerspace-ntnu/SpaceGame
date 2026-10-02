@@ -229,6 +229,25 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(provocation.IsProvoked, "A real hit must.");
         }
 
+        // The jostle ladder counts shoves; a blow skips it. Hitting or shooting a villager who would
+        // have warned you three times over a shove is a fight on the spot, however light the blow.
+        [Test]
+        public void OnTheJostleLadder_AnyHitIsAnInstantFight()
+        {
+            ProvocationModule provocation = BuildCreature(out HealthComponent health,
+                                                          out AgentTargeting targeting);
+            AggressionSettings settings = provocation.Settings;
+            settings.jostlesToFight = 3;
+            provocation.Settings = settings;
+            GameObject attacker = BuildAttacker();
+
+            health.Damage(1, attacker.transform);
+
+            Assert.IsTrue(provocation.IsProvoked, "A hit is never a warning.");
+            Assert.AreSame(attacker.transform, targeting.Target);
+            Assert.AreEqual(AggressionInput.Hit, provocation.LastCause);
+        }
+
         [Test]
         public void SelfInflictedDamage_ProvokesNobody()
         {

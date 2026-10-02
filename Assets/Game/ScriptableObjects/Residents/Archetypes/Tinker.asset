@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54862c0fb1d14b798837a1e081db32ca, type: 3}
+  m_Name: Tinker
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentArchetype
+  roleName: tinker
+  post: {fileID: 11400000, guid: 45e27b4b380048c4afca9a7421925a6b, type: 2}
+  trips: 0
+  nerve: 0.4
+  temper: 0.6
+  heldItem: {fileID: 11400000, guid: c6e4f31fddda7445e9b7d44576bdd9b3, type: 2}
+  beltItems:
+  - {fileID: 11400000, guid: be2fa83c232d94053b90d0f7f62ce909, type: 2}
+  - {fileID: 11400000, guid: f6a1f0ae058fc4173a3891e85787b545, type: 2}

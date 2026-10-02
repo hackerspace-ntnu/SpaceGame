@@ -653,5 +653,32 @@ namespace SpaceGame.Core
         //   A = CharacterActionCatalog index, or -1 - slot to stop that slot.
         //   B = variant | arm << 8 (arm: 0 none, 1 left, 2 right).
         public const ushort CharacterActed = 116; // server → everyone else
+
+        // ── Settlement residents ──
+        // Both on the RESIDENT's relay. The server alone picks what a resident says — the line
+        // table, the resident's memory and its stance live there — so a player addressing one
+        // only asks, and the answer comes back as a line id every machine looks up in its own
+        // copy of the same table. Speech is not replayed to late joiners: a line is a moment,
+        // and the resident's standing activity already arrives with its NetworkVariable.
+        //
+        //   ResidentAddressed   Target = the speaking PLAYER's NetworkObjectId (the sender), so
+        //                       the server answers the right person even on the host.
+        //   ResidentSaid        Target = the addressee player's NetworkObjectId, 0 for a line
+        //                       said to nobody in particular.
+        //                       A = the line id — LineTable.IdOf's uint FNV-1a hash carried
+        //                       bit-for-bit in the int field: send unchecked((int)id), read
+        //                       unchecked((uint)arg.A). Never a numeric conversion; ids above
+        //                       int.MaxValue arrive negative and must round-trip unchanged.
+        //                       B = the subject resident's index in its settlement roster
+        //                       ({friend}, {kin} in the line), -1 for none.
+        public const ushort ResidentAddressed = 117; // player → server
+        public const ushort ResidentSaid      = 118; // server → everyone, host included
+
+        // ── Player racket ──
+        // Owner → server, on the PLAYER's relay: "I am sprinting here". Sprint is decided on the
+        // owner and never replicated, while noise is heard only where agents tick — the server —
+        // so the owner reports it, throttled to one per PlayerStance.racketInterval. No payload:
+        // the server emits from its own copy of the body.
+        public const ushort SprintRacket = 119; // owner → server
     }
 }

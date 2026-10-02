@@ -128,6 +128,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 166896415662312717}
+  - component: {fileID: 4298218828680908462}
   m_Layer: 0
   m_Name: Deco_YokeHarness
   m_TagString: Untagged
@@ -152,6 +153,22 @@ Transform:
   - {fileID: 8380518709435339880}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4298218828680908462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6413753609697595450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Yoke
+  description: For hauling with a pack animal.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1001 &517000117652037088
 PrefabInstance:
   m_ObjectHideFlags: 0

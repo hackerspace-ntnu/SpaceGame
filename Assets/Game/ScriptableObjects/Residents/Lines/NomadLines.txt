@@ -1,0 +1,289 @@
+# Nomad settlement lines. One row per line; empty cell = any. stance: friendly/neutral/wary/hostile or one Stance.
+# speaker: a resident's name (+8) or an archetype asset name (+4). Each other filled criterion +1.
+# Whole sentences, at most two tokens, no article before a token. The key is the wire id: never rename a shipped key.
+key	speaker	topic	stance	observation	activity	repliesTo	register	text
+# -- Greetings --
+greet.friendly.1		Greeting	friendly				Statement	Back again. Good.
+greet.friendly.2		Greeting	friendly				Statement	Sun's kind today. Sit if you like.
+greet.warm.name		Greeting	Warm				Statement	They call me {name}. You're welcome here.
+greet.neutral.1		Greeting	neutral				Question	Stranger. What brings you this far out?
+greet.neutral.2		Greeting	neutral				Statement	Water's at the well. Mind the queue.
+greet.curious.1		Greeting	Curious				Question	You're not from the dunes. Where from?
+greet.asking.1		Greeting	Asking				Question	You look like you've travelled. Trading?
+greet.wary.1		Greeting	wary				Question	Who sent you?
+greet.wary.2		Greeting	wary				Statement	Keep your hands where I can see them.
+greet.afraid.1		Greeting	Afraid				Statement	I have nothing worth taking.
+greet.hostile.1		Greeting	hostile				Statement	Turn around. Walk back the way you came.
+greet.hostile.2		Greeting	hostile				Statement	You're not wanted here.
+# -- Farewells --
+bye.friendly.1		Farewell	friendly				Statement	Mind the dunes. Come back whole.
+bye.neutral.1		Farewell	neutral				Statement	Go on, then.
+bye.wary.1		Farewell	wary				Statement	Keep walking.
+bye.hostile.1		Farewell	hostile				Exclamation	And stay gone!
+# -- Remarks: what a resident notices --
+remark.generic.hostile		Remark	hostile				Statement	You've done enough here. Go.
+remark.armed.neutral		Remark	neutral	ArmedHeld			Statement	We don't carry those loose in here.
+remark.armed.friendly		Remark	friendly	ArmedHeld			Statement	Hunting later? Keep it pointed at the sand.
+remark.armed.protective		Remark	Protective	ArmedHeld			Statement	Holster that. Now.
+remark.armed.afraid		Remark	Afraid	ArmedHeld			Statement	Please. Put it away.
+remark.armed.cold		Remark	Cold	ArmedHeld			Question	Why is that out?
+remark.gauntlet.neutral		Remark	neutral	Gauntlet			Question	What's that on your arm?
+remark.gauntlet.wary		Remark	wary	Gauntlet			Statement	Strange gear. Keep it quiet.
+remark.curio.curious		Remark	Curious	Curio			Question	Where did you find that?
+remark.curio.asking		Remark	Asking	Curio			Question	Would you trade that?
+remark.curio.neutral		Remark	neutral	Curio			Statement	Odd thing you're carrying.
+remark.curio.friendly		Remark	friendly	Curio			Statement	Never seen the like. Take care of it.
+remark.sprint.neutral		Remark	neutral	Sprinting			Statement	Slow down. You'll raise dust.
+remark.sprint.friendly		Remark	friendly	Sprinting			Exclamation	Easy! Nothing's on fire.
+remark.sprint.wary		Remark	wary	Sprinting			Question	What are you running from?
+remark.approach.neutral		Remark	neutral	Approaching			Statement	Mind your step around here.
+remark.approach.friendly		Remark	friendly	Approaching			Statement	Good to see you about.
+remark.approach.wary		Remark	wary	Approaching			Statement	That's near enough.
+# -- Warnings: a band climbed or awareness saw harm; the observation names the cause --
+warn.hit.neutral		Warning	neutral	Hitting			Exclamation	Watch it. You hit me.
+warn.hit.friendly		Warning	friendly	Hitting			Exclamation	Hey! That hurt. Enough.
+warn.hit.cold		Warning	Cold	Hitting			Exclamation	Last warning. You hit me.
+warn.hit.afraid		Warning	Afraid	Hitting			Exclamation	Stop! Please, stop hitting me!
+warn.menace.neutral		Warning	neutral	Menacing			Statement	Point that somewhere else.
+warn.menace.cold		Warning	Cold	Menacing			Exclamation	Lower it, or I put you down.
+warn.menace.afraid		Warning	Afraid	Menacing			Exclamation	Don't! I've done nothing!
+warn.shot.neutral		Warning	neutral	ArmedHeld			Statement	No shooting inside the wall.
+warn.shot.cold		Warning	Cold	ArmedHeld			Exclamation	Fire that again and we're done talking.
+warn.shot.afraid		Warning	Afraid	ArmedHeld			Exclamation	Stop shooting! Please!
+warn.near.neutral		Warning	neutral	Approaching			Statement	That's close enough.
+warn.near.cold		Warning	Cold	Approaching			Statement	Back off. Last time I say it.
+warn.near.afraid		Warning	Afraid	Approaching			Exclamation	Stay back!
+warn.jostle.neutral		Warning	neutral	Jostling			Statement	Watch where you walk.
+warn.jostle.friendly		Warning	friendly	Jostling			Exclamation	Easy! There's room for both of us.
+warn.jostle.wary		Warning	wary	Jostling			Statement	Hands off me, stranger.
+warn.jostle.cold		Warning	Cold	Jostling			Exclamation	Shove me again and see what happens.
+warn.jostle.afraid		Warning	Afraid	Jostling			Exclamation	Don't push me! Please!
+warn.jostle.hostile		Warning	hostile	Jostling			Exclamation	One more shove and you'll regret it.
+warn.kin.wary		Warning	wary	KinHarmed			Statement	You hurt {kin}. Keep away from me.
+warn.kin.hostile		Warning	hostile	KinHarmed			Exclamation	I saw what you did to {kin}.
+warn.any.friendly		Warning	friendly				Statement	Hey. Easy now.
+warn.any.neutral		Warning	neutral				Statement	Don't.
+warn.any.wary		Warning	wary				Statement	Careful, stranger.
+warn.any.hostile		Warning	hostile				Exclamation	You've worn out your welcome.
+# -- Alarm: the fight starts --
+alarm.hit		Alarm		Hitting			Exclamation	That's it. You asked for this!
+alarm.kin		Alarm		KinHarmed			Exclamation	This is for {kin}!
+alarm.jostle		Alarm		Jostling			Exclamation	You wanted a fight. Now you have one!
+alarm.any		Alarm					Exclamation	Enough talk!
+# -- Grief --
+grief.kin		Grief					Complaint	The sand took {kin}. Too early.
+grief.hearth		Grief			Hearth		Complaint	I keep looking for {kin} at the hearth.
+grief.friend		Grief					Statement	{friend} should still be here.
+# -- Refusals: will not talk now --
+refuse.any		Refusal					Statement	No.
+refuse.wary		Refusal	wary				Statement	Not now. Back off.
+refuse.afraid		Refusal	Afraid				Exclamation	Get away from me!
+refuse.hostile		Refusal	hostile				Statement	I've nothing to say to you.
+# -- Replies: the second and later turns of a talk --
+reply.any		Reply					Statement	Mm.
+reply.q.neutral		Reply	neutral			Question	Statement	Couldn't say.
+reply.q.friendly		Reply	friendly			Question	Statement	Ask {friend}. They'd know.
+reply.q.wary		Reply	wary			Question	Question	Why do you want to know?
+reply.s.neutral		Reply	neutral			Statement	Statement	Hm. Maybe.
+reply.s.friendly		Reply	friendly			Statement	Statement	True enough.
+reply.s.curious		Reply	Curious			Statement	Question	And then what?
+reply.c.neutral		Reply	neutral			Complaint	Statement	Everyone's got a gripe. Sand's still hot.
+reply.c.friendly		Reply	friendly			Complaint	Statement	It'll pass. Things do.
+reply.c.wary		Reply	wary			Complaint	Complaint	Don't put that on me.
+reply.e.any		Reply				Exclamation	Statement	Keep your voice down.
+# -- Work --
+work.any		Work					Statement	Work doesn't wait for the heat.
+work.working.1		Work			Work		Statement	Hands busy, mouth shut. That's the rule.
+work.working.friendly		Work	friendly		Work		Statement	Busy day. Good day.
+work.working.complaint		Work			Work		Complaint	My back's done before noon.
+work.break		Work			Break		Statement	Short rest. Then back at it.
+work.trip		Work			Trip		Statement	Long walk back. Always is.
+work.role		Work					Statement	{role}'s work never ends.
+# -- Gossip: news, and today's acts by outsiders (subject = the victim) --
+gossip.any		Gossip					Statement	{friend} says the caravan's late again.
+gossip.stranger		Gossip					Question	Heard about the stranger?
+gossip.wary		Gossip	wary				Complaint	Too many strangers this season.
+gossip.water		Gossip	friendly				Statement	{friend} found water past the ridge, they say.
+gossip.hit		Gossip		Hitting			Statement	That outsider hit {name}. Saw it myself.
+gossip.menace		Gossip		Menacing			Statement	Outsider waved a weapon at {name}.
+gossip.kin		Gossip		KinHarmed			Complaint	The stranger hurt {name}. Nobody did anything.
+gossip.defended		Gossip		Defending			Statement	The outsider stood up for {name}. Not many would.
+gossip.hearth		Gossip			Hearth		Question	Did you hear the wind last night?
+# -- Rumour: passing on an attack that just happened (subject = the victim) --
+rumour.hit		Rumour		Hitting			Exclamation	The outsider just hit {name}!
+rumour.kin		Rumour		KinHarmed			Exclamation	The outsider attacked {name}!
+rumour.menace		Rumour		Menacing			Exclamation	The outsider drew a weapon on {name}!
+rumour.defended		Rumour		Defending			Exclamation	The outsider just saved {name}!
+rumour.any		Rumour					Exclamation	Watch the outsider! They went for {name}!
+# -- Ambition --
+ambition.any		Ambition					Statement	One day I'll have {ambition}.
+ambition.friendly		Ambition	friendly				Statement	Before I'm old I want {ambition}.
+ambition.hearth		Ambition			Hearth		Question	Ever think about {ambition}?
+# -- Need --
+need.any		Need					Statement	We're short on {need}.
+need.asking		Need	Asking				Question	You wouldn't have {need} to spare?
+need.complaint		Need	wary				Complaint	No {need} this week. Again.
+# -- Archetype flavour --
+smith.work.1	Smith	Work			Work		Statement	Iron doesn't care how hot you are.
+smith.work.2	Smith	Work			Work		Complaint	Bellows leak again. Everything leaks.
+smith.greet	Smith	Greeting	neutral				Statement	If it's broken, leave it on the anvil.
+smith.armed	Smith	Remark		ArmedHeld			Question	Who forged that? Poor balance.
+smith.need	Smith	Need					Statement	Bring me scrap and I'll make you something.
+apprentice.work	Apprentice	Work			Work		Complaint	Sweep, fetch, sweep. When do I hammer?
+apprentice.greet	Apprentice	Greeting	friendly				Question	Did you come about the forge?
+apprentice.ambition	Apprentice	Ambition					Statement	I'll have my own anvil one day.
+apprentice.curio	Apprentice	Remark		Curio			Exclamation	Can I hold it? Just for a moment!
+cook.work	Cook	Work			Work		Statement	Stew needs another hour. Always another hour.
+cook.greet	Cook	Greeting	friendly				Question	Hungry? There's broth if you're quick.
+cook.need	Cook	Need					Complaint	No salt, no fat. Just sand in everything.
+cook.sprint	Cook	Remark		Sprinting			Exclamation	Not through my kitchen!
+brewer.work	Brewer	Work			Work		Statement	Cactus mash. Three days and it bites back.
+brewer.greet	Brewer	Greeting	friendly				Question	Thirsty? First cup's free. Second isn't.
+brewer.hearth	Brewer	Gossip			Hearth		Statement	Best stories come after the second cup.
+brewer.reply	Brewer	Reply				Complaint	Statement	Drink. It helps. Mostly.
+trader.greet	Trader	Greeting	neutral				Question	Buying or selling? I don't do talking.
+trader.wary	Trader	Greeting	wary				Statement	Coin first. Then we're friends.
+trader.work	Trader	Work			Work		Statement	Prices go up when the wind does.
+trader.curio	Trader	Remark		Curio			Question	Name your price for that.
+tinker.work	Tinker	Work			Work		Complaint	Half these parts are older than me.
+tinker.greet	Tinker	Greeting					Statement	Don't touch the bench. Everything there bites.
+tinker.gauntlet	Tinker	Remark		Gauntlet			Question	Who built that rig? Let me see the joints.
+tinker.need	Tinker	Need					Question	Got any wire? Any wire at all?
+herder.work	Herder	Work			Work		Statement	Beasts are restless. Storm's coming, maybe.
+herder.greet	Herder	Greeting	friendly				Statement	Mind where you step near the pen.
+herder.sprint	Herder	Remark		Sprinting			Exclamation	Walk! You'll spook the pen.
+drover.work	Drover	Work			Work		Statement	Herd's fed. Next they'll want water.
+drover.wary	Drover	Greeting	wary				Statement	Rustlers come looking like you.
+drover.armed	Drover	Remark		ArmedHeld			Statement	Fire that near the herd and you pay for every head.
+gardener.work	Gardener	Work			Work		Statement	Three drops a root. Not four.
+gardener.greet	Gardener	Greeting	friendly				Statement	Careful of the beds. They took a year.
+gardener.ambition	Gardener	Ambition					Statement	One day there'll be shade here. Real shade.
+gardener.afraid	Gardener	Remark	Afraid	ArmedHeld			Statement	Please. Not near the plants.
+waterkeeper.work	Waterkeeper	Work			Work		Statement	Every cup is counted. Every one.
+waterkeeper.greet	Waterkeeper	Greeting					Statement	You drink when the settlement drinks.
+waterkeeper.near	Waterkeeper	Remark	wary	Approaching			Statement	The cistern is not for strangers.
+waterkeeper.need	Waterkeeper	Need					Complaint	Runners came back light. Again.
+guard.greet	Guard	Greeting	neutral				Question	State your business.
+guard.armed	Guard	Remark		ArmedHeld			Statement	Weapons stay holstered inside the wall.
+guard.warn	Guard	Warning	Cold				Exclamation	One more step and I stop you myself.
+guard.work	Guard	Work			Work		Statement	Quiet watch. I like quiet.
+guard.sprint	Guard	Remark		Sprinting			Question	Who's chasing you?
+lookout.work	Lookout	Work			Work		Statement	Dust to the east. Probably wind.
+lookout.greet	Lookout	Greeting					Statement	Saw you coming an hour ago.
+lookout.gossip	Lookout	Gossip					Statement	Lights over the ridge again last night.
+hunter.work	Hunter	Work			Trip		Statement	Tracks are fresh. Keep your voice down.
+hunter.greet	Hunter	Greeting					Statement	You walk loud. Everything hears you.
+hunter.armed	Hunter	Remark		ArmedHeld			Question	What does that bring down?
+hunter.ambition	Hunter	Ambition					Statement	There's a beast past the dunes. I'll have its hide.
+scout.work	Scout	Work			Trip		Statement	Ridge is clear. For now.
+scout.greet	Scout	Greeting	Curious				Question	Came over the north dunes? See anything?
+scout.gossip	Scout	Gossip					Statement	Something big moved through the flats.
+forager.work	Forager	Work			Trip		Statement	Roots here, if you know how to dig.
+forager.greet	Forager	Greeting	friendly				Statement	Want a bite? It's bitter, but it's food.
+forager.need	Forager	Need					Complaint	The near patches are picked clean.
+salvager.work	Salvager	Work			Trip		Statement	Wreck's half buried. The good half.
+salvager.greet	Salvager	Greeting	wary				Statement	You salvaging? Then stay off my wrecks.
+salvager.curio	Salvager	Remark		Curio			Question	That's off-world. Where'd you dig it up?
+waterrunner.work	WaterRunner	Work			Trip		Complaint	Full jugs out here, half by the time I'm home.
+waterrunner.greet	WaterRunner	Greeting					Statement	Can't stop. Water's heavy.
+waterrunner.need	WaterRunner	Need					Statement	The far well's running low.
+villager.greet	Villager	Greeting	neutral				Question	New face. Staying long?
+villager.stroll	Villager	Remark		Approaching	Stroll		Statement	Nice evening for a walk.
+villager.gossip	Villager	Gossip					Statement	{friend} won't stop talking about the storm.
+villager.reply	Villager	Reply				Question	Statement	Ask me tomorrow.
+elder.greet	Elder	Greeting					Statement	I've buried better travellers than you.
+elder.armed	Elder	Remark		ArmedHeld			Statement	Every stranger with a gun thinks he's the first.
+elder.gossip	Elder	Gossip					Statement	It was worse when I was young. It always was.
+elder.reply	Elder	Reply				Question	Statement	You'll learn. Or the desert teaches you.
+storyteller.greet	Storyteller	Greeting	friendly				Question	A new face! Have you a story for me?
+storyteller.hearth	Storyteller	Gossip			Hearth		Statement	Sit. The one about the glass storm is true.
+storyteller.curio	Storyteller	Remark		Curio			Exclamation	Now that has a story in it!
+remark.defended		Remark		Defending			Exclamation	You fought for me. I won't forget that.
+storyteller.ambition	Storyteller	Ambition					Statement	I want every tale in the dunes told once more.
+# -- Guards on patrol: always pairs, always about the peace --
+guard.patrol.1	Guard	Work			Patrol		Statement	Round the wall again. Nobody gets in unseen.
+guard.patrol.2	Guard	Work			Patrol		Statement	Keeping the peace is mostly walking.
+guard.patrol.3	Guard	Work			Patrol		Question	Hear that? Probably the wind. Probably.
+guard.patrol.4	Guard	Gossip			Patrol		Statement	Raiders were seen past the ridge. We walk the wall twice tonight.
+guard.patrol.5	Guard	Gossip			Patrol		Statement	Nobody here sleeps badly because of us. That is the job.
+guard.patrol.6	Guard	Ambition			Patrol		Statement	One night where the worst thing I chase off is a stray goat.
+guard.patrol.7	Guard	Work			Patrol		Statement	We protect this place. Everything else is detail.
+guard.patrol.reply.q	Guard	Reply			Patrol	Question	Statement	Quiet so far. Keep it that way.
+guard.patrol.reply.s	Guard	Reply			Patrol	Statement	Statement	Aye. Eyes open.
+guard.patrol.reply.c	Guard	Reply			Patrol	Complaint	Statement	Better sore feet than a breach.
+guard.patrol.reply.e	Guard	Reply			Patrol	Exclamation	Statement	Then we are doing it right.
+guard.challenge.armed	Guard	Warning	wary	ArmedHeld			Exclamation	Lower that. I will not ask twice.
+guard.challenge.sprint	Guard	Warning	wary	Sprinting			Exclamation	Stop running. Walk, or explain yourself.
+guard.challenge.halt	Guard	Warning	wary				Question	Halt. State your business.
+guard.standdown	Guard	Warning	Cold	ArmedHeld			Exclamation	Stand down. This is your last warning.
+# -- Tower guards: the view from up there --
+tower.work.1	TowerGuard	Work			Work		Statement	I can see the whole valley from here. Nothing moves that I don't know.
+tower.work.2	TowerGuard	Work			Work		Statement	Long watch. Good wind up here, though.
+tower.greet	TowerGuard	Greeting					Statement	Keep to the paths. I am watching.
+tower.armed	TowerGuard	Remark		ArmedHeld			Statement	Weapons down. My eyes are on you.
+tower.warn	TowerGuard	Warning	Cold				Exclamation	Step back. The wall's archers are listening.
+# -- Chores: what the work is, said at the work --
+chore.water.1	Gardener	Work			Chore		Statement	Every bed gets a full bucket. No shortcuts.
+chore.water.2	Waterkeeper	Work			Chore		Statement	The well was low this morning. I carry what I can.
+chore.water.3	Gardener	Gossip			Chore		Statement	The spiked ones drink the most. Stubborn things.
+chore.ore.1	Apprentice	Work			Chore		Complaint	Ore from the pile to the smelter. Again. My back.
+chore.ore.2	OreCarrier	Work			Chore		Statement	Heavy load. The smith pays for heavy loads.
+chore.goods.1	Hauler	Work			Chore		Statement	Goods from the store to the stalls. Somebody has to.
+chore.goods.2	Hauler	Gossip			Chore		Statement	Half of what I carry never reaches a customer. It reaches a neighbour.
+chore.reply.q		Reply			Chore	Question	Statement	Busy. Ask me later.
+chore.reply.s		Reply			Chore	Statement	Statement	Mm. Work does not carry itself.
+# -- Wandering: people out and about --
+amble.work.1		Work			Amble		Statement	Just stretching my legs before the afternoon.
+amble.work.2		Work			Amble		Question	Is the market busy today?
+amble.gossip.1		Gossip			Amble		Statement	Did you see the new wares at the stalls?
+amble.gossip.2		Gossip			Amble		Statement	Somebody has been leaving the gate open. I would not say who.
+amble.ambition.1		Ambition			Amble		Statement	One day I will walk further than the wall.
+amble.reply.q		Reply			Amble	Question	Statement	Busy enough. Come along, I'll show you.
+amble.reply.s		Reply			Amble	Statement	Statement	Is that so. Well, walk with me.
+amble.reply.c		Reply			Amble	Complaint	Statement	It always is. Come, the walk helps.
+# -- Settlement work: what each trade says at its post --
+miner.work.1	Miner	Work			Work		Statement	The seam runs deeper every week. So do we.
+miner.work.2	Miner	Work			Work		Complaint	Rock dust in my teeth again.
+miner.greet	Miner	Greeting					Statement	Mind the cart track. It doesn't stop for anyone.
+smelter.work.1	Smelter	Work			Work		Statement	Keep the bellows going and the slag runs clean.
+smelter.work.2	Smelter	Work			Work		Complaint	Not enough ore today. Never enough ore.
+smelter.greet	Smelter	Greeting					Statement	Stand back from the mouth. It spits.
+barkeep.work.1	Barkeep	Work			Work		Statement	Cactus beer, cold as I can make it.
+barkeep.work.2	Barkeep	Gossip			Work		Statement	You hear everything behind a bar. Everything.
+barkeep.greet	Barkeep	Greeting					Question	Thirsty? Everyone's thirsty.
+weaver.work.1	Weaver	Work			Work		Statement	This pattern was my mother's. The colours are mine.
+weaver.work.2	Weaver	Work			Work		Complaint	Sand in the warp again. It gets in everything.
+weaver.greet	Weaver	Greeting					Statement	Careful of the threads.
+potter.work.1	Potter	Work			Work		Statement	Every jar holds water a little better than the last.
+potter.work.2	Potter	Work			Work		Statement	The kiln decides. I only ask nicely.
+potter.greet	Potter	Greeting					Statement	Clay on your boots is good luck.
+beekeeper.work.1	Beekeeper	Work			Work		Statement	Slow hands. They only sting the hurried.
+beekeeper.work.2	Beekeeper	Gossip			Work		Statement	The bees knew about the storm two days early.
+beekeeper.greet	Beekeeper	Greeting					Statement	Don't swat. Breathe.
+healer.work.1	Healer	Work			Work		Statement	Bitterroot for fever, ash-salve for burns.
+healer.work.2	Healer	Work			Work		Complaint	They only come to me once it's bad.
+healer.greet	Healer	Greeting					Question	Are you hurt, or just curious?
+butcher.work.1	Butcher	Work			Work		Statement	Nothing from a beast goes to waste here.
+butcher.work.2	Butcher	Work			Work		Statement	Sharp knife, steady hand, quick work.
+butcher.greet	Butcher	Greeting					Statement	Fresh cuts at midday. Come early.
+tanner.work.1	Tanner	Work			Work		Complaint	Yes, it smells. Hides always smell.
+tanner.work.2	Tanner	Work			Work		Statement	Scrape it thin and it lasts a lifetime.
+tanner.greet	Tanner	Greeting					Statement	Stand upwind, friend.
+shrine.work.1	ShrineKeeper	Work			Work		Statement	We remember them, so they remember us.
+shrine.work.2	ShrineKeeper	Gossip			Work		Statement	The offerings were moved in the night. Nobody admits it.
+shrine.greet	ShrineKeeper	Greeting					Statement	Walk softly here.
+mechanic.work.1	Mechanic	Work			Work		Statement	Everything breaks. That's what keeps me fed.
+mechanic.work.2	Mechanic	Work			Work		Complaint	Who stripped this bolt? Who does that?
+mechanic.greet	Mechanic	Greeting					Question	Got something rattling? Bring it here.
+miller.work.1	Miller	Work			Work		Statement	Grain in, flour out. All day, every day.
+miller.greet	Miller	Greeting					Statement	Flour's not ready yet. Ask again later.
+farmer.work.1	Farmer	Work			Work		Statement	Turn the soil, mind the water, pray for no storm.
+farmer.work.2	Farmer	Work			Chore		Statement	First baskets of the season. Off to the store with them.
+farmer.greet	Farmer	Greeting					Statement	Stay off the beds, please.
+stablehand.work.1	Stablehand	Work			Chore		Statement	Fodder to the trough before they start shouting.
+stablehand.greet	Stablehand	Greeting					Statement	Don't stand behind that one. She kicks.
+wood.work.1	WoodCarrier	Work			Chore		Complaint	Wood for every fire in the settlement. My arms.
+wood.greet	WoodCarrier	Greeting					Statement	Make way, heavy load.
+chore.harvest.1		Work			Chore		Statement	Good basket this one. The cook will be pleased.
+chore.feed.1	Herder	Work			Chore		Statement	Feeding time. They know the sound of my steps.
+chore.firewood.1	Cook	Work			Chore		Statement	No wood, no bread. Simple as that.

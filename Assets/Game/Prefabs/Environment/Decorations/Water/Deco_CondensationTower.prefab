@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7957554556388221677}
   - component: {fileID: 9054784981621035221}
+  - component: {fileID: 4645425267875548267}
   m_Layer: 0
   m_Name: Deco_CondensationTower
   m_TagString: Untagged
@@ -56,6 +57,22 @@ CapsuleCollider:
   m_Height: 3.7
   m_Direction: 1
   m_Center: {x: 0, y: 1.9, z: 0}
+--- !u!114 &4645425267875548267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1132379120689627963}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Condensation tower
+  description: Pulls water out of the night air.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1001 &2057108980766183277
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -123,8 +123,8 @@ namespace SpaceGame.Core
             // the full authority of the server.
             if (!cycle.HasAnchor) return;
 
-            cycle.ReadAnchor(out float phase, out double clock);
-            anchor.Value = new SkyAnchor { Stated = true, Phase = phase, Clock = clock };
+            cycle.ReadAnchor(out int day, out float phase, out double clock);
+            anchor.Value = new SkyAnchor { Stated = true, Day = day, Phase = phase, Clock = clock };
         }
 
         // ------------------------------------------------------------------ client side
@@ -160,7 +160,7 @@ namespace SpaceGame.Core
             SkyAnchor stated = anchor.Value;
             if (!stated.Stated) return;
 
-            cycle.AdoptAnchor(stated.Phase, stated.Clock);
+            cycle.AdoptAnchor(stated.Day, stated.Phase, stated.Clock);
         }
     }
 }

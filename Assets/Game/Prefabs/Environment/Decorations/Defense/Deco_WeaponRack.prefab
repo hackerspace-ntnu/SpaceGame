@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6240314516270334510}
   - component: {fileID: 6597929631190435490}
+  - component: {fileID: 5596203063178878399}
   m_Layer: 0
   m_Name: Deco_WeaponRack
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.3, y: 2, z: 0.3}
   m_Center: {x: 0, y: 0.95, z: 0}
+--- !u!114 &5596203063178878399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4588913537376560403}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Weapon rack
+  description: The settlement's spears, ready for trouble.
+  scanClass: 1
+  lookSeconds: 6
 --- !u!1001 &3183917913186459406
 PrefabInstance:
   m_ObjectHideFlags: 0

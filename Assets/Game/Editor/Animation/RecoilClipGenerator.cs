@@ -119,7 +119,7 @@ namespace SpaceGame.EditorTools
         /// Write <paramref name="clip"/> over the asset at <paramref name="path"/> — in place, so its
         /// GUID and the action and controller that reference it survive a regeneration.
         /// </summary>
-        private static AnimationClip SaveClip(AnimationClip clip, string path)
+        public static AnimationClip SaveClip(AnimationClip clip, string path)
         {
             var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
             if (existing == null)

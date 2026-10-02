@@ -136,6 +136,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8104477480712471008}
+  - component: {fileID: 2841991120158695308}
   m_Layer: 0
   m_Name: Deco_DryingRack_Herbs
   m_TagString: Untagged
@@ -160,6 +161,22 @@ Transform:
   - {fileID: 1232120282629366539}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2841991120158695308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807757064476774880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Herb rack
+  description: Healing herbs drying in the shade.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1001 &8218875209276078079
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -106,6 +106,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1184307657443449643}
+  - component: {fileID: 1356054203239847320}
   m_Layer: 0
   m_Name: Deco_WashStand
   m_TagString: Untagged
@@ -130,6 +131,22 @@ Transform:
   - {fileID: 1774761285833714811}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1356054203239847320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3010743083741000077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Wash stand
+  description: A basin and a cracked mirror.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1001 &3871638859641044304
 PrefabInstance:
   m_ObjectHideFlags: 0

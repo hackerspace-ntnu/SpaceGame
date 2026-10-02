@@ -193,6 +193,9 @@ namespace SpaceGame.Agents
 
         private AgentAuthority authority;
 
+        // Read for AgentController.Offstage: an agent that is not in the scene's action acquires no one.
+        private AgentController controller;
+
         /// <summary>
         /// Is this machine the one deciding this agent's target? See <see cref="AgentAuthority"/>.
         ///
@@ -207,6 +210,7 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             authority = new AgentAuthority(this);
+            controller = GetComponent<AgentController>();
             selfFaction = GetComponent<EntityFaction>();
             perception = GetComponent<PerceptionModule>();
             health = GetComponent<HealthComponent>();
@@ -427,9 +431,9 @@ namespace SpaceGame.Agents
             if (source == null)
                 return;
 
-            // Attribute the hit to the entity, not to whichever child collider or projectile
-            // carried the reference, so the bias actually matches a scoring candidate.
-            EntityFaction attacker = source.GetComponentInParent<EntityFaction>();
+            // Attribute the hit to the entity, so the bias actually matches a scoring candidate.
+            Transform entity = TargetResolution.EntityOf(source);
+            EntityFaction attacker = entity.GetComponent<EntityFaction>();
 
             // A passenger who shoots the machine they are riding is still a passenger. Recording
             // them here would not acquire them on its own — an exempt entity is never scored — but
@@ -437,7 +441,7 @@ namespace SpaceGame.Agents
             if (attacker != null && selfFaction != null && selfFaction.Ignores(attacker))
                 return;
 
-            LastAttacker = attacker != null ? attacker.transform : source;
+            LastAttacker = entity;
         }
 
         private void Update()
@@ -449,6 +453,11 @@ namespace SpaceGame.Agents
             // the authority alone is also what keeps the cost off machines that do not own the
             // agent — Reevaluate scores every faction in range, per agent, on an interval.
             if (!SimulatesHere)
+                return;
+
+            // Offstage (indoors, asleep): nobody to acquire and nothing to score — the same as the
+            // controller starving its modules. The current target, if any, is left as it was.
+            if (controller != null && controller.Offstage)
                 return;
 
             float deltaTime = Time.deltaTime;

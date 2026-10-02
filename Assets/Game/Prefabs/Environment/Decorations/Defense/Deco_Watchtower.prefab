@@ -176,6 +176,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2364365538164530484}
+  - component: {fileID: 4263990016134581688}
   m_Layer: 0
   m_Name: Deco_Watchtower
   m_TagString: Untagged
@@ -200,6 +201,22 @@ Transform:
   - {fileID: 7904373968455931182}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4263990016134581688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5612859097767589237}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Watchtower
+  description: Sees the whole valley.
+  scanClass: 2
+  lookSeconds: 6
 --- !u!1001 &1563602756944746250
 PrefabInstance:
   m_ObjectHideFlags: 0

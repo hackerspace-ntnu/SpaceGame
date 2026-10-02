@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8445245109435238943}
   - component: {fileID: 2045434125934410788}
+  - component: {fileID: 237671513298887451}
   m_Layer: 0
   m_Name: Deco_SpiceRack
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.9, y: 2.6, z: 1.2}
   m_Center: {x: 0, y: 1.25, z: 0.35}
+--- !u!114 &237671513298887451
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2648765546051319840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Spice rack
+  description: Dried pods, salts and powders.
+  scanClass: 1
+  lookSeconds: 6
 --- !u!1001 &6657925873223812268
 PrefabInstance:
   m_ObjectHideFlags: 0

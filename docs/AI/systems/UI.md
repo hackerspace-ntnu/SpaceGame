@@ -4,6 +4,7 @@ layer: presentation
 summary: Menus, HUD, full-screen overlays and world-anchored labels, all built in C# at runtime, no UI art
 paths:
   - Assets/Game/Scripts/Presentation/UI/
+  - Assets/Game/Scripts/Presentation/Speech/
   - Assets/Game/Scripts/Core/Settings/GameSettings.cs
   - Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab
   - Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller
@@ -28,7 +29,7 @@ symptoms:
   - "the map hologram in the ship shows the world with me off in a corner of it"
   - "the emote wheel opens but letting go of V plays nothing"
 reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics]
-updated: 2026-09-26
+updated: 2026-10-01
 ---
 
 # UI
@@ -105,7 +106,10 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | `HelmetOverlayVisibility` | [HelmetHUD/HelmetOverlayVisibility.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/HelmetOverlayVisibility.cs) | **H** cycles Full → Vitals only → Off. Three states because health is on the visor now and a plain toggle could hide it. Lives on the canvas root because it deactivates its own target. |
 | `DamageNumbers` | [World/DamageNumbers.cs](Assets/Game/Scripts/Presentation/UI/World/DamageNumbers.cs) | Floating `-25` for the local player's own hits, pooled and stacked; needs **both** sources (below). |
 | `PlayerNameplates` | [World/PlayerNameplates.cs](Assets/Game/Scripts/Presentation/UI/World/PlayerNameplates.cs) | Names over other players from `PlayerIdentity.All`; distance fade + occlusion ray with a near clearance. |
-| `NpcDialogPopupUI` | [Dialog/NpcDialogPopupUI.cs](Assets/Game/Scripts/Presentation/UI/Dialog/NpcDialogPopupUI.cs) | Scene-authored singleton speech popup: typewriter, hold, optional yes/no choice. Knows who said the line on screen (the `speaker` its callers pass) and the letter typed last, which a [TalkingMouth](TalkingMouth.md) moves its jaw to. |
+| `NpcDialogPopupUI` | [Dialog/NpcDialogPopupUI.cs](Assets/Game/Scripts/Presentation/UI/Dialog/NpcDialogPopupUI.cs) | Scene-authored singleton dialog box: lines addressed to this player, optional yes/no choice. A view of `Speaker`: `Show(msg, duration, speaker)` says the line through `Speaker.Of(speaker)` on the `Dialog` channel and renders it when it comes back on `Speaker.AnySaid` (any line said with `showPopup`); no speaker → shown directly. Reveal timing is `Typewriter`'s. |
+| `Speaker` / `SpeechChannel` | [Speaker.cs](Assets/Game/Scripts/Presentation/Speech/Speaker.cs) | What one character is saying on this machine: `Say(text, channel, showPopup[, showAtLeast])`, `IsSpeaking` (typing), `IsShowing`, `VisibleFraction`, `LineNumber`, `FinishLine`, `Hush`; static `AnySaid` for views. Channels `Ambient < Talk < Warning < Reply` rank bubbles; `Dialog` is the popup's. Local and cosmetic: nothing sent or saved. |
+| `Typewriter` | [Typewriter.cs](Assets/Game/Scripts/Presentation/Speech/Typewriter.cs) | Pure reveal clock (28 cps, +0.08 s after punctuation, 0.8 s hold — the values DialogePanel.prefab was tuned to). `DurationFor(text)` is how long a line keeps the floor, server included. |
+| `SpeechBubbles` | [World/SpeechBubbles.cs](Assets/Game/Scripts/Presentation/UI/World/SpeechBubbles.cs) | Lines over speakers' heads on the `WorldOverlay` (added in `Build`). `earshot` 20 m from the camera, `maxVisible` 4, higher channel takes the weakest slot, a line that ranks no higher than every shown bubble is **dropped, not queued**. Skips `Dialog` and `showPopup` lines. |
 | `MapHologramTerrain` | [Map/MapHologramTerrain.cs](Assets/Game/Scripts/Presentation/UI/Map/MapHologramTerrain.cs) | The 3D map: one mesh per revealed chunk from `Resources/MapMeshes/`. Two modes: `projectorAnchor` null = the personal map, camera-anchored, toggled by the Map key; `projectorAnchor` assigned = pinned upright over that transform (the `HoloProjector` prefab, switched by its own `HoloProjectorInteraction` — set `toggleActionName` empty there so the Map key does not also flip it). Both charts centre on the player (`centerOnPlayer`, Gotchas) and show `viewRadius` chunks either side of them, scaled to fit `footprint`. |
 | `MapService` / `MapPOI` / `MapMarkerType` | [Map/](Assets/Game/Scripts/Presentation/UI/Map) | Marker registry + revealed-chunk set; `MapPOI` self-registers a persistent static marker. Nothing currently reads it — the helmet visor's nav-marker layer was removed; there is no 2D map screen. |
 
@@ -118,6 +122,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 
 ## Multiplayer
 
+- **Speech** is local presentation: whoever decides a line calls `Speaker.Say` on every machine that should hear it (chatter ticks on every machine as an `IPresentationModule`; residents arrive on `NetMsg.ResidentSaid`, `showPopup` only for the addressee). Bubbles and popup are views of that call; nothing in them is sent.
 - **Nameplates** read `PlayerIdentity.All` — already replicated, nothing new on the wire; `PlayerIdentity` supplies a `Player N` stand-in until a name arrives.
 - **Damage numbers** need two sources: `HealthComponent.AnyDamaged` (hits this machine resolved) **and** `NetMsg.Damaged` (hits the server resolved for a client, since `Weapon.Use()` runs on the authority only).
 - **`PlayerListView`** reads the NGO roster plus per-connection RTT.
@@ -132,6 +137,8 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 
 ## Gotchas
 
+- **The popup and the `Speaker` keep two copies of one clock.** Both start on the same frame from `Typewriter`, so they agree; a skip (`CompleteCurrentLine`) and a `Hide` are forwarded to the speaker only while the speaker is still on that line (`LineNumber` matches), so a later ambient line is never cut by an old popup.
+- **A question owns the popup.** A `showPopup` line arriving from elsewhere while `IsQuestionActive` is not shown — replacing it would leave `DialogInteraction` waiting on an answer the player can no longer give. `Show()` itself still clears a question, as before.
 - **The map hologram is centred on the player, and getting that wrong is silent.** `centerOnPlayer` translates the terrain so the player's own position sits over the emitter, and `viewRadius` then sets the zoom — the ship's projector charts 7 chunks (3500 m) into a 0.9 m plate, near enough the whole 4000 x 3000 m world that it still reads as a world chart. It was authored the other way, a fixed world-centred chart with the player wherever the ship had crashed, which is the one question a map table exists to answer (`GDC-L1-LEVEL-0002`, `GDC-L1-UX-0003`). Two things beyond the flag decide whether it looks centred. The visible chunk window comes from `ChunkGrid.WindowAround`, not from the player's own chunk plus a radius — see [WorldStreaming](WorldStreaming.md) Gotchas. And `mapRadius` fades the terrain out in a disc around the player's world XZ: it is set past the window's half-diagonal on the projector so it does nothing, and pulling it inside that (leaving room for `mapEdgeFalloff` plus the shader's own noise fuzz, which pushes the edge out by up to a third of that falloff again) is the knob that turns the chart into a round plate with no chunk-edge raggedness.
 - **Never tint a label to show selection.** `Menu Button.controller` drives the label's `m_fontColor` and the root scale on every state change, so a tint survives one frame. Say it on a different object (`LobbySuitCycler` puts the swatch name in its own object; `InventorySlotUI` lifts and rings the selected slot instead of brightening it).
 - **Never use `Button.interactable` alone to disable a menu entry.** That controller's `Disabled` clip is **empty**, so the row freezes in whatever colour/scale it was in and, with raycasts off, never gets the pointer-exit. Use [MenuLock](Assets/Game/Scripts/Presentation/UI/Widgets/MenuLock.cs). `CanvasGroup` alphas multiply, so "dim all, keep one lit" needs per-control groups.

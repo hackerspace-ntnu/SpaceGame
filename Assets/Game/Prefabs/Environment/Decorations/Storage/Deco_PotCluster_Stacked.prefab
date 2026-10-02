@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2154267964278165266}
   - component: {fileID: 4285862929567086702}
+  - component: {fileID: 6775683941101964806}
   m_Layer: 0
   m_Name: Deco_PotCluster_Stacked
   m_TagString: Untagged
@@ -54,6 +55,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2, y: 1.2, z: 1.2}
   m_Center: {x: -0.05, y: 0.55, z: 0.05}
+--- !u!114 &6775683941101964806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035258339927413321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Pots
+  description: Stacked pots of grain and oil.
+  scanClass: 1
+  lookSeconds: 6
 --- !u!1001 &683203825499777451
 PrefabInstance:
   m_ObjectHideFlags: 0

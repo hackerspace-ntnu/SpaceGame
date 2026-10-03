@@ -297,8 +297,8 @@ namespace SpaceGame.Agents
             {
                 if (reportedMissingTemplate.Add(war.Tribe))
                     Debug.LogError($"[WarParty] {war.Tribe.factionName} is at war but the NpcWorldSim has no " +
-                                   "war-party template for it (runtimeOnly, bountyHunters, tribe set). Run " +
-                                   "Tools/SpaceGame/Agents/Wire War Party Templates.", this);
+                                   "war-party template for it. Add an NpcGroupTemplate with runtimeOnly, " +
+                                   "bountyHunters and this tribe set to the NpcWorldSim's templates list.", this);
 
                 book.ClearParty(war, settings.partyCooldown);
                 return;

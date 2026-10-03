@@ -16,7 +16,7 @@ symptoms:
   - "an NPC is completely invisible to AI targeting"
   - "a moving NPC keeps nine chunks loaded around itself"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-10-01
+updated: 2026-10-02
 ---
 
 # Entity System
@@ -64,7 +64,7 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 | `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
 | `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents + rolled `LootEntry` list. |
 | `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
-| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling, hurt/death SFX, despawn after `despawnDelay` via `SetActive(false)`. |
+| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling (**not saved**: `HealthReactionSaveable` was deleted 2026-10-02 because every prefab's threshold list was empty — a prefab that authors one replays it from scratch after a load), hurt/death SFX, despawn after `despawnDelay` via `SetActive(false)` — on **every** machine, each on its own timer (a client's death arrives replicated, `HealthComponent.IsReplicating`, and is timed like the host's). A death loaded from a save or a late joiner's spawn snapshot despawns at once. See [Combat.md](Combat.md) Gotchas. |
 
 ## Flows
 

@@ -8,7 +8,7 @@
 // The half that cannot be proved here is a genuine watcher, because AgentAuthority answers
 // "I decide" for every entity when there is no NetworkManager, by design. Every handler therefore
 // stops at its first guard in EditMode, which is why the kind filter below is tested on the encode
-// rather than through OnAgentActed — asserting that a swing draws no bullet here would pass on the
+// rather than through OnAgentActed — asserting that a war cry draws no swing here would pass on the
 // authority check and prove nothing. Both that and a client actually drawing the swing need the
 // two-process run in the multiplayer skill.
 using System;
@@ -17,7 +17,6 @@ using System.Reflection;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using SpaceGame.Agents;
 using SpaceGame.Core;
@@ -26,14 +25,7 @@ namespace SpaceGame.Tests
 {
     public class AgentActionBroadcastTests
     {
-        // Everything this fixture puts in the scene is named with this prefix, and the sweep in
-        // TearDown only touches names that carry it. EditMode tests run inside whatever scene the
-        // editor happens to have open, so a tidy-up that matched "(Clone)" would delete the user's
-        // own objects.
-        private const string FixturePrefix = "SGTestBullet_";
-
         private readonly List<GameObject> spawned = new();
-        private readonly List<ScriptableObject> assets = new();
 
         private GameObject NewObject(string name = "agent")
         {
@@ -45,18 +37,10 @@ namespace SpaceGame.Tests
         [TearDown]
         public void TearDown()
         {
-            // Clones made by PresentShot are not in `spawned`, so sweep the scene for them first.
-            foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects())
-                if (root != null && root.name.StartsWith(FixturePrefix)) UnityEngine.Object.DestroyImmediate(root);
-
             foreach (GameObject go in spawned)
                 if (go != null) UnityEngine.Object.DestroyImmediate(go);
 
-            foreach (ScriptableObject asset in assets)
-                if (asset != null) UnityEngine.Object.DestroyImmediate(asset);
-
             spawned.Clear();
-            assets.Clear();
             LogAssert.ignoreFailingMessages = false;
         }
 
@@ -68,28 +52,28 @@ namespace SpaceGame.Tests
             var origin = new Vector3(12.5f, 3.25f, -40f);
             Vector3 aim = new Vector3(0.4f, -0.2f, 1f).normalized;
 
-            NetArg arg = AgentActionRelay.Describe(AgentAction.Ranged, origin, aim, Quaternion.identity);
+            NetArg arg = AgentActionRelay.Describe(AgentAction.Melee, origin, aim, Quaternion.identity);
 
             Assert.IsTrue(AgentActionRelay.TryReadRay(in arg, out Vector3 readOrigin, out Vector3 readAim));
             Assert.AreEqual(origin, readOrigin);
             Assert.Less(Vector3.Angle(aim, readAim), 0.1f,
-                "P and R are a ray, and a watcher draws the tracer straight down it. An encode that " +
-                "quietly inverts or swings an axis is a bullet leaving the barrel sideways, and " +
-                "nothing on the deciding machine would ever notice.");
+                "P and R are a ray, and a watcher draws the attack straight down it. An encode that " +
+                "quietly inverts or swings an axis is an attack drawn sideways, and nothing on the " +
+                "deciding machine would ever notice.");
         }
 
         [Test]
-        public void AVerticalShotIsNotFlattenedIntoAForwardOne()
+        public void AVerticalAttackIsNotFlattenedIntoAForwardOne()
         {
-            NetArg up = AgentActionRelay.Describe(AgentAction.Ranged, Vector3.zero, Vector3.up, Quaternion.identity);
-            NetArg down = AgentActionRelay.Describe(AgentAction.Ranged, Vector3.zero, Vector3.down, Quaternion.identity);
+            NetArg up = AgentActionRelay.Describe(AgentAction.Melee, Vector3.zero, Vector3.up, Quaternion.identity);
+            NetArg down = AgentActionRelay.Describe(AgentAction.Melee, Vector3.zero, Vector3.down, Quaternion.identity);
 
             Assert.IsTrue(AgentActionRelay.TryReadRay(in up, out _, out Vector3 readUp));
             Assert.IsTrue(AgentActionRelay.TryReadRay(in down, out _, out Vector3 readDown));
 
             // Quaternion.LookRotation orthonormalizes against its up hint and collapses when the
-            // two are parallel, answering identity — which points +Z. A creature shooting at
-            // something directly overhead would have had every watcher fire horizontally instead.
+            // two are parallel, answering identity — which points +Z. A creature striking at
+            // something directly overhead would have had every watcher draw it horizontally instead.
             Assert.Less(Vector3.Angle(Vector3.up, readUp), 0.1f);
             Assert.Less(Vector3.Angle(Vector3.down, readDown), 0.1f);
         }
@@ -124,28 +108,12 @@ namespace SpaceGame.Tests
         {
             Assert.AreEqual(AgentAction.Melee,
                 AgentActionRelay.Describe(AgentAction.Melee, Vector3.zero, Vector3.forward, Quaternion.identity).A);
-            Assert.AreEqual(AgentAction.Ranged,
-                AgentActionRelay.Describe(AgentAction.Ranged, Vector3.zero, Vector3.forward, Quaternion.identity).A);
+            Assert.AreEqual(AgentAction.WarCry,
+                AgentActionRelay.Describe(AgentAction.WarCry, Vector3.zero, Vector3.forward, Quaternion.identity).A);
 
-            Assert.AreNotEqual(AgentAction.Melee, AgentAction.Ranged,
-                "Both combat modules listen on the same channel and tell their message from the " +
-                "other one by this field alone.");
-        }
-
-        [Test]
-        public void BothCombatModulesListenOnTheSameChannel()
-        {
-            GameObject agent = NewObject("bot with both");
-            var melee = agent.AddComponent<CloseCombatModule>();
-            var ranged = agent.AddComponent<AgentRangedCombatModule>();
-
-            Enable(melee);
-            Enable(ranged);
-
-            Assert.AreEqual(2, HandlerCount(agent, NetMsg.AgentActed),
-                "PatrolRobot carries both. Every AgentActed reaches both handlers, " +
-                "which is why each one filters on NetArg.A before drawing anything — a sword swing " +
-                "must not put a bullet in the air.");
+            Assert.AreNotEqual(AgentAction.Melee, AgentAction.WarCry,
+                "Swings, aggression bands and war cries share one channel and are told apart by " +
+                "this field alone.");
         }
 
         // ─────────── Single-player ───────────
@@ -169,7 +137,7 @@ namespace SpaceGame.Tests
         public void BroadcastingAboutNothingIsSafe()
         {
             Assert.DoesNotThrow(() =>
-                AgentActionRelay.Broadcast(null, AgentAction.Ranged, Vector3.zero, Vector3.forward));
+                AgentActionRelay.Broadcast(null, AgentAction.Melee, Vector3.zero, Vector3.forward));
         }
 
         // ─────────── Subscriptions ───────────
@@ -187,19 +155,6 @@ namespace SpaceGame.Tests
             Assert.AreEqual(0, HandlerCount(agent, NetMsg.AgentActed),
                 "NetAuthority switches components off and on as ownership moves. A subscription " +
                 "that outlived its disable would present the same swing once per re-enable.");
-        }
-
-        [Test]
-        public void RangedSubscribesAndUnsubscribes()
-        {
-            GameObject agent = NewObject("ranged");
-            var module = agent.AddComponent<AgentRangedCombatModule>();
-
-            Enable(module);
-            Assert.AreEqual(1, HandlerCount(agent, NetMsg.AgentActed));
-
-            Disable(module);
-            Assert.AreEqual(0, HandlerCount(agent, NetMsg.AgentActed));
         }
 
         [Test]
@@ -247,55 +202,7 @@ namespace SpaceGame.Tests
                 "sound and re-trigger the animation mid-swing.");
         }
 
-        [Test]
-        public void TheDecidingMachineIgnoresItsOwnRangedBroadcast()
-        {
-            // Warnings only: the fixture has no AudioCatalog and no FMOD banks, which is the test
-            // environment complaining about itself rather than about the rule under test.
-            LogAssert.ignoreFailingMessages = true;
-
-            (AgentRangedCombatModule module, string cloneName) = NewRangedModule();
-
-            // Proves the fixture can actually fire before asserting that it did not — otherwise a
-            // null weapon or a null prefab would make the assertion below pass for the wrong reason.
-            Invoke(module, "PresentShot", Vector3.zero, Vector3.zero, Vector3.forward, true);
-            Assert.AreEqual(1, CloneCount(cloneName), "Fixture is not wired to fire at all.");
-
-            NetArg arg = AgentActionRelay.Describe(AgentAction.Ranged, Vector3.zero, Vector3.forward, Quaternion.identity);
-            Invoke(module, "OnAgentActed", arg, NetworkManager.ServerClientId);
-
-            Assert.AreEqual(1, CloneCount(cloneName),
-                "The deciding machine already put this bullet in the air. A second one from its " +
-                "own broadcast is two tracers per shot — and only Cosmetic keeps it from also " +
-                "being two hits.");
-        }
-
         // ─────────── Fixture ───────────
-
-        /// <summary>
-        /// A ranged module wired well enough to fire, with its authority resolved by hand.
-        ///
-        /// AddComponent does not run Awake outside play mode, so every field Awake would have
-        /// resolved has to be planted — including the AgentAuthority, or the handler's guard would
-        /// short-circuit on null and the test would pass without ever exercising the rule.
-        /// </summary>
-        private (AgentRangedCombatModule, string) NewRangedModule()
-        {
-            GameObject agent = NewObject("ranged");
-            var module = agent.AddComponent<AgentRangedCombatModule>();
-            PlantAuthority(module);
-
-            GameObject bullet = NewObject(FixturePrefix + Guid.NewGuid().ToString("N"));
-
-            var definition = ScriptableObject.CreateInstance<AgentWeaponDefinition>();
-            definition.projectilePrefab = bullet;
-            definition.fireId = SpaceGame.Audio.SfxId.None;   // keeps the audio catalog out of it
-            assets.Add(definition);
-
-            Plant(module, "weapon", definition);
-
-            return (module, bullet.name + "(Clone)");
-        }
 
         private static void PlantAuthority(Component module) =>
             Plant(module, "authority", new AgentAuthority(module));
@@ -343,15 +250,6 @@ namespace SpaceGame.Tests
 
             var table = (Dictionary<ushort, List<NetHandler>>)field.GetValue(channel);
             return table.TryGetValue(id, out List<NetHandler> list) ? list.Count : 0;
-        }
-
-        private static int CloneCount(string cloneName)
-        {
-            int count = 0;
-            foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects())
-                if (root != null && root.name == cloneName) count++;
-
-            return count;
         }
 
         /// <summary>A stand-in for anything else that might be listening on the agent's channel.</summary>

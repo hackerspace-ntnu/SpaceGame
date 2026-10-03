@@ -1,6 +1,6 @@
 // The MonoBehaviour half of MultiplayerAutotest — coroutines need one.
 //
-// One class across five files. This one holds what every mode shares: the step waits, the report
+// One class across several files. This one holds what every mode shares: the step waits, the report
 // line and the exit. Each mode's script is its own partial — Host, Client, Persistence — and the
 // net-gun shot two of them fire is AutotestRunner.NetGun.cs. Queries that ask "what does THIS
 // machine have" are AutotestProbes.
@@ -25,6 +25,9 @@ namespace SpaceGame.Core
             {
                 "host" => RunHost(),
                 "persist" => RunPersistence(),
+                "settlement-host" => RunSettlementHost(),
+                "settlement-client" => RunSettlementClient(),
+                "settlement-persist" => RunSettlementPersistence(),
                 _ => RunClient(),
             });
         }

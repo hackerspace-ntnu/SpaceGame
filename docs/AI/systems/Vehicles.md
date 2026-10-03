@@ -9,6 +9,7 @@ paths:
   - Assets/Game/Prefabs/agents/Vehicles/
   - Assets/Game/Prefabs/Vehicles/Sky/
 symptoms:
+  - "I mount a new vehicle and nothing I press moves it, with a clean console"
   - "I right-click the vehicle and nothing happens, or every hull collider mounts me"
   - "the rider floats above the saddle on every machine but the host's"
   - "one press seated the player in all four ship chairs at once"
@@ -32,7 +33,7 @@ symptoms:
   - "NPCs stand frozen where a despawned sky transport was, never walking again"
   - "a sky transport flies stern-first, its cockpit house trailing instead of leading"
 reads_with: [Ornithopter, PlayerShip, AgentSystem, Persistence, Diagnostics, SkyTribe]
-updated: 2026-09-17
+updated: 2026-10-02
 ---
 
 # Vehicles & Mounts
@@ -61,7 +62,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 | `MountNetworkSync` | [MountNetworkSync.cs](Assets/Game/Scripts/agents/Modules/Riding/MountNetworkSync.cs) | Server-decided seating, ownership transfer, `NetworkVariable<ulong> seatedRider` for late joiners, dismount position on the wire. |
 | `RiderInput` / `IRiderControllable` | [IRiderControllable.cs](Assets/Game/Scripts/agents/AI/Motors/IRiderControllable.cs) | `Move` (x=yaw, y=throttle), `Vertical`, `Turn` (separate yaw axis for strafing rigs), `IsRunning`. |
 | `IMountJumpMotor` / `IMountLeapMotor` | [IMountJumpMotor.cs](Assets/Game/Scripts/agents/AI/Motors/IMountJumpMotor.cs) | Optional motor extensions. A motor that omits them just ignores the button. |
-| Motors | [Motors/](Assets/Game/Scripts/agents/AI/Motors/) | `RigidbodyMotor`, `NavMeshAgentMotor`, `FlyingRigidbodyMotor`, `HoverRigidbodyMotor`, `OrnithopterFlightMotor`, `LeggedDriver` (+ `OstrichDriver`, `DesertCrawlerDriver`, `HorseDriver`, `CrabDriver`, `HumanoidDriver`). |
+| Motors | [Motors/](Assets/Game/Scripts/agents/AI/Motors/) | `NavMeshAgentMotor`, `HoverRigidbodyMotor`, `OrnithopterFlightMotor`, `LeggedDriver` (+ `OstrichDriver`, `DesertCrawlerDriver`, `CrabDriver`, `HumanoidDriver`). There is no plain wheeled/physics ground motor (`RigidbodyMotor` and `FlyingRigidbodyMotor` were deleted 2026-10-02, unused). |
 | `MountedRiderPose` / `ChairPose` | [MountedRiderPose.cs](Assets/Game/Scripts/agents/Modules/Riding/MountedRiderPose.cs) · [ChairPose.cs](Assets/Game/Scripts/agents/Modules/Riding/ChairPose.cs) | Saddle pose is *built* (no riding clip exists) at exec order 900, with speed/bounce/turn response ([`RiderPoseMath`](Assets/Game/Scripts/agents/Modules/Riding/RiderPoseMath.cs)); a chair just sets the animator's `Seated` bool. |
 | `RiderCollisionIgnore` | [RiderCollisionIgnore.cs](Assets/Game/Scripts/agents/Modules/Riding/RiderCollisionIgnore.cs) | Apply/Restore/Forget of rider↔mount collider pairs. Shared by `MountModule` and `NpcPassenger`. |
 | `RiderTeardownBeacon` | [RiderTeardownBeacon.cs](Assets/Game/Scripts/agents/Modules/Riding/RiderTeardownBeacon.cs) | The only way to know a rider is mid-destruction (`rider == null` is still false in `OnDestroy`). |
@@ -168,7 +169,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 ## Extending — add a new rideable vehicle
 
 1. Root GameObject: `Rigidbody` + `Collider` (or a legged locomotion component), `AgentController`, a motor implementing `IMovementMotor` **and** `IRiderControllable` (optionally `IMountJumpMotor`/`IMountLeapMotor`).
-2. Add `MountModule` + `SteerModule`. `SteerModule.EnsureRuntimeMovementPath` will add `RigidbodyMotor` + `AgentController` if missing — add them explicitly so the fields are tunable.
+2. Add `MountModule` + `SteerModule` (`[RequireComponent]` brings `AgentController`). **`SteerModule` adds no motor** — it steers whatever `IRiderControllable` it finds (`AgentController.Motor`, else `GetComponent`), so author the motor on the prefab; without one the rider's input goes nowhere. (Its old runtime fallback that added a `RigidbodyMotor` was deleted 2026-10-02.)
 3. Seat: assign `seatPoint` and push `seatOffset` **down** by roughly the rider's leg length (the player's origin is ~1 m below its own head, at the feet). Assign `dismountPoint`. Add `MountedRiderPose` (saddle) or `ChairPose` (seat with a `Seated` animator state).
 4. Large hull? Set `mountableByDirectInteraction = false` and add a [`MountStation`](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) on the cockpit control, else every hull collider becomes a mount point.
 5. Add `MountNetworkSync` on the same GameObject as the vehicle's `NetworkObject`, and register the prefab in the network prefab list if it is spawned at runtime.

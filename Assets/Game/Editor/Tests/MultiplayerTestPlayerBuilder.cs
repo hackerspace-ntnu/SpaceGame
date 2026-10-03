@@ -3,9 +3,11 @@
 // The client half of the netcode can only be tested with a real second process — see the header of
 // MultiplayerAutotest for why one process cannot stand in. This builds the minimum needed for that:
 // Bootstrap (which owns the NetworkManager and the registries), MainMenu, and persistentScene,
-// which carries the networked agents under test. Leaving out the 48 chunk scenes is most of the
-// build time, and none of them matter to the test.
+// which carries the networked agents under test, plus the dozen chunk scenes the settlement runs
+// need: the nomad settlement's chunk with its neighbours, and the chunks around the spawn. The
+// other 36 are most of the build time and none of them matter to the test.
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -15,7 +17,7 @@ namespace SpaceGame.EditorTools
 {
     public static class MultiplayerTestPlayerBuilder
     {
-        private static readonly string[] Scenes =
+        private static readonly string[] CoreScenes =
         {
             "Assets/Game/Scenes/Core/Bootstrap.unity",
             "Assets/Game/Scenes/Core/MainMenu.unity",
@@ -23,6 +25,27 @@ namespace SpaceGame.EditorTools
             // PATHS case-sensitively, so a drifted capital here is a join failure waiting to happen.
             "Assets/Game/Scenes/world/persistentScene.unity",
         };
+
+        // Chunk (column, row) around the settlement at Chunk_6_3 (the 3x3 the streamer loads about it) and around the
+        // spawn in the north-east corner, Chunk_7_5. A chunk the streamer asks for that is not in the build is an error.
+        private static readonly Vector2Int[] ChunkGridCells =
+        {
+            new(5, 2), new(6, 2), new(7, 2),
+            new(5, 3), new(6, 3), new(7, 3),
+            new(5, 4), new(6, 4), new(7, 4),
+            new(6, 5), new(7, 5),
+        };
+
+        private static string[] Scenes
+        {
+            get
+            {
+                var scenes = new List<string>(CoreScenes);
+                foreach (Vector2Int cell in ChunkGridCells)
+                    scenes.Add($"Assets/Game/Scenes/world/Chunks/Chunk_{cell.x}_{cell.y}.unity");
+                return scenes.ToArray();
+            }
+        }
 
         /// <summary>Where the player lands. Outside Assets/ so it is never imported.</summary>
         public static string OutputPath =>
@@ -39,7 +62,7 @@ namespace SpaceGame.EditorTools
                 options = BuildOptions.Development,
             };
 
-            // None of the 48 chunk scenes are in this player, so the world NavMesh bake this build
+            // Most of the 48 chunk scenes are not in this player, so the world NavMesh bake check this build
             // would otherwise be refused over is a bake nothing here can use. See the flag.
             BuildReport report;
             World.NavMeshTools.WorldNavMeshBuildCheck.BuildingWithoutChunks = true;
@@ -72,8 +95,8 @@ namespace SpaceGame.EditorTools
 
         private static string RunInstructions()
         {
-            string exe = Path.Combine(OutputPath, "Contents", "MacOS",
-                                      Path.GetFileNameWithoutExtension(OutputPath));
+            // The executable is named for the product, not for the .app folder.
+            string exe = Path.Combine(OutputPath, "Contents", "MacOS", PlayerSettings.productName);
 
             return
                 $"  \"{exe}\" -batchmode -nographics -sgmode host   -logFile /tmp/mp_host.log &\n" +
@@ -96,6 +119,14 @@ namespace SpaceGame.EditorTools
                 "  PERSIST_CHARGES_AFTER_LOAD=1         ...and the gun came back spent, not full\n" +
                 "  PERSIST_QUARRY_BOUND_AFTER_LOAD=False   nobody reloaded still netted\n" +
                 "  PERSIST_QUARRY_TRAVELLED > 0         ...and the creature can still move\n\n" +
+                "The settlement, across two machines and across a reload (the build holds its chunk):\n\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode settlement-host   -logFile /tmp/mp_settlement_host.log &\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode settlement-client -logFile /tmp/mp_settlement_client.log &\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode settlement-persist -logFile /tmp/mp_settlement_persist.log\n\n" +
+                "  CLIENT_RESIDENTS == HOST_RESIDENTS      the client sees every resident the host does\n" +
+                "  CLIENT_STOCK == HOST_STOCK              ...and every penned animal\n" +
+                "  CLIENT_GATE_OPEN_SEEN=True              ...and the gate the host opened\n" +
+                "  PERSIST_AFTER_LOAD_* == PERSIST_BEFORE_SAVE_*   residents, stock and the open gate survive a reload\n\n" +
                 "To PLAY this build against the editor instead of running the autotest, launch it with\n" +
                 "its own Unity Services profile — a player and the editor share one PlayerPrefs file, so\n" +
                 "they otherwise sign in as the same anonymous PlayerId and the lobby refuses the second\n" +

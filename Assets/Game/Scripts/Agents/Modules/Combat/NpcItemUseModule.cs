@@ -1,10 +1,7 @@
 // Decides WHEN an NPC uses the artifact it is carrying. EntityEquipmentController does the using.
 //
-// Kept apart from AgentRangedCombatModule on purpose. That module drives a weapon defined by three
-// ScriptableObjects and owns the whole engagement — range bands, strafing, backing off. This one
-// drives an actual InventoryItem out of the NPC's own bag, which means the thing being fired is a
-// real prefab the player can loot and fire themselves. An NPC can carry both: the artifact for the
-// gun in its hand, the profile weapon for a built-in turret.
+// It drives an actual InventoryItem out of the NPC's own bag, which means the thing being fired is
+// a real prefab the player can loot and fire themselves.
 //
 // Side-effect module, so it never claims the frame. It does claim the FACING channel, which is the
 // whole reason that channel exists — the NPC keeps its gun on target while Chase, Flee or the
@@ -101,9 +98,8 @@ namespace SpaceGame.Agents
         public int FacingPriority => facingPriority;
 
         /// <summary>
-        /// Read by AgentTargeting at Awake so acquisition covers this weapon's reach — the same
-        /// contract AgentRangedCombatModule.MaxRange satisfies. An NPC that can shoot further than
-        /// it can see never starts the fight it is equipped for.
+        /// Read by AgentTargeting at Awake so acquisition covers this weapon's reach. An NPC that
+        /// can shoot further than it can see never starts the fight it is equipped for.
         /// </summary>
         public float MaxRange => trigger == Trigger.TargetInRange ? maxRange : 0f;
 

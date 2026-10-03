@@ -56,13 +56,5 @@ namespace SpaceGame.Agents.Residents
             segment = default;
             return false;
         }
-
-        /// <summary>The first segment that departs after <paramref name="minutes"/>, or null when none does.</summary>
-        public PlanSegment? Next(double minutes)
-        {
-            foreach (PlanSegment segment in segments)
-                if (segment.depart > minutes) return segment;
-            return null;
-        }
     }
 }

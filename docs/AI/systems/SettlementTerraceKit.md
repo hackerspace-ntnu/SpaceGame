@@ -121,7 +121,7 @@ N/A — no runtime state; the terrain edit is backed up on the `Settlement` comp
   retries and only `Stone_Chunky` got through; the default is 1.2 m ± 25 %.
 - **Mirror a wall top's model, never its root**: a negative root scale reaches its `BoxCollider`s, which Unity warns about per block.
 - **Narrow flights often get no NavMesh** (DEFECTS.md): their 2.25 m walk, eroded by a 0.5 m agent at 0.333 m voxels on
-  a 29° ramp, fragments -- 16 of 54 had none mid-ramp on a 20° test hill, against 1 of 17 wide ones. NPCs cannot cross those.
+  a 29° ramp, fragments -- 16 of 54 had none mid-ramp on a 20° test hill, against 1 of 17 wide ones. The prefab carries a walkable `NavMeshLink` over the ramp so NPCs can cross anyway; `World/Streaming/Audit Settlement NavMesh` counts the flights that still fail ([NavMeshSystem](NavMeshSystem.md)).
 - **Surfaces are ranked per 10 m segment, so the shares are approximate** (a 15 % road on a 160 m network came out 30 m).
   The ranking runs after trimming: a street cut back to its houses changes the total the shares are taken of.
 - **Not yet verified:** a player walking a chain in Play mode, on host and client. The evidence is the asset and pure-rule

@@ -15,6 +15,7 @@ symptoms:
   - "after I hit one villager every resident in the settlement is cold to me"
   - "a resident I defended never thanks me"
   - "residents fighting me run straight past a neighbour who never joins in"
+  - "a resident indoors never hears what her family saw me do"
 reads_with: [Residents, AgentSystem, Persistence]
 updated: 2026-10-02
 ---
@@ -40,8 +41,8 @@ themselves — plans, routine, speech, provocation — are [Residents.md](Reside
 
 | Type | Role |
 |---|---|
-| [`ResidentMemory`](Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs) | per resident, keyed by save profile: familiarity, favor, deeds, known deaths; `Regard`, `Holds`, `HoldsPersonalGrudge`, `KinHarmedBy` |
-| [`Gossip`](Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs) | `Witness`, `Pass` (word of mouth), `Learn` (remember + weigh once), `ObservationOf` (the line a deed is told with) |
+| [`ResidentMemory`](Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs) | per resident, keyed by save profile: familiarity, favor, deeds; `Regard`, `Holds`, `HoldsPersonalGrudge`, `KinHarmedBy` |
+| [`Gossip`](Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs) | `Witness`, `Pass` (word of mouth), `SpreadAtBedtime` / `SpreadAtHearth` (the day's close), `Learn` (remember + weigh once), `ObservationOf` (the line a deed is told with) |
 | `Favor` | pure: `ValueOf(act)`, `ShareOf(listener, subject)` (closest bond either holds), `Apply` (±`favorLimit`), `IsHarm` |
 | `Rumours` | news: who is within earshot of whom, every `rumourSweepSeconds` (0.5), one hop per `rumourTellSeconds` |
 | `ResidentTuning` | `favorFor{Hit,Threat,Killing,Defending}`, `{family,friend,coworker,neighbour}Share`, `favorLimit`, `warmAt`, `coldAt`, `rumourTellSeconds` |
@@ -64,7 +65,12 @@ themselves — plans, routine, speech, provocation — are [Residents.md](Reside
    (`AlertBroadcaster.CallForHelp`, [AgentSystem.md](AgentSystem.md)). A resident it reaches answers by temperament —
    nerve ≥ 0.35 joins, anyone bonded to the CALLER joins, the rest shelter; one already fighting is never sent home
    (`HandleAllyHurt` returns while provoked). Whoever joins calls in turn. Covered by `MindTests.ACallForHelp_…`.
-6. **Speech.** The teller says a `Rumour` line naming the subject when a player can hear, it is not mid-line, not
+6. **The day's close** (server, once per natural day change, `SettlementSociety.EndDay`). For the day that just ended:
+   **bedtime** — every pair of family members tells each other its first-hand deeds (`Gossip.SpreadAtBedtime`); then
+   **hearth** — bonded friends who both had a `Hearth` segment in that day's plan do the same (`SpreadAtHearth`). One hop,
+   first-hand only, so it reaches family indoors whom word of mouth never does. Covered by `MindTests.AtBedtime_…`,
+   `AtTheHearth_…` and `OnlyANaturalDayChange_EndsADay`.
+7. **Speech.** The teller says a `Rumour` line naming the subject when a player can hear, it is not mid-line, not
    fighting and not the subject. `Conversations` opens a pair's talk with today's deed (`Gossip` × its observation).
 
 ## Multiplayer
@@ -75,7 +81,8 @@ hold favor or deeds.
 
 ## Persistence
 
-`ResidentSaveable` (key `"resident"`) saves the whole memory: familiarity, **favor**, deeds (`heard` included), deaths.
+`ResidentSaveable` (key `"resident"`) saves the whole memory: familiarity, **favor**, deeds (`heard` included). An older save's
+`knownDeaths` list is ignored on load (`MindTests.Memory_LoadsASaveThatStillHoldsKnownDeaths`).
 When each resident learned a deed and when an attack happened are runtime only, so a reload keeps what is known and
 starts nobody mid-alarm. Witnessed-hit timestamps are runtime too.
 
@@ -99,8 +106,15 @@ starts nobody mid-alarm. Witnessed-hit timestamps are runtime too.
   had to be added to the root; one added from the Editor was never saved into `Chunk_6_3`, so in play nobody told
   anybody, with a clean console. Since 2026-10-02 `Rumours` is a plain class every `SettlementSociety` owns, so a
   settlement with a culture always has it. Offstage (indoor) residents neither tell nor hear.
-- **Bedtime, hearth and dawn gossip never run** — `Gossip.SpreadAtBedtime`/`SpreadAtHearth`/`DawnDeaths` have no caller
-  ([DEFECTS](../DEFECTS.md)). Word of mouth covers everyone onstage.
+- **Bedtime and hearth gossip run only on a natural day change.** `SettlementSociety.Tick` captures the day its plans
+  were built for, rebuilds, and calls `EndDay(ended)` only when `EndsADay(ended, Day)` — `ended == Day - 1`. A load and a
+  time jump (`DayNightCycle.AnchorMoved`) rebuild outside `Tick`, and the first build starts from `int.MinValue`, so none
+  of them retells anything; a skip of two days or more is no evening either. Anything that moves time by re-anchoring
+  `DayNightCycle` (`AnchorTo`) skips that evening's gossip, so a future sleep-until-morning must advance the clock
+  through a natural day change or call the close itself. Never called before 2026-10-02.
+- **Residents do not know who has died.** Death knowledge (`ResidentMemory.LearnDeath`/`KnowsDeath`, the saved
+  `knownDeaths`) and the dawn gossip that was to spread it (`Gossip.DawnDeaths`) never had a caller and were deleted
+  2026-10-02. A death reaches residents only as a deed (a witnessed `ActKind.Killed`) through word of mouth and the day's close.
 - Only players have a save profile, so only players' deeds are remembered; an NPC defending a resident counts for nothing.
 - Never run in play mode, on a client or through a reload yet; the rules are covered by `MindTests` (EditMode).
 

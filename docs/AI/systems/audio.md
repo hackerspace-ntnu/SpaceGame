@@ -19,7 +19,7 @@ symptoms:
   - "I have an mp3 or wav and need it played by a creature or a prop"
   - "an NPC's chatter mutes every other NPC of the same kind"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
-updated: 2026-10-01
+updated: 2026-10-02
 ---
 
 # Audio
@@ -50,7 +50,6 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 | `AudioLoop` | [AudioLoop.cs](Assets/Game/Scripts/Presentation/Audio/AudioLoop.cs) | Drop-on MonoBehaviour wrapper over `LoopingEmitter` (ambience, hums). Replaces FMOD's `StudioEventEmitter` so scene loops go through the catalog. |
 | `AudioManager` | [AudioManager.cs](Assets/Game/Scripts/Presentation/Audio/AudioManager.cs) | **Bus volumes only** (`bus:/`, `/Music`, `/SFX`, `/UI`, `/Reverb`) from `GameSettings`. Singleton on Bootstrap. Not a playback route. |
 | `PlayerAudioModule` | [PlayerAudioModule.cs](Assets/Game/Scripts/Presentation/Audio/PlayerAudioModule.cs) | Player voice: footsteps paced by **distance travelled** (`strideLength`), jump/land/dash, hurt/death/revive. |
-| `EntityAudioModule` | [EntityAudioModule.cs](Assets/Game/Scripts/agents/Audio/EntityAudioModule.cs) | Creature/NPC voice: footsteps off `IMovementMotor.Velocity`, aggro on `ChaseModule` edge, randomised ambient mumbles. Also fires `NoiseEmitter`. |
 | `UIButton` | [UIButton.cs](Assets/Game/Scripts/Presentation/UI/Buttons/UIButton.cs) | UI audio: `Sfx.Play2D(hoverId)` / `(pressId)` on pointer enter/down. |
 | `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/agents/Audio) | **Not audio.** AI perception — a static receiver registry (`Noise.Emit`), server-side. `NoiseReceiverModule.Heard` (C# event, `NoiseType, Vector3, Transform`) fires for every noise heard whatever the masks say. Lives here because it is triggered alongside sounds. |
 

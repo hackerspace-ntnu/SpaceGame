@@ -53,7 +53,7 @@ namespace SpaceGame.World
         public IReadOnlyList<int> RestsOf(SettlementSpot spot) =>
             spot != null && restsOfSpot.TryGetValue(spot, out List<int> list) ? list : NoRests;
 
-        /// <summary>The rest the prop stands at, or <see cref="SettlementPropSync.Carried"/> / <see cref="SettlementPropSync.Taken"/>.</summary>
+        /// <summary>The rest the prop stands at, or <see cref="SettlementPropSync.Carried"/> (or a legacy <see cref="SettlementPropSync.Taken"/>).</summary>
         public short StateOf(SettlementProp prop) =>
             prop != null && syncOf.TryGetValue(prop, out SettlementPropSync sync) ? sync.StateOf(prop) : SettlementPropSync.Taken;
 
@@ -86,7 +86,7 @@ namespace SpaceGame.World
             if (rest >= 0) reservedRests.Remove(rest);
         }
 
-        /// <summary>Server only. Into a resident's hands; false when it is no longer where it was (a player took it).</summary>
+        /// <summary>Server only. Into a resident's hands; false when it is not resting anywhere (already in somebody's hands).</summary>
         public bool Pick(SettlementProp prop)
         {
             if (StateOf(prop) < 0) return false;
@@ -100,8 +100,5 @@ namespace SpaceGame.World
             if (prop == null || rest < 0 || rest >= rests.Count || !syncOf.TryGetValue(prop, out SettlementPropSync sync)) return;
             sync.Set(prop, (short)rest);
         }
-
-        /// <summary>Server only. Gone from the settlement (a player took it). Any promise about it is dropped.</summary>
-        public void Forget(SettlementProp prop) => reservedProps.Remove(prop);
     }
 }

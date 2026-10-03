@@ -716,11 +716,14 @@ namespace SpaceGame.Agents
             // being pulled two ways and arrive at neither.
             if (leads && member.TryGetComponent(out NpcTaskModule tasks))
             {
-                tasks.SetTasks(template.tasks, group.TaskIndex);
                 tasks.SetHome(group.Position);
 
                 if (group.HasGoal && member.TryGetComponent(out AgentGoal goal))
                     SetGoal(goal, group);
+
+                // After the goal, so a travelling leader's first tick already sees it.
+                tasks.ResumeTask(template.tasks, group.TaskIndex, group.HasGoal, group.DwellRemaining,
+                                 group.LastSiteId);
             }
 
             // See SceneTracked.SetKeepChunksLoaded. A spawned member is by definition within
@@ -784,7 +787,7 @@ namespace SpaceGame.Agents
                 }
 
                 if (member.TryGetComponent(out NpcTaskModule tasks))
-                    group.TaskIndex = tasks.CurrentTaskIndex;
+                    ReadTaskBack(group, tasks);
 
                 break;
             }
@@ -798,6 +801,26 @@ namespace SpaceGame.Agents
             DespawnMembers(group);
             group.Spawned = false;
             Log($"{template.displayName} folded back to a record");
+        }
+
+        /// <summary>
+        /// The leader's errand back into the record — the inverse of <see cref="NpcTaskModule.ResumeTask"/>,
+        /// so a group folds in the phase it was in. A dwelling or choosing leader has no goal, and the
+        /// record's goal is cleared to match: left standing, the folded group would walk back to the
+        /// site it had already reached. Skipped for a leader without tasks, whose goal is the
+        /// director's (<see cref="SteerSpawned"/>), not an errand's.
+        /// </summary>
+        public static void ReadTaskBack(NpcGroup group, NpcTaskModule tasks)
+        {
+            group.TaskIndex = tasks.CurrentTaskIndex;
+            if (!tasks.HasTasks) return;
+
+            group.LastSiteId = tasks.LastSiteId;
+            bool dwelling = tasks.CurrentPhase == NpcTaskModule.Phase.Dwelling;
+            group.DwellRemaining = dwelling ? tasks.PhaseTimer : 0f;
+
+            if (tasks.CurrentPhase != NpcTaskModule.Phase.Travelling)
+                group.HasGoal = false;
         }
 
         /// <summary>

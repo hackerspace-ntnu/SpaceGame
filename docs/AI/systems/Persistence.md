@@ -27,8 +27,9 @@ symptoms:
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
   - "after a quickload the old caravan is still standing beside the new one"
   - "pressing F5 warns that this is a disposable session and is never saved"
+  - "an old save's provocation/resident record is ignored after the creature moved to a new saver"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
-updated: 2026-09-26
+updated: 2026-10-03
 ---
 
 # Persistence / Save-Load
@@ -77,13 +78,13 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Category | Savers (key) |
 |---|---|
 | Pose & motion | `Transform`(transform) `Rigidbody`(rigidbody, velocity only) `MotorState`(motor) `LeggedGait`(gait) `ArticulatedParts`(parts, keyed by hierarchy path) |
-| Vitals & kit | `Health`(health, 0 HP *is* dead) `HealthReaction` `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` |
-| Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Cover`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
-| Agent routine | `Patrol` `BasePatrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again) |
+| Vitals & kit | `Health`(health, 0 HP *is* dead) `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` |
+| Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
+| Agent routine | `Patrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret` |
 | World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` `FactionGoodwill`(factionGoodwill — one `Standing{value,band,warTier}` per tracked faction; `warTier` appended 2026-09-16 so a tribe's war escalation survives a quit mid-cooldown, older saves read 0) |
-| Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `HerdState`(herds) `Leash`(leashes)ᴰ |
+| Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `Leash`(leashes)ᴰ |
 
 ## Flows
 
@@ -134,6 +135,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 |---|---|---|
 | Adding a new save trigger without routing it through `SaveManager.Save` | It writes for every world, including a disposable one — the whole point of `WorldSession.Disposable` is that every trigger (entry write, autosave timer, F5, pause-menu exit, quit) funnels through that one method, which refuses at the top when the flag is set | Call `SaveManager.Save`/`.QuickSave()`, never `SaveFileStore.Write` or `BuildDocument` directly |
 | Letting a runtime-spawned world object stay in the **persistent scene** | Its record is filed under `persistent`, which is hydrated in `SaveManager.Start` **before any chunk exists**. A body with gravity is rebuilt over nothing, falls, and is captured lower by the next save — so every load resumes the fall. Dropped items reached y = -30000 this way, four generations deep, with nothing logged | A thing that lies in the world belongs to the chunk it lies in: `SceneTracked` with `Migrate` and `keepChunksLoaded: false`, which `SaveablePolicy.EnsureSpawned` now gives every pickup. `WorldSaveStore.HasGroundToLandOn` is the failsafe under it, and lands the records already written that way |
+| Writing a migration when deleting a saver (or a field of one) | Wasted work — old files already load cleanly, and none was written when `HealthReactionSaveable`, `HerdMemberSaveable`, `HerdStateSaveable` and `BasePatrolSaveable` went (2026-10-02): `SaveableEntity` leaves a key with no saver untouched and `SaveSerializer` ignores unknown members | Delete the saver, its `SaveablePolicy` row and the component on every prefab/scene object; old keys stay in old files, harmlessly |
 | Reading a payload by probing `JObject` tokens | `StackOverflowException` in `Vector3.normalized` | `state.ToObject<State>(SaveSerializer.Serializer)` |
 | `CaptureState` returning a bare list/int/string | Key dropped (error logged, capture survives) — see [StateBag.Set](Assets/Game/Scripts/Core/Persistence/Format/StateBag.cs#L44) | Wrap in a public-field struct |
 | Ignoring the `state == null` branch of `RestoreState` | Stale value re-applied after a save that stored nothing | null means "restore defaults"; clear pending refs too |
@@ -175,4 +177,4 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 6. **Player-scoped**: put the saver on `PlayerCharacter.prefab` (the networked player is a *variant*, so GUID-grepping `PlayerCharacterNetworked.prefab` finds nothing). **Session-wide**: `RegisterGlobalSaver` in `OnEnable` / `UnregisterGlobalSaver` in `OnDisable` — order does not matter.
 7. **Wire and validate**: `Tools ▸ Save System ▸` *Wire Saveable Prefabs* / *Wire Saveable Scene Objects* / *Wire Saveable Chunk Scenes* / *Validate Save Wiring* / *Report Unsaved State* ([Editor/](Assets/Game/Scripts/Core/Persistence/Editor/)). Idempotent; never run the wiring ones in Play mode.
 8. **Prove it**: EditMode `PersistenceProbe.For(prefab).Mutate(…).AssertSurvivesRoundTrip()` in [PrefabPersistenceTests.cs](Assets/Game/Editor/Tests/PrefabPersistenceTests.cs) (three project-wide sweeps cover new prefabs automatically: wired, has its savers, and stamped **on disk**); then play-mode F5/F9, then quit and re-enter via Load World; read the JSON (`keys=[]` means wired and saving nothing); reload **twice** and count entity records — duplication only shows on the second cycle. Format-only tests live in [Assets/Game/Tests/EditMode/](Assets/Game/Tests/EditMode/) and [Assets/Game/Tests/Editor/](Assets/Game/Tests/Editor/).
-9. **Migrations only for document-shape changes**: adding/removing a saver or a field needs none. Otherwise bump `SaveDocument.CurrentVersion` and add an `ISaveMigration` operating on the raw `JObject` in the same commit; a file from a newer build is refused on both read and write.
+9. **Migrations only for document-shape changes**: adding/removing a saver or a field needs none,. Otherwise bump `SaveDocument.CurrentVersion` and add an `ISaveMigration` operating on the raw `JObject` in the same commit; a file from a newer build is refused on both read and write.

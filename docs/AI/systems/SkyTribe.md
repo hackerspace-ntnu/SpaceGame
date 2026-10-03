@@ -27,7 +27,7 @@ symptoms:
   - "Failed to create agent because it is not close enough to the NavMesh logged twice every time a Sky war party spawns"
   - "after a quickload an empty sky transport hull stays parked at the city and no party owns it"
 reads_with: [AgentSystem, Vehicles, NavMeshSystem, Persistence, TerrainGeneration]
-updated: 2026-09-17
+updated: 2026-10-02
 ---
 
 # Sky Tribe
@@ -46,9 +46,7 @@ The second tribe on the existing faction stack (no new faction machinery), plus 
 
 | Type | File | Role |
 |---|---|---|
-| `RosterAuthoring.AuthorSkyTribeFaction` / `AuthorSkyRoster` | RosterAuthoring.cs | Author the faction/ledger row and the roster; see Flows for build order |
-| `NomadPrefabBuilder.SkyNomads` / `SkySoldier` / `SkyTribePeople` | NomadPrefabBuilder.cs | Recipes (faction, roster, `ClothPalette`, `WanderReachableOnly`); `SkyTribePeople` is what the roster author and the city population both read |
-| `SkyCitySettlementWiring` | SkyCitySettlementWiring.cs | `Tools/Environment/Wire Sky City Settlement` — puts `WorldSiteMarker`, `SettlementAlarm`, `SettlementPopulation` and a `PromenadeAnchor` child on the fleet root; `Verify` is its post-condition, read by `SkyCitySettlementTests` |
+| *(deleted)* `RosterAuthoring`, `NomadPrefabBuilder`, `SkyCitySettlementWiring`, `SkyVesselBuilder`, `SkyCityNavMeshBaker`, `SkyCitySettlementTests` | — | **Every editor script this doc names as an author is gone** (deleted with the builders). The faction, roster, `SkyNomad_*` prefabs, city wiring and vessels they produced are hand-edited assets now; read the build steps in Model and Flows as how those assets were made, not as menus to run. `RosterAssetTests` covers only the Sand roster |
 | `SettlementPopulation` (Sky options) | [SettlementPopulation.cs](Assets/Game/Scripts/agents/Faction/SettlementPopulation.cs) | Generic type in [AgentSystem.md](AgentSystem.md); the city sets `inhabitants` = the four `SkyNomad_*`, cap 16 / 45 s / 4 per wave, ring 0–90 m, `initialWaves` 4 (1 s apart), `reachableFrom` = `PromenadeAnchor`, `keepGroundChunksLoaded` |
 | `NpcGroupTransport` | [NpcGroup.cs](Assets/Game/Scripts/agents/World/NpcGroup.cs) | `smallVessel`/`largeVessel`, `travelSpeed` (28), `homeSiteName` (`WorldSite.SkyCityName`), `dockSpacing` (45 m); `VesselFor(riders)`, `IsDelivered`, `ShouldRelaunch`, `DockPoint(home, slot, spacing)` — rings of 6/12/18… slots, each ≥`spacing` from every other |
 | `VesselPilot` / `VesselSeats` / `VesselMission` / `LandingSiteFinder` / `NpcSeating` | [SkyVessel/](Assets/Game/Scripts/Vehicles/SkyVessel/) | Full API, tunables and gotchas in [Vehicles.md](Vehicles.md) — this doc covers only how the Sky war party drives them |

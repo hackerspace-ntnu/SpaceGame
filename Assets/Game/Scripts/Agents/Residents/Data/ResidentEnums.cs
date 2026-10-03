@@ -26,6 +26,8 @@ namespace SpaceGame.Agents.Residents
         Patrol,
         /// <summary>Wandering from place to place with no booked seat to go to.</summary>
         Amble,
+        /// <summary>On a ladder between a street and a deck: shows the climb pose, holds no place.</summary>
+        Climbing,
     }
 
     /// <summary>The kind of a settlement place a plan segment points at.</summary>

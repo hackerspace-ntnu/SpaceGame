@@ -4,7 +4,7 @@
 // Locomotion arbitration is winner-take-all: one module owns the frame and everything below it
 // contributes nothing. That forced every combat behaviour to stop the agent in order to aim,
 // which is what produced the stop-start shuffle at the edge of a weapon's range. Facing is
-// arbitrated separately — highest FacingPriority wins — so AgentRangedCombatModule can hold the
+// arbitrated separately — highest FacingPriority wins — so NpcItemUseModule can hold the
 // body on target while ChaseModule still drives the path.
 //
 // Implement alongside IBehaviourModule on the same component. Return false to pass.

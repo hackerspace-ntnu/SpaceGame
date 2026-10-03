@@ -1383,12 +1383,6 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>
-        /// Sets the sight-blocking mask. Left at Nothing the module logs a warning every session
-        /// and falls back to this same set, so writing it down just makes the prefab say what it
-        /// means. The angle and memory fields are left alone -- PerceptionModule already defaults
-        /// them to <c>VisionBaseline</c>.
-        /// </summary>
         /// <summary>How often it calls allies in range to a fight it is in; 0 only when the fight starts.</summary>
         private static void ConfigureAlerts(GameObject root, SculptRecipe recipe)
         {
@@ -1400,6 +1394,12 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>
+        /// Sets the sight-blocking mask. Left at Nothing the module logs a warning every session
+        /// and falls back to this same set, so writing it down just makes the prefab say what it
+        /// means. The angle fields are left alone -- PerceptionModule already defaults them to
+        /// <c>VisionBaseline</c>.
+        /// </summary>
         private static void ConfigurePerception(GameObject root)
         {
             var perception = FindComponent(root, "SpaceGame.Agents.PerceptionModule");

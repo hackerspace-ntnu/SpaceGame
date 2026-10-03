@@ -35,17 +35,11 @@ namespace SpaceGame.Agents.Residents
         public DayBlock[] blocks;
     }
 
-    /// <summary>What one kind of trip looks like: where it goes, how far, and what is carried.</summary>
+    /// <summary>What one kind of trip looks like to onlookers: the cue it shows and the prop it carries.</summary>
     [Serializable]
     public struct TripKindRow
     {
         public TripKind kind;
-        [Tooltip("Comma-separated SiteKind names a trip point may come from, e.g. \"ScrapField,Ruin\".")]
-        public string siteKinds;
-        [Tooltip("Metres from the settlement a trip point may lie.")]
-        public float maxRadius;
-        [Tooltip("Carries its held item drawn on the way out.")]
-        public bool armed;
         public CharacterCue cue;
         public GameObject prop;
     }
@@ -120,6 +114,32 @@ namespace SpaceGame.Agents.Residents
         public float[] doorStandDistances = { 1.5f, 2.5f, 4f, 6f };
         [Tooltip("Held by a resident who sleeps in the open, with no dwelling to go into.")]
         public CharacterCue campSleepCue;
+        [Tooltip("Held while a resident rides a ladder link between a street and a deck.")]
+        public CharacterCue climbCue;
+
+        [Header("Stand points (metres / seconds)")]
+        [Tooltip("A spot's stand point is the NavMesh within this many metres of it, horizontally. Farther and the spot is unusable. " +
+                 "A spot is authored where a person stands beside its prop, but the NavMesh keeps an agent radius clear of every solid, so the stand point sits about that far out.")]
+        [Min(0.1f)] public float standSnapRadius = 1.2f;
+        [Tooltip("...and within this many metres vertically: a body's height, so a spot cannot snap to the roof above it or the sand below.")]
+        [Min(0.5f)] public float standSnapHeight = 1.5f;
+        [Tooltip("How far from a doorway the NavMesh may lie for a resident to step through it. The NavMesh keeps an agent radius clear of " +
+                 "the wall and the door frame, so the doorway itself is up to about this far from it.")]
+        [Min(0.1f)] public float doorThresholdSnap = 1.5f;
+        [Tooltip("Seconds between re-measuring stand points while some are unusable (the world NavMesh may still be streaming in).")]
+        [Min(1f)] public float standRecheckSeconds = 20f;
+
+        [Header("Seated body (metres, per metre of body scale)")]
+        [Tooltip("Metres above a spot the search for the seat surface starts.")]
+        [Min(0.1f)] public float seatProbeHeight = 1f;
+        [Tooltip("A seat surface this much above the floor lifts the sitter onto it; lower and the sit loop's own floor pose is right.")]
+        [Min(0f)] public float seatMinLift = 0.12f;
+        [Tooltip("Highest a sitter is lifted: a stool or bench, never a table.")]
+        [Min(0.1f)] public float seatMaxLift = 0.9f;
+        [Tooltip("Height of the hip joint above the surface it sits on.")]
+        [Min(0f)] public float seatHipsAboveSurface = 0.1f;
+        [Tooltip("Seconds the body takes to settle onto a seat.")]
+        [Min(0.01f)] public float seatBlendSeconds = 0.2f;
 
         [Header("Perception (metres / seconds)")]
         public float noticeRadius = 14f;
@@ -210,13 +230,6 @@ namespace SpaceGame.Agents.Residents
         public DayTemplate TemplateFor(Lifestyle lifestyle) =>
             templates == null ? null : Array.Find(templates, t => t != null && t.lifestyle == lifestyle);
 
-        public bool TryGetTrip(TripKind kind, out TripKindRow row)
-        {
-            int at = tripKinds == null ? -1 : Array.FindIndex(tripKinds, r => r.kind == kind);
-            row = at >= 0 ? tripKinds[at] : default;
-            return at >= 0;
-        }
-
         /// <summary>
         /// The prop byte presence replicates for a carried item: 1-based, the trip rows first, then <see cref="carryItems"/>.
         /// 0 (and nothing carried) when it is not in the list — the validator names such a chore.
@@ -281,11 +294,11 @@ namespace SpaceGame.Agents.Residents
 
         private static TripKindRow[] DefaultTripKinds() => new[]
         {
-            new TripKindRow { kind = TripKind.Hunt, siteKinds = "AnimalGround", maxRadius = 400f, armed = true },
-            new TripKindRow { kind = TripKind.Scout, siteKinds = "Landmark,Ruin,Camp", maxRadius = 600f, armed = true },
-            new TripKindRow { kind = TripKind.Forage, siteKinds = "Landmark,WaterHole", maxRadius = 250f },
-            new TripKindRow { kind = TripKind.Salvage, siteKinds = "ScrapField,Ruin", maxRadius = 500f },
-            new TripKindRow { kind = TripKind.Water, siteKinds = "WaterHole", maxRadius = 400f },
+            new TripKindRow { kind = TripKind.Hunt },
+            new TripKindRow { kind = TripKind.Scout },
+            new TripKindRow { kind = TripKind.Forage },
+            new TripKindRow { kind = TripKind.Salvage },
+            new TripKindRow { kind = TripKind.Water },
         };
     }
 }

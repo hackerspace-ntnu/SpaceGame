@@ -351,16 +351,44 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// Replace the task list at runtime. Used by NpcWorldSim when it spawns a group member, so
-        /// the live NPC continues the job its virtual record was already doing.
+        /// Take over the job a virtual group record was doing. Used by NpcWorldSim when it spawns a
+        /// group's leader, after it has written the record's goal into <see cref="AgentGoal"/>.
+        ///
+        /// Resumed in the phase the record was in, never in Choosing: the planner avoids the current
+        /// index, so a leader that starts by choosing picks a DIFFERENT task on its first tick and
+        /// overwrites the goal it was spawned with — a caravan that turns round every time a player
+        /// walks into range. A dwelling record finishes its dwell rather than re-rolling.
+        ///
+        /// The record keeps only the site's id, so its name is looked up: the two always travel
+        /// together when this module picks a site itself, and the {destination} token reads the
+        /// name. A site whose marker is not loaded has no name to give.
         /// </summary>
-        public void SetTasks(NpcTask[] newTasks, int startIndex = -1)
+        public void ResumeTask(NpcTask[] newTasks, int index, bool travelling, float dwellRemaining,
+                               string siteId)
         {
             tasks = newTasks;
-            CurrentTaskIndex = startIndex;
-            CurrentPhase = Phase.Choosing;
-            phaseTimer = 0f;
+            CurrentTaskIndex = HasTasks ? Mathf.Clamp(index, -1, tasks.Length - 1) : -1;
+            lastSiteId = siteId ?? string.Empty;
+            CurrentDestinationName = WorldSiteRegistry.TryGet(lastSiteId, out WorldSite site)
+                ? site.Name ?? string.Empty
+                : string.Empty;
             travelElapsed = 0f;
+            phaseTimer = 0f;
+
+            if (travelling)
+            {
+                CurrentPhase = Phase.Travelling;
+            }
+            else if (dwellRemaining > 0f)
+            {
+                CurrentPhase = Phase.Dwelling;
+                phaseTimer = dwellRemaining;
+                SetDwellFlag(CurrentTask != null ? CurrentTask.dwellFlag : null);
+            }
+            else
+            {
+                CurrentPhase = Phase.Choosing;
+            }
         }
 
         /// <summary>

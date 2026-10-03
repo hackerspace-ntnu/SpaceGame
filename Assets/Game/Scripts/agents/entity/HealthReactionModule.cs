@@ -98,15 +98,6 @@ namespace SpaceGame.Agents
             health.OnDeath += HandleDeath;
             health.OnRevive += HandleRevive;
 
-            // A restore has already said which thresholds had fired, so this enable must not
-            // contradict it. Consumed rather than left standing, so the next genuine enable — a
-            // revive, a despawned body switched back on — resets the latches as it always did.
-            if (thresholdsRestored)
-            {
-                thresholdsRestored = false;
-                return;
-            }
-
             // Reset threshold triggers in case entity was revived.
             if (thresholdReactions != null)
                 for (int i = 0; i < thresholdReactions.Count; i++)
@@ -115,61 +106,6 @@ namespace SpaceGame.Agents
                     r.triggered = false;
                     thresholdReactions[i] = r;
                 }
-        }
-
-        // ── Save/restore ──────────────────────────────────────────────────────────
-        //
-        // <c>HealthThresholdReaction.triggered</c> is [HideInInspector] on a serialized struct and is
-        // explicitly cleared above, so it is pure runtime state that nothing captured. Two things
-        // went wrong because of that, and only one of them was a loss.
-        //
-        // THE ACTIVE MISBEHAVIOUR. A creature restored at 20% health comes back with every latch
-        // clear, so the first hit it takes afterwards re-crosses thresholds it crossed long ago and
-        // <c>onThresholdReached</c> fires AGAIN — the enrage event replays, the scream replays, on
-        // every single load. Persisting the latches is what stops it.
-        //
-        // THE LOSS. The reactions' enable/disable lists are durable state written into module
-        // `enabled` flags, and nothing put them back. So an agent that a threshold had switched OFF
-        // — including its AgentController, which is exactly how ApplyDeadState parks a corpse — came
-        // back switched on and thinking again. Restoring re-applies those lists, silently.
-        private bool thresholdsRestored;
-
-        /// <summary>Which thresholds had already fired, positionally. Read by the save system.</summary>
-        public bool[] TriggeredThresholds()
-        {
-            if (thresholdReactions == null) return System.Array.Empty<bool>();
-
-            var flags = new bool[thresholdReactions.Count];
-            for (int i = 0; i < thresholdReactions.Count; i++)
-                flags[i] = thresholdReactions[i].triggered;
-
-            return flags;
-        }
-
-        /// <summary>
-        /// Restore-only. Called by the save system; do not call from gameplay.
-        ///
-        /// Positional, and short or long arrays are tolerated: a reaction added to the prefab since
-        /// the save reads as "not yet fired", which is the right answer for a threshold that did not
-        /// exist to be crossed.
-        /// </summary>
-        public void RestoreThresholds(bool[] flags)
-        {
-            thresholdsRestored = true;
-            if (thresholdReactions == null) return;
-
-            for (int i = 0; i < thresholdReactions.Count; i++)
-            {
-                HealthThresholdReaction reaction = thresholdReactions[i];
-                bool fired = flags != null && i < flags.Length && flags[i];
-
-                reaction.triggered = fired;
-                thresholdReactions[i] = reaction;
-
-                // Silently: the modules this reaction switched are STATE and must come back, but the
-                // UnityEvent is an ANNOUNCEMENT of a moment that has already happened.
-                if (fired) ApplyReaction(reaction, announce: false);
-            }
         }
 
         private void OnDisable()
@@ -262,29 +198,48 @@ namespace SpaceGame.Agents
 
         private void HandleDeath()
         {
-            // A save being loaded, not a kill. Everything below is a consequence of dying — a sound,
-            // a noise event, a UnityEvent, a despawn countdown — and none of them may happen again on
-            // the load after the one that killed this entity. What must still happen is the resulting
-            // STATE, or the world comes back with a corpse standing up and fighting.
+            // Decided somewhere else, not a kill on this machine. The ledger, the noise event and
+            // the UnityEvent are consequences that happen once, where the death was decided, and
+            // never again on a load. What must still happen here is the resulting STATE, or the
+            // world comes back with a corpse standing up and fighting.
             if (health && health.IsRestoring)
             {
+                // The server's death arriving on a client, live: show it and count the body down
+                // like the host does. NGO does not replicate SetActive, so every machine runs its
+                // own despawn timer — switching it off at once (the save case below) is what made
+                // every NPC corpse vanish on clients the frame it died.
+                if (health.IsReplicating)
+                {
+                    PresentDeath();
+                    ApplyDeadState(immediate: false);
+                    return;
+                }
+
                 ApplyDeadState(immediate: true);
                 return;
             }
 
             ReportKillToLedger();
-
-            if (!string.IsNullOrEmpty(dieAnimTrigger) && animator)
-                animator.SetTrigger(dieAnimTrigger);
+            PresentDeath();
 
             if (emitNoiseOnDeath && noiseEmitter)
                 noiseEmitter.Emit(NoiseType.Death, deathNoiseRadius);
 
-            Sfx.Play(deathId, transform.position, deathSound, GetInstanceID());
-
             onDeath?.Invoke();
 
             ApplyDeadState(immediate: false);
+        }
+
+        /// <summary>
+        /// What a watcher sees and hears of a death: the death animation and the death sound. Run
+        /// on the machine that decided the death and on every client the death replicates to.
+        /// </summary>
+        private void PresentDeath()
+        {
+            if (!string.IsNullOrEmpty(dieAnimTrigger) && animator)
+                animator.SetTrigger(dieAnimTrigger);
+
+            Sfx.Play(deathId, transform.position, deathSound, GetInstanceID());
         }
 
         /// <summary>

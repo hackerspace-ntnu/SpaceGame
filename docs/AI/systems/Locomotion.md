@@ -18,7 +18,7 @@ symptoms:
   - "the creature stopped walking after I added a LateUpdate to its subclass"
   - "the feet trail behind the body, or a planted foot slips along the ground"
 reads_with: [AgentSystem, Vehicles, Persistence]
-updated: 2026-09-13
+updated: 2026-10-02
 ---
 
 # Locomotion
@@ -81,7 +81,7 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 | Humanoid | [HumanoidLocomotion](Assets/Game/Scripts/Creatures/Humanoid/HumanoidLocomotion.cs), [ArmSwing](Assets/Game/Scripts/Creatures/Humanoid/HumanoidArmSwing.cs), [SpineMotion](Assets/Game/Scripts/Creatures/Humanoid/HumanoidSpineMotion.cs) | Same four as the ostrich, every amplitude a fraction of it. First rig with **forward** knees — `BendSign` is measured from the rest pose, nothing selects it. Arms are `Arm_` limbs driven from `LastFrame.Phase` + the legs' own offsets (cannot drift); target is an **arc** about the shoulder |
 | Desert Crawler (hexapod vehicle) | [DesertCrawlerLocomotion](Assets/Game/Scripts/Vehicles/DesertCrawler/DesertCrawlerLocomotion.cs), [WalkerPlatformCarrier](Assets/Game/Scripts/Vehicles/Systems/WalkerPlatformCarrier.cs) | `YawArcStride` + `RippleGait(swingLegs, minPlanted=3)` + `LevelDeckBody` + `FlatSole`. Statically stable (3 feet down); deck follows ~60% of slope, capped, because riders stand on it |
 
-Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.cs) (adds autoWalk idle), [`CrabDriver`](Assets/Game/Scripts/Creatures/Drivers/CrabDriver.cs), [`HorseDriver`](Assets/Game/Scripts/Creatures/Drivers/HorseDriver.cs), [`HumanoidDriver`](Assets/Game/Scripts/Creatures/Drivers/HumanoidDriver.cs), [`DesertCrawlerDriver`](Assets/Game/Scripts/Vehicles/Drivers/DesertCrawlerDriver.cs) — all thin subclasses of `LeggedDriver`.
+Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.cs) (adds autoWalk idle), [`CrabDriver`](Assets/Game/Scripts/Creatures/Drivers/CrabDriver.cs), [`HumanoidDriver`](Assets/Game/Scripts/Creatures/Drivers/HumanoidDriver.cs), [`DesertCrawlerDriver`](Assets/Game/Scripts/Vehicles/Drivers/DesertCrawlerDriver.cs) — all thin subclasses of `LeggedDriver`. `HorseDriver` was deleted 2026-10-02 (no prefab used it), so the horse rig above has **no driver**: nothing drives `HorseLocomotion` from the agent stack until one is written. The rig itself is kept (live rig work).
 
 ## Flows
 

@@ -17,7 +17,7 @@ symptoms:
   - "a settlement prop is in a resident's hand on one machine and on the ground on another"
   - "a prop vanished from a settlement after a fight or a reload"
   - "residents carry an invisible thing and the log says no room in the bag"
-  - "the crosshair names a forge or a table but says nobody is there while a resident works at it"
+  - "the crosshair does not react to a basket, forge or table in a settlement"
   - "gardeners never water anything and haulers never carry"
   - "guards never patrol, or patrol alone, or one of the pair is left standing behind"
   - "a guard walks the same ring one way and the pair never meet"
@@ -33,7 +33,7 @@ updated: 2026-10-02
 What residents do INSIDE a plan segment, beyond standing at a place: watering plants, hauling goods or ore (moving the real baskets
 and crates), bringing in the harvest, feeding animals, carrying firewood, wandering, walking in pairs, patrolling the perimeter,
 standing watch up a tower — and the settlement work the decorations bring: every working decoration (a forge, a loom, a drill rig,
-a farm bed) carries its job post and a `SettlementFixture` players can read. The day plan ([Residents.md](Residents.md)) still says only
+a farm bed) carries its job post and a `SettlementFixture` the item scanner lists. The day plan ([Residents.md](Residents.md)) still says only
 *when and roughly where*; [ErrandRunner](Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs) names the stop.
 
 ## Model
@@ -47,8 +47,8 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
 | Pairs | `Companions.Pair`: guards pair off in roster order; roamers pair with a friend or relative who is also a free roamer. Derived from the roster every rebuild, never stored. A pair shares one plan seed, so its days draw the same numbers and stay in step; the lower index leads, the other follows it |
 | Perimeter | `PerimeterRing`: a point per bearing, `perimeterOffset` (5 m) outside the farthest building box; snapped to the NavMesh and kept only where the heart can walk to it. Gathered where plans are built, as `PlaceKind.Patrol`, after the trip points |
 | Real props move | A chore with `carriesProps` fetches a `SettlementProp` resting at a `PropRest` of a source spot and sets it down at a free rest of a target spot; the hand shows the prop's own item. No prop to fetch or nowhere to put it → the ordinary round with `carried` |
-| Where a prop is | One short per prop in its building's `SettlementPropSync` (NetworkList): a settlement-wide rest index, `Carried` (-1) or `Taken` (-2). The server writes it, every machine shows it |
-| Jobs come with decorations | Every working decoration prefab carries its job post (`SettlementSpot`, a Work `SpotUse`) and a `SettlementFixture` (name, description, scanner class) — placed anywhere, it brings the job along |
+| Where a prop is | One short per prop in its building's `SettlementPropSync` (NetworkList): a settlement-wide rest index or `Carried` (-1). The server writes it, every machine shows it. `Taken` (-2) is only read, from old saves |
+| Jobs come with decorations | Every working decoration prefab carries its job post (`SettlementSpot`, a Work `SpotUse`) and a `SettlementFixture` (name, scanner class) — placed anywhere, it brings the job along |
 
 ## Key types
 | Type | Role |
@@ -58,9 +58,9 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
 | `Companions` / `PerimeterRing` / `ChoreRounds` (Core, Plan) | pure: who walks with whom · the patrol ring · the order a chore visits its targets |
 | `SettlementProp` / `PropRest` (World/…/Settlement/Props) | a carriable thing (its `item` = what a hand or bag holds, its `home` rest) · a pose a prop can stand at, served by one errand `spot` |
 | `SettlementProps` (World, on `Settlement.Props`) | every prop and rest under `Generated` in hierarchy order, plus the server's transient reservations; `Pick` / `Put` / `FreePropAt` / `IsFree` / `RestsOf(spot)` |
-| `SettlementPropSync` (NetworkBehaviour) | the state of one building's props; player take (RMB) is server-decided here; saver key `props` |
+| `SettlementPropSync` (NetworkBehaviour) | the state of one building's props, written by the server (errands only); saver key `props` |
 | `SettlementNetworking` | `Settlement.Generate` stands a NetworkObject + `NetRelay` (+ `SettlementPropSync`) wrapper round each building with props or a latch (the animal keep's gates) |
-| `SettlementFixture` | player side of a working decoration: label, who is working there (from replicated held places), RMB reads the description on the visor, `ScannerRegistry` |
+| `SettlementFixture` | a working decoration's name and scanner class, `ScannerRegistry`; not interactable |
 | `CharacterProfile` (on `SettlementCulture.profiles`) | which archetypes a character prefab makes; `ResidentAssignment` draws a newcomer from its profile when one is usable |
 
 ## Flows
@@ -70,9 +70,10 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
   nearest-neighbour order (the cursor carries on, so every plant is watered in turn), then the nearest source again.
 - **Prop round** (`carriesProps`, `PlanPropRound`): nearest source with an unpromised prop on one of its rests (item in `carryItems`),
   nearest other target with a free rest; both promised; stops `pick` then `drop` (carry byte = the prop's item). `FinishProps` acts
-  when a dwell ends (a prop a player took first ends the round); `LandCarried` (new segment, `Reset`, routine off, death) puts it down.
-- **A player takes a prop:** RMB → `SettlementPropSync.RequestTake` → server: still resting and the bag takes the item → `Taken`.
-- **Who works at a fixture:** each of its spots' `PlaceOf`, matched against residents' replicated `ResidentPresence.Place`.
+  when a dwell ends; `LandCarried` (new segment, `Reset`, routine off, death) puts it down.
+- **Players cannot take or use props and fixtures.** Only building doors (`InteractableTrigger` → `SceneTransition`) and pen gates
+  (`DoorInteraction`) are interactable in a settlement; `SettlementInteractableTests` fails if any NomadSettlement prefab carries another
+  `IInteractable`. A solid collider with one would also answer the crosshair for everything behind it.
 - **Amble.** A roamer's free-time slot is, with `ambleChance` (a paired resident: always), a seeded Stroll/Hearth spot taken
   **unbooked** as the anchor. The runner then alternates spots nobody stands at and points in the street, each held
   `ambleStopSeconds`. Anyone can share a spot's pose; nobody shares a point.
@@ -80,8 +81,8 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
   (direction by slot parity, so pairs meet), advancing on coming within 70 % of the offset of the next point. The follower
   stands beside the leader (`pairGap`), hurries when more than 3 m back, and the leader waits when it is more than
   `pairWaitDistance` ahead (giving up after 20 s). A follower follows only while the leader is also on the same errand.
-- **Tower post.** A `SpotUse` with `elevated`: no NavMesh path, so `ResidentRoutine.Hop` puts its worker on the deck and takes
-  it down again **only while unwatched**; the planner gives it no breaks.
+- **Tower post.** A `SpotUse` with `elevated`: walked to over the ladder link when a path exists (`NavMeshReach.CanWalk`), else
+  `ResidentRoutine.Hop` puts its worker on the deck and takes it down again **only while unwatched**; no breaks.
 - **Walking talk.** `Conversations.PairWalkers`: two residents on an amble or patrol within `walkTalkRange` talk without taking
   focus, so neither stops or turns; the talk ends when they drift beyond twice that range, and the pair rests
   `walkTalkRestSeconds` (shorter than a standing talk's rest).
@@ -97,13 +98,13 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
   every machine finds (or adds) the item in its own bag and equips that slot, and holds the previous slot again when it is put
   down. **`carryItems` is append-only.** **Not seen on a second machine yet.**
 - Props: the server writes `SettlementPropSync.states`, every machine shows them, a late joiner gets them with the spawn; the
-  NetworkObject is the wrapper's (a loose scene object), a client's take is `TakeServerRpc`. Fixtures send nothing. **Not run on a client yet.**
+  NetworkObject is the wrapper's (a loose scene object). Fixtures send nothing. **Not run on a client yet.**
 
 ## Persistence
 Nothing is saved: chore rounds restart from their first stop after a load, pairs and the ring are re-derived with the plans.
 The carried item is an ordinary bag item, so a save that holds it keeps it.
 Props: `SettlementPropSync` (key `props`, `IPersistentEntity` on the wrapper) writes each prop's rest once one has left home; `Carried`
-restores home, `Taken` stays taken; a regenerate orphans the record. **Not verified through a reload yet.**
+restores home, a legacy `Taken` (old saves) stays gone; a regenerate orphans the record. **Not verified through a reload yet.**
 
 ## Gotchas
 - **A paired resident's plan is its leader's seed, not its own** (`PlannerResident.shareSeed`). Anything that draws from the
@@ -116,8 +117,7 @@ restores home, `Taken` stays taken; a regenerate orphans the record. **Not verif
   names it; the content builder asserts it.
 - **Guard counts come from the culture's `patrolShare`** (rounded down to whole pairs, none below 8 residents) and are handed out
   first in Generate. Existing settlements keep their old archetypes until regenerated.
-- **Tower posts and unreachable decks.** `elevated` assumes the deck is on the NavMesh (Generate's reachability check will not tell
-  you: the spot is not walked to). Unverified in play.
+- **Tower posts and unreachable decks.** An `elevated` spot only needs NavMesh under it (`TryStand` skips the reach check). Unverified in play.
 - **A prop must never carry a spot.** Places are gathered once; a spot riding off on a basket leaves its place where it was.
   The build assembler deactivated the `GoodsPile` spot children of the crates used as props (`Deco_Crate_*`, `HarvestCrates`,
   `MiningToolCrate`) — the same decoration placed as scenery keeps it.
@@ -137,7 +137,7 @@ restores home, `Taken` stays taken; a regenerate orphans the record. **Not verif
   `SettlementSociety` inside `WorldNavMeshScope`. Anything else that touches `Settlement.Society` in edit mode caches
   door stands measured on no NavMesh — fine for names, wrong for positions.
 - **A spot on a NavMesh island is unusable.** Yard floors, fenced pens and booth interiors are often islands; Generate
-  lists each such spot (`… cannot be walked to`). Move the spot onto the open floor. The nomad pen's herders stand at
+  lists each such spot (`… is unusable: its NavMesh is an island…`). Move the spot onto the open floor. The nomad pen's herders stand at
   the gate side for this reason, and the market's second vendor at the covered wagon.
 - **Spot height is the prefab floor the spot was authored on.** Author by raycasting the prefab's own collision (as the
   nomad spots were); a spot on a boulder or under a canopy is fine, inside a closed structure is not.
@@ -163,7 +163,7 @@ restores home, `Taken` stays taken; a regenerate orphans the record. **Not verif
 - **A chore that moves things:** set `carriesProps`; give the source and target spots `PropRest`s (a rest's `spot` names the stop
   that serves it) and put `SettlementProp`s on some of them, each with an item in `carryItems`. Props live in a building that
   Generate wraps (it does so for any building with a `SettlementProp`).
-- **A new working decoration:** a row in `Fixtures` (name, description, scan class) and in `Jobs` (post, side) in
+- **A new working decoration:** a row in `Fixtures` (name, scan class) and in `Jobs` (post, side) in
   `ResidentErrandContentBuilder.SettlementWork.cs`, then re-run the menu item.
 - **Which person a character prefab makes:** a row in `AuthorProfiles` (or edit `SettlementCulture.profiles` by hand).
 - **New chore:** two `SpotUse` assets with role Errand (+ a hold cue: `pickup`/`putdown` exist), a `ChoreDefinition`, the carried hand

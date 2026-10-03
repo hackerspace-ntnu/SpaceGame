@@ -35,6 +35,8 @@ namespace SpaceGame.Agents.Residents
         private const int MinPerimeterPoints = 3;
         // A body this close (in 3D) to an elevated post is standing on it; a deck is metres above the ground beneath.
         private const float DeckReach = 3f;
+        // The world NavMesh counts as loaded when the heart is on it within this many metres.
+        private const float HeartProbeRadius = 2f;
 
         private readonly Settlement settlement;
         private readonly SettlementCulture culture;
@@ -42,18 +44,21 @@ namespace SpaceGame.Agents.Residents
         private readonly Rumours rumours;
         private readonly Dictionary<int, DayPlan[]> plansByDay = new();
         private readonly Dictionary<ulong, float> lastRemark = new();
-        private readonly HashSet<string> needSpeakers = new();
         private readonly Dictionary<long, float> travelCache = new();
         private readonly Dictionary<Dwelling, int> doorOf = new();
         private readonly Dictionary<Resident, int> campOf = new();
         private readonly Dictionary<SettlementSpot, int> placeOfSpot = new();
         private readonly Dictionary<int, SettlementSpot> spotOfPlace = new();
+        private readonly List<int> spotPlaces = new();
+        private readonly HashSet<int> reportedUnusable = new();
         private readonly NavMeshPath path = new();
         private List<SettlementPlace> places;
         private Resident[] residents;
         private LineTable lineTable;
         private int builtDay = int.MinValue;
         private bool tripsFound, perimeterFound;
+        private bool standsUnsettled;
+        private float nextStandCheck;
         private readonly List<int> patrolPoints = new();
         private Dictionary<int, int> leaderOf = new();
         private Dictionary<int, int> patrolSlot = new();
@@ -80,6 +85,8 @@ namespace SpaceGame.Agents.Residents
         public int Day => DayNightCycle.Main ? DayNightCycle.Main.Day : 0;
         public double NowMinutes => DayNightCycle.Main ? DayNightCycle.Main.GameMinutesNow : 0d;
         public LineTable Lines => EnsureLines();
+        /// <summary>Resident-to-resident talks opened so far (server only; 0 elsewhere).</summary>
+        public int ConversationsOpened => conversations.Opened;
 
         public void Enable()
         {
@@ -99,9 +106,41 @@ namespace SpaceGame.Agents.Residents
         {
             if (!Network.Decides) return;
 
-            if (Day != builtDay) RebuildPlans();
+            if (Day != builtDay)
+            {
+                int ended = builtDay;
+                RebuildPlans();
+                if (EndsADay(ended, Day)) EndDay(ended);
+            }
+            RecheckStands();
             conversations.Tick();
             rumours.Tick();
+        }
+
+        // Stand points are measured on the NavMesh, which streams in: while some are unmeasured or unusable, look again
+        // now and then, and re-plan when one changed its mind — a spot that was only waiting for its ground is not lost.
+        private void RecheckStands()
+        {
+            if (!standsUnsettled || Time.time < nextStandCheck) return;
+
+            nextStandCheck = Time.time + ResidentTuning.Instance.standRecheckSeconds;
+            if (RefreshStands()) RebuildPlans();
+        }
+
+        /// <summary>
+        /// True when plans built for <paramref name="builtDay"/> are giving way to
+        /// <paramref name="today"/> because that day ran out — not the first build (built for
+        /// <see cref="int.MinValue"/>) and not a multi-day skip. A load and a time jump rebuild outside
+        /// <see cref="Tick"/> and never get here.
+        /// </summary>
+        public static bool EndsADay(int builtDay, int today) => builtDay == today - 1;
+
+        // The day's close: kin at bedtime and friends who shared the hearth retell what they saw that
+        // day. Yesterday's plans were just rebuilt, so who sat at the hearth is there to be read.
+        private void EndDay(int day)
+        {
+            Gossip.SpreadAtBedtime(this, day);
+            Gossip.SpreadAtHearth(this, day);
         }
 
         /// <summary>How many places there are — trip points included once plans have been built here.</summary>
@@ -144,8 +183,15 @@ namespace SpaceGame.Agents.Residents
             EnsurePlaces();
             var stops = new List<int>();
             for (int i = 0; i < places.Count; i++)
-                if (places[i].Kind == PlaceKind.Errand && places[i].Use == use) stops.Add(i);
+                if (places[i].Kind == PlaceKind.Errand && places[i].Use == use && places[i].Usable) stops.Add(i);
             return stops;
+        }
+
+        /// <summary>False for a spot whose stand point was measured and cannot be stood at; the planner never sends anyone there.</summary>
+        public bool IsUsable(int index)
+        {
+            SettlementPlace place = Place(index);
+            return place != null && place.Usable;
         }
 
         /// <summary>The place index of a generated spot, or -1 when it is not one of this settlement's places.</summary>
@@ -231,6 +277,7 @@ namespace SpaceGame.Agents.Residents
 
         public void RebuildPlans()
         {
+            RefreshStands();
             EnsureTrips();
             EnsurePerimeter();
             EnsureCompanions();
@@ -249,31 +296,6 @@ namespace SpaceGame.Agents.Residents
             lastRemark[playerId] = now;
             return true;
         }
-
-        /// <summary>
-        /// The closest living, onstage resident within <paramref name="maxDistance"/> with an open need —
-        /// one whose person or archetype has a Need row in the line table. Null when there is none.
-        /// </summary>
-        public Resident FindNeeds(Vector3 near, float maxDistance)
-        {
-            EnsureLines();
-
-            Resident nearest = null;
-            float best = maxDistance * maxDistance;
-            foreach (Resident resident in EnsureResidents())
-            {
-                if (!resident || resident.IsDead || resident.IsOffstage || !HasNeed(resident)) continue;
-                float sqr = (resident.transform.position - near).sqrMagnitude;
-                if (sqr > best) continue;
-                best = sqr;
-                nearest = resident;
-            }
-            return nearest;
-        }
-
-        private bool HasNeed(Resident resident) =>
-            needSpeakers.Contains(resident.DisplayName) ||
-            (resident.archetype && needSpeakers.Contains(resident.archetype.name));
 
         private void HandleAnchorMoved(DayNightCycle cycle)
         {
@@ -339,7 +361,7 @@ namespace SpaceGame.Agents.Residents
                 rows.Add(new PlannerPlace
                 {
                     index = i, kind = place.Kind, post = place.Kind is PlaceKind.Post or PlaceKind.Errand ? place.Use : null,
-                    seatIndex = place.SeatIndex, group = place.Group,
+                    seatIndex = place.SeatIndex, group = place.Group, unusable = !place.Usable,
                 });
             }
             return rows;
@@ -378,6 +400,38 @@ namespace SpaceGame.Agents.Residents
             }
 
             if (generated != null) AddSpots(generated);
+            RefreshStands();
+        }
+
+        // Measures every spot's stand point and every door's threshold on the NavMesh (server only: it is the only
+        // machine that walks). True when a spot became usable or unusable since the last look. Leaves things as they
+        // were, and tries again later, while the world NavMesh is not under the settlement yet.
+        private bool RefreshStands()
+        {
+            if (!Network.Decides || places == null || !NavMesh.SamplePosition(settlement.WalkableHeart, out _, HeartProbeRadius, NavMesh.AllAreas))
+                return false;
+
+            Vector3 heart = settlement.WalkableHeart;
+            foreach (KeyValuePair<Dwelling, int> door in doorOf)
+                places[door.Value].SetThreshold(SettlementPlaces.TryThreshold(door.Key, heart, out Vector3 threshold) ? threshold : null);
+
+            bool flipped = false;
+            standsUnsettled = false;
+            foreach (int index in spotPlaces)
+            {
+                SettlementSpot spot = spotOfPlace[index];
+                if (spot == null) continue;
+
+                bool usable = SettlementPlaces.TryStand(spot.Position, spot.Use.elevated, heart, out Vector3 stand, out string why);
+                flipped |= places[index].Resolve(usable ? stand : spot.Position, usable);
+                if (usable) continue;
+
+                standsUnsettled = true;
+                if (Application.isPlaying && reportedUnusable.Add(index))
+                    Debug.LogWarning($"[Settlement] {Name}: {SettlementPlaces.PathBelow(settlement.GeneratedRoot, spot.transform)} " +
+                                     $"({spot.Use.name}) is unusable and skipped by the day planner: {why}.", spot);
+            }
+            return flipped;
         }
 
         // The first point straight out from the doorway a resident can walk to from the settlement's heart.
@@ -390,7 +444,9 @@ namespace SpaceGame.Agents.Residents
                 Debug.LogWarning($"[Settlement] {Name}: nothing walkable out from the door of {dwelling.name}; " +
                                  "its residents are snapped home there. Regenerate, or fix the prefab's entrance.", dwelling);
             Vector3 outward = SettlementPlaces.OutwardOf(SettlementPlaces.DoorwayOf(dwelling));
-            return new SettlementPlace(PlaceKind.Door, null, 0, 0, stand, stand + outward);
+            var door = new SettlementPlace(PlaceKind.Door, null, 0, 0, stand, stand + outward);
+            door.SetThreshold(SettlementPlaces.TryThreshold(dwelling, settlement.WalkableHeart, out Vector3 threshold) ? threshold : null);
+            return door;
         }
 
         private void AddSpots(Transform generated)
@@ -411,7 +467,10 @@ namespace SpaceGame.Agents.Residents
                 seatsOfUse[spot.Use] = seat + 1;
                 placeOfSpot[spot] = places.Count;
                 spotOfPlace[places.Count] = spot;
-                places.Add(new SettlementPlace(KindOf(spot.Use.role), spot.Use, group, seat, spot.Position, spot.FacePoint));
+                spotPlaces.Add(places.Count);
+                var place = new SettlementPlace(KindOf(spot.Use.role), spot.Use, group, seat, spot.Position, spot.FacePoint);
+                if (spot.Use.seated) place.SetSeatSurface(SettlementPlaces.SeatSurfaceY(spot.Position));
+                places.Add(place);
             }
         }
 
@@ -542,9 +601,6 @@ namespace SpaceGame.Agents.Residents
             lineTable = LineTable.Parse(text ? text.text : string.Empty);
             if (lineTable.Errors.Count > 0)
                 Debug.LogError($"[Settlement] {Name}: {lineTable.Errors.Count} bad line rows:\n{string.Join("\n", lineTable.Errors)}", settlement);
-
-            foreach (LineRow row in lineTable.Rows)
-                if (row.topic == Topic.Need) needSpeakers.Add(row.speaker);
             return lineTable;
         }
     }

@@ -76,9 +76,6 @@ namespace SpaceGame.EditorTools
         private static readonly HashSet<string> SkipPrefabs = new HashSet<string>
         {
             "RoverNoHierarchy",   // hierarchy-flattened build of Rover
-            "PatrolRobot 1",      // three placement variants of one robot
-            "PatrolRobot 2",
-            "PatrolRobot 3",
         };
 
         /// <summary>

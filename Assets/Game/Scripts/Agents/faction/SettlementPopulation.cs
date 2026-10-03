@@ -1,7 +1,8 @@
 // A settlement that keeps its people coming.
 //
 // Put on the root of a settlement with the faction that owns it. Every spawnInterval it counts
-// the owner's own inside `countRadius` and, if the town is below `maxPopulation`, spawns a few
+// the owner's own inside `countRadius` -- its NPCs only: a player the tribe calls Allied is a friend
+// of the town, not one of its inhabitants -- and, if the town is below `maxPopulation`, spawns a few
 // more from `inhabitants` onto the NavMesh somewhere in the ring between innerRadius and
 // outerRadius -- never within minPlayerDistance of a player, because a robot materialising in
 // front of you is a bug however it is dressed.
@@ -48,6 +49,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -65,7 +67,7 @@ namespace SpaceGame.Agents
         }
 
         [Header("Territory")]
-        [Tooltip("Whose settlement this is. Entities Allied to it are its population.")]
+        [Tooltip("Whose settlement this is. Non-player entities Allied to it are its population.")]
         [SerializeField] private FactionDefinition owner;
         [SerializeField] private FactionRelationshipTable relationshipTable;
         [Tooltip("Metres from this object inside which the owner's people count toward the cap.")]
@@ -201,9 +203,7 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,
-                                       transform.position, countRadius, people);
-            Population = people.Count;
+            Population = CountInhabitants();
 
             bool hold = holdWhileAlarmRaised && alarm != null && alarm.IsRaised;
             int wanted = SettlementPopulationLogic.Step(ref state, Population, maxPopulation, spawnsPerWave,
@@ -225,6 +225,22 @@ namespace SpaceGame.Agents
                     leaderPlaced = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// The owner's own people alive inside countRadius. The Allied query also answers with any
+        /// player the tribe's goodwill has made an ally, and each of those would otherwise take an
+        /// inhabitant's place and leave the town one short.
+        /// </summary>
+        public int CountInhabitants()
+        {
+            EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,
+                                       transform.position, countRadius, people);
+            int count = 0;
+            for (int i = 0; i < people.Count; i++)
+                if (!people[i].CompareTag(SpawnClearance.PlayerTag))
+                    count++;
+            return count;
         }
 
         // The ground under countRadius. With no streamer there are no chunks to wait for; a streamer

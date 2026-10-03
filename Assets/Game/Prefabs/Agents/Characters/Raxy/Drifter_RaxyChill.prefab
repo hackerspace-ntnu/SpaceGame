@@ -755,7 +755,6 @@ GameObject:
   - component: {fileID: -4900498288047586541}
   - component: {fileID: 526558364518571}
   - component: {fileID: 3241562474253977769}
-  - component: {fileID: 5709135134411080136}
   - component: {fileID: -4063295004638832104}
   - component: {fileID: 7160335080460900560}
   - component: {fileID: 5077724765528242193}
@@ -896,6 +895,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 0}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.5555556
@@ -1780,18 +1788,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &5709135134411080136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3329947332983915974}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &-4063295004638832104
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2006,6 +2002,10 @@ MonoBehaviour:
   stopDistanceMargin: 0.5
   holdReleaseMargin: 2
   holdLookAhead: 2
+  alignStopDistance: 0.02
+  alignSpeedMultiplier: 0.5
+  alignReleaseMargin: 0.3
+  alignGiveUpSeconds: 4
 --- !u!114 &7086330239672291405
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2028,7 +2028,10 @@ MonoBehaviour:
   offstageAfterSeconds: 10
   settleDistance: 30
   doorstepDistance: 2
+  deckReach: 3
   approachStandOff: 8
+  thresholdArriveRadius: 0.5
+  thresholdStepMin: 0.7
 --- !u!114 &1998496518626043104
 MonoBehaviour:
   m_ObjectHideFlags: 0

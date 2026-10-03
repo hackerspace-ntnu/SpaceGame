@@ -1833,7 +1833,6 @@ GameObject:
   - component: {fileID: 6501809301190592080}
   - component: {fileID: 7205310886394668349}
   - component: {fileID: -6852670443657994553}
-  - component: {fileID: -4769557664750629215}
   - component: {fileID: 8742664597249181264}
   - component: {fileID: 7678531486585377245}
   - component: {fileID: 8413204676366108458}
@@ -1954,6 +1953,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 0}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.5555556
@@ -2041,18 +2049,6 @@ MonoBehaviour:
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
-  memoryDuration: 12
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
 --- !u!114 &700843921746079170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2127,6 +2123,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertBroadcaster
   alertRadius: 35
   announceSightings: 0
+  callForHelpEvery: 0
 --- !u!114 &5931715021089653006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2320,7 +2317,7 @@ MonoBehaviour:
   calmDownDelay: 60
   damageThreshold: 1
   aggressionSettings:
-    hitGain: 300
+    hitGain: 1200
     allyHurtGain: 40
     gunshotGain: 15
     menaceGainPerSecond: 20
@@ -2329,6 +2326,8 @@ MonoBehaviour:
     trespassGainPerSecond: 10
     calmRate: 10
     attackAt: 100
+    jostlesToFight: 0
+    settleSeconds: 0
   drawGizmos: 1
 --- !u!114 &2347624336876833373
 MonoBehaviour:
@@ -2455,7 +2454,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2292324130
+  GlobalObjectIdHash: 3547398490
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2567,7 +2566,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 9f0a9dc7450a1497fa608ec3eaf10057
+  prefabId: d0f638635216a414e9bf763407759c52
   instanceId: 
   authored: 0
   scope: 0
@@ -2764,18 +2763,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &-4769557664750629215
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2578966956616729156}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &8742664597249181264
 MonoBehaviour:
   m_ObjectHideFlags: 0

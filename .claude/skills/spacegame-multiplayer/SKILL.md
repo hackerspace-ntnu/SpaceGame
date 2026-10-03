@@ -118,7 +118,7 @@ consults the list, so an unregistered prefab is a host that works and clients th
 | Tier | Rule | Members |
 |---|---|---|
 | 1 | **MUST** have a root `NetworkObject` **and** a prefab-list entry | Anything `GameServices.World.Spawn` can be handed — including **every `InventoryItem.itemPrefab`** (dropping a hotbar slot routes through `World.Spawn`), deployables such as `RocketSpawn`, vehicles, the networked player prefab |
-| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`, `AgentProjectile`. Every machine instantiates its own; only the authority's applies damage (`Weapon.ShotDealsDamage`) |
+| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`. Every machine instantiates its own; only the authority's applies damage (`Weapon.ShotDealsDamage`) |
 | 3 | **MUST NOT** be networked: equipped visuals | `EquipItemSocket.Equip` plain-`Instantiate`s onto a bone and rebuilds locally from the replicated hotbar. A `NetworkObject` cannot parent to a plain transform anyway |
 
 Register with `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`. The live list is

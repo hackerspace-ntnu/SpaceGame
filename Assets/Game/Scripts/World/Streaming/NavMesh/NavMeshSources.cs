@@ -25,14 +25,23 @@ namespace SpaceGame.World
         /// its feet. Measured 2026-09-07: no mesh within 0.35 m of any of the four robots probed,
         /// mesh everywhere around them.
         /// </para>
+        /// <para>
+        /// A collider sharing its object with a <b>carving</b> <see cref="NavMeshObstacle"/> is a
+        /// door or gate leaf: the obstacle cuts it out at runtime while it is shut. Baking it as well
+        /// would seal the doorway for good, so opening a pen gate would never let its stock out.
+        /// A bake that wants the world as it is at the start of play -- every door shut -- passes
+        /// <paramref name="doorsShut"/> to keep those leaves.
+        /// </para>
         /// </summary>
-        public static bool IsBakeable(Collider col, LayerMask mask)
+        public static bool IsBakeable(Collider col, LayerMask mask, bool doorsShut = false)
         {
             if (col == null || col.isTrigger) return false;
             if (!InMask(mask, col.gameObject.layer)) return false;
 
             var body = col.attachedRigidbody;
             if (body != null && !body.isKinematic) return false;
+
+            if (!doorsShut && col.TryGetComponent(out NavMeshObstacle obstacle) && obstacle.carving) return false;
 
             return col.GetComponentInParent<NavMeshAgent>(true) == null;
         }

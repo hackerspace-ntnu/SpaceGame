@@ -34,6 +34,10 @@ namespace SpaceGame.World
         [FormerlySerializedAs("workCue")]
         public CharacterCue holdCue;
 
+        [Tooltip("The hold cue is a sit: the body is lifted onto the surface under the spot when that is a bench or stool " +
+                 "(ResidentPresence), and left on the floor when it is the ground.")]
+        public bool seated;
+
         [Tooltip("Work only. Never left empty in daytime: breaks are staggered so one worker always stays.")]
         public bool alwaysManned;
 

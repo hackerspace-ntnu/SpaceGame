@@ -37,9 +37,25 @@ namespace SpaceGame.Agents
         [Tooltip("With no face point, a holding agent looks this far ahead along its arrival heading.")]
         [SerializeField] private float holdLookAhead = 2f;
 
+        [Header("Exact Stand")]
+        [Tooltip("An exact-stand goal's last step: metres to stop short of the point. Small, so the body ends on it.")]
+        [SerializeField, Min(0.01f)] private float alignStopDistance = 0.02f;
+
+        [Tooltip("Speed multiplier for that last step: unhurried, a person settling into place.")]
+        [SerializeField, Min(0.05f)] private float alignSpeedMultiplier = 0.5f;
+
+        [Tooltip("Once aligned, a body is nudged back onto its point only after being pushed this far off it.")]
+        [SerializeField, Min(0.05f)] private float alignReleaseMargin = 0.3f;
+
+        [Tooltip("Seconds of trying before an unreachable exact point (blocked by a prop or a person) is stood near instead.")]
+        [SerializeField, Min(0.5f)] private float alignGiveUpSeconds = 4f;
+
         // Holding is a property of THIS goal: a new destination, even a near one, is walked to.
         private bool holding;
         private Vector3 heldGoal;
+        private bool aligned;
+        private bool alignGaveUp;
+        private float alignSeconds;
 
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback + 1);
 
@@ -53,6 +69,10 @@ namespace SpaceGame.Agents
             stopDistanceMargin = Mathf.Max(0f, stopDistanceMargin);
             holdReleaseMargin = Mathf.Max(AgentGoal.HoldArriveSlack, holdReleaseMargin);
             holdLookAhead = Mathf.Max(0.1f, holdLookAhead);
+            alignStopDistance = Mathf.Max(0.01f, alignStopDistance);
+            alignSpeedMultiplier = Mathf.Max(0.05f, alignSpeedMultiplier);
+            alignReleaseMargin = Mathf.Max(0.05f, alignReleaseMargin);
+            alignGiveUpSeconds = Mathf.Max(0.5f, alignGiveUpSeconds);
         }
 
         public override string ModuleDescription =>
@@ -78,6 +98,22 @@ namespace SpaceGame.Agents
             return distance <= limit;
         }
 
+        /// <summary>
+        /// Should a body <paramref name="distance"/> from an exact-stand point still be walking onto it?
+        /// Aligned within <see cref="AgentGoal.AlignedWithin"/>, then stays put until pushed
+        /// <c>alignReleaseMargin</c> off; gives up after <c>alignGiveUpSeconds</c> so a point somebody stands
+        /// on cannot make a resident shuffle for ever.
+        /// </summary>
+        private bool NeedsAlignment(float distance, float deltaTime)
+        {
+            if (alignGaveUp) return false;
+
+            aligned = distance <= AgentGoal.AlignedWithin || (aligned && distance <= AgentGoal.AlignedWithin + alignReleaseMargin);
+            alignSeconds = aligned ? 0f : alignSeconds + deltaTime;
+            alignGaveUp = alignSeconds > alignGiveUpSeconds;
+            return !aligned && !alignGaveUp;
+        }
+
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
             AgentGoal goal = context.Goal;
@@ -90,11 +126,18 @@ namespace SpaceGame.Agents
 
             if (goal.HoldOnArrival)
             {
-                if (holding && goal.Position != heldGoal)
+                if (goal.Position != heldGoal)
+                {
                     holding = false;
+                    aligned = alignGaveUp = false;
+                    alignSeconds = 0f;
+                }
 
                 holding = HoldsPosition(holding, goal.DistanceToGoal, goal.ArriveRadius, holdReleaseMargin);
                 heldGoal = goal.Position;
+
+                if (holding && goal.ExactStand && NeedsAlignment(goal.DistanceToGoal, deltaTime))
+                    return MoveIntent.MoveTo(goal.Position, alignStopDistance, alignSpeedMultiplier * goal.SpeedMultiplier);
 
                 if (holding)
                     return MoveIntent.StopAndFace(goal.FacePoint ?? context.Position + context.Self.forward * holdLookAhead);

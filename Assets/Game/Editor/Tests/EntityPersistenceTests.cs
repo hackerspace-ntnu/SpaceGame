@@ -249,7 +249,7 @@ namespace SpaceGame.EditorTools
             AgentTargeting targeting = agent.AddComponent<AgentTargeting>();
             var saver = agent.AddComponent<AgentStateSaveable>();
 
-            targeting.RestoreMemory(null, new Vector3(3f, 4f, 5f), true, 2.5f, null);
+            targeting.RestoreMemory(null, false, new Vector3(3f, 4f, 5f), true, 2.5f, null);
 
             // Through StateBag, so the Vector3 converters are exercised — the same path a real save
             // takes. Read without them, a Vector3 recurses through its own properties.
@@ -258,7 +258,7 @@ namespace SpaceGame.EditorTools
 
             Assert.IsTrue(bag.TryGetRaw(saver.SaveKey, out JObject payload));
 
-            targeting.RestoreMemory(null, Vector3.zero, false, 0f, null);
+            targeting.RestoreMemory(null, false, Vector3.zero, false, 0f, null);
             saver.RestoreState(payload);
             saver.OnLoadComplete();
 

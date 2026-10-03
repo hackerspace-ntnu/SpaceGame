@@ -163,9 +163,6 @@ PrefabInstance:
       addedObject: {fileID: 4754462582280630209}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6105412718947477083}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 6345000896566801122}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
@@ -284,6 +281,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 7729365641785085112}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.2413493
@@ -335,10 +341,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 2804872818588554921}
   animatorDriver: {fileID: 8239612881747668733}
-  nearbyAgentScanRadius: 0
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &6740200465252419601
@@ -461,7 +463,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd9dee46351a74db99007706d23b6644, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
-  priority: 0
+  priority: 20
   active: 1
   chaseStopDistance: 1.4
   chaseSpeedMultiplier: 1
@@ -491,7 +493,10 @@ MonoBehaviour:
   knockbackLeapDuration: 0.55
   knockbackMassReference: 80
   knockbackMassScale: {x: 0.4, y: 2.5}
+  attackCue: {fileID: 0}
+  attackAction: {fileID: 0}
   attackAnimTrigger: Meele
+  contactGrace: 0.25
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
@@ -523,6 +528,7 @@ MonoBehaviour:
   sampleDistance: 6
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 1.5
   maxWaitTime: 6
   stopDistance: 0.2
@@ -812,18 +818,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &6105412718947477083
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8940832018371814185}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &6345000896566801122
 MonoBehaviour:
   m_ObjectHideFlags: 0

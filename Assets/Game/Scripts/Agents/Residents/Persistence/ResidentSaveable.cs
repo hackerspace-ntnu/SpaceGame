@@ -6,7 +6,7 @@ namespace SpaceGame.Agents.Residents
 {
     /// <summary>
     /// Persists what a settlement resident remembers about players: who it has met, how well it
-    /// knows them, how it favors them, the deeds it knows of and the deaths it has learned of.
+    /// knows them, how it favors them and the deeds it knows of.
     ///
     /// <b>Only the memory.</b> A resident's day is a pure function of the settlement seed and the
     /// day counter, so plans, activity, overrides and being indoors are re-derived on load rather
@@ -37,8 +37,7 @@ namespace SpaceGame.Agents.Residents
             // A resident that has never met anyone is at its default, and the key is dropped rather
             // than storing three empty lists on every villager in the world.
             ResidentMemory.MemoryState state = memory.Capture();
-            bool blank = state.acquaintances.Count == 0 && state.favor.Count == 0 && state.deeds.Count == 0
-                         && state.knownDeaths.Count == 0;
+            bool blank = state.acquaintances.Count == 0 && state.favor.Count == 0 && state.deeds.Count == 0;
             return blank ? null : state;
         }
 

@@ -46,6 +46,8 @@ namespace SpaceGame.Agents.Residents
         private EntityInventoryComponent inventory;
         private EntityEquipmentController equipment;
         private BodyLanguage body;
+        private SeatedBodyFit seatFit;
+        private float? seatSurface;
         private CharacterCue heldCue;
         private GameObject propInstance;
         private Collider hitCapsule;
@@ -70,6 +72,7 @@ namespace SpaceGame.Agents.Residents
             inventory = GetComponent<EntityInventoryComponent>();
             equipment = GetComponent<EntityEquipmentController>();
             body = GetComponentInChildren<BodyLanguage>();
+            seatFit = new SeatedBodyFit(GetComponentInChildren<Animator>(), transform);
             // The body's own capsule, the one AgentRagdoll also owns — never a ragdoll bone's.
             hitCapsule = GetComponent<Collider>();
         }
@@ -131,6 +134,9 @@ namespace SpaceGame.Agents.Residents
             if (carriedSlot != NoPlace && equipment != null && equipment.EquippedSlotIndex != carriedSlot) equipment.EquipSlot(carriedSlot);
         }
 
+        // After the animator has posed the body: a sitter is lifted until its hips rest on the seat.
+        private void LateUpdate() => seatFit.Update(shownHidden ? null : seatSurface, Time.deltaTime);
+
         private void Apply()
         {
             if (shownHidden != Hidden) ShowHidden(Hidden);
@@ -142,12 +148,14 @@ namespace SpaceGame.Agents.Residents
             shownPlace = Place;
             if (heldCue != null && body != null) body.Release(heldCue);
             heldCue = CueFor(shownActivity, shownPlace);
+            seatSurface = SeatSurfaceOf(shownPlace);
             if (changed) Changed?.Invoke(shownActivity);
         }
 
         // The spot's own loop where the resident holds at one, a camp sleeper's lying loop, an outrider's trip cue.
         private CharacterCue CueFor(Activity shown, int heldPlace)
         {
+            if (shown == Activity.Climbing) return ResidentTuning.Instance.climbCue;
             if (shown == Activity.Stalking)
                 return IsTripRow(shownProp) ? ResidentTuning.Instance.tripKinds[shownProp - 1].cue : null;
 
@@ -156,6 +164,14 @@ namespace SpaceGame.Agents.Residents
             if (at == null) return null;
             if (at.Kind == PlaceKind.Camp) return shown == Activity.Sleep ? ResidentTuning.Instance.campSleepCue : null;
             return at.Use != null ? at.Use.holdCue : null;
+        }
+
+        // The surface a sitter at the held place sits on; null for a place nobody sits at.
+        private float? SeatSurfaceOf(int heldPlace)
+        {
+            SettlementSociety society = resident != null ? resident.Society : null;
+            SettlementPlace at = heldPlace != NoPlace && society != null ? society.Place(heldPlace) : null;
+            return at != null && at.Seated ? at.SeatSurfaceY : null;
         }
 
         private void ShowProp(byte index)

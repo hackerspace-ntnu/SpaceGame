@@ -132,6 +132,11 @@ MonoBehaviour:
   footMargin: 0.3
   topBand: 0.4
   topReach: 1.3
+  navigable: 1
+  linkApproach: 1
+  linkSnapDistance: 1
+  linkRetryInterval: 1
+  linkRetryTimeout: 30
 --- !u!1 &2420270995266811065
 GameObject:
   m_ObjectHideFlags: 0
@@ -383,6 +388,59 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.12, y: 3, z: 3.8}
   m_Center: {x: -1.85, y: 1.5, z: 0}
+--- !u!1 &3234890170917020901
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4628931938403750234}
+  - component: {fileID: 3418963849684131526}
+  m_Layer: 0
+  m_Name: Colliders_Fit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4628931938403750234
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3234890170917020901}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4627221932292497576}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3418963849684131526
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3234890170917020901}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.3661814, y: 0.35050583, z: 4.2742987}
+  m_Center: {x: -0.024373531, y: 9.524527, z: -0.022511482}
 --- !u!1 &6164305102261085503
 GameObject:
   m_ObjectHideFlags: 0
@@ -479,6 +537,7 @@ Transform:
   - {fileID: 2258162744909179179}
   - {fileID: 5987425977111517070}
   - {fileID: 1558899566366664248}
+  - {fileID: 4628931938403750234}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &4882782807814319178

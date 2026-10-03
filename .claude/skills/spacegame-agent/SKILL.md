@@ -1,6 +1,6 @@
 ---
 name: spacegame-agent
-description: Use when adding or changing a creature, NPC, enemy, animal, turret, mount, or AI behaviour in the SpaceGame Unity repo — a new AgentController prefab, a new IBehaviourModule / IFacingModule, faction and FactionRelationshipTable wiring, TargetingProfile or AgentTargeting tuning, PerceptionModule / AlertBroadcaster / NoiseEmitter sensing, ChaseModule / FleeModule / WanderModule / CloseCombatModule / AgentRangedCombatModule composition, an AgentAnimatorDriver walk cycle that skates, NavMeshAgentMotor versus LeggedDriver movement, peaceful-until-provoked creatures, NpcTaskModule / AgentGoal errands, or NpcWorldSim caravans and creature spawning.
+description: Use when adding or changing a creature, NPC, enemy, animal, turret, mount, or AI behaviour in the SpaceGame Unity repo — a new AgentController prefab, a new IBehaviourModule / IFacingModule, faction and FactionRelationshipTable wiring, TargetingProfile or AgentTargeting tuning, PerceptionModule / AlertBroadcaster / NoiseEmitter sensing, ChaseModule / FleeModule / WanderModule / CloseCombatModule / NpcItemUseModule composition, an AgentAnimatorDriver walk cycle that skates, NavMeshAgentMotor versus LeggedDriver movement, peaceful-until-provoked creatures, NpcTaskModule / AgentGoal errands, or NpcWorldSim caravans and creature spawning.
 ---
 
 # SpaceGame agents
@@ -26,7 +26,7 @@ motors and the animator contract are in **`reference.md`** beside this file.
 ## When to use
 
 New creature / NPC / enemy / animal / turret / mountable; a new AI behaviour; tuning aggression,
-perception, factions, herds, patrol, chatter, or NPC errands; a creature that animates wrong,
+perception, factions, formations, patrol, chatter, or NPC errands; a creature that animates wrong,
 targets the wrong thing, or ignores the player.
 
 ## When NOT to use
@@ -55,14 +55,13 @@ Writing a new module is the last resort. In order:
 
 A new module is justified when it produces a genuinely new *locomotion* answer — a new reason to
 pick a destination. It is not justified for a new target rule (`TargetingProfile` +
-`AgentTargeting`), a new weapon (`AgentWeaponDefinition` / `AgentFireProfile` / `AgentAimProfile`,
-or an `InventoryItem` + `NpcItemUseModule`), or a new personality line (`ChatterModule`).
+`AgentTargeting`), a new weapon (an `InventoryItem` + `NpcItemUseModule` — the only NPC gun), or a new personality line (`ChatterModule`).
 
 ## End-to-end checklist: a new creature
 
-Reference implementation to copy: `Assets/Game/Editor/Creatures/GolemBuilder.cs`
-(`Tools/Creatures/Build Golem Prefab`). It assembles the whole stack in one place and is the
-best template for a new creature builder.
+Reference implementation to copy: a finished prefab such as `Golem.prefab`. The creature and
+nomad builders (`GolemBuilder`, `ClankerBuilder`, `NomadPrefabBuilder`…) were deleted; agent
+prefabs are authored assets now, so copy one and edit it in Prefab Mode.
 
 1. **Mesh + rig** — author the `.blend`, then export through `_exportlib` (see `docs/AI/systems/ArtPipeline.md`).
 2. **Import check (humanoid rigs only)** — confirm the generated avatar reports `isHuman = true`.
@@ -71,7 +70,7 @@ best template for a new creature builder.
 3. **Prefab** in `Assets/Game/Prefabs/agents/creatures/` (or `.../Robots/`, `.../Characters/`,
    `.../Caravan/`, `.../Vehicles/{Ground,Aircraft,Spacecraft}/`). Existing examples:
    `DuneRat.prefab`, `Golem.prefab`, `Ostrich.prefab`, `Vrescal.prefab`, `Nomad.prefab`,
-   `PatrolRobot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`).
+   `Clanker.prefab` (a borrowed third-party body).
 4. **Animator** — reuse the FBX's own `Animator`, never add a second one. Set
    `applyRootMotion = false` (the motor owns movement) and `cullingMode = AlwaysAnimate` for any
    rig built from many bone-parented renderers, or it freezes mid-stride when Unity thinks its
@@ -84,7 +83,8 @@ best template for a new creature builder.
    - Procedural legged rig: a `LeggedDriver` subclass in `Assets/Game/Scripts/Creatures/Drivers/`
      (must stay in Assembly-CSharp) plus a `LeggedLocomotion` subclass in its own
      `SpaceGame.Creatures.<Name>` asmdef. No NavMeshAgent, no `AgentAnimatorDriver`.
-   - Flyer: `FlyingRigidbodyMotor`. Vehicle: `RigidbodyMotor`.
+   - Hover craft: `HoverRigidbodyMotor` + `HoverGroundSensor`. Flyer: `OrnithopterFlightMotor`.
+     There is no plain physics ground or free-flight motor (both deleted 2026-10-02, unused).
 7. **`AgentController`** on the root; assign `MotorComponent` and `animatorDriver`.
    `AgentTargeting` and `AgentGoal` are auto-added in `Awake`. Set `nearbyAgentScanRadius` and
 8. **`EntityFaction`** — a `FactionDefinition` from
@@ -122,12 +122,13 @@ best template for a new creature builder.
     serialized default of `Fallback (0)` and ties with wander.
 11. **Perception** — `PerceptionModule` for FOV/LoS; set `occlusionLayers` explicitly.
     `AlertBroadcaster` + `AlertReceiverModule` for pack alerts; `NoiseEmitter` +
-    `NoiseReceiverModule` for hearing. **Vision must meet `VisionBaseline`** (180° cone, 80 m
-    acquire, 110 m lose, 12 s memory) or `VisionBaselineTests` fails: write
-    `VisionBaseline.MinFieldOfView` / `MinMemory` in the builder rather than a narrower literal
-    (wider is fine — prey animals use 210–220°), then run `Tools/SpaceGame/Agents/Wire Vision
-    Baseline`. A creature that deliberately sees less (a stationary boss whose range *is* its
-    trigger) goes in `VisionBaselineWiring.Exempt` with a comment saying why. Any new visibility
+    `NoiseReceiverModule` for hearing. **Vision should meet `VisionBaseline`** (180° cone, 80 m
+    acquire, 110 m lose, 12 s target memory — the memory is `AgentTargeting`'s; `PerceptionModule`
+    is stateless). The component defaults already do; never author a narrower literal (wider is
+    fine — prey animals use 210–220°). `VisionBaselineTests` and its wiring menu were deleted, so
+    nothing enforces this.
+    A creature that deliberately sees less (a stationary boss whose range *is* its trigger, like
+    `LightningConjurer`) needs a comment on the prefab saying why. Any new visibility
     raycast passes `QueryTriggerInteraction.Ignore` — the project hits triggers by default.
 12. **Animation parameters** (NavMesh creatures) — a controller in
     `Assets/Game/Art/Animations/Creatures/` carrying exactly `SpeedX`, `SpeedY`, `FallSpeed`,
@@ -141,7 +142,7 @@ best template for a new creature builder.
 13. **Streaming** — `SceneTracked` with `policy = Migrate`, `keepChunksLoaded = false` for anything
     that roams between chunks.
 14. **Persistence** — `SaveableEntity` + `TransformSaveable` + `HealthSaveable`, and
-    `AgentStateSaveable` for anything with an `AgentTargeting`. Add these **inside the builder**,
+    `AgentStateSaveable` for anything with an `AgentTargeting`. Add them on the prefab,
     then run `Tools/Save System/Wire Saveable Prefabs`. Details: **`spacegame-persistence`**.
     (`AgentController` implements `IPersistentEntity`, so every agent is save-eligible with no
     extra opt-in.)
@@ -166,9 +167,9 @@ repeatable job with its own skill: **[spacegame-tribe](../spacegame-tribe/SKILL.
   is left empty; a `runtimeOnly` template (`bountyHunters`, `tribe` set) is never seeded at startup —
   `WarPartyDirector` creates one when a tribe goes `AtWar`, and without one in `NpcWorldSim.templates`
   it logs "no war-party template" and no party ever comes.
-- **Never hand-edit a nomad's `NpcRandomLoadout.candidates`** — baked from the roster's `handItems`
-  by `NomadPrefabBuilder`; run the roster-authoring menu first, then the tribe's builder (it bakes
-  `roster.handItems` and errors without the roster).
+- **A nomad's `NpcRandomLoadout.candidates` must equal the roster's `handItems`, in order.** The
+  builder that baked it is gone, so edit both together; `RosterAssetTests` fails the moment they
+  disagree.
 - Full model, flows and gotchas: [AgentSystem.md](../../../docs/AI/systems/AgentSystem.md).
 
 ## Module quick reference
@@ -179,7 +180,7 @@ Social 15 · Ambient 10 · Personality 5 · Fallback 0`.
 | Want | Module | Priority |
 |---|---|---|
 | Roam | `WanderModule` | Fallback |
-| Waypoints / area patrol | `PatrolModule`, `BasePatrolModule` | Fallback |
+| Waypoints / area patrol | `PatrolModule` | Fallback |
 | Run an errand | `NpcTaskModule` (writes goal) + `GoalTravelModule` (walks) | Fallback / Fallback+1 |
 | Close on a target | `ChaseModule` | Reactive |
 | Investigate where it lost you | `SearchModule` | Reactive−1 |
@@ -187,10 +188,8 @@ Social 15 · Ambient 10 · Personality 5 · Fallback 0`.
 | Kite / keep its distance | `KeepDistanceModule` | Ambient |
 | Stop and stare | `WatchModule` | Ambient |
 | Melee | `CloseCombatModule` | MeleeAttack |
-| Built-in ranged weapon | `AgentRangedCombatModule` | RangedAttack |
 | Fire a real lootable item | `NpcItemUseModule` | RangedAttack (side-effect) |
 | Stationary gun | `RocketLauncherTurret` | n/a |
-| Move as a herd | `HerdModule` | Social |
 | Travel as a column | `FormationModule` | Social |
 | Peaceful until hit | `ProvocationModule` | order −40 |
 | React to allies / noise | `AlertReceiverModule`, `NoiseReceiverModule` | 19 / 18 |
@@ -199,9 +198,8 @@ Social 15 · Ambient 10 · Personality 5 · Fallback 0`.
 
 What each module requires, its exact default priority and how it behaves: **`reference.md` §3**.
 
-Assets that tune them: `Assets/Game/ScriptableObjects/Weapons/{WPN_RobotPistol, FIRE_PistolBurst,
-AIM_GruntPoor}.asset`; `Assets > Create > Agents > {Weapon Definition, Fire Profile, Aim Profile,
-Targeting Profile}`; `Assets > Create > Factions > {Faction Definition, Relationship Table}`.
+Assets that tune them: `Assets > Create > Agents > Targeting Profile`; `Assets > Create > Factions >
+{Faction Definition, Relationship Table}`. An NPC's gun is an ordinary `InventoryItem`.
 `AgentTargeting` runs on its own inline fields unless a `TargetingProfile` asset is assigned, and
 the project has leaned on the inline fields — so authoring the first profile for a creature is a
 normal, expected step, not a sign something is missing.
@@ -362,7 +360,7 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Every NPC swings its gun to follow the host's head | `Weapon.UpdateWeaponRotation` aims at `Camera.main` for the owner, and the server owns every NPC | `EntityEquipmentController` sets `Weapon.ExternallyAimed`; keep `aimHeldItem` on |
 | Agent shoots through walls, intermittently | `PerceptionModule.occlusionLayers` left at `Nothing` (it warns and falls back) | Set the mask explicitly on the prefab |
 | Remote clients see it slide with still feet | `LeggedLocomotion` was left in `NetAuthority.simulationDrivers` | Remove it — the legs must keep solving against the replicated body |
-| A rebuild silently drops hand-added components | `*Builder` scripts in `Assets/Game/Editor/` overwrite the prefab wholesale, with no warning | Put every component in the builder. `GolemBuilder` lost the Golem's `SaveableEntity` exactly this way |
+| A rebuild silently drops hand-added components | `*Builder` scripts in `Assets/Game/Editor/` overwrite the prefab wholesale, with no warning | Historical: the agent builders are deleted, so this only bites through a builder that remains (`SculptCharacterBuilder`). Put every component in that builder |
 | Loot duplicates every time the world loads | A death reaction ran during a save restore | Check `HealthComponent.IsRestoring` |
 | A spawner's group duplicates on load | Its members were also captured by the world save | `SaveableEntity.DisownToExternal()` — see `spacegame-persistence` |
 | Vehicle carrying the creature climbs into the sky | Its ground probe hit the non-kinematic rider | Skip hits whose `attachedRigidbody` is non-kinematic; layer masks do not work here (the player is on layer 0) |
@@ -373,8 +371,6 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 
 - `reference.md` (beside this file) — tick order, execution orders, verbatim interface members,
   full module catalog, motors, targeting/faction API, animator contract.
-- `Assets/Game/Editor/Creatures/GolemBuilder.cs` — the reference creature builder.
-  (documentation only; some of its paths are stale).
 - Mesh/rig: `docs/AI/systems/ArtPipeline.md`. Skills: `spacegame-persistence` (save/load),
   `spacegame-multiplayer` (netcode, network prefabs, damage replication),
   `spacegame-artifact` (items an NPC carries and fires).

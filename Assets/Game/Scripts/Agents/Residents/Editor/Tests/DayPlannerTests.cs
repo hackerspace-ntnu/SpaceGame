@@ -128,6 +128,24 @@ namespace SpaceGame.Agents.Residents.Tests
         }
 
         [Test]
+        public void UnusablePlaces_KeepTheirIndex_ButAreNeverPlannedOnto()
+        {
+            var unusable = new HashSet<int> { FirstStallSeat + 1, GateSeat + 1, FirstStroll - 1, FirstStroll, FirstStroll + 1 };
+            int count = places.Count;
+            for (int i = 0; i < places.Count; i++)
+                if (unusable.Contains(i)) places[i] = new PlannerPlace
+                {
+                    index = i, kind = places[i].kind, post = places[i].post, seatIndex = places[i].seatIndex, group = places[i].group, unusable = true,
+                };
+
+            Assert.AreEqual(count, places.Count, "indices never shift");
+            for (int day = 0; day < DaysChecked; day++)
+                foreach (DayPlan plan in Build(day))
+                    foreach (PlanSegment segment in plan.segments)
+                        Assert.IsFalse(unusable.Contains(segment.place), $"day {day}: resident {plan.residentIndex} is sent to unusable place {segment.place}");
+        }
+
+        [Test]
         public void NightMannedPost_KeepsExactlyOneWorker_PastMidnight()
         {
             float midnight = (Today + 1) * DayPlanner.MinutesPerDay;

@@ -1864,7 +1864,6 @@ GameObject:
   - component: {fileID: -4244852887374678602}
   - component: {fileID: -8297502453129977536}
   - component: {fileID: -2693002005226936299}
-  - component: {fileID: 7347466173401920014}
   - component: {fileID: 1130197159606820640}
   - component: {fileID: 1218396433429960017}
   - component: {fileID: 3381308782824985567}
@@ -2007,6 +2006,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 0}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.5555556
@@ -2891,18 +2899,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &7347466173401920014
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6320590716706008551}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &1130197159606820640
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3117,6 +3113,10 @@ MonoBehaviour:
   stopDistanceMargin: 0.5
   holdReleaseMargin: 2
   holdLookAhead: 2
+  alignStopDistance: 0.02
+  alignSpeedMultiplier: 0.5
+  alignReleaseMargin: 0.3
+  alignGiveUpSeconds: 4
 --- !u!114 &1149573738063401537
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3139,7 +3139,10 @@ MonoBehaviour:
   offstageAfterSeconds: 10
   settleDistance: 30
   doorstepDistance: 2
+  deckReach: 3
   approachStandOff: 8
+  thresholdArriveRadius: 0.5
+  thresholdStepMin: 0.7
 --- !u!114 &5145140951906469967
 MonoBehaviour:
   m_ObjectHideFlags: 0

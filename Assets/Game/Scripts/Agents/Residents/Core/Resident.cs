@@ -212,12 +212,6 @@ namespace SpaceGame.Agents.Residents
             OverrideUntil = Time.time + seconds;
         }
 
-        public void ClearOverride()
-        {
-            overrideKind = OverrideKind.None;
-            OverrideUntil = 0f;
-        }
-
         /// <summary>Server: home to its door for <paramref name="seconds"/>. A scripted override is never displaced.</summary>
         public void Shelter(float seconds)
         {

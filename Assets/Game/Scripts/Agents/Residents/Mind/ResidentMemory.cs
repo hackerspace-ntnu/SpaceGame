@@ -31,14 +31,6 @@ namespace SpaceGame.Agents.Residents
             public bool heard;
         }
 
-        /// <summary>A death this resident has heard of, and the dawn it learned of it.</summary>
-        [Serializable]
-        public struct KnownDeath
-        {
-            public int victim;
-            public int day;
-        }
-
         [Serializable]
         public class Acquaintance
         {
@@ -62,17 +54,14 @@ namespace SpaceGame.Agents.Residents
             public List<Acquaintance> acquaintances = new();
             public List<Standing> favor = new();
             public List<Deed> deeds = new();
-            public List<KnownDeath> knownDeaths = new();
         }
 
         private readonly Dictionary<string, Acquaintance> acquaintances = new();
         private readonly Dictionary<string, float> favor = new();
         private readonly List<Deed> deeds = new();
-        private readonly List<KnownDeath> knownDeaths = new();
         private readonly List<(string profile, float time)> hitsSeen = new();
 
         public IReadOnlyList<Deed> Deeds => deeds;
-        public IReadOnlyList<KnownDeath> KnownDeaths => knownDeaths;
         public IReadOnlyDictionary<string, float> FavorByProfile => favor;
 
         public float Familiarity(string profile) =>
@@ -139,13 +128,6 @@ namespace SpaceGame.Agents.Residents
 
         private static bool IsKinHarm(ActKind act) => act is ActKind.HarmedKin or ActKind.KilledKin;
 
-        public void LearnDeath(int victim, int day)
-        {
-            if (!KnowsDeath(victim)) knownDeaths.Add(new KnownDeath { victim = victim, day = day });
-        }
-
-        public bool KnowsDeath(int victim) => knownDeaths.Exists(d => d.victim == victim);
-
         /// <summary>A hit this resident just saw (runtime only, see header).</summary>
         public void SawHit(string profile, float time)
         {
@@ -170,7 +152,6 @@ namespace SpaceGame.Agents.Residents
             foreach (var standing in favor)
                 state.favor.Add(new Standing { profile = standing.Key, favor = standing.Value });
             state.deeds.AddRange(deeds);
-            state.knownDeaths.AddRange(knownDeaths);
             return state;
         }
 
@@ -180,7 +161,6 @@ namespace SpaceGame.Agents.Residents
             acquaintances.Clear();
             favor.Clear();
             deeds.Clear();
-            knownDeaths.Clear();
             hitsSeen.Clear();
             if (s == null) return;
 
@@ -191,7 +171,6 @@ namespace SpaceGame.Agents.Residents
                 foreach (Standing standing in s.favor)
                     if (standing.profile != null) favor[standing.profile] = standing.favor;
             if (s.deeds != null) deeds.AddRange(s.deeds);
-            if (s.knownDeaths != null) knownDeaths.AddRange(s.knownDeaths);
         }
 
         /// <summary>The save profile bound to this player (or the player it is a child of), or null when unknown.</summary>

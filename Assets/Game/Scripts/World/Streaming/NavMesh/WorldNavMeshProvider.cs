@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -19,6 +20,7 @@ namespace SpaceGame.World
         [SerializeField] private WorldNavMeshAsset worldNavMesh;
 
         private NavMeshDataInstance instance;
+        private readonly List<NavMeshLinkInstance> links = new();
 
         /// <summary>True once the baked mesh is live. False means nothing can path.</summary>
         public bool IsActive => instance.valid;
@@ -52,13 +54,18 @@ namespace SpaceGame.World
                 return;
             }
 
+            worldNavMesh.AddAutoLinks(links);
+
             Debug.Log($"[WorldNavMeshProvider] world NavMesh live " +
                       $"({worldNavMesh.sourceCount} sources, baked {worldNavMesh.bakedAtUtc}, " +
-                      $"voxel {worldNavMesh.settings.voxelSize:0.###} m)");
+                      $"voxel {worldNavMesh.settings.voxelSize:0.###} m, {links.Count} auto links)");
         }
 
         private void OnDisable()
         {
+            foreach (var link in links) UnityEngine.AI.NavMesh.RemoveLink(link);
+            links.Clear();
+
             if (instance.valid) instance.Remove();
             instance = default;
         }

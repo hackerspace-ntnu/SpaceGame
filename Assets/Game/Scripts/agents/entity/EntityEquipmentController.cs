@@ -47,14 +47,6 @@ namespace SpaceGame.Agents
         [Tooltip("Which inventory slot to hold at spawn. -1 to start empty-handed.")]
         [SerializeField] private int startingSlot = 0;
 
-        [Header("Auto-use")]
-        [Tooltip("Fire the held item on a fixed timer regardless of target. Legacy behaviour, kept " +
-                 "for prefabs that relied on it — prefer NpcItemUseModule, which fires when there " +
-                 "is something to fire AT.")]
-        [SerializeField] private bool autoUse = false;
-
-        [SerializeField] private float autoUseInterval = 1f;
-
         [Header("Aiming")]
         [Tooltip("Point the held object at whatever it is being used on. Turn off for items held in " +
                  "a fixed pose by an animation.")]
@@ -77,7 +69,6 @@ namespace SpaceGame.Agents
         private GameObject equippedObject;
         private UsableItem equippedUsable;
         private int equippedSlotIndex = -1;
-        private float autoUseTimer;
 
         private bool hasAimPoint;
         private Vector3 aimPoint;
@@ -199,7 +190,6 @@ namespace SpaceGame.Agents
         // meaningless in a file anyway.
         private bool equipmentRestored;
 
-        public float AutoUseTimer => autoUseTimer;
         public bool HasAimPoint => hasAimPoint;
         public Vector3 AimPoint => aimPoint;
 
@@ -211,14 +201,12 @@ namespace SpaceGame.Agents
         /// inventory's saver happen to run in. <see cref="EquipSlot"/> returns early when the slot
         /// asked for is already in hand, so the second call costs nothing and re-spawns nothing.
         /// </summary>
-        public void RestoreEquipment(int slotIndex, float autoTimer, bool aiming, Vector3 aimAt)
+        public void RestoreEquipment(int slotIndex, bool aiming, Vector3 aimAt)
         {
             equipmentRestored = true;
 
             if (slotIndex < 0) Unequip();
             else EquipSlot(slotIndex);
-
-            autoUseTimer = autoTimer;
 
             // After the equip, never before: Unequip clears the aim, so an aim written first would
             // be thrown away on the empty-handed path.
@@ -242,18 +230,6 @@ namespace SpaceGame.Agents
         {
             if (entityInventory)
                 entityInventory.OnSlotChanged -= OnInventorySlotChanged;
-        }
-
-        private void Update()
-        {
-            if (!autoUse || equippedUsable == null)
-                return;
-
-            autoUseTimer -= Time.deltaTime;
-            if (autoUseTimer > 0f) return;
-
-            autoUseTimer = autoUseInterval;
-            TryUseForward();
         }
 
         // Aim in LateUpdate, not Update. The held item is parented to a hand bone, and the Animator
@@ -396,7 +372,7 @@ namespace SpaceGame.Agents
 
             // NetAuthority already switches an NPC's AgentController off on machines that do not
             // simulate it, so in practice this is belt and braces — but the use path is also
-            // reachable from UnityEvents and from autoUse, and "the effect only happens once" has
+            // reachable from UnityEvents, and "the effect only happens once" has
             // to hold on every route in.
             if (!Network.Simulates(this)) return false;
 
@@ -495,7 +471,6 @@ namespace SpaceGame.Agents
 
         private void OnValidate()
         {
-            autoUseInterval = Mathf.Max(0.05f, autoUseInterval);
             aimTurnSpeed = Mathf.Max(0f, aimTurnSpeed);
             eyeHeight = Mathf.Max(0f, eyeHeight);
             holdScaleMultiplier = Mathf.Max(0.01f, holdScaleMultiplier);

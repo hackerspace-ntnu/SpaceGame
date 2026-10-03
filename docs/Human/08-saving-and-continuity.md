@@ -47,7 +47,7 @@ own suit colour, their own position, their own health. The world half of the sav
 around the player half — it is not allowed to capture players, because they are not world objects.
 
 **Session-wide state.** A handful of things that belong to the world as a whole rather than to any
-object in it: the time of day, the current weather, the map you have uncovered, herd bookkeeping,
+object in it: the time of day, the current weather, the map you have uncovered,
 active ropes, story-run state. These register themselves as global savers and get their own section
 of the file.
 

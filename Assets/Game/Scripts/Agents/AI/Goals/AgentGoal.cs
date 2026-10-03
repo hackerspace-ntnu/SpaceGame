@@ -82,7 +82,20 @@ namespace SpaceGame.Agents
         public static float ArrivalRadius(float arriveRadius, bool hold) =>
             hold ? arriveRadius + HoldArriveSlack : arriveRadius;
 
-        public bool HasArrived => HasGoal && DistanceToGoal <= ArrivalRadius(ArriveRadius, HoldOnArrival);
+        /// <summary>
+        /// A holding goal that must end ON its point, not merely near it — a seat, an anvil, a counter.
+        /// <see cref="GoalTravelModule"/> finishes the walk with a short precise approach, and the goal
+        /// counts as arrived only within <see cref="ExactArrivalRadius"/>.
+        /// </summary>
+        public bool ExactStand { get; private set; }
+
+        /// <summary>How close counts as arrived for an <see cref="ExactStand"/> goal: the last step is under way, the pose may start.</summary>
+        public const float ExactArrivalRadius = 0.5f;
+
+        /// <summary>How close the precise approach brings an <see cref="ExactStand"/> body to its point.</summary>
+        public const float AlignedWithin = 0.15f;
+
+        public bool HasArrived => HasGoal && DistanceToGoal <= (ExactStand ? ExactArrivalRadius : ArrivalRadius(ArriveRadius, HoldOnArrival));
 
         /// <summary>
         /// Send this agent somewhere.
@@ -101,6 +114,7 @@ namespace SpaceGame.Agents
             SiteId = siteId ?? string.Empty;
             SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier);
             HoldOnArrival = false;
+            ExactStand = false;
             FacePoint = null;
             HasGoal = true;
         }
@@ -110,13 +124,15 @@ namespace SpaceGame.Agents
         /// <paramref name="hold"/> and the point to face there (<paramref name="facePoint"/>, null
         /// to keep the arrival heading). Always true — the position is taken as given — and bool
         /// so it reads the same as <see cref="TrySetSampled(Vector3, float, string, bool, Vector3?, float)"/>
-        /// at a call site that chooses between them.
+        /// at a call site that chooses between them. <paramref name="exactStand"/> asks for the body to
+        /// end on the point (<see cref="ExactStand"/>); the point must already be on the NavMesh.
         /// </summary>
         public bool Set(Vector3 position, float arriveRadius, string reason, bool hold, Vector3? facePoint,
-                        float speedMultiplier = 1f)
+                        float speedMultiplier = 1f, bool exactStand = false)
         {
             Set(position, arriveRadius, reason, null, speedMultiplier);
             HoldOnArrival = hold;
+            ExactStand = hold && exactStand;
             FacePoint = facePoint;
             return true;
         }
@@ -160,6 +176,7 @@ namespace SpaceGame.Agents
             SiteId = string.Empty;
             SpeedMultiplier = 1f;
             HoldOnArrival = false;
+            ExactStand = false;
             FacePoint = null;
         }
 
@@ -187,6 +204,7 @@ namespace SpaceGame.Agents
             SiteId = siteId ?? string.Empty;
             SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier);
             HoldOnArrival = hold;
+            ExactStand = false;
             FacePoint = facePoint;
             HasGoal = true;
         }

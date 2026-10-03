@@ -45,6 +45,7 @@ namespace SpaceGame.World
         private SettlementProps props;
 
         private const string GeneratedRootName = "Generated";
+        private const string LivestockRootName = "Livestock";
         private static readonly Vector2 DefaultFootprint = new Vector2(8f, 8f);
         // Tries per item before it is given up on; every miss is reported by Generate.
         private const int PlacementAttempts = 30;
@@ -175,7 +176,8 @@ namespace SpaceGame.World
         private struct Population
         {
             public int placed, movingIn, wanted, beds, specials;
-            public List<string> problems;
+            public int stock, stockWanted;
+            public List<string> problems, penProblems;
         }
 
         /// <summary>
@@ -186,7 +188,7 @@ namespace SpaceGame.World
         private Population Populate(Transform root, Transform parent, List<GameObject> pool, ref SettlementPlacementUtil.SeededRng rng)
         {
             var dwellings = new List<Dwelling>(root.GetComponentsInChildren<Dwelling>());
-            var population = new Population { problems = new List<string>() };
+            var population = new Population { problems = new List<string>(), penProblems = new List<string>() };
             foreach (Dwelling dwelling in dwellings) population.beds += dwelling.Beds;
 
             var newcomers = new List<(GameObject prefab, ResidentArchetype archetype, bool special)>();
@@ -200,8 +202,9 @@ namespace SpaceGame.World
             population.movingIn = newcomers.Count;
             population.wanted = population.beds > 0 ? Mathf.Max(population.beds, population.specials) : newcomers.Count;
 
+            var pens = new List<SettlementPen>(root.GetComponentsInChildren<SettlementPen>());
             bool hasPlaces = dwellings.Count > 0 || root.GetComponentInChildren<SettlementSpot>() != null;
-            if (newcomers.Count == 0 && !hasPlaces) return population;
+            if (newcomers.Count == 0 && !hasPlaces && pens.Count == 0) return population;
 
             using SettlementWalkableArea walkable = SettlementWalkableArea.Bake(transform.position, generatedExtent, this);
             if (walkable == null) return population;   // Bake has logged why.
@@ -218,7 +221,61 @@ namespace SpaceGame.World
             List<ResidentAssignment.Newcomer> placed = PlaceCharacters(newcomers, parent, walkable, ref rng);
             population.placed = placed.Count;
             if (HasResidents) ResidentAssignment.Assign(this, Culture, placed, dwellings);
+            StockPens(pens, root, walkable, ref population);
             return population;
+        }
+
+        /// <summary>
+        /// Fills every pen with its stock, after the residents so theirs are untouched, each pen from a seed of its
+        /// own position. A pen the stock could walk out of while its gate is shut is reported, since the animals would
+        /// not stay in it.
+        /// </summary>
+        private void StockPens(List<SettlementPen> pens, Transform root, SettlementWalkableArea walkable, ref Population population)
+        {
+            if (pens.Count == 0) return;
+
+            Transform livestockRoot = new GameObject(LivestockRootName).transform;
+            livestockRoot.SetParent(root, worldPositionStays: false);
+            foreach (SettlementPen pen in pens)
+            {
+                if (pen.StockPrefab == null)
+                {
+                    population.penProblems.Add(pen.name + " has no stock prefab");
+                    continue;
+                }
+
+                SettlementWalkableArea.Patch floor = walkable.PatchWithin(pen.WorldBounds);
+                if (floor.IsEmpty)
+                {
+                    population.penProblems.Add(pen.name + " has no walkable ground inside its box");
+                    continue;
+                }
+
+                var rng = new SettlementPlacementUtil.SeededRng(Seed ^ SettlementPlacementUtil.SeedFromPosition(pen.transform.position));
+                List<Vector3> points = pen.PlanStock(ref rng, floor.Sample, out int wanted);
+                population.stockWanted += wanted;
+                population.stock += points.Count;
+                if (points.Count < wanted)
+                    population.penProblems.Add(pen.name + " fits " + points.Count + "/" + wanted + " animals");
+
+                foreach (Vector3 point in points)
+                {
+                    Quaternion facing = Quaternion.Euler(0f, rng.NextFloat01() * 360f, 0f);
+                    SettlementPlacementUtil.SpawnPrefab(pen.StockPrefab, livestockRoot, point, facing);
+                }
+
+                if (points.Count > 0 && CanWalkOut(points[0]))
+                    population.penProblems.Add(pen.name + " is not closed: stock can walk out with the gate shut" +
+                                               (pen.Gate == null ? " (and no gate is assigned)" : ""));
+            }
+        }
+
+        // Whether a complete path leads from inside a pen to the settlement's walkable heart.
+        private bool CanWalkOut(Vector3 from)
+        {
+            var path = new UnityEngine.AI.NavMeshPath();
+            return UnityEngine.AI.NavMesh.CalculatePath(from, walkableHeart, UnityEngine.AI.NavMesh.AllAreas, path) &&
+                   path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete;
         }
 
         private static void Shuffle(List<GameObject> list, ref SettlementPlacementUtil.SeededRng rng)
@@ -497,14 +554,16 @@ namespace SpaceGame.World
             string people = population.beds > 0
                 ? $"{characters}/{charactersWanted} characters in {population.beds} beds ({population.specials} special)"
                 : $"{characters}/{charactersWanted} characters (no dwellings: they sleep in the open)";
+            string livestock = population.stockWanted > 0 ? $", {population.stock}/{population.stockWanted} penned animals" : "";
             string summary = $"[{GetType().Name}] Generated {buildings}/{buildingsWanted} buildings, " +
-                             $"{decorations}/{decorationsWanted} decorations, {people}" +
+                             $"{decorations}/{decorationsWanted} decorations, {people}{livestock}" +
                              (HasResidents ? " as residents" : " as plain NPCs (no culture)") +
                              $" over {generatedExtent:0.#} m under {root.name}" +
                              (layout.summary.Length > 0 ? $"; {layout.summary}." : ".");
 
             if (buildings == buildingsWanted && decorations == decorationsWanted && characters == charactersWanted &&
-                layout.streetsEndingAtWalls == 0 && layout.wallsTooTall == 0 && population.problems.Count == 0)
+                layout.streetsEndingAtWalls == 0 && layout.wallsTooTall == 0 && population.problems.Count == 0 &&
+                population.penProblems.Count == 0)
             {
                 Debug.Log(summary, root);
                 return;
@@ -518,6 +577,7 @@ namespace SpaceGame.World
                              (decorations < decorationsWanted ? " Missing decorations found no free ground -- raise outskirts or lower decorationSpacing." : "") +
                              (characters < charactersWanted ? MissingCharacters(population) : "") +
                              (population.problems.Count > 0 ? $" {population.problems.Count} place(s) residents cannot use: {string.Join("; ", population.problems)}." : "") +
+                             (population.penProblems.Count > 0 ? $" Pen problem(s): {string.Join("; ", population.penProblems)}." : "") +
                              (layout.streetsEndingAtWalls > 0 ? $" {layout.streetsEndingAtWalls} street(s) run into another on a different terrace and end at its wall -- too steep to step down in time; raise contourBias so streets follow the slope." : "") +
                              (layout.wallsTooTall > 0 ? $" {layout.wallsTooTall} terrace wall(s) need more than maxWallCourses courses and hang short of the ground in front -- raise maxWallCourses (with a pillar deep enough) or lower wallReach." : ""),
                              root);
@@ -544,7 +604,7 @@ namespace SpaceGame.World
             return new Vector2(r.x, r.z);
         }
 
-        private static bool IsCloserThan(Vector3 point, List<Vector3> others, float distance)
+        internal static bool IsCloserThan(Vector3 point, List<Vector3> others, float distance)
         {
             float sqr = distance * distance;
             foreach (var other in others)

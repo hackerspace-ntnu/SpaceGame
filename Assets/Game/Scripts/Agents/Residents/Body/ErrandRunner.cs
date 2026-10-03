@@ -329,8 +329,8 @@ namespace SpaceGame.Agents.Residents
             strolls.Clear();
             for (int i = 0; i < society.PlaceCount; i++)
             {
-                PlaceKind kind = society.Place(i).Kind;
-                if (kind is PlaceKind.Stroll or PlaceKind.Hearth) strolls.Add(i);
+                SettlementPlace place = society.Place(i);
+                if (place.Kind is PlaceKind.Stroll or PlaceKind.Hearth && place.Usable) strolls.Add(i);
             }
             lastSpot = segment.place;
             queue.Enqueue(Spot(society, segment.place, Activity.Amble, AmbleStay(), 0));

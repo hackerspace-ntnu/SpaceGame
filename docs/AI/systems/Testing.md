@@ -90,13 +90,22 @@ Two-process client verification (the only real proof of client-side netcode):
 
 ```
 # menu: Tools ▸ Tests ▸ Build Multiplayer Test Player   (builds ../Build/MPTest/SpaceGameMP.app,
-#       3 scenes only: Bootstrap, MainMenu, world/persistentScene)
+#       Bootstrap, MainMenu, world/persistentScene and 11 chunk scenes: the settlement's Chunk_6_3 with its
+#       neighbours, and the chunks around the spawn in Chunk_7_5)
 # menu: Tools ▸ Tests ▸ Print Multiplayer Test Commands  → prints the exact paths + expected values
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode host   -logFile /tmp/mp_host.log &
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode client -logFile /tmp/mp_client.log &
 grep '\[MPTEST\]' /tmp/mp_host.log /tmp/mp_client.log
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode persist -logFile /tmp/mp_persist.log
+# the nomad settlement: host and client, then one process through a save and reload
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode settlement-host   -logFile /tmp/mp_settlement_host.log &
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode settlement-client -logFile /tmp/mp_settlement_client.log &
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode settlement-persist -logFile /tmp/mp_settlement_persist.log
 ```
+
+The player's executable is `SpaceGame` inside `SpaceGameMP.app/Contents/MacOS` (the product name), not `SpaceGameMP` as the older command lines above say. A player build compiles every script itself and refuses with "Type ... has an extra field ... can't be serialized" while another session is half-way through changing a serialized type: wait and rebuild.
+
+The settlement modes (`AutotestRunner.Settlement.cs`) put the host's player in the settlement, because no chunk loads unless somebody stands near it, and count with `AutotestProbes.TakeSettlementCensus`: residents (and how many are hidden indoors, hold a place, stand within 0.15 m of its stand point, climb), penned stock and how much of it is still inside a pen, gates and how many are open. The client never leaves the spawn and must count the same as the host (`CLIENT_RESIDENTS == HOST_RESIDENTS`, `CLIENT_STOCK == HOST_STOCK`) and see the gate the host opened (`CLIENT_GATE_OPEN_SEEN=True`). `settlement-persist` opens a gate, saves, reloads the world and counts again: every `PERSIST_AFTER_LOAD_*` must equal its `PERSIST_BEFORE_SAVE_*`.
 
 Assert across **both** logs: `HOST_CLIENTS=2`, `CLIENT_SPAWNED > 0`, `CLIENT_PLAYER_OBJECT=True`, `CLIENT_SUPPRESSED == CLIENT_AUTHORITIES`, `CLIENT_HEALTH_SEEN == HOST_HEALTH_AFTER`, `HOST_RELAY_FROM_CLIENT=1`, and for the ship's terminal (`AutotestRunner.Terminal.cs`, see [Terminal.md](Terminal.md)) `CLIENT_TERMINAL_PAGE_SEEN == HOST_TERMINAL_PAGE == 2`, `HOST_TERMINAL_OCCUPIED=True` then `HOST_TERMINAL_RELEASED=True`. `persist` mode runs alone and checks save/quit/load (`PERSIST_CHARGES_AFTER_LOAD`, …). Extend [`AutotestRunner.Client.cs`](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.Client.cs) with a `Report(key, value)` rather than building a second harness. To *play* a build against the Editor: `open "<app>" --args -sgprofile client` (without it both sign in as the same anonymous PlayerId and the lobby 409s).
 

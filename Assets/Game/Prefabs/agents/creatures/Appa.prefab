@@ -1183,7 +1183,6 @@ GameObject:
   - component: {fileID: 654943325188579372}
   - component: {fileID: 3444045512262196456}
   - component: {fileID: 793474898898371839}
-  - component: {fileID: 6649306442298976506}
   - component: {fileID: -6397166421080860470}
   - component: {fileID: 1088542894018530148}
   - component: {fileID: 7456712760989411983}
@@ -1328,6 +1327,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 7084194288932562823}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.22
@@ -1379,10 +1387,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 7843071756584652452}
   animatorDriver: {fileID: 3277286897550678054}
-  nearbyAgentScanRadius: 0
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &6553399679354332377
@@ -1516,6 +1520,7 @@ MonoBehaviour:
   sampleDistance: 6
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 5
   maxWaitTime: 16
   stopDistance: 0.2
@@ -1562,7 +1567,10 @@ MonoBehaviour:
   knockbackLeapDuration: 0.6
   knockbackMassReference: 80
   knockbackMassScale: {x: 0.4, y: 2.5}
+  attackCue: {fileID: 0}
+  attackAction: {fileID: 0}
   attackAnimTrigger: Ram
+  contactGrace: 0.25
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
@@ -1682,6 +1690,8 @@ MonoBehaviour:
     trespassGainPerSecond: 10
     calmRate: 10
     attackAt: 100
+    jostlesToFight: 0
+    settleSeconds: 0
   drawGizmos: 1
 --- !u!114 &775580657554504541
 MonoBehaviour:
@@ -2049,18 +2059,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &6649306442298976506
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3092591699166706021}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &-6397166421080860470
 MonoBehaviour:
   m_ObjectHideFlags: 0

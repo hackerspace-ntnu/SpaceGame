@@ -1,5 +1,5 @@
-// Where each prop of one generated building is, as one short per prop: the settlement rest it stands at, in
-// somebody's hands, or taken for good. The server decides (errands, a player taking one) and every machine
+// Where each prop of one generated building is, as one short per prop: the settlement rest it stands at, or
+// in somebody's hands. The server decides (errands) and every machine
 // shows it from the list, so a late joiner gets the current picture with the spawn and nothing is animated.
 //
 // Lives on the networked wrapper Settlement.Generate puts round a building that has props or gates — a loose
@@ -9,8 +9,6 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
-using SpaceGame.Gameplay;
-using SpaceGame.Items;
 using SpaceGame.Persistence;
 using Unity.Netcode;
 using UnityEngine;
@@ -21,6 +19,8 @@ namespace SpaceGame.World
     public sealed class SettlementPropSync : NetworkBehaviour, IPersistentEntity, ISaveable
     {
         public const short Carried = -1;
+        // Written by saves from before players stopped being able to take props: that prop is gone for good, and stays
+        // gone. Nothing writes it any more; it is read back as "not at any rest", like Carried.
         public const short Taken = -2;
         public const string Key = "props";       // written into save files — NEVER rename
 
@@ -91,50 +91,6 @@ namespace SpaceGame.World
             decided[i] = state;
             if (IsSpawned && IsServer) states[i] = state;
             Show(i);
-        }
-
-        // ── a player takes one ───────────────────────────────────────────────────────────────────
-
-        public void RequestTake(SettlementProp prop, Interactor interactor)
-        {
-            int i = System.Array.IndexOf(EnsureProps(), prop);
-            if (i < 0) return;
-
-            Network.Execute(
-                local: () => Take(i, interactor),
-                client: () =>
-                {
-                    NetworkObject body = interactor.GetComponentInParent<NetworkObject>();
-                    if (body == null)
-                    {
-                        Debug.LogError($"[SettlementProps] '{interactor.name}' is not part of a NetworkObject, so the server " +
-                                       "cannot be told who is taking this.", interactor);
-                        return;
-                    }
-                    TakeServerRpc(i, body);
-                });
-        }
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void TakeServerRpc(int index, NetworkObjectReference takerRef)
-        {
-            if (!takerRef.TryGet(out NetworkObject taker)) return;
-            Interactor interactor = taker.GetComponentInChildren<Interactor>(true);
-            if (interactor != null) Take(index, interactor);
-        }
-
-        // One prop, one taker: it must still be resting somewhere, so a second press on the same frame gets nothing.
-        private void Take(int index, Interactor interactor)
-        {
-            EnsureDecided();
-            if (index < 0 || index >= props.Length || decided[index] < 0) return;
-
-            SettlementProp prop = props[index];
-            IPlayerInventory inventory = interactor.GetComponentInParent<IPlayerInventory>();
-            if (inventory == null || prop.Item == null || !inventory.TryAddItem(prop.Item, out _)) return;
-
-            Registry?.Forget(prop);
-            Set(prop, Taken);
         }
 
         // ── persistence ──────────────────────────────────────────────────────────────────────────

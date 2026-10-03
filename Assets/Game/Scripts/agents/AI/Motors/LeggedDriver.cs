@@ -28,6 +28,7 @@
 //
 // Runs at 50: after AgentController (0), so a MoveIntent or a rider's input lands before the twist
 // for that frame is computed, and before LeggedLocomotion (100), which consumes it.
+using SpaceGame.Gameplay;
 using SpaceGame.Locomotion;
 using UnityEngine;
 using UnityEngine.AI;
@@ -323,13 +324,6 @@ namespace SpaceGame.Agents
             if (locomotion != null) locomotion.SetTwist(0f, 0f);
         }
 
-        public void NudgeDestination(Vector3 offset)
-        {
-            if (destination.HasValue) destination = destination.Value + offset;
-        }
-
-        public void SuggestDestination(Vector3 position) => destination = position;
-
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
         // What is worth a record here is the standing ORDER and the machine's momentum, and nothing
@@ -482,7 +476,9 @@ namespace SpaceGame.Agents
             if (!TrySampleNavMesh(transform.position, out Vector3 from)) return false;
             if (!TrySampleNavMesh(target, out Vector3 to)) return false;
 
-            if (!NavMesh.CalculatePath(from, to, NavMesh.AllAreas, navPath)) return false;
+            // Ground only: the legs follow corners in straight lines and cannot cross a ladder or a
+            // jump link, so a route planned over one would walk them into the foot of it.
+            if (!NavMesh.CalculatePath(from, to, NavLinkAreas.GroundMask, navPath)) return false;
             // A partial path is kept: it is the best route toward a destination the mesh cannot fully
             // reach, and the repath timer will pick up the rest once the streamer bakes it.
             if (navPath.status == NavMeshPathStatus.PathInvalid) return false;

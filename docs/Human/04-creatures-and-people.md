@@ -4,7 +4,7 @@ Everything alive in this world — a nomad walking to a market stall, a robot pa
 
 ## A mind is a stack of small opinions
 
-Every creature carries a set of **behaviour modules**. Wander. Patrol. Flee. Chase. Keep distance. Take cover. Investigate a noise. Stay with the herd. Each one is small and does exactly one thing.
+Every creature carries a set of **behaviour modules**. Wander. Patrol. Flee. Chase. Keep distance. Investigate a noise. Walk in formation. Each one is small and does exactly one thing.
 
 Once per frame the creature asks each module, in priority order: *do you want this frame?* A module either answers with a movement intention — go here, or stop and face that — or it declines and passes. **The first module that wants the frame wins**, and everything below it is not consulted at all.
 
@@ -12,9 +12,9 @@ The priorities are a fixed ladder, and knowing the numbers makes the behaviour o
 
 - **Scripted (100)** — a cutscene or a designer is driving. Beats everything.
 - **Override (30)** — flee. Running away outranks fighting on purpose.
-- **Melee attack (23)** and **ranged attack (22)** — the attack modules, melee slightly above ranged.
-- **Reactive (20)** — chase a target, take cover, investigate where a noise came from.
-- **Social (15)** — flocking, herding, walking in formation behind a leader.
+- **Melee attack (23)** and **ranged attack (22)** — melee, and firing a held item, melee slightly above ranged.
+- **Reactive (20)** — chase a target, investigate where a noise came from.
+- **Social (15)** — walking in formation behind a leader.
 - **Ambient (10)** — approach someone to talk, back off to a comfortable distance.
 - **Personality (5)** — idle chatter.
 - **Fallback (0)** — wander, patrol. What a creature does when nothing else is happening.
@@ -60,27 +60,24 @@ The other silent failure is the opposite: **a creature with no faction at all is
 
 ## Fighting
 
-Melee and ranged combat are two behaviour modules, and they are opinionated about more than just the swing.
+Melee and firing a held item are two behaviour modules, and they are opinionated about more than just the swing.
 
-The ranged module owns the **whole engagement**, not just the trigger. It backs off to a preferred range, strafes, and keeps facing the target through the separate facing channel while it does. It does not simply stand where the chase module left it and shoot.
+Attack modules use **hysteresis**: the range at which they let go is deliberately wider than the range at which they engage, and a melee swing commits for a fixed duration once started. Without that, a creature standing exactly on the range boundary flips between "chase" and "attack" every single frame and stutters in place. Anything attack-shaped that is added later needs the same treatment.
 
-Both attack modules use **hysteresis**: the range at which they let go is deliberately wider than the range at which they engage, and a melee swing commits for a fixed duration once started. Without that, a creature standing exactly on the range boundary flips between "chase" and "attack" every single frame and stutters in place. Anything attack-shaped that is added later needs the same treatment.
-
-NPC weapons come in two flavours. Some creatures carry a built-in weapon tuned by three small data assets — one for damage and the projectile, one for range and cadence and burst length, one for spread and how far it leads a moving target. Others hold **the same items the player holds** and fire them through the same code path, which is how an NPC can be given a real gun off the shelf.
+An NPC with a gun holds **the same item the player holds** and fires it through the same code path, which is how an NPC is given a real gun off the shelf. There used to be a second, built-in kind of NPC weapon tuned by its own data assets; only a family of patrol robots used it, and it went with them.
 
 Attacks replicate as **presentation only**. The machine driving the creature decides the shot and applies the damage; every other machine receives a small message saying "this creature just attacked, from here, in this direction" and draws its own tracer and impact. If the damage travelled too, the target would be billed once per player in the session.
 
 There are also **turrets** — stationary guns that resolve their own targets rather than being handed one, including a multi-slot weapon rig that can show a different model per weapon.
 
-Socially, creatures can flock (separation, alignment, cohesion), **herd** — where one animal's decision is rebroadcast to everyone sharing a herd id, so a group turns as one — or walk in a **formation** column behind a leader. All three sit at the same priority, above ambient behaviour and below anything reactive.
+Socially, creatures walk in a **formation** column behind a leader, above ambient behaviour and below anything reactive. Flocking and herding (one animal's decision rebroadcast so a group turns as one) both existed once and were removed for having no creature that used them.
 
 ## Getting around
 
 Underneath all the decision-making, something has to actually move the body, and there are several kinds of mover:
 
 - **NavMesh walkers** — the majority. A standard navigation agent following a path.
-- **Physics ground vehicles** and **hovercraft**.
-- **Free-flying** things that move in three dimensions, paired with an air-roaming behaviour.
+- **Hovercraft**, which ride a cushion of height over the ground.
 - The **ornithopter**, which flies on an energy model of its own.
 - **Legged machines**, which have no navigation agent at all and own their own body — see the next section.
 
@@ -92,7 +89,7 @@ The bake is more permissive than Unity's defaults: creatures will path up **60°
 
 Three things about it are worth knowing as a designer:
 
-**There are no off-mesh links anywhere in the game.** Not one. Creatures cannot cross a gap by navigating across it. Every jump and leap in the game is a piece of movement code simulating an arc, never a navigation feature. If you design a space with a chasm in it, the pathfinder will simply route around it or fail.
+**Gaps and ladders are crossed by links.** The world bake adds jump links between islands of ground that are close together (a gap, a drop), and every ladder registers a link from its foot to its top. A creature or person that reaches the start of a link stops, then leaps across or climbs, by movement code that takes over its body for the crossing, and carries on. A chasm too wide for a link is still routed around, or fails. Creatures that cannot climb can be told to ignore ladders; walkers with legs ignore links altogether.
 
 **A stale bake fails quietly in the editor.** Nothing checks freshness at runtime; edit the terrain and NPCs will happily navigate a world that no longer exists. There is a menu command to check, and the player build refuses to complete when the bake is out of date, but in the editor you get no warning at all.
 
@@ -203,6 +200,6 @@ Idle chatter is a small behaviour that speaks the NPC's *current task* out loud 
 - `docs/AI/systems/AgentSystem.md` — behaviour modules and priorities, targeting, factions, perception, noise, the module roster, NPC tasks and caravans.
 - `docs/AI/systems/Locomotion.md` — the procedural legged system: the four policies, rig measurement, gait clock, footholds, climb gate, and per-creature notes.
 - `docs/AI/systems/EntitySystem.md` — what makes something an entity, chunk migration, identity, and the four authoring profiles.
-- `docs/AI/systems/NavMeshSystem.md` — the single world bake, its settings, the absence of off-mesh links, caves, and how agents get snapped onto the mesh.
+- `docs/AI/systems/NavMeshSystem.md` — the single world bake, its settings, its off-mesh links (jumps, ladders), caves, and how agents get snapped onto the mesh.
 - `docs/AI/systems/Combat.md` — damage, death, loot and ragdolls, which creatures share with the player.
 - `docs/AI/systems/MountSystem.md` — riding the creatures that can be ridden.

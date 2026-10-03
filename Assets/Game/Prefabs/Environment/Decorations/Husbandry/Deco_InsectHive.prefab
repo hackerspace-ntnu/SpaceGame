@@ -47,6 +47,59 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: 3e0ad1421cc8549b9b0a2d42d5550c75, type: 2}
   face: {fileID: 8485421574049420387}
   group: 
+--- !u!1 &4709219487912020364
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5442411593706803837}
+  - component: {fileID: 8179160587811265325}
+  m_Layer: 0
+  m_Name: Colliders_Fit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5442411593706803837
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4709219487912020364}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7784248867345507943}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8179160587811265325
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4709219487912020364}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.33140886, y: 0.4888982, z: 0.20999199}
+  m_Center: {x: -0.84070677, y: 0.2444491, z: 0.6205249}
 --- !u!1 &4739960460139223413
 GameObject:
   m_ObjectHideFlags: 0
@@ -112,6 +165,7 @@ Transform:
   - {fileID: 8563838357797844903}
   - {fileID: 8485421574049420387}
   - {fileID: 8989269134364740241}
+  - {fileID: 5442411593706803837}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &3078899633667656312
@@ -150,9 +204,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Insect hive
-  description: Desert bees, and their bitter honey.
   scanClass: 2
-  lookSeconds: 6
 --- !u!1001 &8165699994068373580
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -51,19 +51,19 @@ MonoBehaviour:
     spawnChance: 1
   - prefab: {fileID: 499032633134228038, guid: 8d88f7a8b1cf7491d8c013461c8c3006, type: 3}
     count: 1
-    spawnChance: 0.96
+    spawnChance: 1
   - prefab: {fileID: 1301079911386176519, guid: b66f36997369f49fe956797096334bdf, type: 3}
     count: 1
-    spawnChance: 0.7
+    spawnChance: 1
   - prefab: {fileID: 8622380716988595588, guid: 345dc887a60014b61841988d94c2c1ac, type: 3}
     count: 1
-    spawnChance: 0.7
+    spawnChance: 1
   - prefab: {fileID: 5457810169111362905, guid: 73dee9edc572849d2b630c7b6a40ce9f, type: 3}
     count: 1
-    spawnChance: 0.7
+    spawnChance: 1
   - prefab: {fileID: 7836450097882197030, guid: c6ec614a9f2f34730b100fe8cd2da2cd, type: 3}
     count: 1
-    spawnChance: 0.7
+    spawnChance: 1
   - prefab: {fileID: 1389406946623361535, guid: 23c37e86fcba04a26bd4da11a91edcd3, type: 3}
     count: 1
     spawnChance: 0.7
@@ -118,59 +118,59 @@ MonoBehaviour:
     spawnChance: 0.8
   characters:
   - prefab: {fileID: 6320590716706008551, guid: 600a297774679412697efb8407ef232b, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 3105438250342313871, guid: 2a4b9ce2f062c490583b57550c0e8d6a, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 3329947332983915974, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 3329947332983915974, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6041516499664464153, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 9073734896679703001, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 8868609454500565137, guid: f2a1bce75c71646f698b5d8935877f1b, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6643838780466197570, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6320590716706008551, guid: 4f284d4a656604161b70bb841ec01d61, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6320590716706008551, guid: 4e48d8650da0b48b7b8e9afa8c0b41e8, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 9073734896679703001, guid: 354422bd6f3b3490b9abaae651f28d65, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6320590716706008551, guid: 631daf7ceddef473a82365c20b25e6ec, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 7597401561177595076, guid: d7b830fd7553b4d07a97cadffa0ba701, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 7597401561177595076, guid: 6cbc8eee5705a4efab681b8b6d19063d, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 3329947332983915974, guid: 4ad0310048f5745ea9be8e0d4d46770f, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6320590716706008551, guid: b71338158374943ea8234f7ff3ba6a5a, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6320590716706008551, guid: 2ed95719bca964cdfa4dba1c0c5df707, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   - prefab: {fileID: 6320590716706008551, guid: 7718fe4cf55ed4b29bec192e7a251133, type: 3}
-    count: 2
-    spawnChance: 0.8
+    count: 4
+    spawnChance: 1
   specialCharacters: []
   culture: {fileID: 11400000, guid: 98f1700352364ba9aa28043a52d9ea73, type: 2}
   streets: {fileID: 11400000, guid: d5ae737c4eaaf4fa4869cc320d65c9ee, type: 2}

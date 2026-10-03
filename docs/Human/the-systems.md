@@ -152,6 +152,12 @@ A settlement is one component and one Generate button: it lays out the buildings
 
 **Worth knowing:** a punch or a shot is a fight on the spot, and the people nearby join it — the bold ones and anyone close to whoever you hurt — while the timid hurry home and stay out of it. Bumping into someone is what warns first: shove a villager and you get a warning, then a last warning, then a fight, and how many shoves that takes depends on their temper. Word of what you did gets round the settlement by itself — see the next entry.
 
+### Recording a settlement's day *(ResidentsBaseline)*
+
+A test you start from the editor that plays one whole day of the settlement on its own — no player input, the clock sped up — and writes down, for every villager and every part of their day, where they were meant to be, whether they got there, and what they did: errands run, things carried, conversations, and the gossip passed on at midnight. Running it before and after a change to the villagers shows whether the change kept their day the same.
+
+**Worth knowing:** it only means something when the settlement's walkable ground is up to date — over a stale one every villager spends the day on a break at their own door, and the record looks perfect because nobody goes anywhere.
+
 ### Errands, wandering and the watch *(Errands)*
 
 On top of that day, villagers have errands. A gardener goes round the beds with a bucket, filling it at the well and watering each plant in turn; an apprentice carries ore from the pile to the smelter; a hauler carries goods between the stores and the stalls. People with nothing in particular to do wander the streets and drop in at the shops, and friends and relatives often walk in pairs, talking as they go. A settlement is also guarded: pairs of guards walk its perimeter a few metres outside the buildings, one pair the other way round from the next, and talk about keeping the peace as they walk, while a guard stands watch on each tower. Guards are quick to challenge anyone who goes armed or runs in their sight — a warning, then a last warning — but a single shove is never a fight.
@@ -459,7 +465,7 @@ Clothes are modelled on the character in Blender and then each one becomes its o
 
 ### How people move, gesture and fight *(HumanoidAnimation)*
 
-Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and patrol robot — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
+Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and astronaut colonist — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
 
 On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About three hundred animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
 

@@ -35,8 +35,11 @@ namespace SpaceGame.Agents.Residents
 
         internal int PlanSeed => shareSeed != 0 ? shareSeed : seed;
     }
-    /// <summary>One place as the planner sees it. <c>group</c> is its circle (0 = none): friends are planned into one together.</summary>
-    public struct PlannerPlace { public int index; public PlaceKind kind; public SpotUse post; public int seatIndex; public int group; }
+    /// <summary>
+    /// One place as the planner sees it. <c>group</c> is its circle (0 = none): friends are planned into one together.
+    /// An <c>unusable</c> place keeps its index but is never planned onto: nobody can stand there.
+    /// </summary>
+    public struct PlannerPlace { public int index; public PlaceKind kind; public SpotUse post; public int seatIndex; public int group; public bool unusable; }
 
     public static class DayPlanner
     {
@@ -123,6 +126,7 @@ namespace SpaceGame.Agents.Residents
                 {
                     kinds[place.index] = place.kind;
                     groups[place.index] = place.group;
+                    if (place.unusable) continue;
                     if (place.kind == PlaceKind.Hearth) hearths.Add(place.index);
                     else if (place.kind == PlaceKind.Stroll) strolls.Add(place.index);
                     else if (place.kind == PlaceKind.Post && place.post != null) postSeats.Add(place);

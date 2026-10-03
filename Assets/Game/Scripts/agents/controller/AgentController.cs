@@ -29,11 +29,11 @@ namespace SpaceGame.Agents
         [SerializeField] private float speedVariationPeriod = 6f;
 
         public IMovementMotor Motor { get; private set; }
+
         private IBehaviourModule[] movementModules;   // ClaimsMovement == true, sorted by priority
         private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
         private IBehaviourModule[] presentationModules; // IPresentationModule — ticked on every machine
         private IFacingModule[] facingModules;        // separate facing channel, priority-sorted
-        private HerdModule herdModule;
         private AgentTargeting targeting;
         private AgentGoal goal;
         private float speedVariationPhase;
@@ -389,21 +389,32 @@ namespace SpaceGame.Agents
         /// Not <c>internal</c>: the tests live in <c>Assembly-CSharp-Editor</c>, which has no
         /// <c>InternalsVisibleTo</c> into <c>Assembly-CSharp</c> and would not see it.
         /// </para>
+        /// <para>
+        /// <see cref="Fault.TryEnter"/> and a local try/catch rather than <see cref="Fault.Run"/>:
+        /// this runs once per module per creature per frame, and a closure here was a heap
+        /// allocation on every one of those calls.
+        /// </para>
         /// </summary>
         public static MoveIntent? RunModule(IBehaviourModule module, in AgentContext context, float deltaTime)
         {
-            if (module is not Component owner) return null;
+            if (module is not Component owner || !Fault.TryEnter(owner, ModuleSite)) return null;
 
-            MoveIntent? result = null;
-            AgentContext local = context;   // a lambda cannot capture an `in` parameter
-
-            Fault.Run(owner, ModuleSite, () => result = module.Tick(in local, deltaTime));
-
-            return result;
+            try
+            {
+                return module.Tick(in context, deltaTime);
+            }
+            catch (System.Exception e)
+            {
+                Fault.Report(owner, ModuleSite, e);
+                return null;
+            }
         }
 
         /// <summary>One site name for every module, so a creature's quarantines are per component.</summary>
         private const string ModuleSite = "AgentModule.Tick";
+
+        /// <summary>The facing pass's site — separate, so a broken aim does not quarantine the walk.</summary>
+        private const string FacingSite = "AgentModule.Facing";
 
         /// <summary>
         /// Attacks, audio, the gun in the NPC's hand: everything that claims no movement. Ticked
@@ -439,9 +450,6 @@ namespace SpaceGame.Agents
                     MoveIntent? result = RunModule(module, in context, deltaTime);
                     if (result.HasValue)
                     {
-                        // Don't broadcast Idle — it would lock the whole herd in place.
-                        if (result.Value.Type != AgentIntentType.Idle)
-                            herdModule?.Publish(module.Priority, result.Value);
                         winner = module;
                         return result.Value;
                     }
@@ -484,14 +492,21 @@ namespace SpaceGame.Agents
                 if (!FacingApplies(module.FacingPriority, winnerPriority, ReferenceEquals(module, winner)))
                     continue;
 
-                if (module is not Component owner) continue;
+                if (module is not Component owner || !Fault.TryEnter(owner, FacingSite)) continue;
 
-                bool wants = false;
-                Vector3 facePosition = Vector3.zero;
-                AgentContext local = context;
+                bool wants;
+                Vector3 facePosition;
 
-                Fault.Run(owner, "AgentModule.Facing",
-                          () => wants = module.TryGetFacing(in local, out facePosition));
+                // Same allocation-free barrier as RunModule.
+                try
+                {
+                    wants = module.TryGetFacing(in context, out facePosition);
+                }
+                catch (System.Exception e)
+                {
+                    Fault.Report(owner, FacingSite, e);
+                    continue;
+                }
 
                 if (!wants) continue;
 
@@ -561,7 +576,6 @@ namespace SpaceGame.Agents
 
             sideEffectModules = sideEffects.ToArray();
             presentationModules = presentation.ToArray();
-            herdModule = GetComponentInChildren<HerdModule>(true);
             // Auto-added rather than required, so prefabs that predate the component still get one
             // shared target decision instead of every combat module resolving its own.
             targeting = AgentTargeting.GetOrAdd(gameObject);
@@ -600,11 +614,7 @@ namespace SpaceGame.Agents
             Motor = MotorComponent as IMovementMotor;
 
             if (Motor == null)
-                Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (pathfinding) or RigidbodyMotor (physics vehicle).", this);
+                Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (pathfinding), HoverRigidbodyMotor or LeggedDriver.", this);
         }
-
-        // Allow modules or external systems to force a live refresh (e.g. after adding components at runtime).
-        public void RefreshModules() => ResolveModules();
-        public void RefreshMotor() => ResolveMotor();
     }
 }

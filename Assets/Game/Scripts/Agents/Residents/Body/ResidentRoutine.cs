@@ -9,6 +9,7 @@
 // anchor is over, ErrandRunner names the stop to be at, and that stop is written as the same holding goal.
 using System.Collections.Generic;
 using SpaceGame.Core;
+using SpaceGame.World;
 using UnityEngine;
 
 namespace SpaceGame.Agents.Residents
@@ -42,6 +43,10 @@ namespace SpaceGame.Agents.Residents
         [SerializeField, Min(1f)] private float deckReach = 3f;
         [Tooltip("How far short of a noise an approaching resident stops.")]
         [SerializeField, Min(0f)] private float approachStandOff = 8f;
+        [Tooltip("How close counts as in the doorway: the point a resident steps through to go indoors.")]
+        [SerializeField, Min(0.3f)] private float thresholdArriveRadius = 0.5f;
+        [Tooltip("A resident already this close to its doorway goes in without the extra step.")]
+        [SerializeField, Min(0f)] private float thresholdStepMin = 0.7f;
 
         private readonly List<string> trace = new();
         private Resident resident;
@@ -53,6 +58,8 @@ namespace SpaceGame.Agents.Residents
         private bool targetHolds = true;
         private float targetSpeed = 1f;
         private float arrivedAtDoorAt = -1f;
+        private bool steppingIn;
+        private NavMeshAgentMotor motor;
         private readonly ErrandRunner errands = new();
 
         public PlanSegment? Current { get; private set; }
@@ -79,7 +86,11 @@ namespace SpaceGame.Agents.Residents
 
         private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
 
-        private void Awake() => resident = GetComponent<Resident>();
+        private void Awake()
+        {
+            resident = GetComponent<Resident>();
+            motor = GetComponent<NavMeshAgentMotor>();
+        }
 
         private void OnEnable()
         {
@@ -160,12 +171,29 @@ namespace SpaceGame.Agents.Residents
                 return;
             }
 
+            // A resident going to bed walks the last metres into the doorway, where it goes indoors, instead of vanishing on the step.
+            if (steppingIn && (overridden || place == null || place.Threshold == null || Current.Value.activity != Activity.Sleep)) steppingIn = false;
+            if (steppingIn)
+            {
+                (wanted, radius, hold, face) = (place.Threshold.Value, thresholdArriveRadius, false, null);
+                reason = $"stepping in at the door of {Current.Value.place}";
+            }
+
+            // A spot is stood at where it was MEASURED on the NavMesh: one not measured yet waits for the world to load, and an
+            // unusable one (the plan was built before the measurement said so) is not walked to.
+            if (!overridden && place.Use != null && (!place.Resolved || !place.Usable))
+            {
+                Note(now, $"no stand point for {reason}");
+                return;
+            }
+
             // Step 3: one write per change of mind; a goal restored by the save is overwritten here too.
             bool switchedBetweenPlanAndOverride = targetIsPlan == overridden;
             if (!hasTarget || !goal.HasGoal || switchedBetweenPlanAndOverride || FlatDistance(wanted, target) > radius ||
                 hold != targetHolds || !Mathf.Approximately(speed, targetSpeed))
             {
-                if (!goal.TrySetSampled(wanted, radius, reason, hold, face, speed)) { Note(now, $"no NavMesh for {reason}"); return; }
+                bool exact = !overridden && (errands.Active ? errands.Stop.place != ResidentPresence.NoPlace : place.Use != null);
+                if (!WriteGoal(goal, overridden, exact, wanted, radius, reason, hold, face, speed)) { Note(now, $"no NavMesh for {reason}"); return; }
 
                 hasTarget = true;
                 targetIsPlan = !overridden;
@@ -185,6 +213,13 @@ namespace SpaceGame.Agents.Residents
 
             Publish(overridden && resident.Override == OverrideKind.Shelter);
         }
+
+        // A place's point is already a measured stand point: it is used as it is, and a spot's must be ENDED on. Only a point
+        // nobody measured (a noise to approach) is snapped to the nearest NavMesh.
+        private static bool WriteGoal(AgentGoal goal, bool overridden, bool exact, Vector3 wanted, float radius, string reason,
+                                      bool hold, Vector3? face, float speed) =>
+            overridden ? goal.TrySetSampled(wanted, radius, reason, hold, face, speed)
+                       : goal.Set(wanted, radius, reason, hold, face, speed, exact);
 
         private bool TryOverride(SettlementSociety society, out Vector3 point, out string reason)
         {
@@ -225,12 +260,14 @@ namespace SpaceGame.Agents.Residents
             return asleepAtDoor;
         }
 
-        // A post up a ladder has no NavMesh path: its worker is put there, and taken down, while nobody sees it.
+        // A post up a ladder is walked to over its link. Only when no path leads there (a deck nothing climbs to) is its
+        // worker put there, and taken down, while nobody sees it — never mid-climb.
         private bool Hop(SettlementSociety society, SettlementPlace place, AgentGoal goal, double now)
         {
             bool up = place.Elevated && Vector3.Distance(transform.position, place.Position) > deckReach;
             bool down = !place.Elevated && society.OnDeck(transform.position);
-            if (!(up || down) || !Unwatched(goal.Position)) return false;
+            if (!(up || down) || (motor != null && motor.IsRidingLink)) return false;
+            if (NavMeshReach.CanWalk(transform.position, goal.Position) || !Unwatched(goal.Position)) return false;
 
             Teleport(now, goal, up ? "up to its post unseen" : "down from its post unseen");
             return true;
@@ -240,10 +277,23 @@ namespace SpaceGame.Agents.Residents
         private bool TryGoIndoors(double now, AgentGoal goal)
         {
             if (!goal.HasArrived) { arrivedAtDoorAt = -1f; return false; }
+            if (steppingIn)
+            {
+                GoIndoors(now, "stepped in at the door");
+                return true;
+            }
             if (arrivedAtDoorAt < 0f) arrivedAtDoorAt = Time.time;
 
             bool watched = ObserverCheck.AnyPlayerSees(transform.position + Vector3.up * ChestHeight, observedWithin);
             if (watched && Time.time - arrivedAtDoorAt < offstageAfterSeconds) return false;
+
+            SettlementPlace door = resident.Society.Place(Current.Value.place);
+            bool mustStepIn = door.Threshold.HasValue && FlatDistance(transform.position, door.Threshold.Value) > thresholdStepMin;
+            if (mustStepIn && !steppingIn)
+            {
+                steppingIn = true;
+                return true;
+            }
 
             GoIndoors(now, watched ? "went indoors while watched" : "went indoors unseen");
             return true;
@@ -261,6 +311,7 @@ namespace SpaceGame.Agents.Residents
         private void GoIndoors(double now, string why)
         {
             arrivedAtDoorAt = -1f;
+            steppingIn = false;
             resident.GoOffstage();
             Note(now, why);
         }
@@ -280,14 +331,16 @@ namespace SpaceGame.Agents.Residents
             if (resident.Presence == null) return;
 
             bool talking = resident.Focus != null && resident.Focus.IsFocused;
+            bool climbing = motor != null && motor.IsClimbingLadder;
             Activity shown = talking ? Activity.Talking
+                : climbing ? Activity.Climbing
                 : sheltering ? Activity.Sheltering
                 : errands.Active ? errands.Stop.shown
                 : AtPlace ? Holding(Current.Value.activity)
                 : Activity.Walking;
             byte carried = errands.Active ? errands.Stop.prop
                 : targetIsPlan && Current.HasValue && Current.Value.activity == Activity.Trip ? TripProp() : (byte)0;
-            int heldPlace = !talking ? HeldPlace : ResidentPresence.NoPlace;
+            int heldPlace = !talking && !climbing ? HeldPlace : ResidentPresence.NoPlace;
             resident.Presence.Publish(shown, carried, false, heldPlace);
         }
 

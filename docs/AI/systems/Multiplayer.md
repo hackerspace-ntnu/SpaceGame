@@ -19,7 +19,7 @@ symptoms:
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-10-01
+updated: 2026-10-02
 ---
 
 # Multiplayer / Netcode core
@@ -66,7 +66,7 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 | `SkyNetwork`/`SkyAnchor` | [SkyNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/SkyNetwork.cs) | Replicates the day/night *anchor* only; time of day is a pure function of a shared clock |
 | `PlayerIdentity`/`PlayerRoster` | [PlayerIdentity.cs](Assets/Game/Scripts/Core/Multiplayer/Players/PlayerIdentity.cs) | On the player prefab: name + suit colour **owner-write**, team **server-write**; roster rows + ping |
 | `ChatNetwork`/`ChatLog`/`ChatCommands`/`ChatBuiltinCommands`/`ChatText`/`ChatMessage` | [ChatNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Chat/ChatNetwork.cs) | Own 3 RPCs (NetArg has no string, NetTo has no unicast); token-bucket throttle; static log survives scene loads. Commands are an open table: `/tp`, `/help` here, `/wave` `/cheer` `/shrug` `/flex` from [PlayerEmoteCommands](Assets/Game/Scripts/Characters/Player/PlayerEmoteCommands.cs) |
-| `MultiplayerAutotest`/`AutotestRunner.*`/`AutotestProbes` | [MultiplayerAutotest.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/MultiplayerAutotest.cs) | `-sgmode host\|client\|persist`; prints `[MPTEST] key=value` |
+| `MultiplayerAutotest`/`AutotestRunner.*`/`AutotestProbes` | [MultiplayerAutotest.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/MultiplayerAutotest.cs) | `-sgmode host\|client\|persist\|settlement-host\|settlement-client\|settlement-persist`; prints `[MPTEST] key=value` |
 | `NetworkPrefabRegistrar` | [NetworkPrefabRegistrar.cs](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) | `Tools/SpaceGame/Multiplayer/Sync Network Prefabs` |
 | Lobby (`LobbySession`, `LobbyJoinRecovery`, `LobbyTeams`, …) | [Lobby/](Assets/Game/Scripts/Core/Multiplayer/Lobby/) | Namespace `SpaceGame.Core.Lobbies` — see [Lobby.md](Lobby.md) |
 
@@ -94,7 +94,7 @@ Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/
 | Remote copies | `NetAuthority` suppresses drivers, so anything a suppressed driver would have drawn must be broadcast explicitly |
 | Late joiners | `NetworkVariable.OnValueChanged` never replays — read the value in `OnNetworkSpawn`; event-only state goes in `SessionSnapshot` |
 | Config | `TickRate 30`, `ConnectionApproval 0` (**off**, deliberately), `EnableSceneManagement 1`, `PlayerPrefab: {fileID: 0}` (**null** — `SpawnManager` spawns the real one), one list `DefaultNetworkPrefabs.asset` guid `c9ad996e…`, UTP port `7782`, `LoadSceneTimeOut 120` |
-| Transform settings | Every `NetworkTransform`/`ClientNetworkTransform` in the project (players, 16 agents and vehicles, `SyncedPlayer`, `CowBotRocket`) ships `UseUnreliableDeltas 1`, `UseHalfFloatPrecision 1`, `UseQuaternionSynchronization 1` + `Compression 1`, `PositionThreshold 0.02`, `RotAngleThreshold 0.5`. NGO's defaults (reliable, full float, three Euler floats, 1 mm) had six interpolating Rigidbodies never going idle on the reliable channel. A new networked prefab must match; `AgentBullet` is the one deliberate exception |
+| Transform settings | Every `NetworkTransform`/`ClientNetworkTransform` in the project (players, agents and vehicles, `SyncedPlayer`, `CowBotRocket`) ships `UseUnreliableDeltas 1`, `UseHalfFloatPrecision 1`, `UseQuaternionSynchronization 1` + `Compression 1`, `PositionThreshold 0.02`, `RotAngleThreshold 0.5`. NGO's defaults (reliable, full float, three Euler floats, 1 mm) had six interpolating Rigidbodies never going idle on the reliable channel. A new networked prefab must match |
 
 ## Persistence
 

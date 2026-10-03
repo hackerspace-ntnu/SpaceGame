@@ -3,7 +3,9 @@
 // settlement is being generated: it is one author-time bake that never contains buildings placed
 // since (see TerrainGeneration.md), and in edit mode it is not even loaded. So this bakes a
 // throwaway NavMesh over just the settlement, with the world bake's own settings and collider
-// filter (NavMeshSources), samples it, and removes it again on Dispose.
+// filter (NavMeshSources), samples it, and removes it again on Dispose. It is baked with every gate
+// shut, as play starts: a gate leaf is cut out by a carving obstacle only in play mode, so without
+// its collider a pen would read as open to the settlement and nothing could tell it keeps its stock.
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -84,7 +86,7 @@ namespace SpaceGame.World
             foreach (Collider col in hits)
             {
                 if (col is TerrainCollider) continue;   // covered by its Terrain above
-                if (!NavMeshSources.IsBakeable(col, settings.layerMask)) continue;
+                if (!NavMeshSources.IsBakeable(col, settings.layerMask, doorsShut: true)) continue;
                 if (!NavMeshSources.TryColliderToSource(col, out NavMeshBuildSource src)) continue;
                 sources.Add(src);
                 minY = Mathf.Min(minY, col.bounds.min.y);
@@ -121,13 +123,56 @@ namespace SpaceGame.World
         }
 
         /// <summary>A uniformly distributed point on the walkable surface -- every square metre equally likely, roof or ground.</summary>
-        public Vector3 Sample(ref SettlementPlacementUtil.SeededRng rng)
-        {
-            float pick = rng.NextFloat01() * cumulativeArea[cumulativeArea.Count - 1];
-            int t = cumulativeArea.BinarySearch(pick);
-            if (t < 0) t = Mathf.Min(~t, triangles.Count - 1);
+        public Vector3 Sample(ref SettlementPlacementUtil.SeededRng rng) => PickPoint(triangles, cumulativeArea, ref rng);
 
-            int i = triangles[t];
+        /// <summary>
+        /// The walkable triangles whose bounds touch <paramref name="bounds"/>: a small patch of the surface
+        /// (a pen's floor) that can be sampled over and over without walking the whole settlement each time.
+        /// A sampled point may still lie just outside the bounds, since a triangle can straddle them.
+        /// </summary>
+        public Patch PatchWithin(Bounds bounds)
+        {
+            var patch = new Patch(this);
+            float total = 0f;
+            for (int i = 0; i + 2 < triangleIndices.Length; i += 3)
+            {
+                Vector3 a = vertices[triangleIndices[i]], b = vertices[triangleIndices[i + 1]], c = vertices[triangleIndices[i + 2]];
+                var triangleBounds = new Bounds(a, Vector3.zero);
+                triangleBounds.Encapsulate(b);
+                triangleBounds.Encapsulate(c);
+                if (!bounds.Intersects(triangleBounds)) continue;
+
+                float area = Vector3.Cross(b - a, c - a).magnitude * 0.5f;
+                if (area <= 0f) continue;
+                total += area;
+                patch.triangles.Add(i);
+                patch.cumulativeArea.Add(total);
+            }
+            return patch;
+        }
+
+        /// <summary>A sampleable part of the walkable surface; see <see cref="PatchWithin"/>.</summary>
+        public sealed class Patch
+        {
+            private readonly SettlementWalkableArea owner;
+            internal readonly List<int> triangles = new();
+            internal readonly List<float> cumulativeArea = new();
+
+            internal Patch(SettlementWalkableArea owner) => this.owner = owner;
+
+            public bool IsEmpty => triangles.Count == 0;
+
+            /// <summary>A uniformly distributed point on this patch; call only when it is not empty.</summary>
+            public Vector3 Sample(ref SettlementPlacementUtil.SeededRng rng) => owner.PickPoint(triangles, cumulativeArea, ref rng);
+        }
+
+        private Vector3 PickPoint(List<int> candidates, List<float> cumulative, ref SettlementPlacementUtil.SeededRng rng)
+        {
+            float pick = rng.NextFloat01() * cumulative[cumulative.Count - 1];
+            int t = cumulative.BinarySearch(pick);
+            if (t < 0) t = Mathf.Min(~t, candidates.Count - 1);
+
+            int i = candidates[t];
             Vector3 a = vertices[triangleIndices[i]], b = vertices[triangleIndices[i + 1]], c = vertices[triangleIndices[i + 2]];
             float u = rng.NextFloat01(), v = rng.NextFloat01();
             if (u + v > 1f) { u = 1f - u; v = 1f - v; }

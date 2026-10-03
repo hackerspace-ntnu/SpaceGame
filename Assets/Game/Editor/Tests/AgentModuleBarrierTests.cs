@@ -2,8 +2,10 @@ using System;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.TestTools.Constraints;
 using SpaceGame.Agents;
 using SpaceGame.Diagnostics;
+using Is = UnityEngine.TestTools.Constraints.Is;
 
 namespace SpaceGame.Tests
 {
@@ -99,6 +101,53 @@ namespace SpaceGame.Tests
 
             Assert.IsNotNull(result, "the creature still moves");
             Assert.AreEqual(1, healthy.Calls);
+        }
+
+        private const int AllocationProbeCalls = 1000;
+
+        // Runs `calls` once before it is measured, so JIT and first-use statics are not counted
+        // against the loop. The measurement is Unity's GC.Alloc recorder (AllocatingGCMemory):
+        // GC.GetAllocatedBytesForCurrentThread reads 0 under the editor's Mono whatever is allocated.
+        private static TestDelegate WarmedUp(TestDelegate calls)
+        {
+            calls();
+            return calls;
+        }
+
+        [Test]
+        public void RunningAModuleAllocatesNothing()
+        {
+            var healthy = agent.AddComponent<WalkingModule>();
+            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
+
+            TestDelegate calls = () =>
+            {
+                for (int i = 0; i < AllocationProbeCalls; i++)
+                    AgentController.RunModule(healthy, in context, 0.02f);
+            };
+
+            Assert.That(WarmedUp(calls), Is.Not.AllocatingGCMemory(),
+                        "RunModule runs once per module per creature per frame; any allocation here is garbage every frame");
+        }
+
+        // The control for the test above: proves the probe sees a per-call closure, so a zero there
+        // is a measurement and not a runtime that cannot count. This is the shape RunModule used to have.
+        [Test]
+        public void TheAllocationProbeSeesAPerCallClosure()
+        {
+            var healthy = agent.AddComponent<WalkingModule>();
+            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
+
+            TestDelegate calls = () =>
+            {
+                for (int i = 0; i < AllocationProbeCalls; i++)
+                {
+                    AgentContext local = context;
+                    Fault.Run(healthy, "probe", () => healthy.Tick(in local, 0.02f));
+                }
+            };
+
+            Assert.That(WarmedUp(calls), Is.AllocatingGCMemory());
         }
     }
 }

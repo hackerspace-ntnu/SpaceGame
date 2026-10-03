@@ -3,9 +3,8 @@
 //               it, records the deed first-hand, re-read through its own bond (your sister hit → HarmedKin).
 //   word of mouth — anyone who knows tells every resident within earshot (Rumours → Pass), and
 //               retells what it only heard too, so the news crosses the settlement neighbour to neighbour.
-//   bedtime   — family members tell each other their first-hand facts.
-//   hearth    — bonded friends who both sat at the hearth today do the same.
-//   dawn      — everyone learns that somebody died.
+//   bedtime   — as a day ends (SettlementSociety.EndDay), family members tell each other their first-hand facts.
+//   hearth    — then bonded friends who both sat at the hearth that day do the same.
 // Bedtime and hearth retell first-hand facts only, one hop; word of mouth has no hop limit. However it is learned,
 // a deed is weighed once per resident: its favor moves by the deed's value times its closeness to whoever the deed
 // was done to (Favor), and it holds the deed by its own temper (ForgiveDays) from the day it happened.
@@ -76,16 +75,6 @@ namespace SpaceGame.Agents.Residents
                         Tell(s, friend, r, day);
                     }
                 }
-            }
-        }
-
-        public static void DawnDeaths(SettlementSociety s, int day)
-        {
-            foreach (Resident dead in s.Residents)
-            {
-                if (dead == null || !dead.IsDead) continue;
-                foreach (Resident r in s.Residents)
-                    if (IsListening(r)) r.Memory.LearnDeath(dead.index, day);
             }
         }
 

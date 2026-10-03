@@ -36,6 +36,9 @@ namespace SpaceGame.Agents.Residents
 
         public Conversations(SettlementSociety society) => this.society = society;
 
+        /// <summary>Talks opened since the society was made, standing and walking — what the residents baseline counts.</summary>
+        public int Opened { get; private set; }
+
         public void Tick()
         {
             for (int i = talks.Count - 1; i >= 0; i--)
@@ -121,6 +124,7 @@ namespace SpaceGame.Agents.Residents
 
             var talk = new Conversation { speaker = a, listener = b, turns = 1, walking = walking };
             talks.Add(talk);
+            Opened++;
             Face(talk, voice);
         }
 

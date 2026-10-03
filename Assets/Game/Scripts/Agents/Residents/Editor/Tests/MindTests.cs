@@ -1,14 +1,17 @@
 // The resident mind's pure rules: opening stances by temperament quadrant, the stance ladder and its line
 // families, grudge expiry, the daily talk cap, the memory's save round-trip through Newtonsoft (the
 // serializer the save file uses), observation priority, what temper and nerve make of provocation, word of
-// mouth (news passed on however it was learned, once each, re-read through the listener's bond), favor (a
+// mouth (news passed on however it was learned, once each, re-read through the listener's bond), bedtime and
+// hearth gossip at the close of a day (and which day changes count as one), favor (a
 // deed's full worth to its subject, a smaller share the further a listener stands from them), and how residents
 // answer a fighter calling for help (the bold and the caller's bonded join, one hop per call; the timid stay out).
 using System.Collections.Generic;
 using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using SpaceGame.Persistence;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents.Residents.Tests
@@ -133,7 +136,6 @@ namespace SpaceGame.Agents.Residents.Tests
             memory.Talked("p", day: 3, gain: 2f, dailyCap: 10);
             memory.AddDeed("p", ActKind.HarmedKin, victim: 4, day: 3, heldDays: 6f, heard: true);
             memory.ChangeFavor("p", value: -25f, share: 0.5f, limit: 100f);
-            memory.LearnDeath(7, day: 3);
 
             string json = JsonConvert.SerializeObject(memory.Capture());
             var restored = new ResidentMemory();
@@ -144,10 +146,19 @@ namespace SpaceGame.Agents.Residents.Tests
             Assert.IsTrue(restored.Deeds[0].heard);
             Assert.AreEqual(-12.5f, restored.FavorOf("p"));
             Assert.AreEqual(-10.5f, restored.Regard("p"), "regard is familiarity plus favor");
-            Assert.IsTrue(restored.KnowsDeath(7));
 
             restored.Restore(null);
             Assert.IsFalse(restored.Met("p"));
+        }
+
+        [Test]
+        public void Memory_LoadsASaveThatStillHoldsKnownDeaths()
+        {
+            const string json = "{\"favor\":[{\"profile\":\"p\",\"favor\":-5}],\"knownDeaths\":[{\"victim\":7,\"day\":3}]}";
+            var restored = new ResidentMemory();
+            restored.Restore(JObject.Parse(json).ToObject<ResidentMemory.MemoryState>(SaveSerializer.Serializer));
+
+            Assert.AreEqual(-5f, restored.FavorOf("p"), "the retired knownDeaths key is ignored, the rest still loads");
         }
 
         [Test]
@@ -332,6 +343,92 @@ namespace SpaceGame.Agents.Residents.Tests
             {
                 root.Dispose();
             }
+        }
+
+        [TestCase(4, 5, true)]
+        [TestCase(int.MinValue, 5, false)]
+        [TestCase(5, 5, false)]
+        [TestCase(2, 5, false)]
+        [TestCase(6, 5, false)]
+        public void OnlyANaturalDayChange_EndsADay(int builtDay, int today, bool ends) =>
+            Assert.AreEqual(ends, SettlementSociety.EndsADay(builtDay, today),
+                "the first build, a multi-day skip and a clock that went back are no evening");
+
+        [Test]
+        public void AtBedtime_FamilyHearWhatTheirKinSaw_AndNobodyElseDoes()
+        {
+            var root = new TestSettlement();
+            try
+            {
+                SettlementSociety settlement = root.Society;
+                Resident victim = Plain(root.transform), witness = Plain(root.transform),
+                         sister = Plain(root.transform), neighbour = Plain(root.transform);
+                Resident[] all = { victim, witness, sister, neighbour };
+                for (int i = 0; i < all.Length; i++) all[i].index = i;
+                witness.bonds = new[] { new ResidentBond { other = sister.index, kind = BondKind.Family } };
+                witness.Memory.AddDeed("p", ActKind.Hit, victim.index, day: 1, heldDays: 3f);
+
+                Gossip.SpreadAtBedtime(settlement, 1);
+
+                Assert.IsTrue(sister.Memory.Holds("p", ActKind.Hit, victim.index, 1));
+                Assert.IsTrue(sister.Memory.Deeds[0].heard, "told, not seen");
+                Assert.Less(sister.Memory.FavorOf("p"), 0f, "hearing of the hit costs the player her favor");
+                Assert.AreEqual(0, neighbour.Memory.Deeds.Count, "bedtime is for family");
+            }
+            finally
+            {
+                root.Dispose();
+            }
+        }
+
+        [Test]
+        public void AtTheHearth_FriendsWhoBothSatThere_TellEachOther()
+        {
+            const int day = 1;
+            var root = new TestSettlement();
+            try
+            {
+                SettlementSociety settlement = root.Society;
+                Resident victim = Plain(root.transform), teller = Plain(root.transform),
+                         companion = Plain(root.transform), absent = Plain(root.transform);
+                Resident[] all = { victim, teller, companion, absent };
+                for (int i = 0; i < all.Length; i++) all[i].index = i;
+                teller.bonds = new[]
+                {
+                    new ResidentBond { other = companion.index, kind = BondKind.Friend },
+                    new ResidentBond { other = absent.index, kind = BondKind.Friend },
+                };
+                teller.Memory.AddDeed("p", ActKind.Hit, victim.index, day, heldDays: 3f);
+                SetPlans(settlement, day, Plan(teller, day, Activity.Hearth), Plan(companion, day, Activity.Hearth),
+                         Plan(absent, day, Activity.Work), Plan(victim, day, Activity.Work));
+
+                Gossip.SpreadAtHearth(settlement, day);
+
+                Assert.IsTrue(companion.Memory.Holds("p", ActKind.Hit, victim.index, day));
+                Assert.Less(companion.Memory.FavorOf("p"), 0f);
+                Assert.AreEqual(0, absent.Memory.Deeds.Count, "a friend who was not at the hearth is not told there");
+            }
+            finally
+            {
+                root.Dispose();
+            }
+        }
+
+        // One segment doing <paramref name="activity"/>: all a hearth check reads of a plan.
+        private static DayPlan Plan(Resident resident, int day, Activity activity)
+        {
+            var plan = new DayPlan { residentIndex = resident.index, day = day };
+            plan.segments.Add(new PlanSegment { activity = activity });
+            return plan;
+        }
+
+        // Plans are built by the planner from places and a NavMesh; a test hands the society its day directly.
+        private static void SetPlans(SettlementSociety settlement, int day, params DayPlan[] plans)
+        {
+            var byDay = (Dictionary<int, DayPlan[]>)typeof(SettlementSociety)
+                .GetField("plansByDay", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(settlement);
+            byDay[day] = plans;
         }
 
         [Test]

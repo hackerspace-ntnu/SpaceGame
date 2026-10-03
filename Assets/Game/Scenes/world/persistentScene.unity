@@ -829,7 +829,6 @@ GameObject:
   - component: {fileID: 118567316}
   - component: {fileID: 118567315}
   - component: {fileID: 118567314}
-  - component: {fileID: 118567319}
   - component: {fileID: 118567318}
   m_Layer: 0
   m_Name: '[SaveSystem]'
@@ -909,18 +908,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a140b4e7c70954d6c8d5273f16e93704, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.LeashSaveable
---- !u!114 &118567319
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 118567313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0185a432076c040f7931ed13214f708d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HerdStateSaveable
 --- !u!4 &135571990 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1001130551400491267, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}

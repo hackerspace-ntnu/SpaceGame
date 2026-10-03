@@ -1,24 +1,10 @@
-using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
 {
-    /// <summary>One place on a belt, in the wearer's own frame.</summary>
-    [Serializable]
-    public struct BeltAnchorPose
-    {
-        public BeltSlot slot;
-
-        [Tooltip("Metres, in the wearer's root frame (+Y up, +Z forward).")]
-        public Vector3 position;
-
-        [Tooltip("Degrees, in the wearer's root frame. Identity hangs the item with its +Z pointing " +
-                 "forward; the defaults turn each anchor so +Z points out from the body.")]
-        public Vector3 euler;
-    }
-
     /// <summary>
-    /// Hang an item on a belt anchor, and make the anchors.
+    /// Hang an item on a worn garment's mount, and make the anchors.
     ///
     /// <para>
     /// The arithmetic is shared by <c>BeltCarrier</c>, which hangs an NPC's bag at runtime, and by
@@ -28,26 +14,43 @@ namespace SpaceGame.Items
     /// </summary>
     public static class BeltSeat
     {
-        /// <summary>Right hip, left hip, and the small of the back, in a 3 m character's frame.</summary>
-        public static BeltAnchorPose[] DefaultAnchors() => new[]
-        {
-            new BeltAnchorPose { slot = BeltSlot.HipRight, position = new Vector3(0.33f, 1.45f, 0f), euler = new Vector3(0f, 90f, 0f) },
-            new BeltAnchorPose { slot = BeltSlot.HipLeft, position = new Vector3(-0.33f, 1.45f, 0f), euler = new Vector3(0f, -90f, 0f) },
-            new BeltAnchorPose { slot = BeltSlot.Back, position = new Vector3(0f, 1.50f, -0.26f), euler = new Vector3(0f, 180f, 0f) },
-        };
-
         /// <summary>
-        /// A child of <paramref name="hips"/> that sits where <paramref name="pose"/> says, in the
-        /// frame of <paramref name="character"/>. Authored in character space and converted here
-        /// because a bone's own axes are whatever its last export left them.
+        /// One anchor per slot the wearer's garments offer, each a child of the bone its garment
+        /// names and sitting where the garment's mount point does on that bone's bind pose. Empty
+        /// when nothing worn offers a mount.
         /// </summary>
-        public static Transform CreateAnchor(Transform character, Transform hips, BeltAnchorPose pose)
+        public static Dictionary<BeltSlot, Transform> CreateAnchors(Transform character, Animator wearer)
         {
-            var go = new GameObject($"BeltAnchor_{pose.slot}");
-            go.transform.SetParent(hips, false);
-            go.transform.SetPositionAndRotation(character.TransformPoint(pose.position),
-                                                character.rotation * Quaternion.Euler(pose.euler));
-            return go.transform;
+            var anchors = new Dictionary<BeltSlot, Transform>();
+            foreach (GarmentMounts garment in character.GetComponentsInChildren<GarmentMounts>())
+            {
+                Transform bone = wearer.GetBoneTransform(garment.Bone);
+                if (bone == null)
+                {
+                    Debug.LogError($"{wearer.name}: '{garment.name}' hangs items from {garment.Bone}, " +
+                                   "which the rig lacks.", garment);
+                    continue;
+                }
+
+                foreach (GarmentMounts.Mount mount in garment.Mounts)
+                {
+                    if (mount.point == null || anchors.ContainsKey(mount.slot)) continue;
+
+                    if (!garment.TryPoseOnBone(bone, mount, out Vector3 position, out Quaternion rotation))
+                    {
+                        Debug.LogError($"{wearer.name}: '{garment.name}' is not skinned to {garment.Bone}, " +
+                                       $"so its {mount.slot} mount cannot be placed.", garment);
+                        continue;
+                    }
+
+                    var anchor = new GameObject($"BeltAnchor_{mount.slot}").transform;
+                    anchor.SetParent(bone, false);
+                    anchor.SetLocalPositionAndRotation(position, rotation);
+                    anchors.Add(mount.slot, anchor);
+                }
+            }
+
+            return anchors;
         }
 
         /// <summary>

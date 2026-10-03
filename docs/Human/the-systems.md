@@ -467,9 +467,21 @@ Clothes are modelled on the character in Blender and then each one becomes its o
 
 Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and astronaut colonist — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
 
-On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About three hundred animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
+On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About four hundred and fifty animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
 
 **Worth knowing:** The player's body is animated only on its owner's machine and copied to everyone else, while an NPC is animated on every machine at once; mixing the two up is how a gesture ends up playing twice or not at all for other players.
+
+### What the animation library covers *(AnimationCatalog)*
+
+The animations come from free packs and mocap libraries, and none of them arrives game-ready: a bartender's performance is twenty-seven seconds long, a mocap walk travels across a stage, a "loop" may not close. Each pack gets a small import rule and a cut list that says which seconds of a long take are the usable beats and which of them repeat, and every cut is checked by drawing it as a row of stick figures. The latest pass added the Mixamo singles, the Mocap Central sample, the Motion Cast emotions, a cooking set, a crate-carrying set and the Kevin Iglesias work animations: farming, fishing, mining, hammering, cooking, serving, dancing, singing, piano, reading, falling over and getting up, crying, laughing, exhaustion, and an injured, a drunk, a swaggering and a heavy way of walking.
+
+The same doc keeps the honest list of what is still missing (hits that depend on where the blow came from, sword blocks, nodding, seated work, getting into bed) and the plan for how each kind of NPC should use all of this: which jobs hold which animation, which moments trigger which reaction, and what is pure data versus a bit of code.
+
+**Worth knowing:** A clip that moves across the floor looks fine in a preview and then slides the character out of its own collision capsule in game. Half of the older mocap clips did exactly that until the import rule was corrected; every new clip is measured on a real animated body before it is used.
+
+### How every kind of NPC should move and act *(NpcAnimationPlan)*
+
+A written plan, not a feature: for each situation an NPC can be in — walking hurt or drunk, working a field, serving drinks, fishing, fighting, falling over, sleeping — it lists which animation is available now, what is still missing, and whether the fix is just data (tag a spot, pick a walk style for a character) or a small piece of code. It also records that none of the animation work has been watched in a running game yet, which is the first thing to do before building more.
 
 ### The build menus *(EditorTooling)*
 

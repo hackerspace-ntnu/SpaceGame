@@ -1,18 +1,18 @@
-// Draws what an NPC carries but is not holding, on its belt.
+// Draws what an NPC carries but is not holding, on its belt and backpack.
 //
 // The hand shows ONE item: EntityEquipmentController owns that. Everything else in the entity's bag
 // is carried, and a carried item that is nowhere on the body reads as an NPC with empty pockets and
 // a hammer in its fist. This component is the other half: each bag slot that is not in the hand and
-// whose prefab has a BeltMount is drawn hanging from one of three belt anchors.
+// whose prefab has a BeltMount is drawn hanging from one of the anchors the worn garments offer.
 //
 // It is purely derived. Nothing here is saved or sent: the bag is EntityInventorySaveable's, which
 // slot is in the hand is EntityEquipmentSaveable's, and every machine builds its own bag from the
 // same startingItems, so every machine hangs the same things in the same places.
 //
-// The anchors are bound to the HIPS bone but authored in character space (the NPC root's frame:
-// +Y up, +Z forward), and converted once at startup. A rig's bone axes are whatever its last export
-// left them, and the same belt has to sit right on every skeleton -- see HandGripFrame, which exists
-// for the same reason.
+// The anchors are not this component's: each belt and backpack prefab carries its own mount points
+// (GarmentMounts), tuned against its own geometry, so every Raxy wearing it hangs things in the
+// same places. They become bone-parented anchors once at startup (BeltSeat.CreateAnchors). A wearer
+// with no such garment has nowhere to hang anything, and says so.
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -23,9 +23,6 @@ namespace SpaceGame.Agents
     [RequireComponent(typeof(EntityInventoryComponent))]
     public class BeltCarrier : MonoBehaviour
     {
-        [Tooltip("The belt's anchors. A slot with no entry here is never used.")]
-        [SerializeField] private BeltAnchorPose[] anchors = BeltSeat.DefaultAnchors();
-
         private sealed class Hung
         {
             public InventoryItem item;
@@ -33,7 +30,7 @@ namespace SpaceGame.Agents
             public EquipItemSocket socket;
         }
 
-        private readonly Dictionary<BeltSlot, Transform> anchorBySlot = new Dictionary<BeltSlot, Transform>();
+        private Dictionary<BeltSlot, Transform> anchorBySlot;
         private readonly Dictionary<int, Hung> hungBySlotIndex = new Dictionary<int, Hung>();
         private readonly HashSet<int> wanted = new HashSet<int>();
 
@@ -48,19 +45,14 @@ namespace SpaceGame.Agents
             equipment = GetComponent<EntityEquipmentController>();
 
             Animator animator = GetComponentInChildren<Animator>(true);
-            Transform hips = animator != null && animator.isHuman
-                ? animator.GetBoneTransform(HumanBodyBones.Hips)
-                : null;
-
-            if (hips == null)
+            if (animator == null || !animator.isHuman)
             {
-                Debug.LogError($"{name}: BeltCarrier needs a humanoid avatar with a Hips bone.", this);
+                Debug.LogError($"{name}: BeltCarrier needs a humanoid avatar.", this);
                 enabled = false;
                 return;
             }
 
-            foreach (BeltAnchorPose pose in anchors)
-                anchorBySlot[pose.slot] = BeltSeat.CreateAnchor(transform, hips, pose);
+            anchorBySlot = BeltSeat.CreateAnchors(transform, animator);
         }
 
         private void OnEnable() => inventory.OnSlotChanged += OnSlotChanged;
@@ -130,6 +122,12 @@ namespace SpaceGame.Agents
 
         private void Hang(int slotIndex, InventoryItem item)
         {
+            if (anchorBySlot.Count == 0)
+            {
+                Debug.LogWarning($"{name}: carries '{item.name}' but wears no belt or backpack with mount points.", this);
+                return;
+            }
+
             BeltMount prefabMount = item.itemPrefab.GetComponent<BeltMount>();
             if (!TryTakeAnchor(prefabMount.Preferred, out BeltSlot slot)) return;
 

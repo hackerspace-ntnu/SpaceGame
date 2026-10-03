@@ -15,13 +15,14 @@ symptoms:
   - "a tool hangs off a Raxy's belt pointing the wrong way, or floats away from the hip"
   - "a carried tool does nothing when used"
   - "a tool is too long to stow on the backpack"
+  - "a Raxy carries tools but nothing hangs on it, with a warning about no belt or backpack with mount points"
   - "a Raxy holds a bucket or tool sideways, upside down or pointing at its own back"
   - "a Raxy raises its free hand as if steadying a pistol while carrying a one-handed tool"
   - "a cart is carried on the shoulder instead of pushed ahead of the Raxy"
   - "a carried tool shows in the artifact browser (O)"
   - "[HandTools] X: seated N degrees off its Y stance"
 reads_with: [Inventory, Artifacts, AgentSystem, ArtPipeline, HumanoidAnimation]
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Hand tools
@@ -44,7 +45,7 @@ Props a Raxy carries: hammers, shovels, spears, buckets, baskets, tanks, carts, 
 
 - **Roster:** [HandToolRoster](Assets/Game/Editor/Items/HandTools/HandToolRoster.cs) is the one table: stance, hold size, optional `PoseOverride`, `ItemAlong`/`ItemFace` (a scraper's handle lies along +X), `Nudge` (metres, holder space), belt hang point. [HandToolBuilder](Assets/Game/Editor/Items/HandTools/HandToolBuilder.cs) rebuilds prefab, item, icon and network entry from it; GUIDs survive a re-run.
 - **Poses:** [HoldClipGenerator](Assets/Game/Editor/Animation/HoldClipGenerator.cs) writes the one-armed hold clips and points the humanoid profile at them. `Carry` is the library's `Idle_Loop` (arms down), `Ready` is `Sword_Idle`'s right arm with the left arm taken from the idle (`Hold_Ready.anim`), `Push` is `Push_Loop`. **Every older hold style is a gun clip that keys both arms**, which is why a bucket-carrier used to raise its free hand like a pistol grip; these three leave the off arm hanging.
-- **Belt:** [BeltSeat](Assets/Game/Scripts/Items/Tools/BeltSeat.cs) lays an item's `BeltHang` child on one of three anchors (hip right, hip left, back), authored in character space and bound to the Hips bone. [BeltCarrier](Assets/Game/Scripts/agents/Entity/BeltCarrier.cs) hangs every bag slot that is not in the hand and has a `BeltMount`.
+- **Belt and pack:** the hang points are **not** on the Raxy. Each belt and backpack garment prefab carries a [GarmentMounts](Assets/Game/Scripts/Items/Tools/GarmentMounts.cs): a bone (`Hips` for belts, `Spine` for the pack) and one child transform per `BeltSlot` (`HipRight`, `HipLeft`, `Back`, `PackLeft`, `PackRight`). A point is authored in the garment's **mesh space** (what its `RestPose` view shows in Prefab Mode): origin at the loop or ring, +Y up toward the garment, +Z out from the body. [BeltSeat.CreateAnchors](Assets/Game/Scripts/Items/Tools/BeltSeat.cs) carries each point through the garment's bind pose to a bone-parented anchor, so one set of points fits every Raxy whatever its model scale. `BeltSeat.Hang` lays an item's `BeltHang` child on an anchor. [BeltCarrier](Assets/Game/Scripts/agents/Entity/BeltCarrier.cs) hangs every bag slot that is not in the hand and has a `BeltMount`, on the item's preferred slot or the first free one in enum order. Points placed: `Belt.standard` / `Belt.poncho` hips + back, `Work_belt` left hoop + back, `skirt_workBelt` right hoop + left + back, `Backpack` both low back corners; `Work_Belt_Flask` offers none (the flask is the right hip).
 - **Residents:** the archetype says what a profession carries (`ResidentArchetype.heldItem`, `beltItems`); [ResidentCarry](Assets/Game/Scripts/agents/Residents/Core/ResidentCarry.cs) fills an empty bag from it before the hand draws slot 0. [RaxyToolLoadouts](Assets/Game/Editor/Items/HandTools/RaxyToolLoadouts.cs) holds the profession table (17 of 20; storyteller, elder, villager carry nothing) and adds the bag, hand, belt, `ResidentCarry` and savers to every Raxy prefab that has a `Resident` (**Equip Residents**).
 
 ## Flows
@@ -72,6 +73,8 @@ Nothing of its own: the bag is `EntityInventorySaveable`, the hand slot `EntityE
 - The electric harpoon gun is a model and an inert item; it fires nothing. No tool is `menacing` — nothing here fires a shot, which `MenaceSensor` requires.
 - Tools longer than ~1.4 m carry `packSize` 0.9 so they can be stowed; `PackSizeTests` skips the `Items/Tools` folder for that reason.
 - `export_collections` makes parts flat siblings; sheaths, wire and loaded harpoon are separate renderers, not hidden automatically.
+- **A garment's own transform is meaningless once worn.** A skinned garment's root sits at an arbitrary FBX offset that differs per Raxy prefab, so mount points are read through the bind pose, never through the root's world position. `BakeMesh` plus `TransformPoint` over-scales garments with a non-1 root scale; measure by skinning the dominant bone by hand.
+- `BeltCarrier` searches the whole character for `GarmentMounts` (garments sit beside the Animator, not under it). A Raxy wearing no belt or pack hangs nothing and logs once per item; the first garment offering a slot wins.
 - Belt hang points come from the Blender manifests and have only been looked at for the hammer; others may hang tilted.
 - The held grip and the preview use the right hand; a left-handed holder plays the mirrored state, and the mirrored grip has not been looked at.
 

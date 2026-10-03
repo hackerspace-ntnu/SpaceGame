@@ -10,6 +10,7 @@
 // then belt (close, back), then the whole body from the side.
 //
 // Run from: Tools ▸ SpaceGame ▸ Items ▸ Hand Tools ▸ Preview Held And Belt
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -111,9 +112,15 @@ namespace SpaceGame.EditorTools
         {
             if (prefab.GetComponent<BeltMount>() == null) return;
 
-            BeltAnchorPose[] poses = BeltSeat.DefaultAnchors();
-            BeltAnchorPose pose = poses.First(p => p.slot == prefab.GetComponent<BeltMount>().Preferred);
-            Transform anchor = BeltSeat.CreateAnchor(rig.Body.transform, rig.Hips, pose);
+            // The slot the item prefers, on whatever belt or pack the preview Raxy wears.
+            Dictionary<BeltSlot, Transform> anchors = BeltSeat.CreateAnchors(rig.Body.transform, rig.Animator);
+            BeltSlot slot = prefab.GetComponent<BeltMount>().Preferred;
+            if (!anchors.TryGetValue(slot, out Transform anchor))
+            {
+                Debug.LogWarning($"[HandToolPreview] {prefab.name}: the preview Raxy offers no {slot} mount.");
+                DestroyAnchors(anchors);
+                return;
+            }
 
             GameObject hung = BeltSeat.Hang(anchor, prefab, out _);
             try
@@ -121,14 +128,14 @@ namespace SpaceGame.EditorTools
                 if (hung == null) return;
 
                 Bounds bounds = Merge(BoundsOf(hung), anchor.position, 0.5f);
-                float yaw = pose.slot == BeltSlot.Back ? 20f : (pose.slot == BeltSlot.HipRight ? 90f : 270f);
+                float yaw = slot == BeltSlot.HipRight ? 90f : slot == BeltSlot.HipLeft ? 270f : 20f;
                 Shoot(cam, bounds, yaw, 8f, 0.9f, sheet, 3);
                 Shoot(cam, Merge(BoundsOf(hung), anchor.position, 0.5f), 200f, 8f, 0.9f, sheet, 4);
             }
             finally
             {
                 if (hung != null) Object.DestroyImmediate(hung);
-                Object.DestroyImmediate(anchor.gameObject);
+                DestroyAnchors(anchors);
             }
         }
 
@@ -172,6 +179,12 @@ namespace SpaceGame.EditorTools
                 else bounds.Encapsulate(r.bounds);
             }
             return bounds;
+        }
+
+        private static void DestroyAnchors(Dictionary<BeltSlot, Transform> anchors)
+        {
+            foreach (Transform anchor in anchors.Values)
+                Object.DestroyImmediate(anchor.gameObject);
         }
 
         private static Bounds Merge(Bounds bounds, Vector3 point, float pad)

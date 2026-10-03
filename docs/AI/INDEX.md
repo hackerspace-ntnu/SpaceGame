@@ -106,10 +106,12 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
+| [AnimationCatalog](systems/AnimationCatalog.md) | What each humanoid clip library became: cuts, actions, loops, measured locomotion speeds | [HumanoidAnimation](systems/HumanoidAnimation.md), [AgentSystem](systems/AgentSystem.md), [Residents](systems/Residents.md), [ArtPipeline](systems/ArtPipeline.md) |
 | [Cutscenes](systems/Cutscenes.md) | Coroutine cutscene components plus shared presentation helpers: letterbox, shake, cloth wind, tint. | [SceneTransitions](systems/SceneTransitions.md), [PlayerShip](systems/PlayerShip.md), [CutsceneExamples](systems/CutsceneExamples.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md) |
 | [GameModes](systems/GameModes.md) | Versus team PvP, the plain story run, and the disposable never-saved sandbox | [Multiplayer](systems/Multiplayer.md), [Lobby](systems/Lobby.md), [PlayerShip](systems/PlayerShip.md), [Persistence](systems/Persistence.md) |
-| [HumanoidAnimation](systems/HumanoidAnimation.md) | One generated controller for every humanoid, its action assets, and the cues and moments that trigger them | [PlayerCharacter](systems/PlayerCharacter.md), [AgentSystem](systems/AgentSystem.md), [ArtPipeline](systems/ArtPipeline.md), [Multiplayer](systems/Multiplayer.md), [Combat](systems/Combat.md), [InteractionSystem](systems/InteractionSystem.md), [TalkingMouth](systems/TalkingMouth.md) |
+| [HumanoidAnimation](systems/HumanoidAnimation.md) | One generated controller for every humanoid, its action assets, and the cues and moments that trigger them | [PlayerCharacter](systems/PlayerCharacter.md), [AgentSystem](systems/AgentSystem.md), [ArtPipeline](systems/ArtPipeline.md), [Multiplayer](systems/Multiplayer.md), [Combat](systems/Combat.md), [InteractionSystem](systems/InteractionSystem.md), [TalkingMouth](systems/TalkingMouth.md), [AnimationCatalog](systems/AnimationCatalog.md) |
 | [Lobby](systems/Lobby.md) | Unity Lobby session state plus the disposable lobby screen: hosting, joining, roster and team rules | [UI](systems/UI.md), [GameModes](systems/GameModes.md), [Multiplayer](systems/Multiplayer.md) |
+| [NpcAnimationPlan](systems/NpcAnimationPlan.md) | What no clip covers yet, and the plan for animating every NPC situation | [HumanoidAnimation](systems/HumanoidAnimation.md), [AnimationCatalog](systems/AnimationCatalog.md), [Residents](systems/Residents.md), [AgentSystem](systems/AgentSystem.md) |
 | [TalkingMouth](systems/TalkingMouth.md) | A character's jaw opens and shuts in step with its Speaker revealing the line it said | [ArtPipeline](systems/ArtPipeline.md), [UI](systems/UI.md), [AgentSystem](systems/AgentSystem.md), [InteractionSystem](systems/InteractionSystem.md), [StylizedEyes](systems/StylizedEyes.md), [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | [UI](systems/UI.md) | Menus, HUD, full-screen overlays and world-anchored labels, all built in C# at runtime, no UI art | [Lobby](systems/Lobby.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md) |
 | [Visor](systems/Visor.md) | The helmet's projected blue readout layer — one design language, two sublayers, gauges bound to sources | [UI](systems/UI.md), [Combat](systems/Combat.md), [PlayerCharacter](systems/PlayerCharacter.md), [Multiplayer](systems/Multiplayer.md), [InteractionSystem](systems/InteractionSystem.md) |
@@ -150,5 +152,6 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
+- [systems/animation-action-inventory.md](systems/animation-action-inventory.md) — generated list of the new animation actions and cue coverage
 
-<!-- 68 system docs, 6 redirects -->
+<!-- 70 system docs, 6 redirects -->

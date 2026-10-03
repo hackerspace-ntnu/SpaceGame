@@ -51,7 +51,7 @@ LINE_BUDGET = 150  # body only; frontmatter is not counted
 LINK_ROOTS = ("Assets/", "ProjectSettings/", "Packages/", ".claude/", "tools/", "docs/")
 
 # Files that are inventories or indexes, not system references.
-EXEMPT = {"README.md", "audio-prefab-inventory.md", "CutsceneExamples.md"}
+EXEMPT = {"README.md", "audio-prefab-inventory.md", "CutsceneExamples.md", "animation-action-inventory.md"}
 
 
 def parse_frontmatter(text: str):
@@ -263,6 +263,8 @@ def build_index(docs: dict) -> str:
     w("- [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio "
       "slot inventory")
     w("- [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list")
+    w("- [systems/animation-action-inventory.md](systems/animation-action-inventory.md) — generated "
+      "list of the new animation actions and cue coverage")
     w("")
     w(f"<!-- {len(live)} system docs, {len(stubs)} redirects -->")
     return "\n".join(out) + "\n"

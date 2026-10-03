@@ -2,12 +2,18 @@ using UnityEngine;
 
 namespace SpaceGame.Items
 {
-    /// <summary>Where on a belt a carried item hangs. The order is the order a carrier tries them in.</summary>
+    /// <summary>
+    /// Where on a worn garment a carried item hangs: the belt's three, then the backpack's two. The
+    /// order is the order a carrier tries them in. Which of them exist is up to the garments the
+    /// wearer has on — see <see cref="GarmentMounts"/>.
+    /// </summary>
     public enum BeltSlot
     {
         HipRight = 0,
         HipLeft = 1,
-        Back = 2
+        Back = 2,
+        PackLeft = 3,
+        PackRight = 4
     }
 
     /// <summary>

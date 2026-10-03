@@ -19,9 +19,10 @@ namespace SpaceGame.EditorTools
     /// and whether it loops. A take with no entry imports no clips.
     /// </para>
     /// <para>
-    /// Root motion is baked away: position around the centre of mass, height from the feet,
-    /// rotation from the body. Every humanoid here animates in place with <c>applyRootMotion</c>
-    /// off, and a take left travelling would walk the pose out of its own capsule.
+    /// Played in place: height from the feet and rotation from the body are baked into the pose,
+    /// horizontal travel is NOT — it is left as root motion, which every humanoid Animator here
+    /// (<c>applyRootMotion</c> off) discards. Baking it into the pose instead keeps the travel in the
+    /// pelvis: 136 of the 288 clips slid 0.5-5 m out of their capsule and snapped back when they ended.
     /// </para>
     /// <para>
     /// <b>The pack's FBX files say TimeMode 7 (30 fps drop-frame), which Unity reads as a 1 fps
@@ -39,26 +40,10 @@ namespace SpaceGame.EditorTools
         public const string Folder = "Assets/ThirdParty/CMU/";
         public const string CutsFile = Folder + "cuts.json";
 
-        [Serializable]
-        private sealed class Cut
-        {
-            public string take;
-            public string name;
-            public float start;
-            public float end;
-            public bool loop;
-        }
-
-        [Serializable]
-        private sealed class CutList
-        {
-            public Cut[] cuts = Array.Empty<Cut>();
-        }
-
         private bool InScope => assetPath.StartsWith(Folder) && assetPath.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Bumped whenever a rule here changes, so Unity reimports what it already imported.</summary>
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 3;
 
         // Below this the take's time mode was misread (see the class summary); nothing real is captured this slowly.
         private const float LowestPlausibleSampleRate = 10f;
@@ -98,7 +83,7 @@ namespace SpaceGame.EditorTools
             float lastFrame = defaults[0].lastFrame;
             var clips = new List<ModelImporterClipAnimation>();
 
-            foreach (Cut cut in LoadCuts().cuts)
+            foreach (ClipCut cut in ClipCutList.Load(CutsFile).cuts)
             {
                 if (cut.take != take) continue;
 
@@ -115,8 +100,7 @@ namespace SpaceGame.EditorTools
                 clip.lockRootHeightY = true;
                 clip.keepOriginalPositionY = false;
                 clip.heightFromFeet = true;
-                clip.lockRootPositionXZ = true;
-                clip.keepOriginalPositionXZ = false;
+                clip.lockRootPositionXZ = false;
                 clip.events = new AnimationEvent[0];
                 clips.Add(clip);
             }
@@ -130,13 +114,6 @@ namespace SpaceGame.EditorTools
 
             Debug.LogError($"[CmuClipImporter] '{clip.name}' in {assetPath} imported as a generic clip, so it " +
                            "will animate no humanoid. The take's avatar did not come out Humanoid.");
-        }
-
-        private static CutList LoadCuts()
-        {
-            if (!File.Exists(CutsFile))
-                throw new FileNotFoundException($"[CmuClipImporter] {CutsFile} is missing; every CMU take needs its cuts.");
-            return JsonUtility.FromJson<CutList>(File.ReadAllText(CutsFile));
         }
     }
 }

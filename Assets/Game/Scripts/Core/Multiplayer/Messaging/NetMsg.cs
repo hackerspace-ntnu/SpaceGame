@@ -680,5 +680,33 @@ namespace SpaceGame.Core
         // so the owner reports it, throttled to one per PlayerStance.racketInterval. No payload:
         // the server emits from its own copy of the body.
         public const ushort SprintRacket = 119; // owner → server
+
+        // ── Seats ──
+        // Both owner → server, on the PLAYER's relay. The server decides and writes the answer into
+        // PlayerSeating's NetworkVariable; nothing is sent back, because every machine reads that.
+        // (Not the retired 92/93 SeatRequest/SeatRelease, which belonged to ship chairs.)
+        //   SitRequest   A = Seat.Id of the seat the player wants to sit on.
+        //   StandRequest no payload: stand the sender up.
+        public const ushort SitRequest   = 120; // owner → server
+        public const ushort StandRequest = 121; // owner → server
+
+        // ── Pushables ──
+        // Both owner → server, on the PLAYER's relay. The server decides and writes the answer into PlayerPushing's
+        // NetworkVariable; nothing is sent back, because every machine reads that.
+        //   PushRequest    A = Pushable.Id of the cart the player wants to take hold of.
+        //   ReleaseRequest no payload: let the sender's hands off the cart.
+        public const ushort PushRequest    = 122; // owner → server
+        public const ushort ReleaseRequest = 123; // owner → server
+
+        // ── Colony airlocks ──
+        // On the BUILDING's channel: the settlement wrapper's NetworkObject, or the building's root
+        // when it has none (a hand-placed colony, which then runs each machine's airlock alone).
+        // A = the AirlockChamber's index among the chambers on that entity (NetChannel.IndexOf).
+        //   AirlockOperate B = -1 asks for the state (a late joiner); otherwise bit 0 is the hatch
+        //                  (0 inner, 1 outer) and bit 1 says the clicker stands in the chamber.
+        //   AirlockState   B = AirlockState.ToWire(), plus bit 8 when it is the answer to an ask
+        //                  (land in it, do not animate into it).
+        public const ushort AirlockOperate = 124; // clicker → server
+        public const ushort AirlockState   = 125; // server → everyone
     }
 }

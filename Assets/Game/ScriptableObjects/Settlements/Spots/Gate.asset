@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the gate
   role: 0
-  holdCue: {fileID: 11400000, guid: 599dfae6df6354d2aae60815659b1082, type: 2}
+  holdCue: {fileID: 0}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 1
   nightManned: 1
+  elevated: 0

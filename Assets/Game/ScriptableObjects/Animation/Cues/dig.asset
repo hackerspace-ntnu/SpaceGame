@@ -13,4 +13,8 @@ MonoBehaviour:
   m_Name: dig
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Digging: mining, hoeing, shovelling.'
-  fallback: {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools:
+  - {fileID: 11400000, guid: 21e6e531e95284153ac7012b93495ac4, type: 2}
+  bareHands: 0

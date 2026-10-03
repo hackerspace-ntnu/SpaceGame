@@ -13,4 +13,8 @@ MonoBehaviour:
   m_Name: serve
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Serving drinks or food: bartending, plating, handing a dish across.'
-  fallback: {fileID: 11400000, guid: 4efa7c3a1f6ec44b98eb4634b6de9ead, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools:
+  - {fileID: 11400000, guid: 00774aaf3eccf481fa373f0f322d223f, type: 2}
+  bareHands: 0

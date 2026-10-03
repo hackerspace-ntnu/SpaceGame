@@ -47,18 +47,38 @@ namespace SpaceGame.EditorTools
         /// <summary>Slides the tool after it is aimed, metres in the holder's space (+Y up, +Z forward).</summary>
         public Vector3 Nudge;
 
+        /// <summary>
+        /// Where along the tool the hand closes, relative to its <c>Root_*</c>: metres at hold size along the
+        /// tool's own length, positive toward the business end. The root marks the grip the model's author
+        /// meant; this is for the tool whose root is not where a hand would take it (the end of a haft).
+        /// </summary>
+        public float GripShift;
+
         /// <summary>Name of the <c>CharacterAction</c> the holder plays on use, or null for none.</summary>
         public string UseAction;
 
-        /// <summary>Whether the item may hang on a belt at all.</summary>
-        public bool OnBelt;
+        /// <summary>
+        /// True for an item that cannot go on a belt or pack at all (a cart): it is held for as long as it
+        /// is carried. Every other tool hangs somewhere, worked out by <see cref="BeltHangs"/>.
+        /// </summary>
+        public bool CarryOnly;
 
-        public BeltSlot Slot;
+        /// <summary>Slings the tool on the back although it is short enough for a hip: one too broad to hang beside a leg.</summary>
+        public bool Slung;
 
-        /// <summary>Where the belt holds the item, in item space.</summary>
-        public Vector3 HangPoint;
+        /// <summary>Item axis a stowed tool lies along when it is not the stance's own (a shield stands on its edge).</summary>
+        public Vector3? HangAlong;
 
-        /// <summary>Which way is down while the item hangs, in item space.</summary>
+        /// <summary>Item axis that faces out from the wearer when the thinnest side is not the one that should (a sickle's blade must not stick out sideways).</summary>
+        public Vector3? HangOut;
+
+        /// <summary>
+        /// Where the belt holds the item, in item space, when someone authored a loop for it; otherwise
+        /// <see cref="BeltHangs"/> derives one from the tool's shape. Set together with <see cref="HangDown"/>.
+        /// </summary>
+        public Vector3? HangPoint;
+
+        /// <summary>Which way is down while the item hangs from <see cref="HangPoint"/>, in item space.</summary>
         public Vector3 HangDown = Vector3.down;
 
         public string ModelPath => $"Assets/Game/Art/Models/Items/Tools/{Category}/{ModelFileName}.fbx";

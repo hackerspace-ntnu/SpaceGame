@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the loom
   role: 0
-  holdCue: {fileID: 11400000, guid: ab6653ce0780b45848daff87d27fb9b4, type: 2}
+  holdCue: {fileID: 11400000, guid: a2d28e135356f4576af48838e0373c9b, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

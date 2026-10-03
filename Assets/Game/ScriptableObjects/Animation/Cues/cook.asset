@@ -12,5 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77b2e968a6a6347bdbfa85e64e6810e2, type: 3}
   m_Name: cook
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
-  meaning: 'Cooking or serving: stirring, chopping, wiping down.'
-  fallback: {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  meaning: 'The kitchen as a whole: every cooking action carries it besides its station.
+    Asked for by chat and Express; no spot holds it.'
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools: []
+  bareHands: 0

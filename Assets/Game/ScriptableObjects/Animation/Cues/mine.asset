@@ -13,4 +13,9 @@ MonoBehaviour:
   m_Name: mine
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Mining: striking rock on the ground or a wall, drilling.'
-  fallback: {fileID: 11400000, guid: 7b6381a3ca35b41cd87c0cb43e636b5e, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools:
+  - {fileID: 11400000, guid: aa22d65a0eae142eca8185b1e56647e1, type: 2}
+  - {fileID: 11400000, guid: 192f268bd9fa94e388282cc47049f752, type: 2}
+  bareHands: 0

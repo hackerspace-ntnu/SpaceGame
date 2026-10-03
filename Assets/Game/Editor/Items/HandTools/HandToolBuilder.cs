@@ -20,7 +20,7 @@ namespace SpaceGame.EditorTools
 {
     public static class HandToolBuilder
     {
-        /// <summary>Degrees a seated tool may sit off its stance before the build calls it a failure.</summary>
+        /// <summary>Degrees a seated tool may sit off its stance, along its length or about it, before the build calls it a failure.</summary>
         private const float MaxFitResidual = 1f;
 
         [MenuItem("Tools/SpaceGame/Items/Hand Tools/Build All")]
@@ -67,9 +67,11 @@ namespace SpaceGame.EditorTools
                 InventoryItem item = EnsureItem(spec, prefab);
                 WireItemIntoPickup(prefab, item);
 
-                float residual = GripFitter.Residual(rig, spec, prefab);
-                if (residual > MaxFitResidual)
-                    Debug.LogError($"[HandTools] {spec.Id}: seated {residual:F1} degrees off its {spec.Stance} stance.");
+                GripResidual residual = GripFitter.Residual(rig, spec, prefab);
+                if (residual.Along > MaxFitResidual)
+                    Debug.LogError($"[HandTools] {spec.Id}: seated {residual.Along:F1} degrees off its {spec.Stance} stance.");
+                if (residual.Face > MaxFitResidual)
+                    Debug.LogError($"[HandTools] {spec.Id}: turned {residual.Face:F1} degrees about its length off its {spec.Stance} stance.");
 
                 if (!BatchIconGenerator.CreateFor(item, out string note))
                     Debug.LogWarning($"[HandTools] {spec.Id}: no icon — {note}");
@@ -124,23 +126,23 @@ namespace SpaceGame.EditorTools
 
         private static void AddBelt(GameObject root, HandToolSpec spec)
         {
-            if (!spec.OnBelt) return;
+            if (spec.CarryOnly) return;
 
-            // +Y toward the belt, +Z out from the body. The item's own front (+Z) is the best guess
-            // at "out", unless the item hangs along it, in which case any sideways axis will do.
-            Vector3 up = -spec.HangDown.normalized;
-            Vector3 outward = Vector3.ProjectOnPlane(Vector3.forward, up);
-            if (outward.sqrMagnitude < 1e-4f) outward = Vector3.ProjectOnPlane(Vector3.right, up);
+            // +Y toward the belt, +Z out from the body.
+            BeltHang placed = BeltHangs.Of(spec, ItemBounds.Measure(root, null));
 
             var hang = new GameObject("BeltHang").transform;
             hang.SetParent(root.transform, false);
-            hang.localPosition = spec.HangPoint;
-            hang.localRotation = Quaternion.LookRotation(outward.normalized, up);
+            hang.localPosition = placed.Point;
+            hang.localRotation = Quaternion.LookRotation(placed.Out, placed.Up);
 
             var mount = root.AddComponent<BeltMount>();
             var so = new SerializedObject(mount);
             so.FindProperty("hang").objectReferenceValue = hang;
-            so.FindProperty("preferred").enumValueIndex = (int)spec.Slot;
+            SerializedProperty slots = so.FindProperty("slots");
+            slots.arraySize = placed.Slots.Count;
+            for (int i = 0; i < placed.Slots.Count; i++)
+                slots.GetArrayElementAtIndex(i).enumValueIndex = (int)placed.Slots[i];
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

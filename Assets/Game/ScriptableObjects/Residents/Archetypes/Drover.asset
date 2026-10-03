@@ -15,8 +15,12 @@ MonoBehaviour:
   roleName: drover
   post: {fileID: 11400000, guid: 91ce435fb30344f2b3d17fac9153ccd6, type: 2}
   trips: 0
+  chore: {fileID: 0}
+  duty: 0
+  challengesArmed: 0
   nerve: 0.7
   temper: 0.6
-  heldItem: {fileID: 11400000, guid: 38688743ffe304f499c15a34f6edfb68, type: 2}
+  pushesCart: 1
+  heldItem: {fileID: 0}
   beltItems:
   - {fileID: 11400000, guid: d7dfef2da55cd448ab02bb979c452704, type: 2}

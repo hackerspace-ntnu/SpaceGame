@@ -16,7 +16,7 @@ symptoms:
   - "a Mixamo take imports as one 27 second clip called mixamo.com"
   - "a pose sheet shows the same figure in every cell"
   - "an NPC with an injured, drunk or heavy walk skates or moonwalks"
-reads_with: [HumanoidAnimation, AgentSystem, Residents, ArtPipeline]
+reads_with: [HumanoidAnimation, AgentSystem, Residents, ArtPipeline, Stations]
 updated: 2026-10-03
 ---
 
@@ -36,7 +36,7 @@ plays, what answers each cue today, and where the vocabulary is still thin. Numb
 | Mixamo singles | `Art/Animations/Humanoid/*.fbx` | 38 → 51 | 13 | 3.4 | Get-ups, slips and stumbles, kneeling work, fishing cast, fax/keypad/device work, salute, bow, bartending, a lying-down sleep loop, a ladder climb cycle |
 | Mocap Central sample | `ThirdParty/MocapCentral` (79 of 127 Unity-rig takes; full set unzipped, git-ignored, in `Art/Animations/_Packed~/MC_Sample`) | 79 → 84 | 23 | 6.1 | Dance start/loop/stop sets, injured and drunk and swagger and heavy-hammer walks, wounded collapse and get-up, piano, spellbook, vending machine, singing, conversation beats |
 | Motion Cast FREE01 (No Root copies) | `ThirdParty/Motion Cast-FREE01/No Root Animations` | 16 → 37 | 8 | 4.6 | Acted emotions: crying, laughing, mad laugh, applause, exhaustion, disgust, hunger, waving, threats, six speech-gesture beats |
-| EEJANAI cooking | `ThirdParty/EEJANAI_Team/CookingAnimations/FBX` | 18 → 18 | 8 | 1.6 | Chopping, washing, stirring, wok, pan, grill, blender, plating, pouring, seasoning, eating, drinking |
+| EEJANAI cooking | `ThirdParty/EEJANAI_Team/CookingAnimations/FBX` | 18 → 18 | 8 | 1.6 | Chopping, washing, stirring, wok, pan, grill, blender, plating, pouring, seasoning, eating, drinking. Each is now its own station cue (`chop`, `wash`, `stir`, `cookpan`, `cookwok`, `grill`, `blend`, `plate`, `season`), see [Stations.md](Stations.md) |
 | ExplosiveLLC crafter | `ThirdParty/ExplosiveLLC/.../Animations` | 8 → 8 | 4 | 0.2 | Carry-a-crate idle/walk/pickup/putdown/hand over/receive |
 | Kevin Iglesias, male + female | `ThirdParty/Kevin Iglesias/.../Animations/{Male,Female}` | 60 → 60 | 31 | 1.3 | Farming, fishing (4 kinds), hammering L/R, mining ground/wall L/R, gathering, rifle aim, damage, death, spear and boomerang throws |
 | (already present) CMU 288 cuts, Quaternius UAL1 42, Player/Mixamo 42 | see HumanoidAnimation.md | | | | |
@@ -51,7 +51,7 @@ plays, what answers each cue today, and where the vocabulary is still thin. Numb
 - **Male and female variants** of every Kevin Iglesias work clip sit in the same action as separate
   variants, picked by the body's seeded random: a crowd mining does not mine in unison or as one
   person. Left/right-handed variants (hammering, mining) are variants too.
-- **Cue vocabulary: 63 → 89 words**, every one answered (Audit lists none unanswered).
+- **Cue vocabulary: 63 → 89 words, then 101 with the station cues** (stir, cookpan, cookwok, grill, chop, wash, blend, plate, season, wipe, weave, rummage), every one answered (Audit lists none unanswered).
   New: serve, operate, farm, fish, mine, gather, salute, bow, draw, applaud, confused, disgust, cough,
   hungry, exhausted, cry, collapse, stumble, sing, music, read, chant, drunk, prone, receive, restrain.
 - **Locomotion archetypes.** Six new `LocomotionSet`s (Injured, Drunk, Swagger, Stroll, Heavy, Carry)

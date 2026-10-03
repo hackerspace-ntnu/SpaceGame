@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the hives
   role: 0
-  holdCue: {fileID: 11400000, guid: e42e942f2eded4608ad7d0b91baba098, type: 2}
+  holdCue: {fileID: 11400000, guid: aa2b112cca9694242a608e2f1f878928, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

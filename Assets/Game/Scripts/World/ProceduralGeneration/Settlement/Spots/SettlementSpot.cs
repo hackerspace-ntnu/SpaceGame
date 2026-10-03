@@ -7,6 +7,7 @@
 // (the seats around a fire, a stall's counter and its customers): residents holding there talk to each
 // other, and friends plan their free time into the same circle.
 using UnityEngine;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.World
 {
@@ -27,8 +28,18 @@ namespace SpaceGame.World
         [Tooltip("Spots with the same group under the same parent are one circle: they talk, and friends meet there. Empty = alone.")]
         [SerializeField] private string group;
 
+        [Tooltip("The loop held here when this prop calls for another than its use's: the grill's spot grills, the pot's spot " +
+                 "stirs, though both are the kitchen. Empty = the use's hold cue.")]
+        [SerializeField] private CharacterCue stationCue;
+
         public SpotUse Use => use;
         public string Group => group;
+
+        /// <summary>The loop a resident holds here: this prop's own station cue, else what the spot's use is for.</summary>
+        public CharacterCue HoldCue => stationCue != null ? stationCue : use != null ? use.holdCue : null;
+
+        /// <summary>The spot names the thing worked at (a face transform), as opposed to looking along its own +Z.</summary>
+        public bool HasTarget => face != null;
         public Vector3 Position => transform.position;
 
         /// <summary>Where a resident here looks: the face target, else a point ahead along the spot's +Z.</summary>

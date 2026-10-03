@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the butcher's block
   role: 0
-  holdCue: {fileID: 11400000, guid: 0e79d5f0eb9a046d6a687e69fc4a83c6, type: 2}
+  holdCue: {fileID: 11400000, guid: 08b8a8bc3607244b48cbcc2015ebaafc, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

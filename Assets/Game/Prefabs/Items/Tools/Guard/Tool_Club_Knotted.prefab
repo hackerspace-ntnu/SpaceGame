@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 8130677276785033241}
   - component: {fileID: 3545390628241404314}
   - component: {fileID: 2730953754478009173}
+  - component: {fileID: 4920779780456307386}
   - component: {fileID: 6790654958129096136}
   m_Layer: 0
   m_Name: Tool_Club_Knotted
@@ -43,6 +44,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 824563646879130079}
+  - {fileID: 344618291947802283}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2706913697558880739
@@ -289,13 +291,27 @@ MonoBehaviour:
   gripPoint: {fileID: 0}
   hand: 0
   holdStyle: 9
-  rotationOffset: {x: 10.7, y: 316.6, z: 46}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 342.1, y: 330.8, z: 9.4}
+  positionOffset: {x: -0.017, y: 0.002, z: 0.104}
   holdSize: 1.19
   packSize: 0
   sizeReference: {fileID: 0}
   confinedToSurfaces: 
   keepColliders: 0
+--- !u!114 &4920779780456307386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 134322694429140334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77fc456b5508648b4b243bfd4c657576, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
+  hang: {fileID: 344618291947802283}
+  slots: 020000000300000004000000
 --- !u!114 &6790654958129096136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,6 +334,37 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 11400000, guid: eddb78549a6849159d3ea5d6765048ef, type: 2}
+--- !u!1 &4552287179345224363
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 344618291947802283}
+  m_Layer: 0
+  m_Name: BeltHang
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &344618291947802283
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4552287179345224363}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.1305262, w: 0.9914449}
+  m_LocalPosition: {x: -0, y: -0.20928043, z: -0.17231569}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8633302712039740625}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &935562597956257332
 PrefabInstance:
   m_ObjectHideFlags: 0

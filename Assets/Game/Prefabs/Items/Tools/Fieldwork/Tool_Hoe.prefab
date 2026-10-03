@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 7715672661691396044}
   - component: {fileID: 1081479094414665097}
   - component: {fileID: 5865844925923004302}
+  - component: {fileID: 3804578466985169459}
   - component: {fileID: 3696122195590663360}
   m_Layer: 0
   m_Name: Tool_Hoe
@@ -43,6 +44,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3057282040440557729}
+  - {fileID: 8501190194176052790}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5846130648101578024
@@ -289,13 +291,27 @@ MonoBehaviour:
   gripPoint: {fileID: 0}
   hand: 0
   holdStyle: 8
-  rotationOffset: {x: 320.7, y: 330.7, z: 44.7}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 332, y: 19.1, z: 337.2}
+  positionOffset: {x: -0.017, y: 0.002, z: 0.104}
   holdSize: 1.67
   packSize: 0.9
   sizeReference: {fileID: 0}
   confinedToSurfaces: 
   keepColliders: 0
+--- !u!114 &3804578466985169459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2858909337415999322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77fc456b5508648b4b243bfd4c657576, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
+  hang: {fileID: 8501190194176052790}
+  slots: 020000000300000004000000
 --- !u!114 &3696122195590663360
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,6 +334,37 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!1 &3709011526980019985
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8501190194176052790}
+  m_Layer: 0
+  m_Name: BeltHang
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8501190194176052790
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3709011526980019985}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.1305262, w: 0.9914449}
+  m_LocalPosition: {x: -0, y: -0.21235073, z: -0.08825143}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2710782806175957981}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &3307643977193846602
 PrefabInstance:
   m_ObjectHideFlags: 0

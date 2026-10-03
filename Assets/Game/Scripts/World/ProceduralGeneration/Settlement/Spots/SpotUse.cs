@@ -34,9 +34,12 @@ namespace SpaceGame.World
         [FormerlySerializedAs("workCue")]
         public CharacterCue holdCue;
 
-        [Tooltip("The hold cue is a sit: the body is lifted onto the surface under the spot when that is a bench or stool " +
-                 "(ResidentPresence), and left on the floor when it is the ground.")]
+        [Tooltip("The hold cue is a sit: the resident claims a free Seat near the spot and sits on its sit point, or - with no " +
+                 "Seat there - does not sit at all. Seat Placer puts a Seat on every sit spot.")]
         public bool seated;
+
+        [Tooltip("Seated only. The Seat prefab Seat Placer puts on this use's spots. Empty = it cycles through the default seats.")]
+        public GameObject seatPrefab;
 
         [Tooltip("Work only. Never left empty in daytime: breaks are staggered so one worker always stays.")]
         public bool alwaysManned;

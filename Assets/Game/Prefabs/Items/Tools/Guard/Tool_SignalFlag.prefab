@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 2748185909912825891}
   - component: {fileID: 9129267435471768505}
   - component: {fileID: 3200856818675241111}
+  - component: {fileID: 1463060408800527362}
   - component: {fileID: 2713081562635403648}
   m_Layer: 0
   m_Name: Tool_SignalFlag
@@ -43,6 +44,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1723256247319295634}
+  - {fileID: 4694981538748890791}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6241772810149268779
@@ -288,14 +290,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 0}
   hand: 0
-  holdStyle: 4
-  rotationOffset: {x: 322.5, y: 332.6, z: 46.2}
-  positionOffset: {x: 0, y: 0, z: 0}
+  holdStyle: 8
+  rotationOffset: {x: 332, y: 19.1, z: 337.2}
+  positionOffset: {x: -0.017, y: 0.002, z: 0.104}
   holdSize: 1.79
   packSize: 0.9
   sizeReference: {fileID: 0}
   confinedToSurfaces: 
   keepColliders: 0
+--- !u!114 &1463060408800527362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7571318732327179039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77fc456b5508648b4b243bfd4c657576, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
+  hang: {fileID: 4694981538748890791}
+  slots: 020000000300000004000000
 --- !u!114 &2713081562635403648
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,6 +334,37 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!1 &7800490570010156631
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4694981538748890791}
+  m_Layer: 0
+  m_Name: BeltHang
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4694981538748890791
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7800490570010156631}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.1305262, w: 0.9914449}
+  m_LocalPosition: {x: -0, y: -0.24249995, z: -0.12194283}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3066962451584220383}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1180089407224222073
 PrefabInstance:
   m_ObjectHideFlags: 0

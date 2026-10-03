@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the well
   role: 3
-  holdCue: {fileID: 11400000, guid: e1b10f80b9d86409689a49d385d0a58f, type: 2}
+  holdCue: {fileID: 0}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

@@ -25,6 +25,14 @@ namespace SpaceGame.EditorTools
     /// The off arm is written out as a constant, not left unkeyed: what a layer does with a muscle it
     /// has no curve for is Unity's decision and differs between sampling and playing.
     /// </para>
+    /// <para>
+    /// <b>Carry and Ready pose the arms only</b> (<c>HoldPose.armsOnly</c>): they play on the Hold Arms
+    /// layer, whose mask has no body part, so the idle's and the sword idle's spine, chest and upper
+    /// chest curves are never applied. They used to be, on the Upper Body layer, and a walking holder
+    /// stooped to 72 degrees (Carry) and 46 (Ready) from the hips to the head, against 88 empty-handed.
+    /// Zeroing those curves in the clips was tried first and rejected: a constant spine is right for
+    /// one gait and wrong for the other (standing came out 14 degrees more forward than before).
+    /// </para>
     /// </summary>
     public static class HoldClipGenerator
     {
@@ -47,9 +55,11 @@ namespace SpaceGame.EditorTools
             HumanoidControllerBuilder.EnsureFolder(ClipFolder);
             AnimationClip ready = RecoilClipGenerator.SaveClip(KeepRightArm(sword, idle, "Hold_Ready"), ReadyPath);
 
-            Assign(ItemGrip.HoldStyle.Push, push);
-            Assign(ItemGrip.HoldStyle.Carry, idle);
-            Assign(ItemGrip.HoldStyle.Ready, ready);
+            // Push leans into the cart on purpose, so it keeps the torso; the other two are held while
+            // walking and must not touch it (see HumanoidAnimationProfile.HoldPose.armsOnly).
+            Assign(ItemGrip.HoldStyle.Push, push, armsOnly: false);
+            Assign(ItemGrip.HoldStyle.Carry, idle, armsOnly: true);
+            Assign(ItemGrip.HoldStyle.Ready, ready, armsOnly: true);
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[HoldClipGenerator] Wrote {ReadyPath} and posed Push, Carry and Ready in the humanoid profile.");
@@ -82,7 +92,7 @@ namespace SpaceGame.EditorTools
             && binding.propertyName.StartsWith("Left")
             && ArmWords.Any(binding.propertyName.Contains);
 
-        private static void Assign(ItemGrip.HoldStyle style, AnimationClip clip)
+        private static void Assign(ItemGrip.HoldStyle style, AnimationClip clip, bool armsOnly)
         {
             var profile = AssetDatabase.LoadAssetAtPath<HumanoidAnimationProfile>(HumanoidControllerBuilder.ProfilePath);
             var so = new SerializedObject(profile);
@@ -101,6 +111,7 @@ namespace SpaceGame.EditorTools
             }
 
             entry.FindPropertyRelative("clip").objectReferenceValue = clip;
+            entry.FindPropertyRelative("armsOnly").boolValue = armsOnly;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(profile);
         }

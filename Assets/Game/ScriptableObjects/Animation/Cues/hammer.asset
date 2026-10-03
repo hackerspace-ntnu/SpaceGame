@@ -13,4 +13,10 @@ MonoBehaviour:
   m_Name: hammer
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Hammering and grinding: smith, smelter, miller.'
-  fallback: {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools:
+  - {fileID: 11400000, guid: ee7eeed29cfb24487ba319d25ddde876, type: 2}
+  - {fileID: 11400000, guid: 11356e26f8c3844df8cab73e1f8641af, type: 2}
+  - {fileID: 11400000, guid: 3a79ebc6b2c7c4f4688f9a9b31907ac5, type: 2}
+  bareHands: 0

@@ -24,8 +24,8 @@ symptoms:
   - "a resident carries nothing in its hand during a chore"
   - "the tower guard stands at the foot of the tower instead of on the deck"
   - "two residents talk while walking but stop dead to face each other"
-reads_with: [Residents, ResidentReputation, HandTools, NavMeshSystem, Multiplayer]
-updated: 2026-10-02
+reads_with: [Residents, ResidentReputation, HandTools, NavMeshSystem, Multiplayer, Pushables]
+updated: 2026-10-03
 ---
 
 # Errands
@@ -59,7 +59,7 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
 | `SettlementProp` / `PropRest` (World/…/Settlement/Props) | a carriable thing (its `item` = what a hand or bag holds, its `home` rest) · a pose a prop can stand at, served by one errand `spot` |
 | `SettlementProps` (World, on `Settlement.Props`) | every prop and rest under `Generated` in hierarchy order, plus the server's transient reservations; `Pick` / `Put` / `FreePropAt` / `IsFree` / `RestsOf(spot)` |
 | `SettlementPropSync` (NetworkBehaviour) | the state of one building's props, written by the server (errands only); saver key `props` |
-| `SettlementNetworking` | `Settlement.Generate` stands a NetworkObject + `NetRelay` (+ `SettlementPropSync`) wrapper round each building with props or a latch (the animal keep's gates) |
+| `SettlementNetworking` | `Settlement.Generate` stands a NetworkObject + `NetRelay` (+ `SettlementPropSync`) wrapper round each building with props, a latch (the animal keep's gates, a projector) a `NetworkBehaviour` (a colony's oxygen filler and gear wall) or an `AirlockChamber` (a colony's clicked airlocks) |
 | `SettlementFixture` | a working decoration's name and scanner class, `ScannerRegistry`; not interactable |
 | `CharacterProfile` (on `SettlementCulture.profiles`) | which archetypes a character prefab makes; `ResidentAssignment` draws a newcomer from its profile when one is usable |
 
@@ -71,6 +71,7 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
 - **Prop round** (`carriesProps`, `PlanPropRound`): nearest source with an unpromised prop on one of its rests (item in `carryItems`),
   nearest other target with a free rest; both promised; stops `pick` then `drop` (carry byte = the prop's item). `FinishProps` acts
   when a dwell ends; `LandCarried` (new segment, `Reset`, routine off, death) puts it down.
+- **A pushed cart is not a prop.** `Deco_Handcart` & co. are `Pushable`s a body grips and poses ([Pushables.md](Pushables.md)); a `SettlementProp` is still something a hand carries between rests. The pen's `Carry_Cart_Hand__01` is the second kind, so a hauler lifts the cart item (the old overhead cart) until that prop is made pushable.
 - **Players cannot take or use props and fixtures.** Only building doors (`InteractableTrigger` → `SceneTransition`) and pen gates
   (`DoorInteraction`) are interactable in a settlement; `SettlementInteractableTests` fails if any NomadSettlement prefab carries another
   `IInteractable`. A solid collider with one would also answer the crosshair for everything behind it.
@@ -129,7 +130,7 @@ restores home, a legacy `Taken` (old saves) stays gone; a regenerate orphans the
   (or disabling the routine) leaves a prop `Carried` — invisible on every machine until the next load.
 - Rests: each prop's authored pose, plus two floor patches beside every `GoodsPile`/`Smelter` stop; a prop with no errand stop within
   3 m got its own `GoodsPile` stop. Job posts take the back or a side where the front was already an errand stop (`Jobs` table).
-  Job cues (`cook`, `dig`, `hammer`, `craft`, `tend`) fall back to `work`; `Pen` and `Garden` now hold `tend`.
+  What each post and each errand stop holds is the station data ([Stations.md](Stations.md)): no job cue falls back to `work` any more, an errand stop holds nothing (the resident stands with the carried item), `Pen` holds nothing (no animal clip), `Garden` holds `tend`.
 - Decoration spots stand 1.1 m in front of the prefab's bounds, looking at its middle; they only matter where a settlement's
   config lists the decoration. Re-running `Tools/SpaceGame/Residents/Author Errand Content` is safe.
 - **Edit mode has no world NavMesh** (it is added at runtime by `WorldNavMeshProvider`). Generate checks places on its
@@ -166,7 +167,7 @@ restores home, a legacy `Taken` (old saves) stays gone; a regenerate orphans the
 - **A new working decoration:** a row in `Fixtures` (name, scan class) and in `Jobs` (post, side) in
   `ResidentErrandContentBuilder.SettlementWork.cs`, then re-run the menu item.
 - **Which person a character prefab makes:** a row in `AuthorProfiles` (or edit `SettlementCulture.profiles` by hand).
-- **New chore:** two `SpotUse` assets with role Errand (+ a hold cue: `pickup`/`putdown` exist), a `ChoreDefinition`, the carried hand
+- **New chore:** two `SpotUse` assets with role Errand (no hold cue: `pickup`/`putdown` are one-shots), a `ChoreDefinition`, the carried hand
   tool appended to `ResidentTuning.carryItems`, an archetype whose `chore` is it, 2-3 line rows with activity `Chore`, and the
   spots on prefabs. No code. Easiest by adding it to `ResidentErrandContentBuilder`.
 - **New kind of guard:** an archetype with `duty` Patrol (pairs on the ring) or a post whose `SpotUse` is `elevated` (a tower).

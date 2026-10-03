@@ -37,8 +37,11 @@ MonoBehaviour:
   decorations: []
   characters:
   - prefab: {fileID: 2578966956616729156, guid: d0f638635216a414e9bf763407759c52, type: 3}
-    count: 6
+    count: 12
     spawnChance: 0.75
+  specialCharacters: []
+  culture: {fileID: 0}
+  streets: {fileID: 0}
   minBuildingGap: 4
   maxBuildingGap: 10
   outskirts: 15

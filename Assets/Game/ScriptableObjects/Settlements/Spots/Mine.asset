@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the mine
   role: 0
-  holdCue: {fileID: 11400000, guid: 7b6381a3ca35b41cd87c0cb43e636b5e, type: 2}
+  holdCue: {fileID: 11400000, guid: 3aba21fe487ab4eccbcde1e89e22d557, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

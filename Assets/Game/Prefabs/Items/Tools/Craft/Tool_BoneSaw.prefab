@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 3808005570884686832}
   - component: {fileID: 8275738095173412362}
   - component: {fileID: 1934177369259213160}
+  - component: {fileID: 2648499091206727215}
   - component: {fileID: 7725105171340081059}
   m_Layer: 0
   m_Name: Tool_BoneSaw
@@ -43,6 +44,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 696645480987437060}
+  - {fileID: 7953026634837242732}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4223426837291015248
@@ -289,13 +291,27 @@ MonoBehaviour:
   gripPoint: {fileID: 0}
   hand: 0
   holdStyle: 9
-  rotationOffset: {x: 10.7, y: 316.6, z: 46}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 342.1, y: 330.8, z: 9.4}
+  positionOffset: {x: -0.017, y: 0.002, z: 0.104}
   holdSize: 0.8
   packSize: 0
   sizeReference: {fileID: 0}
   confinedToSurfaces: 
   keepColliders: 0
+--- !u!114 &2648499091206727215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 913105391403473708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77fc456b5508648b4b243bfd4c657576, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
+  hang: {fileID: 7953026634837242732}
+  slots: 0000000001000000030000000400000002000000
 --- !u!114 &7725105171340081059
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,6 +334,37 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!1 &8224442020185161236
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7953026634837242732}
+  m_Layer: 0
+  m_Name: BeltHang
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7953026634837242732
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8224442020185161236}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0.7071068, w: 0}
+  m_LocalPosition: {x: -0, y: -0.054164983, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6961871976555618875}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1017886232838819823
 PrefabInstance:
   m_ObjectHideFlags: 0

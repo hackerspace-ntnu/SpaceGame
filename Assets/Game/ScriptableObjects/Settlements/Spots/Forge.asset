@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the forge
   role: 0
-  holdCue: {fileID: 11400000, guid: 68e2eae465f494ceeb182ec73c79d9d4, type: 2}
+  holdCue: {fileID: 11400000, guid: 6cbf985ffbf0a4e379e2e2b3120b651b, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

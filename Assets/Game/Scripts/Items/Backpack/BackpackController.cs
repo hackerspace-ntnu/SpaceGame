@@ -288,8 +288,10 @@ namespace SpaceGame.Items
             // scene opened straight from the editor never enter the coroutine machinery at all.
             // Dies with the component and is restarted by the next OnEnable; asking twice is
             // harmless, because the answer is the state we already have.
+            // A joining client asks where this pack is.
             if (Network.IsNetworked && !Network.Server)
-                StartCoroutine(AskForStateWhenConnected());
+                StartCoroutine(this.NetToServerWhenSpawned(NetMsg.PackState,
+                                                           new NetArg { A = AskState, B = RequestVerb }));
         }
 
         private void OnDisable()
@@ -415,32 +417,6 @@ namespace SpaceGame.Items
 
         private void Request(State destination) =>
             this.NetToServer(NetMsg.PackState, new NetArg { A = (int)destination, B = RequestVerb });
-
-        /// <summary>
-        /// A joining client asks where this pack is, once there is somebody to ask.
-        ///
-        /// Waits for the body's NetworkObject to actually be spawned rather than sending on the
-        /// first frame: before that there is no relay, the send falls through to a local dispatch,
-        /// and the client answers its own question with the state it already had — which is the
-        /// prefab's, which is the thing being corrected. Same coroutine, same reason, as
-        /// ArticulatedPartInteraction's.
-        /// </summary>
-        private IEnumerator AskForStateWhenConnected()
-        {
-            if (!Network.IsNetworked || Network.Server) yield break;
-
-            GameObject root = NetChannel.RootOf(this);
-            var netObj = root != null ? root.GetComponent<Unity.Netcode.NetworkObject>() : null;
-            if (netObj == null) yield break;
-
-            while (!netObj.IsSpawned)
-            {
-                if (!Network.IsNetworked) yield break;
-                yield return null;
-            }
-
-            this.NetToServer(NetMsg.PackState, new NetArg { A = AskState, B = RequestVerb });
-        }
 
         private void OnPackStateMessage(in NetArg arg, ulong sender)
         {

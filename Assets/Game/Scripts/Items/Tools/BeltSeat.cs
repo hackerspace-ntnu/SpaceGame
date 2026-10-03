@@ -54,6 +54,32 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Which slot each mountable item hangs from: the first of its <see cref="BeltMount.Slots"/> that
+        /// <paramref name="offered"/> contains and no earlier item took. <paramref name="mounts"/> is the bag in
+        /// slot order, null where a slot holds nothing or something with no mount; the result is keyed by that
+        /// index and leaves out an item with no slot left. Pure, so the carrier and the roster's tests ask the
+        /// same question.
+        /// </summary>
+        public static Dictionary<int, BeltSlot> Plan(IReadOnlyList<BeltMount> mounts, ICollection<BeltSlot> offered)
+        {
+            var placement = new Dictionary<int, BeltSlot>();
+            var taken = new HashSet<BeltSlot>();
+            for (int i = 0; i < mounts.Count; i++)
+            {
+                if (mounts[i] == null) continue;
+
+                foreach (BeltSlot slot in mounts[i].Slots)
+                {
+                    if (!offered.Contains(slot) || !taken.Add(slot)) continue;
+                    placement.Add(i, slot);
+                    break;
+                }
+            }
+
+            return placement;
+        }
+
+        /// <summary>
         /// Instantiate <paramref name="prefab"/> on <paramref name="anchor"/>, sized as it is in the
         /// hand, with its <see cref="BeltMount.Hang"/> laid on the anchor. Null when the prefab has
         /// no <see cref="BeltMount"/>. <paramref name="socket"/> owns the instance: unequip it to

@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the kitchen
   role: 0
-  holdCue: {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  holdCue: {fileID: 11400000, guid: 16290c5f51c8c40f185bd6b09407c13a, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 1
   nightManned: 0
   elevated: 0

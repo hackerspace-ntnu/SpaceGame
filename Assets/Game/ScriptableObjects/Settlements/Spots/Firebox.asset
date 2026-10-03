@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the fire
   role: 3
-  holdCue: {fileID: 11400000, guid: 97df9d71366db4f26be4aef7a10e364b, type: 2}
+  holdCue: {fileID: 0}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

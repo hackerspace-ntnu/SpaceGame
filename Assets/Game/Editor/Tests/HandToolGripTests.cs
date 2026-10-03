@@ -58,6 +58,60 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void TheRaxyHandFrame_IsDerivedFromItsFingers_NotGuessedFromTheForearm()
+        {
+            // The Raxy has three fingers and a thumb. Without the ring-finger fallback it took the forearm path, whose
+            // roll is read off the world's up at the moment of the call and whose origin sat 5 cm from the wrist,
+            // 12 cm short of the fist: every tool lay along the wrist.
+            using HandToolRig rig = HandToolRig.Create();
+            Assert.AreEqual("finger bones", rig.Frame.Source, "the Raxy's grip frame fell back to the forearm path");
+        }
+
+        [Test]
+        public void EveryBuiltTool_IsSeatedOnItsStance_AlongAndAboutItsLength_WithItsRootInTheFist()
+        {
+            using HandToolRig rig = HandToolRig.Create();
+            foreach (GripAudit row in HandToolAudit.Measure(rig))
+            {
+                Assert.LessOrEqual(row.Residual.Along, HandToolAudit.MaxResidual,
+                    $"{row.Id} points {row.Residual.Along:F1} degrees off its {row.Stance} stance. Re-run Hand Tools > Build All.");
+                Assert.LessOrEqual(row.Residual.Face, HandToolAudit.MaxResidual,
+                    $"{row.Id} is turned {row.Residual.Face:F1} degrees about its own length off its {row.Stance} stance. Re-run Build All.");
+                Assert.LessOrEqual(row.FistToRoot, HandToolAudit.MaxFistToRoot,
+                    $"{row.Id}'s root is {row.FistToRoot:F3} m from the middle of the closed fist. Re-run Build All.");
+            }
+        }
+
+        [Test]
+        public void NoToolIsHeldThroughTheFloor_OrByAHandInTheAir_OrWithAWristBentPastItsLimit()
+        {
+            string[] serious = { "THROUGH_FLOOR", "HAND_IN_AIR", "WRIST_TWISTED", "ROOT_AT_END" };
+
+            using HandToolRig rig = HandToolRig.Create();
+            var failures = HandToolAudit.Measure(rig)
+                .Where(r => serious.Any(r.Flags.Contains))
+                .Select(r => $"{r.Id} ({r.Stance}): {r.Flags}")
+                .ToList();
+
+            Assert.IsEmpty(failures, string.Join("\n", failures));
+        }
+
+        [Test]
+        public void AGripShift_SlidesTheToolAlongItsOwnLength()
+        {
+            using HandToolRig rig = HandToolRig.Create();
+            var plain = new HandToolSpec { Id = "Probe", Stance = CarryStance.Wield, HoldSize = 0.5f };
+            var shifted = new HandToolSpec { Id = "Probe", Stance = CarryStance.Wield, HoldSize = 0.5f, GripShift = 0.1f };
+
+            GripFit from = GripFitter.Fit(rig, plain);
+            GripFit to = GripFitter.Fit(rig, shifted);
+
+            Assert.AreEqual(0.1f, (to.Position - from.Position).magnitude, 0.003f,
+                "closing the hand 10 cm further up the tool must slide it 10 cm back in the palm");
+            Assert.AreEqual(from.Rotation, to.Rotation, "a grip shift must not turn the tool");
+        }
+
+        [Test]
         public void EveryHoldStyleAStanceUses_HasAPose()
         {
             var profile = AssetDatabase.LoadAssetAtPath<HumanoidAnimationProfile>(HumanoidControllerBuilder.ProfilePath);

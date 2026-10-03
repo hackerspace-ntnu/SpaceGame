@@ -25,22 +25,31 @@ MonoBehaviour:
   holdPoses:
   - style: 1
     clip: {fileID: 4072314899578035812, guid: a8978c393cae9044dbc5e8ec87c947b4, type: 3}
+    armsOnly: 0
   - style: 2
     clip: {fileID: 7300238579497392160, guid: d5d65196dad7126438cf6f02f7d3c705, type: 3}
+    armsOnly: 0
   - style: 3
     clip: {fileID: -57794709565900691, guid: 84781f800961561439ffe31c702436b5, type: 3}
+    armsOnly: 0
   - style: 4
     clip: {fileID: -7342238307180667810, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
   - style: 5
     clip: {fileID: -4708846537797790282, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
   - style: 6
     clip: {fileID: 8324860437086164814, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
   - style: 7
     clip: {fileID: 2931362099718132477, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
   - style: 8
     clip: {fileID: 7994627924475153551, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 1
   - style: 9
     clip: {fileID: 7400000, guid: 79ba4cfacfc0a4c7bb029bd05a2cc41b, type: 2}
+    armsOnly: 1
   raiseOneArm:
     down: {fileID: -152358634275284821, guid: d4462d3fb1d84b91a7bd117135a6eb05, type: 3}
     level: {fileID: -814940555687654210, guid: c9da497a3dd24f7fba537a3424e5b7d0, type: 3}

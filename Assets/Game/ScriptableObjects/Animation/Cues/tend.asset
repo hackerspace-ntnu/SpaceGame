@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: tend
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Tending living things: plants, bees, animals.'
-  fallback: {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools: []
+  bareHands: 1

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -38,14 +39,19 @@ namespace SpaceGame.Items
                  "item. +Y: up, toward the belt. +Z: out from the wearer's body.")]
         [SerializeField] private Transform hang;
 
-        [Tooltip("Where this item prefers to hang. A carrier falls back to the other slots, in " +
-                 "enum order, when the preferred one is taken.")]
-        [SerializeField] private BeltSlot preferred = BeltSlot.HipRight;
+        [Tooltip("The slots this item may hang from, best first. A carrier takes the first one the " +
+                 "wearer offers and nothing earlier has taken. A short tool may use any; a long one " +
+                 "lists only the back's, so it is never hung from a hip.")]
+        [SerializeField] private BeltSlot[] slots =
+        {
+            BeltSlot.HipRight, BeltSlot.HipLeft, BeltSlot.PackLeft, BeltSlot.PackRight, BeltSlot.Back
+        };
 
         /// <summary>The transform that lands on the belt anchor. Never null — falls back to the root.</summary>
         public Transform Hang => hang != null ? hang : transform;
 
-        public BeltSlot Preferred => preferred;
+        /// <summary>Where this item may hang, best first.</summary>
+        public IReadOnlyList<BeltSlot> Slots => slots;
 
         private void OnValidate()
         {

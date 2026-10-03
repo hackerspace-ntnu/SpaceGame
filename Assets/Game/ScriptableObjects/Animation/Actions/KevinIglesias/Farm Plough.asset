@@ -21,22 +21,22 @@ MonoBehaviour:
     enter: {fileID: 3094330708855449807, guid: a6e7fb0b3304539459743f6867fa5d0b, type: 3}
     exit: {fileID: 3094330708855449807, guid: 951420f0b9d8d18458f92bc6d9c326b1, type: 3}
     selectionWeight: 1
-    contactAt: 0
+    contactAt: 0.5
   - clip: {fileID: 3094330708855449807, guid: a4ad9e6f05f3bec45b78464fc91fa216, type: 3}
     aimDown: {fileID: 0}
     aimUp: {fileID: 0}
     enter: {fileID: 3094330708855449807, guid: b65567bfb7402f14eb98564449946bd6, type: 3}
     exit: {fileID: 3094330708855449807, guid: 38750421e995b574ebb3959d427603ec, type: 3}
     selectionWeight: 1
-    contactAt: 0
+    contactAt: 0.51666665
   authoredHand: 0
   mirrorForOtherArm: 0
   speedRange: {x: 0.95, y: 1.05}
   fadeIn: 0.2
   fadeOut: 0.25
   marks: []
+  reach: {x: -0.003992439, y: 0, z: 1.1436319}
   cues:
   - {fileID: 11400000, guid: c27a9bb3e7193430681ceaef131fcdfc, type: 2}
   - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
-  - {fileID: 11400000, guid: 7b6381a3ca35b41cd87c0cb43e636b5e, type: 2}
   postures: 0

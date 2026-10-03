@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the shrine
   role: 0
-  holdCue: {fileID: 11400000, guid: f43c4afa9916e4c7fb506267ba258d8c, type: 2}
+  holdCue: {fileID: 0}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 0
   nightManned: 0
   elevated: 0

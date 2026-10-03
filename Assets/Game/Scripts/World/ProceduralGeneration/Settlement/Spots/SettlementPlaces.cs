@@ -12,9 +12,6 @@ namespace SpaceGame.World
 {
     public static class SettlementPlaces
     {
-        // A hit counts as something to sit on when its normal points this far up (cos of ~45 degrees).
-        private const float FlatSurface = 0.7f;
-
         /// <summary>
         /// A point in the largest walkable area joining the settlement's doors and spots — the streets and
         /// yards, not an island on a roof. <paramref name="fallback"/> when nothing is on the NavMesh.
@@ -53,14 +50,50 @@ namespace SpaceGame.World
                 if (dwelling.Door == null) problems.Add($"{dwelling.name} has no SettlementEntrance — its door is its own pivot");
                 if (!TryDoorStand(dwelling, heart, doorDistances, out _)) problems.Add($"{dwelling.name}: nothing walkable out from its door");
             }
+            var sitSpots = new List<SettlementSpot>();
             foreach (SettlementSpot spot in generated.GetComponentsInChildren<SettlementSpot>())
             {
                 string where = PathBelow(generated, spot.transform);
                 if (spot.Use == null) problems.Add($"{where} has no SpotUse");
                 else if (!TryStand(spot.Position, spot.Use.elevated, heart, out _, out string why))
                     problems.Add($"{where} ({spot.Use.name}) is unusable: {why}");
+                else if (spot.Use.seated) sitSpots.Add(spot);
             }
+
+            float reach = ResidentTuning.Instance.seatReach;
+            List<int> seatless = SeatlessSpots(sitSpots.ConvertAll(spot => spot.Position), generated.GetComponentsInChildren<Seat>(), reach);
+            foreach (int i in seatless)
+                problems.Add($"{PathBelow(generated, sitSpots[i].transform)} ({sitSpots[i].Use.name}) is a sit with no free Seat within {reach:0.#} m, so nobody will sit there");
             return problems;
+        }
+
+        /// <summary>
+        /// Which of the sit spots have no seat of their own: each seat serves ONE spot (the nearest that wants it, in order) and only
+        /// within <paramref name="reach"/> metres across the ground, so two spots over a single seat leave the second without.
+        /// Indices into <paramref name="spots"/>.
+        /// </summary>
+        public static List<int> SeatlessSpots(IReadOnlyList<Vector3> spots, IReadOnlyList<Seat> seats, float reach)
+        {
+            var taken = new HashSet<Seat>();
+            var seatless = new List<int>();
+            for (int i = 0; i < spots.Count; i++)
+            {
+                Seat nearest = null;
+                float nearestSqr = reach * reach;
+                foreach (Seat seat in seats)
+                {
+                    if (seat == null || taken.Contains(seat)) continue;
+
+                    float sqr = seat.FlatSqrDistanceTo(spots[i]);
+                    if (sqr > nearestSqr) continue;
+                    nearest = seat;
+                    nearestSqr = sqr;
+                }
+
+                if (nearest != null) taken.Add(nearest);
+                else seatless.Add(i);
+            }
+            return seatless;
         }
 
         /// <summary>
@@ -110,27 +143,6 @@ namespace SpaceGame.World
 
             threshold = hit.position;
             return true;
-        }
-
-        /// <summary>
-        /// World height of the surface a sitter at <paramref name="point"/> sits on: the highest upward-facing collider
-        /// under the point (a bench, a stool, the floor), ignoring bodies and triggers. The point's own height when
-        /// there is none.
-        /// </summary>
-        public static float SeatSurfaceY(Vector3 point)
-        {
-            float probe = ResidentTuning.Instance.seatProbeHeight;
-            RaycastHit[] hits = Physics.RaycastAll(point + Vector3.up * probe, Vector3.down, probe * 2f, ~0, QueryTriggerInteraction.Ignore);
-            float surface = point.y;
-            bool found = false;
-            foreach (RaycastHit hit in hits)
-            {
-                if (hit.normal.y < FlatSurface || hit.collider.GetComponentInParent<AgentController>() != null) continue;
-                if (found && hit.point.y <= surface) continue;
-                surface = hit.point.y;
-                found = true;
-            }
-            return surface;
         }
 
         /// <summary>The dwelling's door: its first SettlementEntrance, else the dwelling's own pivot facing out its front.</summary>

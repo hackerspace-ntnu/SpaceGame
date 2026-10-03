@@ -47,6 +47,19 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void GestureCuesNeedFreeHandsAndWorkCuesDoNot()
+        {
+            string[] gestures = { "greet", "farewell", "gesture", "fidget", "talk", "point", "bow" };
+            string[] withTheItem = { "work", "hammer", "farm", "mine", "cook", "carry", "attack", "give", "pickup" };
+            CharacterCue[] cues = HumanoidControllerBuilder.CollectCues().ToArray();
+
+            foreach (string word in gestures)
+                Assert.IsTrue(cues.First(c => c.name == word).NeedsFreeHands, $"'{word}' plays over a held item, so the item waves");
+            foreach (string word in withTheItem)
+                Assert.IsFalse(cues.First(c => c.name == word).NeedsFreeHands, $"'{word}' is done WITH the item");
+        }
+
+        [Test]
         public void TheTalkingLoopFitsAStandingAndASeatedSpeaker()
         {
             CharacterCue talk = HumanoidControllerBuilder.CollectCues().FirstOrDefault(c => c.name == CharacterActionWiring.TalkingCue);

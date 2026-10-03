@@ -23,7 +23,8 @@ namespace SpaceGame.Presentation
     /// on the move — never the one picked last time for that cue if there is another, and a cue
     /// with no candidate falls back to its <see cref="CharacterCue.Fallback"/>. A body with
     /// <see cref="fullBody"/> off (the player) never gets a full-body pick: its legs are its
-    /// input's (GDC-L1-ANIM-0002).
+    /// input's (GDC-L1-ANIM-0002). A cue marked <see cref="CharacterCue.NeedsFreeHands"/> also skips
+    /// every action that moves an arm the body's held item occupies — nobody waves a hammer.
     /// </para>
     /// <para>
     /// <b>Multiplayer.</b> Raise a moment where it happens. When every machine sees it (chatter,
@@ -64,6 +65,7 @@ namespace SpaceGame.Presentation
         private readonly Dictionary<CharacterMoment, float> readyAt = new Dictionary<CharacterMoment, float>();
         private readonly Dictionary<int, int> rollCount = new Dictionary<int, int>();
         private Animator animator;
+        private BodyArms occupied;
 
         private static readonly List<CharacterAction> Candidates = new List<CharacterAction>();
 
@@ -103,6 +105,22 @@ namespace SpaceGame.Presentation
                 return BodyPostures.Read(animator, movingAbove);
             }
         }
+
+        /// <summary>The arms the body's held item occupies (from its animator parameters), and the ones something else has hold of.</summary>
+        public BodyArms BusyArms
+        {
+            get
+            {
+                if (animator == null) animator = GetComponentInChildren<Animator>(true);
+                return BodyHands.Busy(animator) | occupied;
+            }
+        }
+
+        /// <summary>
+        /// Says which arms something other than a held item has hold of (a pusher's hands on a cart's handles), so no gesture plays
+        /// on them. <see cref="BodyArms.None"/> gives them back.
+        /// </summary>
+        public void OccupyArms(BodyArms arms) => occupied = arms;
 
         private bool Writes => Actions != null && Actions.WritesAnimator;
 
@@ -173,7 +191,16 @@ namespace SpaceGame.Presentation
         /// then <see cref="Release"/>. Waits while the slot it needs is busy with something else,
         /// and swaps to a fitting loop when the posture changes under it (the speaker sets off walking).
         /// </summary>
-        public CharacterAction Hold(CharacterCue cue)
+        public CharacterAction Hold(CharacterCue cue) => Hold(cue, null);
+
+        /// <summary>
+        /// <see cref="Hold(CharacterCue)"/> with the pick fixed by <paramref name="pickSalt"/>: the same
+        /// body asked again with the same salt (a worker returning to its spot after looking up) plays
+        /// the same loop, on every machine, instead of re-rolling the cue's pool each time.
+        /// </summary>
+        public CharacterAction Hold(CharacterCue cue, int pickSalt) => Hold(cue, (int?)pickSalt);
+
+        private CharacterAction Hold(CharacterCue cue, int? pickSalt)
         {
             if (!Writes || cue == null) return null;
 
@@ -181,7 +208,7 @@ namespace SpaceGame.Presentation
             if (held.TryGetValue(cue, out CharacterAction current) && current != null)
             {
                 bool playing = Actions.IsPlaying(current);
-                if (playing && Allowed(current, posture)) return current;
+                if (playing && Allowed(cue, current, posture)) return current;
                 if (playing) Actions.Stop(current);
                 held.Remove(cue);
             }
@@ -189,8 +216,8 @@ namespace SpaceGame.Presentation
             if (holdRetryAt.TryGetValue(cue, out float retry) && Time.time < retry) return null;
             holdRetryAt[cue] = Time.time + holdRetrySeconds;
 
-            System.Random roll = CueRoll(cue);
-            CharacterAction action = Resolve(cue, true, roll);
+            System.Random roll = pickSalt.HasValue ? Roll(Animator.StringToHash(cue.name), pickSalt.Value) : CueRoll(cue);
+            CharacterAction action = Resolve(cue, true, roll, avoidLast: !pickSalt.HasValue);
             if (action == null || Actions.PlayingOn(action.BodySlot) != null) return null;
             if (!PlayPicked(action, roll)) return null;
 
@@ -211,18 +238,19 @@ namespace SpaceGame.Presentation
 
         /// <summary>
         /// Of <paramref name="tagged"/>, one action that fits: right posture, full body only when
-        /// allowed, looping or not as asked, and not <paramref name="avoid"/> while another fits.
-        /// Null when none does.
+        /// allowed, looping or not as asked, none of its arms in <paramref name="occupied"/>, and not
+        /// <paramref name="avoid"/> while another fits. Null when none does.
         /// </summary>
         public static CharacterAction Choose(IReadOnlyList<CharacterAction> tagged, BodyPosture posture, bool fullBody,
-                                             bool loops, CharacterAction avoid, System.Random roll)
+                                             bool loops, CharacterAction avoid, System.Random roll,
+                                             BodyArms occupied = BodyArms.None)
         {
             Candidates.Clear();
             foreach (CharacterAction action in tagged)
             {
                 if (action == null || action.VariantCount == 0 || !action.Fits(posture)) continue;
                 if (!fullBody && action.BodySlot == CharacterAction.Slot.Full) continue;
-                if (loops != action.Loops) continue;
+                if (loops != action.Loops || !action.FitsHands(occupied)) continue;
                 Candidates.Add(action);
             }
 
@@ -230,16 +258,19 @@ namespace SpaceGame.Presentation
             return Candidates.Count == 0 ? null : Candidates[roll.Next(Candidates.Count)];
         }
 
-        private CharacterAction Resolve(CharacterCue cue, bool loops, System.Random roll)
+        private CharacterAction Resolve(CharacterCue cue, bool loops, System.Random roll, bool avoidLast = true)
         {
             CharacterActionCatalog catalog = CharacterActionCatalog.Default;
             if (catalog == null) return null;
 
             BodyPosture posture = Posture;
+            BodyArms busy = BusyArms;
             for (int depth = 0; cue != null && depth <= MaxFallbacks; depth++, cue = cue.Fallback)
             {
-                lastPicked.TryGetValue(cue, out CharacterAction last);
-                CharacterAction action = Choose(catalog.ActionsFor(cue), posture, fullBody, loops, last, roll);
+                CharacterAction last = null;
+                if (avoidLast) lastPicked.TryGetValue(cue, out last);
+                CharacterAction action = Choose(catalog.ActionsFor(cue), posture, fullBody, loops, last, roll,
+                                                 cue.NeedsFreeHands ? busy : BodyArms.None);
                 if (action == null) continue;
 
                 lastPicked[cue] = action;
@@ -248,8 +279,9 @@ namespace SpaceGame.Presentation
             return null;
         }
 
-        private bool Allowed(CharacterAction action, BodyPosture posture) =>
-            action.Fits(posture) && (fullBody || action.BodySlot != CharacterAction.Slot.Full);
+        private bool Allowed(CharacterCue cue, CharacterAction action, BodyPosture posture) =>
+            action.Fits(posture) && (fullBody || action.BodySlot != CharacterAction.Slot.Full)
+            && action.FitsHands(cue.NeedsFreeHands ? BusyArms : BodyArms.None);
 
         private bool PlayPicked(CharacterAction action, System.Random roll) =>
             action != null && Actions.Play(action, Arm(roll), action.PickVariant(roll));

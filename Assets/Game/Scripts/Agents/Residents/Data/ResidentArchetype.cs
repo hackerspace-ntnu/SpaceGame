@@ -37,6 +37,10 @@ namespace SpaceGame.Agents.Residents
         [Tooltip("Warm (0) to prickly (1): hits it takes before fighting, how long it holds a grudge.")]
         [Range(0f, 1f)] public float temper = 0.5f;
 
+        [Tooltip("Takes hold of a free cart standing by its post and keeps both hands on its handles while it works there. " +
+                 "With no cart in reach it works empty-handed: nothing is mimed.")]
+        public bool pushesCart;
+
         [Tooltip("What it carries in hand. Empty = nothing.")]
         public InventoryItem heldItem;
 

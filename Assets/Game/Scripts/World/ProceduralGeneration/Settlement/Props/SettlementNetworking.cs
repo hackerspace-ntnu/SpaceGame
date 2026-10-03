@@ -1,4 +1,4 @@
-// A generated building with shared state — a gate somebody opens, props people carry off — needs a NetworkObject
+// A generated building with shared state — a gate somebody opens, props people carry off, an airlock — needs a NetworkObject
 // for that state to reach every machine. It is put on a WRAPPER that Generate stands round the building, never on
 // the building prefab: a loose scene object gets its hash from the scene, where a NetworkObject inside a prefab
 // gives every scene instance the prefab's hash until each scene is re-saved by hand
@@ -24,7 +24,11 @@ namespace SpaceGame.World
 
                 bool hasProps = building.GetComponentInChildren<SettlementProp>(true) != null;
                 bool hasLatches = building.GetComponentInChildren<ILatchHost>(true) != null;
-                if (!hasProps && !hasLatches) continue;
+                // A fixture that is itself networked (a colony's oxygen filler, its gear wall) needs an entity too.
+                bool hasNetworked = building.GetComponentInChildren<NetworkBehaviour>(true) != null;
+                // A colony airlock is clicked and decided on the server, over the building's channel.
+                bool hasAirlocks = building.GetComponentInChildren<AirlockChamber>(true) != null;
+                if (!hasProps && !hasLatches && !hasNetworked && !hasAirlocks) continue;
 
                 var wrapper = new GameObject(building.name).transform;
                 wrapper.SetParent(building.parent, false);

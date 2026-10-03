@@ -21,37 +21,36 @@ MonoBehaviour:
     enter: {fileID: 3094330708855449807, guid: 44457e6c1faf66b41af0e05726052c47, type: 3}
     exit: {fileID: 3094330708855449807, guid: c7d2bbe876388f243bd768f0ddaf3d78, type: 3}
     selectionWeight: 1
-    contactAt: 0
+    contactAt: 0.51666665
   - clip: {fileID: 3094330708855449807, guid: 42cd96c10ff80f442ba340e64f1382c3, type: 3}
     aimDown: {fileID: 0}
     aimUp: {fileID: 0}
     enter: {fileID: 3094330708855449807, guid: e2b412834a7057c4a84b3e8a06a86b11, type: 3}
     exit: {fileID: 3094330708855449807, guid: 52ba6c12e0627904e965f792b86549a6, type: 3}
     selectionWeight: 1
-    contactAt: 0
+    contactAt: 0.96666664
   - clip: {fileID: 3094330708855449807, guid: f49d3433f41d3a148a2259659e51b73e, type: 3}
     aimDown: {fileID: 0}
     aimUp: {fileID: 0}
     enter: {fileID: 3094330708855449807, guid: 4bf0b6679ba3f2d49858988492d146ec, type: 3}
     exit: {fileID: 3094330708855449807, guid: a65835e62cfad8d48bf027828abbe169, type: 3}
     selectionWeight: 1
-    contactAt: 0
+    contactAt: 0.51666665
   - clip: {fileID: 3094330708855449807, guid: 55c719f2e92d2d54aa7791e48ed716cd, type: 3}
     aimDown: {fileID: 0}
     aimUp: {fileID: 0}
     enter: {fileID: 3094330708855449807, guid: 7007c7c6c993e8744bb15ddd9efb3e99, type: 3}
     exit: {fileID: 3094330708855449807, guid: 369e9666bfe6b9144ae9cbcebf5f8ddc, type: 3}
     selectionWeight: 1
-    contactAt: 0
+    contactAt: 0.31666666
   authoredHand: 0
   mirrorForOtherArm: 0
   speedRange: {x: 0.95, y: 1.05}
   fadeIn: 0.2
   fadeOut: 0.25
   marks: []
+  reach: {x: 0.20470229, y: 0, z: 0.7701496}
   cues:
   - {fileID: 11400000, guid: 6cbf985ffbf0a4e379e2e2b3120b651b, type: 2}
-  - {fileID: 11400000, guid: ab6653ce0780b45848daff87d27fb9b4, type: 2}
-  - {fileID: 11400000, guid: 68e2eae465f494ceeb182ec73c79d9d4, type: 2}
   - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
   postures: 0

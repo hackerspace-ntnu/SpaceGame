@@ -46,6 +46,12 @@ namespace SpaceGame.Agents.Residents
         public Transform Noticed { get; private set; }
         public Observation LastObservation { get; private set; }
 
+        /// <summary>
+        /// Looking at a player it just noticed (or at a threat for as long as it is one): the window
+        /// <see cref="TryGetFacing"/> turns the body for. A worker in it has stopped what it was doing.
+        /// </summary>
+        public bool Attending => Noticed != null && (Time.time - raisedAt < glanceSeconds || IsThreat(LastObservation));
+
         public int FacingPriority => Priority;
         public override bool ClaimsMovement => false;
 
@@ -97,8 +103,7 @@ namespace SpaceGame.Agents.Residents
         public bool TryGetFacing(in AgentContext context, out Vector3 facePosition)
         {
             facePosition = default;
-            if (Noticed == null || context.IsMoving) return false;
-            if (Time.time - raisedAt >= glanceSeconds && !IsThreat(LastObservation)) return false;
+            if (context.IsMoving || !Attending) return false;
 
             facePosition = Noticed.position;
             return true;

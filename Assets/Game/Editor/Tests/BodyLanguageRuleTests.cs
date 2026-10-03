@@ -68,6 +68,28 @@ namespace SpaceGame.EditorTools
                            "with nothing else tagged, repeating beats showing nothing");
         }
 
+        [Test]
+        public void AnOccupiedArmBlocksTheActionsThatMoveIt()
+        {
+            CharacterAction bow = Action(CharacterAction.Slot.Upper, CharacterAction.Playback.OneShot);
+            CharacterAction leftWave = Action(CharacterAction.Slot.LeftArm, CharacterAction.Playback.OneShot);
+            CharacterAction rightWave = Action(CharacterAction.Slot.RightArm, CharacterAction.Playback.OneShot);
+            CharacterAction recoil = Action(CharacterAction.Slot.Additive, CharacterAction.Playback.OneShot);
+            var all = new[] { bow, leftWave, rightWave, recoil };
+
+            for (int seed = 0; seed < 20; seed++)
+            {
+                var roll = new System.Random(seed);
+                CharacterAction one = BodyLanguage.Choose(all, BodyPosture.Standing, true, false, null, roll, BodyArms.Right);
+                Assert.That(one, Is.SameAs(leftWave).Or.SameAs(recoil), "a hammer in the right hand rules out every clip that moves that arm");
+                Assert.IsNull(BodyLanguage.Choose(new[] { bow, rightWave }, BodyPosture.Standing, true, false, null, roll, BodyArms.Right));
+                Assert.That(BodyLanguage.Choose(new[] { bow, rightWave }, BodyPosture.Standing, true, false, null, roll),
+                            Is.SameAs(bow).Or.SameAs(rightWave), "empty hands: nothing is ruled out");
+            }
+            Assert.IsNull(BodyLanguage.Choose(new[] { bow, leftWave, rightWave }, BodyPosture.Standing, true, false, null,
+                                              new System.Random(0), BodyArms.Both));
+        }
+
         private CharacterAction Action(CharacterAction.Slot slot, CharacterAction.Playback playback, BodyPosture postures = 0)
         {
             var action = ScriptableObject.CreateInstance<CharacterAction>();

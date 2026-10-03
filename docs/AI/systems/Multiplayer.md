@@ -19,7 +19,7 @@ symptoms:
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Multiplayer / Netcode core
@@ -43,9 +43,9 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 
 | Type | File | Role |
 | --- | --- | --- |
-| `NetMessaging` | [NetMessaging.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMessaging.cs) | Extension API: `NetOn`/`NetOff`, `NetToServer`/`NetToAll`/`NetToOthers`, `NetSendTo` |
+| `NetMessaging` | [NetMessaging.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMessaging.cs) | Extension API: `NetOn`/`NetOff`, `NetToServer`/`NetToAll`/`NetToOthers`, `NetSendTo`, and `NetToServerWhenSpawned` — the one late-joiner ask (wait for the entity's NetworkObject to spawn, then ask the server; a no-op offline, on the server and with no NetworkObject) that `NetLatch`, `VehicleStation`, `ArticulatedPartInteraction`, `BackpackController` and `AirlockChamber` all start from `OnEnable` |
 | `NetArg` | [NetArg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetArg.cs) | Fixed payload `Target,A,B,P,R`; `.With(go)` also keeps an **unserialized** local ref so `Resolve()` works offline; `HasOrientation` |
-| `NetMsg` | [NetMsg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs) | Id catalog, append only, highest 119; 3 (Equip) and 30 (LaunchCraft) burned. 117 `ResidentAddressed` / 118 `ResidentSaid` ride the resident's relay — a `uint` line id travels bit-for-bit in the `int` `A` (`unchecked((int)id)` out, `unchecked((uint)arg.A)` back). 119 `SprintRacket` is owner → server on the player's relay |
+| `NetMsg` | [NetMsg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs) | Id catalog, append only, highest 123; 3 (Equip) and 30 (LaunchCraft) burned. 117 `ResidentAddressed` / 118 `ResidentSaid` ride the resident's relay — a `uint` line id travels bit-for-bit in the `int` `A` (`unchecked((int)id)` out, `unchecked((uint)arg.A)` back). 119 `SprintRacket` is owner → server on the player's relay; 120 `SitRequest` (A = `Seat.Id`) / 121 `StandRequest` likewise, answered through `PlayerSeating`'s NetworkVariable ([Seats.md](Seats.md)); 122 `PushRequest` (A = `Pushable.Id`) / 123 `ReleaseRequest` the same shape through `PlayerPushing` ([Pushables.md](Pushables.md)) |
 | `NetChannel` | [NetChannel.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetChannel.cs) | Per-entity handler table, plain MonoBehaviour added on demand; re-entrant `Dispatch` off a static buffer pool; `IndexOf<T>` numbers sibling components; `WarnUnrelayed` |
 | `NetRelay` | [NetRelay.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetRelay.cs) | The wire: `ToServerRpc`/`ToAllRpc`/`ToOthersRpc`. Requires a `NetworkObject` |
 | `NetTo`/`NetTarget`/`NetHandler` | [NetTo.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetTo.cs) | Directions, `Self` sentinel, `void (in NetArg, ulong sender)` |

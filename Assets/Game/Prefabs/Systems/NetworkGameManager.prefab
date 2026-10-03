@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: -3328959335672301551}
   - component: {fileID: 5789852136957963805}
   - component: {fileID: 790853505601134990}
+  - component: {fileID: 2260484335927224975}
   m_Layer: 0
   m_Name: NetworkGameManager
   m_TagString: Untagged
@@ -154,3 +155,16 @@ MonoBehaviour:
   mergeShare: 0.5
   maxPatchRadius: 3
   maxPatches: 192
+--- !u!114 &2260484335927224975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd4f2e2427b034dc6a1d17d7bd318369, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.PushableLedger
+  ShowTopMostFoldoutHeaderGroup: 1

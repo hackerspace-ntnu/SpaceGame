@@ -60,17 +60,26 @@ namespace SpaceGame.Agents.Residents
         private float arrivedAtDoorAt = -1f;
         private bool steppingIn;
         private NavMeshAgentMotor motor;
+        private ResidentAwareness awareness;
+        private float attendingUntil = float.NegativeInfinity;
         private readonly ErrandRunner errands = new();
+        private ResidentSeating seating;
+        private ResidentPushing pushing;
 
         public PlanSegment? Current { get; private set; }
         public string LastReason { get; private set; } = string.Empty;
         /// <summary>The last ten decisions, oldest first, each stamped with the game clock.</summary>
         public IReadOnlyList<string> Trace => trace;
         /// <summary>Holding at the current segment's place rather than walking or overridden.</summary>
-        public bool AtPlace => Current.HasValue && targetIsPlan && resident != null && resident.Goal != null && resident.Goal.HasArrived;
+        /// <remarks>A sitter counts as there wherever its seat put its body: the seat is not on the spot's stand point.</remarks>
+        public bool AtPlace => Current.HasValue && targetIsPlan && resident != null && resident.Goal != null &&
+                               (seating.IsSeated || resident.Goal.HasArrived);
 
         /// <summary>The place index being held right now (an errand's stop, else the plan's place); <see cref="ResidentPresence.NoPlace"/> when walking.</summary>
-        public int HeldPlace => !AtPlace ? ResidentPresence.NoPlace : errands.Active ? errands.Stop.place : Current.Value.place;
+        public int HeldPlace => !AtPlace ? ResidentPresence.NoPlace : PlannedPlace;
+
+        // Where the plan has this resident, errand stops included. Only meaningful while a plan segment is current.
+        private int PlannedPlace => errands.Active ? errands.Stop.place : Current.Value.place;
 
         /// <summary>On an amble or a patrol: walking is the activity, so a conversation need not stop it.</summary>
         public bool OnTheMove => errands.Active && errands.Stop.shown is Activity.Patrol or Activity.Amble;
@@ -90,6 +99,9 @@ namespace SpaceGame.Agents.Residents
         {
             resident = GetComponent<Resident>();
             motor = GetComponent<NavMeshAgentMotor>();
+            awareness = GetComponentInChildren<ResidentAwareness>(true);
+            seating = new ResidentSeating(gameObject);
+            pushing = new ResidentPushing(gameObject);
         }
 
         private void OnEnable()
@@ -103,7 +115,12 @@ namespace SpaceGame.Agents.Residents
         {
             SettlementSociety.PlansRebuilt -= OnPlansRebuilt;
             errands.Reset();
+            seating.Abandon();
+            pushing.Release();
         }
+
+        /// <summary>Gets the resident up off its seat where it is, ahead of a move that must not leave it sitting.</summary>
+        public void StandUp() => seating.Release();
 
         // A load or a time jump rebuilds the plans, and that is when a body can be far from where its day says.
         private void OnPlansRebuilt(SettlementSociety rebuilt)
@@ -118,8 +135,18 @@ namespace SpaceGame.Agents.Residents
             sinceEvaluation = 0f;
 
             SettlementSociety society = resident != null ? resident.Society : null;
-            if (resident != null && resident.IsDead) errands.Reset();
-            if (society == null || context.Goal == null || resident.IsDead || resident.IsOffstage) return null;
+            if (resident != null && resident.IsDead)
+            {
+                errands.Reset();
+                seating.Abandon();
+                pushing.Release();
+            }
+            if (society == null || context.Goal == null || resident.IsDead || resident.IsOffstage)
+            {
+                seating.Release();
+                pushing.Release();
+                return null;
+            }
 
             Evaluate(society, context.Goal);
             return null;
@@ -129,7 +156,9 @@ namespace SpaceGame.Agents.Residents
         {
             double now = society.NowMinutes;
             DayPlan plan = society.PlanFor(resident);
-            Current = plan != null && plan.At(now, out PlanSegment segment) ? segment : (PlanSegment?)null;
+            // A resident calling at a house is on the visit's segment (a seat, then the doorway) whatever its day says.
+            Current = HouseVisits.TryGetSegment(resident, out PlanSegment visiting) ? visiting
+                : plan != null && plan.At(now, out PlanSegment segment) ? segment : (PlanSegment?)null;
 
             bool overridden = TryOverride(society, out Vector3 wanted, out string reason);
             float radius = placeArriveRadius, speed = 1f;
@@ -225,7 +254,8 @@ namespace SpaceGame.Agents.Residents
         {
             point = transform.position;
             reason = null;
-            if (resident.Override == OverrideKind.None) return false;
+            // A guest in a house has no door of its own to shelter at, nor a street to approach a noise in.
+            if (resident.Override == OverrideKind.None || HouseVisits.IsVisiting(resident)) return false;
 
             switch (resident.Override)
             {
@@ -332,6 +362,10 @@ namespace SpaceGame.Agents.Residents
 
             bool talking = resident.Focus != null && resident.Focus.IsFocused;
             bool climbing = motor != null && motor.IsClimbingLadder;
+
+            // Before anything reads AtPlace: the body is put on, or taken off, the seat the plan's place calls for.
+            seating.Sync(resident.Society, Current.HasValue && targetIsPlan ? PlannedPlace : ResidentPresence.NoPlace,
+                         resident.Goal != null && resident.Goal.HasArrived);
             Activity shown = talking ? Activity.Talking
                 : climbing ? Activity.Climbing
                 : sheltering ? Activity.Sheltering
@@ -340,8 +374,15 @@ namespace SpaceGame.Agents.Residents
                 : Activity.Walking;
             byte carried = errands.Active ? errands.Stop.prop
                 : targetIsPlan && Current.HasValue && Current.Value.activity == Activity.Trip ? TripProp() : (byte)0;
-            int heldPlace = !talking && !climbing ? HeldPlace : ResidentPresence.NoPlace;
-            resident.Presence.Publish(shown, carried, false, heldPlace);
+            // A sitter keeps its seat and its loop through a conversation; anyone else puts the pose down to talk.
+            int heldPlace = !climbing && (!talking || seating.IsSeated) ? HeldPlace : ResidentPresence.NoPlace;
+
+            // A worker that turns to look at a player puts its work down (see ResidentAttention).
+            bool attending = ResidentAttention.HandsOff(shown, awareness != null && awareness.Attending, Time.time,
+                                                        ResidentTuning.Instance.attendResumeSeconds, ref attendingUntil);
+            // Hands on a cart while working at a post that has one by it; anything else lets go and leaves the cart standing.
+            pushing.Sync(resident.archetype != null && resident.archetype.pushesCart && shown == Activity.Work && heldPlace != ResidentPresence.NoPlace);
+            resident.Presence.Publish(shown, carried, false, heldPlace, attending, seating.SeatId, pushing.CartId);
         }
 
         private static Activity Holding(Activity planned) => planned switch

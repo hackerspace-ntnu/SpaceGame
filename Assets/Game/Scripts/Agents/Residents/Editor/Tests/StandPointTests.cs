@@ -1,6 +1,6 @@
 // Where a resident stands for a spot: a stand point validated on the NavMesh within the tuning's tolerances (never the
 // 12 m snap of a plain goal), an unusable spot that keeps its place index but is never planned onto, an exact-stand goal
-// that only counts as arrived on its point, and a sitter lifted until its hips rest on the seat.
+// that only counts as arrived on its point, and a sitter lifted until its hips rest on the seat's sit point.
 using System.Collections.Generic;
 using NUnit.Framework;
 using Unity.AI.Navigation;
@@ -108,18 +108,17 @@ namespace SpaceGame.Agents.Residents.Tests
         }
 
         [Test]
-        public void SeatedBody_IsLiftedUntilItsHipsRestOnTheSurface()
+        public void SeatedBody_IsLiftedUntilItsHipsRestOnTheSitPoint()
         {
             ResidentTuning tuning = ScriptableObject.CreateInstance<ResidentTuning>();
             try
             {
-                float hipsOfTheLoop = 0.2f, bench = 0.45f;
-                float lift = SeatedBodyFit.TargetLift(bench, 0f, hipsOfTheLoop, 1f, tuning);
-                Assert.AreEqual(bench + tuning.seatHipsAboveSurface - hipsOfTheLoop, lift, Epsilon);
+                float hipsOfTheLoop = 0.2f, sitPoint = 0.45f;
+                float lift = SeatedBodyFit.TargetLift(sitPoint, hipsOfTheLoop, 1f, tuning);
+                Assert.AreEqual(sitPoint + tuning.seatHipsAboveSurface - hipsOfTheLoop, lift, Epsilon);
 
-                Assert.AreEqual(0f, SeatedBodyFit.TargetLift(0.02f, 0f, hipsOfTheLoop, 1f, tuning), "a floor sit keeps the loop's own pose");
-                Assert.AreEqual(tuning.seatMaxLift, SeatedBodyFit.TargetLift(3f, 0f, hipsOfTheLoop, 1f, tuning), Epsilon, "never lifted onto a table");
-                Assert.AreEqual(2f * lift, SeatedBodyFit.TargetLift(2f * bench, 0f, 2f * hipsOfTheLoop, 2f, tuning), Epsilon, "a bigger body scales the fit");
+                Assert.AreEqual(0f, SeatedBodyFit.TargetLift(0.02f, hipsOfTheLoop, 1f, tuning), "hips already above the sit point are never pushed down into the floor");
+                Assert.AreEqual(2f * lift, SeatedBodyFit.TargetLift(2f * sitPoint, 2f * hipsOfTheLoop, 2f, tuning), Epsilon, "a bigger body scales the fit");
             }
             finally { Object.DestroyImmediate(tuning); }
         }

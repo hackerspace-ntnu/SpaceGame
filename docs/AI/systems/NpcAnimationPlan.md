@@ -10,7 +10,7 @@ symptoms:
   - "a Hold on a cue plays nothing for a standing state"
   - "an NPC is shot or hit from behind and flinches the same way as from the front"
   - "what animation should an NPC use for X"
-reads_with: [HumanoidAnimation, AnimationCatalog, Residents, AgentSystem]
+reads_with: [HumanoidAnimation, AnimationCatalog, Residents, AgentSystem, Stations]
 updated: 2026-10-03
 ---
 
@@ -70,14 +70,14 @@ Every case below states what plays it, what exists, what is missing and what has
 
 | Job | Cue | Held clips | Props the clips assume | Needed |
 |---|---|---|---|---|
-| Farming | `farm` | Farm Plough (M/F, enter-loop-exit) | a plough/hoe in the right hand | **Data:** spot holdCue; **art:** tool prop |
+| Farming | `farm` | Farm Plough (M/F, enter-loop-exit) | a hoe in the right hand (the farmer carries one) | **Done:** the Farm spot holds `farm`; reach measured, stand point derived ([Stations.md](Stations.md)) |
 | Fishing | `fish` | Fish Rod (enter-loop-exit M/F), Fish Reel Fight, Fish Pull Out, Fish Cast, Fish Wait Hold | a rod | spot holdCue + rod prop |
 | Mining | `mine` | Mine Ground / Mine Wall (L/R × M/F), Drill Low | a pick / a drill | spot holdCue + props |
 | Hammering | `hammer`, `craft`, `repair` | Hammer Ground (L/R × M/F, enter-loop-exit), CMU Hammer, Saw, Kneel Work | a hammer (exists as Tool_Hammer) | spot holdCue |
-| Cooking | `cook` | Cook Wok, Cook Pan, Grill Meat, Blend Fruit, Stir, Chop, Wash (loops); Season, Plate, Pour (one-shots) | pan, wok, ladle, knife, bowl | **Data:** chain loops with a one-shot between via `TaskFinished` rows |
+| Cooking | one cue per station: `stir`, `cookpan`, `cookwok`, `grill`, `chop`, `wash`, `blend` (loops); `plate`, `season` (one-shots); `cook` is the family word | Stir, Stir Pot, Cook Pan, Cook Wok, Grill Meat, Chop Food, Chop Vegetables, Wash Vegetables, Blend Fruit | a ladle (stir; the stand-in for a spatula and a pan), a cleaver (chop); **no pan, wok or spatula tool exists** | **Done:** the pot spot holds `stir`, the grill `grill`, the bread oven `cookpan` ([Stations.md](Stations.md)); wok, sink and blender have no prop spot yet; chain a one-shot between loops via `TaskFinished` rows (open) |
 | Serving / bartending | `serve` | Bartend (4 sequences), Bartend Hold (loop), Plate Food, Pour Water | bottles, mugs | spot holdCue + props |
 | Gathering / foraging | `gather`, `pickup` | Gather Plants (M/F loop), Gather From Ground, Gather Crouch Hold | none | outrider trips: **data:** trip row cue → `gather` |
-| Tending / repair | `tend`, `repair` | Kneel Work (enter-loop-exit), Rummage, Wash Vegetables | | spot holdCue |
+| Tending / repair | `tend`, `repair`, `rummage`, `wipe`, `weave` | Gather Plants, Kneel Work (tend); Wrench, Screwdriver (repair); Rummage; Wipe Surface; Coil Rope | | **Done** ([Stations.md](Stations.md)); animals and kiln have no clip, the resident stands |
 | Operating machines | `operate` | Fax, Button Pushing, Enter Code, Vending ×3 | | **Code:** terminals/shops raise `Operate` moment for the NPC user |
 | Music, reading, chanting, singing | `music`, `read`, `chant`, `sing` | Play Piano (stand-sit-play-stand), Spellbook Read, Spellbook Chant, Sing ×3 | piano, book | social spots at settlements: **data** |
 | Hauling | `carry` | Carry Idle/Walk/Pickup/Putdown/Hand Over/Receive Crate | a crate | errands: `props.Release` + `Hold(carry)` while a prop is carried (**code**, 5 lines) |

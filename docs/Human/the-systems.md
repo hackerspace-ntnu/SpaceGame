@@ -114,6 +114,12 @@ It is a workshop, not a wardrobe. You can try as many looks as you like in it, b
 still ships with exactly one, written into the code — which is what keeps the palette from
 quietly drifting into a dozen half-finished variants.
 
+### The Mars colony: airlocks, stairs and interiors *(ColonyInterior)*
+
+The Mars colony's buildings are hollow now, and you walk straight into them: no loading, no fade. Climb the stairs and right-click the round hull door: the chamber vents in a blast of mist under a spinning amber beacon, and the door swings open. Step in, shut it behind you, right-click the inner hatch, and the chamber fills with haze as it pressurises before the inner hatch slides apart. If you forget the door behind you, the inner hatch tells you to close it first. Inside, modules, domed hubs and the tubes between them are one connected station, with windows you can look out of and a geodesic dome you can see the sky through. You can breathe in there, and every room is furnished from one library of colony props: bunks, lockers, a galley, hydroponics, research desks, workbenches, a weapon rack with guns on it, an oxygen filler that already has power, a map projector and, in the domed buildings, a gear wall.
+
+**Worth knowing:** the server decides every hatch, so every player sees the same ones — but only in a colony that stands in a generated settlement; one placed by hand runs a separate airlock on each machine. A hatch someone left open on the far side is sealed for you when you cannot reach it, never on someone standing in it, and nothing about the airlocks is saved: after a load every hatch is shut; and sleeping, research and crafting are scenery for now — the game has no mechanic behind the bunks, desks and benches yet.
+
 ### Doorways, interiors and teleporting *(SceneTransitions)*
 
 Cave and building interiors load alongside the outdoor world rather than replacing it, so stepping back outside is instant and everything you left out there is still alive. A doorway is assembled from three interchangeable pieces — what triggers it, where it sends you, and what the screen does while it happens — so a new kind of door is one new file. Every instant move in the whole game funnels through a single teleport function that also tells legged rigs, riders and pathing agents to rebase their world-space state.
@@ -151,6 +157,36 @@ Every creature, villager, enemy and gun emplacement is a body plus a stack of sm
 A settlement is one component and one Generate button: it lays out the buildings, puts one villager in every bed the houses have (plus any one-of-a-kind characters, such as a quest giver, who always appear), and gives each a name, a trade, a home and a family. Everything a villager can do comes with the buildings themselves — the market stand brings a place behind its counter and places for customers, the hearth brings seats round the fire, a sail tent brings shade to sit in — so a new building or decoration brings new things to do without touching the settlement. The villagers live a day: they wake, walk to their work (the forge, the stall, the kitchen, the pen, the garden or the watch) and hold it, take staggered breaks so a post is never left empty, spend their free time on seats, in the shade and at the stalls — preferring wherever a friend already is — gather at the hearth in the evening and go home to bed, and a few leave in the morning to hunt or scout and come back before dusk. Each person's whole day is worked out in advance from the settlement's layout and the date, so loading a save, joining late or skipping the clock forward simply asks "where should they be now". How a villager treats you comes from two dials — how bold they are and how prickly — plus what they remember: whether they know you, and whether you hurt them or their family recently. What they say is picked from a spreadsheet of lines by matching the situation, and everyone nearby sees it as a speech bubble.
 
 **Worth knowing:** a punch or a shot is a fight on the spot, and the people nearby join it — the bold ones and anyone close to whoever you hurt — while the timid hurry home and stay out of it. Bumping into someone is what warns first: shove a villager and you get a warning, then a last warning, then a fight, and how many shoves that takes depends on their temper. Word of what you did gets round the settlement by itself — see the next entry.
+
+### Seats *(Seats)*
+
+Sitting used to be a trick: a villager was lifted to whatever height was under its spot. Now a seat is a real object — a clay drum, a rope-ringed cushion, a wooden chair — placed on every spot where somebody sits. A villager walks to its spot, takes a free seat there and sits on it facing the way the seat faces; if there is no seat it simply stays standing. You sit the same way: right-click a free seat, and jump or right-click again to get up. One person per seat, and a seat that is moved lets go of whoever sits on it.
+
+**Worth knowing:** nothing about who is sitting where is saved. After a load the villagers walk back to their spots and sit down again, and you stand wherever you were.
+
+### Carts you can push *(Pushables)*
+
+A cart used to be a prop glued to a pair of hands, held up over the head with its wheels in the air. Now it is a real object standing on the ground: walk up, right-click, and your hands close on its handlebar; the cart comes round in front of you, wheels on the sand, and follows wherever you walk, turning when you turn. Shafts lift as your hands do. Let go (right-click again, jump, or draw something) and it stays where it stands. A villager whose job calls for a cart does the same.
+
+**Worth knowing:** nothing is sent while a cart moves, because it simply follows the body that pushes it; only where it was left is remembered, for everyone and in the save. Carts do not yet bump into walls, and no settlement has a cart beside the drover's post yet, so the drover still works empty-handed.
+
+### Work stations: the right motion at the right prop *(Stations)*
+
+A villager at work used to pick a motion out of a grab-bag: a cook might swing a pickaxe, a weaver might chop vegetables, and a farmer's hoe stopped a metre short of the bed. Now every kind of work has its own word (stirring, grilling, chopping, wiping, weaving, mining, ploughing, hammering), the prop decides which one a villager does there (the pot stirs, the grill grills, the bread oven works a pan), and the motion is only ever one that was made for that job. The villager takes the tool the motion is made for out of its bag, or puts its tool away for work done with bare hands, and stands where the tool actually reaches the bed, the ore or the stove, measured from the animation itself. Where no motion exists for a prop yet (animals, the shrine, the kiln, the drying racks, a smith's grindstone) the villager just stands there instead of miming something unrelated; the list of those, prop by prop, is in the station table.
+
+**Worth knowing:** a station that looks wrong is almost always data, not code: the cue a prop holds, the loops behind the cue, or the tool its clips need. Nothing here is saved or sent between machines: every machine works out the same station from the same scenery.
+
+### The station table *(StationTable)*
+
+A table, written automatically from the game's data, lists every kind of workplace and place to sit: what props carry it, which motion the villager does there, which tool that motion needs, who works there and what they carry, and whether it is fine, has no motion yet (the villager stands) or has a fault. Next to it sit the honest notes (which motions are only the nearest available) and the measured reach of every work motion. A test fails if the table is out of date.
+
+### Callers in the houses *(HouseVisits)*
+
+Every house door opens into the same round room, and it used to be a still room you were always alone in. Now, while you are inside, the village drops in: a resident with nothing to do is let in by the door, takes one of the seats round the hearth, sits and talks with whoever is already there, and leaves again after a few minutes — some people are already settled when you walk in. They are the same villagers you meet outside (people who live in that house first, then their friends and family, then anyone), so after they leave they walk on to wherever their day was taking them.
+
+Violence follows you in: anyone you hurt in the room stands up and fights it out there rather than being whisked outside, and villagers who were chasing you when you went through the door run in after you a few seconds later.
+
+**Worth knowing:** there are three seats, so at most three people sit at once, and at night everyone is asleep so the room stays empty — evening, when people are free, is when it is lively. Nothing about who was there is saved; the next time you walk in, a new set of callers comes.
 
 ### Recording a settlement's day *(ResidentsBaseline)*
 

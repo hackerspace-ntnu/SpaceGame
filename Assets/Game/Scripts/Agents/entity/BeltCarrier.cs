@@ -5,6 +5,10 @@
 // a hammer in its fist. This component is the other half: each bag slot that is not in the hand and
 // whose prefab has a BeltMount is drawn hanging from one of the anchors the worn garments offer.
 //
+// Where an item hangs is planned over the whole bag, the hand's slot included (Plan), so drawing a tool
+// leaves its place empty and putting it away finds it free. CanStow answers whether an item has such a
+// place; ResidentHands asks before it takes a tool out of the hand.
+//
 // It is purely derived. Nothing here is saved or sent: the bag is EntityInventorySaveable's, which
 // slot is in the hand is EntityEquipmentSaveable's, and every machine builds its own bag from the
 // same startingItems, so every machine hangs the same things in the same places.
@@ -13,7 +17,6 @@
 // (GarmentMounts), tuned against its own geometry, so every Raxy wearing it hangs things in the
 // same places. They become bone-parented anchors once at startup (BeltSeat.CreateAnchors). A wearer
 // with no such garment has nowhere to hang anything, and says so.
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Items;
@@ -33,6 +36,8 @@ namespace SpaceGame.Agents
         private Dictionary<BeltSlot, Transform> anchorBySlot;
         private readonly Dictionary<int, Hung> hungBySlotIndex = new Dictionary<int, Hung>();
         private readonly HashSet<int> wanted = new HashSet<int>();
+        private readonly List<BeltMount> mounts = new List<BeltMount>();
+        private Dictionary<int, BeltSlot> placement = new Dictionary<int, BeltSlot>();
 
         private EntityInventoryComponent inventory;
         private EntityEquipmentController equipment;
@@ -86,22 +91,18 @@ namespace SpaceGame.Agents
 
         private void Refresh(int handSlot)
         {
+            Plan();
             wanted.Clear();
-            for (int i = 0; i < inventory.Size; i++)
-            {
-                if (i == handSlot) continue;
+            foreach (int index in placement.Keys)
+                if (index != handSlot) wanted.Add(index);
 
-                InventorySlot slot = inventory.GetSlot(i);
-                if (slot == null || slot.IsEmpty || !HasMount(slot.Item)) continue;
-
-                wanted.Add(i);
-            }
+            if (anchorBySlot.Count == 0) WarnNothingToHangOn(handSlot);
 
             var gone = new List<int>();
             foreach (KeyValuePair<int, Hung> entry in hungBySlotIndex)
             {
                 InventorySlot slot = wanted.Contains(entry.Key) ? inventory.GetSlot(entry.Key) : null;
-                if (slot == null || slot.Item != entry.Value.item) gone.Add(entry.Key);
+                if (slot == null || slot.Item != entry.Value.item || placement[entry.Key] != entry.Value.slot) gone.Add(entry.Key);
             }
 
             foreach (int index in gone)
@@ -113,55 +114,75 @@ namespace SpaceGame.Agents
             foreach (int index in wanted)
             {
                 if (hungBySlotIndex.ContainsKey(index)) continue;
-                Hang(index, inventory.GetSlot(index).Item);
+                Hang(index, inventory.GetSlot(index).Item, placement[index]);
             }
         }
 
-        private static bool HasMount(InventoryItem item) =>
-            item != null && item.itemPrefab != null && item.itemPrefab.GetComponent<BeltMount>() != null;
-
-        private void Hang(int slotIndex, InventoryItem item)
+        /// <summary>
+        /// Whether the item in bag slot <paramref name="slotIndex"/> has an anchor of its own, so that taking it out of the
+        /// hand puts it on the body. False (with the reason) for an item with no <see cref="BeltMount"/> and for one the
+        /// worn garments have no room for: either would leave it hanging nowhere, which reads as lost.
+        /// </summary>
+        public bool CanStow(int slotIndex, out string refusal)
         {
-            if (anchorBySlot.Count == 0)
+            refusal = null;
+            if (anchorBySlot == null)
             {
-                Debug.LogWarning($"{name}: carries '{item.name}' but wears no belt or backpack with mount points.", this);
-                return;
+                refusal = "it has no humanoid avatar to wear a belt on";
+                return false;
             }
 
-            BeltMount prefabMount = item.itemPrefab.GetComponent<BeltMount>();
-            if (!TryTakeAnchor(prefabMount.Preferred, out BeltSlot slot)) return;
-
-            if (BeltSeat.Hang(anchorBySlot[slot], item.itemPrefab, out EquipItemSocket socket) == null) return;
-
-            hungBySlotIndex[slotIndex] = new Hung { item = item, slot = slot, socket = socket };
-        }
-
-        /// <summary>The preferred slot if it is free, otherwise the first free one in enum order.</summary>
-        private bool TryTakeAnchor(BeltSlot preferred, out BeltSlot taken)
-        {
-            if (IsFree(preferred))
+            InventorySlot slot = inventory.GetSlot(slotIndex);
+            if (slot == null || slot.IsEmpty || !HasMount(slot.Item))
             {
-                taken = preferred;
-                return true;
+                refusal = "it has no BeltMount (HandToolRoster: CarryOnly)";
+                return false;
             }
 
-            foreach (BeltSlot candidate in Enum.GetValues(typeof(BeltSlot)))
-            {
-                if (!IsFree(candidate)) continue;
-                taken = candidate;
-                return true;
-            }
+            Plan();
+            if (placement.ContainsKey(slotIndex)) return true;
 
-            taken = preferred;
+            refusal = "every belt or pack anchor it may hang from is missing or taken by an earlier item";
             return false;
         }
 
-        private bool IsFree(BeltSlot slot)
+        /// <summary>
+        /// The anchor every mountable bag slot hangs on, in slot order, the hand's included. Where an item hangs does not
+        /// depend on what is in the hand, so drawing the tool leaves its place on the belt empty and putting it back
+        /// finds it free, and the belt never reshuffles around a draw. Items past the anchors the garments offer get none.
+        /// </summary>
+        private void Plan()
         {
-            if (!anchorBySlot.ContainsKey(slot)) return false;
-            foreach (Hung hung in hungBySlotIndex.Values)
-                if (hung.slot == slot) return false;
-            return true;
+            mounts.Clear();
+            for (int i = 0; i < inventory.Size; i++)
+            {
+                InventorySlot slot = inventory.GetSlot(i);
+                mounts.Add(slot == null || slot.IsEmpty ? null : MountOf(slot.Item));
+            }
+
+            placement = BeltSeat.Plan(mounts, anchorBySlot.Keys);
+        }
+
+        private void WarnNothingToHangOn(int handSlot)
+        {
+            for (int i = 0; i < inventory.Size; i++)
+            {
+                InventorySlot slot = inventory.GetSlot(i);
+                if (i != handSlot && slot != null && !slot.IsEmpty && HasMount(slot.Item))
+                    Debug.LogWarning($"{name}: carries '{slot.Item.name}' but wears no belt or backpack with mount points.", this);
+            }
+        }
+
+        private static BeltMount MountOf(InventoryItem item) =>
+            item != null && item.itemPrefab != null ? item.itemPrefab.GetComponent<BeltMount>() : null;
+
+        private static bool HasMount(InventoryItem item) => MountOf(item) != null;
+
+        private void Hang(int slotIndex, InventoryItem item, BeltSlot slot)
+        {
+            if (BeltSeat.Hang(anchorBySlot[slot], item.itemPrefab, out EquipItemSocket socket) == null) return;
+
+            hungBySlotIndex[slotIndex] = new Hung { item = item, slot = slot, socket = socket };
         }
     }
 }

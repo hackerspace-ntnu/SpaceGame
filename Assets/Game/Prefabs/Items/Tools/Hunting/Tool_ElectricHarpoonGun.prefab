@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1179173561451878664
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 84563837493128772}
+  m_Layer: 0
+  m_Name: BeltHang
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &84563837493128772
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1179173561451878664}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.56098557, y: 0.43045932, z: 0.5609855, w: 0.43045932}
+  m_LocalPosition: {x: -0.1745, y: -0, z: -0.18792003}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6314686994399978358}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7534704650908607019
 GameObject:
   m_ObjectHideFlags: 0
@@ -21,6 +52,7 @@ GameObject:
   - component: {fileID: 7454020690493726173}
   - component: {fileID: 4374485962551181445}
   - component: {fileID: 2867704821263579078}
+  - component: {fileID: 4597769265870244985}
   - component: {fileID: 5650588380919747217}
   m_Layer: 0
   m_Name: Tool_ElectricHarpoonGun
@@ -43,6 +75,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3251070749222573543}
+  - {fileID: 84563837493128772}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &950221664198021989
@@ -289,13 +322,27 @@ MonoBehaviour:
   gripPoint: {fileID: 0}
   hand: 0
   holdStyle: 3
-  rotationOffset: {x: 332.9, y: 38.2, z: 39.2}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 15.8, y: 50.7, z: 355.7}
+  positionOffset: {x: -0.013, y: 0.003, z: 0.123}
   holdSize: 1.21
   packSize: 0
   sizeReference: {fileID: 0}
   confinedToSurfaces: 
   keepColliders: 0
+--- !u!114 &4597769265870244985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7534704650908607019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77fc456b5508648b4b243bfd4c657576, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
+  hang: {fileID: 84563837493128772}
+  slots: 020000000300000004000000
 --- !u!114 &5650588380919747217
 MonoBehaviour:
   m_ObjectHideFlags: 0

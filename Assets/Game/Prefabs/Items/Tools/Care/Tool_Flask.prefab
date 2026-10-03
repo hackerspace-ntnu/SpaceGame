@@ -322,8 +322,8 @@ MonoBehaviour:
   gripPoint: {fileID: 0}
   hand: 0
   holdStyle: 8
-  rotationOffset: {x: 314, y: 320.6, z: 51.6}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 305.5, y: 38.6, z: 323.9}
+  positionOffset: {x: -0.017, y: 0.002, z: 0.104}
   holdSize: 0.32
   packSize: 0
   sizeReference: {fileID: 0}
@@ -342,7 +342,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
   hang: {fileID: 8287508221860189761}
-  preferred: 0
+  slots: 0000000001000000030000000400000002000000
 --- !u!114 &5700906773654883391
 MonoBehaviour:
   m_ObjectHideFlags: 0

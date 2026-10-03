@@ -58,11 +58,11 @@ namespace SpaceGame.Agents.Residents.EditorTools
         public static void Run()
         {
             var notes = new List<string>();
-            SpotUse well = Spot("Well", "the well", SpotRole.Errand, "pickup");
-            SpotUse plant = Spot("Plant", "the plants", SpotRole.Errand, "putdown");
-            SpotUse orePile = Spot("OrePile", "the ore pile", SpotRole.Errand, "pickup");
-            SpotUse smelter = Spot("Smelter", "the smelter", SpotRole.Errand, "putdown");
-            SpotUse goods = Spot("GoodsPile", "the goods store", SpotRole.Errand, "pickup");
+            SpotUse well = Spot("Well", "the well", SpotRole.Errand, null);
+            SpotUse plant = Spot("Plant", "the plants", SpotRole.Errand, null);
+            SpotUse orePile = Spot("OrePile", "the ore pile", SpotRole.Errand, null);
+            SpotUse smelter = Spot("Smelter", "the smelter", SpotRole.Errand, null);
+            SpotUse goods = Spot("GoodsPile", "the goods store", SpotRole.Errand, null);
             SpotUse tower = Spot("TowerWatch", "the tower", SpotRole.Work, null, alwaysManned: true, nightManned: true, elevated: true);
 
             InventoryItem bucket = Tool("Carry_Bucket_Wood"), basket = Tool("Carry_Basket_Wicker"), ore = Tool("Carry_Basket_Open");
@@ -102,6 +102,7 @@ namespace SpaceGame.Agents.Residents.EditorTools
             foreach (string path in TowerPrefabs) AddDeckSpot(path, tower, notes);
 
             AuthorSettlementWork(goods, plant, orePile, smelter, haulGoods, haulOre, notes);
+            SeatPlacer.PlaceAll(notes);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

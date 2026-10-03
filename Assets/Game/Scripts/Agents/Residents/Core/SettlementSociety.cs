@@ -19,6 +19,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Presentation;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents.Residents
@@ -50,7 +51,9 @@ namespace SpaceGame.Agents.Residents
         private readonly Dictionary<SettlementSpot, int> placeOfSpot = new();
         private readonly Dictionary<int, SettlementSpot> spotOfPlace = new();
         private readonly List<int> spotPlaces = new();
+        private readonly Dictionary<CharacterCue, float?> reachOfCue = new();
         private readonly HashSet<int> reportedUnusable = new();
+        private readonly HashSet<int> reportedSeatless = new();
         private readonly NavMeshPath path = new();
         private List<SettlementPlace> places;
         private Resident[] residents;
@@ -155,6 +158,7 @@ namespace SpaceGame.Agents.Residents
 
         public SettlementPlace Place(int index)
         {
+            if (index >= HouseRoom.PlaceBase) return HouseRoom.PlaceAt(index);
             EnsurePlaces();
             return index >= 0 && index < places.Count ? places[index] : null;
         }
@@ -201,9 +205,13 @@ namespace SpaceGame.Agents.Residents
             return spot != null && placeOfSpot.TryGetValue(spot, out int index) ? index : -1;
         }
 
+        /// <summary>True the first time it is asked about this place: a sit with no Seat is reported once, not by every resident every half second.</summary>
+        public bool ReportOnce(int seatlessPlace) => reportedSeatless.Add(seatlessPlace);
+
         /// <summary>The spot behind a place index, or null for a door, camp, trip or ring point.</summary>
         public SettlementSpot SpotAt(int place)
         {
+            if (place >= HouseRoom.PlaceBase) return HouseRoom.SpotAt(place);
             EnsurePlaces();
             return spotOfPlace.TryGetValue(place, out SettlementSpot spot) ? spot : null;
         }
@@ -422,7 +430,7 @@ namespace SpaceGame.Agents.Residents
                 SettlementSpot spot = spotOfPlace[index];
                 if (spot == null) continue;
 
-                bool usable = SettlementPlaces.TryStand(spot.Position, spot.Use.elevated, heart, out Vector3 stand, out string why);
+                bool usable = TryStandAt(places[index], spot, heart, out Vector3 stand, out string why);
                 flipped |= places[index].Resolve(usable ? stand : spot.Position, usable);
                 if (usable) continue;
 
@@ -433,6 +441,39 @@ namespace SpaceGame.Agents.Residents
             }
             return flipped;
         }
+
+        // The stand point of a spot: where its work's measured reach lands the tool on the thing it names, when it names one and
+        // some of its loops have a measured reach (StationStand), else where it was authored. The derived point is only taken when
+        // it is walkable and no farther from the target than the authored one (the NavMesh may have pushed it back out of the prop).
+        private bool TryStandAt(SettlementPlace place, SettlementSpot spot, Vector3 heart, out Vector3 stand, out string why)
+        {
+            if (place.HasTarget && !place.Seated && StationReachOf(place.HoldCue, out float forward))
+            {
+                ResidentTuning tuning = ResidentTuning.Instance;
+                Vector3 derived = StationStand.Derive(spot.Position, spot.FacePoint, forward, tuning.stationMaxShift, tuning.stationMinDistance);
+                if (derived != spot.Position
+                    && SettlementPlaces.TryStand(derived, spot.Use.elevated, heart, out stand, out why)
+                    && Flat(stand - spot.FacePoint) <= Flat(spot.Position - spot.FacePoint))
+                    return true;
+            }
+            return SettlementPlaces.TryStand(spot.Position, spot.Use.elevated, heart, out stand, out why);
+        }
+
+        private bool StationReachOf(CharacterCue cue, out float forward)
+        {
+            forward = 0f;
+            if (cue == null) return false;
+            if (!reachOfCue.TryGetValue(cue, out float? known))
+            {
+                CharacterActionCatalog catalog = CharacterActionCatalog.Default;
+                known = catalog != null && StationStand.TryForwardReach(catalog.ActionsFor(cue), out float mean, out _) ? mean : (float?)null;
+                reachOfCue[cue] = known;
+            }
+            forward = known ?? 0f;
+            return known.HasValue;
+        }
+
+        private static float Flat(Vector3 v) => Mathf.Sqrt(v.x * v.x + v.z * v.z);
 
         // The first point straight out from the doorway a resident can walk to from the settlement's heart.
         private SettlementPlace DoorPlace(Dwelling dwelling)
@@ -468,9 +509,7 @@ namespace SpaceGame.Agents.Residents
                 placeOfSpot[spot] = places.Count;
                 spotOfPlace[places.Count] = spot;
                 spotPlaces.Add(places.Count);
-                var place = new SettlementPlace(KindOf(spot.Use.role), spot.Use, group, seat, spot.Position, spot.FacePoint);
-                if (spot.Use.seated) place.SetSeatSurface(SettlementPlaces.SeatSurfaceY(spot.Position));
-                places.Add(place);
+                places.Add(new SettlementPlace(KindOf(spot.Use.role), spot.Use, group, seat, spot.Position, spot.FacePoint, spot.HoldCue, spot.HasTarget));
             }
         }
 

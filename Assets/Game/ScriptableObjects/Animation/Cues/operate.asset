@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: operate
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Working a machine: keypad, fax, vending machine, device panel.'
-  fallback: {fileID: 11400000, guid: 252633ee7638641729b3b2b3ca640e18, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools: []
+  bareHands: 0

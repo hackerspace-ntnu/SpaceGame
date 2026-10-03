@@ -28,7 +28,9 @@ MonoBehaviour:
   fadeIn: 0.2
   fadeOut: 0.25
   marks: []
+  reach: {x: 0, y: 0, z: 0}
   cues:
   - {fileID: 11400000, guid: 0e79d5f0eb9a046d6a687e69fc4a83c6, type: 2}
   - {fileID: 11400000, guid: e42e942f2eded4608ad7d0b91baba098, type: 2}
-  postures: 0
+  - {fileID: 11400000, guid: 19b07d50f529b468fbe75da36ee59a03, type: 2}
+  postures: 5

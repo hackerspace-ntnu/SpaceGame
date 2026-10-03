@@ -1,7 +1,7 @@
 // The settlement's work, as errand content: every job a nomad settlement's buildings offer (mining, smelting, cooking,
 // farming, herding, weaving, healing …) as a work post on the decoration prefab that offers it, the errands that move
 // real props between them (harvest, feed, firewood, goods, ore), the archetypes that do the work, which character
-// prefab makes which kind of person, the job-specific hold cues, and the SettlementFixture that lets the item scanner find
+// prefab makes which kind of person, the SettlementFixture that lets the item scanner find
 // every working decoration. Same rules as the rest of this builder: idempotent, appended never reordered,
 // a prefab open in Prefab Mode is skipped and named.
 using System.Collections.Generic;
@@ -18,7 +18,6 @@ namespace SpaceGame.Agents.Residents.EditorTools
 {
     public static partial class ResidentErrandContentBuilder
     {
-        private const string ActionDir = "Assets/Game/ScriptableObjects/Animation/Actions";
         private const string CharacterDir = "Assets/Game/Prefabs/agents/Characters/Raxy";
 
         private readonly struct Fixture
@@ -133,36 +132,26 @@ namespace SpaceGame.Agents.Residents.EditorTools
 
         // The jobs: a work post per decoration that offers it, and the side of the prefab it stands on (the front is
         // taken by an errand stop where the decoration already has one).
-        private static readonly (string spot, string display, string cue, bool always, string[] front, string[] back)[] Jobs =
+        private static readonly (string spot, string display, bool always, string[] front, string[] back)[] Jobs =
         {
-            ("Mine", "the mine", "dig", false, new[] { "DrillRig", "SluiceBox" }, new[] { "MineCart" }),
-            ("Smeltery", "the smelter", "hammer", false, new string[0], new[] { "Smelter" }),
-            ("Forge", "the forge", "repair", false, new[] { "AnvilStone" }, new[] { "Forge" }),
-            ("Kitchen", "the kitchen", "work", true, new string[0], new[] { "CookingHearth_Pot", "BreadOven", "GrillBrazier" }),
-            ("Bar", "the bar", "cook", true, new[] { "Keg_Tap" }, new[] { "BarCounter" }),
-            ("Loom", "the loom", "craft", false, new[] { "Loom" }, new string[0]),
-            ("Pottery", "the potter's wheel", "craft", false, new[] { "PotteryWheel" }, new[] { "Kiln" }),
-            ("Apiary", "the hives", "tend", false, new[] { "InsectHive" }, new string[0]),
-            ("Infirmary", "the healer's", "craft", true, new[] { "HealerCot", "AlchemyTable", "ApothecaryShelf" }, new string[0]),
-            ("Butchery", "the butcher's block", "cook", false, new[] { "ButcherBlock", "FishRack", "DryingRack_Meat" }, new string[0]),
-            ("Tannery", "the hide frame", "craft", false, new[] { "HideFrame" }, new string[0]),
-            ("Shrine", "the shrine", "listen", false, new[] { "OfferingShrine", "Podium" }, new string[0]),
-            ("Workshop", "the workshop", "repair", false, new[] { "Workbench", "Worktable_Wood", "Worktable_Metal" }, new string[0]),
-            ("Mill", "the grindstone", "hammer", false, new[] { "GrindingStone_Rotary", "GrindingStone_Saddle" }, new string[0]),
-            ("Farm", "the fields", "dig", false, new string[0], new[] { "FarmBed_Roots", "FarmBed_Tubers", "FarmBed_Vines" }),
-            ("Pen", "the pen", "tend", false, new[] { "StableStall", "Pen_Round" }, new string[0]),
-            ("Garden", "the garden", "tend", false, new[] { "Hydroponic_Wall", "Hydroponic_Column", "HydroponicRack", "GrowLampFrame_Bed" }, new string[0]),
-            ("Stall", "the stall", "explain", true, new string[0], new[] { "MarketStall_Bare", "MarketStall_Cloth", "MarketStall_Produce" }),
-        };
-
-        // Job-specific loops, so a cook stirs and a miner digs instead of drawing any of the 34 "work" actions.
-        private static readonly (string cue, string meaning, string[] actions)[] JobCues =
-        {
-            ("cook", "Cooking or serving: stirring, chopping, wiping down.", new[] { "Stir Pot", "Chop Food", "Wipe Surface" }),
-            ("dig", "Digging: mining, hoeing, shovelling.", new[] { "Dig", "Push Heavy", "Pull Heavy" }),
-            ("hammer", "Hammering and grinding: smith, smelter, miller.", new[] { "Hammer", "Saw" }),
-            ("craft", "Fine handwork: weaving, potting, tinkering, mixing.", new[] { "Screwdriver", "Coil Rope", "Wrench Tighten", "Wipe Surface" }),
-            ("tend", "Tending living things: plants, bees, animals.", new[] { "Dig", "Coil Rope", "Wipe Surface" }),
+            ("Mine", "the mine", false, new[] { "DrillRig", "SluiceBox" }, new[] { "MineCart" }),
+            ("Smeltery", "the smelter", false, new string[0], new[] { "Smelter" }),
+            ("Forge", "the forge", false, new[] { "AnvilStone" }, new[] { "Forge" }),
+            ("Kitchen", "the kitchen", true, new string[0], new[] { "CookingHearth_Pot", "BreadOven", "GrillBrazier" }),
+            ("Bar", "the bar", true, new[] { "Keg_Tap" }, new[] { "BarCounter" }),
+            ("Loom", "the loom", false, new[] { "Loom" }, new string[0]),
+            ("Pottery", "the potter's wheel", false, new[] { "PotteryWheel" }, new[] { "Kiln" }),
+            ("Apiary", "the hives", false, new[] { "InsectHive" }, new string[0]),
+            ("Infirmary", "the healer's", true, new[] { "HealerCot", "AlchemyTable", "ApothecaryShelf" }, new string[0]),
+            ("Butchery", "the butcher's block", false, new[] { "ButcherBlock", "FishRack", "DryingRack_Meat" }, new string[0]),
+            ("Tannery", "the hide frame", false, new[] { "HideFrame" }, new string[0]),
+            ("Shrine", "the shrine", false, new[] { "OfferingShrine", "Podium" }, new string[0]),
+            ("Workshop", "the workshop", false, new[] { "Workbench", "Worktable_Wood", "Worktable_Metal" }, new string[0]),
+            ("Mill", "the grindstone", false, new[] { "GrindingStone_Rotary", "GrindingStone_Saddle" }, new string[0]),
+            ("Farm", "the fields", false, new string[0], new[] { "FarmBed_Roots", "FarmBed_Tubers", "FarmBed_Vines" }),
+            ("Pen", "the pen", false, new[] { "StableStall", "Pen_Round" }, new string[0]),
+            ("Garden", "the garden", false, new[] { "Hydroponic_Wall", "Hydroponic_Column", "HydroponicRack", "GrowLampFrame_Bed" }, new string[0]),
+            ("Stall", "the stall", true, new string[0], new[] { "MarketStall_Bare", "MarketStall_Cloth", "MarketStall_Produce" }),
         };
 
         private static Dictionary<string, string> decorationPaths;
@@ -170,21 +159,19 @@ namespace SpaceGame.Agents.Residents.EditorTools
         private static void AuthorSettlementWork(SpotUse goods, SpotUse plant, SpotUse orePile, SpotUse smelter,
                                                  ChoreDefinition haulGoods, ChoreDefinition haulOre, List<string> notes)
         {
-            foreach (var (cue, meaning, actions) in JobCues) JobCue(cue, meaning, actions, notes);
-
             var posts = new Dictionary<string, SpotUse>();
             foreach (var job in Jobs)
             {
-                SpotUse post = Spot(job.spot, job.display, SpotRole.Work, job.cue, alwaysManned: job.always);
+                SpotUse post = Spot(job.spot, job.display, SpotRole.Work, null, alwaysManned: job.always);
                 posts[job.spot] = post;
                 foreach (string deco in job.front) AddSideSpot(DecorationPath(deco, notes), post, Side.Front, notes);
                 foreach (string deco in job.back) AddSideSpot(DecorationPath(deco, notes), post, Side.Back, notes);
             }
 
-            SpotUse fodder = Spot("Fodder", "the fodder", SpotRole.Errand, "pickup");
-            SpotUse trough = Spot("Trough", "the trough", SpotRole.Errand, "putdown");
-            SpotUse woodpile = Spot("Woodpile", "the woodpile", SpotRole.Errand, "pickup");
-            SpotUse firebox = Spot("Firebox", "the fire", SpotRole.Errand, "putdown");
+            SpotUse fodder = Spot("Fodder", "the fodder", SpotRole.Errand, null);
+            SpotUse trough = Spot("Trough", "the trough", SpotRole.Errand, null);
+            SpotUse woodpile = Spot("Woodpile", "the woodpile", SpotRole.Errand, null);
+            SpotUse firebox = Spot("Firebox", "the fire", SpotRole.Errand, null);
             SpotUse seat = Require<SpotUse>($"{SpotDir}/Seat.asset");
             SpotUse table = Require<SpotUse>($"{SpotDir}/Table.asset");
             AddSideSpot(DecorationPath("FodderStack", notes), fodder, Side.Front, notes);
@@ -237,6 +224,8 @@ namespace SpaceGame.Agents.Residents.EditorTools
             AuthorProfiles(notes);
             AppendWorkLines(notes);
 
+            // What each spot holds, and the clips and tools behind it, is the station data: StationAuthoring.
+            notes.Add(StationAuthoring.Author());
             foreach (KeyValuePair<string, Fixture> fixture in Fixtures) AddFixture(fixture.Key, fixture.Value, notes);
         }
 
@@ -290,32 +279,6 @@ namespace SpaceGame.Agents.Residents.EditorTools
             }
             culture.profiles = profiles.ToArray();
             Save(culture);
-        }
-
-        private static void JobCue(string name, string meaning, string[] actions, List<string> notes)
-        {
-            CharacterCue cue = Ensure<CharacterCue>($"{CueDir}/{name}.asset");
-            var so = new SerializedObject(cue);
-            so.FindProperty("meaning").stringValue = meaning;
-            so.FindProperty("fallback").objectReferenceValue = Require<CharacterCue>($"{CueDir}/work.asset");
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            foreach (string actionName in actions)
-            {
-                string guid = AssetDatabase.FindAssets($"\"{actionName}\" t:CharacterAction", new[] { ActionDir })
-                    .FirstOrDefault(g => Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(g)) == actionName);
-                if (guid == null) { notes.Add($"no action '{actionName}' to tag {name}"); continue; }
-
-                var action = AssetDatabase.LoadAssetAtPath<CharacterAction>(AssetDatabase.GUIDToAssetPath(guid));
-                var actionSo = new SerializedObject(action);
-                SerializedProperty cues = actionSo.FindProperty("cues");
-                bool tagged = Enumerable.Range(0, cues.arraySize).Any(i => cues.GetArrayElementAtIndex(i).objectReferenceValue == cue);
-                if (tagged) continue;
-                cues.InsertArrayElementAtIndex(cues.arraySize);
-                cues.GetArrayElementAtIndex(cues.arraySize - 1).objectReferenceValue = cue;
-                actionSo.ApplyModifiedPropertiesWithoutUndo();
-            }
-            Save(cue);
         }
 
         private static string DecorationPath(string decoration, List<string> notes)

@@ -311,6 +311,7 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: 3ffeaa47a34e418ea7437552e78615db, type: 2}
   face: {fileID: 3996903017621612829}
   group: 
+  stationCue: {fileID: 0}
 --- !u!1 &6466140872861408688
 GameObject:
   m_ObjectHideFlags: 0
@@ -728,23 +729,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1264783519707321241, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2884706222335555793, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3041012190510547453, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3260358283232250066, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6113337336603219335, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6189845328079240139, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_Name
@@ -752,11 +753,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6364182829755612478, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7350207874775263585, guid: 1c22d37097b8a4b888dd3c1bd897014f, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

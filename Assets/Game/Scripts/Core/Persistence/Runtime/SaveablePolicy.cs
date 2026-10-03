@@ -484,6 +484,13 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(ProjectorSaveable));
             }
 
+            // A shelf that has laid its items once must not lay them again on every load.
+            if (go.GetComponent<SpaceGame.World.ShelfStock>() != null && go.GetComponent<ShelfStockSaveable>() == null)
+            {
+                go.AddComponent<ShelfStockSaveable>();
+                parts.Add(nameof(ShelfStockSaveable));
+            }
+
             if (go.GetComponent<SpaceGame.Gameplay.Trading.TraderInteraction>() != null &&
                 go.GetComponent<TraderSaveable>() == null)
             {

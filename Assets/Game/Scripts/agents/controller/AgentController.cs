@@ -229,6 +229,12 @@ namespace SpaceGame.Agents
 
             AgentContext context = BuildContext();
             MoveIntent intent = EvaluateModules(in context, deltaTime, out IBehaviourModule winner);
+
+            // A module can seat this body in the pass above (ResidentSeating): its agent is off on purpose, and ticking the
+            // motor now would re-attach it to the NavMesh under the seat and drag it off.
+            if (RidesAsPassenger)
+                return;
+
             ApplyFacingOverride(in context, winner, ref intent);
 
             if (speedVariationAmount > 0f && intent.Type == AgentIntentType.MoveToPosition)

@@ -57,6 +57,9 @@ namespace SpaceGame.Agents.Residents
         [Header("Day (game minutes)")]
         public Vector2 workSession = new Vector2(180f, 360f);
         public Vector2 breakLength = new Vector2(30f, 90f);
+        [Tooltip("REAL seconds a worker keeps its hands off the work after it last turned to look at a player. A resident " +
+                 "glances again every few seconds while you linger, so without this the work would stutter on and off.")]
+        [Min(0f)] public float attendResumeSeconds = 2.5f;
         [Tooltip("REAL seconds. A segment shorter than this is merged into its neighbour.")]
         public float minDwellRealSeconds = 20f;
         public float windowJitter = 30f;
@@ -128,18 +131,28 @@ namespace SpaceGame.Agents.Residents
         [Min(0.1f)] public float doorThresholdSnap = 1.5f;
         [Tooltip("Seconds between re-measuring stand points while some are unusable (the world NavMesh may still be streaming in).")]
         [Min(1f)] public float standRecheckSeconds = 20f;
+        [Tooltip("A work spot that names its target (a farm bed, an ore node, a stove) is stood at where its work's measured reach lands the " +
+                 "tool on it, but never moved more than this many metres from where it was authored toward the target: the authored point is a " +
+                 "walkable place beside the prop, and the prop's own middle is no place to stand.")]
+        [Min(0f)] public float stationMaxShift = 0.6f;
+        [Tooltip("...and never closer to the target than this, a body's clearance from a prop it works at.")]
+        [Min(0f)] public float stationMinDistance = 1f;
+        [Tooltip("How far the tool may land from the target, in metres, for the station's exit check (StationReachTests) to call it a hit. " +
+                 "A tool that lands inside the prop's footprint is a hit however far from its middle.")]
+        [Min(0f)] public float stationReachTolerance = 0.4f;
 
-        [Header("Seated body (metres, per metre of body scale)")]
-        [Tooltip("Metres above a spot the search for the seat surface starts.")]
-        [Min(0.1f)] public float seatProbeHeight = 1f;
-        [Tooltip("A seat surface this much above the floor lifts the sitter onto it; lower and the sit loop's own floor pose is right.")]
-        [Min(0f)] public float seatMinLift = 0.12f;
-        [Tooltip("Highest a sitter is lifted: a stool or bench, never a table.")]
-        [Min(0.1f)] public float seatMaxLift = 0.9f;
-        [Tooltip("Height of the hip joint above the surface it sits on.")]
+        [Header("Seats (metres, per metre of body scale)")]
+        [Tooltip("How far from a sit spot a free Seat may stand and still be the one its resident takes. Seats are placed on the spot itself, " +
+                 "so this only has to cover a seat nudged a little.")]
+        [Min(0.1f)] public float seatReach = 1.5f;
+        [Tooltip("Height of the hip joint above the seat's sit point once the body is on it.")]
         [Min(0f)] public float seatHipsAboveSurface = 0.1f;
         [Tooltip("Seconds the body takes to settle onto a seat.")]
         [Min(0.01f)] public float seatBlendSeconds = 0.2f;
+
+        [Header("Carts (metres)")]
+        [Tooltip("How far from a resident a free cart's handles may stand and still be the one it takes hold of at its post.")]
+        [Min(0.5f)] public float cartReach = 4f;
 
         [Header("Perception (metres / seconds)")]
         public float noticeRadius = 14f;

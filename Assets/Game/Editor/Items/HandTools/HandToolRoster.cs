@@ -33,11 +33,13 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Carry_Cart_Hand", Title = "Hand Cart", Category = "Carriers",
                 Stance = CarryStance.Push, HoldSize = 3.5f, PackSize = 0.9f, Nudge = new Vector3(0f, 0.18f, 0f),
+                CarryOnly = true,
             },
             new HandToolSpec
             {
                 Id = "Carry_Cart_Hover", Title = "Hover Cart", Category = "Carriers",
                 Stance = CarryStance.Push, HoldSize = 3f, PackSize = 0.9f, Nudge = new Vector3(0f, 0.18f, 0f),
+                CarryOnly = true,
             },
             new HandToolSpec
             {
@@ -58,25 +60,25 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Adze", Title = "Adze", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.85f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.402f, 0.046f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.402f, 0.046f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_Awl", Title = "Awl", Category = "Craft",
                 Stance = CarryStance.Wield, HoldSize = 0.4f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.152f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.152f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_BaitPouch", Title = "Bait Pouch", Category = "Guard",
                 Stance = CarryStance.Hang, HoldSize = 0.45f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.13f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.13f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_BandageRoll", Title = "Bandage Roll", Category = "Care",
                 Stance = CarryStance.Hang, HoldSize = 0.16f,
-                OnBelt = true, HangPoint = new Vector3(-0.048f, 0.108f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(-0.048f, 0.108f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -87,7 +89,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_BowDrill", Title = "Bow Drill", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.69f,
-                OnBelt = true, HangPoint = new Vector3(-0.075f, 0.368f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(-0.075f, 0.368f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -103,13 +105,13 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Chisel", Title = "Chisel", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.59f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.218f, 0.046f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.218f, 0.046f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_Cleaver", Title = "Cleaver", Category = "Craft",
                 Stance = CarryStance.Wield, HoldSize = 0.59f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.205f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.205f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
@@ -138,7 +140,7 @@ namespace SpaceGame.EditorTools
                 Id = "Tool_Dibber", Title = "Dibber", Category = "Fieldwork",
                 Stance = CarryStance.Wield, HoldSize = 0.6f,
                 UseAction = "Plant Seedling",
-                OnBelt = true, HangPoint = new Vector3(0f, -0.33f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.33f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
@@ -169,7 +171,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Flask", Title = "Flask", Category = "Care",
                 Stance = CarryStance.Hang, HoldSize = 0.32f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.022f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, -0.022f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -180,14 +182,14 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Hammer", Title = "Hammer", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.74f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.298f, 0.05f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.298f, 0.05f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_HandAxe", Title = "Hand Axe", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.83f,
                 UseAction = "Sword Strike",
-                OnBelt = true, HangPoint = new Vector3(0f, -0.382f, 0.046f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.382f, 0.046f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
@@ -231,7 +233,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_HerbKnife", Title = "Herb Knife", Category = "Care",
                 Stance = CarryStance.Wield, HoldSize = 0.46f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.225f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.225f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
@@ -253,7 +255,7 @@ namespace SpaceGame.EditorTools
                 Id = "Tool_HuntingKnife", Title = "Hunting Knife", Category = "Hunting",
                 Stance = CarryStance.Wield, HoldSize = 0.56f,
                 UseAction = "Stab",
-                OnBelt = true, HangPoint = new Vector3(0f, 0.16f, -0.052f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, 0.16f, -0.052f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
@@ -263,14 +265,14 @@ namespace SpaceGame.EditorTools
             new HandToolSpec
             {
                 Id = "Tool_Lantern", Title = "Lantern", Category = "Maintenance",
-                Stance = CarryStance.Hang, PoseOverride = ItemGrip.HoldStyle.Torch, HoldSize = 0.35f,
+                Stance = CarryStance.Hang, HoldSize = 0.35f,
             },
             new HandToolSpec
             {
                 Id = "Tool_Lasso", Title = "Lasso", Category = "Hunting",
                 Stance = CarryStance.Hang, HoldSize = 0.7f,
                 UseAction = "Lasso Throw",
-                OnBelt = true, HangPoint = new Vector3(0f, 0.05f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.05f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -301,13 +303,13 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_OilRag", Title = "Oil Rag", Category = "Maintenance",
                 Stance = CarryStance.Hang, HoldSize = 0.3f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.078f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.078f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_PatchKit", Title = "Patch Kit", Category = "Maintenance",
                 Stance = CarryStance.Wield, HoldSize = 0.32f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.01f, -0.046f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.01f, -0.046f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -328,13 +330,13 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Pliers", Title = "Pliers", Category = "Maintenance",
                 Stance = CarryStance.Wield, HoldSize = 0.39f,
-                OnBelt = true, HangPoint = new Vector3(0.032f, -0.122f, 0.005f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0.032f, -0.122f, 0.005f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_PlumbLine", Title = "Plumb Line", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.69f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.427f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.427f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -350,7 +352,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_RockHammer", Title = "Rock Hammer", Category = "Fieldwork",
                 Stance = CarryStance.Wield, HoldSize = 0.73f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.5f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.5f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
@@ -366,6 +368,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Shield", Title = "Shield", Category = "Guard",
                 Stance = CarryStance.Aim, HoldSize = 0.95f,
+                HangAlong = Vector3.up,
             },
             new HandToolSpec
             {
@@ -381,36 +384,38 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Sickle", Title = "Sickle", Category = "Fieldwork",
                 Stance = CarryStance.Wield, HoldSize = 0.77f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.33f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.33f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangOut = Vector3.right,
             },
             new HandToolSpec
             {
                 Id = "Tool_SiftingPan", Title = "Sifting Pan", Category = "Fieldwork",
                 Stance = CarryStance.Aim, PoseOverride = ItemGrip.HoldStyle.Carry, HoldSize = 0.73f,
+                Slung = true,
             },
             new HandToolSpec
             {
                 Id = "Tool_SignalFlag", Title = "Signal Flag", Category = "Guard",
-                Stance = CarryStance.Staff, PoseOverride = ItemGrip.HoldStyle.Torch, HoldSize = 1.79f, PackSize = 0.9f,
+                Stance = CarryStance.Staff, HoldSize = 1.79f, PackSize = 0.9f,
             },
             new HandToolSpec
             {
                 Id = "Tool_SignalHorn", Title = "Signal Horn", Category = "Guard",
                 Stance = CarryStance.Wield, HoldSize = 0.65f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0f, -0.175f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0f, -0.175f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_SkinningKnife", Title = "Skinning Knife", Category = "Hunting",
                 Stance = CarryStance.Wield, HoldSize = 0.35f,
                 UseAction = "Stab",
-                OnBelt = true, HangPoint = new Vector3(0f, 0.1f, -0.04f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, 0.1f, -0.04f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_Sling", Title = "Sling", Category = "Hunting",
                 Stance = CarryStance.Hang, HoldSize = 0.67f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.04f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.04f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -433,7 +438,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Spindle", Title = "Spindle", Category = "Craft",
                 Stance = CarryStance.Wield, HoldSize = 0.48f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.273f, -0.019f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.273f, -0.019f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -444,7 +449,7 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Spyglass", Title = "Spyglass", Category = "Guard",
                 Stance = CarryStance.Aim, HoldSize = 0.82f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0f, -0.47f), HangDown = new Vector3(0f, 0f, 1f),
+                HangPoint = new Vector3(0f, 0f, -0.47f), HangDown = new Vector3(0f, 0f, 1f),
             },
             new HandToolSpec
             {
@@ -462,13 +467,13 @@ namespace SpaceGame.EditorTools
                 Id = "Tool_Trowel", Title = "Trowel", Category = "Building",
                 Stance = CarryStance.Wield, HoldSize = 0.72f,
                 UseAction = "Poke Ground",
-                OnBelt = true, HangPoint = new Vector3(0f, -0.213f, 0.052f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.213f, 0.052f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_WaterSkin", Title = "Water Skin", Category = "Care",
                 Stance = CarryStance.Hang, HoldSize = 0.43f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
@@ -479,25 +484,25 @@ namespace SpaceGame.EditorTools
             {
                 Id = "Tool_Whetstone", Title = "Whetstone", Category = "Maintenance",
                 Stance = CarryStance.Wield, HoldSize = 0.29f,
-                OnBelt = true, HangPoint = new Vector3(0f, 0.16f, 0f), HangDown = new Vector3(0f, -1f, 0f),
+                HangPoint = new Vector3(0f, 0.16f, 0f), HangDown = new Vector3(0f, -1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_WireCutters", Title = "Wire Cutters", Category = "Maintenance",
                 Stance = CarryStance.Wield, HoldSize = 0.38f,
-                OnBelt = true, HangPoint = new Vector3(0.035f, -0.132f, 0.005f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0.035f, -0.132f, 0.005f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_Wrench_Open", Title = "Open Wrench", Category = "Maintenance",
                 Stance = CarryStance.Wield, HoldSize = 0.56f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.278f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.278f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
             new HandToolSpec
             {
                 Id = "Tool_Wrench_Ring", Title = "Ring Wrench", Category = "Maintenance",
                 Stance = CarryStance.Wield, HoldSize = 0.56f,
-                OnBelt = true, HangPoint = new Vector3(0f, -0.278f, 0f), HangDown = new Vector3(0f, 1f, 0f),
+                HangPoint = new Vector3(0f, -0.278f, 0f), HangDown = new Vector3(0f, 1f, 0f),
             },
         };
     }

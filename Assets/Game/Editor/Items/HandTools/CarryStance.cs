@@ -14,7 +14,7 @@ namespace SpaceGame.EditorTools
         /// <summary>A short tool worked from the grip: head up and forward, as if about to strike. One hand.</summary>
         Wield,
 
-        /// <summary>A long haft stood upright at the holder's side, head at the top. One hand.</summary>
+        /// <summary>A long haft carried at the holder's side leaning forward, head at the top. One hand.</summary>
         Staff,
 
         /// <summary>A vessel hung from its handle, rim up, so it hangs below the fist. One hand.</summary>
@@ -62,8 +62,13 @@ namespace SpaceGame.EditorTools
         /// <summary>Degrees above the horizon a wielded head is raised.</summary>
         private const float WieldPitch = 50f;
 
-        /// <summary>Degrees a staff leans forward of vertical.</summary>
-        private const float StaffLean = 10f;
+        /// <summary>
+        /// Degrees a staff leans forward of vertical. The hanging arm closes its fist on a line 31 degrees above the
+        /// horizon, so an upright staff needs a wrist bent 49 degrees; at 30 it is 29. The work clips (a plough, a dig,
+        /// a mine) were captured with a natural grip, and the leaning staff is also the one that reaches the ground
+        /// nearest in them.
+        /// </summary>
+        private const float StaffLean = 30f;
 
         public static StanceDefinition Of(CarryStance stance)
         {

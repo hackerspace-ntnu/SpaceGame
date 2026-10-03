@@ -6,13 +6,15 @@
 // it, and a spot whose stand point cannot be validated stays in the list — indices are the same on every
 // machine and across a save — flagged unusable so the planner skips it. Nothing here is saved: it is derived.
 using UnityEngine;
+using SpaceGame.Presentation;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents.Residents
 {
     public sealed class SettlementPlace
     {
-        public SettlementPlace(PlaceKind kind, SpotUse use, int group, int seatIndex, Vector3 position, Vector3? facePoint)
+        public SettlementPlace(PlaceKind kind, SpotUse use, int group, int seatIndex, Vector3 position, Vector3? facePoint,
+                               CharacterCue holdCue = null, bool hasTarget = false)
         {
             Kind = kind;
             Use = use;
@@ -20,6 +22,8 @@ namespace SpaceGame.Agents.Residents
             SeatIndex = seatIndex;
             Position = position;
             FacePoint = facePoint;
+            HoldCue = holdCue != null ? holdCue : use != null ? use.holdCue : null;
+            HasTarget = hasTarget;
             Resolved = use == null;
         }
 
@@ -43,6 +47,12 @@ namespace SpaceGame.Agents.Residents
         /// <summary>What a resident holding here faces; null = keep heading.</summary>
         public Vector3? FacePoint { get; }
 
+        /// <summary>The loop held here: the spot's own station cue, else its use's. Null for a door, a camp or a trip point.</summary>
+        public CharacterCue HoldCue { get; }
+
+        /// <summary>The spot names the thing it works at, so its stand point may be derived from it and the work's reach.</summary>
+        public bool HasTarget { get; }
+
         /// <summary>False for a spot whose stand point has not been measured yet (no NavMesh); everything else is born resolved.</summary>
         public bool Resolved { get; private set; }
 
@@ -52,11 +62,8 @@ namespace SpaceGame.Agents.Residents
         /// <summary>A dwelling's doorway on the NavMesh, where a resident steps in and out of the building; null when none is walkable.</summary>
         public Vector3? Threshold { get; private set; }
 
-        /// <summary>The spot is a sit: its sitter is lifted onto <see cref="SeatSurfaceY"/>.</summary>
+        /// <summary>The spot is a sit: its resident claims a free <see cref="Seat"/> near it and sits on that, or does not sit at all.</summary>
         public bool Seated => Use != null && Use.seated;
-
-        /// <summary>World height of the surface the sitter sits on (a bench, a stool, the floor).</summary>
-        public float SeatSurfaceY { get; private set; }
 
         /// <summary>Records a measurement. True when the place became usable or unusable, which is what the planner must hear about.</summary>
         public bool Resolve(Vector3 stand, bool usable)
@@ -69,7 +76,5 @@ namespace SpaceGame.Agents.Residents
         }
 
         public void SetThreshold(Vector3? threshold) => Threshold = threshold;
-
-        public void SetSeatSurface(float worldY) => SeatSurfaceY = worldY;
     }
 }

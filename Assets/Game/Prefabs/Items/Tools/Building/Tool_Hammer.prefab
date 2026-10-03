@@ -59,7 +59,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3275897339
+  GlobalObjectIdHash: 1556499405
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -291,8 +291,8 @@ MonoBehaviour:
   gripPoint: {fileID: 0}
   hand: 0
   holdStyle: 9
-  rotationOffset: {x: 10.7, y: 316.6, z: 46}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 342.1, y: 330.8, z: 9.4}
+  positionOffset: {x: -0.017, y: 0.002, z: 0.104}
   holdSize: 0.74
   packSize: 0
   sizeReference: {fileID: 0}
@@ -311,7 +311,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BeltMount
   hang: {fileID: 806296275118318490}
-  preferred: 0
+  slots: 0000000001000000030000000400000002000000
 --- !u!114 &5478597373982018831
 MonoBehaviour:
   m_ObjectHideFlags: 0

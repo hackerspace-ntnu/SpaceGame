@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
   displayName: the bar
   role: 0
-  holdCue: {fileID: 11400000, guid: 0e79d5f0eb9a046d6a687e69fc4a83c6, type: 2}
+  holdCue: {fileID: 11400000, guid: 477f20bc5b7d84fdfa7d48d3f85993b3, type: 2}
+  seated: 0
+  seatPrefab: {fileID: 0}
   alwaysManned: 1
   nightManned: 0
   elevated: 0

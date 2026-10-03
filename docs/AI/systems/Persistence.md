@@ -28,7 +28,7 @@ symptoms:
   - "after a quickload the old caravan is still standing beside the new one"
   - "pressing F5 warns that this is a disposable session and is never saved"
   - "an old save's provocation/resident record is ignored after the creature moved to a new saver"
-reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
+reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe, Pushables]
 updated: 2026-10-03
 ---
 
@@ -73,7 +73,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | `SaveFileStore` / `SaveSlots` / `WorldIdentity` | [Format/](Assets/Game/Scripts/Core/Persistence/Format/) | Atomic `.tmp`→`File.Replace`→`.bak` write, `.bak` fallback read; slot listing; world naming + config guard |
 | `SaveMigrator` + `Migrations/V1GlobalEntities` | [Format/SaveMigrator.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveMigrator.cs) | Version ladder; v1 (per-scene records) → v2 (flat) |
 
-### Adapters (62) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
+### Adapters (63) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
 
 | Category | Savers (key) |
 |---|---|
@@ -82,9 +82,9 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
 | Agent routine | `Patrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret` |
-| World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
+| World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `ShelfStock`(shelfStock, "this shelf has laid its pickups" — see [ColonyInterior.md](ColonyInterior.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` `FactionGoodwill`(factionGoodwill — one `Standing{value,band,warTier}` per tracked faction; `warTier` appended 2026-09-16 so a tribe's war escalation survives a quit mid-cooldown, older saves read 0) |
-| Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `Leash`(leashes)ᴰ |
+| Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `Leash`(leashes)ᴰ `PushableLedger`(pushables — where each moved cart was left, by its hierarchy-derived id; lives in `World/Pushables`, not `Adapters/`; [Pushables.md](Pushables.md)) |
 
 ## Flows
 

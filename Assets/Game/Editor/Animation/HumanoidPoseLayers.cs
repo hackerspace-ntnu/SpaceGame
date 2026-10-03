@@ -35,6 +35,13 @@ namespace SpaceGame.EditorTools
 
             foreach (HumanoidAnimationProfile.HoldPose pose in profile.HoldPoses)
             {
+                // An arms-only style has no body pose: this layer rests, and Hold Arms poses the arms.
+                if (pose.armsOnly)
+                {
+                    AnyWhen(sm, empty, time.hold, Is(HumanoidParams.HoldStyle, (int)pose.style), Is(HumanoidParams.ArmRaise, 0));
+                    continue;
+                }
+
                 AnimatorState state = AddState(sm, HoldStateName(pose.style), pose.clip);
                 AnyWhen(sm, state, time.hold, Is(HumanoidParams.HoldStyle, (int)pose.style),
                         Is(HumanoidParams.ArmRaise, 0), IfNot(HumanoidParams.HoldMirror));
@@ -50,6 +57,45 @@ namespace SpaceGame.EditorTools
             AddRaise(controller, sm, "Raise Left", profile.RaiseOneArm, range, mirror: true, 1, time.raise);
             AddRaise(controller, sm, "Raise Right", profile.RaiseOneArm, range, mirror: false, 2, time.raise);
             AddRaise(controller, sm, "Raise Both", profile.RaiseBothArms, range, mirror: false, 3, time.raise);
+        }
+
+        /// <summary>
+        /// The arms of every <see cref="HumanoidAnimationProfile.HoldPose.armsOnly"/> style, on a layer that has
+        /// no body part: the spine, chest and hips stay with whatever the walk beneath is doing. Weight 1 from
+        /// the start, because the state does the switching: <c>HoldStyle</c> picks it, and a style or a raised
+        /// arm that is not its business sends it back to Empty.
+        /// </summary>
+        public static void BuildHoldArms(AnimatorController controller, HumanoidAnimationProfile profile,
+                                         AvatarMask mask)
+        {
+            float blend = profile.Timing.hold;
+            AnimatorStateMachine sm = AddLayer(controller, HumanoidLayers.HoldArms, mask, 1f, ikPass: false);
+
+            AnimatorState empty = AddState(sm, HumanoidLayers.EmptyState, null);
+            sm.defaultState = empty;
+
+            var armsOnly = new System.Collections.Generic.HashSet<ItemGrip.HoldStyle>();
+            foreach (HumanoidAnimationProfile.HoldPose pose in profile.HoldPoses)
+                if (pose.armsOnly) armsOnly.Add(pose.style);
+
+            foreach (ItemGrip.HoldStyle style in System.Enum.GetValues(typeof(ItemGrip.HoldStyle)))
+                if (!armsOnly.Contains(style))
+                    AnyWhen(sm, empty, blend, Is(HumanoidParams.HoldStyle, (int)style));
+            AnyWhen(sm, empty, blend, Greater(HumanoidParams.ArmRaise, 0));
+
+            foreach (HumanoidAnimationProfile.HoldPose pose in profile.HoldPoses)
+            {
+                if (!pose.armsOnly) continue;
+
+                AnimatorState state = AddState(sm, HoldStateName(pose.style), pose.clip);
+                AnyWhen(sm, state, blend, Is(HumanoidParams.HoldStyle, (int)pose.style),
+                        Is(HumanoidParams.ArmRaise, 0), IfNot(HumanoidParams.HoldMirror));
+
+                AnimatorState mirrored = AddState(sm, HoldStateName(pose.style) + MirroredSuffix, pose.clip);
+                mirrored.mirror = true;
+                AnyWhen(sm, mirrored, blend, Is(HumanoidParams.HoldStyle, (int)pose.style),
+                        Is(HumanoidParams.ArmRaise, 0), If(HumanoidParams.HoldMirror));
+            }
         }
 
         public static void BuildWornLeft(AnimatorController controller, HumanoidAnimationProfile profile,

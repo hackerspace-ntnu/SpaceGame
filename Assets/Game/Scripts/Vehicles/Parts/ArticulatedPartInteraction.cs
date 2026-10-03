@@ -10,7 +10,6 @@
 // are exactly the thing that turns up inside interiors and chunk props where nobody has spawned
 // anything. On those the send falls through to a local dispatch and the door works the way it
 // always did, single-player-style, with one WarnUnrelayed line to say so.
-using System.Collections;
 using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core;
@@ -81,38 +80,15 @@ namespace SpaceGame.Vehicles
             this.NetOn(NetMsg.PartToggle, OnToggleRequested);
             this.NetOn(NetMsg.PartState, OnStateAnnounced);
 
-            StartCoroutine(AskForStateWhenConnected());
+            // A joining client asks what state this group is in.
+            StartCoroutine(this.NetToServerWhenSpawned(NetMsg.PartToggle,
+                                                       new NetArg { A = switchIndex, B = AskVerb }));
         }
 
         private void OnDisable()
         {
             this.NetOff(NetMsg.PartToggle, OnToggleRequested);
             this.NetOff(NetMsg.PartState, OnStateAnnounced);
-        }
-
-        /// <summary>
-        /// A joining client asks what state this group is in, once there is somebody to ask.
-        ///
-        /// Waits for the entity's NetworkObject to actually be spawned rather than sending on the
-        /// first frame: before that there is no relay, the send falls through to a local dispatch,
-        /// and the client answers its own question with the state it already had — which is the
-        /// prefab's, which is the thing being corrected.
-        /// </summary>
-        private IEnumerator AskForStateWhenConnected()
-        {
-            if (!Network.IsNetworked || Network.Server) yield break;
-
-            GameObject root = NetChannel.RootOf(this);
-            var netObj = root != null ? root.GetComponent<Unity.Netcode.NetworkObject>() : null;
-            if (netObj == null) yield break;
-
-            while (!netObj.IsSpawned)
-            {
-                if (!Network.IsNetworked) yield break;
-                yield return null;
-            }
-
-            this.NetToServer(NetMsg.PartToggle, new NetArg { A = switchIndex, B = AskVerb });
         }
 
         // ── Wire verbs. See NetMsg.PartToggle for the table. ──

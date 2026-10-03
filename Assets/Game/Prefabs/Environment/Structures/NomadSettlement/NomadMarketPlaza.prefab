@@ -3804,6 +3804,7 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: 93065d1581ad0435c909dd5715761cb0, type: 2}
   face: {fileID: 9185838327482156856}
   group: 
+  stationCue: {fileID: 0}
 --- !u!1 &7795044387468118446
 GameObject:
   m_ObjectHideFlags: 0
@@ -6165,15 +6166,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 453063532990672555, guid: b2a451547c8834379a3a26aed9fcd00c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2914063736765390076, guid: b2a451547c8834379a3a26aed9fcd00c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3289385175989186685, guid: b2a451547c8834379a3a26aed9fcd00c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8167414582132808796, guid: b2a451547c8834379a3a26aed9fcd00c, type: 3}
       propertyPath: m_LocalScale.x
@@ -6229,7 +6230,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8926287238316561395, guid: b2a451547c8834379a3a26aed9fcd00c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9189820787507593738, guid: b2a451547c8834379a3a26aed9fcd00c, type: 3}
       propertyPath: m_Name

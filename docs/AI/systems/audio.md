@@ -18,8 +18,9 @@ symptoms:
   - "I want to add a new sound and cannot find where to author the FMOD event"
   - "I have an mp3 or wav and need it played by a creature or a prop"
   - "an NPC's chatter mutes every other NPC of the same kind"
+  - "an EditMode test fails on the FMOD error RuntimeManager accessed outside of runtime"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
-updated: 2026-09-17
+updated: 2026-10-04
 ---
 
 # Audio
@@ -99,6 +100,7 @@ Volumes only, and not via the save system: [`GameSettings`](Assets/Game/Scripts/
 
 ## Gotchas
 
+- **`Sfx` returns before FMOD outside Play Mode.** FMOD's `RuntimeManager` exists only in Play Mode and **logs an error** (not an exception) when reached outside it, and NUnit fails any test on an unexpected error log — so every EditMode test whose action made a sound (throwing a lasso) failed on audio. The `Application.isPlaying` check sits after the missing-event warning, so a missing catalog entry still reports in tests, and before the cooldown and cull. Pinned by `SfxEditModeTests`, which uses `Play2D`: a positioned play is culled before FMOD whenever the open scene has a listener out of range, and would pass without reaching the `RuntimeManager`.
 - **`Sfx` warns once per `SfxId`, forever.** Fix a bank or a mapping mid-session and it stays silent — call `Sfx.Reset()` (auto-called on play-mode entry in editor) to clear `Complained` and the catalog cache.
 - **`Play2D` uses `sourceKey = 0`.** All 2D sounds share one cooldown bucket per id — fine for UI, wrong if you want per-widget rate limiting.
 - **Override does not override tuning.** An inspector `EventReference` picks the asset; cooldown, `maxDistance` and `volume` still come from the catalog entry for that `SfxId`. A slot with no entry gets `cooldown 0`, no cull, `volume 1`.

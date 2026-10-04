@@ -10,6 +10,7 @@ paths:
   - Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs
   - Assets/Game/Scripts/agents/AI/Motors/NavPathFollowerSettings.cs
   - Assets/Game/Tests/EditMode/WalkerTestRig.cs
+  - Assets/Game/Editor/Tests/WalkerFootfallTests.cs
 symptoms:
   - "the walker stands frozen and never takes a step, with no error in the console"
   - "I moved the creature's transform and it snapped back next frame"
@@ -52,7 +53,8 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 
 | Type | File | Role |
 | --- | --- | --- |
-| `LeggedLocomotion` | [Core/LeggedLocomotion.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.cs) | Abstract base; serialized fields, `SetTwist`, `Step(dt)`, diagnostics. Order 100 |
+| `LeggedLocomotion` | [Core/LeggedLocomotion.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.cs) | Abstract base; serialized fields, `SetTwist`, `Step(dt)`, diagnostics. Order 100. `Footfalls` (the feet that came down in the last `Step`) + `StepCount` |
+| `Footfall` | [Core/Footfall.cs](Assets/Game/Scripts/Locomotion/Core/Footfall.cs) | One foot landing: leg index, world contact point, ground normal, `FootprintRadius`. What anything answering a step (dust, sound) reads |
 | ⤷ `.Rig.cs` | [Core/LeggedLocomotion.Rig.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Rig.cs) | Discovery, per-leg measurement, `MaxSpeed`/`MaxYawRate`, ride-height calibration |
 | ⤷ `.Gait.cs` | [Core/LeggedLocomotion.Gait.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Gait.cs) | Clock, swing timers, foothold resolution, swing lift, load transfer |
 | ⤷ `.Body.cs` | [Core/LeggedLocomotion.Body.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Body.cs) | Path integration, climb gate, `Survey()`, reach correction, gravity, `FollowBody` |
@@ -101,7 +103,7 @@ Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.c
 **Per frame — `LateUpdate` → `Step(dt)` (order 100):**
 1. **Owning** (`AdvancePath`): advance yaw → resolve the body-space twist onto forward/right → `ApplyClimbGate` (once, on the raw command) → integrate `pathPos` → advance the gait clock by `Pace * dt`. **Followed** (`FollowBody`, `ExternallyPosed`): read the transform, back out `commandedWorldVelocity`/`yawRate` (clamped to `MaxSpeed`), advance the clock. No raycasts.
 2. `PoseBody`: `Survey()` (per planted foot: one ray, is it on ground within `CarryTolerance`; fit the support plane in the yaw frame; accumulate load and `LeanX`) → `bodyMotion.Pose` → `ApplyReachCorrection` (drop the body until every grounded foot is back inside 95% reach) → `UpdateFall` **or** `SettleOnto` → write `body.rotation` and `body.position = pathPos + DisplayOffset`.
-3. `UpdateGait`: re-read each leg's phase offset (continuous in `runBlend`), advance in-flight swings, else test slice-opened **or** `MayStepEarly`; on a new step resolve the foothold (`WalkerGait.Foothold` → `WalkerFoothold.Clamp` → ground sample) and freeze `SwingSpan` at lift-off. Then `UpdateLoad`.
+3. `UpdateGait`: re-read each leg's phase offset (continuous in `runBlend`), advance in-flight swings, else test slice-opened **or** `MayStepEarly`; on a new step resolve the foothold (`WalkerGait.Foothold` → `WalkerFoothold.Clamp` → ground sample) and freeze `SwingSpan` at lift-off. A swing that completes appends a `Footfall` to `Footfalls` (cleared at the top of `UpdateGait`; `StepCount` counts every `Step`). Then `UpdateLoad`.
 4. `SolveLegs`: per leg build the `Frame`, ask `footStyle.SoleNormal`, `WalkerLimbSolver.Solve` + `Apply`; mark `Unreachable` only when `ReachFraction > 1`.
 5. `TrackVelocity`. Subclass components run **after** at 150/160 (`OstrichSpineMotion`, `CrabClaws`, …) and call `SolveArms()` themselves — arms are deliberately not part of `Step`.
 
@@ -109,7 +111,7 @@ Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.c
 
 ## Multiplayer
 
-- The legs simulate **everywhere**. Only who owns the body transform changes.
+- The legs simulate **everywhere**. Only who owns the body transform changes. So `Footfalls` is filled on every machine, owning or following, and anything answering a step (footfall dust) needs no message.
 - [`NetAuthority`](Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs) sets `IExternallyPosed.ExternallyPosed = true` on every non-simulated copy (filtered by `SimulationDrivers.BelongsTo`, so it does not reach a parented rider), and **skips disabling** drivers that implement `IExternallyPosed`.
 - Replicates: the body transform (position + rotation), via the normal entity transform sync. Presented locally: gait phase, footholds, IK, bob/lean, neck/arm motion — all re-derived from measured body motion.
 - Neither switching the locomotion **off** (remote slides with still feet) nor leaving it **on** (it overwrites the wire every `LateUpdate`; a mounted ostrich vanishes out from under its rider) is correct — following is.
@@ -138,6 +140,7 @@ Purely **cosmetic**: it removes one stumble per creature per load. Phase is assi
 - **Don't add a `LateUpdate` to a subclass** — it hides the base's and the machine stops walking. Use a separate component at order 150+ (`CrabClaws` is the model).
 - **`NavPathFollower` copies its tunables when built.** `LeggedDriver` builds it lazily from `route` and `OnValidate` drops it, so an Inspector edit rebuilds it on the next tick. It is lazy rather than built in `Awake` because `AddComponent` in an EditMode test raises no `Awake`, and the old inline code tolerated a pre-`Awake` tick. Its `NavMeshPath` is created on first route for the same reason the old field was built in `Awake`: the constructor is native and forbidden during deserialisation.
 - **Builders write the route as `route.<field>`.** The four fields were flat on `LeggedDriver` until 2026-09-25; the six prefabs holding them were migrated in YAML (values unchanged). A builder still writing `"cornerArriveRadius"` gets `FindProperty` null — both `CrabWalkerBuilder` and `SerializedFields` only log a warning — and the value silently stays at the default.
+- **`Footfalls` is read, never raised as an event,** so nothing outside the gait runs inside the gait loop and a throwing reader cannot leave a frame's legs half-updated. Read it from a component ordered after 100 (`FootfallDust` is 150) and compare `StepCount` with the last one you saw: the list is only valid until the next `Step`, and a disabled locomotion leaves the old one standing. A machine at rest may settle one leg with a real step on its first frame; after that, standing still lands nothing.
 - `IsFalling`, `ClimbBlocked`/`ClimbScale` and `LastFrame` (`Diagnostics`) are the outside view; `ClimbBlocked` is only true while something is *asking* the machine to move.
 
 ## Extending

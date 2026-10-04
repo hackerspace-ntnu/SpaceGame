@@ -1561,6 +1561,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/MountedGunnersTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/ScoutRotaLogicTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/SkyFleetPrefabTests.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Tests/WalkerFootfallTests.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Editor/Vehicles/DuneBargeBuilder.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Prefabs/Agents/Characters/SkyTribe/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Agents/Characters/Striders/` | [Striders](systems/Striders.md) |
@@ -1576,6 +1577,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/BurningStatusTests.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Editor/Tests/MonowheelLeanTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/SkyFleetDriftTests.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Tests/StandingRiderTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
@@ -1768,4 +1770,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1293 symptoms, 449 paths, 65 docs -->
+<!-- 1293 symptoms, 451 paths, 65 docs -->

@@ -4,6 +4,8 @@
 // standing player completely, because only the body point was ever tried.
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools.Constraints;
+using Is = UnityEngine.TestTools.Constraints.Is;
 using SpaceGame.Agents;
 
 namespace SpaceGame.EditorTools
@@ -187,9 +189,10 @@ namespace SpaceGame.EditorTools
             Physics.SyncTransforms();
 
             eye.IsVisible(player);   // warm up: JIT, static buffers
-            long before = System.GC.GetAllocatedBytesForCurrentThread();
-            for (int i = 0; i < 1000; i++) eye.IsVisible(player);
-            Assert.AreEqual(0, System.GC.GetAllocatedBytesForCurrentThread() - before,
+            // Is.Not.AllocatingGCMemory, not GC.GetAllocatedBytesForCurrentThread: Unity's Mono always
+            // reports 0 for the latter, so a test built on it can never fail (Diagnostics.md).
+            TestDelegate checks = () => { for (int i = 0; i < 1000; i++) eye.IsVisible(player); };
+            Assert.That(checks, Is.Not.AllocatingGCMemory(),
                 "RaycastAll allocates a hit array per ray, per agent, per frame");
         }
 

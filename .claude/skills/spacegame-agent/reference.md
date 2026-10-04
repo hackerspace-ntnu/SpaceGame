@@ -110,6 +110,7 @@ instance method `.WithFacing(Vector3)`.
 |---|---|---|---|
 | `HerdModule` | Social 15 | Rebroadcasts the highest-priority intent in the herd; members spread onto a ring, then settle. Also provides `GetSlotPositionAround` | shared `herdId` string |
 | `FormationModule` | Social 15 | Keeps a group in a column behind an unmanaged leader | leader reference / group id |
+| `HerdingModule` | Social+1 16 | A herder: holds a drag/flank station behind its band's livestock and rides round strays; passes on the band leader | a `FormationModule` on the same object, band members without the module as livestock |
 
 ### Facing (second channel)
 

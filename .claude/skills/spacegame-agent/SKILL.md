@@ -193,6 +193,7 @@ Social 15 · Ambient 10 · Personality 5 · Fallback 0`.
 | Stationary gun | `RocketLauncherTurret` | n/a |
 | Move as a herd | `HerdModule` | Social |
 | Travel as a column | `FormationModule` | Social |
+| Herd a band's livestock from the saddle (drag/flank stations, fetch strays) | `HerdingModule` (on the herders' mounts; the band leader routes) | Social+1 |
 | Peaceful until hit | `ProvocationModule` | order −40 |
 | React to allies / noise | `AlertReceiverModule`, `NoiseReceiverModule` | 19 / 18 |
 | Say something | `ChatterModule` | Personality (side-effect) |

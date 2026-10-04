@@ -272,7 +272,12 @@ namespace SpaceGame.Agents
             HasLastKnownPosition = false;
             TimeSinceSeen = 0f;
             LastAttacker = null;
-            reevaluateTimer = 0f;
+
+            // Random phases, so a crowd enabled on one frame (a city unfolding) does not re-score and
+            // re-sample the weather on one frame every interval: the AgentController
+            // speedVariationPhase precedent. Not saved, for the reason that one is not.
+            EnsureSettings();
+            PhaseTimers();
             if (health != null)
                 health.OnDamage += HandleDamaged;
         }
@@ -303,7 +308,13 @@ namespace SpaceGame.Agents
             profile = newProfile;
             settings = newProfile;
             RecomputeEffectiveRanges();
-            reevaluateTimer = 0f;
+            PhaseTimers();
+        }
+
+        private void PhaseTimers()
+        {
+            reevaluateTimer = Random.Range(0f, settings.reevaluateInterval);
+            stormSampleTimer = Random.Range(0f, StormSampleInterval);
         }
 
         // Forced acquisition from outside the scoring loop — ally alerts and heard noises.

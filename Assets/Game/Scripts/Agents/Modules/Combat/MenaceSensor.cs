@@ -76,6 +76,9 @@ namespace SpaceGame.Agents
 
         private float scanTimer;
 
+        // Floor on scanInterval: a sweep walks the whole entity registry.
+        private const float MinScanInterval = 0.05f;
+
         // Who is currently aiming at us and for how long. One slot, not a list: the meter has no
         // notion of being menaced by two people at once, and the nearest threat is the one worth
         // telegraphing at. A second aimer simply takes over when the first looks away.
@@ -92,7 +95,9 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
-            scanTimer = 0f;
+            // A random phase, so a camp enabled on one frame does not sweep on one frame (the
+            // AgentController speedVariationPhase precedent). Not saved.
+            scanTimer = Random.Range(0f, Mathf.Max(MinScanInterval, scanInterval));
             aimer = null;
             aimedForSeconds = 0f;
         }
@@ -121,7 +126,7 @@ namespace SpaceGame.Agents
             scanTimer -= deltaTime;
             if (scanTimer <= 0f)
             {
-                scanTimer = Mathf.Max(0.05f, scanInterval);
+                scanTimer = Mathf.Max(MinScanInterval, scanInterval);
                 aimer = FindAimer(in settings);
             }
 
@@ -195,16 +200,18 @@ namespace SpaceGame.Agents
             // possible, and requiring a held item is what separates "standing near me" from "squared
             // up at me" without asking what kind of item it is — a scanner levelled at a nomad reads
             // as being sized up, which is close enough to the intent.
-            // A weapon actually drawn. EquipmentController is also what makes it a player: an NPC
-            // carries EntityEquipmentController instead, and an NPC pointing a gun at this agent is
-            // not menace but an attack, which arrives through damage.
-            EquipmentController equipment = candidate.GetComponentInChildren<EquipmentController>();
-            if (equipment == null || equipment.HeldItemAsset == null || !equipment.HeldItemAsset.menacing)
+            // A shot, recently, heard by THIS agent. Without it, walking through a camp with a rifle
+            // out is a threat, and so is standing still to read somebody's dialogue. Asked first
+            // because it is a root comparison: it rules out every candidate but the last shooter
+            // before the hierarchy search below runs.
+            if (provocation == null || !provocation.HeardGunshotFrom(candidate, brandishWindow))
                 return false;
 
-            // ...and a shot, recently, heard by THIS agent. Without it, walking through a camp with
-            // a rifle out is a threat, and so is standing still to read somebody's dialogue.
-            if (provocation == null || !provocation.HeardGunshotFrom(candidate, brandishWindow))
+            // ...and a weapon actually drawn. EquipmentController is also what makes it a player: an
+            // NPC carries EntityEquipmentController instead, and an NPC pointing a gun at this agent
+            // is not menace but an attack, which arrives through damage.
+            EquipmentController equipment = candidate.GetComponentInChildren<EquipmentController>();
+            if (equipment == null || equipment.HeldItemAsset == null || !equipment.HeldItemAsset.menacing)
                 return false;
 
             // Flattened on both sides. See the header: the body's yaw is the only part of a remote
@@ -240,7 +247,7 @@ namespace SpaceGame.Agents
 
         protected override void OnValidate()
         {
-            scanInterval = Mathf.Max(0.05f, scanInterval);
+            scanInterval = Mathf.Max(MinScanInterval, scanInterval);
             brandishWindow = Mathf.Max(0f, brandishWindow);
             targetHeightOffset = Mathf.Max(0f, targetHeightOffset);
         }

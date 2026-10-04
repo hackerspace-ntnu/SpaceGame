@@ -46,6 +46,9 @@ FOOT_LENGTH = 0.08      # the roll bone's length, outward from the sole
 
 # Human kit segment bone -> elder torso bone. Arms and shoulders ride the chest.
 TORSO = {"Hips": "Pelvis", "Spine": "Chest", "Chest": "Chest", "Neck": "Neck", "Head": "Head"}
+# The segment whose origin is each torso bone's joint. Only these: the arms and shoulders also ride
+# the chest, and taking the first chest-bound segment's origin put the chest joint in the left arm.
+TORSO_PIVOTS = {"pelvis": "Pelvis", "chest": "Chest", "neck": "Neck", "head": "Head"}
 
 
 def torso_bone(obj):
@@ -126,7 +129,9 @@ def rig_elder():
     segments = [(o, torso_bone(o)) for o in torso if torso_bone(o)]
     pivots = {}
     for obj, bone in segments:
-        pivots.setdefault(bone, obj.matrix_world.translation.copy())
+        key = kit.SEGMENT.match(obj.name).group("key")
+        if key in TORSO_PIVOTS:
+            pivots.setdefault(TORSO_PIVOTS[key], obj.matrix_world.translation.copy())
     for needed in ("Pelvis", "Chest", "Neck", "Head"):
         if needed not in pivots:
             raise SystemExit("The elder has no segment for %s" % needed)
@@ -192,7 +197,7 @@ def rig_elder():
             out.objects.link(obj)
             parent_to_bone(obj, rig, bone + leg_id)
         for joint, at, axis in (("Coxa", hip, Vector((0, 0, 1))), ("Hip", hip, hinge), ("Knee", knee, hinge),
-                                ("Ankle", ankle, hinge), ("Foot", sole, outward)):
+                                ("Ankle", ankle, hinge), ("Foot", sole + Vector((0, 0, PIN_RADIUS)), outward)):
             parent_to_bone(pin("%sPin_%s" % (joint, leg_id), at, axis, steel, out), rig, "%s_%s" % (joint, leg_id))
 
     for child in list(src.children_recursive):

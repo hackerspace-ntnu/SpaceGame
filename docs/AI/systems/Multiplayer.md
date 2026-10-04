@@ -10,6 +10,7 @@ paths:
   - Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs
   - Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs
 symptoms:
+  - "Could not start a local session on port 7782 after a script recompiled during play"
   - "it works when I host but the client sees nothing happen"
   - "an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject'"
   - "my [Rpc] method never runs on the other machine"
@@ -21,7 +22,7 @@ symptoms:
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
   - "a builder-made NPC stops moving on clients when it walks into another chunk scene; its prefab has SceneMigrationSynchronization: 0"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-26
+updated: 2026-10-04
 ---
 
 # Multiplayer / Netcode core
@@ -121,7 +122,7 @@ The layer saves nothing itself; it *carries* persistence. `ReportProfileServerRp
 - **`SceneEventInProgress`**: `NetworkSceneManager` has one global busy flag — wait on `OnLoadEventCompleted`, never on raw `Scene.isLoaded`.
 - **`Scene Hash N does not exist in the HashToBuildIndex table`**: NGO hashes scene *paths* case-sensitively off each machine's disk; git folder-casing drift is invisible under `core.ignorecase`.
 - **Two instances on one machine share PlayerPrefs**, so anonymous auth reuses the PlayerId and the lobby returns 409 — launch the second with `-sgprofile client`.
-- **`Failed to bind UDP socket`**: the editor leaks the native socket per Play session. [PlayModeTransportTeardown.cs](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs) mitigates it; otherwise bump the port. Never route singleplayer through `HostDirect` — it calls `SetConnectionData` and overrides the port.
+- **`Failed to bind UDP socket` / "Could not start a local session on port 7782"**: the editor itself holds the port (check `netstat -ano`: the PID is Unity.exe). Disposing a `NetworkDriver` does free its socket (measured 2026-10-04), so a stuck port means a driver was never disposed. The path that orphans it is a **domain reload during Play** (the default "Recompile And Continue Playing"), which skips `OnDestroy`. [PlayModeTransportTeardown.cs](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs) shuts the transport down synchronously in `beforeAssemblyReload`; `NetworkManager.Shutdown()` alone would not, because it only raises a flag that a host acts on over later ticks. A port already stuck is freed only by restarting the editor. Never route singleplayer through `HostDirect`: it calls `SetConnectionData` and overrides the port.
 - **Netcode is an embedded, patched package.** It lives in `Packages/com.unity.netcode.gameobjects`, not the package cache, because `MigrateNetworkObjectsIntoScenes` dereferenced a destroyed `NetworkObject` and took the frame's whole migration batch down with it. Every change is marked `SPACEGAME PATCH`; read [Packages/PATCHES.md](Packages/PATCHES.md) before upgrading, and see [WorldStreaming.md](WorldStreaming.md) for what the bug did.
 - **`NetworkManager.ConnectedClientsList` is server-only** — build rosters from spawned `PlayerIdentity` objects (`PlayerRoster.Build`).
 - `cond ? item.ID : default` for a `NetworkList<FixedString64Bytes>` collapses to `string` and NREs — write `default(FixedString64Bytes)`.

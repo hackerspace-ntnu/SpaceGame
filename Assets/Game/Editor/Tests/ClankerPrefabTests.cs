@@ -16,8 +16,10 @@ using System.Linq;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
@@ -28,6 +30,7 @@ namespace SpaceGame.EditorTools
     {
         private const string ClankerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
         private const string HumanoidControllerPath = HumanoidControllerBuilder.ControllerPath;
+        private const string HumanoidNpcPath = "Assets/Game/Prefabs/agents/Characters/Drifters/Drifter_Human.prefab";
 
         private static IEnumerable<string> AllBodies => ClankerBuilder.AllPrefabPaths;
 
@@ -52,10 +55,13 @@ namespace SpaceGame.EditorTools
             GameObject prefab = Load(path);
             GameObject clanker = Load(ClankerBuilder.PrefabPath);
 
-            string[] Names(GameObject go) => go.GetComponents<Component>().Select(c => c == null ? "<missing script>" : c.GetType().Name)
-                                               .OrderBy(n => n).ToArray();
-            CollectionAssert.AreEqual(Names(clanker), Names(prefab),
-                                      "a body variant must carry the RPR Clanker's stack, no more and no less");
+            string[] expected = Names(clanker)
+                .Concat(CharacterActionWiring.WearsHumanoidController(prefab)
+                            ? CharacterActionWiring.NpcComponents.Select(t => t.Name)
+                            : Enumerable.Empty<string>())
+                .OrderBy(n => n).ToArray();
+            CollectionAssert.AreEqual(expected, Names(prefab),
+                "a body variant carries the RPR Clanker's stack plus, when it wears Humanoid.controller, the action wiring");
 
             Assert.IsNull(prefab.GetComponent<HerdModule>(), "the old PatrolRobot herd");
             Assert.IsNull(prefab.GetComponent<WanderModule>(), "the Clanker patrols; it does not wander");
@@ -66,6 +72,36 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(prefab.GetComponent<AgentTargeting>());
             Assert.IsNotNull(prefab.GetComponent<ProvocationModule>());
             Assert.IsNotNull(prefab.GetComponent<IdleLookAroundModule>());
+        }
+
+        private static string[] Names(GameObject go) =>
+            go.GetComponents<Component>().Select(c => c == null ? "<missing script>" : c.GetType().Name)
+              .OrderBy(n => n).ToArray();
+
+        [Test]
+        public void TheHumanoidWiringAddsExactlyItsNpcComponents()
+        {
+            // The list the stack test above expects is the list Ensure adds, read off a fresh humanoid
+            // NPC: if one changes without the other, a Clanker body passes with the wrong stack.
+            Scene scene = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                var body = (GameObject)PrefabUtility.InstantiatePrefab(Load(HumanoidNpcPath), scene);
+                PrefabUtility.UnpackPrefabInstance(body, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                foreach (System.Type type in CharacterActionWiring.NpcComponents.Reverse())
+                    Object.DestroyImmediate(body.GetComponent(type));
+                string[] before = Names(body);
+
+                Assert.IsTrue(CharacterActionWiring.Ensure(body), "Ensure reported no change on a body it had to wire");
+
+                CollectionAssert.AreEquivalent(CharacterActionWiring.NpcComponents.Select(t => t.Name),
+                                               Names(body).Except(before),
+                                               "Ensure added a different set from NpcComponents");
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
         }
 
         [TestCaseSource(nameof(AllBodies))]

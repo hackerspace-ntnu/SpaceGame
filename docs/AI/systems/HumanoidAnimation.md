@@ -32,7 +32,7 @@ symptoms:
   - "an NPC just stands there mid-fight and takes/lands hits with no swing ever visible"
   - "combat feels unnaturally slow or untimed even though damage lands on schedule"
 reads_with: [PlayerCharacter, AgentSystem, ArtPipeline, Multiplayer, Combat, InteractionSystem, TalkingMouth]
-updated: 2026-09-26
+updated: 2026-10-04
 ---
 
 # Humanoid Animation
@@ -78,7 +78,7 @@ asks for a **cue** ("greet"), and data decides which of the tagged actions plays
 | `HurtReaction` | [HurtReaction.cs](Assets/Game/Scripts/Presentation/Animation/HurtReaction.cs) | Server: `HealthComponent.OnDamage` → `ReactEverywhere(Hurt)` |
 | `IInteractionMoment` | [IInteractionMoment.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs) | What an interactable's press shows on the presser; default `Interacted` |
 | `HumanoidControllerBuilder` | [HumanoidControllerBuilder.cs](Assets/Game/Editor/Animation/HumanoidControllerBuilder.cs) | Rebuild / Audit (also lists unanswered cues); `CollectActions`, `CollectCues` |
-| `CharacterActionWiring` | [CharacterActionWiring.cs](Assets/Game/Editor/Animation/CharacterActionWiring.cs) | Adds CharacterActions, BodyLanguage (full body off on the player), IdleVariation, HurtReaction, and SpeechGestures on NPCs |
+| `CharacterActionWiring` | [CharacterActionWiring.cs](Assets/Game/Editor/Animation/CharacterActionWiring.cs) | Adds CharacterActions, BodyLanguage (full body off on the player), IdleVariation, HurtReaction, and SpeechGestures and MeleeDefense on NPCs. `NpcComponents` is that NPC list in order, the one source tests compare against |
 | `AnimationLibraryWindow` | [AnimationLibraryWindow.cs](Assets/Game/Editor/Animation/AnimationLibraryWindow.cs) | Browse actions/cues/moments, filter by cue/slot/playback, play any of them on the selected body in play mode |
 | `EmoteCatalog` | [EmoteCatalog.cs](Assets/Game/Scripts/Characters/Player/EmoteCatalog.cs) | The player's emotes (chat words + the emote wheel, hold V), 46 today; each references an action that must be in this catalog (`EmoteCatalogAssetTests`) — see [PlayerCharacter.md](PlayerCharacter.md) |
 | `CharacterActionAuthoring` | [CharacterActionAuthoring.cs](Assets/Game/Editor/Animation/CharacterActionAuthoring.cs) | One action per selected clip, skipping clips an action already plays |
@@ -122,6 +122,7 @@ None. Everything is seconds long or re-asserted by gameplay state that already s
   evaluated yet, so the cleanup pass wiped the weight back to 0 before a single frame of the action
   rendered. The pick, the timers and the damage were all correct; the fight just looked like nobody
   was swinging. `LateUpdate` sees this frame's evaluated state, not last frame's.
+- **A humanoid Clanker body carries the Clanker stack PLUS the action wiring.** `ClankerStack.Apply` calls `CharacterActionWiring.Ensure`, so the Same Gev Dudios bodies (PatrolRobot 1-3, on `Humanoid.controller`) get the six `NpcComponents` and the RPR `Clanker.prefab` (its own controller) gets none. `ClankerPrefabTests.CarriesExactlyTheClankersComponents` expects exactly that, and `TheHumanoidWiringAddsExactlyItsNpcComponents` pins `NpcComponents` to what `Ensure` really adds; a component added to one but not the other fails there rather than as a 59-vs-65 count.
 - **Never hand-edit the controller** — run Audit first to see what a rebuild would erase.
 - **`CharacterActions` has no `Awake`, on purpose.** Other modules call it from their own `OnEnable` during `Instantiate`, and Unity raises Awake/OnEnable per component in list order; the wiring adds it LAST, so `AggressionTelegraphModule.OnEnable` reached it first and threw a NullReferenceException on every nomad spawn. Its tracks are built by a field initializer and everything else resolves on first use — keep it that way.
 - **Authority is `IsServerAuthoritative() ? IsServer : IsOwner`, never `HasAuthority`** (that means IsServer in client-server mode and hands the host every client's body).

@@ -19,20 +19,26 @@ namespace SpaceGame.EditorTools
         /// One post per spot (root space), each facing outward from <paramref name="deckCentre"/> so its
         /// lookout watches the desert; a gangway at <paramref name="gangwayLocal"/>; then the seats and
         /// the crew shift that uses both. <paramref name="gangwayNavMeshReach"/> is how far an unseat
-        /// from the gangway may look for walkable ground.
+        /// from the gangway may look for walkable ground. <paramref name="standingSpots"/> (root space,
+        /// optional) are standing posts appended after the crew posts, for the city's elders
+        /// (<see cref="StandingRider"/>; <c>CrewShift.standingPosts</c>).
         /// </summary>
         public static void AddCrewDeck(GameObject root, IReadOnlyList<Vector3> postSpots, Vector3 deckCentre,
-                                       Vector3 gangwayLocal, float gangwayNavMeshReach)
+                                       Vector3 gangwayLocal, float gangwayNavMeshReach,
+                                       IReadOnlyList<Vector3> standingSpots = null)
         {
             var seatsRoot = new GameObject(PostsName).transform;
             seatsRoot.SetParent(root.transform, false);
-            var posts = new Transform[postSpots.Count];
+            int standing = standingSpots?.Count ?? 0;
+            var posts = new Transform[postSpots.Count + standing];
             for (int i = 0; i < posts.Length; i++)
             {
-                var post = new GameObject($"Post_{i}").transform;
+                bool isStanding = i >= postSpots.Count;
+                Vector3 spot = isStanding ? standingSpots[i - postSpots.Count] : postSpots[i];
+                var post = new GameObject(isStanding ? $"StandingPost_{i - postSpots.Count}" : $"Post_{i}").transform;
                 post.SetParent(seatsRoot, false);
-                post.localPosition = postSpots[i];
-                Vector3 outward = postSpots[i] - deckCentre;
+                post.localPosition = spot;
+                Vector3 outward = spot - deckCentre;
                 outward.y = 0f;
                 post.localRotation = Quaternion.LookRotation(outward.normalized, Vector3.up);
                 posts[i] = post;
@@ -54,7 +60,11 @@ namespace SpaceGame.EditorTools
             });
 
             var shift = root.AddComponent<CrewShift>();
-            SerializedFields.Edit(shift, so => SerializedFields.Set(so, "gangway", gangway));
+            SerializedFields.Edit(shift, so =>
+            {
+                SerializedFields.Set(so, "gangway", gangway);
+                SerializedFields.SetInt(so, "standingPosts", standing);
+            });
         }
     }
 }

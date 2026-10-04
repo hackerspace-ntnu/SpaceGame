@@ -663,6 +663,18 @@ MonoBehaviour:
       crew: 1
       count: 15
       countWeights: []
+    - prefab: {fileID: 4513809822329001233, guid: 0aa53d1dbe38a48488e095df5ccfd9d6, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 1
+      count: 1
+      countWeights:
+      - count: 1
+        weight: 0.65
+      - count: 2
+        weight: 0.25
+      - count: 3
+        weight: 0.1
     tasks:
     - label: picking over a ruin
       targetSite: 2

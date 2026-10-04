@@ -4876,6 +4876,37 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!1 &1333060956716432596
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4053647938517566938}
+  m_Layer: 0
+  m_Name: StandingPost_0
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4053647938517566938
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333060956716432596}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.0025939941, y: 17.020107, z: 5.7975483}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1569927414646833292}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1549719116295932574
 GameObject:
   m_ObjectHideFlags: 0
@@ -5066,6 +5097,7 @@ Transform:
   - {fileID: 6969123480340785189}
   - {fileID: 3160728928489383336}
   - {fileID: 2678616669340102339}
+  - {fileID: 4053647938517566938}
   m_Father: {fileID: 4407907630063510561}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8193795870591704874
@@ -5219,10 +5251,10 @@ PrefabInstance:
       addedObject: {fileID: 6002564353602648102}
     - targetCorrespondingSourceObject: {fileID: 3114823854941761195, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8752225276983378341}
+      addedObject: {fileID: 3739918762338734575}
     - targetCorrespondingSourceObject: {fileID: 3114823854941761195, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -4964418542649678768}
+      addedObject: {fileID: -8107134264007278839}
   m_SourcePrefab: {fileID: 100100000, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
 --- !u!1 &3920125714913502079 stripped
 GameObject:
@@ -5262,6 +5294,7 @@ MonoBehaviour:
   - {fileID: 6969123480340785189}
   - {fileID: 3160728928489383336}
   - {fileID: 2678616669340102339}
+  - {fileID: 4053647938517566938}
   seatOffset: {x: 0, y: 0, z: 0}
   navMeshReach: 8
   chairPose: {fileID: 4062243427637121025}
@@ -5283,6 +5316,7 @@ MonoBehaviour:
   boardRadius: 4
   recallTimeout: 60
   gangwaySampleDistance: 8
+  standingPosts: 1
 --- !u!114 &7524280087234313781
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5397,6 +5431,7 @@ MonoBehaviour:
   sweepPoints: 6
   sweepArriveRadius: 25
   sweepSampleDistance: 60
+  pullInStep: 100
   sweepTimeout: 450
   rotaInterval: 1
 --- !u!114 &6002564353602648102
@@ -5422,7 +5457,7 @@ MonoBehaviour:
   sizeJitter: 0.2
   lodNear: 80
   lodFar: 200
---- !u!114 &8752225276983378341
+--- !u!114 &3739918762338734575
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5434,7 +5469,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba2f0d7b595cb434f9f10161a0e8b395, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.NpcTaskSaveable
---- !u!114 &-4964418542649678768
+--- !u!114 &-8107134264007278839
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

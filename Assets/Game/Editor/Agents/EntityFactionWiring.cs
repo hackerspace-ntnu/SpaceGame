@@ -52,6 +52,7 @@ namespace SpaceGame.EditorTools
             ("DesertCrawler", "StriderFaction"),
             ("StriderHabitatWalker", "StriderFaction"),
             ("StriderCrabOutrider",  "StriderFaction"),
+            ("StriderElder",         "StriderFaction"),
             ("StriderMonowheel_Runner",     "StriderFaction"),
             ("StriderMonowheel_Hauler",     "StriderFaction"),
             ("StriderMonowheel_Patched",    "StriderFaction"),

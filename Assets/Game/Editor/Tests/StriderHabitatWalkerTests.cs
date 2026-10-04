@@ -37,13 +37,15 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void HasSixCrewPosts_AGangwayOnTheGround_AndACrewShift()
+        public void HasSixCrewPosts_AnElderPost_AGangwayOnTheGround_AndACrewShift()
         {
             GameObject habitat = Habitat();
             var seats = habitat.GetComponent<VesselSeats>();
-            Assert.AreEqual(StriderCityBuilder.CrewPosts, seats.Capacity);
+            Assert.AreEqual(StriderCityBuilder.CrewPosts + StriderCityBuilder.StandingPosts, seats.Capacity);
             var shift = habitat.GetComponent<CrewShift>();
             Assert.IsNotNull(shift);
+            Assert.AreEqual(StriderCityBuilder.StandingPosts, new SerializedObject(shift).FindProperty("standingPosts").intValue,
+                "the last seat is the elder's standing post");
             var gangway = new SerializedObject(shift).FindProperty("gangway").objectReferenceValue as Transform;
             Assert.IsNotNull(gangway);
             Assert.AreEqual(0f, gangway.localPosition.y, 0.01f, "the gangway is at the walker's feet, not on the deck");
@@ -56,11 +58,15 @@ namespace SpaceGame.EditorTools
             Bounds deck = RootBounds(habitat, "COL_Deck");
             Bounds hull = RootBounds(habitat, "COL_Hull");
             var seats = new SerializedObject(habitat.GetComponent<VesselSeats>()).FindProperty("seats");
+            float elderRise = StriderElderBuilder.StandingHeight() / habitat.transform.lossyScale.y;
             for (int i = 0; i < seats.arraySize; i++)
             {
                 var post = (Transform)seats.GetArrayElementAtIndex(i).objectReferenceValue;
                 Vector3 p = habitat.transform.InverseTransformPoint(post.position);
-                Assert.AreEqual(deck.max.y, p.y, 0.01f, $"{post.name} stands on the deck's surface");
+                bool standing = i >= StriderCityBuilder.CrewPosts;
+                Assert.AreEqual(deck.max.y + (standing ? elderRise : 0f), p.y, 0.01f,
+                    standing ? $"{post.name} holds the elder's hips, so its feet are on the deck"
+                             : $"{post.name} stands on the deck's surface");
                 Assert.IsTrue(p.x > deck.min.x && p.x < deck.max.x && p.z > deck.min.z && p.z < deck.max.z,
                     $"{post.name} at {p} is off the deck {deck}");
                 Assert.IsFalse(p.x > hull.min.x && p.x < hull.max.x && p.z > hull.min.z && p.z < hull.max.z,

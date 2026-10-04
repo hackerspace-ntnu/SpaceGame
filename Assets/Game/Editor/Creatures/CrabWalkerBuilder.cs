@@ -85,11 +85,27 @@ namespace SpaceGame.EditorTools
                 return null;
             }
 
-            var root = new GameObject($"CrabWalker{legCount}");
+            return BuildBodyFrom(model, legCount, $"CrabWalker{legCount}", BodyBoxes, 1f);
+        }
+
+        /// <summary>
+        /// Any rigid-part walker with Coxa_/Hip_/Knee_/Ankle_/Foot_ leg chains (the crab's rig
+        /// convention), its locomotion wired with the crab's tuning, not yet saved. The caller retunes
+        /// what differs and owns (and destroys) the returned root. <paramref name="bodyBoxes"/> names the
+        /// body meshes that get a collision box; <paramref name="modelScale"/> scales the model under
+        /// the root before anything is measured. Null when the rig does not have
+        /// <paramref name="legCount"/> legs.
+        /// </summary>
+        public static GameObject BuildBodyFrom(GameObject model, int legCount, string name,
+                                               IReadOnlyList<(string mesh, string col)> bodyBoxes, float modelScale)
+        {
+            string modelPath = AssetDatabase.GetAssetPath(model);
+            var root = new GameObject(name);
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model);
             PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely,
                                                InteractionMode.AutomatedAction);
             instance.transform.SetParent(root.transform, false);
+            instance.transform.localScale *= modelScale;
 
             Dictionary<string, Transform> parts = root.GetComponentsInChildren<Transform>(true)
                 .GroupBy(t => t.name)
@@ -112,7 +128,7 @@ namespace SpaceGame.EditorTools
             DropModelOntoHips(root, instance);
 
             int boxes = 0;
-            foreach ((string mesh, string col) in BodyBoxes) boxes += AddBox(parts, mesh, col) ? 1 : 0;
+            foreach ((string mesh, string col) in bodyBoxes) boxes += AddBox(parts, mesh, col) ? 1 : 0;
             foreach (string id in ids)
                 foreach ((string suffix, string joint) in LimbBoxes)
                     boxes += AddLimbBox(parts, id, suffix, joint) ? 1 : 0;
@@ -159,9 +175,11 @@ namespace SpaceGame.EditorTools
             foreach (MeshRenderer r in root.GetComponentsInChildren<MeshRenderer>(true))
                 soleY = Mathf.Min(soleY, r.bounds.min.y);
 
-            float rideHeight = hipSum / hips - soleY;
-            instance.transform.localPosition = new Vector3(0f, -rideHeight, 0f);
-            Debug.Log($"[Crab] Origin set on the hip plane: ride height {rideHeight:F2} m.");
+            // The hips go onto the root, wherever the model's soles were authored: the crab stands on
+            // z = 0, the Strider elder's feet sit a hand's breadth above it.
+            float hipY = hipSum / hips - root.transform.position.y;
+            instance.transform.localPosition += new Vector3(0f, -hipY, 0f);
+            Debug.Log($"[Crab] Origin set on the hip plane: ride height {hipSum / hips - soleY:F2} m.");
         }
 
         /// A box matching one mesh, parented to that mesh so it rides whatever bone moves it.

@@ -607,11 +607,12 @@ namespace SpaceGame.EditorTools
             var habitat = Load<GameObject>(StriderCityBuilder.HabitatPath);
             var crawler = Load<GameObject>(DesertCrawlerBuilder.PrefabPath);
             var crab = Load<GameObject>(StriderCrabOutriderBuilder.PrefabPath);
+            var elder = Load<GameObject>(StriderElderBuilder.PrefabPath);
             GameObject[] scouts = StriderMonowheelBuilder.Singles
                 .Select(v => Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v))).ToArray();
             GameObject[] barges = StriderBargeBuilder.Barges
                 .Select(b => Load<GameObject>(StriderBargeBuilder.PrefabPath(b.Variant))).ToArray();
-            if (striders == null || habitat == null || crawler == null || crab == null
+            if (striders == null || habitat == null || crawler == null || crab == null || elder == null
                 || scouts.Any(s => s == null) || barges.Any(b => b == null)) return;
 
             // Near the player's spawn rather than at a Ruin: see StriderCityStartSite.
@@ -681,6 +682,10 @@ namespace SpaceGame.EditorTools
                 int fighters = crew / 2;
                 AddMember(members, null, RosterRole.Warrior, fighters, leader: false, crew: true);
                 AddMember(members, null, RosterRole.Scout, crew - fighters, leader: false, crew: true);
+                // The elders last: their count is drawn, and a drawn count shifts the plan index (and
+                // with it the roster draw and loadout) of every member listed after it.
+                AddMember(members, elder, RosterRole.Scout, 1, leader: false, crew: true);
+                WriteCountWeights(members.GetArrayElementAtIndex(members.arraySize - 1), StriderCityElders);
 
                 SerializedProperty tasks = t.FindPropertyRelative("tasks");
                 tasks.arraySize = StriderCityStops.Length;
@@ -737,6 +742,25 @@ namespace SpaceGame.EditorTools
         internal static int ScoutShare(int index, int singles) =>
             StriderCityScouts / singles + (index < StriderCityScouts % singles ? 1 : 0);
 
+        /// <summary>The city's elders: usually one, sometimes two, rarely three (one per house at most).</summary>
+        public static readonly WeightedCount[] StriderCityElders =
+        {
+            new WeightedCount { count = 1, weight = 0.65f },
+            new WeightedCount { count = 2, weight = 0.25f },
+            new WeightedCount { count = 3, weight = 0.10f },
+        };
+
+        private static void WriteCountWeights(SerializedProperty member, WeightedCount[] weights)
+        {
+            SerializedProperty array = member.FindPropertyRelative("countWeights");
+            array.arraySize = weights.Length;
+            for (int i = 0; i < weights.Length; i++)
+            {
+                array.GetArrayElementAtIndex(i).FindPropertyRelative("count").intValue = weights[i].count;
+                array.GetArrayElementAtIndex(i).FindPropertyRelative("weight").floatValue = weights[i].weight;
+            }
+        }
+
         private static void AddMember(SerializedProperty members, GameObject prefab, RosterRole role, int count, bool leader, bool crew)
         {
             int i = members.arraySize;
@@ -747,6 +771,8 @@ namespace SpaceGame.EditorTools
             m.FindPropertyRelative("count").intValue = count;
             m.FindPropertyRelative("isLeader").boolValue = leader;
             m.FindPropertyRelative("crew").boolValue = crew;
+            // InsertArrayElementAtIndex copies its neighbour: an elder's weights must not leak into the next spec.
+            m.FindPropertyRelative("countWeights").arraySize = 0;
         }
 
         /// <summary>

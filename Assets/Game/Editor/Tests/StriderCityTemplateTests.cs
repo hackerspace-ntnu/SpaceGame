@@ -61,7 +61,7 @@ namespace SpaceGame.EditorTools
                                            "one barge of each kind (the user, 2026-09-25)");
             Assert.IsTrue(city.members.Where(IsBarge).All(m => m.count == 1 && !m.crew && !m.isLeader));
             Assert.AreEqual(RosterAuthoring.StriderCityHouses * StriderCityBuilder.CrewPosts
-                            + barges.Length * StriderBargeBuilder.CrewPosts, Count(m => m.crew), "one crew member per post");
+                            + barges.Length * StriderBargeBuilder.CrewPosts, Count(m => m.crew && !IsElder(m)), "one crew member per post");
             Assert.Greater(System.Array.FindIndex(city.members, m => m.crew), System.Array.FindLastIndex(city.members, IsBarge),
                            "crew after every carrier, or they spawn with nowhere to sit");
 
@@ -91,6 +91,22 @@ namespace SpaceGame.EditorTools
                         "a short walk from the spawn point (re-run Wire Strider City)");
             Assert.AreEqual(RosterAuthoring.StriderCityInitialStay, city.initialStaySeconds, 0.01f,
                             "parked at its start long enough for a new player to walk over (re-run Wire Strider City)");
+        }
+
+        private static bool IsElder(NpcGroupMemberSpec m) => AssetDatabase.GetAssetPath(m.prefab) == StriderElderBuilder.PrefabPath;
+
+        [Test]
+        public void TheElders_RideLast_AsStandingCrew_OneToThreeByWeight()
+        {
+            NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
+            NpcGroupMemberSpec elder = city.members.Last();
+            Assert.IsTrue(IsElder(elder), "the elders are the last spec: a weighted count shifts every later member's draw");
+            Assert.AreEqual(1, city.members.Count(IsElder));
+            Assert.IsTrue(elder.crew && !elder.isLeader, "elders ride the houses' standing posts");
+            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, elder.countWeights.Select(w => w.count).ToArray());
+            CollectionAssert.AreEqual(new[] { 0.65f, 0.25f, 0.10f }, elder.countWeights.Select(w => w.weight).ToArray());
+            Assert.LessOrEqual(elder.countWeights.Max(w => w.count), RosterAuthoring.StriderCityHouses * StriderCityBuilder.StandingPosts,
+                               "never more elders than standing posts: a spare one would walk beside the houses");
         }
 
         /// FormationModule measures regroupDistance from the leader: a follower whose slot is farther

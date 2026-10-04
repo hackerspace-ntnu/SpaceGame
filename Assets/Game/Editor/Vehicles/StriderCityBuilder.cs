@@ -36,6 +36,10 @@ namespace SpaceGame.EditorTools
         /// <summary>One post per <see cref="PostLayout"/> entry; the city's crew is this per house.</summary>
         public static int CrewPosts => PostLayout.Length;
 
+        /// <summary>Standing posts per house, for the city's elders: one, at the front of the deck,
+        /// between the two front crew posts (spec: at most one elder per house).</summary>
+        public const int StandingPosts = 1;
+
         /// <summary>The RigWalker's DesertCrawlerDriver.moveSpeed.</summary>
         public const float RigWalkerMoveSpeed = 6f;
         /// <summary>The leader walks at this fraction of its top speed so every follower -- the
@@ -227,8 +231,19 @@ namespace SpaceGame.EditorTools
                 spots[i] = new Vector3(onRight ? right : left, top, z);
             }
 
+            // The elder's post: front centre of the deck ring, raised by the elder's hip height
+            // (its root rides on its hip plane), so its four feet stand on the deck.
+            float elderRise = StriderElderBuilder.StandingHeight();
+            if (elderRise <= 0f)
+            {
+                Debug.LogError("[StriderCityBuilder] Build the Strider elder first (Tools/Creatures/Build Strider Elder): " +
+                               "its standing post is raised by the elder's own hip height.");
+                return false;
+            }
+            var standing = new[] { new Vector3(deck.center.x, top + elderRise / root.transform.lossyScale.y, front) };
+
             var gangway = new Vector3(deck.max.x + GangwayStandoff / root.transform.lossyScale.x, 0f, deck.center.z);
-            CrewDeckWiring.AddCrewDeck(root, spots, centre, gangway, GangwayNavMeshReach);
+            CrewDeckWiring.AddCrewDeck(root, spots, centre, gangway, GangwayNavMeshReach, standing);
             return true;
         }
 

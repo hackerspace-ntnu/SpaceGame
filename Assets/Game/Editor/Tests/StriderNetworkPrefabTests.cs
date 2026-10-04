@@ -14,6 +14,7 @@ namespace SpaceGame.EditorTools
         private static IEnumerable<string> MigratingPrefabPaths() =>
             NomadPrefabBuilder.StriderNomads.Select(r => r.PrefabPath)
                 .Append(StriderCrabOutriderBuilder.PrefabPath)
+                .Append(StriderElderBuilder.PrefabPath)
                 .Append(DesertCrawlerBuilder.PrefabPath);
 
         [TestCaseSource(nameof(MigratingPrefabPaths))]

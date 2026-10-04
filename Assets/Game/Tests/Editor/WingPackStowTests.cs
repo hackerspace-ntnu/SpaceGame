@@ -13,7 +13,7 @@ namespace SpaceGame.Tests
     /// aircraft, folded, and it is meant to read that way — filling the rack edge to edge, hanging
     /// off the top and bottom, storable on the ship's gear wall at true size. Both of those are
     /// decided by a single authored number, <c>ItemGrip.packSize</c>, which
-    /// <c>WingPackBuilder.PackSizeForRack</c> derives from the rack's own width and the folded
+    /// The rack-derived packSize comes from the rack's own width and the folded
     /// mesh's proportions.
     /// </para>
     /// <para>
@@ -75,7 +75,7 @@ namespace SpaceGame.Tests
             // over and the rack refuses it outright, with red cells and no explanation.
             Assert.That(shape.x, Is.EqualTo(rack.x),
                         $"The wing pack is {shape.x} cells across a {rack.x}-column rack. Its " +
-                        "packSize needs re-deriving from WingPackBuilder.PackSizeForRack — but do " +
+                        "packSize needs re-deriving from the rack's width — but do " +
                         "NOT re-run the builder to do it, because it rebuilds the prefab from " +
                         "scratch and drops the networking and persistence added since.");
         }

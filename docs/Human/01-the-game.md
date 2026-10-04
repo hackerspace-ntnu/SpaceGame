@@ -52,6 +52,21 @@ Two consequences worth knowing:
   exactly once. That coupling is load-bearing; if a world has no spawn point authored in it, nobody
   spawns at all and the arrival never runs.
 
+### After the crash: the opening objectives
+
+Once the hull is at rest, the lander's computer starts talking the crew through a short chain of
+objectives, one at a time: try the basic controls (move, sprint, jump, crouch), check the damage
+on the cockpit terminal, walk out to a module that came down about a hundred metres away and fit it
+back onto the hull, and try an artifact thrown clear in the crash. The chain ends on the long goal
+the whole game points at — every socket on the hull filled. Pointing the crew at settlements is
+planned but not built yet.
+
+The crew share one place in the chain, the host decides when a step is done, and that place is
+saved with the world. Each step is briefed once, in the moment; a loaded world or a late joiner
+reads the current objective off the visor instead of hearing it again. The first step is the one
+place where everyone must act for themselves: it waits until every player has used every control on
+its checklist. Finishing the ship does not yet end the run — nothing wins the game today.
+
 ---
 
 ## What you actually do in a session
@@ -184,16 +199,11 @@ team, launched together on different arcs, landing on a ring around a shared cen
 say that Versus is currently a *setup* rather than a *match*: there is no scoring, no win condition
 and no end. The mode finishes when people leave.
 
-**The minigame arena** is a separate bot deathmatch with three gamemodes driven by one match
-orchestrator — Team Deathmatch (two sides, up to four bots each, host picks kill target / lives /
-last-standing), Free-For-All (everyone their own team, up to fifteen bots), and Battle Royale (FFA
-with exactly one life and no respawns). The code is complete: bots, factions, kills and deaths, a
-leaderboard pushed on every death, spectator mode for the eliminated, a result screen that shows
-Victory or Defeat per side.
-
-**But the arena scene itself is empty.** It was reduced to a bare scene by a cleanup commit and never
-restored, so the entire deathmatch route currently loads a void additively over the world. Nothing
-warns you. Anyone picking up minigame work should restore the scene from history first.
+**There used to be a third mode, a bot deathmatch in a separate arena.** It is gone. Its arena
+scene had been emptied by a cleanup commit long ago, no match orchestrator existed in any scene, and
+no menu button reached it, so the whole thing had been unplayable and unreachable for months. It was
+deleted in September 2026 rather than left to look like a feature. If the team wants a bot arena, it
+is a fresh build.
 
 One more thing that is built but not turned on: NPC trading is code-complete and has no authored
 trader anywhere in the project, so no trader exists to talk to.
@@ -228,8 +238,9 @@ For the technical detail behind any of the above, the dense agent-facing docs ar
 
 - `docs/AI/systems/README.md` — index of every subsystem doc, plus a live list of known defects.
 - `docs/AI/systems/PlayerShip.md` — the lander, the arrival sequence, seating, salvage sockets.
+- `docs/AI/systems/Objectives.md` — the crew's opening objective chain, its briefings and waypoints.
 - `docs/AI/systems/PlayerCharacter.md` — movement, look, stances, death, geometry, what replicates.
 - `docs/AI/systems/Artifacts.md` — the full artifact catalogue and the use/present authority split.
-- `docs/AI/systems/GameModes.md` — Versus, the arena gamemodes, spawning and scoring.
+- `docs/AI/systems/GameModes.md` — Versus, the story run, spawning and respawning.
 - `docs/AI/systems/Inventory.md` and `docs/AI/systems/Backpack.md` — hotbar, equipping, the physical pack.
 - `docs/AI/systems/Multiplayer.md` and `docs/AI/systems/Persistence.md` — the two non-negotiables.

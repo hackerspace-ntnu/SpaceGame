@@ -31,6 +31,16 @@ namespace SpaceGame.Core.Persistence
         public static bool IsNew { get; private set; }
 
         /// <summary>
+        /// True for a throwaway session that must never touch disk: no file is written on entry,
+        /// by the autosave timer, by a quicksave, or on exit or quit. <see cref="SaveManager.Save"/>
+        /// is the single choke point every one of those triggers funnels through, so this is checked
+        /// there and nowhere else. Also tells <see cref="SpaceGame.Gameplay.Arrival.ArrivalDirector"/>
+        /// to skip the crash-landing cutscene and put the ship down already landed instead — see
+        /// <c>NetworkGameManager</c>'s spawn flow.
+        /// </summary>
+        public static bool Disposable { get; private set; }
+
+        /// <summary>
         /// False before any world has been chosen — a world scene opened directly in the editor,
         /// with no menu run behind it.
         /// </summary>
@@ -38,13 +48,20 @@ namespace SpaceGame.Core.Persistence
 
         private static SaveDocument staged;
 
-        /// <summary>Begins a world with no save behind it.</summary>
-        public static void StageNew(string displayName, WorldStreamingConfig config)
+        /// <summary>
+        /// Begins a world with no save behind it.
+        ///
+        /// <paramref name="disposable"/> stages a session that is never written to disk at all — not
+        /// even the write-on-entry every other new world gets — and skips the crash landing. It has
+        /// no file, so it needs no name a player chose; callers pass one only for logging.
+        /// </summary>
+        public static void StageNew(string displayName, WorldStreamingConfig config, bool disposable = false)
         {
             WorldId = WorldIdentity.IdFor(displayName);
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? WorldId : displayName.Trim();
             WorldConfigId = config != null ? config.ConfigId : string.Empty;
             IsNew = true;
+            Disposable = disposable;
             staged = null;
         }
 
@@ -89,6 +106,7 @@ namespace SpaceGame.Core.Persistence
             DisplayName = WorldIdentity.DisplayNameFor(document.Header, worldId);
             WorldConfigId = document.Header.WorldConfigId;
             IsNew = false;
+            Disposable = false;
             staged = document;
 
             error = null;
@@ -115,6 +133,7 @@ namespace SpaceGame.Core.Persistence
             DisplayName = null;
             WorldConfigId = null;
             IsNew = false;
+            Disposable = false;
             staged = null;
         }
     }

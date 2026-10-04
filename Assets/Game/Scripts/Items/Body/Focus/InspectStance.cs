@@ -42,7 +42,7 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// <b>The worn wingsuit's leading edge is authored along exactly this line</b>
-        /// (`wingsuit_worn.py: INSPECT_DROOP`), so the two numbers are one number and moving this
+        /// (the worn wingsuit's INSPECT_DROOP), so the two numbers are one number and moving this
         /// one alone floats the cloth off the arm. It lives here rather than only on the prefab
         /// so the editor's worn-gear preview and the shipped screen cannot disagree about the
         /// pose they are showing gear in.

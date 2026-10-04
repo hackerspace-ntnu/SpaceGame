@@ -8,8 +8,6 @@ paths:
   - Assets/Game/Scripts/Items/Equipped/WingPackItem.cs
   - Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs
   - Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab
-  - Assets/Game/Editor/Vehicles/WingPackBuilder.cs
-  - "Assets/Game/Art/Models/_Source~/models/vehicles/ornithopter_worn.py"
 symptoms:
   - "the wing pack refuses to launch and logs that there is no room"
   - "pulling back on the stick does not climb, or the craft drops like a brick"
@@ -89,7 +87,7 @@ A 10 m flapping-wing aircraft carried folded in the inventory, deployed in mid-a
 | `OrnithopterFlightMotor` (partial ×2) | [Motors/](Assets/Game/Scripts/agents/AI/Motors/OrnithopterFlightMotor.cs) + [.Replication.cs](Assets/Game/Scripts/agents/AI/Motors/OrnithopterFlightMotor.Replication.cs) | Owns the Rigidbody, rider input, touchdowns, the tow, and the wire. `IMovementMotor`, `IRiderControllable`, `IOrnithopterFlightState`, `IExternallyPosed`, `ITeleportAware`, `ITowable`. |
 | `WingPackItem` | [Items/Equipped/WingPackItem.cs](Assets/Game/Scripts/Items/Equipped/WingPackItem.cs) | `UsableItem`: launch window, spawn+seat, adoption, the one teardown path. |
 | `OrnithopterSaveable` | [Persistence/Adapters/OrnithopterSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/OrnithopterSaveable.cs) | Save key `ornithopter`; deferred relaunch and pack re-adoption. |
-| Builders | [OrnithopterBuilder.cs](Assets/Game/Editor/Vehicles/OrnithopterBuilder.cs), [WingPackBuilder.cs](Assets/Game/Editor/Vehicles/WingPackBuilder.cs) | **Tools ▸ Vehicles ▸ Build Dune Ornithopter Prefab / Build Wing Pack Item**, from [dune_ornithopter.fbx](Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx). Re-runnable; measures off the meshes. |
+| Builders | OrnithopterBuilder.cs, WingPackBuilder.cs | **Tools ▸ Vehicles ▸ Build Dune Ornithopter Prefab / Build Wing Pack Item**, from [dune_ornithopter.fbx](Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx). Re-runnable; measures off the meshes. |
 
 ## Tunables
 

@@ -24,7 +24,7 @@ symptoms:
   - "a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing"
   - "the host is the last player to spawn and misses the crew gather"
 reads_with: [TerrainGeneration, Persistence, SceneTransitions, NavMeshSystem]
-updated: 2026-09-17
+updated: 2026-09-26
 ---
 
 # World Streaming
@@ -59,7 +59,7 @@ Server-authoritative additive loading of chunk scenes around moving anchors, plu
 | `ChunkActivationQueue` | [Core/ChunkActivationQueue.cs](Assets/Game/Scripts/World/Streaming/Core/ChunkActivationQueue.cs) | Static budgeted work queue; self-drains via `ChunkActivationRunner` |
 | `WorldNavMeshProvider` | [NavMesh/WorldNavMeshProvider.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) | Adds the pre-baked [WorldNavMeshAsset](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshAsset.cs); no runtime bake |
 | `UnderTerrainGuard` | [Safety/Core/UnderTerrainGuard.cs](Assets/Game/Scripts/World/Safety/Core/UnderTerrainGuard.cs) | Owner-side failsafe; holds a body still while ground is owed, bounded then recovers |
-| `WorldSession` | [Persistence/Runtime/WorldSession.cs](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs) | Static: `WorldId`, `WorldConfigId`, `IsNew`, staged `SaveDocument` |
+| `WorldSession` | [Persistence/Runtime/WorldSession.cs](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs) | Static: `WorldId`, `WorldConfigId`, `IsNew`, `Disposable` (never-saved, no-crash session — see [GameModes](GameModes.md)), staged `SaveDocument` |
 | `WorldChunkerEditor` | [Editor/World/WorldChunkerEditor.cs](Assets/Game/Editor/World/WorldChunkerEditor.cs) | `Tools > World Streaming > Chunk World`: slices a master scene into chunk scenes + config + build settings |
 | `ChunkStreamingProbe` | [Diagnostics/ChunkStreamingProbe.cs](Assets/Game/Scripts/World/Streaming/Diagnostics/ChunkStreamingProbe.cs) | Synthetic anchor walked across 6 boundaries; writes `chunk-streaming-probe.txt` |
 

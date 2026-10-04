@@ -27,7 +27,7 @@ namespace SpaceGame.EditorTools
     public class ClankerPrefabTests
     {
         private const string ClankerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
-        private const string AstronautControllerPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        private const string HumanoidControllerPath = HumanoidControllerBuilder.ControllerPath;
 
         private static IEnumerable<string> AllBodies => ClankerBuilder.AllPrefabPaths;
 
@@ -255,7 +255,7 @@ namespace SpaceGame.EditorTools
             Assert.AreNotEqual(prefab.transform, animator.transform, "the Animator sits on the body child, not the unscaled root");
             Assert.IsNotNull(animator.avatar);
             Assert.IsTrue(animator.avatar.isHuman, "a generic avatar leaves the body standing still with a clean console");
-            Assert.AreEqual(AstronautControllerPath, AssetDatabase.GetAssetPath(animator.runtimeAnimatorController));
+            Assert.AreEqual(HumanoidControllerPath, AssetDatabase.GetAssetPath(animator.runtimeAnimatorController));
             Assert.IsFalse(animator.applyRootMotion, "the motor owns movement");
 
             var socket = new SerializedObject(prefab.GetComponent<EntityEquipmentController>()).FindProperty("handSocket").objectReferenceValue as Transform;

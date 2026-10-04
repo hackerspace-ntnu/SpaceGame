@@ -28,7 +28,7 @@ symptoms:
   - "some players could look around during the intro descent and others could not, or kept their HUD through it"
   - "a cutscene locked or blacked out the wrong player in a multiplayer session"
 reads_with: [SceneTransitions, PlayerShip, CutsceneExamples, audio, Diagnostics]
-updated: 2026-09-24
+updated: 2026-09-28
 ---
 
 # Cutscenes & Presentation
@@ -66,7 +66,7 @@ Coroutine-driven scripted camera moments (no Timeline, no Cinemachine) plus the 
 
 | Action | File | What it does |
 | --- | --- | --- |
-| `LookAtCutscene` | [Actions/LookAtCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/LookAtCutscene.cs) | Slerp camera rotation to `target`, hold, slerp back. Rotation only |
+| `LookAtCutscene` | [Actions/LookAtCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/LookAtCutscene.cs) | Slerp camera rotation to `target`, hold, slerp back. Rotation only. `Target` is settable for a runtime target — `ObjectiveBriefing` aims it at a hull socket ([Objectives](Objectives.md)) |
 | `CameraShakeCutscene` | [Actions/CameraShakeCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/CameraShakeCutscene.cs) | Perlin pos+rot jitter, quadratic decay, exact local-pose restore. Own noise, **not** `ShakeMath` |
 | `WalkThroughDoorCutscene` | [Actions/WalkThroughDoorCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/WalkThroughDoorCutscene.cs) | Eased FP camera glide to `throughPoint`'s pose. Moves the camera, not the body |
 | `ThirdPersonWalkThroughCutscene` | [Actions/ThirdPersonWalkThroughCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ThirdPersonWalkThroughCutscene.cs) | Disables player cam + `AudioListener`, spawns `CutsceneTempCamera`, dollies `startOffset`→`endOffset` while lerping the player Rigidbody to `throughPoint`; `finally` restores |

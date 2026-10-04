@@ -9860,6 +9860,7 @@ MonoBehaviour:
   holdSize: 1.25
   packSize: 0
   sizeReference: {fileID: 8582534737699192662}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &8846407582539752047
 MonoBehaviour:
@@ -9916,6 +9917,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 11400000, guid: dd3b15f80a5ba46dc9fd9741283b39b4, type: 2}
   pelletCount: 30
   spreadAngle: 9
   range: 70

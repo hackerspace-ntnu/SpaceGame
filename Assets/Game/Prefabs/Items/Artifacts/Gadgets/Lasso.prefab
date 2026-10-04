@@ -304,7 +304,7 @@ MonoBehaviour:
   reelInForce: 18
   maxDragSpeed: 14
   reelInAction: {fileID: -4090225696740746782, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  throwTrigger: Throw
+  throwAction: {fileID: 11400000, guid: f7f35f99b1294ddf9467f45075560446, type: 2}
   lassoModel: {fileID: 6305314979930376641}
   lineRenderer: {fileID: 6756972679757077413}
   muzzle: {fileID: 4202001528767388540}

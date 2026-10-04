@@ -284,7 +284,7 @@ namespace SpaceGame.EditorTools
         // play mode it made NetworkSceneManager's build-index table collide on index 7 and every
         // host start fail with "An item with the same key has already been added. Key: 7".
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
-        private const string AnimatorPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        private const string AnimatorPath = HumanoidControllerBuilder.ControllerPath;
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
         // The walking staff he carries and fights with. Built by

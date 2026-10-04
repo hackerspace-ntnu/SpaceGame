@@ -110,8 +110,6 @@ namespace SpaceGame.Agents
 
         // ─────────── Public API ───────────
         public bool IsMounted => mountModule && mountModule.IsMounted;
-        public Vector2 CurrentMoveInput => currentMoveInput;
-        public bool HasSteeringOverride => hasSteeringOverride;
         public bool IsLeaping => leapMotor != null && leapMotor.IsLeaping;
 
         public override string ModuleDescription =>

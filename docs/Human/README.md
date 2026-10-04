@@ -47,8 +47,8 @@ chapter.
 ## A note on honesty
 
 These chapters say plainly where things are unfinished or broken. That is deliberate. If a
-chapter tells you the deathmatch arena is currently an empty scene, or that trading works but
-has no trader in it, that is not an oversight in the writing — it is the state of the game, and
+chapter tells you that trading works but has no trader in it, that is not an oversight in the
+writing — it is the state of the game, and
 knowing it saves you an afternoon.
 
 ## Going deeper

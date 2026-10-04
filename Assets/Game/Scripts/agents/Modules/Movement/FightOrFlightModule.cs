@@ -134,7 +134,6 @@ namespace SpaceGame.Agents
         private float roarTimer;
 
         public Mood CurrentMood => mood;
-        public bool IsEnraged => mood == Mood.Enraged;
 
         /// <summary>True while the roar is still playing and the animal is holding still for it.</summary>
         public bool IsRoaring => roarTimer > 0f;

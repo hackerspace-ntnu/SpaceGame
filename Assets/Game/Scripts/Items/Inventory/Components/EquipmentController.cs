@@ -101,7 +101,7 @@ namespace SpaceGame.Items
 
             hand = new UseChannel(this, GearArea.Hotbar,
                                   () => GearRef.Hotbar(inventory?.SelectedSlotIndex ?? -1),
-                                  HeldItem);
+                                  HeldItem, () => HeldItemAsset);
         }
 
         /// <summary>

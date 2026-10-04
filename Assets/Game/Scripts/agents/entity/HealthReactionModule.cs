@@ -170,10 +170,6 @@ namespace SpaceGame.Agents
                 // UnityEvent is an ANNOUNCEMENT of a moment that has already happened.
                 if (fired) ApplyReaction(reaction, announce: false);
             }
-
-            // The models on the hand bones are a projection of which combat modules are enabled, and
-            // the lines above have just changed that. Their own Awake ran with the prefab's answer.
-            WeaponSelector.RefreshAll(gameObject);
         }
 
         private void OnDisable()

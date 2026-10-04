@@ -5,6 +5,7 @@ using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -135,12 +136,9 @@ namespace SpaceGame.Items
         [Header("Presentation")]
         [Tooltip("Steam vented at the gland when the ram fires. Assigned by the builder.")]
         [SerializeField] private ParticleSystem steamBurst;
-        [Tooltip("Trigger on the wearer's animator for the arm's punch, played on the Upper Body " +
-                 "layer through PlayerAimRig. Built by Tools > SpaceGame > Player > Build Gestures. " +
-                 "Empty for no gesture.")]
-        [SerializeField] private string punchTrigger = "Punch";
-        [Tooltip("Seconds the gesture holds the arm layer up: the clip's length.")]
-        [SerializeField] private float punchSeconds = 0.8f;
+        [Tooltip("The wearer's punch, aimed at the look pitch and mirrored for a puncher on the " +
+                 "left wrist. Empty for no gesture.")]
+        [SerializeField] private CharacterAction punchAction;
         [Tooltip("RepulsorShockwave-shader material for the ground ring — the same wave the " +
                  "repulsor draws, because it is the same event. Assigned by the builder.")]
         [SerializeField] private Material ringMaterial;
@@ -158,7 +156,6 @@ namespace SpaceGame.Items
         private float ramHold;
         private Vector3[] ramRest;
         private PlayerLook look;
-        private PlayerAimRig aimRig;
         private float fovKickUntil = float.NegativeInfinity;
         private bool fovKickArmed;
 
@@ -204,11 +201,17 @@ namespace SpaceGame.Items
             var seen = new HashSet<GameObject> { ownerRoot, gameObject };
 
             // The direct hit travels the way the fist was going, not away from the impact point —
-            // that difference is the whole reason a punch reads differently from a blast.
+            // that difference is the whole reason a punch reads differently from a blast. The
+            // damage goes first because a body may meet the fist (MeleeDefense): one that blocked
+            // or dodged it stays on its feet, or the guard it raised would be flung away with it
+            // and the block would read as a hit that did less damage.
             if (seen.Add(struck))
             {
-                Push(hit.collider, struck, RepulsorBlast.Launch(dir, directUpwardTilt, directFlingSpeed));
-                if (directDamage > 0) NetDamage.Apply(struck, directDamage, owner.transform);
+                DamageDefense met = directDamage > 0
+                    ? NetDamage.Apply(struck, directDamage, owner.transform, DamageKind.Melee)
+                    : DamageDefense.None;
+                if (met == DamageDefense.None)
+                    Push(hit.collider, struck, RepulsorBlast.Launch(dir, directUpwardTilt, directFlingSpeed));
             }
 
             foreach (Collider caught in Physics.OverlapSphere(hit.point, shockRadius, ~0,
@@ -244,7 +247,7 @@ namespace SpaceGame.Items
             FireRam(connected);
             if (steamBurst != null) steamBurst.Play();
             // The whole upper body throws the punch, on every machine, like the ram.
-            if (aimRig != null) aimRig.PlayGesture(punchTrigger, punchSeconds, WornOn);
+            PlayOnHolder(punchAction, WornOn);
 
             if (!connected) return;
 
@@ -255,8 +258,9 @@ namespace SpaceGame.Items
                 (Camera.main.transform.position - hit.point).sqrMagnitude < shakeRadius * shakeRadius)
                 CameraShakerHandler.Shake(punchShake);
 
-            // Animator triggers do not replicate, so the flinch is raised per machine, off the same
-            // sphere the authority swept. Same query, same exclusions, so the two agree.
+            // A creature's animator trigger does not replicate, so its flinch is raised per machine,
+            // off the same sphere the authority swept. Same query, same exclusions, so the two
+            // agree. A humanoid body has no Hurt trigger: the server flinches it (HurtReaction).
             GameObject ownerRoot = owner.transform.root.gameObject;
             var seen = new HashSet<GameObject> { ownerRoot, gameObject };
             foreach (Collider caught in Physics.OverlapSphere(hit.point, shockRadius, ~0,
@@ -437,7 +441,6 @@ namespace SpaceGame.Items
         {
             base.OnEquipped(holder);
             look = holder != null ? holder.GetComponent<PlayerLook>() : null;
-            aimRig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
             CaptureRamRest();
             SetRamOffset(0f);
         }
@@ -450,7 +453,6 @@ namespace SpaceGame.Items
             if (fovKickArmed && look != null) look.SetFovOffset(0f);
             fovKickArmed = false;
             look = null;
-            aimRig = null;
 
             ramStart = float.NegativeInfinity;
             SetRamOffset(0f);

@@ -413,6 +413,71 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
+        /// Puts the arrival ship down already landed — no descent, no cutscene — and marks the
+        /// arrival done, for a disposable session that starts play the instant the world is ready
+        /// rather than sitting through the crash.
+        ///
+        /// <para>
+        /// Uses the same landing measurement <see cref="EnsureStoryFlight"/> plans its descent onto
+        /// (<see cref="ShipGrounding.TryResolveHullLanding"/> against <paramref name="impactPoint"/>),
+        /// so the ship ends up exactly where a real crash would have put it — this just skips the
+        /// twenty seconds of flying there. Idempotent: called once <see cref="HasArrived"/> is
+        /// already true, it does nothing, which is what makes it safe for every connecting client's
+        /// spawn flow to call rather than just the first.
+        /// </para>
+        /// </summary>
+        public IEnumerator SpawnAlreadyLanded(Vector3 impactPoint)
+        {
+            if (!Network.Server)
+            {
+                Debug.LogError("[Arrival] SpawnAlreadyLanded called off the server.", this);
+                yield break;
+            }
+
+            if (HasArrived) yield break;
+
+            if (!CanFly(out _))
+            {
+                // No prefab, or no lateral budget: never going to work, and the same reasoning
+                // SpawnNormally states applies here too — a world that starts everybody on the
+                // ground has had whatever arrival it is going to get.
+                HasArrived = true;
+                yield break;
+            }
+
+            float landingYaw = LandingYawOf(path);
+            float deadline = Time.time + seatResolveTimeout;
+            Vector3 landing;
+
+            while (!ShipGrounding.TryResolveHullLanding(new Vector2(impactPoint.x, impactPoint.z),
+                                                         landingYaw, shipPrefab, probeHeight, Landing,
+                                                         out landing))
+            {
+                if (Time.time >= deadline)
+                {
+                    Debug.LogError($"[Arrival] No ground under the impact point after " +
+                                   $"{seatResolveTimeout}s — starting this disposable session with " +
+                                   "no ship.", this);
+                    HasArrived = true;
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            GameObject ship = GameServices.World.Spawn(shipPrefab, landing,
+                                                        Quaternion.Euler(0f, landingYaw, 0f));
+
+            if (ship == null)
+                Debug.LogError("[Arrival] Spawning the disposable-session ship returned nothing. Is " +
+                               "it registered in the network prefab list?", this);
+            else
+                ship.name = shipPrefab.name + " (Landed)";
+
+            HasArrived = true;
+        }
+
+        /// <summary>
         /// The world's single arrival ship, spawned at the top of its arc once.
         /// <paramref name="fatal"/> distinguishes "not yet, ask again" from "this will never work",
         /// which the caller must treat differently.

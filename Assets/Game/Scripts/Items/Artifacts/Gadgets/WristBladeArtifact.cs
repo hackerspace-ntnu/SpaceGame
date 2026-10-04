@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using SpaceGame.Agents;
 using SpaceGame.Audio;
-using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -88,12 +88,9 @@ namespace SpaceGame.Items
                  "starts to move, not on the press. Assigned by the builder.")]
         [SerializeField] private ParticleSystem mouthSparks;
         [SerializeField] private SfxId hitId = SfxId.WeaponMeleeImpact;
-        [Tooltip("Trigger on the wearer's animator for the arm's thrust, played on the Upper Body " +
-                 "layer through PlayerAimRig so the layer is actually up while it runs. Built by " +
-                 "Tools > SpaceGame > Player > Build Gestures. Empty for no gesture.")]
-        [SerializeField] private string stabTrigger = "Stab";
-        [Tooltip("Seconds the gesture holds the arm layer up: the clip's length.")]
-        [SerializeField] private float stabSeconds = 1.2f;
+        [Tooltip("The wearer's arm thrust, aimed at the look pitch and mirrored for a blade on the " +
+                 "left wrist. Empty for no gesture.")]
+        [SerializeField] private CharacterAction stabAction;
 
         // Presentation state — per machine, driven by Present.
         private float cooldownUntil;
@@ -101,7 +98,6 @@ namespace SpaceGame.Items
         private float bladeHold;
         private bool sparked;
         private Vector3[] bladeRest;
-        private PlayerAimRig aimRig;
         // The presentation cut, pending: where the blade is going and when it gets there.
         private Vector3 cutDir;
         private float cutAt = float.PositiveInfinity;
@@ -160,7 +156,7 @@ namespace SpaceGame.Items
             // The arm thrusts on every machine, like the blade: a peer watching sees the stab,
             // and on the wearer's own screen it is what brings the blade into view. On the arm
             // the blade is worn on, whatever the other arm carries.
-            if (aimRig != null) aimRig.PlayGesture(stabTrigger, stabSeconds, WornOn);
+            PlayOnHolder(stabAction, WornOn);
         }
 
         /// <summary>
@@ -174,7 +170,7 @@ namespace SpaceGame.Items
             {
                 authCutAt = float.PositiveInfinity;
                 if (owner != null && damage > 0 && TryTrace(authCutDir, out RaycastHit cut))
-                    NetDamage.Apply(cut.transform.root.gameObject, damage, owner.transform);
+                    NetDamage.Apply(cut.transform.root.gameObject, damage, owner.transform, DamageKind.Melee);
             }
 
             if (Time.time >= cutAt)
@@ -186,8 +182,9 @@ namespace SpaceGame.Items
                 if (!connected) return;
 
                 Sfx.Play(hitId, hit.point, default, GetInstanceID());
-                // Animator triggers do not replicate, so the flinch is raised per machine off the
-                // same trace the authority made.
+                // A creature's animator trigger does not replicate, so its flinch is raised per
+                // machine off the same trace the authority made. A humanoid body has no Hurt
+                // trigger: the server flinches it from the damage it dealt (HurtReaction).
                 hit.transform.root.GetComponentInChildren<AgentAnimatorDriver>()?.TriggerHurt();
             }
         }
@@ -315,14 +312,12 @@ namespace SpaceGame.Items
         public override void OnEquipped(GameObject holder)
         {
             base.OnEquipped(holder);
-            aimRig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
             CaptureBladeRest();
             SetBladeOffset(0f);
         }
 
         public override void OnUnequipped(GameObject holder)
         {
-            aimRig = null;
             bladeStart = float.NegativeInfinity;
             cutAt = float.PositiveInfinity;
             authCutAt = float.PositiveInfinity;

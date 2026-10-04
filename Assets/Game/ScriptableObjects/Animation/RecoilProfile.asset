@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fa0391f43aa4263b63e3bb81084fedc, type: 3}
+  m_Name: RecoilProfile
+  m_EditorClassIdentifier: 
+  frameRate: 60
+  recoils:
+  - actionName: Pistol Recoil
+    kickSeconds: 0.04
+    settleSeconds: 0.26
+    fadeIn: 0.02
+    fadeOut: 0
+    muscles:
+    - muscle: Right Hand Down-Up
+      peak: 0.2
+    - muscle: Right Forearm Stretch
+      peak: -0.12
+    - muscle: Right Arm Down-Up
+      peak: 0.06
+    - muscle: Right Arm Front-Back
+      peak: -0.04
+    - muscle: Right Shoulder Down-Up
+      peak: 0.15
+    - muscle: Right Shoulder Front-Back
+      peak: -0.4
+    - muscle: UpperChest Front-Back
+      peak: -0.1
+    - muscle: Chest Front-Back
+      peak: -0.05
+    - muscle: Spine Front-Back
+      peak: -0.03
+  - actionName: Rifle Recoil
+    kickSeconds: 0.06
+    settleSeconds: 0.36
+    fadeIn: 0.02
+    fadeOut: 0
+    muscles:
+    - muscle: Right Hand Down-Up
+      peak: 0.1
+    - muscle: Left Hand Down-Up
+      peak: 0.1
+    - muscle: Right Forearm Stretch
+      peak: -0.1
+    - muscle: Left Forearm Stretch
+      peak: -0.1
+    - muscle: Right Arm Down-Up
+      peak: 0.05
+    - muscle: Left Arm Down-Up
+      peak: 0.07
+    - muscle: Right Arm Front-Back
+      peak: -0.06
+    - muscle: Left Arm Front-Back
+      peak: -0.06
+    - muscle: Right Shoulder Down-Up
+      peak: 0.1
+    - muscle: Right Shoulder Front-Back
+      peak: -0.6
+    - muscle: Left Shoulder Front-Back
+      peak: -0.3
+    - muscle: UpperChest Front-Back
+      peak: -0.3
+    - muscle: Chest Front-Back
+      peak: -0.15
+    - muscle: Spine Front-Back
+      peak: -0.06

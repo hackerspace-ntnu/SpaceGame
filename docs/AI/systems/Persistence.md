@@ -27,8 +27,9 @@ symptoms:
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
   - "after a quickload the old caravan is still standing beside the new one"
   - "a prefab builder's wiring passes add SaveableEntity, savers and AgentRagdoll to a prefab the design says is never saved"
+  - "pressing F5 warns that this is a disposable session and is never saved"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe]
-updated: 2026-09-25
+updated: 2026-09-26
 ---
 
 # Persistence / Save-Load
@@ -79,8 +80,8 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Pose & motion | `Transform`(transform) `Rigidbody`(rigidbody, velocity only) `MotorState`(motor) `LeggedGait`(gait) `ArticulatedParts`(parts, keyed by hierarchy path) |
 | Vitals & kit | `Health`(health, 0 HP *is* dead) `HealthReaction` `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` |
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Cover`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
-| Agent routine | `Patrol` `BasePatrol` `Wander` `AirWander` `WanderBehaviour` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again) |
-| Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret`ᴰ `WeaponMount` |
+| Agent routine | `Patrol` `BasePatrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again) |
+| Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret` |
 | World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` `FactionGoodwill`(factionGoodwill — one `Standing{value,band,warTier}` per tracked faction; `warTier` appended 2026-09-16 so a tribe's war escalation survives a quit mid-cooldown, older saves read 0) |
 | Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `HerdState`(herds) `Leash`(leashes)ᴰ |
@@ -100,7 +101,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 
 **Teardown** (`SaveManager.HandleNetworkShuttingDown`, on `NetworkManager.OnPreShutdown`): the same `Capturing` + `CaptureLoadedScenes()` a save takes, then `worldStore.Seal()` — after which every `Dehydrate`/`DehydrateLoaded` is a no-op and the quit-save that follows writes this capture instead of redoing it. Needed because Netcode's shutdown destroys every dynamically spawned NetworkObject, and in the editor that whole shutdown runs from Netcode's own `playModeStateChanged` hook at ExitingPlayMode — *before* Unity delivers any `OnApplicationQuit`, whatever its execution order. Players are not part of it: `PlayerSaveSync` captures each one as it despawns.
 
-**World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, config, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world and reloads via `NetworkManager.SceneManager.LoadScene(Single)`.
+**World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, config, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world and reloads via `NetworkManager.SceneManager.LoadScene(Single)`. `StageNew(name, config, disposable: true)` — the main menu's **Disposable** entry ([GameModes](GameModes.md)) — stages a session `SaveManager.Save` never writes; see Gotchas.
 
 **Deferred pass** runs: once per world load, again on **every** `PlayerBound`, and again per scene hydrated after the first pass (`HandleSceneHydrated`). `OnLoadComplete` must be idempotent.
 
@@ -133,6 +134,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | Trap | Silent symptom | Correct move |
 |---|---|---|
 | Leaving a component-qualified object that **its owner rebuilds** to the component rule | `NeedsSaving` says yes for `HealthComponent`/`EntityFaction`-bearing roots, and `SaveableWiring.TryWirePrefabs` (which every prefab builder chains at its end) bakes an entity and savers into the prefab file — the sky transports kept coming back wired after every `Build … Prefab` run, and `RagdollWiring` added `AgentRagdoll` to them for the same `HealthComponent`. Runtime `NpcSpawn.Create` disowned them, so nothing broke visibly | Exclude by the component that means "owned and rebuilt elsewhere": `NeedsSaving` returns false for `VesselPilot` (as it does for the player's binders), and `RagdollWiring.IsBody` refuses it. Guarded by `EntityPersistenceTests.NeedsSaving_IsFalseForAFlownVesselItsOwnerRebuilds` and `SkyTransportPrefabTests.TheVesselCarriesNoSaversAndNoRagdoll`. Neither pass removes savers it no longer wants — revert a prefab wired under the old rule by hand |
+| Adding a new save trigger without routing it through `SaveManager.Save` | It writes for every world, including a disposable one — the whole point of `WorldSession.Disposable` is that every trigger (entry write, autosave timer, F5, pause-menu exit, quit) funnels through that one method, which refuses at the top when the flag is set | Call `SaveManager.Save`/`.QuickSave()`, never `SaveFileStore.Write` or `BuildDocument` directly |
 | Letting a runtime-spawned world object stay in the **persistent scene** | Its record is filed under `persistent`, which is hydrated in `SaveManager.Start` **before any chunk exists**. A body with gravity is rebuilt over nothing, falls, and is captured lower by the next save — so every load resumes the fall. Dropped items reached y = -30000 this way, four generations deep, with nothing logged | A thing that lies in the world belongs to the chunk it lies in: `SceneTracked` with `Migrate` and `keepChunksLoaded: false`, which `SaveablePolicy.EnsureSpawned` now gives every pickup. `WorldSaveStore.HasGroundToLandOn` is the failsafe under it, and lands the records already written that way |
 | Reading a payload by probing `JObject` tokens | `StackOverflowException` in `Vector3.normalized` | `state.ToObject<State>(SaveSerializer.Serializer)` |
 | `CaptureState` returning a bare list/int/string | Key dropped (error logged, capture survives) — see [StateBag.Set](Assets/Game/Scripts/Core/Persistence/Format/StateBag.cs#L44) | Wrap in a public-field struct |

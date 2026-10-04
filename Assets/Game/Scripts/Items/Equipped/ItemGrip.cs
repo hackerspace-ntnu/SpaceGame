@@ -37,13 +37,27 @@ namespace SpaceGame.Items
         /// the rig has a value for empty-handed. It is deliberately 0 so an unset animator
         /// parameter reads as empty rather than as some pose nobody chose.
         /// </para>
+        /// <para>
+        /// Append only: prefabs store the number. Each value needs a pose in the humanoid
+        /// animation profile (HumanoidWiringAssetTests checks), and the first three are all
+        /// firearm aims — an item that is not a gun wants one of the later ones.
+        /// </para>
         /// </summary>
         public enum HoldStyle
         {
             None = 0,
             Relaxed = 1,
             OneHanded = 2,
-            TwoHanded = 3
+            TwoHanded = 3,
+
+            /// <summary>A light held up and forward to see by — a lantern.</summary>
+            Torch = 4,
+
+            /// <summary>A sidearm at the ready, muzzle down.</summary>
+            Pistol = 5,
+
+            /// <summary>A blade held on guard.</summary>
+            Sword = 6
         }
 
         [Header("Where the hand closes")]

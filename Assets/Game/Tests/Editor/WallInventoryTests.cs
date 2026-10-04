@@ -126,7 +126,7 @@ namespace SpaceGame.Tests
         /// <para>
         /// Set through the serialized field rather than through a setter, because there is no
         /// setter and there should not be: the number is authored onto the prefab by
-        /// <c>InventoryWallBuilder</c> and read, never written, at runtime. The face is told to
+        /// the wall prefab and read, never written, at runtime. The face is told to
         /// forget its container because it may already have resolved one at the old value.
         /// </para>
         /// </summary>
@@ -812,11 +812,11 @@ namespace SpaceGame.Tests
         /// 2.580 m tall in the original 0.09 m frame (all-mesh bounds of
         /// <c>inventory_wall.blend</c>; 3.870 m at the 1.5 rig it was first cut against), and the
         /// 2026-09-02 ship's baked collision offers 4.383 m of headroom over its footprint at
-        /// <c>PlayerShipBuilder.WallRibClearance</c> — a budget that allows 1.602 with the 0.25 m
+        /// the ship's wall rib clearance — a budget that allows 1.602 with the 0.25 m
         /// gap the old guard required. The user chose the bigger board over the clearance, so
         /// this test pins the DECISION rather than the room: it fails in the same edit that moves
         /// the constant, in either direction, before any prefab is rebuilt.
-        /// <c>PlayerShipTests.PlayerShip_InventoryWallFaceIsAimableFromTheRoom</c>
+        /// the ship's own wall-aim probe
         /// is the one that measures the built ship.
         /// </para>
         /// <para>
@@ -841,7 +841,7 @@ namespace SpaceGame.Tests
                             ", not the " + DecidedOverModel.ToString("0.0") + " x " +
                             PackScale.WallModel.ToString("0.00") + " decided on 2026-09-02. If " +
                             "this is a new decision, restate it here, rebuild both prefabs and " +
-                            "re-run PlayerShipTests' wall probes; if it is not, put the " +
+                            "re-check the ship's wall probes; if it is not, put the " +
                             "constant back.");
         }
 
@@ -1008,7 +1008,7 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The shipped wall's two lists, as <c>OxygenGearBuilder.RouteIntoTheGame</c> writes them:
+        /// The shipped wall's two lists:
         /// the battery is a machine part and there is one, the tank is a store and there is one per
         /// head. A tank left in BOTH lists is the migration half-done, and it reads as one spare
         /// bottle too many at every crew size rather than as a broken build.

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Kneel
+  m_EditorClassIdentifier: 
+  slot: 0
+  playback: 0
+  variants:
+  - clip: {fileID: 3659977189094709723, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.25
+  fadeOut: 0.3
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  - {fileID: 11400000, guid: 68e2eae465f494ceeb182ec73c79d9d4, type: 2}
+  postures: 0

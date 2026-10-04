@@ -4,7 +4,6 @@ layer: items
 summary: "A six-metre stylized jet that leaves the ground burning: server sweeps the cone, every machine lays the fire"
 paths:
   - Assets/Game/Scripts/Items/Artifacts/Flamethrower
-  - Assets/Game/Editor/Items/FlamethrowerJetBuilder.cs
   - Assets/Game/Editor/Items/FlamethrowerReseat.cs
   - Assets/Game/Art/Models/Items/flamethrower.fbx
   - Assets/Game/Prefabs/Items/Artifacts/Gadgets/Flamethrower.prefab
@@ -104,8 +103,8 @@ The original design brief is [Artifacts/Flamethrower.md](Artifacts/Flamethrower.
 | `BurningVisual` | [BurningVisual.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/BurningVisual.cs) | The flames ON a burning body. Added by `Ignition`, driven by `StatusChanged`, sized to the body |
 | `GroundFire` | [GroundFire.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/GroundFire.cs) | One patch: its own clock, its flames, its glow, and the status it announces on the authority |
 | `GroundFireField` | [GroundFireField.cs](Assets/Game/Scripts/Items/Artifacts/Flamethrower/GroundFireField.cs) | The cell grid, the pool, the patch cap and the per-camera light budget |
-| `FlamethrowerJetBuilder` | [FlamethrowerJetBuilder.cs](Assets/Game/Editor/Items/FlamethrowerJetBuilder.cs) | *Tools ▸ SpaceGame ▸ Items ▸ Build Flamethrower Fire*. Owns the `Jet` subtree, the whole ground-fire prefab and the three flame materials. `AttachFire(root, jetRoot)` is the same work for any prefab carrying a `FlamethrowerArtifact` + `FlameJet` |
-| `FlameGauntletBuilder` | [FlameGauntletBuilder.cs](Assets/Game/Editor/AssetPipeline/FlameGauntletBuilder.cs) | *Tools ▸ Build Flame Gauntlet Artifact*. The forearm burner: the lance's types on a gauntlet body, `commitToBurst` on, a 3 s tank that must be full to light and refills in 5 s — the burst length is the tank, not a timer |
+| `FlamethrowerJetBuilder` | FlamethrowerJetBuilder.cs | *Tools ▸ SpaceGame ▸ Items ▸ Build Flamethrower Fire*. Owns the `Jet` subtree, the whole ground-fire prefab and the three flame materials. `AttachFire(root, jetRoot)` is the same work for any prefab carrying a `FlamethrowerArtifact` + `FlameJet` |
+| `FlameGauntletBuilder` | FlameGauntletBuilder.cs | *Tools ▸ Build Flame Gauntlet Artifact*. The forearm burner: the lance's types on a gauntlet body, `commitToBurst` on, a 3 s tank that must be full to light and refills in 5 s — the burst length is the tank, not a timer |
 
 The jet's layers hang under `Jet`: **Flame** (core), with **Billows** (slow, fat, buoyant — what
 persists after the core has gone) and **Wisps** (fast, hot) under it, plus **Embers**, **Smoke** and
@@ -158,6 +157,6 @@ would give it a saveable identity with no stamped prefab id.
 
 ## Extending
 
-1. **Retune the look:** the `Heat` gradient and shape constants in [FlamethrowerJetBuilder.cs](Assets/Game/Editor/Items/FlamethrowerJetBuilder.cs), then re-run the menu item.
+1. **Retune the look:** the `Heat` gradient and shape constants in FlamethrowerJetBuilder.cs, then re-run the menu item.
 2. **Change the reach:** `CoreSpeed × CoreLife` in the builder and `range` on the prefab, together.
 3. **Longer burns:** `GroundFire.lifetime` with `BurningStatus`'s five seconds and its `reigniteDelay` — a burn longer than the gap is a body that never stops burning. For more fire at once, `GroundFireField.MaxPatches`, then profile.

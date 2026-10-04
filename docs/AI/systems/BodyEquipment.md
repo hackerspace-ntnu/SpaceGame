@@ -13,9 +13,6 @@ paths:
   - Assets/Game/Editor/Items/WornGearPreview.cs
   - Assets/Game/Scripts/Items/Equipped/GauntletFit.cs
   - Assets/Game/Scripts/Items/Body/ForearmBracers.cs
-  - Assets/Game/Editor/Items/ForearmBracerBuilder.cs
-  - Assets/Game/Editor/AssetPipeline/GauntletReseat.cs
-  - Assets/Game/Editor/AssetPipeline/GauntletPrefab.cs
   - Assets/Game/Scripts/Items/Equipped/ForearmSeat.cs
   - Assets/Game/Scripts/Items/Equipped/WornSeat.cs
   - Assets/Game/Scripts/Items/Equipped/WornAnchor.cs
@@ -26,11 +23,7 @@ paths:
   - Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs
   - Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs
   - Assets/Game/Prefabs/Items/Equipment/Ghosts
-  - Assets/Game/Editor/Items/GearGhostBuilder.cs
-  - "Assets/Game/Art/Models/_Source~/models/gear/ghost_device.py"
   - "Assets/Game/Art/Models/_Source~/models/gear/ghost_mount_frame.blend"
-  - "Assets/Game/Art/Models/_Source~/models/gear/gauntlet_base_export.py"
-  - "Assets/Game/Art/Models/_Source~/models/gear/strip_bracer.py"
 symptoms:
   - "Q or E does nothing even though a gauntlet is worn"
   - "selecting the grappling hook on the hotbar leaves my hands empty"
@@ -88,7 +81,7 @@ symptoms:
   - "a torso item is worn rotated to a random angle"
   - "back gear sits half a metre off the pack's rail until I re-equip it"
 reads_with: [Inventory, Artifacts, Backpack, Persistence, Multiplayer, UI, Ornithopter, Wingsuit]
-updated: 2026-09-09
+updated: 2026-09-28
 ---
 
 # Body Equipment
@@ -98,7 +91,7 @@ together with the three-slot hand hotbar on the gear screen. Since 2026-09-03 on
 the game's **only light source** — see [Flashlight.md](Flashlight.md) — so an empty forearm is not
 merely a missing ability, it is darkness. Design: [2026-09-02-body-equipment-design.md](../../superpowers/specs/2026-09-02-body-equipment-design.md), [2026-09-03-torso-slot-and-back-mount-design.md](../../superpowers/specs/2026-09-03-torso-slot-and-back-mount-design.md).
 
-**Scope:** [Items/Body](Assets/Game/Scripts/Items/Body) (+ [Focus/](Assets/Game/Scripts/Items/Body/Focus)), [UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs), [DoubleTap.cs](Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs), [WornFit.cs](Assets/Game/Scripts/Items/Equipped/WornFit.cs), [ForearmSeat.cs](Assets/Game/Scripts/Items/Equipped/ForearmSeat.cs) / [WornSeat.cs](Assets/Game/Scripts/Items/Equipped/WornSeat.cs), [BodyEquipmentSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/BodyEquipmentSaveable.cs), [GearSaveCodec.cs](Assets/Game/Scripts/Core/Persistence/Adapters/GearSaveCodec.cs), [BodyInventoryUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs), [GearRailLayout.cs](Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs), [GearTile.cs](Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs), [Ghosts/](Assets/Game/Prefabs/Items/Equipment/Ghosts), [GearGhostBuilder.cs](Assets/Game/Editor/Items/GearGhostBuilder.cs), [ForearmBracers.cs](Assets/Game/Scripts/Items/Body/ForearmBracers.cs), [ForearmBracerBuilder.cs](Assets/Game/Editor/Items/ForearmBracerBuilder.cs).
+**Scope:** [Items/Body](Assets/Game/Scripts/Items/Body) (+ [Focus/](Assets/Game/Scripts/Items/Body/Focus)), [UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs), [DoubleTap.cs](Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs), [WornFit.cs](Assets/Game/Scripts/Items/Equipped/WornFit.cs), [ForearmSeat.cs](Assets/Game/Scripts/Items/Equipped/ForearmSeat.cs) / [WornSeat.cs](Assets/Game/Scripts/Items/Equipped/WornSeat.cs), [BodyEquipmentSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/BodyEquipmentSaveable.cs), [GearSaveCodec.cs](Assets/Game/Scripts/Core/Persistence/Adapters/GearSaveCodec.cs), [BodyInventoryUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs), [GearRailLayout.cs](Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs), [GearTile.cs](Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs), [Ghosts/](Assets/Game/Prefabs/Items/Equipment/Ghosts), GearGhostBuilder.cs, [ForearmBracers.cs](Assets/Game/Scripts/Items/Body/ForearmBracers.cs), ForearmBracerBuilder.cs.
 **Related:** [Inventory.md](Inventory.md) (the hotbar, item assets, grips), [Artifacts.md](Artifacts.md) (what the worn items do), [Backpack.md](Backpack.md) (`FocusCamera`, `DisplayCopy`, `TintMaterials`/`OutlineShell` — all shared with the body screen), [Persistence.md](Persistence.md), [Multiplayer.md](Multiplayer.md), [UI.md](UI.md), [Ornithopter.md](Ornithopter.md), [Wingsuit.md](Wingsuit.md) and [Jetpack.md](Jetpack.md) (the three back items, which share the one torso slot).
 
 ## Model
@@ -131,7 +124,7 @@ merely a missing ability, it is darkness. Design: [2026-09-02-body-equipment-des
 | `IBodyEquipment` | [Body/IBodyEquipment.cs](Assets/Game/Scripts/Items/Body/IBodyEquipment.cs) | The seam: slots, `RequestMove`, server `RestoreSlots`/`TryPlaceInBody`, the overflow queue, `IsMounted` |
 | `BodyEquipmentNetwork` | [Body/BodyEquipmentNetwork.cs](Assets/Game/Scripts/Items/Body/BodyEquipmentNetwork.cs) | `NetworkList` of three ids + local `Inventory(3)` mirror; `MoveServerRpc` (owner permission); `startingBody` |
 | `BodyEquipmentController` | [Body/BodyEquipmentController.cs](Assets/Game/Scripts/Items/Body/BodyEquipmentController.cs) | Wears the instances from replicated state on every machine; owns the three channels; gates only the double-Space on not mounted |
-| `UseChannel` | [Inventory/Core/UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs) | One trigger's whole networked use pipeline. `EquipmentController` owns one, this owns three. `Presented` / `HoldPresented` fire wherever the use is shown |
+| `UseChannel` | [Inventory/Core/UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs) | One trigger's whole networked use pipeline. `EquipmentController` owns one, this owns three. `Presented` / `HoldPresented` fire wherever the use is shown. Static `UsedOnServer(InventoryItem, holder)` fires once per accepted press, server only, AFTER the `ItemUsed` broadcast — the asset comes from the owner's func (`HeldItemAsset` / `Worn.Item`); [Objectives](Objectives.md) listens |
 | `ArmRaiseLatch` | [Player/Combat/ArmRaiseLatch.cs](Assets/Game/Scripts/Characters/Player/Combat/ArmRaiseLatch.cs) | Pure: is the gauntlet arm up — tap lingers (`raiseLingerSeconds`, 0.6 s), a hold stays, a release lingers, a strip drops |
 | `DoubleTap` | [Inventory/Core/DoubleTap.cs](Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs) | Pure two-presses-in-a-window; a hit consumes both presses |
 | `WornFit` | [Equipped/WornFit.cs](Assets/Game/Scripts/Items/Equipped/WornFit.cs) | Where a torso item sits on its bone (local pose + size); on `WingPack.prefab`. For back gear the *position* is superseded by the rail whenever there is one. `holdsArmsOut` is the item saying the gear screen has to hold the wearer's arms out to show it — set on `Wingsuit.prefab` and nothing else. `inspectSize` is the span of the gear screen's own model, 0 when there is none — set on `WingPack.prefab` and nothing else |
@@ -149,7 +142,7 @@ merely a missing ability, it is darkness. Design: [2026-09-02-body-equipment-des
 | `BodyFocusCamera` / `LensStandoff` | [Body/Focus/](Assets/Game/Scripts/Items/Body/Focus/BodyFocusCamera.cs) | `: FocusCamera` (see [Backpack.md](Backpack.md)). Authors the one front-on shot — whole figure, lens raised, no orbit; `LensStandoff.Resolve` is the pure wall pull-in arithmetic |
 | `BodySite` / `BodySite.Palette` | [Body/Focus/BodySite.cs](Assets/Game/Scripts/Items/Body/Focus/BodySite.cs) | One site: placeholder + preview ghosts (`DisplayCopy` + `TintMaterials`), worn-renderer hide/restore, `OutlineShell` rims, pop and shake, and `HitBoxes` — **where it can be clicked, which is not the same as what it draws** (the back place is the rail's two ends). `Palette` is **this site's own** three rim materials |
 | `BodySiteState` / `SiteState` | [Body/Focus/BodySiteState.cs](Assets/Game/Scripts/Items/Body/Focus/BodySiteState.cs) | Pure: what a site shows, with `GearMoves.Resolve` as its only source of legality |
-| `GearGhostBuilder` | [Editor/Items/GearGhostBuilder.cs](Assets/Game/Editor/Items/GearGhostBuilder.cs) | `Tools/SpaceGame/Items/Build Gear Ghosts`: builds `GhostGauntlet`/`GhostBack` from their FBX and adds `BodyFocusSession` to the player prefab, keeping a session already tuned in the Inspector |
+| `GearGhostBuilder` | Editor/Items/GearGhostBuilder.cs | `Tools/SpaceGame/Items/Build Gear Ghosts`: builds `GhostGauntlet`/`GhostBack` from their FBX and adds `BodyFocusSession` to the player prefab, keeping a session already tuned in the Inspector |
 
 ## Flows
 

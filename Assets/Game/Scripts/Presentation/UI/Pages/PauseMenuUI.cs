@@ -656,6 +656,8 @@ namespace SpaceGame.Presentation
             Binding(page, "Backpack", "B");
             Binding(page, "Flashlight", "L");
             Binding(page, "Answer a question", "Y  ·  N");
+            Binding(page, "Emote wheel  ·  hold, aim, release", "V");
+            Binding(page, "Emote wheel page", "Q  ·  E  ·  Scroll");
 
             SettingsWidgets.Heading(page, "Worn gear");
 

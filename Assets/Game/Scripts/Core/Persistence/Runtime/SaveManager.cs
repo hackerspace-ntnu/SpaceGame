@@ -553,6 +553,18 @@ namespace SpaceGame.Core.Persistence
                 return false;
             }
 
+            // Every trigger that can call Save — the entry write, the autosave timer, a quicksave,
+            // the pause-menu exit and the quit-save — funnels through here, which is what makes this
+            // the one place a disposable session needs to refuse. Quiet like the autosave timer's
+            // refusal below: a disposable session is never going to save, so a per-trigger warning
+            // would just be noise on a schedule. SaveHotkeys still tells the player plainly when F5
+            // is the thing that asked.
+            if (WorldSession.Disposable)
+            {
+                Log("Save skipped: this is a disposable session and is never written to disk.");
+                return false;
+            }
+
             if (Network.IsNetworked && !Network.Server)
             {
                 Refuse("only the server owns world state, so this peer has nothing to write.");

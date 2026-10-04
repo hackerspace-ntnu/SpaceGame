@@ -11,7 +11,7 @@
 // Three things about these bodies worth knowing:
 //
 //   ANIMATOR. The FBXs import Humanoid, and their clips are the astronaut's
-//   (AstronautArmature.controller), retargeted through the avatar -- so unlike the RPR body the
+//   (Humanoid.controller), retargeted through the avatar -- so unlike the RPR body the
 //   clip paths do not matter, only that the Animator sits on the FBX instance root with that
 //   avatar. The hand bone comes from the avatar too, not a name search.
 //
@@ -51,7 +51,7 @@ namespace SpaceGame.EditorTools
         private const string MaterialDir = "Assets/ThirdParty/Same Gev Dudios/Sci-Fi Robots Bundle/Materials/SRP";
         private const string PrefabDir = "Assets/Game/Prefabs/Agents/Robots";
 
-        public const string ControllerPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        public const string ControllerPath = HumanoidControllerBuilder.ControllerPath;
 
         /// <summary>
         /// The run speed (m/s) these bodies' astronaut clips were tuned to as PatrolRobots: their

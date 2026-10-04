@@ -328,7 +328,7 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The versus case, and the reason there is no game-mode check anywhere: "same side" is the
-        /// crew in the open world and the TEAM in a match, because MatchManager re-teams players
+        /// crew in the open world and the TEAM in a match, because a match re-teams players
         /// into per-team factions. Somebody on the other team standing next to a hunted player is
         /// not part of their war.
         /// </summary>

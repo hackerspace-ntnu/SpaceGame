@@ -297,6 +297,10 @@ namespace SpaceGame.EditorTools
             root.AddComponent<AgentStateSaveable>();
 
             AgentGroundConformWiring.Ensure(root);
+
+            // The humanoid bodies' actions and the components that play them. A no-op on the RPR
+            // body, which animates with its own controller rather than the humanoid one.
+            CharacterActionWiring.Ensure(root);
         }
 
         /// <summary>

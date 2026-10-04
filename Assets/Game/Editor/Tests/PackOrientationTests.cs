@@ -100,7 +100,7 @@ namespace SpaceGame.Tests
             string cells = $"the ruin scanner is {shape.Width}x{shape.Height} cells, not the 2x3 " +
                            "silhouette a deck-up gauntlet casts at its chosen 0.225 m packSize. " +
                            "Either the model's frame moved, or ItemGrip.packSize moved underneath " +
-                           "it — see PackSizeTests.ScannerWhy, and GauntletReseat, which rewrites " +
+                           "it — see PackSizeTests.ScannerWhy, and the gauntlet prefabs, which carry " +
                            "that field.";
 
             Assert.AreEqual(2, shape.Width, cells);
@@ -173,7 +173,7 @@ namespace SpaceGame.Tests
         private const string StaffModelPath = "Assets/Game/Art/Models/Weapons/LaserStaff/laser_staff.fbx";
 
         private const string RebuildStaff =
-            "Run Tools ▸ Build Laser Staff Artifact, which owns the turn as LaserStaffBuilder.LieDown.";
+            "The laser staff prefab owns the turn: it is authored lying down.";
 
         /// <summary>
         /// The staff lies DOWN, and it lies down on the axis the lash line was cut for.
@@ -260,7 +260,7 @@ namespace SpaceGame.Tests
         /// staff is <em>meant</em> to be turned; what must not change is where it sits in the fist,
         /// and <c>rotation = handRotation * Euler(rotationOffset)</c> only multiplies back out if
         /// the offset is the exact inverse of the turn. <c>-LieDown</c> — the negated euler, which
-        /// is the right answer for <c>JumpingRodBuilder</c>'s single-axis turn and looks like the
+        /// is the right answer for the jumping rod's single-axis turn and looks like the
         /// idiom — is 120&#176; away from the inverse of this one. A staff a third of a turn out of
         /// the fist is what that shortcut ships, with a prefab that looks perfectly fine on disk.
         /// </para>

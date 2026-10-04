@@ -10,7 +10,7 @@ namespace SpaceGame.Core.Persistence
     ///
     /// <b>This is the one on the list whose failure mode is the world turning on itself.</b>
     /// <c>EntityFaction.SetFaction</c> writes the serialized <c>faction</c> and
-    /// <c>relationshipTable</c> fields at runtime — <c>MatchManager</c> calls it for every bot and
+    /// <c>relationshipTable</c> fields at runtime — a spawner may call it for every bot and
     /// every player it spawns, because which team they are on depends on the gamemode and not on the
     /// prefab — and <c>EntityFaction.Ensure</c> will even AddComponent one at spawn. Nothing captured
     /// either field. So a re-teamed entity reloads on its prefab's faction and is then wrong in one

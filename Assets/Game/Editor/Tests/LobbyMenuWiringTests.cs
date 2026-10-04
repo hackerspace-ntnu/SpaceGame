@@ -29,7 +29,6 @@ namespace SpaceGame.Tests
         [TestCase("StartVersus")]
         [TestCase("StartMultiPlayer")]
         [TestCase("StartSinglePlayer")]
-        [TestCase("StartMinigame")]
         [TestCase("QuitGame")]
         public void MainMenuUI_KeepsItsSceneBoundMethods(string methodName)
         {

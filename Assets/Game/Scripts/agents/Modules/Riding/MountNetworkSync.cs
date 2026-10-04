@@ -99,7 +99,7 @@ namespace SpaceGame.Agents
         ///
         /// <para>
         /// A channel belongs to the entity, not to the component, and a vehicle may carry several
-        /// mounts on one NetworkObject: PlayerShipBuilder gives every non-helm chair its own
+        /// mounts on one NetworkObject: the ship prefab gives every non-helm chair its own
         /// MountModule, which is why NetMsg 92/93 were retired rather than a second way to sit
         /// down being written. Unaddressed, one press therefore mounted the same player in all four
         /// chairs — and the surplus chairs each snapshotted the rider's Rigidbody AFTER the first
@@ -534,11 +534,5 @@ namespace SpaceGame.Agents
             }
         }
 
-        /// <summary>
-        /// True while a server/relayed change is being applied locally. MountModule raises its
-        /// Mounted/Dismounted events during that window; anything listening and re-requesting should
-        /// check this to avoid a feedback loop.
-        /// </summary>
-        public bool IsApplyingReplicatedChange => applyingRemote;
     }
 }

@@ -18,8 +18,9 @@ symptoms:
   - "a coroutine threw once and that feature never worked again for the rest of the session"
   - "[Fault] something threw (x5) — QUARANTINED, this feature is now off"
   - "how do I get a bug report out of a playtest"
+  - "the Strider city drops the frame rate and nobody knows which system"
 reads_with: [Multiplayer, AgentSystem, UI, Testing]
-updated: 2026-09-09
+updated: 2026-10-04
 ---
 
 # Diagnostics
@@ -95,6 +96,8 @@ Barrier sites, and the teardown each coroutine gives back:
 **A coroutine dies and gives back what it took.** `Fault.Coroutine` drives the inner routine with `MoveNext` inside the `try` and `yield return current` outside it (C# forbids yielding from a `try` with a `catch`), so yielded values reach Unity unchanged. On a throw it reports, runs `onFail` behind its own barrier at site `<site>.teardown`, and ends. That teardown is the routine's *own* ending, extracted so the two cannot disagree — `EndCutscene`, `CompleteArrival`, `FinishOut` were pulled out of routine tails for exactly this.
 
 **A leaked scope is released.** `SessionGuardRunner` sweeps at 0.5 s of unscaled time (the scope stops the clock solo, so scaled time would wait forever for the failure it exists to end) → `StuckScopeGuard` walks `GameplayMenuScope.Owners`, ages each abandoned owner by the interval, collects the ones past 2 s into a second list — `Exit` mutates the set being walked — logs an **error** naming the type, and releases. Input comes back the same tick the scope empties; if it does not, `InputRestoreGuard` takes it 5 s later.
+
+**Profiling.** Hot paths carry `Unity.Profiling.ProfilerMarker`s (compiled out of non-development builds), named `SpaceGame.<System>.<Method>` so a capture searched for `SpaceGame.` shows only ours. `ProfilerMarker` has no name getter, so each `static readonly ProfilerMarker XMarker` keeps its name in `const string XMarkerName` beside it; [ProfilerMarkerNamingTests](Assets/Game/Editor/Tests/ProfilerMarkerNamingTests.cs) reflects over `Assembly-CSharp` and `SpaceGame.*` and enforces the prefix, uniqueness and the const. Markers: `Agent.Update` ⊃ `Agent.Modules` ⊃ `Fault.Run` (one per guarded body, so *calls* = module ticks) ⊃ module markers (`Formation.Tick`, `Targeting.Reevaluate`/`.Refresh`, `Menace.Scan`); `Agent.Facing`; `NavPath.Repath` (the NavMesh fetch: `LeggedDriver` from `Motor.Tick`, the hull and wheel motors from `FixedUpdate`); `Perception.LineOfSight` and `ItemUse.LineOfSight` (the first nests in the second and in targeting: read self ms); `GroundConform.Probe`; `WalkerCarrier.Fixed`; `NpcTask.Resolve`; `NpcWorldSim.Spawn` (a spike: read its max frame). Capture protocol: CPU module, Deep Profile off, 600 frames beside the Strider city after 10 s on screen, plus a separate capture spanning a spawn; record self/total ms, calls and GC Alloc per marker and whether the GPU module says GPU-bound. The full steps and the baseline table live in [the perf plan's B1](docs/superpowers/plans/2026-10-04-test-failures-and-strider-perf.md).
 
 ## Multiplayer
 

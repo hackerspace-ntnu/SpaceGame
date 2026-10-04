@@ -24,6 +24,7 @@
 // N independent plug-ins and the others are entitled to run.
 using System;
 using System.Collections;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace SpaceGame.Diagnostics
@@ -37,6 +38,11 @@ namespace SpaceGame.Diagnostics
         public const float WindowSeconds = 10f;
 
         private static FaultBudget budget = new(MaxFaultsPerWindow, WindowSeconds);
+
+        // Profiler marker (Diagnostics.md → Profiling): one sample per guarded body, so a capture
+        // counts the barrier calls and shows the bodies nested under it.
+        private const string RunMarkerName = "SpaceGame.Fault.Run";
+        private static readonly ProfilerMarker RunMarker = new(RunMarkerName);
 
         /// <summary>Raised for every fault, quarantining or not.</summary>
         public static event Action<FaultRecord> Raised;
@@ -78,6 +84,7 @@ namespace SpaceGame.Diagnostics
             string key = Key(owner, site);
             if (budget.IsQuarantined(key)) return false;
 
+            using ProfilerMarker.AutoScope sample = RunMarker.Auto();
             try
             {
                 body();

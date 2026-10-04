@@ -10,6 +10,7 @@
 // it is going. Followers steer to a slot behind it. That is what keeps a caravan's route the
 // product of one NPC's actual errand rather than of a formation controller inventing destinations.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -301,8 +302,13 @@ namespace SpaceGame.Agents
 
         // ── Tick ─────────────────────────────────────────────────────────────────
 
+        // Profiler marker (Diagnostics.md → Profiling).
+        private const string TickMarkerName = "SpaceGame.Formation.Tick";
+        private static readonly ProfilerMarker TickMarker = new(TickMarkerName);
+
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = TickMarker.Auto();
             FormationModule leader = LeaderOf(formationId);
             if (leader == null) return null;
 

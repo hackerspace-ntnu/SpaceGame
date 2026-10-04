@@ -15,6 +15,7 @@
 // Where corners come from is a delegate so the follower can be driven from a test with no baked
 // surface. `NavMeshCorners` is the real one.
 using SpaceGame.Locomotion;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -28,6 +29,10 @@ namespace SpaceGame.Agents
 
         /// Longest route kept. NavMesh routes across the streamed world stay well inside this.
         private const int CornerCapacity = 64;
+
+        // Profiler marker (Diagnostics.md → Profiling): the route fetch, the expensive half.
+        private const string RepathMarkerName = "SpaceGame.NavPath.Repath";
+        private static readonly ProfilerMarker RepathMarker = new(RepathMarkerName);
 
         private readonly float repathInterval;
         private readonly float repathTolerance;
@@ -76,9 +81,12 @@ namespace SpaceGame.Agents
             {
                 repathTimer = repathInterval;
                 pathTarget = target;
-                int found = corners(position, target, cornerBuffer);
-                hasPath = found >= 2;
-                if (hasPath) path.Set(cornerBuffer, found);
+                using (RepathMarker.Auto())
+                {
+                    int found = corners(position, target, cornerBuffer);
+                    hasPath = found >= 2;
+                    if (hasPath) path.Set(cornerBuffer, found);
+                }
             }
 
             // Once the corners are spent the motor is within the last leg of the route; steer at the

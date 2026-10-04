@@ -376,6 +376,8 @@ Principles: **GDC-L1-PERF-0001** (objective, confidence 5): measure, don't guess
 
 **Sensing and walker markers (added):** `SpaceGame.Perception.LineOfSight` (`PerceptionModule.IsUnobstructed`, every sight and muzzle ray), `SpaceGame.Targeting.Reevaluate` (`AgentTargeting.Reevaluate`, the candidate scoring on the interval), `SpaceGame.Targeting.Refresh` (`AgentTargeting.RefreshTargetState`, every frame), `SpaceGame.Menace.Scan` (`MenaceSensor.FindAimer`), `SpaceGame.GroundConform.Probe` (`AgentGroundConform.Conform`), `SpaceGame.WalkerCarrier.Fixed` (`WalkerPlatformCarrier.FixedUpdate`), `SpaceGame.ItemUse.LineOfSight` (`NpcItemUseModule.HasLineOfSight`). `Perception.LineOfSight` nests inside `Targeting.*` and `ItemUse.LineOfSight`, so read its self ms, not its total.
 
+**Agent tick and route markers (added):** `SpaceGame.Agent.Update` (`AgentController.Update`, the whole brain), `SpaceGame.Agent.Modules` (every module loop: side-effect + movement arbitration, a passenger's side-effect tick, a watcher's presentation tick), `SpaceGame.Agent.Facing` (`ApplyFacingOverride`), `SpaceGame.Fault.Run` (one sample per barrier-guarded body, so its *calls* column is the module ticks per frame), `SpaceGame.NavPath.Repath` (the `CornerSource` fetch in `NavPathFollower.SteerTarget`: `NavMesh.SamplePosition` ×2 + `CalculatePath`), `SpaceGame.Formation.Tick`, `SpaceGame.NpcWorldSim.Spawn` (a spike: read its max, not its average), `SpaceGame.NpcTask.Resolve`. Nesting: `Agent.Update` ⊃ `Agent.Modules` ⊃ `Fault.Run` ⊃ `Formation.Tick` and the other module markers. `NavPath.Repath` sits under `Agent.Update` but outside `Agent.Modules` for `LeggedDriver` (its route is fetched from `Motor.Tick`), and under `FixedUpdate` for `TrackedHullMotor` and `MonowheelMotor`. `SpaceGame.Ragdoll.Rig` is **not** added: ragdoll code belongs to another session (A3).
+
 - [ ] **Step 1: Test the convention first.** Reflect over `Assembly-CSharp` for static `ProfilerMarker` fields and assert that each marker's name starts with `SpaceGame.` and is unique. `ProfilerMarker` has no name getter, so keep the names in a `const string` beside each field and reflect over the consts named `*MarkerName`. Run it: it fails, because no markers exist yet.
 - [ ] **Step 2:** Add the markers using this shape:
   ```csharp
@@ -394,6 +396,16 @@ Principles: **GDC-L1-PERF-0001** (objective, confidence 5): measure, don't guess
   5. Repeat steps 3-4 once more with `RagdollsDisabled` set back to `false`. This is a one-line local edit and is not committed. The comparison answers the question that flag was added for (Task A3).
   6. Paste the numbers into this plan under "Baseline". Re-order B2–B10 by them.
 - [ ] **Step 5:** Doc, index, and commit `perf: profiler markers on the agent and walker hot paths`.
+
+**Capture protocol, ready to run (GDC-L1-PERF-0001: keep the before numbers; GDC-L1-PERF-0004: CPU or GPU first):**
+1. Prefer a Development Build with *Autoconnect Profiler*; the editor works but note "editor" beside every number (it adds editor overhead and runs its own GC). VSync off (Quality → VSync Count: Don't Sync), Game view only, Scene view closed, no Inspector on an NPC.
+2. Load the world, teleport beside the Strider city and wait 10 s with it on screen.
+3. Window → Analysis → Profiler, CPU Usage module, Deep Profile **off**, Record. Capture 600 frames. Stop.
+4. Timeline or Hierarchy view, search `SpaceGame.`. For each marker write down: **total ms** and **self ms** per frame (median over the 600 frames: select a typical frame, then check the worst one), **calls**, and **GC Alloc**. Also: median and max frame ms, `PlayerLoop` total, `Physics.Processing`/`Physics.Simulate`, `PostLateUpdate.UpdateAllSkinnedMeshes`, `Render.OpaqueGeometry` and the shadow passes, total `GC.Alloc` per frame, and the Rendering module's batches / SetPass / shadow casters / visible skinned meshes.
+5. GPU or CPU: add the GPU Usage module (or read `Gfx.WaitForPresent*` in the CPU timeline). Long `WaitForPresent`/`WaitForTargetFPS` with a short main thread = GPU-bound → B9 first; otherwise the script tasks.
+6. Spike capture: clear, Record, trigger a city or war-party spawn (`NpcWorldSim`), Stop, and note the **max** frame and `SpaceGame.NpcWorldSim.Spawn`'s ms in that frame (GDC-L1-PERF-0003: a spike is judged by its max, not an average).
+7. Repeat 2-6 beside a Sky war party, then once more with `RagdollsDisabled = false` (local, uncommitted) for A3.
+8. Paste the table below and reorder B2-B10: drop any task whose marker is under 0.1 ms/frame in the city capture.
 
 **Baseline:** *(user's numbers go here)*
 

@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
@@ -528,8 +529,13 @@ namespace SpaceGame.Agents
 
         // ── Spawning ─────────────────────────────────────────────────────────────
 
+        // Profiler marker (Diagnostics.md → Profiling).
+        private const string SpawnMarkerName = "SpaceGame.NpcWorldSim.Spawn";
+        private static readonly ProfilerMarker SpawnMarker = new(SpawnMarkerName);
+
         private void Spawn(NpcGroup group, NpcGroupTemplate template)
         {
+            using ProfilerMarker.AutoScope sample = SpawnMarker.Auto();
             List<PlannedMember> plan = NpcGroupComposition.Resolve(group, template);
             if (plan.Count == 0) return;
 

@@ -2,6 +2,7 @@
 // Each frame: ticks all side-effect modules (ClaimsMovement==false) unconditionally, then
 // evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay.Status;
@@ -125,10 +126,22 @@ namespace SpaceGame.Agents
         // the cached lookup cannot see for itself.
         private void OnTransformParentChanged() => authority?.Invalidate();
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string UpdateMarkerName = "SpaceGame.Agent.Update";
+        private static readonly ProfilerMarker UpdateMarker = new(UpdateMarkerName);
+        private const string ModulesMarkerName = "SpaceGame.Agent.Modules";
+        private static readonly ProfilerMarker ModulesMarker = new(ModulesMarkerName);
+        private const string FacingMarkerName = "SpaceGame.Agent.Facing";
+        private static readonly ProfilerMarker FacingMarker = new(FacingMarkerName);
+
         private void Update()
         {
-            float deltaTime = Time.deltaTime;
+            using (UpdateMarker.Auto())
+                Simulate(Time.deltaTime);
+        }
 
+        private void Simulate(float deltaTime)
+        {
             // Before anything decides or moves. Every module below this line writes shared state —
             // a target, a path, a bite — and running them on a machine that does not own the entity
             // is not a smaller version of the same behaviour, it is a second one: two brains
@@ -153,7 +166,10 @@ namespace SpaceGame.Agents
             if (RidesAsPassenger)
             {
                 if (status == null || !status.Suppressed)
+                {
+                    using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
                     TickSideEffectModules(BuildPresentationContext(), deltaTime);
+                }
 
                 return;
             }
@@ -260,6 +276,7 @@ namespace SpaceGame.Agents
 
             AgentContext context = BuildPresentationContext();
 
+            using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
             foreach (IBehaviourModule module in presentationModules)
             {
                 if (module.IsActive)
@@ -357,6 +374,7 @@ namespace SpaceGame.Agents
 
         private MoveIntent EvaluateModules(in AgentContext context, float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
             TickSideEffectModules(in context, deltaTime);
 
             // First movement module to return non-null wins this frame.
@@ -389,6 +407,7 @@ namespace SpaceGame.Agents
             if (facingModules == null)
                 return;
 
+            using ProfilerMarker.AutoScope sample = FacingMarker.Auto();
             foreach (IFacingModule module in facingModules)
             {
                 if (!module.IsActive)

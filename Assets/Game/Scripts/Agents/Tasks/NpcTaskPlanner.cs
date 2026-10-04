@@ -5,6 +5,7 @@
 // a caravan that is currently 3 km away and has no GameObjects at all. Two implementations of
 // "pick the next job" would drift, and the drift would only ever show up as a group that behaves
 // differently in the ten seconds after it spawns than it did for the hour before.
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Gameplay;
@@ -56,6 +57,10 @@ namespace SpaceGame.Agents
             return -1;
         }
 
+        // Profiler marker (Diagnostics.md → Profiling).
+        private const string ResolveMarkerName = "SpaceGame.NpcTask.Resolve";
+        private static readonly ProfilerMarker ResolveMarker = new(ResolveMarkerName);
+
         /// <summary>
         /// Where this task should send the NPC.
         ///
@@ -77,6 +82,7 @@ namespace SpaceGame.Agents
                                               out Vector3 destination, out float arriveRadius,
                                               out string siteId, out string siteName)
         {
+            using ProfilerMarker.AutoScope sample = ResolveMarker.Auto();
             destination = origin;
             arriveRadius = task != null ? task.arriveRadius : 6f;
             siteId = string.Empty;

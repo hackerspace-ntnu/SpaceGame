@@ -37,23 +37,22 @@ namespace SpaceGame.EditorTools
         // The dust cloud's soft fade where a puff meets the sand (JetSmoke _SoftFade). The spray keeps
         // its own material without it: grains a few centimetres across would fade out entirely.
         private const float DustSoftFade = 1.2f;
-        private const string SmokeShader = "SpaceGame/Effects/JetSmoke";
 
         // The build recipe for the three layers (spec §3). Runtime rates live on the component.
         private static readonly Color SandTint = new Color(0.78f, 0.66f, 0.47f, 1f);
         private static readonly Color SmokeTint = new Color(0.36f, 0.33f, 0.30f, 1f);
-        public const float DustMinLife = 8f, DustMaxLife = 12f;
-        // Twenty puffs a second at full speed for the longest life (MonowheelPresentation.dustAtFullSpeed).
-        public const int SprayCap = 60, DustCap = 240, SmokeCap = 40;
+        // Dust: twenty puffs a second at full speed for the longest life (MonowheelPresentation.dustAtFullSpeed).
+        public const int SprayCap = 60, SmokeCap = 40;
+        public static readonly int DustCap = DustCloudRecipe.CapFor(20f);
 
         public static string PrefabPath(string variant) => $"{PrefabFolder}/Monowheel_{variant}.prefab";
 
         [MenuItem("Tools/Vehicles/Build Monowheel Presentation")]
         public static void BuildAll()
         {
-            Material dust = SmokeMaterial(DustMaterialPath, SandTint, DustSoftFade);
-            Material spray = SmokeMaterial(SprayMaterialPath, SandTint, 0f);
-            Material smoke = SmokeMaterial(SmokeMaterialPath, SmokeTint, 0f);
+            Material dust = DustCloudRecipe.Material(DustMaterialPath, SandTint, DustSoftFade);
+            Material spray = DustCloudRecipe.Material(SprayMaterialPath, SandTint, 0f);
+            Material smoke = DustCloudRecipe.Material(SmokeMaterialPath, SmokeTint, 0f);
             foreach (var (variant, fbx, rings) in Variants)
             {
                 string path = Build(variant, $"{ModelFolder}/{fbx}.fbx", rings, dust, spray, smoke);
@@ -61,28 +60,6 @@ namespace SpaceGame.EditorTools
             }
             AssetDatabase.SaveAssets();
             Debug.Log($"[Monowheel] Built and verified {Variants.Length} presentation prefabs in {PrefabFolder}.");
-        }
-
-        // ── materials ───────────────────────────────────────────────────────────
-
-        // A script-created ParticleSystem with no material draws NOTHING, silently (Jetpack gotcha),
-        // so both are created here and a missing shader is an error, not an empty field.
-        private static Material SmokeMaterial(string path, Color tint, float softFade)
-        {
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (mat == null)
-            {
-                Shader shader = Shader.Find(SmokeShader);
-                if (shader == null)
-                    throw new System.InvalidOperationException($"Shader '{SmokeShader}' not found — the monowheel dust would draw nothing.");
-                System.IO.Directory.CreateDirectory(MaterialFolder);
-                mat = new Material(shader);
-                AssetDatabase.CreateAsset(mat, path);
-            }
-            mat.SetColor("_Color", tint);
-            mat.SetFloat("_SoftFade", softFade);
-            EditorUtility.SetDirty(mat);
-            return mat;
         }
 
         // ── one prefab ──────────────────────────────────────────────────────────
@@ -109,7 +86,7 @@ namespace SpaceGame.EditorTools
                     wheel.spray = Spray(root.transform, $"FX_Spray{side}", wheel.localContact);
                     wheel.dust = Dust(root.transform, $"FX_Dust{side}", wheel.localContact, dust);
                     wheel.smoke = Smoke(root.transform, $"FX_HubSmoke{side}", wheel.localHub, smoke);
-                    Renderer(wheel.spray, spray);
+                    DustCloudRecipe.Renderer(wheel.spray, spray);
                     measured.Add(wheel);
                 }
                 if (measured.Count != ringCount)
@@ -249,34 +226,11 @@ namespace SpaceGame.EditorTools
 
         // ── the three layers (spec §3) ──────────────────────────────────────────
 
-        private static ParticleSystem NewSystem(Transform root, string name, Vector3 localPos,
-                                                Quaternion localRot, int cap, float minLife, float maxLife)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(root, false);
-            go.transform.localPosition = localPos;
-            go.transform.localRotation = localRot;
-            var ps = go.AddComponent<ParticleSystem>();
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            ParticleSystem.MainModule main = ps.main;
-            main.loop = true;
-            main.playOnAwake = true;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
-            main.maxParticles = cap;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(minLife, maxLife);
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            ParticleSystem.EmissionModule emission = ps.emission;
-            emission.enabled = true;
-            emission.rateOverTime = 0f;   // MonowheelPresentation drives it
-            return ps;
-        }
-
         private static ParticleSystem Spray(Transform root, string name, Vector3 contact)
         {
             // Thrown up and back off the paddles.
             Quaternion aim = Quaternion.LookRotation(new Vector3(0f, 0.75f, -0.66f));
-            ParticleSystem ps = NewSystem(root, name, contact, aim, SprayCap, 0.5f, 0.8f);
+            ParticleSystem ps = DustCloudRecipe.NewSystem(root, name, contact, aim, SprayCap, 0.5f, 0.8f);
             ParticleSystem.MainModule main = ps.main;
             main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 8f);
             main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.22f);
@@ -292,55 +246,15 @@ namespace SpaceGame.EditorTools
 
         private static ParticleSystem Dust(Transform root, string name, Vector3 contact, Material mat)
         {
-            // Sand spun up off the paddles that then hangs: each puff is thrown up and back from the
-            // bottom of the wheel, drag stops it within about a second, and it billows out and lingers
-            // where it stopped. The emitter moves on and inherits nothing, so the puffs make a wall that
-            // stays behind the wheel. Overdraw is paid per pixel covered, so the alpha stays moderate and
-            // the count is capped (GDC-L1-TECH-0002); the soft fade in JetSmoke hides where a puff meets the sand.
+            // Sand spun up off the paddles that then hangs (DustCloudRecipe): thrown up and back from
+            // the bottom of the wheel, born just off the sand.
             Quaternion upAndBack = Quaternion.LookRotation(new Vector3(0f, 0.8f, -0.6f));
-            ParticleSystem ps = NewSystem(root, name, contact, upAndBack, DustCap, DustMinLife, DustMaxLife);
-            ParticleSystem.MainModule main = ps.main;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 7.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(2f, 3.2f);
-            main.startColor = new Color(SandTint.r, SandTint.g, SandTint.b, 0.6f);
-            main.gravityModifier = -0.02f;   // the hanging cloud drifts up a little
-            ParticleSystem.ShapeModule shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 30f;
-            shape.radius = 0.6f;
-            shape.position = new Vector3(0f, 0.4f, 0f);   // shape space is the system's own; this sits it just off the sand
-            ParticleSystem.LimitVelocityOverLifetimeModule drag = ps.limitVelocityOverLifetime;
-            drag.enabled = true;
-            drag.drag = 2.5f;
-            drag.multiplyDragByParticleSize = false;   // the puffs grow 3x; their drag must not grow with them
-            ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
-            size.enabled = true;
-            var billow = new AnimationCurve(new Keyframe(0f, 1f, 0f, 8f), new Keyframe(0.25f, 2.8f), new Keyframe(1f, 4.2f, 1f, 0f));
-            size.size = new ParticleSystem.MinMaxCurve(1f, billow);
-            ParticleSystem.NoiseModule noise = ps.noise;
-            noise.enabled = true;
-            noise.strength = 0.35f;
-            noise.frequency = 0.15f;
-            noise.scrollSpeed = 0.1f;
-            noise.damping = true;
-            noise.quality = ParticleSystemNoiseQuality.Medium;
-            ParticleSystem.RotationOverLifetimeModule spin = ps.rotationOverLifetime;
-            spin.enabled = true;
-            spin.z = new ParticleSystem.MinMaxCurve(-10f * Mathf.Deg2Rad, 10f * Mathf.Deg2Rad);
-            ParticleSystem.ColorOverLifetimeModule col = ps.colorOverLifetime;
-            col.enabled = true;
-            var fade = new Gradient();
-            fade.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-                         new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.06f),
-                                 new GradientAlphaKey(0.75f, 0.45f), new GradientAlphaKey(0f, 1f) });
-            col.color = fade;
-            Renderer(ps, mat);
-            return ps;
+            return DustCloudRecipe.Cloud(root, name, contact, upAndBack, mat, SandTint, DustCap, new Vector3(0f, 0.4f, 0f));
         }
 
         private static ParticleSystem Smoke(Transform root, string name, Vector3 hub, Material mat)
         {
-            ParticleSystem ps = NewSystem(root, name, hub, Quaternion.LookRotation(Vector3.up), SmokeCap, 2.5f, 3.5f);
+            ParticleSystem ps = DustCloudRecipe.NewSystem(root, name, hub, Quaternion.LookRotation(Vector3.up), SmokeCap, 2.5f, 3.5f);
             ParticleSystem.MainModule main = ps.main;
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 0.9f);
             main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.6f);
@@ -353,7 +267,7 @@ namespace SpaceGame.EditorTools
             size.enabled = true;
             size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 3f));
             FadeOut(ps, 0.5f);
-            Renderer(ps, mat);
+            DustCloudRecipe.Renderer(ps, mat);
             return ps;
         }
 
@@ -366,15 +280,6 @@ namespace SpaceGame.EditorTools
                       new[] { new GradientAlphaKey(startAlpha, 0f), new GradientAlphaKey(startAlpha * 0.6f, 0.5f),
                               new GradientAlphaKey(0f, 1f) });
             col.color = g;
-        }
-
-        private static void Renderer(ParticleSystem ps, Material mat)
-        {
-            var r = ps.GetComponent<ParticleSystemRenderer>();
-            r.sharedMaterial = mat;
-            r.renderMode = ParticleSystemRenderMode.Billboard;
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            r.receiveShadows = false;
         }
 
         // ── self-check (spec §5) ────────────────────────────────────────────────

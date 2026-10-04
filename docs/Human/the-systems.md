@@ -379,6 +379,12 @@ Everything in the Strider city kicks up the same sand clouds the monowheels do. 
 
 **Worth knowing:** A dust cloud counts as something drawn, so anything that measures a machine by everything it draws sees the cloud too: the first build sat the crab outrider's rider eleven metres up in the air.
 
+### Tracks that turn *(TrackBelts)*
+
+The Strider barges' tracks work the way real ones do: each link travels round the loop and every wheel turns, at the speed that side of the barge is actually covering, so the links on the sand stay put while the barge rolls over them. A barge turning on the spot runs one track forward and the other back. Every computer works this out from how the barge is seen to move, so nothing extra is sent over the network, and nothing is saved.
+
+**Worth knowing:** Each track link in the model is its own piece, but all of them share one pivot at the middle of the barge, so a link is moved by working out where its own slot on the loop is, never by its position.
+
 ### The dune barge *(DuneBarge)*
 
 The dune barge is a rusted tracked land-ship you can walk around on and go inside. You reach its fenders by ladders at the front of each track, and you get in through a round armoured hatch in each side. Interact with a hatch and the lid swings up, you crawl through on your own, and it shuts behind you. Inside there is a hold, a gun deck at the stern and a stair up through the neck into the cockpit, with heavy steel doors between them. From outside you only ever see the hull. The rooms inside are drawn only once you are in them, or peering in through a hatch.

@@ -35,6 +35,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a background Cycles render of a small file fails with Error: out of memory | [ArtPipeline](systems/ArtPipeline.md) |
 | a barge door or hatch lid swings into the room the wrong way | [DuneBarge](systems/DuneBarge.md) |
 | a barge ladder can't be grabbed, or drops me in the wrong place at the top | [DuneBarge](systems/DuneBarge.md) |
+| a barge's track links slide over the sand, or run the wrong way round | [TrackBelts](systems/TrackBelts.md) |
 | a belt or pouch near the hip gets dragged along by a swinging arm | [CharacterClothes](systems/CharacterClothes.md) |
 | a big dust puff cuts a hard straight line where it meets the ground | [Monowheel](systems/Monowheel.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
@@ -357,6 +358,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a tool logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
 | a tool's collider query says everything is already in the right place and nothing moves | [EditorTooling](systems/EditorTooling.md) |
 | a torso item is worn rotated to a random angle | [BodyEquipment](systems/BodyEquipment.md) |
+| a track link swings round the middle of the barge when it moves | [TrackBelts](systems/TrackBelts.md) |
 | a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a vehicle at the back of the Strider column keeps riding up to the lead house | [Striders](systems/Striders.md) |
@@ -873,6 +875,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the deployed rig is too big — it reads as a tent rather than a pack | [Backpack](systems/Backpack.md) |
 | the display-copy tests are all green and gear on the wall still shoves me around | [Backpack](systems/Backpack.md) |
 | the door opens for the host and stays shut for clients | [InteractionSystem](systems/InteractionSystem.md) |
+| the dune barge drives but its tracks and wheels stand still | [TrackBelts](systems/TrackBelts.md) |
 | the dune barge export fails with 'no room for the player's body | [DuneBarge](systems/DuneBarge.md) |
 | the editor adds objects to my scene while I am doing nothing and no agent is running | [Testing](systems/Testing.md) |
 | the effect applies on the server and is silently overwritten a tick later | [Artifacts](systems/Artifacts.md) |
@@ -1603,6 +1606,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/MonowheelLeanTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/SkyFleetDriftTests.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/StandingRiderTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Vehicles/TrackBeltWiring.cs` | [TrackBelts](systems/TrackBelts.md) |
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
@@ -1652,6 +1656,7 @@ Longest match wins.
 | `Assets/Game/Editor/Items/WornGearPreview.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Editor/Tests/AgentCarryTests.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Editor/Tests/GroundFireTests.cs` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Editor/Tests/TrackBeltsTests.cs` | [TrackBelts](systems/TrackBelts.md) |
 | `Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab` | [UI](systems/UI.md) |
 | `Assets/Game/Scripts/Core/DiagnosticsBridge/` | [Diagnostics](systems/Diagnostics.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Lobby/` | [Lobby](systems/Lobby.md) |
@@ -1723,6 +1728,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Body/Focus` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Items/Placeables` | [Placeables](systems/Placeables.md) |
 | `Assets/Game/Scripts/Presentation/UI/` | [UI](systems/UI.md) |
+| `Assets/Game/Scripts/Vehicles/Tracks/` | [TrackBelts](systems/TrackBelts.md) |
 | `Assets/Game/Scripts/World/Streaming/` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Art/Animations/Humanoid` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Prefabs/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
@@ -1797,4 +1803,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1305 symptoms, 466 paths, 66 docs -->
+<!-- 1308 symptoms, 469 paths, 67 docs -->

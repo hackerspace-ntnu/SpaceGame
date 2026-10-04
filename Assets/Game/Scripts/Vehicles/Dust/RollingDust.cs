@@ -3,7 +3,7 @@
 // which also spins rings and throws spray). One DustCloudRecipe cloud per contact, built by DustWiring.
 //
 // Each contact's rate follows how fast THAT POINT is seen to move over the ground -- read off its own
-// transform, the way MonowheelPresentation reads a wheel's -- so a hull turning on the spot dusts at
+// transform (GroundSpeedGauge, shared with TrackBelts) -- so a hull turning on the spot dusts at
 // its track ends and a standing one does not, and the host, a client watching the replicated hull and
 // a hull driven by its brain all present alike, with no message and no saved state
 // (GDC-L1-FEEL-0004). A contact off the ground (a ridge crest, a drop) throws nothing.
@@ -46,8 +46,7 @@ namespace SpaceGame.Vehicles
         [SerializeField] private float lodFar = 200f;
 
         private readonly RaycastHit[] hits = new RaycastHit[8];
-        private Vector3[] lastPositions = new Vector3[0];
-        private float[] speeds = new float[0];
+        private GroundSpeedGauge[] gauges = new GroundSpeedGauge[0];
 
         public int ContactCount => contacts.Length;
         public Transform Contact(int i) => contacts[i];
@@ -75,16 +74,8 @@ namespace SpaceGame.Vehicles
         /// <summary>Forget where every contact was: after a spawn, a load or any snap into place.</summary>
         public void ResetBaseline()
         {
-            if (lastPositions.Length != contacts.Length)
-            {
-                lastPositions = new Vector3[contacts.Length];
-                speeds = new float[contacts.Length];
-            }
-            for (int i = 0; i < contacts.Length; i++)
-            {
-                lastPositions[i] = contacts[i].position;
-                speeds[i] = 0f;
-            }
+            if (gauges.Length != contacts.Length) gauges = new GroundSpeedGauge[contacts.Length];
+            for (int i = 0; i < contacts.Length; i++) gauges[i].Reset(contacts[i].position);
         }
 
         private void OnEnable() => ResetBaseline();
@@ -99,22 +90,19 @@ namespace SpaceGame.Vehicles
         public void Present(float dt, float cameraDistance)
         {
             if (dt <= 0f) return;
-            if (lastPositions.Length != contacts.Length) ResetBaseline();
+            if (gauges.Length != contacts.Length) ResetBaseline();
 
             float lod = MonowheelPresentationMath.LodFactor(cameraDistance, lodNear, lodFar);
             Vector3 up = transform.up;
             for (int i = 0; i < contacts.Length; i++)
             {
                 Vector3 position = contacts[i].position;
-                Vector3 step = position - lastPositions[i];
                 // Measured along its own step: a contact's speed over the ground whichever way it goes.
-                speeds[i] = MonowheelPresentationMath.StepSpeed(speeds[i], lastPositions[i], position, step,
-                                                                dt, speedSmoothing, maxPlausibleSpeed, out _);
-                lastPositions[i] = position;
+                float speed = gauges[i].MeasureAlongStep(position, dt, speedSmoothing, maxPlausibleSpeed);
 
                 bool grounded = MonowheelGround.TryHit(gameObject, transform, position + up * groundProbe, -up,
                                                        groundProbe * 2f, groundLayers, hits, out _);
-                float fraction = MonowheelPresentationMath.SpeedFraction(speeds[i], fullSpeed);
+                float fraction = MonowheelPresentationMath.SpeedFraction(speed, fullSpeed);
                 ParticleSystem.EmissionModule emission = clouds[i].emission;
                 emission.rateOverTime = grounded ? MonowheelPresentationMath.Rate(0f, rateAtFullSpeed, fraction) * lod : 0f;
             }

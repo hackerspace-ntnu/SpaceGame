@@ -29,7 +29,7 @@ symptoms:
   - "the dune barge export fails with 'no room for the player's body'"
   - "DuneBargePrefabTests says a ladder exit or hatch mark is inside LeafCollider"
 reads_with: [Vehicles, Ladders, PlayerCharacter, SceneTransitions, ArtPipeline]
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # Dune barge
@@ -85,7 +85,7 @@ Spec: [2026-09-24-dune-barge-unity-design.md](../../superpowers/specs/2026-09-24
 - `Bone_Lid_<n>`: any other hatch, such as the stern hatch
 - `Bone_Gun_<n>_Yaw`/`Pitch`: each heavy gun
 
-The track links are not boned. Stepping them along the belt is a runtime job, as on the original barge.
+The track links are not boned. Stepping them along the belt is a runtime job: `TrackBelts` on the Strider variants circulates them and turns the `Bone_Wheel_*` bones ([TrackBelts.md](TrackBelts.md)). The dune barges themselves stand still and carry none.
 
 ## Key types
 

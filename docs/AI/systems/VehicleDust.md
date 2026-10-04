@@ -15,7 +15,7 @@ symptoms:
   - "the crab outrider's rider sits metres above its shell after a rebuild"
   - "a legged machine's dust thins out or stops at top speed"
 reads_with: [Striders, Monowheel, Locomotion, Vehicles]
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # Vehicle dust
@@ -46,7 +46,7 @@ Every machine in the Strider city throws the monowheel's lingering sand cloud ([
 | Type | File | Role |
 |---|---|---|
 | `FootfallDust` | [FootfallDust.cs](Assets/Game/Scripts/Vehicles/Dust/FootfallDust.cs) | Order 150, after the legs. `Present(cameraDistance)` reads `LeggedLocomotion.Footfalls` once per `StepCount`, `Emit`s a ring per foot, returns the puffs thrown; plays a stopped cloud first (`Emit` adds nothing to one that is not playing) |
-| `RollingDust` | [RollingDust.cs](Assets/Game/Scripts/Vehicles/Dust/RollingDust.cs) | `Present(dt, cameraDistance)` sets each contact cloud's `rateOverTime`: `MonowheelPresentationMath.StepSpeed` along the contact's own step, `MonowheelGround.TryHit` ±0.6 m about it, LOD. `ResetBaseline()` after a snap |
+| `RollingDust` | [RollingDust.cs](Assets/Game/Scripts/Vehicles/Dust/RollingDust.cs) | `Present(dt, cameraDistance)` sets each contact cloud's `rateOverTime`: a [`GroundSpeedGauge`](Assets/Game/Scripts/Vehicles/Tracks/GroundSpeedGauge.cs) per contact (`MeasureAlongStep`; the same gauge `TrackBelts` reads the barges' side speeds with, [TrackBelts.md](TrackBelts.md)), `MonowheelGround.TryHit` ±0.6 m about it, LOD. `ResetBaseline()` after a snap |
 | `VehicleDustWiring` | [VehicleDustWiring.cs](Assets/Game/Editor/Vehicles/VehicleDustWiring.cs) | `AddFootfallDust(root, puffs, peakFootfallsPerSecond)` (throws without a `LeggedLocomotion`), `AddRollingDust(root, contacts, cruiseSpeed, ratePerContact)`, `SandMaterial()`, `FootfallCap` |
 | per-machine numbers | `StriderCityBuilder`, `DesertCrawlerBuilder`, `StriderCrabOutriderBuilder` | `PuffsPerFootfall`, `PeakFootfallsPerSecond`; `StriderBargeBuilder.TrackDustPerContact` |
 

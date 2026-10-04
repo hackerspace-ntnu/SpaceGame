@@ -9,7 +9,9 @@
 //   * the Strider faction, and a crew: lookout posts on the open roof, a gangway at the tracks' feet and
 //     a CrewShift, wired by CrewDeckWiring as the houses' are;
 //   * TrackContacts: one marker where each track meets the ground, front and rear of its ground run, and
-//     the rolling dust each one churns up there (VehicleDustWiring).
+//     the rolling dust each one churns up there (VehicleDustWiring);
+//   * TrackBelts: the track links step round their loops and the wheels turn at the speed each side
+//     is seen to move, read off those same contacts (TrackBeltWiring).
 //
 // Everything is measured from the barge itself: the ride height and footprint from the track links' mesh,
 // the posts from the roof (downward rays against the hull's own colliders). The dune barges are untouched.
@@ -137,6 +139,7 @@ namespace SpaceGame.EditorTools
                 Transform[] markers = AddTrackContacts(root, contacts, names, rideHeight);
                 AddBrain(root, variant, contacts, rideHeight);
                 VehicleDustWiring.AddRollingDust(root, markers, root.GetComponent<TrackedHullMotor>().TopSpeed, TrackDustPerContact);
+                if (TrackBeltWiring.AddTrackBelts(root, markers) == null) return false;
                 var gangway = new Vector3(HullHalfWidth(root) + GangwayStandoff, -rideHeight, contacts.Average(c => c.z));
                 CrewDeckWiring.AddCrewDeck(root, posts, roofCentre, gangway, GangwayNavMeshReach);
 

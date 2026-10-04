@@ -1,11 +1,12 @@
 // Builds the Sky Tribe's NPC transports: the skiff and the freighter that carry war parties to
 // their quarry, land or hover, and set them down.
 //
-// Same models as the escorts parked round the Sky City (SkyFleetBuilder), and those stay scenery.
-// These are separate prefabs because nothing about a static escort survives being flown: the escort
-// is marked static (batched, baked into navigation), carries no NetworkObject and pivots on its
-// middle. A transport pivots on its keel — VesselPilot sets that point down on the landing site —
-// faces its prow along +Z so it flies forward, and is a server-authoritative network entity.
+// Same models as the escorts that drift round the Sky City (SkyFleetBuilder). These are separate
+// prefabs because an escort only keeps station: it pivots on its middle, has no seats, ramp or drop,
+// and is a scene-placed hull that FleetEscortModule steers. A transport pivots on its keel —
+// VesselPilot sets that point down on the landing site — faces its prow along +Z so it flies
+// forward, and is spawned at runtime as a server-authoritative network entity. Both share the
+// network stack and the kinematic body (AddNetworking, AddBody).
 //
 // Re-run from: Tools > SpaceGame > Vehicles > Build Sky Transports
 //
@@ -251,7 +252,7 @@ namespace SpaceGame.EditorTools
             return $" — NO DECK under {string.Join(", ", floating)}";
         }
 
-        private static void AddNetworking(GameObject root)
+        internal static void AddNetworking(GameObject root)
         {
             // NetRelay carries the damage requests NetworkedHealthComponent answers.
             root.AddComponent<NetRelay>();
@@ -273,11 +274,12 @@ namespace SpaceGame.EditorTools
             netTransform.Interpolate = true;
         }
 
-        private static void AddBody(GameObject root)
+        internal static void AddBody(GameObject root)
         {
-            // Kinematic: the pilot places the hull; physics only needs it as something solid to hit.
-            // No interpolation, because a body interpolated between physics steps would drag the
-            // hull back behind where the pilot and the NetworkTransform put it.
+            // Kinematic: whatever flies the hull (the pilot, or an escort's motor) places it; physics
+            // only needs it as something solid to hit. No interpolation, because a body interpolated
+            // between physics steps would drag the hull back behind where the flier and the
+            // NetworkTransform put it.
             var body = root.AddComponent<Rigidbody>();
             body.isKinematic = true;
             body.useGravity = false;

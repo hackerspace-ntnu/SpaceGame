@@ -51,8 +51,12 @@
 // wider than the 1.0 m-wide player, which is why a Ladder can be taken hold of
 // from the top.
 //
-// Multiplayer / persistence -- static scene geometry with no state: no
-// NetworkObject, no saver. See StaticPropBuilder.MarkStatic.
+// NOT STATIC -- the city is the flagship of a drifting fleet (SkyFleetBuilder), so nothing here
+// carries static flags: a batching-static mesh is combined where it stood when the scene loaded and
+// stays there while its hull flies off.
+//
+// Multiplayer / persistence -- art and collision with no state of its own: no NetworkObject, no
+// saver. The fleet root it is nested under carries both.
 // ---------------------------------------------------------------------------
 using System.Collections.Generic;
 using System.Linq;
@@ -68,9 +72,9 @@ namespace SpaceGame.EditorTools
         public const string FbxPath =
             "Assets/Game/Art/Models/Environment/Structures/sky_city.fbx";
         public const string PrefabPath =
-            "Assets/Game/Prefabs/Environment/Structures/SkyCity.prefab";
+            "Assets/Game/Prefabs/Environment/Structures/SkyFleet/SkyCity.prefab";
         public const string HullsPath =
-            "Assets/Game/Prefabs/Environment/Structures/SkyCity_CollisionHulls.asset";
+            "Assets/Game/Prefabs/Environment/Structures/SkyFleet/SkyCity_CollisionHulls.asset";
         public const string CollisionPrefix = "COL_SkyCity_";
         public const string CollisionGroup = "Collision";
         public const string LadderPrefix = "LAD_SkyCity_";
@@ -174,7 +178,6 @@ namespace SpaceGame.EditorTools
 
                 Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
                 StaticPropBuilder.BuildLodGroup(root, renderers, LodCullRatio);
-                StaticPropBuilder.MarkStatic(root);
                 root.transform.localScale = Vector3.one * Scale;
 
                 StaticPropBuilder.EnsureFolder(

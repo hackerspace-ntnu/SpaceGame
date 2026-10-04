@@ -18,6 +18,7 @@
 // Unlike that town the city is not in a chunk scene, while its people are saved into the chunks
 // under them, so the population keeps those chunks loaded and waits for them before counting
 // (keepGroundChunksLoaded) -- or a reload spawns a second city's worth beside the restored one.
+using System.Linq;
 using SpaceGame.Agents;
 using SpaceGame.World;
 using UnityEditor;
@@ -84,14 +85,11 @@ namespace SpaceGame.EditorTools
             if (sky == null) return $"no {RosterAuthoring.SkyFactionPath}";
             if (table == null) return $"no {EntityFactionWiring.RelationshipsPath}";
 
-            var inhabitants = new SettlementPopulation.Inhabitant[NomadPrefabBuilder.SkyTribePeople.Length];
-            for (int i = 0; i < inhabitants.Length; i++)
-            {
-                string path = NomadPrefabBuilder.SkyTribePeople[i].PrefabPath;
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (prefab == null) return $"no {path} - run Tools > SpaceGame > Agents > Build Sky Nomad NPCs / Build Sky Soldier NPC";
-                inhabitants[i] = new SettlementPopulation.Inhabitant { prefab = prefab, weight = 1 };
-            }
+            GameObject[] people = BuiltPeople();
+            if (people.Length == 0)
+                return "no Sky Tribe person is built - run Tools > SpaceGame > Agents > Build Sky Nomad NPCs";
+            SettlementPopulation.Inhabitant[] inhabitants = people
+                .Select(prefab => new SettlementPopulation.Inhabitant { prefab = prefab, weight = 1 }).ToArray();
 
             if (!root.TryGetComponent(out WorldSiteMarker marker))
                 marker = root.AddComponent<WorldSiteMarker>();
@@ -130,9 +128,16 @@ namespace SpaceGame.EditorTools
             return null;
         }
 
+        // The Sky Tribe's people whose prefabs exist. Same rule as RosterAuthoring.AuthorSkyRoster: a
+        // recipe not built yet (the sky soldier today) is left out of the city rather than failing
+        // the wiring -- which used to leave a from-scratch fleet with no settlement at all.
+        private static GameObject[] BuiltPeople() => NomadPrefabBuilder.SkyTribePeople
+            .Select(recipe => AssetDatabase.LoadAssetAtPath<GameObject>(recipe.PrefabPath))
+            .Where(prefab => prefab != null).ToArray();
+
         /// <summary>
         /// The post-condition: <paramref name="root"/> is a Sky Tribe home with an alarm and a
-        /// population of the four sky nomads that spawns from the promenade anchor.
+        /// population of the built Sky Tribe people that spawns from the promenade anchor.
         /// </summary>
         public static bool Verify(GameObject root, out string report)
         {
@@ -162,8 +167,9 @@ namespace SpaceGame.EditorTools
                     sb.AppendLine("  SettlementPopulation is not the Sky Tribe's");
 
                 SerializedProperty inhabitants = so.FindProperty("inhabitants");
-                if (inhabitants.arraySize != NomadPrefabBuilder.SkyTribePeople.Length)
-                    sb.AppendLine($"  {inhabitants.arraySize} inhabitants, not {NomadPrefabBuilder.SkyTribePeople.Length}");
+                int built = BuiltPeople().Length;
+                if (inhabitants.arraySize != built)
+                    sb.AppendLine($"  {inhabitants.arraySize} inhabitants, not the {built} built Sky Tribe people");
                 for (int i = 0; i < inhabitants.arraySize; i++)
                     if (inhabitants.GetArrayElementAtIndex(i).FindPropertyRelative("prefab").objectReferenceValue == null)
                         sb.AppendLine($"  inhabitant {i} has no prefab");

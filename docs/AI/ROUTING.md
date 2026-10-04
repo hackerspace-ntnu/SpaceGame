@@ -447,6 +447,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | astronauts in the lobby float above the sand or stand sunk into it | [Lobby](systems/Lobby.md) |
 | back gear sits half a metre off the pack's rail until I re-equip it | [BodyEquipment](systems/BodyEquipment.md) |
 | both status lamps on the pack are lit at once and flicker against each other | [Backpack](systems/Backpack.md) |
+| Build Sky Fleet Prefabs leaves the fleet with no WorldSiteMarker or SettlementPopulation | [SkyTribe](systems/SkyTribe.md) |
 | camera shake does nothing anywhere in the game | [Cutscenes](systems/Cutscenes.md) |
 | Can't remove SupplyReservoir (Script) because DockableSupply (Script) depends on it, logged on startup or whenever the pack rebuilds | [Backpack](systems/Backpack.md) |
 | carried or worn items duplicate in the world, one more copy after every load | [Persistence](systems/Persistence.md) |
@@ -747,6 +748,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | shots at a monowheel rider hit the wheel instead | [Striders](systems/Striders.md) |
 | shrinking an item on the backpack also shrank it where it lies in the sand | [Backpack](systems/Backpack.md) |
 | sky city NPCs stand on roofs or gas bags they can never leave | [NavMeshSystem](systems/NavMeshSystem.md) |
+| sky nomads hang in mid-air where the city used to be | [SkyTribe](systems/SkyTribe.md) |
 | sky nomads walk to a railing and stand there staring up at a roof | [NavMeshSystem](systems/NavMeshSystem.md) |
 | sky nomads walk to a railing and stand there staring up at a roof | [SkyTribe](systems/SkyTribe.md) |
 | some players could look around during the intro descent and others could not, or kept their HUD through it | [Cutscenes](systems/Cutscenes.md) |
@@ -1151,6 +1153,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
 | the singularity eats things but they never go anywhere | [BottledSingularity](systems/BottledSingularity.md) |
 | the singularity is invisible — no sphere, no ring, just the bottle | [BottledSingularity](systems/BottledSingularity.md) |
+| the sky city moves but its houses and decks stay behind | [SkyTribe](systems/SkyTribe.md) |
+| the Sky City stands inside a rock spire south of the spawn | [SkyTribe](systems/SkyTribe.md) |
 | the Sky roster only ever has four people even though a fifth recipe exists | [SkyTribe](systems/SkyTribe.md) |
 | the smoke cloud follows me instead of trailing behind | [Jetpack](systems/Jetpack.md) |
 | the spent booster fires itself across the desert when the burn ends | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -1265,6 +1269,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | there is no Appa anywhere in the world | [AgentSystem](systems/AgentSystem.md) |
 | there is no ground under the ship for most of the descent, only sky | [PlayerShip](systems/PlayerShip.md) |
 | there is no monowheel beside the ship after the crash landing | [PlayerShip](systems/PlayerShip.md) |
+| there is no Sky City in the world at all, and no Sky war party ever raises | [SkyTribe](systems/SkyTribe.md) |
 | there is no smoke at all, however hot the pack gets | [Jetpack](systems/Jetpack.md) |
 | there is nothing to do with a roped animal except drag it around | [Lasso](systems/Lasso.md) |
 | there is nowhere near enough foam standing after a long spray | [FoamGun](systems/FoamGun.md) |
@@ -1343,6 +1348,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/gear/ghost_mount_frame.blend` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/DriftRouteSaveable.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentationMath.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
@@ -1419,6 +1425,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
+| `Assets/Game/Editor/Environment/SkyCitySettlementWiring.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/GroupMemberTakenByPlayerTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelGround.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
@@ -1470,6 +1477,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/MonowheelDriverGateTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderCityTemplateTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderCrabOutriderTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Prefabs/Environment/Structures/SkyFleet/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BurningStatus.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1478,6 +1486,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| `Assets/Game/Editor/Environment/SkyFleetPlacement.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/StriderRosterAssetTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Traversal/LadderClimberWiring.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs` | [Striders](systems/Striders.md) |
@@ -1510,6 +1519,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Art/Models/Items/strap_on_booster.fbx` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Agents/StriderCityStartSite.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Environment/SkyFleetBuilder.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/TrackedHullDriveTests.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Editor/Tests/TrackedHullMotorTests.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Editor/Vehicles/StriderCityBuilder.cs` | [Striders](systems/Striders.md) |
@@ -1523,6 +1533,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/JetpackItem.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Items/Supplies/SupplyGauge.cs` | [SupplyGauge](systems/SupplyGauge.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Scanner` | [Artifacts](systems/Artifacts.md) |
+| `Assets/Game/Editor/Environment/SkyCityBuilder.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Environment/SkyFleetMovers.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/DuneBargePrefabTests.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Tests/GroupMembershipTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
@@ -1546,6 +1558,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/InteriorRevealTests.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Tests/MountedGunnersTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/ScoutRotaLogicTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/SkyFleetPrefabTests.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Vehicles/DuneBargeBuilder.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Prefabs/Agents/Characters/SkyTribe/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Agents/Characters/Striders/` | [Striders](systems/Striders.md) |
@@ -1560,6 +1573,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/BoosterWiringTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/BurningStatusTests.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Editor/Tests/MonowheelLeanTests.cs` | [Monowheel](systems/Monowheel.md) |
+| `Assets/Game/Editor/Tests/SkyFleetDriftTests.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
@@ -1752,4 +1766,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1286 symptoms, 440 paths, 65 docs -->
+<!-- 1291 symptoms, 449 paths, 65 docs -->

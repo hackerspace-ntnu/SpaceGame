@@ -7,10 +7,16 @@
 // that into throttle and yaw to the motor.
 //
 // The route is rebuilt when it goes stale -- the destination has moved further than
-// `repathTolerance`, or `repathInterval` has elapsed -- and when none can be had it answers with
+// `repathTolerance`, or the repath timer has run out -- and when none can be had it answers with
 // the destination itself, so the motor still moves rather than standing there waiting for a path
 // that is not coming (an unbaked test scene, a chunk the streamer has not finished, a destination
 // off the mesh).
+//
+// The timer is `repathInterval` after a move and while there is no route, and the longer
+// `stillTargetRepathInterval` once a route to a destination that has not moved is in hand: rebuilding
+// an unchanged route every half second is the cost of a crowd that is not going anywhere new. A body
+// pushed further than `cornerArriveRadius` off its route (a knockdown, a walker stepping on it) drops
+// back to `repathInterval`, so it recovers as fast as it always did.
 //
 // Where corners come from is a delegate so the follower can be driven from a test with no baked
 // surface. `NavMeshCorners` is the real one.
@@ -35,6 +41,7 @@ namespace SpaceGame.Agents
         private static readonly ProfilerMarker RepathMarker = new(RepathMarkerName);
 
         private readonly float repathInterval;
+        private readonly float stillTargetRepathInterval;
         private readonly float repathTolerance;
         private readonly float cornerArriveRadius;
         private readonly CornerSource corners;
@@ -49,8 +56,16 @@ namespace SpaceGame.Agents
 
         public NavPathFollower(float repathInterval, float repathTolerance, float cornerArriveRadius,
                                CornerSource corners)
+            : this(repathInterval, repathTolerance, cornerArriveRadius, corners,
+                   stillTargetRepathInterval: repathInterval)
+        {
+        }
+
+        public NavPathFollower(float repathInterval, float repathTolerance, float cornerArriveRadius,
+                               CornerSource corners, float stillTargetRepathInterval)
         {
             this.repathInterval = repathInterval;
+            this.stillTargetRepathInterval = stillTargetRepathInterval;
             this.repathTolerance = repathTolerance;
             this.cornerArriveRadius = cornerArriveRadius;
             this.corners = corners;
@@ -59,7 +74,7 @@ namespace SpaceGame.Agents
         /// A follower over the baked NavMesh, tuned by a motor's serialized settings.
         public NavPathFollower(in NavPathFollowerSettings settings)
             : this(settings.repathInterval, settings.repathTolerance, settings.cornerArriveRadius,
-                   NavMeshCorners(settings.navMeshSampleDistance))
+                   NavMeshCorners(settings.navMeshSampleDistance), settings.stillTargetRepathInterval)
         {
         }
 
@@ -77,9 +92,12 @@ namespace SpaceGame.Agents
             bool targetMoved = !pathTarget.HasValue ||
                                Vector3.Distance(pathTarget.Value, target) > repathTolerance;
 
+            // The long wait is only safe while the body is on the route it is waiting with.
+            if (repathTimer > repathInterval && hasPath && path.FlatDistanceFromLeg(position) > cornerArriveRadius)
+                repathTimer = repathInterval;
+
             if (targetMoved || repathTimer <= 0f)
             {
-                repathTimer = repathInterval;
                 pathTarget = target;
                 using (RepathMarker.Auto())
                 {
@@ -87,6 +105,9 @@ namespace SpaceGame.Agents
                     hasPath = found >= 2;
                     if (hasPath) path.Set(cornerBuffer, found);
                 }
+
+                // No route keeps the short timer: the streamer may bake the missing chunk any moment.
+                repathTimer = targetMoved || !hasPath ? repathInterval : stillTargetRepathInterval;
             }
 
             // Once the corners are spent the motor is within the last leg of the route; steer at the

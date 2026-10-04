@@ -15,6 +15,7 @@ namespace SpaceGame.Agents
         private const float MinRepathTolerance = 0.1f;
         private const float MinCornerArriveRadius = 0.1f;
         private const float MinNavMeshSampleDistance = 0.5f;
+        private const float MinStillTargetRepathInterval = 0.05f;
 
         [Tooltip("Seconds between route recalculations while following a NavMesh path.")]
         public float repathInterval;
@@ -26,14 +27,29 @@ namespace SpaceGame.Agents
         [Tooltip("How far from the machine and from the destination to search for the NavMesh. A body " +
                  "that rides metres above the ground needs this to clear the ride height.")]
         public float navMeshSampleDistance;
+        [Tooltip("Seconds between route rebuilds while the destination has not moved past repathTolerance. " +
+                 "Long routes are expensive to rebuild; a route only goes stale when the body is pushed off it.\n\n" +
+                 "A body further than cornerArriveRadius from its route falls back to repathInterval. " +
+                 "Never shorter than repathInterval.")]
+        public float stillTargetRepathInterval;
 
+        /// Rebuilds a route to a still destination as often as to a moving one: what every follower
+        /// did before stillTargetRepathInterval existed.
         public NavPathFollowerSettings(float repathInterval, float repathTolerance, float cornerArriveRadius,
                                        float navMeshSampleDistance)
+            : this(repathInterval, repathTolerance, cornerArriveRadius, navMeshSampleDistance,
+                   stillTargetRepathInterval: repathInterval)
+        {
+        }
+
+        public NavPathFollowerSettings(float repathInterval, float repathTolerance, float cornerArriveRadius,
+                                       float navMeshSampleDistance, float stillTargetRepathInterval)
         {
             this.repathInterval = repathInterval;
             this.repathTolerance = repathTolerance;
             this.cornerArriveRadius = cornerArriveRadius;
             this.navMeshSampleDistance = navMeshSampleDistance;
+            this.stillTargetRepathInterval = stillTargetRepathInterval;
         }
 
         /// Clamp to the floors. For the owning motor's OnValidate.
@@ -43,6 +59,7 @@ namespace SpaceGame.Agents
             repathTolerance = Mathf.Max(MinRepathTolerance, repathTolerance);
             cornerArriveRadius = Mathf.Max(MinCornerArriveRadius, cornerArriveRadius);
             navMeshSampleDistance = Mathf.Max(MinNavMeshSampleDistance, navMeshSampleDistance);
+            stillTargetRepathInterval = Mathf.Max(MinStillTargetRepathInterval, repathInterval, stillTargetRepathInterval);
         }
     }
 }

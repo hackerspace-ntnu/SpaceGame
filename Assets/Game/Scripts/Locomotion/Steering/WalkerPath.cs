@@ -92,6 +92,22 @@ namespace SpaceGame.Locomotion
             return true;
         }
 
+        /// Flat distance from `position` to the leg being walked, from the previous corner to the one
+        /// being steered at; 0 once the path is spent. Says whether a body is still on its route.
+        public float FlatDistanceFromLeg(Vector3 position)
+        {
+            if (!HasPath)
+                return 0f;
+
+            Vector3 from = corners[index - 1];
+            Vector3 to = corners[index];
+            Vector2 leg = new Vector2(to.x - from.x, to.z - from.z);
+            Vector2 offset = new Vector2(position.x - from.x, position.z - from.z);
+            float legSqr = leg.sqrMagnitude;
+            float along = legSqr > 0f ? Mathf.Clamp01(Vector2.Dot(offset, leg) / legSqr) : 0f;
+            return (offset - leg * along).magnitude;
+        }
+
         /// Distance still to walk along the path from `position`, summed leg by leg. The straight
         /// line to the destination is shorter than this whenever the path bends around anything,
         /// which is exactly when the difference matters.

@@ -55,7 +55,8 @@ namespace SpaceGame.Agents
         [Tooltip("How the NavMesh route is followed. A deck that rides metres above the ground needs " +
                  "navMeshSampleDistance to clear the ride height.")]
         [SerializeField] private NavPathFollowerSettings route = new NavPathFollowerSettings(
-            repathInterval: 0.5f, repathTolerance: 2f, cornerArriveRadius: 6f, navMeshSampleDistance: 20f);
+            repathInterval: 0.5f, repathTolerance: 2f, cornerArriveRadius: 6f, navMeshSampleDistance: 20f,
+            stillTargetRepathInterval: 5f);
 
         [Header("Steep ground")]
         [Tooltip("Seconds to commit to a way around ground the legs refused to climb.\n\nA machine " +

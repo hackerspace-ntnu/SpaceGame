@@ -72,7 +72,27 @@ namespace SpaceGame.Diagnostics
         /// carry on with the next thing rather than to retry.
         /// </para>
         /// </summary>
-        public static bool Run(Component owner, string site, Action body)
+        public static bool Run(Component owner, string site, Action body) =>
+            body != null && Run(owner, site, ref body, InvokeAction);
+
+        /// <summary>A body that takes its inputs and hands its outputs back through one struct.</summary>
+        public delegate void RefAction<TState>(ref TState state);
+
+        private static readonly RefAction<Action> InvokeAction = (ref Action action) => action();
+
+        /// <summary>
+        /// <see cref="Run(Component, string, Action)"/> without the per-call garbage, for barriers
+        /// that run every frame per plug-in (the agent module tick).
+        ///
+        /// <para>
+        /// A lambda that captures its inputs allocates a closure on every call. Here the inputs and
+        /// the result travel in <paramref name="state"/>, so <paramref name="body"/> can be a
+        /// static, capture-free delegate cached once. The key string is built only once something
+        /// somewhere is quarantined, or when the body throws. Same contract and return value as
+        /// the <c>Action</c> overload, which is this with the action as its state.
+        /// </para>
+        /// </summary>
+        public static bool Run<TState>(Component owner, string site, ref TState state, RefAction<TState> body)
         {
             if (body == null) return false;
 
@@ -81,24 +101,23 @@ namespace SpaceGame.Diagnostics
             // the ledger with noise on every scene unload.
             if (owner == null) return false;
 
-            string key = Key(owner, site);
-            if (budget.IsQuarantined(key)) return false;
+            if (IsQuarantinedSite(owner, site)) return false;
 
             using ProfilerMarker.AutoScope sample = RunMarker.Auto();
             try
             {
-                body();
+                body(ref state);
                 return true;
             }
             catch (Exception e)
             {
-                Report(owner, site, key, e);
+                Report(owner, site, Key(owner, site), e);
                 return false;
             }
         }
 
         public static bool IsQuarantined(Component owner, string site) =>
-            owner != null && budget.IsQuarantined(Key(owner, site));
+            owner != null && IsQuarantinedSite(owner, site);
 
         /// <summary>
         /// Wraps <paramref name="body"/> so a throw inside it ends the coroutine instead of killing
@@ -144,6 +163,11 @@ namespace SpaceGame.Diagnostics
         }
 
         // ------------------------------------------------------------------ internals
+
+        // Nothing is quarantined in a healthy session, so the key — a string built per call — is
+        // only worth building once something is.
+        private static bool IsQuarantinedSite(Component owner, string site) =>
+            budget.AnyQuarantined && budget.IsQuarantined(Key(owner, site));
 
         // The instance id rather than the name: two creatures off the same prefab share a name, and
         // quarantining one of them must not switch off the other. Ids are unique per object and

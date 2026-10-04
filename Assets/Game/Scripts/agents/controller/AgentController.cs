@@ -344,13 +344,23 @@ namespace SpaceGame.Agents
         {
             if (module is not Component owner) return null;
 
-            MoveIntent? result = null;
-            AgentContext local = context;   // a lambda cannot capture an `in` parameter
-
-            Fault.Run(owner, ModuleSite, () => result = module.Tick(in local, deltaTime));
-
-            return result;
+            var call = new ModuleCall { Module = module, Context = context, DeltaTime = deltaTime };
+            Fault.Run(owner, ModuleSite, ref call, TickModule);
+            return call.Result;
         }
+
+        // The tick's inputs and output travel in a struct through a cached, capture-free delegate:
+        // a lambda capturing them allocated a closure per module per agent per frame.
+        private struct ModuleCall
+        {
+            public IBehaviourModule Module;
+            public AgentContext Context;
+            public float DeltaTime;
+            public MoveIntent? Result;
+        }
+
+        private static readonly Fault.RefAction<ModuleCall> TickModule =
+            (ref ModuleCall call) => call.Result = call.Module.Tick(in call.Context, call.DeltaTime);
 
         /// <summary>One site name for every module, so a creature's quarantines are per component.</summary>
         private const string ModuleSite = "AgentModule.Tick";
@@ -413,22 +423,43 @@ namespace SpaceGame.Agents
                 if (!module.IsActive)
                     continue;
 
-                if (module is not Component owner) continue;
-
-                bool wants = false;
-                Vector3 facePosition = Vector3.zero;
-                AgentContext local = context;
-
-                Fault.Run(owner, "AgentModule.Facing",
-                          () => wants = module.TryGetFacing(in local, out facePosition));
-
-                if (!wants) continue;
+                if (!RunFacing(module, in context, out Vector3 facePosition)) continue;
 
                 intent.FacePosition = facePosition;
                 intent.OverrideFacing = true;
                 return;
             }
         }
+
+        /// <summary>
+        /// Asks one facing module behind the fault barrier. A throw reads as "wants nothing", the
+        /// facing twin of <see cref="RunModule"/>'s null. Public and static for the same reason.
+        /// </summary>
+        public static bool RunFacing(IFacingModule module, in AgentContext context, out Vector3 facePosition)
+        {
+            facePosition = Vector3.zero;
+            if (module is not Component owner) return false;
+
+            var call = new FacingCall { Module = module, Context = context };
+            Fault.Run(owner, FacingSite, ref call, ReadFacing);
+
+            facePosition = call.FacePosition;
+            return call.Wants;
+        }
+
+        private struct FacingCall
+        {
+            public IFacingModule Module;
+            public AgentContext Context;
+            public bool Wants;
+            public Vector3 FacePosition;
+        }
+
+        private static readonly Fault.RefAction<FacingCall> ReadFacing =
+            (ref FacingCall call) => call.Wants = call.Module.TryGetFacing(in call.Context, out call.FacePosition);
+
+        /// <summary>One site name for every facing module, quarantined apart from its tick.</summary>
+        private const string FacingSite = "AgentModule.Facing";
 
         // ──────────────────────────────────────────────
         // Setup

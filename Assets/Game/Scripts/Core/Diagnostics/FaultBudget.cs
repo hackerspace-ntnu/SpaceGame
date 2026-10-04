@@ -22,6 +22,7 @@ namespace SpaceGame.Diagnostics
         }
 
         private readonly Dictionary<string, Entry> entries = new();
+        private int quarantinedCount;
 
         public FaultBudget(int maxFaults, float windowSeconds)
         {
@@ -58,11 +59,21 @@ namespace SpaceGame.Diagnostics
             }
 
             bool trips = !entry.Quarantined && entry.Count >= MaxFaults;
-            if (trips) entry.Quarantined = true;
+            if (trips)
+            {
+                entry.Quarantined = true;
+                quarantinedCount++;
+            }
 
             entries[key] = entry;
             return trips;
         }
+
+        /// <summary>
+        /// True once any key has tripped. Lets <see cref="Fault"/> skip building a key on the hot
+        /// path of a session where nothing has failed, which is almost every session.
+        /// </summary>
+        public bool AnyQuarantined => quarantinedCount > 0;
 
         public bool IsQuarantined(string key) =>
             !string.IsNullOrEmpty(key) && entries.TryGetValue(key, out Entry e) && e.Quarantined;
@@ -71,6 +82,10 @@ namespace SpaceGame.Diagnostics
         public int CountFor(string key) =>
             !string.IsNullOrEmpty(key) && entries.TryGetValue(key, out Entry e) ? e.Count : 0;
 
-        public void Clear() => entries.Clear();
+        public void Clear()
+        {
+            entries.Clear();
+            quarantinedCount = 0;
+        }
     }
 }

@@ -9,6 +9,7 @@
 //   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV, no memory update
 //   HasLineOfSightFrom(origin, target) — LoS to the body only, from an arbitrary origin (e.g. a weapon muzzle)
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using FMODUnity;
 using SpaceGame.Audio;
@@ -86,6 +87,10 @@ namespace SpaceGame.Agents
 
         // Shared rather than one list per agent: HeadPointOf fills and consumes it in one call.
         private static readonly List<Collider> colliderBuffer = new List<Collider>(8);
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string LineOfSightMarkerName = "SpaceGame.Perception.LineOfSight";
+        private static readonly ProfilerMarker LineOfSightMarker = new(LineOfSightMarkerName);
 
         private void Awake()
         {
@@ -216,6 +221,8 @@ namespace SpaceGame.Agents
 
         private bool IsUnobstructed(Vector3 origin, Vector3 point, Transform target)
         {
+            using ProfilerMarker.AutoScope sample = LineOfSightMarker.Auto();
+
             Vector3 toTarget = point - origin;
             float distance = toTarget.magnitude;
             if (distance < 1e-4f)

@@ -14,6 +14,7 @@
 // Runs ahead of AgentController (execution order 0) so the decision is already current when
 // modules tick. Optional: agents without it fall back to their own per-module resolution.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Gameplay;
 using SpaceGame.World.Weather;
@@ -190,6 +191,12 @@ namespace SpaceGame.Agents
         // Shared across agents rather than one list each: Reevaluate fills and fully consumes it
         // inside a single synchronous call, so no other agent can observe it mid-use.
         private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ReevaluateMarkerName = "SpaceGame.Targeting.Reevaluate";
+        private static readonly ProfilerMarker ReevaluateMarker = new(ReevaluateMarkerName);
+        private const string RefreshMarkerName = "SpaceGame.Targeting.Refresh";
+        private static readonly ProfilerMarker RefreshMarker = new(RefreshMarkerName);
 
         private AgentAuthority authority;
 
@@ -488,6 +495,8 @@ namespace SpaceGame.Agents
         // the held target's state is.
         private void RefreshTargetState(float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = RefreshMarker.Auto();
+
             if (!HasTarget)
             {
                 if (HasLastKnownPosition)
@@ -532,6 +541,8 @@ namespace SpaceGame.Agents
         // stays in metres and the numbers on the profile mean something readable.
         private void Reevaluate()
         {
+            using ProfilerMarker.AutoScope sample = ReevaluateMarker.Auto();
+
             if (selfFaction == null)
                 return;
 

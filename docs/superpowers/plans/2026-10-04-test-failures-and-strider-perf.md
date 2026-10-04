@@ -374,6 +374,8 @@ Principles: **GDC-L1-PERF-0001** (objective, confidence 5): measure, don't guess
 
 **Interfaces:** Produces the marker names `SpaceGame.<System>.<Method>`, e.g. `SpaceGame.Agent.Update`, `SpaceGame.Agent.Modules`, `SpaceGame.Agent.Facing`, `SpaceGame.Targeting.Refresh`, `SpaceGame.Perception.LineOfSight`, `SpaceGame.GroundConform.Probe`, `SpaceGame.NavPath.Repath`, `SpaceGame.Menace.Scan`, `SpaceGame.ItemUse.LineOfSight`, `SpaceGame.Formation.Tick`, `SpaceGame.NpcWorldSim.Spawn`, `SpaceGame.WalkerCarrier.Fixed`, `SpaceGame.NpcTask.Resolve`, `SpaceGame.Ragdoll.Rig`. Later tasks quote them.
 
+**Sensing and walker markers (added):** `SpaceGame.Perception.LineOfSight` (`PerceptionModule.IsUnobstructed`, every sight and muzzle ray), `SpaceGame.Targeting.Reevaluate` (`AgentTargeting.Reevaluate`, the candidate scoring on the interval), `SpaceGame.Targeting.Refresh` (`AgentTargeting.RefreshTargetState`, every frame), `SpaceGame.Menace.Scan` (`MenaceSensor.FindAimer`), `SpaceGame.GroundConform.Probe` (`AgentGroundConform.Conform`), `SpaceGame.WalkerCarrier.Fixed` (`WalkerPlatformCarrier.FixedUpdate`), `SpaceGame.ItemUse.LineOfSight` (`NpcItemUseModule.HasLineOfSight`). `Perception.LineOfSight` nests inside `Targeting.*` and `ItemUse.LineOfSight`, so read its self ms, not its total.
+
 - [ ] **Step 1: Test the convention first.** Reflect over `Assembly-CSharp` for static `ProfilerMarker` fields and assert that each marker's name starts with `SpaceGame.` and is unique. `ProfilerMarker` has no name getter, so keep the names in a `const string` beside each field and reflect over the consts named `*MarkerName`. Run it: it fails, because no markers exist yet.
 - [ ] **Step 2:** Add the markers using this shape:
   ```csharp

@@ -34,6 +34,7 @@
 // body's facing is the one part of "where are they looking" that is true on every machine — and it
 // is the honest thing to model anyway: a nomad watches your shoulders, not your eyes. The cone is
 // therefore measured on the HORIZONTAL plane.
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Items;
 
@@ -80,6 +81,10 @@ namespace SpaceGame.Agents
         // telegraphing at. A second aimer simply takes over when the first looks away.
         private Transform aimer;
         private float aimedForSeconds;
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ScanMarkerName = "SpaceGame.Menace.Scan";
+        private static readonly ProfilerMarker ScanMarker = new(ScanMarkerName);
 
         private void Reset() => SetPriorityDefault(ModulePriority.RangedAttack);
 
@@ -149,6 +154,8 @@ namespace SpaceGame.Agents
         /// </summary>
         private Transform FindAimer(in AggressionSettings settings)
         {
+            using ProfilerMarker.AutoScope sample = ScanMarker.Auto();
+
             Vector3 chest = transform.position + Vector3.up * targetHeightOffset;
             float rangeSqr = settings.menaceRange * settings.menaceRange;
             float cosCone = Mathf.Cos(aimConeDegrees * Mathf.Deg2Rad);

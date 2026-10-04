@@ -9,6 +9,7 @@
 // Side-effect module, so it never claims the frame. It does claim the FACING channel, which is the
 // whole reason that channel exists — the NPC keeps its gun on target while Chase, Flee or the
 // formation still own where its feet go.
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
@@ -119,6 +120,10 @@ namespace SpaceGame.Agents
         private Vector3 targetVelocity;
         private bool hasFacingTarget;
         private Vector3 facingPoint;
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string LineOfSightMarkerName = "SpaceGame.ItemUse.LineOfSight";
+        private static readonly ProfilerMarker LineOfSightMarker = new(LineOfSightMarkerName);
 
         private void Reset() => SetPriorityDefault(ModulePriority.RangedAttack);
 
@@ -399,6 +404,8 @@ namespace SpaceGame.Agents
 
         private bool HasLineOfSight(Vector3 aim)
         {
+            using ProfilerMarker.AutoScope sample = LineOfSightMarker.Auto();
+
             Vector3 origin = equipment.FireOrigin;
             Vector3 direction = aim - origin;
             float distance = direction.magnitude;

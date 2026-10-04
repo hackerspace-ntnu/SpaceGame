@@ -146,7 +146,7 @@ The third tribe on the faction stack, whose home is not a place but a **walking 
 
 | State | Does | Leaves when |
 |---|---|---|
-| Aboard | Crew on posts; they keep their own targeting and fire from the deck | the leader is at a stop and anyone lives → Disembarking |
+| Aboard | Crew on posts; they keep their own targeting and fire from the deck. Their `AgentGroundConform` is parked on every machine while seated ([AgentSystem.md](AgentSystem.md)) | the leader is at a stop and anyone lives → Disembarking |
 | Disembarking | Unseats one crew member every `disembarkInterval` at `GangwayPoint` | nobody left seated → Ashore; the stop ends first → Recalling |
 | Ashore | Crew wander; anyone beyond `ashoreRadius` of the gangway is walked back to half of it | the stop ends → Recalling |
 | Recalling | Each crew member walks to the gangway and is seated within `boardRadius`; after `recallTimeout` (clock paused while anyone fights) stragglers are seated where they stand | every living member seated → Aboard |

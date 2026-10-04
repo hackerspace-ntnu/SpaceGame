@@ -425,6 +425,54 @@ namespace SpaceGame.Tests
             Assert.IsTrue(passenger.HasRider, "Roping a bystander must not empty somebody's saddle.");
         }
 
+        [Test]
+        public void ASeatedRiderStopsProbingTheGroundUntilItGetsOff()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var conform = rider.AddComponent<AgentGroundConform>();
+
+            passenger.Seat(rider);
+            Assert.IsFalse(conform.enabled,
+                "A seated body is posed by the seat. Probing the ground under it every frame costs a " +
+                "ring of rays per crew member and leans the body into whatever the hull stands on.");
+
+            passenger.Dismount();
+            Assert.IsTrue(conform.enabled, "on foot again, it stands on the ground again");
+        }
+
+        [Test]
+        public void GettingOffDoesNotWakeAConformSomethingElseSwitchedOff()
+        {
+            GameObject rider = NewObject("rider");
+            var conform = rider.AddComponent<AgentGroundConform>();
+            conform.enabled = false;
+
+            var seating = new NpcSeating();
+            seating.Suppress(rider);
+            seating.Restore(rider, navMeshReach: 1f);
+
+            Assert.IsFalse(conform.enabled, "Restore gives back only what Suppress took");
+        }
+
+        [Test]
+        public void AWatchingMachineParksTheRiderNetcodeParentedIn()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            rider.AddComponent<AgentController>();
+            var conform = rider.AddComponent<AgentGroundConform>();
+
+            // A client is handed only the parenting; Suppress never runs there.
+            rider.transform.SetParent(passenger.transform, worldPositionStays: false);
+            passenger.RefreshSeatedRider();
+            Assert.IsFalse(conform.enabled, "the client's copy probes the ground and leans too");
+
+            rider.transform.SetParent(null, worldPositionStays: true);
+            passenger.RefreshSeatedRider();
+            Assert.IsTrue(conform.enabled, "and gets it back when netcode takes the rider out");
+        }
+
         // ─────────── Fixtures ───────────
 
         private GameObject NewObject(string name)

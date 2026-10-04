@@ -284,6 +284,38 @@ namespace SpaceGame.EditorTools
                 "a watching machine still has to stop the passenger shoving the hull");
         }
 
+        [Test]
+        public void AWatchingMachineStopsASeatedPassengerProbingTheGround()
+        {
+            VesselSeats seats = NewVessel(seatCount: 1);
+            GameObject npc = NewObject("npc");
+            npc.AddComponent<AgentController>();
+            var conform = npc.AddComponent<AgentGroundConform>();
+
+            npc.transform.SetParent(seats.transform, false);
+            seats.RefreshPresented();
+            Assert.IsFalse(conform.enabled, "seated crew are posed by the post, not by the ground under the hull");
+
+            npc.transform.SetParent(null, true);
+            seats.RefreshPresented();
+            Assert.IsTrue(conform.enabled, "off the post, the ground is theirs again");
+        }
+
+        [Test]
+        public void TheAuthoritySeatParksTheConformAndUnseatingRestoresIt()
+        {
+            VesselSeats seats = NewVessel(seatCount: 1);
+            GameObject npc = NewObject("npc");
+            npc.AddComponent<AgentController>();
+            var conform = npc.AddComponent<AgentGroundConform>();
+
+            seats.Seat(npc);
+            Assert.IsFalse(conform.enabled);
+
+            seats.Unseat(0, seats.transform.position + Vector3.right * 5f);
+            Assert.IsTrue(conform.enabled);
+        }
+
         private GameObject NewObject(string name)
         {
             var go = new GameObject(name);

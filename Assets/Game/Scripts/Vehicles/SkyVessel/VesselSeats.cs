@@ -240,6 +240,7 @@ namespace SpaceGame.Vehicles
                 var collisions = new RiderCollisionIgnore();
                 collisions.Apply(npc, transform);
                 presented.Add(npc, collisions);
+                NpcSeating.ParkPresentation(npc.gameObject, parked: true);
                 if (chairPose != null) chairPose.PoseRider(npc);
             }
         }
@@ -253,7 +254,9 @@ namespace SpaceGame.Vehicles
             if (gameObject.activeInHierarchy) collisions.Restore();
             else collisions.Forget();
 
-            if (npc != null && chairPose != null) chairPose.ReleaseRider(npc);
+            if (npc == null) return;
+            NpcSeating.ParkPresentation(npc.gameObject, parked: false);
+            if (chairPose != null) chairPose.ReleaseRider(npc);
         }
 
         private void ReleasePresented()

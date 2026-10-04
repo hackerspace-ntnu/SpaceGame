@@ -388,6 +388,7 @@ namespace SpaceGame.Agents
             {
                 if (pose != null) pose.ReleaseRider(posedRider);
                 SetSeatedFlag(posedRider.gameObject, false);
+                NpcSeating.ParkPresentation(posedRider.gameObject, parked: false);
             }
 
             // Restoring a pair needs both colliders active, and a mount being deactivated or
@@ -407,6 +408,7 @@ namespace SpaceGame.Agents
             if (pose != null)
                 pose.PoseRider(posedRider);
             SetSeatedFlag(posedRider.gameObject, true);
+            NpcSeating.ParkPresentation(posedRider.gameObject, parked: true);
         }
 
         /// <summary>

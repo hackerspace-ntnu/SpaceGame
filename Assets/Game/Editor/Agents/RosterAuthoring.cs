@@ -540,7 +540,7 @@ namespace SpaceGame.EditorTools
         /// The Striders' one walking city: three houses (the first leads), two worker crawlers, eight
         /// monowheel scouts, two crab outriders and a crew that fills every crew post on the houses.
         /// Carriers are listed before the crew because NpcWorldSim seats each crew member on a carrier already spawned.
-        /// It starts <see cref="StriderCityStartSite.CityStartDistance"/> from the player's spawn point.
+        /// It starts near the middle of the map (<see cref="StriderCityStartSite"/>).
         /// Idempotent: finds its template by id and rewrites every field it owns.
         /// </summary>
         [MenuItem("Tools/SpaceGame/Agents/Wire Strider City")]
@@ -554,7 +554,7 @@ namespace SpaceGame.EditorTools
                 .Select(v => Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v))).ToArray();
             if (striders == null || habitat == null || crawler == null || crab == null || scouts.Any(s => s == null)) return;
 
-            // Near the player's landing rather than at a Ruin: see StriderCityStartSite.
+            // Near the middle of the map rather than at a Ruin: see StriderCityStartSite.
             if (!StriderCityStartSite.TryChoose(out Vector3 start, out _)) return;
 
             WithWorldSim(sim =>

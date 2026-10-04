@@ -628,7 +628,7 @@ MonoBehaviour:
     travelSpeed: 2.6999998
     startNearSite: 2
     useStartPosition: 1
-    startPosition: {x: 3386.0542, y: 109.76766, z: 999.1703}
+    startPosition: {x: 2500, y: 106.12113, z: 500.00003}
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -652,42 +652,52 @@ MonoBehaviour:
     - prefab: {fileID: 6110677241095528271, guid: afd49cf9481cd4e91af3a828a0866f1a, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
     - prefab: {fileID: 9084312159628000530, guid: b1bf8bd749c4741f8b9f1bc99307887f, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 6641747005437992729, guid: e423cfdf945624ad892c33b00e2d8450, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 4375941295063180595, guid: 9f38a891192e44383a04c1cf85df3b3a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 6320590716706008551, guid: 600a297774679412697efb8407ef232b, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 6041516499664464153, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 7597401561177595076, guid: d7b830fd7553b4d07a97cadffa0ba701, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 6643838780466197570, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 3329947332983915974, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     - prefab: {fileID: 9073734896679703001, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
     tasks:
     - label: running goods between the trade posts
@@ -704,6 +714,14 @@ MonoBehaviour:
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: filling the water skins
       targetSite: 4
       searchRadius: 1200
@@ -718,6 +736,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: picking over an old wreck
       targetSite: 2
       searchRadius: 1600
@@ -732,6 +758,14 @@ MonoBehaviour:
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 2.4
     startNearSite: 1
     useStartPosition: 0
@@ -2502,6 +2536,117 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8107463345724233620, guid: 766fe0d04b9236147989ea5878bdf3c2, type: 3}
   m_PrefabInstance: {fileID: 1119689562}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1160628478
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1160628485}
+  - component: {fileID: 1160628484}
+  - component: {fileID: 1160628483}
+  - component: {fileID: 1160628482}
+  - component: {fileID: 1160628481}
+  - component: {fileID: 1160628480}
+  m_Layer: 0
+  m_Name: Objectives
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1160628480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6b503f886693c8408e254426345d301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.ObjectiveBeacon
+  material: {fileID: 2100000, guid: 2f4261e8ea5af054ba1e0ea75a60298c, type: 2}
+  height: 60
+  width: 0.8
+  pulseSeconds: 1.8
+  pulseDepth: 0.35
+--- !u!114 &1160628481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55060c52ba30d954bb96bfb5693e8d3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.ObjectiveBriefing
+  speaker: LANDER
+  secondsPerLine: 4
+  gapSeconds: 0.4
+  settleSeconds: 1.5
+--- !u!114 &1160628482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c25ef1ecbaa9444bcb85c8c5f7a74670, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.LookAtCutscene
+  target: {fileID: 0}
+  blendInDuration: 0.6
+  holdDuration: 1.5
+  blendOutDuration: 0.6
+--- !u!114 &1160628483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0acae0b229846684e94aedf8c80b2678, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.ObjectiveSaveable
+  director: {fileID: 0}
+--- !u!114 &1160628484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a450c746a60c51d4b9b9a4531ee5ebcd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveDirector
+  chain: {fileID: 11400000, guid: abe1e3cf38494d249876fbdc51a1f0a2, type: 2}
+--- !u!4 &1160628485
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1181579169
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3478,114 +3623,3 @@ SceneRoots:
   - {fileID: 1845903061}
   - {fileID: 1900100002}
   - {fileID: 1160628485}
---- !u!1 &1160628478
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1160628485}
-  - component: {fileID: 1160628484}
-  - component: {fileID: 1160628483}
-  - component: {fileID: 1160628482}
-  - component: {fileID: 1160628481}
-  - component: {fileID: 1160628480}
-  m_Layer: 0
-  m_Name: Objectives
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1160628480
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6b503f886693c8408e254426345d301, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.ObjectiveBeacon
-  material: {fileID: 2100000, guid: 2f4261e8ea5af054ba1e0ea75a60298c, type: 2}
-  height: 60
-  width: 0.8
-  pulseSeconds: 1.8
-  pulseDepth: 0.35
---- !u!114 &1160628481
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 55060c52ba30d954bb96bfb5693e8d3b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.ObjectiveBriefing
-  speaker: LANDER
-  secondsPerLine: 4
-  gapSeconds: 0.4
-  settleSeconds: 1.5
---- !u!114 &1160628482
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c25ef1ecbaa9444bcb85c8c5f7a74670, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.LookAtCutscene
-  target: {fileID: 0}
-  blendInDuration: 0.6
-  holdDuration: 1.5
-  blendOutDuration: 0.6
---- !u!114 &1160628483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0acae0b229846684e94aedf8c80b2678, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.ObjectiveSaveable
-  director: {fileID: 0}
---- !u!114 &1160628484
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a450c746a60c51d4b9b9a4531ee5ebcd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveDirector
-  chain: {fileID: 11400000, guid: abe1e3cf38494d249876fbdc51a1f0a2, type: 2}
---- !u!4 &1160628485
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

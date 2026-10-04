@@ -3,8 +3,9 @@
 // Left to itself NpcWorldSim seeds the city at a Ruin, and no Ruin is registered when groups are
 // seeded, so it fell back to the sim's own origin ~4 km from where a new player lands, and a group
 // only exists as live objects within spawnRadius of a player. Nobody ever met it. So the city gets
-// a fixed start: walkable, level ground about CityStartDistance from the SpawnPoint, clear of the
-// Clanker town.
+// a fixed start: walkable, level ground within CityStartDistance + CityStartBand of the MAP'S CENTRE
+// (the user's call, 2026-10-04: the city lives in the middle of the world, not by the landing site),
+// clear of the Clanker town.
 //
 // Level means the city's whole footprint (StriderCityBuilder.CityLevelGround, the square its column
 // covers) is within the city's slope limit, measured by LevelGroundSearch over the chunk heightmaps —
@@ -14,7 +15,7 @@
 //
 // Walkable means on the world NavMesh: the one author-time bake (NavMeshSystem.md) is added for the
 // search and removed again, sampled at the terrain height of each candidate. Terrain is binary on
-// disk, so the chunk scenes round the spawn are opened for the search and closed afterwards, the
+// disk, so the chunk scenes round the centre are opened for the search and closed afterwards, the
 // way ClankerSettlementBuilder picks its site. Everything is constants, so a re-run picks the same
 // point.
 using System;
@@ -35,18 +36,17 @@ namespace SpaceGame.EditorTools
     public static class StriderCityStartSite
     {
         /// <summary>
-        /// Metres from the SpawnPoint. Past the Clanker town's annulus and a few minutes' walk, so the
-        /// city is something a new player comes across on a first outing, not a crowd on the lander.
+        /// Metres from the map's centre the search is centred on: the band below then covers 0-600 m,
+        /// close enough that the city starts in the middle of the world.
         /// </summary>
-        public const float CityStartDistance = 800f;
+        public const float CityStartDistance = 300f;
 
         /// <summary>
-        /// How far either side of <see cref="CityStartDistance"/> the search may go for level ground:
-        /// a minute's walk, so the start is still a first outing's find.
+        /// How far either side of <see cref="CityStartDistance"/> the search may go for level ground.
         /// </summary>
-        public const float CityStartBand = 100f;
+        public const float CityStartBand = 300f;
 
-        /// <summary>Spacing of the distances tried across the band: fine enough not to step over a level pan, coarse enough to keep the search to 80 footprints.</summary>
+        /// <summary>Spacing of the distances tried across the band: fine enough not to step over a level pan, coarse enough to keep the search to 208 footprints.</summary>
         private const float CityStartBandStep = 50f;
 
         /// <summary>
@@ -58,21 +58,20 @@ namespace SpaceGame.EditorTools
         public static float ClankerTownClearance =>
             ClankerSettlementBuilder.AlarmRadius + StriderCityBuilder.CityLevelGround.footprintRadius;
 
-        /// <summary>Directions tried round the spawn, the first facing away from the Clanker town.</summary>
+        /// <summary>Directions tried round the centre, the first facing away from the Clanker town.</summary>
         private const int CandidateDirections = 16;
 
         /// <summary>How far from a candidate's terrain point the NavMesh may be and still count as that ground.</summary>
         private const float NavMeshSampleReach = 10f;
 
         /// <summary>
-        /// Picks the start and reports the spawn point it was measured from. False, with an error
-        /// logged, when there is no spawn point, no world config or NavMesh, or no walkable level
-        /// ground in the band.
+        /// Picks the start and reports the map centre it was measured from. False, with an error
+        /// logged, when there is no world config or NavMesh, or no walkable level ground in the band.
         /// </summary>
-        public static bool TryChoose(out Vector3 start, out Vector3 spawn)
+        public static bool TryChoose(out Vector3 start, out Vector3 centre)
         {
             start = default;
-            if (!ClankerSettlementBuilder.TryFindSpawnPoint(out spawn)) return false;
+            centre = default;
 
             WorldStreamingConfig config = WorldNavMeshBaker.LoadConfig();
             var navMesh = AssetDatabase.LoadAssetAtPath<WorldNavMeshAsset>(WorldNavMeshBaker.AssetPath);
@@ -81,6 +80,7 @@ namespace SpaceGame.EditorTools
                 Debug.LogError($"[StriderCityStartSite] No world config or baked NavMesh at {WorldNavMeshBaker.AssetPath}.");
                 return false;
             }
+            centre = MapCentre(config);
 
             LevelGroundRule rule = StriderCityBuilder.CityLevelGround;
             var opened = new List<Scene>();
@@ -89,12 +89,12 @@ namespace SpaceGame.EditorTools
             {
                 // Far enough for the corners of the footprint round the farthest candidate.
                 float reach = CityStartDistance + CityStartBand + rule.footprintRadius * Mathf.Sqrt(2f);
-                ClankerSettlementBuilder.OpenChunksAround(config, spawn, reach, opened);
+                ClankerSettlementBuilder.OpenChunksAround(config, centre, reach, opened);
                 Vector3? town = FindClankerTown();
                 Terrain[] terrains = Terrain.activeTerrains;
 
-                Vector2 spawnXZ = Flat(spawn);
-                Vector2 away = town.HasValue ? (spawnXZ - Flat(town.Value)).normalized : Vector2.up;
+                Vector2 centreXZ = Flat(centre);
+                Vector2 away = town.HasValue ? (centreXZ - Flat(town.Value)).normalized : Vector2.up;
                 if (away == Vector2.zero) away = Vector2.up;
 
                 bool Heightmap(Vector2 at, out float y)
@@ -119,11 +119,11 @@ namespace SpaceGame.EditorTools
                     && OnNavMesh(at, out Vector3 _)
                     && (!town.HasValue || Vector2.Distance(at, Flat(town.Value)) >= ClankerTownClearance);
 
-                List<Vector2> candidates = Candidates(spawnXZ, away);
+                List<Vector2> candidates = Candidates(centreXZ, away);
                 if (!TryPickFlattest(candidates, Acceptable, Heightmap, rule, out Vector2 site, out float spread))
                 {
                     Debug.LogError($"[StriderCityStartSite] No walkable ground {CityStartDistance - CityStartBand}-" +
-                                   $"{CityStartDistance + CityStartBand} m from spawn {spawn:F0} in {CandidateDirections} " +
+                                   $"{CityStartDistance + CityStartBand} m from the map centre {centre:F0} in {CandidateDirections} " +
                                    $"directions is level: the city's {rule.footprintRadius * 2f:F0} m footprint must be " +
                                    $"within {rule.maxSlopeDegrees}° ({rule.MaxSpread:F1} m of relief). Widen the band or " +
                                    "raise StriderCityBuilder.CityMaxSlopeDegrees.");
@@ -131,8 +131,8 @@ namespace SpaceGame.EditorTools
                 }
 
                 OnNavMesh(site, out start);
-                Debug.Log($"[StriderCityStartSite] City starts at {start:F0}, {Vector2.Distance(Flat(start), spawnXZ):F0} m " +
-                          $"from spawn {spawn:F0} at a bearing of {Quaternion.LookRotation(start - spawn).eulerAngles.y:F0}°, " +
+                Debug.Log($"[StriderCityStartSite] City starts at {start:F0}, {Vector2.Distance(Flat(start), centreXZ):F0} m " +
+                          $"from the map centre {centre:F0} at a bearing of {Quaternion.LookRotation(start - centre).eulerAngles.y:F0}°, " +
                           $"{spread:F1} m of relief across its footprint (limit {rule.MaxSpread:F1}) " +
                           (town.HasValue ? $"(Clanker town at {town.Value:F0})." : "(no Clanker town found)."));
                 return true;
@@ -151,7 +151,11 @@ namespace SpaceGame.EditorTools
         /// <paramref name="away"/> (directly away first), and at each bearing the distances across the
         /// band nearest <see cref="CityStartDistance"/> first.
         /// </summary>
-        internal static List<Vector2> Candidates(Vector2 spawn, Vector2 away)
+        /// <summary>The middle of the streamed world, from its chunk grid.</summary>
+        internal static Vector3 MapCentre(WorldStreamingConfig config) =>
+            config.worldOrigin + new Vector3(config.Grid.Width * 0.5f, 0f, config.Grid.Depth * 0.5f);
+
+        internal static List<Vector2> Candidates(Vector2 anchor, Vector2 away)
         {
             var candidates = new List<Vector2>();
             float step = 360f / CandidateDirections;
@@ -166,7 +170,10 @@ namespace SpaceGame.EditorTools
                 for (int d = 0; d <= 2 * bandSteps; d++)
                 {
                     float offset = (d + 1) / 2 * CityStartBandStep * (d % 2 == 0 ? 1f : -1f);
-                    candidates.Add(spawn + bearing * (CityStartDistance + offset));
+                    float distance = CityStartDistance + offset;
+                    // A band reaching the anchor itself gives the same point on every bearing: list it once.
+                    if (distance <= 0f && i > 0) continue;
+                    candidates.Add(anchor + bearing * distance);
                 }
             }
             return candidates;

@@ -14,9 +14,6 @@ namespace SpaceGame.EditorTools
     public class StriderCityTemplateTests
     {
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
-        // Around StriderCityStartSite.CityStartDistance, loose enough for the NavMesh snap.
-        private const float MinStartFromSpawn = 500f;
-        private const float MaxStartFromSpawn = 1100f;
         // The column's shape, as WireStriderCity writes it (Striders.md "The city").
         private const int CityLanes = 2;
         private const float CitySpacing = 30f;
@@ -79,10 +76,11 @@ namespace SpaceGame.EditorTools
                           "every stop holds the city to its level-ground rule (re-run Wire Strider City)");
             Assert.AreEqual(StriderCityBuilder.CityLeaderSpeed, city.travelSpeed, 0.01f, "folded and live speeds agree");
 
-            Assert.IsTrue(city.useStartPosition, "the city starts where a new player can find it, not at a Ruin");
-            Assert.IsTrue(ClankerSettlementBuilder.TryFindSpawnPoint(out Vector3 spawn));
-            float fromSpawn = Vector2.Distance(new Vector2(city.startPosition.x, city.startPosition.z), new Vector2(spawn.x, spawn.z));
-            Assert.That(fromSpawn, Is.InRange(MinStartFromSpawn, MaxStartFromSpawn), "a first outing's walk from the spawn point");
+            Assert.IsTrue(city.useStartPosition, "the city starts in the middle of the world, not at a Ruin");
+            Vector3 centre = StriderCityStartSite.MapCentre(SpaceGame.World.NavMeshTools.WorldNavMeshBaker.LoadConfig());
+            float fromCentre = Vector2.Distance(new Vector2(city.startPosition.x, city.startPosition.z), new Vector2(centre.x, centre.z));
+            Assert.LessOrEqual(fromCentre, StriderCityStartSite.CityStartDistance + StriderCityStartSite.CityStartBand,
+                               "the city starts near the middle of the map (re-run Wire Strider City)");
         }
 
         /// FormationModule measures regroupDistance from the leader: a follower whose slot is farther

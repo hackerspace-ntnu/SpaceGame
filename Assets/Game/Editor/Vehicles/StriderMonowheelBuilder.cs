@@ -261,6 +261,9 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetBool(so, "jumpEnabled", false);
                 SerializedFields.SetBool(so, "leapEnabled", false);
             });
+            // The saddle is a seat: whoever takes it, a player through the MountModule or a Strider
+            // through VesselSeats, sits down in the humanoid's Sit state instead of standing in it.
+            root.AddComponent<ChairPose>();
 
             var tracked = root.AddComponent<SpaceGame.World.SceneTracked>();
             SerializedFields.Edit(tracked, so =>
@@ -424,6 +427,9 @@ namespace SpaceGame.EditorTools
                 SerializedFields.Set(so, "seatPoint", riderSeat);
                 SerializedFields.SetVector3(so, "seatOffset", SeatOffset);
                 SerializedFields.SetBool(so, "spawnOnStart", true);
+                // NpcPassenger's default names the Clanker controller's flag; every Strider wears the
+                // humanoid controller, whose only seated flag is Seated. A missing name is skipped silently.
+                SerializedFields.SetString(so, "seatedAnimatorBool", SpaceGame.Presentation.HumanoidParams.Seated);
             });
 
             var gate = root.AddComponent<MonowheelDriverGate>();
@@ -467,7 +473,7 @@ namespace SpaceGame.EditorTools
                 seats[1 + i] = SeatMarker(body, $"{SideSeatPrefix}{i}", new Vector3(cushion.center.x, cushion.max.y, cushion.center.z));
             }
 
-            var chair = root.AddComponent<ChairPose>();
+            var chair = root.GetComponent<ChairPose>();   // the saddle's, added with the mount
             var vesselSeats = root.AddComponent<VesselSeats>();
             SerializedFields.Edit(vesselSeats, so =>
             {

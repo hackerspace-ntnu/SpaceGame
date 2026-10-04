@@ -1084,6 +1084,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
+| the rider stands upright in a monowheel's saddle instead of sitting | [Striders](systems/Striders.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
 | the rope is drawn in a wood texture, smeared once along its whole length | [Lasso](systems/Lasso.md) |
@@ -1726,4 +1727,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1270 symptoms, 430 paths, 65 docs -->
+<!-- 1271 symptoms, 430 paths, 65 docs -->

@@ -42,6 +42,24 @@ namespace SpaceGame.EditorTools
 
         private static Transform BodyOf(GameObject wheel) => wheel.transform.Find(StriderMonowheelBuilder.BodyName);
 
+        [TestCaseSource(nameof(AllPaths))]
+        public void EveryWheelSeatsItsRiderInAChair(string path)
+        {
+            GameObject wheel = Load(path);
+            Assert.IsNotNull(wheel.GetComponent<ChairPose>(),
+                $"{path}: without a ChairPose on the wheel its rider stands upright in the saddle");
+        }
+
+        [TestCaseSource(nameof(StriderVariants))]
+        public void TheNpcDriverRaisesTheHumanoidSeatedFlag(string variant)
+        {
+            var passenger = Load(StriderMonowheelBuilder.PrefabPath(variant)).GetComponent<NpcPassenger>();
+            Assert.IsNotNull(passenger, variant);
+            string flag = new SerializedObject(passenger).FindProperty("seatedAnimatorBool").stringValue;
+            Assert.AreEqual(SpaceGame.Presentation.HumanoidParams.Seated, flag,
+                            $"{variant}: the humanoid controller has no other seated flag; a wrong name is skipped silently");
+        }
+
         private static Transform[] Seats(GameObject wheel) =>
             BodyOf(wheel).GetComponentsInChildren<Transform>(true)
                 .Where(t => t.name.StartsWith(StriderMonowheelBuilder.SeatPrefix)).ToArray();

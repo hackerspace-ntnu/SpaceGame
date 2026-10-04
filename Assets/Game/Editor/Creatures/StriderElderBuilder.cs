@@ -152,9 +152,10 @@ namespace SpaceGame.EditorTools
             SerializedFields.Edit(health, so => { SerializedFields.SetInt(so, "maxHealth", Health); SerializedFields.SetInt(so, "currentHealth", Health); });
             root.AddComponent<HealthReactionModule>();
 
+            // No perception or targeting: the elder has nothing to fight with, and a target it can never
+            // fight counts as a fight for CrewShift, whose recall clock then pauses for good and keeps
+            // the city at its stop. It is still a Strider others see, target and defend.
             EntityFactionWiring.Ensure(root, System.IO.Path.GetFileNameWithoutExtension(PrefabPath));
-            root.AddComponent<PerceptionModule>();
-            root.AddComponent<AgentTargeting>();
 
             var travel = root.AddComponent<GoalTravelModule>();
             SerializedFields.Edit(travel, so => SerializedFields.SetInt(so, "priority", ModulePriority.Fallback + 1));

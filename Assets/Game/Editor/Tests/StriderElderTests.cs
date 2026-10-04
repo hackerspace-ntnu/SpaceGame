@@ -73,6 +73,8 @@ namespace SpaceGame.EditorTools
             var faction = new SerializedObject(elder.GetComponent<EntityFaction>()).FindProperty("faction").objectReferenceValue;
             Assert.AreEqual(AssetDatabase.LoadAssetAtPath<FactionDefinition>(RosterAuthoring.StriderFactionPath), faction);
             Assert.IsNull(elder.GetComponent<CloseCombatModule>(), "the elder has no attack of its own");
+            Assert.IsNull(elder.GetComponent<AgentTargeting>(),
+                "a target it can never fight counts as a fight for CrewShift: the recall clock would pause for good and the city never leave");
             Assert.IsNull(elder.GetComponent<AgentRangedCombatModule>());
         }
 

@@ -178,10 +178,10 @@ namespace SpaceGame.EditorTools
         {
             Transform leaf = Leaf(hinge);
             Vector3 axis = HingeAxis(hinge);
-            BoxCollider box = AddLeafCollider(hinge, leaf);
-            float sign = FreerSide(root, hinge, axis, leaf, box, degrees);
+            Collider hull = AddLeafCollider(leaf);
+            float sign = FreerSide(root, hinge, axis, leaf, hull, degrees);
             AddSwitch(leaf.gameObject, AddPart(hinge, hinge.InverseTransformDirection(axis), sign * degrees));
-            return box;
+            return hull;
         }
 
         /// A hatch lid used like a door (the stern hatch): swings out, away from the hull and up.
@@ -189,10 +189,10 @@ namespace SpaceGame.EditorTools
         {
             Transform leaf = Leaf(hinge);
             Vector3 axis = HingeAxis(hinge);
-            BoxCollider box = AddLeafCollider(hinge, leaf);
+            Collider hull = AddLeafCollider(leaf);
             float sign = SwingSign(hinge, axis, leaf, LidOpenDegrees, c => Outward(root, hinge, c));
             AddSwitch(leaf.gameObject, AddPart(hinge, hinge.InverseTransformDirection(axis), sign * LidOpenDegrees));
-            return box;
+            return hull;
         }
 
         /// A side hatch: the lid opens outward and up; the HatchPassage sits on the lid (what the player looks
@@ -205,7 +205,7 @@ namespace SpaceGame.EditorTools
 
             Transform lid = Leaf(hinge);
             Vector3 axis = HingeAxis(hinge);
-            BoxCollider box = AddLeafCollider(hinge, lid);
+            Collider hull = AddLeafCollider(lid);
             float sign = SwingSign(hinge, axis, lid, LidOpenDegrees, c => Outward(root, hinge, c));
             ArticulatedPart part = AddPart(hinge, hinge.InverseTransformDirection(axis), sign * LidOpenDegrees);
             var switchGo = new GameObject("LidSwitch");
@@ -214,7 +214,7 @@ namespace SpaceGame.EditorTools
             lid.gameObject.AddComponent<HatchPassage>().Configure(sw, part, Find(parts, $"HATCH_{side}_Outer"), sill,
                                                                   Find(parts, $"HATCH_{side}_Inner"), null);
             sills.Add(sill);
-            return box;
+            return hull;
         }
 
         private static Transform Leaf(Transform hinge) =>
@@ -235,14 +235,15 @@ namespace SpaceGame.EditorTools
         /// The sign that moves the leaf's centre furthest along `score`.
         private static float SwingSign(Transform hinge, Vector3 axis, Transform leaf, float degrees, System.Func<Vector3, float> score)
         {
-            Vector3 c = leaf.GetComponent<Renderer>().bounds.center - hinge.position;
+            Vector3 c = LeafOffset(hinge, axis, leaf);
             return score(Quaternion.AngleAxis(degrees, axis) * c) >= score(Quaternion.AngleAxis(-degrees, axis) * c) ? 1f : -1f;
         }
 
         /// The sign whose swept leaf, at full swing, overlaps fewer of the barge's own colliders (the scene the
         /// builder runs in may have anything else at the origin).
-        private static float FreerSide(GameObject root, Transform hinge, Vector3 axis, Transform leaf, BoxCollider own, float degrees)
+        private static float FreerSide(GameObject root, Transform hinge, Vector3 axis, Transform leaf, Collider own, float degrees)
         {
+            LeafOffset(hinge, axis, leaf);
             Bounds local = leaf.GetComponent<MeshFilter>().sharedMesh.bounds;
             Vector3 half = Vector3.Scale(local.extents, leaf.lossyScale) * 0.9f;
             int Blocked(float sign)
@@ -277,27 +278,29 @@ namespace SpaceGame.EditorTools
             return sw;
         }
 
-        /// A box fitted in the hinge's frame - along the hinge, out to the leaf's far edge, through its thickness -
-        /// on a child of the leaf, since a collider cannot turn on its own transform. Fitted in the mesh's own
-        /// axes, the side-hatch lids (tilted in their mesh frame) came out half a metre thick and stood out over
-        /// the fender, right where the crawl starts and the fender ladders step off.
-        private static BoxCollider AddLeafCollider(Transform hinge, Transform leaf)
+        /// From the hinge to the leaf's centre. A leaf centred on its own hinge has no side to swing to, which
+        /// is a rig fault rather than anything the builder can choose for it.
+        private static Vector3 LeafOffset(Transform hinge, Vector3 axis, Transform leaf)
         {
-            Vector3 along = HingeAxis(hinge);
-            Vector3 across = Vector3.ProjectOnPlane(leaf.GetComponent<Renderer>().bounds.center - hinge.position, along);
-            if (across.sqrMagnitude < 1e-6f)
+            Vector3 offset = leaf.GetComponent<Renderer>().bounds.center - hinge.position;
+            if (Vector3.ProjectOnPlane(offset, axis).sqrMagnitude < 1e-6f)
                 throw new System.InvalidOperationException($"{leaf.name} is centred on its own hinge - re-rig with dune_barge_rig.py.");
+            return offset;
+        }
+
+        /// The leaf's own convex hull, on a child of the leaf (the Interactor and the tests resolve it by
+        /// name). It is exactly the shape dune_barge_export.py's Obstacles clears every set-down spot
+        /// against, so the two tools share one model of the lid. An oriented box around a curved lid is
+        /// larger than that hull and overlapped two ladder exits and a hatch mark per variant.
+        private static Collider AddLeafCollider(Transform leaf)
+        {
             var go = new GameObject(LeafColliderName);
             go.transform.SetParent(leaf, false);
-            go.transform.rotation = Quaternion.LookRotation(Vector3.Cross(along, across), across);
-            Vector3[] verts = leaf.GetComponent<MeshFilter>().sharedMesh.vertices;
-            var b = new Bounds(go.transform.InverseTransformPoint(leaf.TransformPoint(verts[0])), Vector3.zero);
-            foreach (Vector3 v in verts) b.Encapsulate(go.transform.InverseTransformPoint(leaf.TransformPoint(v)));
-            BoxCollider box = go.AddComponent<BoxCollider>();
-            box.center = b.center;
-            box.size = b.size;
+            var hull = go.AddComponent<MeshCollider>();
+            hull.sharedMesh = leaf.GetComponent<MeshFilter>().sharedMesh;
+            hull.convex = true;
             Physics.SyncTransforms();
-            return box;
+            return hull;
         }
 
         private static void Rebind(HatchPassage passage, Collider[] hull)

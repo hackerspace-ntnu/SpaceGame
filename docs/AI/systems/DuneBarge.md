@@ -27,8 +27,9 @@ symptoms:
   - "I can't walk from the barge's stair into the cockpit"
   - "getting off a barge ladder or out of a hatch crawl shoves me sideways or through the hull"
   - "the dune barge export fails with 'no room for the player's body'"
+  - "DuneBargePrefabTests says a ladder exit or hatch mark is inside LeafCollider"
 reads_with: [Vehicles, Ladders, PlayerCharacter, SceneTransitions, ArtPipeline]
-updated: 2026-09-25
+updated: 2026-10-04
 ---
 
 # Dune barge
@@ -154,7 +155,7 @@ The track links are not boned. Stepping them along the belt is a runtime job, as
 - **The stair itself is 34°.** The ramp is capped at 32° (the angle the player ship's ramp walks at, just under where friction lets go), so its foot starts a little behind the first tread.
 - **A convex hull of a concave shell fills whatever it wraps.** The hull body under the cockpit (`Cube.001`/`.015`) is a tub. Hulled whole, it filled the cockpit. Hulled around one room only, its "above the nook" part was the ring of vertices at the walls' knee, which hulled into a slab across the cockpit. `carve` cuts against *every* room and the stairwell, on the boxes' exact faces, so it always terminates. The belly has its own rule and is skipped by the general loop; carved as well, it filled the hold.
 - **The stairwell needs a landing.** On `DuneBarge` the measured cockpit room stops 0.35 m short of the stair's top edge, and a slab of hull stood in that gap. The clear box runs `STAIR_LANDING` past the edge.
-- **Leaf and lid colliders are oriented boxes on a `LeafCollider` child.** The side-hatch lids are tilted in their own mesh frame, so a box in mesh axes was 0.85 m thick and stood over the fender where the crawl starts and the fender ladders step off. The interactable is found by `GetComponentInParent`, like the `Interactor`.
+- **Leaf and lid colliders are convex `MeshCollider`s of the leaf mesh, on a `LeafCollider` child.** That hull is exactly the shape `dune_barge_export.py`'s `Obstacles` slides every set-down spot clear of, so Blender and Unity share one model of each lid. Until 2026-10-04 they were oriented boxes fitted in the hinge frame, and a box around a curved lid is bigger than its hull: two ladder exits and two hatch outer marks per variant sat a few cm inside a shut lid's box. (Boxes in the mesh's own axes were worse still: the tilted side-hatch lids came out 0.85 m thick over the fender.) The interactable is found by `GetComponentInParent`, like the `Interactor`.
 - **Furniture boxes never span collections.** An engine box merged with the jerrican beside it and walled off the corner between them, which was the only floor under the left hatch.
 - **The Compact's lookout-cabin door has a 0.2 m lip.** The cabin floor sits below the castle roof outside, and the player has no step offset. This is a model issue.
 - **The coaming ring is visual only.** The user enlarged it, so only about 0.5 m of fender top is left outboard of it, which is why the crawl starts 0.3 m out.

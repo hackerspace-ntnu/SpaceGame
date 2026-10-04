@@ -482,6 +482,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Destroying components immediately is not permitted during physics trigger/contact, from RagdollRig.RebuildJoints | [Combat](systems/Combat.md) |
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
+| DuneBargePrefabTests says a ladder exit or hatch mark is inside LeafCollider | [DuneBarge](systems/DuneBarge.md) |
 | dust keeps pouring out while the monowheel is in the air | [Monowheel](systems/Monowheel.md) |
 | editing a script while the game is running kills my camera and controls for the rest of the session | [PlayerCharacter](systems/PlayerCharacter.md) |
 | editing palette.blend does not change a model that uses those materials | [ArtPipeline](systems/ArtPipeline.md) |
@@ -1737,4 +1738,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1280 symptoms, 431 paths, 65 docs -->
+<!-- 1281 symptoms, 431 paths, 65 docs -->

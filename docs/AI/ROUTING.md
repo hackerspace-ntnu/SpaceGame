@@ -86,6 +86,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData | [Multiplayer](systems/Multiplayer.md) |
 | a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes | [WorldStreaming](systems/WorldStreaming.md) |
 | a client sees no damage numbers at all, or its own shots do nothing | [Combat](systems/Combat.md) |
+| a client sees the objective but never hears the lander's briefing | [Objectives](systems/Objectives.md) |
 | a client sits on the loading screen forever and the console repeats still waiting on terrain streaming | [UI](systems/UI.md) |
 | a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing | [WorldStreaming](systems/WorldStreaming.md) |
 | a client that joined while the host was streaming chunks has every settlement object twice, and 'Server Scene Handle already exist!' in its log | [Multiplayer](systems/Multiplayer.md) |
@@ -367,6 +368,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a seated resident's body is dragged off its seat, or its NavMeshAgent is enabled while it sits | [Seats](systems/Seats.md) |
 | a seated resident's legs pass through the pot or cushion it sits on | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a seated resident's legs pass through the pot or cushion it sits on | [Seats](systems/Seats.md) |
+| a second belly turbine appears by the wreck after loading the world | [Objectives](systems/Objectives.md) |
 | a second copy of my gauntlet or jetpack appears at my feet and falls through the world | [BodyEquipment](systems/BodyEquipment.md) |
 | a second copy of the item I am holding appears at my feet and falls through the world | [Inventory](systems/Inventory.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
@@ -979,6 +981,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the console warns that a hull module measures more than any surface on the pack | [PlayerShip](systems/PlayerShip.md) |
 | the console warns that HoloProjector or RepairStation carries a SaveableEntity nested inside PlayerShip | [PlayerShip](systems/PlayerShip.md) |
 | the controls came back in the middle of being frozen, foamed or swallowed | [Diagnostics](systems/Diagnostics.md) |
+| the controls checklist does not tick while I am still strapped into the seat | [Objectives](systems/Objectives.md) |
+| the controls checklist is stuck on waiting for the rest of the crew | [Objectives](systems/Objectives.md) |
 | the corpse stays suspended in the air with its brain switched off | [Combat](systems/Combat.md) |
 | the craft grinds along a rock face forever instead of crashing | [Ornithopter](systems/Ornithopter.md) |
 | the craft is hauled into the cliff it was hooked to | [Ornithopter](systems/Ornithopter.md) |
@@ -1024,6 +1028,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the fire looks like a raft of orange bubbles rather than flames | [Flamethrower](systems/Flamethrower.md) |
 | the fire on a burning creature is a fireball wider than the creature itself | [Flamethrower](systems/Flamethrower.md) |
 | the fire on a burning creature is the same size as the fire on a burning crate | [Flamethrower](systems/Flamethrower.md) |
+| the first objective completes before I have pressed any keys | [Objectives](systems/Objectives.md) |
+| the first objective completes on its own while the ship is still falling | [Objectives](systems/Objectives.md) |
 | the first-person camera creeps forward out of the helmet as I look at my feet | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the flame grows back up into the fuel tank | [Jetpack](systems/Jetpack.md) |
 | the flame is a few dim specks and the console is clean | [Flamethrower](systems/Flamethrower.md) |
@@ -1112,6 +1118,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the jetpack switches itself off in mid-air while I am working the throttle | [Jetpack](systems/Jetpack.md) |
 | the key strip on the terminal renders pink | [Terminal](systems/Terminal.md) |
 | the lamp on my pack stays green even though the tank on it is empty | [Backpack](systems/Backpack.md) |
+| the lander's briefing plays again every time the world is loaded | [Objectives](systems/Objectives.md) |
 | the lantern needs a different button to pick up than every other loose item | [Placeables](systems/Placeables.md) |
 | the laser staff burns straight through a rope and nothing happens | [RopeCutting](systems/RopeCutting.md) |
 | the laser staff sticks straight out of the mat at 90 degrees instead of lying flat like everything else | [Backpack](systems/Backpack.md) |
@@ -1158,6 +1165,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
 | the nozzle tips never go red however hot the pack gets | [Jetpack](systems/Jetpack.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
+| the objective line never appears on the visor after the crash | [Objectives](systems/Objectives.md) |
 | the off hand grips empty air in front of a one-handed item | [Inventory](systems/Inventory.md) |
 | the open inner airlock door glitches where the two leaves meet | [ColonyInterior](systems/ColonyInterior.md) |
 | the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
@@ -1520,6 +1528,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement/Streets` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement/Terrace` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/SingularityWell.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/SandstormSaveable.cs` | [Environment](systems/Environment.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/SkyTribeFaction.asset` | [SkyTribe](systems/SkyTribe.md) |
@@ -1527,6 +1536,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/ScriptableObjects/Versus/VersusShipSpawnConfig.asset` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitFlight.cs` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorProjection.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/World/Environment/ColorGrade/PaletteShape.cs` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/` | [Residents](systems/Residents.md) |
@@ -1540,6 +1550,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/PlayerPushing.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/PlayerSeating.cs` | [Seats](systems/Seats.md) |
+| `Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [ColonyResidents](systems/ColonyResidents.md) |
@@ -1768,6 +1779,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Persistence/Format/` | [Persistence](systems/Persistence.md) |
 | `Assets/Game/Scripts/Gameplay/Versus/Runtime/` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/` | [PlayerCharacter](systems/PlayerCharacter.md) |
+| `Assets/Game/Scripts/Presentation/Objectives/` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Presentation/UI/Widgets/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Scripts/agents/Residents/Visits/` | [HouseVisits](systems/HouseVisits.md) |
@@ -1820,6 +1832,7 @@ Longest match wins.
 | `Assets/Game/Resources/AudioCatalog.asset` | [audio](systems/audio.md) |
 | `Assets/Game/ScriptableObjects/Residents/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction` | [InteractionSystem](systems/InteractionSystem.md) |
+| `Assets/Game/Scripts/Gameplay/Objectives/` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Presentation/Cameras` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Presentation/Speech/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Presentation/Speech/` | [UI](systems/UI.md) |
@@ -1952,4 +1965,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1430 symptoms, 496 paths, 79 docs -->
+<!-- 1438 symptoms, 501 paths, 80 docs -->

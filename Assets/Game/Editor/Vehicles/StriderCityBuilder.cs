@@ -213,41 +213,16 @@ namespace SpaceGame.EditorTools
             float side = hull.center.z;
             var centre = new Vector3(deck.center.x, top, deck.center.z);
 
-            var seatsRoot = new GameObject("CrewPosts").transform;
-            seatsRoot.SetParent(root.transform, false);
-            var posts = new Transform[CrewPosts];
+            var spots = new Vector3[CrewPosts];
             for (int i = 0; i < CrewPosts; i++)
             {
                 (bool onRight, PostRow row) = PostLayout[i];
                 float z = row switch { PostRow.Front => front, PostRow.Back => back, _ => side };
-                var spot = new Vector3(onRight ? right : left, top, z);
-
-                var post = new GameObject($"Post_{i}").transform;
-                post.SetParent(seatsRoot, false);
-                post.localPosition = spot;
-                Vector3 outward = spot - centre;
-                outward.y = 0f;
-                post.localRotation = Quaternion.LookRotation(outward.normalized, Vector3.up);   // lookouts face out
-                posts[i] = post;
+                spots[i] = new Vector3(onRight ? right : left, top, z);
             }
 
-            var gangway = new GameObject("Gangway").transform;
-            gangway.SetParent(root.transform, false);
-            gangway.localPosition = new Vector3(deck.max.x + GangwayStandoff / root.transform.lossyScale.x, 0f, deck.center.z);
-
-            var chair = root.AddComponent<ChairPose>();
-            var seats = root.AddComponent<VesselSeats>();
-            SerializedFields.Edit(seats, so =>
-            {
-                SerializedProperty array = so.FindProperty("seats");
-                array.arraySize = posts.Length;
-                for (int i = 0; i < posts.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = posts[i];
-                SerializedFields.SetFloat(so, "navMeshReach", GangwayNavMeshReach);
-                SerializedFields.Set(so, "chairPose", chair);
-            });
-
-            var shift = root.AddComponent<CrewShift>();
-            SerializedFields.Edit(shift, so => SerializedFields.Set(so, "gangway", gangway));
+            var gangway = new Vector3(deck.max.x + GangwayStandoff / root.transform.lossyScale.x, 0f, deck.center.z);
+            CrewDeckWiring.AddCrewDeck(root, spots, centre, gangway, GangwayNavMeshReach);
             return true;
         }
 

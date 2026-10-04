@@ -63,6 +63,12 @@ namespace SpaceGame.EditorTools
             if (p != null) p.stringValue = value;
         }
 
+        public static void SetVector2(SerializedObject so, string name, Vector2 value)
+        {
+            SerializedProperty p = Find(so, name);
+            if (p != null) p.vector2Value = value;
+        }
+
         public static void SetVector3(SerializedObject so, string name, Vector3 value)
         {
             SerializedProperty p = Find(so, name);

@@ -1489,6 +1489,7 @@ Longest match wins.
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Tests/MonowheelPoseMathTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/StriderTribeAssetTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Prefabs/agents/Characters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StrapOnBooster` | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -1565,6 +1566,8 @@ Longest match wins.
 | `Assets/Game/Editor/Support/DustCloudRecipe.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/BoosterClampTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/HatchPassageTests.cs` | [DuneBarge](systems/DuneBarge.md) |
+| `Assets/Game/Editor/Tests/StriderBargeTests.cs` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Editor/Vehicles/CrewDeckWiring.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Effects/BodyFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/` | [Persistence](systems/Persistence.md) |
@@ -1738,4 +1741,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1281 symptoms, 431 paths, 65 docs -->
+<!-- 1281 symptoms, 434 paths, 65 docs -->

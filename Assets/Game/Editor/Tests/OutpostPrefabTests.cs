@@ -86,6 +86,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void APieceShowsExactlyTheMeshesTheBlendKeptUnderIt()
         {
+            int checkedPieces = 0, hiddenParts = 0;
             foreach (OutpostLayout layout in layouts.outposts)
             {
                 Transform pieces = contents[layout.name].transform.Find("Pieces");
@@ -96,15 +97,20 @@ namespace SpaceGame.EditorTools
                     Transform piece = pieces.Find($"{row.kind}_{counts[row.kind]:00}");
                     if (OutpostItemModels.IsItem(row.kind)) continue;
 
-                    Renderer[] all = piece.GetComponentsInChildren<Renderer>(true);
+                    Renderer[] all = OutpostPrefabBuilder.OwnRenderers(piece);
                     if (!all.Any(r => row.parts.Contains(r.name))) continue;   // a one-mesh prefab names its mesh after the decoration
 
-                    string[] shown = piece.GetComponentsInChildren<Renderer>(false).Select(r => r.name).Distinct().ToArray();
+                    checkedPieces++;
+                    hiddenParts += all.Count(r => !r.gameObject.activeInHierarchy);
+                    string[] shown = all.Where(r => r.gameObject.activeInHierarchy).Select(r => r.name).Distinct().ToArray();
 
                     CollectionAssert.AreEquivalent(row.parts, shown.Where(row.parts.Contains), $"{layout.name}/{piece.name}: a part the blend kept is hidden");
                     CollectionAssert.IsEmpty(shown.Except(row.parts), $"{layout.name}/{piece.name}: a part the blend removed is shown");
                 }
             }
+
+            Assert.Greater(checkedPieces, 100, "the part check looked at (almost) no piece");
+            Assert.Greater(hiddenParts, 0, "the blend removed parts (a bell frame's roof, bell and rope) and none is hidden");
         }
 
         [Test]

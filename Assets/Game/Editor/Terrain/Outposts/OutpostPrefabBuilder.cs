@@ -140,11 +140,35 @@ namespace SpaceGame.EditorTools.Outposts
 
             // A prefab whose model is one mesh names it after the decoration (deco_tableware_set), not after the part: nothing to match, nothing to hide.
             var kept = new HashSet<string>(row.parts);
-            Renderer[] renderers = instance.GetComponentsInChildren<Renderer>(true);
+            Renderer[] renderers = OwnRenderers(instance);
             if (!renderers.Any(r => kept.Contains(r.name))) return;
 
             foreach (Renderer renderer in renderers)
                 if (!kept.Contains(renderer.name)) renderer.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// The renderers of the piece's own model, not of a decoration prefab nested in it (the stool Seat Placer stood under a cushion pile
+        /// is no part of the blend's piece). A piece's own meshes come from an FBX instance; a nested decoration is a .prefab instance.
+        /// </summary>
+        public static Renderer[] OwnRenderers(Transform piece)
+        {
+            string own = AssetDatabase.GetAssetPath(PrefabUtility.GetCorrespondingObjectFromSource(piece.gameObject));
+            return piece.GetComponentsInChildren<Renderer>(true).Where(r => !InsideAnotherPrefab(r.transform, piece, own)).ToArray();
+        }
+
+        // Between the renderer and the piece sits a nested decoration when some prefab instance root there was made from another .prefab
+        // (the piece's own meshes sit under an FBX instance, made from an .fbx).
+        private static bool InsideAnotherPrefab(Transform renderer, Transform piece, string ownPrefab)
+        {
+            for (Transform node = renderer; node != null && node != piece; node = node.parent)
+            {
+                if (!PrefabUtility.IsAnyPrefabInstanceRoot(node.gameObject)) continue;
+
+                string source = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(node.gameObject);
+                if (source.EndsWith(".prefab") && source != ownPrefab) return true;
+            }
+            return false;
         }
 
         // A decoration is its own prefab; a carried item or tool stood about as scenery is a model of the item, whose origin is

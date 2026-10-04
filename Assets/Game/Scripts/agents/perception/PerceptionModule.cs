@@ -1,11 +1,11 @@
 // Line-of-sight and field-of-view gate for entity targeting.
-// Other modules call CanSee(target) before acting. Fully optional — remove it and modules
+// Other modules call CanSeeCached(target) before acting. Fully optional — remove it and modules
 // revert to radius-only detection. Emits noise when target is spotted (for alert system).
 // Also supports a "last seen" position used by SearchModule.
 //
 // Authoritative perception API — other modules should route here instead of re-implementing
 // FOV/LoS. Public entry points:
-//   CanSee(target)                     — full FOV + LoS from the eye, updates memory
+//   CanSeeCached(target)               — full FOV + LoS from the eye, re-cast on an interval, updates memory
 //   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV, no memory update
 //   HasLineOfSightFrom(origin, target) — LoS to the body only, from an arbitrary origin (e.g. a weapon muzzle)
 using System.Collections.Generic;
@@ -46,6 +46,11 @@ namespace SpaceGame.Agents
                  "top grazes a ceiling or an overhang the head itself would be under.")]
         [SerializeField] private float headInset = 0.15f;
 
+        [Tooltip("Seconds between line-of-sight re-checks of the target the agent is tracking " +
+                 "(CanSeeCached). A new target is checked at once. Each check is up to two rays, " +
+                 "every agent pays it, and a target does not dodge behind cover in a fifth of a second.")]
+        [SerializeField, Min(0f)] private float sightRecheckInterval = 0.2f;
+
         [Header("Memory")]
         [Tooltip("How long the entity remembers the last known position after losing sight.")]
         [SerializeField] private float memoryDuration = VisionBaseline.MinMemory;
@@ -65,8 +70,25 @@ namespace SpaceGame.Agents
 
         public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
         public float MemoryDuration => memoryDuration;
+        public float SightRecheckInterval => sightRecheckInterval;
 
         private NoiseEmitter noiseEmitter;
+
+        // Resolved on first use rather than in Awake, which EditMode tests never run.
+        private AgentController passenger;
+        private bool passengerResolved;
+
+        // CanSeeCached's answer and whom it was cast at.
+        private Transform sightCachedTarget;
+        private bool sightCachedVisible;
+        private float sightRecheckTimer;
+
+        // Instance, not shared: grown in place and kept, like WalkerGround's. A full buffer is
+        // grown and re-cast (see IsUnobstructed); the cap is the most colliders one sight line is
+        // ever expected to cross.
+        private RaycastHit[] sightHits = new RaycastHit[InitialSightHits];
+        private const int InitialSightHits = 16;
+        private const int MaxSightHits = 512;
         private Vector3 prevPosition;
         private bool isMoving;
 
@@ -107,8 +129,18 @@ namespace SpaceGame.Agents
             }
         }
 
+        private void OnEnable()
+        {
+            // A random phase, so a crowd enabled on the same frame does not re-cast in step (the
+            // AgentController.speedVariationPhase precedent).
+            sightRecheckTimer = Random.Range(0f, sightRecheckInterval);
+            sightCachedTarget = null;
+        }
+
         private void Update()
         {
+            TickSightRecheck(Time.deltaTime);
+
             if (HasLastKnownPosition)
                 TimeSinceLastSeen += Time.deltaTime;
 
@@ -122,22 +154,38 @@ namespace SpaceGame.Agents
             prevPosition = transform.position;
         }
 
-        // Full perception check: FOV + LoS from the eye. Updates last-known memory when visible.
-        // Only call this for the target the agent is actually committed to — see IsVisible().
-        public bool CanSee(Transform target)
+        /// <summary>
+        /// Full perception check (FOV + LoS from the eye) for the target the agent is tracking every
+        /// frame; updates last-known memory while visible. Re-cast only every
+        /// <see cref="sightRecheckInterval"/> or when the target changes, and between casts the last
+        /// answer stands. Only call this for the target the agent is committed to — see IsVisible().
+        /// </summary>
+        public bool CanSeeCached(Transform target)
         {
-            if (!IsVisible(target))
+            if (!target)
+                return false;
+
+            if (target != sightCachedTarget || sightRecheckTimer <= 0f)
+            {
+                sightCachedTarget = target;
+                sightCachedVisible = IsVisible(target);
+                sightRecheckTimer = sightRecheckInterval;
+            }
+
+            if (!sightCachedVisible)
                 return false;
 
             LastKnownPosition = target.position;
             HasLastKnownPosition = true;
             TimeSinceLastSeen = 0f;
-
             return true;
         }
 
+        /// <summary>Advance the re-check clock. Update calls it; public so a test can step it.</summary>
+        public void TickSightRecheck(float deltaTime) => sightRecheckTimer -= deltaTime;
+
         // FOV + LoS with no memory side effect. Use when testing candidates the agent has not
-        // committed to: CanSee() writes LastKnownPosition, so scoring a crowd with it would
+        // committed to: CanSeeCached() writes LastKnownPosition, so scoring a crowd with it would
         // overwrite the memory of the target actually being tracked.
         public bool IsVisible(Transform target)
         {
@@ -209,6 +257,13 @@ namespace SpaceGame.Agents
             return head;
         }
 
+        /// <summary>
+        /// LoS from <paramref name="origin"/> to an explicit <paramref name="point"/> on
+        /// <paramref name="target"/> (a led aim point), under the same self / carrier / target rules.
+        /// </summary>
+        public bool HasLineOfSightFrom(Vector3 origin, Vector3 point, Transform target)
+            => IsUnobstructed(origin, point, target);
+
         // LoS to the target's body from an arbitrary origin (e.g. a weapon muzzle). Ignores hits on
         // self and the target itself.
         public bool HasLineOfSightFrom(Vector3 origin, Transform target)
@@ -242,18 +297,40 @@ namespace SpaceGame.Agents
             // Triggers are ignored: the project queries them by default (queriesHitTriggers), and a
             // trigger is never a wall. A ship's breathable-air volume hid a player 370 m away from
             // twelve of fifteen NPCs; interaction zones and streaming volumes would do the same.
-            RaycastHit[] hits = Physics.RaycastAll(origin, dir, distance, occlusionLayers,
-                                                   QueryTriggerInteraction.Ignore);
+            //
+            // Non-allocating, and a full buffer is grown and re-cast: RaycastNonAlloc drops whatever
+            // did not fit, unsorted, and the dropped hit could be the wall (WalkerGround.Ray).
+            int count = Physics.RaycastNonAlloc(origin, dir, sightHits, distance, occlusionLayers,
+                                                QueryTriggerInteraction.Ignore);
+            while (count >= sightHits.Length && sightHits.Length < MaxSightHits)
+            {
+                sightHits = new RaycastHit[sightHits.Length * 2];
+                count = Physics.RaycastNonAlloc(origin, dir, sightHits, distance, occlusionLayers,
+                                                QueryTriggerInteraction.Ignore);
+            }
+
+            // Seated cargo looks out through its carrier: crew sit inside their house's walls and
+            // see and shoot out of it (the user's call, 2026-10-04). NpcSeating parents the NPC under
+            // the carrier, so the carrier is the root above it. Gated on the cargo flag, never on
+            // the parent alone: an NPC parented under a scene container must not see through the
+            // whole container.
+            Transform carrier = IsSeatedCargo() && transform.parent != null ? transform.parent.root : null;
+
+            // The COLLIDER's transform, not hit.transform: that is the Rigidbody's, and a wall on a
+            // child of a kinematic root would read as the root (INVARIANTS: a query does not know
+            // what the solver was told).
             Transform blocker = null;
             float blockerDistance = float.PositiveInfinity;
-            for (int i = 0; i < hits.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                Transform t = hits[i].transform;
-                if (t == transform || t.IsChildOf(transform))
+                Transform t = sightHits[i].collider.transform;
+                if (t.IsChildOf(transform))
                     continue;
-                if (hits[i].distance >= blockerDistance)
+                if (carrier != null && t.IsChildOf(carrier))
                     continue;
-                blockerDistance = hits[i].distance;
+                if (sightHits[i].distance >= blockerDistance)
+                    continue;
+                blockerDistance = sightHits[i].distance;
                 blocker = t;
             }
 
@@ -261,12 +338,22 @@ namespace SpaceGame.Agents
             return blocker == null || blocker == target || blocker.IsChildOf(target);
         }
 
+        private bool IsSeatedCargo()
+        {
+            if (!passengerResolved)
+            {
+                passenger = GetComponent<AgentController>();
+                passengerResolved = true;
+            }
+            return passenger != null && passenger.RidesAsPassenger;
+        }
+
         /// <summary>
         /// Restore-only. Called by the save system; do not call from gameplay.
         ///
         /// This component keeps a second copy of the same memory <c>AgentTargeting</c> keeps, written
-        /// from <see cref="CanSee"/>. Only one of them is persisted — AgentTargeting's, which is the
-        /// authority, since it is the caller that decides when <see cref="CanSee"/> runs at all. This
+        /// from <see cref="CanSeeCached"/>. Only one of them is persisted — AgentTargeting's, which is the
+        /// authority, since it is the caller that decides when <see cref="CanSeeCached"/> runs at all. This
         /// method exists so <c>AgentStateSaveable</c> can push that one answer into both, rather than
         /// letting a second saver restore a copy that could disagree with the first.
         ///

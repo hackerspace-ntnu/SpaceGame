@@ -84,6 +84,8 @@ namespace SpaceGame.Agents
         [Tooltip("Require line of sight before firing. Off makes the NPC shoot through the terrain.")]
         [SerializeField] private bool requireLineOfSight = true;
 
+        [Tooltip("Sight blockers for an NPC with no PerceptionModule. With one, the shot line uses " +
+                 "perception's occlusion layers and its self / carrier / target rules instead.")]
         [SerializeField] private LayerMask lineOfSightBlockers = ~0;
 
         [Header("Facing")]
@@ -110,6 +112,7 @@ namespace SpaceGame.Agents
 
         private EntityEquipmentController equipment;
         private HealthComponent health;
+        private PerceptionModule perception;
 
         private float cooldownTimer;
         private int burstRemaining;
@@ -131,6 +134,7 @@ namespace SpaceGame.Agents
         {
             equipment = GetComponent<EntityEquipmentController>();
             health = GetComponent<HealthComponent>();
+            perception = GetComponent<PerceptionModule>();
 
             if (equipment == null)
             {
@@ -260,7 +264,7 @@ namespace SpaceGame.Agents
 
             Vector3 aim = PredictAimPoint(target);
 
-            if (requireLineOfSight && !HasLineOfSight(aim))
+            if (requireLineOfSight && !HasLineOfSight(aim, target))
                 return;
 
             // Aim continuously while in the band, whether or not the cooldown is up. Swinging onto
@@ -402,11 +406,17 @@ namespace SpaceGame.Agents
             return origin + deviation * (direction / distance) * distance;
         }
 
-        private bool HasLineOfSight(Vector3 aim)
+        private bool HasLineOfSight(Vector3 aim, Transform target)
         {
             using ProfilerMarker.AutoScope sample = LineOfSightMarker.Auto();
 
             Vector3 origin = equipment.FireOrigin;
+
+            // One copy of the rules: perception ignores this NPC's own colliders, its carrier's when
+            // it rides as cargo (crew fire out of their house), and the target's.
+            if (perception != null)
+                return perception.HasLineOfSightFrom(origin, aim, target);
+
             Vector3 direction = aim - origin;
             float distance = direction.magnitude;
 

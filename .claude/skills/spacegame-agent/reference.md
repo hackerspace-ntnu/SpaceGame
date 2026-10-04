@@ -133,7 +133,7 @@ not `IFacingModule`. The only true `IFacingModule` implementors are `AgentRanged
 |---|---|---|
 | `AlertReceiverModule` | Reactive-1 = 19 | `AgentTargeting.ForceTarget` from an ally's `AlertBroadcaster` |
 | `NoiseReceiverModule` | Reactive-2 = 18 | Hears `NoiseEmitter` events; investigate or aggro per `NoiseType` |
-| `PerceptionModule` | n/a | FOV + LoS. `CanSee` writes memory, `IsVisible` does not. `occlusionLayers = Nothing` falls back to Default/Ground/Interior with a warning |
+| `PerceptionModule` | n/a | FOV + LoS. `CanSeeCached` writes memory and re-casts on `sightRecheckInterval`, `IsVisible` does not. Seated cargo (`RidesAsPassenger`) sees through its carrier. `occlusionLayers = Nothing` falls back to Default/Ground/Interior with a warning |
 
 ### Personality / tasks
 

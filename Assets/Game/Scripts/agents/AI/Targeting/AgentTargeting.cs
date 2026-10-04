@@ -516,9 +516,11 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // Cached: the held target's sight line is re-cast on PerceptionModule's interval, not
+            // every frame (CanSeeCached).
             CanSeeTarget = perception == null
                            || DistanceToTarget <= settings.proximityAcquireRange
-                           || perception.CanSee(Target);
+                           || perception.CanSeeCached(Target);
 
             if (CanSeeTarget)
             {
@@ -606,7 +608,7 @@ namespace SpaceGame.Agents
             if (distance <= settings.proximityAcquireRange)
                 return true;
 
-            // IsVisible, not CanSee: scoring a crowd with the memory-writing variant would
+            // IsVisible, not CanSeeCached: scoring a crowd with the memory-writing variant would
             // overwrite LastKnownPosition with whichever candidate happened to be checked last.
             return perception.IsVisible(candidate);
         }

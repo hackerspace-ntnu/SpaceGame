@@ -555,6 +555,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | how do I get a bug report out of a playtest | [Diagnostics](systems/Diagnostics.md) |
 | how do I run the tests or type-check the code without clicking around the Unity GUI | [Testing](systems/Testing.md) |
 | Hull_MountThirdPersonCamera or PassengerSeat1_MountThirdPersonCamera exists while nothing is mounted, or was saved into a scene file | [Vehicles](systems/Vehicles.md) |
+| HumanoidWiringAssetTests says a StriderNomad has hurtAnimTrigger Hurt, which Humanoid has no Trigger called | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | I added a binding to the .inputactions asset and nothing happens in game | [PlayerCharacter](systems/PlayerCharacter.md) |
 | I added a chunk or interior scene and nothing ever loads it | [Scenes](systems/Scenes.md) |
 | I am stopped by nothing walking past the ship's gear wall, or wedged in a doorway I used to fit through | [Backpack](systems/Backpack.md) |
@@ -1749,4 +1750,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1283 symptoms, 440 paths, 65 docs -->
+<!-- 1284 symptoms, 440 paths, 65 docs -->

@@ -542,6 +542,10 @@ namespace SpaceGame.EditorTools
                 ConfigureGait(root);
                 AddClothWind(root);
 
+                // After the modules exist, as ClankerStack does: it empties their Hurt/Death
+                // trigger names, which the humanoid controller has no parameters for.
+                CharacterActionWiring.Ensure(root);
+
                 // Every component this prefab needs must be added HERE. A rebuild overwrites the
                 // asset wholesale, so anything added by hand in the Inspector is silently gone.
                 AgentGroundConformWiring.Ensure(root);

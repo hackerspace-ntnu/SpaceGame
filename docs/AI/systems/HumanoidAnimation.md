@@ -13,6 +13,7 @@ paths:
   - Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs
   - Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs
 symptoms:
+  - "HumanoidWiringAssetTests says a StriderNomad has hurtAnimTrigger Hurt, which Humanoid has no Trigger called"
   - "[CharacterActions] 'X' has no state for action 'Y' — it was added after the controller was built"
   - "an action plays on the owner's screen and never on anyone else's"
   - "a gesture restarts halfway through on a remote player's body"
@@ -122,6 +123,7 @@ None. Everything is seconds long or re-asserted by gameplay state that already s
   evaluated yet, so the cleanup pass wiped the weight back to 0 before a single frame of the action
   rendered. The pick, the timers and the damage were all correct; the fight just looked like nobody
   was swinging. `LateUpdate` sees this frame's evaluated state, not last frame's.
+- **Every builder that writes a humanoid NPC calls `CharacterActionWiring.Ensure` itself:** `SculptCharacterBuilder` (drifters), `ClankerStack.Apply` (Clankers) and `NomadPrefabBuilder.BuildPrefab` (all nomads: Sand, Sky, Strider, the sky soldier). The Wire Humanoid Prefabs menu only reaches prefabs that exist when it runs, and a rebuild writes the prefab wholesale, so a builder that skips `Ensure` ships nomads with `Hurt`/`Death` trigger names the controller does not have and no `CharacterActions` (the Strider nomads did, until 2026-10-04). `NomadWiringTests` reads every nomad off disk.
 - **A humanoid Clanker body carries the Clanker stack PLUS the action wiring.** `ClankerStack.Apply` calls `CharacterActionWiring.Ensure`, so the Same Gev Dudios bodies (PatrolRobot 1-3, on `Humanoid.controller`) get the six `NpcComponents` and the RPR `Clanker.prefab` (its own controller) gets none. `ClankerPrefabTests.CarriesExactlyTheClankersComponents` expects exactly that, and `TheHumanoidWiringAddsExactlyItsNpcComponents` pins `NpcComponents` to what `Ensure` really adds; a component added to one but not the other fails there rather than as a 59-vs-65 count.
 - **Never hand-edit the controller** — run Audit first to see what a rebuild would erase.
 - **`CharacterActions` has no `Awake`, on purpose.** Other modules call it from their own `OnEnable` during `Instantiate`, and Unity raises Awake/OnEnable per component in list order; the wiring adds it LAST, so `AggressionTelegraphModule.OnEnable` reached it first and threw a NullReferenceException on every nomad spawn. Its tracks are built by a field initializer and everything else resolves on first use — keep it that way.

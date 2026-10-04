@@ -734,6 +734,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | sampling the skin around the eyes finds no vertices near either socket | [StylizedEyes](systems/StylizedEyes.md) |
 | scenes are full of missing prefab instances a GUID grep cannot find | [EditorTooling](systems/EditorTooling.md) |
 | scouts stay home in the column and nobody rides out | [Striders](systems/Striders.md) |
+| seated crew never shoot out of their walking house | [AgentSystem](systems/AgentSystem.md) |
 | selecting the grappling hook on the hotbar leaves my hands empty | [BodyEquipment](systems/BodyEquipment.md) |
 | setting transform.position on the player does nothing, it snaps back the same frame | [PlayerCharacter](systems/PlayerCharacter.md) |
 | shots at a monowheel rider hit the wheel instead | [Striders](systems/Striders.md) |
@@ -1732,4 +1733,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1275 symptoms, 431 paths, 65 docs -->
+<!-- Add symptoms/paths to the frontmatter of docs/AI/systems/*.md and regenerate. -->

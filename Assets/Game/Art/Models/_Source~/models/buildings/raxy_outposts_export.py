@@ -9,7 +9,8 @@ existing `Deco_<Kind>` prefabs (with their seats, spots, colliders and props) at
 
 An outpost is a spatial cluster of pieces (XY overlap, `GAP` margin), found the way the nomad builds were: collections
 do not group them. A `Root_` with no mesh under it, and anything further than `STRAY` metres from the origin, is a
-leftover and is left out. Pieces are written relative to their outpost's footprint centre on its floor -- z = 0, or the level
+leftover and is left out. Each row also lists the mesh parts still under its Root: the author deleted a roof, a bell, a rope from some pieces, and the
+prefab places the whole piece, so Unity switches off the parts that are not listed. Pieces are written relative to their outpost's footprint centre on its floor -- z = 0, or the level
 most of its pieces stand at when that is not 0 (`Outpost_Raxy_10` was built 2.4 m up on a platform, `Outpost_Raxy_05` half a
 metre down) -- in UNITY axes: (x, y, z) -> (-x, z, -y), the same flip every FBX takes through `_exportlib` (see `_exportlib.to_unity`).
 Piece-local axes follow, so a piece's rotation is the matrix P R P^T and its scale is permuted (sx, sz, sy).
@@ -65,7 +66,8 @@ def pieces_of(scene_objects):
                 xs.append(world.x)
                 ys.append(world.y)
         pieces.append({'obj': obj, 'kind': obj.name.split('.')[0][len('Root_'):],
-                       'box': (min(xs), min(ys), max(xs), max(ys))})
+                       'box': (min(xs), min(ys), max(xs), max(ys)),
+                       'parts': sorted({m.name.split('.')[0] for m in meshes})})
     return pieces
 
 
@@ -117,6 +119,7 @@ def piece_row(piece, origin):
     rotation = (P @ quat.to_matrix() @ P.transposed()).to_quaternion()
     return {'kind': piece['kind'],
             'name': piece['obj'].name,
+            'parts': piece['parts'],
             'position': [round(position.x, 4), round(position.y, 4), round(position.z, 4)],
             'rotation': [round(rotation.x, 5), round(rotation.y, 5), round(rotation.z, 5), round(rotation.w, 5)],
             'scale': [round(scale.x, 4), round(scale.z, 4), round(scale.y, 4)]}

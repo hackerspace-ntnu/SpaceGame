@@ -1359,6 +1359,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the white room does not exist — the singularity only makes bodies vanish where they stood | [BottledSingularity](systems/BottledSingularity.md) |
 | the white room is grey on one side, or the floor and the sky are different | [BottledSingularity](systems/BottledSingularity.md) |
 | the white sphere is opaque, or disappears when the camera is inside it | [BottledSingularity](systems/BottledSingularity.md) |
+| the whole screen is red in a built player while playing, and normal when the game is paused | [Visor](systems/Visor.md) |
 | the whole terrain chunk caught fire as one object | [Flamethrower](systems/Flamethrower.md) |
 | the whole town is paved in flagstone road | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | the whole world is missing from high up and the console is clean | [Environment](systems/Environment.md) |
@@ -1951,4 +1952,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1429 symptoms, 496 paths, 79 docs -->
+<!-- 1430 symptoms, 496 paths, 79 docs -->

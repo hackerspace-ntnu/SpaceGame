@@ -30,6 +30,9 @@ namespace SpaceGame.EditorTools.Outposts
         /// <summary>The decoration this is: <c>Seat_Clay</c> for <c>Deco_Seat_Clay</c>.</summary>
         public string kind;
         public string name;
+
+        /// <summary>The mesh parts still under this piece in the .blend: the author deletes a roof, a bell, a rope from some pieces.</summary>
+        public string[] parts = System.Array.Empty<string>();
         public float[] position;
         public float[] rotation;
         public float[] scale;

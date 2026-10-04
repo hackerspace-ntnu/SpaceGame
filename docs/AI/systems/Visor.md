@@ -33,8 +33,9 @@ symptoms:
   - "the visor describes what another player is looking at"
   - "the name and prompt move around the screen while I am reading them"
   - "the interact prompt sits above the target instead of under the crosshair"
+  - "the whole screen is red in a built player while playing, and normal when the game is paused"
 reads_with: [UI, Combat, PlayerCharacter, Multiplayer, InteractionSystem]
-updated: 2026-09-12
+updated: 2026-10-04
 ---
 
 # Visor
@@ -166,6 +167,7 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 - **The bracket moves; the info box does not.** They answer two different questions — the bracket says WHERE, the box says WHAT — and for a spell the box was placed above the bracket, which put the one element on the visor that is pure *text* in a different spot on every target, flipped it below the bracket near the ceiling, and slid it sideways as the head turned. Reading a name and a prompt is the only thing on this layer that takes longer than a glance, and text you have to find first is text you read late (`GDC-L1-UX-0003`). It is pinned back where `InteractionPromptUI` drew it, by an anchor **fraction** so it holds on any aspect ratio, and set once in `BuildInfoBox` rather than written every frame. If you make it follow something again, you are re-introducing this.
 - **The bracket snaps; the info box fades — different motions on purpose.** The bracket's oversize-in read as the suit acquiring a target; the info box cross-fades instead, because a hard cut while a live value (a winch, a helm) is changing under it reads as a flicker, not a new readout. Giving the box the bracket's snap curve, or the reverse, undoes the reason each was chosen.
 - **A nested `PlayerHUD` prefab instance can silently lose its `HelmetHUD` child.** `PlayerCharacter.prefab` nests `PlayerHUD.prefab`, and a prefab-instance override (`m_RemovedGameObjects`) on that nested instance can delete the `HelmetHUD` child without touching `PlayerHUD.prefab` itself — the source prefab still looks correct in isolation. `HelmetOverlayVisibility.Awake` then finds no `HelmetHUDController` (`GetComponentInChildren` comes back null, logged as a warning) and every later `Apply()` returns before touching `Vitals`/`Annotations`, so H visibly does nothing. Diagnose by checking `~/Library/Logs/Unity/Editor.log` for `"No HelmetHUDController under this canvas"`; fix by clearing the stale entry from the nested instance's `m_RemovedGameObjects` (or re-adding the child and re-applying the override) in `PlayerCharacter.prefab`, not in `PlayerHUD.prefab`.
+- **The vignette's shader is a serialized reference on `HelmetHUDController`, never `Shader.Find`.** Found by name it is stripped from a player build, and the old fallback to `UI/Default` drew each of the two full-rect arc panels as a solid `dangerColor` rectangle: a built player showed a completely red screen while playing, and nothing while paused (the HUD is hidden). It worked in the editor, where every shader is findable. `HelmetDangerVignette.Build(shader)` now logs an error and builds nothing when the reference is missing. Any other `Shader.Find` in a script is the same trap; see [Environment.md](Environment.md).
 
 ## Extending
 

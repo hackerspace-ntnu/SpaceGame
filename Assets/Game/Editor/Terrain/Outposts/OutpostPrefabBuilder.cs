@@ -126,9 +126,25 @@ namespace SpaceGame.EditorTools.Outposts
                 instance.transform.localPosition = row.Position + Vector3.down * lift;
                 instance.transform.localRotation = row.Rotation;
                 instance.transform.localScale = row.Scale;
+                if (!OutpostItemModels.IsItem(row.kind)) HideRemovedParts(instance.transform, row);
                 placed.Add(new PlacedPiece { row = row, name = name, instance = instance.transform });
             }
             return placed;
+        }
+
+        // The prefab is the whole decoration; the author's copy of it in the .blend may have lost parts (a bell frame without its roof,
+        // bell and rope). A mesh the .blend no longer has under this piece is switched off here, on the instance, not in the prefab.
+        private static void HideRemovedParts(Transform instance, OutpostPiece row)
+        {
+            if (row.parts.Length == 0) return;
+
+            // A prefab whose model is one mesh names it after the decoration (deco_tableware_set), not after the part: nothing to match, nothing to hide.
+            var kept = new HashSet<string>(row.parts);
+            Renderer[] renderers = instance.GetComponentsInChildren<Renderer>(true);
+            if (!renderers.Any(r => kept.Contains(r.name))) return;
+
+            foreach (Renderer renderer in renderers)
+                if (!kept.Contains(renderer.name)) renderer.gameObject.SetActive(false);
         }
 
         // A decoration is its own prefab; a carried item or tool stood about as scenery is a model of the item, whose origin is

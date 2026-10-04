@@ -7,6 +7,10 @@
     {
      "kind": "Awning_Large",
      "name": "Root_Awning_Large",
+     "parts": [
+      "Awning_Large_Frame",
+      "Awning_Large_Roof"
+     ],
      "position": [
       -3.8643,
       0.0,
@@ -27,6 +31,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       0.391,
       3.266,
@@ -47,6 +55,10 @@
     {
      "kind": "Awning_Wall",
      "name": "Root_Awning_Wall",
+     "parts": [
+      "Awning_Wall_Cloth",
+      "Awning_Wall_Frame"
+     ],
      "position": [
       2.5663,
       0.0,
@@ -67,6 +79,10 @@
     {
      "kind": "Awning_Wall",
      "name": "Root_Awning_Wall.001",
+     "parts": [
+      "Awning_Wall_Cloth",
+      "Awning_Wall_Frame"
+     ],
      "position": [
       1.8314,
       0.0,
@@ -87,6 +103,11 @@
     {
      "kind": "BannerPole_Single",
      "name": "Root_BannerPole_Single",
+     "parts": [
+      "BannerPole_Single_Arm",
+      "BannerPole_Single_Banner",
+      "BannerPole_Single_Pole"
+     ],
      "position": [
       1.1707,
       4.195,
@@ -107,6 +128,12 @@
     {
      "kind": "BannerPole_Twin",
      "name": "Root_BannerPole_Twin",
+     "parts": [
+      "BannerPole_Twin_BannerL",
+      "BannerPole_Twin_BannerR",
+      "BannerPole_Twin_Crossbar",
+      "BannerPole_Twin_Pole"
+     ],
      "position": [
       0.7414,
       2.8075,
@@ -127,6 +154,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       0.5618,
       5.9189,
@@ -147,6 +181,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower.001",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       -6.8859,
       0.0,
@@ -167,6 +208,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       0.5033,
       -0.1075,
@@ -187,6 +231,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.001",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       0.408,
       0.0,
@@ -207,6 +254,11 @@
     {
      "kind": "CableBundle_Hanging",
      "name": "Root_CableBundle_Hanging",
+     "parts": [
+      "CableBundle_Hanging_Cables",
+      "CableBundle_Hanging_Posts",
+      "CableBundle_Hanging_Wraps"
+     ],
      "position": [
       -3.0538,
       0.0,
@@ -227,6 +279,11 @@
     {
      "kind": "CableBundle_Hanging",
      "name": "Root_CableBundle_Hanging.001",
+     "parts": [
+      "CableBundle_Hanging_Cables",
+      "CableBundle_Hanging_Posts",
+      "CableBundle_Hanging_Wraps"
+     ],
      "position": [
       -6.2297,
       0.0,
@@ -247,6 +304,18 @@
     {
      "kind": "Carry_Tank_Oil",
      "name": "Root_Carry_Tank_Oil",
+     "parts": [
+      "Carry_Tank_Oil_Cap",
+      "Carry_Tank_Oil_Fittings",
+      "Carry_Tank_Oil_Foot",
+      "Carry_Tank_Oil_Frame",
+      "Carry_Tank_Oil_GaugeFace",
+      "Carry_Tank_Oil_Glass",
+      "Carry_Tank_Oil_Handle",
+      "Carry_Tank_Oil_LidFittings",
+      "Carry_Tank_Oil_Liquid",
+      "Carry_Tank_Oil_Shell"
+     ],
      "position": [
       2.8278,
       0.6962,
@@ -267,6 +336,14 @@
     {
      "kind": "CookingHearth_Pot",
      "name": "Root_CookingHearth_Pot",
+     "parts": [
+      "CookingHearth_Pot_Cauldron",
+      "CookingHearth_Pot_Embers",
+      "CookingHearth_Pot_Grille",
+      "CookingHearth_Pot_Ladle",
+      "CookingHearth_Pot_Stones",
+      "CookingHearth_Pot_Tripod"
+     ],
      "position": [
       -3.7319,
       0.0,
@@ -287,6 +364,17 @@
     {
      "kind": "Crate_WoodStack",
      "name": "Root_Crate_WoodStack",
+     "parts": [
+      "Crate_WoodStack_Bottles",
+      "Crate_WoodStack_CrateA",
+      "Crate_WoodStack_CrateB",
+      "Crate_WoodStack_CrateB_Lid",
+      "Crate_WoodStack_CrateC",
+      "Crate_WoodStack_CrateC_Lid",
+      "Crate_WoodStack_CrateD",
+      "Crate_WoodStack_LooseLid",
+      "Crate_WoodStack_Straw"
+     ],
      "position": [
       -0.7269,
       0.0,
@@ -307,6 +395,13 @@
     {
      "kind": "Cushions_Pile",
      "name": "Root_Cushions_Pile",
+     "parts": [
+      "Cushions_Pile_Cushion1",
+      "Cushions_Pile_Cushion2",
+      "Cushions_Pile_Cushion3",
+      "Cushions_Pile_Cushion4",
+      "Cushions_Pile_Cushion5"
+     ],
      "position": [
       -1.1607,
       0.0,
@@ -327,6 +422,13 @@
     {
      "kind": "DrillRig",
      "name": "Root_DrillRig",
+     "parts": [
+      "DrillRig_DrillString",
+      "DrillRig_Motor",
+      "DrillRig_Pipes",
+      "DrillRig_Platform",
+      "DrillRig_Tripod"
+     ],
      "position": [
       -3.4975,
       0.0,
@@ -347,6 +449,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       0.6776,
       0.0,
@@ -367,6 +474,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock.001",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       1.4891,
       0.0,
@@ -387,6 +499,12 @@
     {
      "kind": "OrePile_Rust",
      "name": "Root_OrePile_Rust",
+     "parts": [
+      "OrePile_Rust_Basket",
+      "OrePile_Rust_Chunks",
+      "OrePile_Rust_Heap",
+      "OrePile_Rust_Shovel"
+     ],
      "position": [
       -6.1461,
       0.0,
@@ -407,6 +525,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       0.5284,
       3.8252,
@@ -427,6 +554,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.001",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       5.6372,
       0.0,
@@ -447,6 +583,14 @@
     {
      "kind": "Roof_RustPatchwork",
      "name": "Root_Roof_RustPatchwork",
+     "parts": [
+      "Roof_RustPatchwork_Frame",
+      "Roof_RustPatchwork_Purlins",
+      "Roof_RustPatchwork_RidgeCap",
+      "Roof_RustPatchwork_Screws",
+      "Roof_RustPatchwork_Sheets",
+      "Roof_RustPatchwork_Tarp"
+     ],
      "position": [
       0.1769,
       2.0903,
@@ -467,6 +611,14 @@
     {
      "kind": "Scaffold_Walkway",
      "name": "Root_Scaffold_Walkway",
+     "parts": [
+      "Scaffold_Walkway_BasePlates",
+      "Scaffold_Walkway_Cable",
+      "Scaffold_Walkway_Clamps",
+      "Scaffold_Walkway_Deck",
+      "Scaffold_Walkway_KickPlates",
+      "Scaffold_Walkway_Tubes"
+     ],
      "position": [
       0.2389,
       0.0,
@@ -487,6 +639,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.001",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -2.5285,
       0.0,
@@ -507,6 +669,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.002",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -4.6375,
       0.0,
@@ -527,6 +699,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.003",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       4.8916,
       0.0,
@@ -547,6 +729,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.004",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       2.7609,
       0.0,
@@ -567,6 +759,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -2.6886,
       0.0,
@@ -587,6 +797,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.001",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -4.7961,
       -0.0,
@@ -607,6 +835,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.002",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -2.6061,
       0.0,
@@ -627,6 +873,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.003",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       6.5325,
       0.0,
@@ -647,6 +911,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.004",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -5.0219,
       0.0,
@@ -667,6 +949,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       0.5177,
       9.0768,
@@ -687,6 +975,11 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish.001",
+     "parts": [
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       0.3933,
       11.3512,
@@ -707,6 +1000,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -1.8356,
       0.0,
@@ -727,6 +1026,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.001",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       0.8167,
       3.8259,
@@ -747,6 +1052,13 @@
     {
      "kind": "Solar_Array",
      "name": "Root_Solar_Array",
+     "parts": [
+      "Solar_Array_Frame",
+      "Solar_Array_Junction",
+      "Solar_Array_PanelL",
+      "Solar_Array_PanelM",
+      "Solar_Array_PanelR"
+     ],
      "position": [
       0.52,
       7.6967,
@@ -767,6 +1079,9 @@
     {
      "kind": "Tableware_Set",
      "name": "Root_Tableware_Set",
+     "parts": [
+      "Tableware_Set_Set"
+     ],
      "position": [
       -3.6403,
       0.0,
@@ -787,6 +1102,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       0.2162,
       2.9344,
@@ -807,6 +1130,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.001",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       -1.7256,
       0.0,
@@ -827,6 +1158,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       1.5059,
       5.0802,
@@ -847,6 +1186,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.001",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       1.5059,
       5.0802,
@@ -867,6 +1214,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.002",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.4496,
       5.0802,
@@ -887,6 +1242,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.003",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.4496,
       3.7064,
@@ -907,6 +1270,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.004",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       1.6943,
       1.9839,
@@ -927,6 +1298,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.005",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       1.3798,
       1.7555,
@@ -947,6 +1326,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.006",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       1.3798,
       2.9558,
@@ -967,6 +1354,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.007",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       1.3798,
       4.2714,
@@ -987,6 +1382,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.008",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.3961,
       4.2714,
@@ -1013,6 +1416,10 @@
     {
      "kind": "Awning_Large",
      "name": "Root_Awning_Large.001",
+     "parts": [
+      "Awning_Large_Frame",
+      "Awning_Large_Roof"
+     ],
      "position": [
       6.3524,
       0.0,
@@ -1033,6 +1440,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.003",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       4.1451,
       3.266,
@@ -1053,6 +1464,9 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.004",
+     "parts": [
+      "Awning_Sail_Poles"
+     ],
      "position": [
       0.0397,
       3.266,
@@ -1073,6 +1487,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.006",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       6.4893,
       0.0,
@@ -1093,6 +1511,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.007",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       -3.2008,
       0.0,
@@ -1113,6 +1535,11 @@
     {
      "kind": "BannerPole_Single",
      "name": "Root_BannerPole_Single.003",
+     "parts": [
+      "BannerPole_Single_Arm",
+      "BannerPole_Single_Banner",
+      "BannerPole_Single_Pole"
+     ],
      "position": [
       5.089,
       4.195,
@@ -1133,6 +1560,12 @@
     {
      "kind": "BannerPole_Twin",
      "name": "Root_BannerPole_Twin.003",
+     "parts": [
+      "BannerPole_Twin_BannerL",
+      "BannerPole_Twin_BannerR",
+      "BannerPole_Twin_Crossbar",
+      "BannerPole_Twin_Pole"
+     ],
      "position": [
       -1.0634,
       2.8075,
@@ -1153,6 +1586,12 @@
     {
      "kind": "BannerPole_Twin",
      "name": "Root_BannerPole_Twin.004",
+     "parts": [
+      "BannerPole_Twin_BannerL",
+      "BannerPole_Twin_BannerR",
+      "BannerPole_Twin_Crossbar",
+      "BannerPole_Twin_Pole"
+     ],
      "position": [
       -0.3107,
       2.8075,
@@ -1173,6 +1612,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.006",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       -3.9508,
       -0.1075,
@@ -1193,6 +1635,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.007",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       4.2445,
       0.0,
@@ -1213,6 +1658,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.008",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       0.0228,
       0.0,
@@ -1233,6 +1681,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.009",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       -0.0725,
       -0.1075,
@@ -1253,6 +1704,15 @@
     {
      "kind": "Carry_Cart_Hover",
      "name": "Root_Carry_Cart_Hover",
+     "parts": [
+      "Carry_Cart_Hover_Floor",
+      "Carry_Cart_Hover_Handle",
+      "Carry_Cart_Hover_HoverCore",
+      "Carry_Cart_Hover_HoverGlow",
+      "Carry_Cart_Hover_Lamp",
+      "Carry_Cart_Hover_Sides",
+      "Carry_Cart_Hover_Underframe"
+     ],
      "position": [
       0.0974,
       0.8365,
@@ -1273,6 +1733,18 @@
     {
      "kind": "Carry_Tank_Oil",
      "name": "Root_Carry_Tank_Oil",
+     "parts": [
+      "Carry_Tank_Oil_Cap",
+      "Carry_Tank_Oil_Fittings",
+      "Carry_Tank_Oil_Foot",
+      "Carry_Tank_Oil_Frame",
+      "Carry_Tank_Oil_GaugeFace",
+      "Carry_Tank_Oil_Glass",
+      "Carry_Tank_Oil_Handle",
+      "Carry_Tank_Oil_LidFittings",
+      "Carry_Tank_Oil_Liquid",
+      "Carry_Tank_Oil_Shell"
+     ],
      "position": [
       -4.5165,
       0.5998,
@@ -1293,6 +1765,15 @@
     {
      "kind": "CookingHearth_Spit",
      "name": "Root_CookingHearth_Spit",
+     "parts": [
+      "CookingHearth_Spit_Embers",
+      "CookingHearth_Spit_Grille",
+      "CookingHearth_Spit_Posts",
+      "CookingHearth_Spit_Roast",
+      "CookingHearth_Spit_SidePot",
+      "CookingHearth_Spit_Spit",
+      "CookingHearth_Spit_Stones"
+     ],
      "position": [
       3.275,
       -0.0311,
@@ -1313,6 +1794,17 @@
     {
      "kind": "Crate_WoodStack",
      "name": "Root_Crate_WoodStack.003",
+     "parts": [
+      "Crate_WoodStack_Bottles",
+      "Crate_WoodStack_CrateA",
+      "Crate_WoodStack_CrateB",
+      "Crate_WoodStack_CrateB_Lid",
+      "Crate_WoodStack_CrateC",
+      "Crate_WoodStack_CrateC_Lid",
+      "Crate_WoodStack_CrateD",
+      "Crate_WoodStack_LooseLid",
+      "Crate_WoodStack_Straw"
+     ],
      "position": [
       0.8897,
       0.0,
@@ -1333,6 +1825,17 @@
     {
      "kind": "Crate_WoodStack",
      "name": "Root_Crate_WoodStack.004",
+     "parts": [
+      "Crate_WoodStack_Bottles",
+      "Crate_WoodStack_CrateA",
+      "Crate_WoodStack_CrateB",
+      "Crate_WoodStack_CrateB_Lid",
+      "Crate_WoodStack_CrateC",
+      "Crate_WoodStack_CrateC_Lid",
+      "Crate_WoodStack_CrateD",
+      "Crate_WoodStack_LooseLid",
+      "Crate_WoodStack_Straw"
+     ],
      "position": [
       1.1576,
       0.0,
@@ -1353,6 +1856,13 @@
     {
      "kind": "Cushions_Pile",
      "name": "Root_Cushions_Pile.003",
+     "parts": [
+      "Cushions_Pile_Cushion1",
+      "Cushions_Pile_Cushion2",
+      "Cushions_Pile_Cushion3",
+      "Cushions_Pile_Cushion4",
+      "Cushions_Pile_Cushion5"
+     ],
      "position": [
       -1.2323,
       0.0,
@@ -1373,6 +1883,13 @@
     {
      "kind": "Cushions_Pile",
      "name": "Root_Cushions_Pile.004",
+     "parts": [
+      "Cushions_Pile_Cushion1",
+      "Cushions_Pile_Cushion2",
+      "Cushions_Pile_Cushion3",
+      "Cushions_Pile_Cushion4",
+      "Cushions_Pile_Cushion5"
+     ],
      "position": [
       1.5914,
       0.0,
@@ -1393,6 +1910,11 @@
     {
      "kind": "DryingRack_Meat",
      "name": "Root_DryingRack_Meat",
+     "parts": [
+      "DryingRack_Meat_Basket",
+      "DryingRack_Meat_Frame",
+      "DryingRack_Meat_Hanging"
+     ],
      "position": [
       -0.842,
       0.0,
@@ -1413,6 +1935,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock.004",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       1.3238,
       0.0,
@@ -1433,6 +1960,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock.005",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       -1.0584,
       0.0,
@@ -1453,6 +1985,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.004",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       -3.912,
       3.8252,
@@ -1473,6 +2014,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.005",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       -0.0977,
       3.8252,
@@ -1493,6 +2043,13 @@
     {
      "kind": "Roof_RustPatchwork",
      "name": "Root_Roof_RustPatchwork.003",
+     "parts": [
+      "Roof_RustPatchwork_Frame",
+      "Roof_RustPatchwork_Purlins",
+      "Roof_RustPatchwork_RidgeCap",
+      "Roof_RustPatchwork_Screws",
+      "Roof_RustPatchwork_Sheets"
+     ],
      "position": [
       0.5394,
       2.0903,
@@ -1513,6 +2070,13 @@
     {
      "kind": "Roof_RustPatchwork",
      "name": "Root_Roof_RustPatchwork.004",
+     "parts": [
+      "Roof_RustPatchwork_Frame",
+      "Roof_RustPatchwork_Purlins",
+      "Roof_RustPatchwork_RidgeCap",
+      "Roof_RustPatchwork_Screws",
+      "Roof_RustPatchwork_Sheets"
+     ],
      "position": [
       0.2538,
       2.0903,
@@ -1533,6 +2097,14 @@
     {
      "kind": "Scaffold_Walkway",
      "name": "Root_Scaffold_Walkway.003",
+     "parts": [
+      "Scaffold_Walkway_BasePlates",
+      "Scaffold_Walkway_Cable",
+      "Scaffold_Walkway_Clamps",
+      "Scaffold_Walkway_Deck",
+      "Scaffold_Walkway_KickPlates",
+      "Scaffold_Walkway_Tubes"
+     ],
      "position": [
       0.2241,
       0.0,
@@ -1553,6 +2125,14 @@
     {
      "kind": "Scaffold_Walkway",
      "name": "Root_Scaffold_Walkway.004",
+     "parts": [
+      "Scaffold_Walkway_BasePlates",
+      "Scaffold_Walkway_Cable",
+      "Scaffold_Walkway_Clamps",
+      "Scaffold_Walkway_Deck",
+      "Scaffold_Walkway_KickPlates",
+      "Scaffold_Walkway_Tubes"
+     ],
      "position": [
       0.1918,
       0.0,
@@ -1573,6 +2153,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.007",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       2.3772,
       0.0,
@@ -1593,6 +2183,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.011",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       3.3269,
       -0.0,
@@ -1613,6 +2221,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.012",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       4.529,
       0.0,
@@ -1633,6 +2259,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.013",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       2.4748,
       0.0,
@@ -1653,6 +2297,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.014",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -2.4171,
       0.0,
@@ -1673,6 +2335,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish.005",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       -3.9656,
       5.9873,
@@ -1693,6 +2361,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.007",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -4.1002,
       3.8259,
@@ -1713,6 +2387,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.008",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -0.386,
       3.8259,
@@ -1733,6 +2413,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.012",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -1.7427,
       0.0,
@@ -1753,6 +2439,10 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.003",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       -1.6446,
       2.9344,
@@ -1773,6 +2463,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.004",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       0.2145,
       2.9344,
@@ -1793,6 +2491,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.007",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       -4.9846,
       -0.051,
@@ -1813,6 +2519,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.027",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -3.6352,
       5.0802,
@@ -1833,6 +2547,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.028",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.3679,
       5.0802,
@@ -1853,6 +2575,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.029",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.1505,
       5.0802,
@@ -1873,6 +2603,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.030",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.1505,
       3.7064,
@@ -1893,6 +2631,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.031",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -3.9557,
       1.9839,
@@ -1913,6 +2659,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.032",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.0672,
       1.7555,
@@ -1933,6 +2687,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.033",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.8785,
       2.9558,
@@ -1953,6 +2715,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.034",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.3496,
       4.2714,
@@ -1973,6 +2743,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.035",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.8785,
       4.2714,
@@ -1993,6 +2771,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.036",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       0.8268,
       4.2714,
@@ -2013,6 +2799,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.037",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.9491,
       4.2714,
@@ -2033,6 +2827,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.038",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.9491,
       2.9558,
@@ -2053,6 +2855,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.039",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.9491,
       1.7555,
@@ -2073,6 +2883,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.040",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -1.2636,
       1.9839,
@@ -2093,6 +2911,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.041",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       0.8804,
       3.7064,
@@ -2113,6 +2939,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.042",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       0.8804,
       5.0802,
@@ -2133,6 +2967,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.043",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -1.0751,
       5.0802,
@@ -2153,6 +2995,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.044",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -1.0751,
       5.0802,
@@ -2173,6 +3023,11 @@
     {
      "kind": "ToolRack",
      "name": "Root_ToolRack.001",
+     "parts": [
+      "ToolRack_HungTools",
+      "ToolRack_LeaningTools",
+      "ToolRack_Rack"
+     ],
      "position": [
       1.9774,
       -0.0218,
@@ -2199,6 +3054,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower.006",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       -0.2806,
       0.0,
@@ -2219,6 +3081,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       -0.4087,
       4.8691,
@@ -2239,6 +3105,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground.001",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       0.0239,
       4.8691,
@@ -2259,6 +3129,11 @@
     {
      "kind": "CableBundle_Hanging",
      "name": "Root_CableBundle_Hanging.002",
+     "parts": [
+      "CableBundle_Hanging_Cables",
+      "CableBundle_Hanging_Posts",
+      "CableBundle_Hanging_Wraps"
+     ],
      "position": [
       0.9672,
       0.0,
@@ -2279,6 +3154,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish.002",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       0.0283,
       5.2403,
@@ -2299,6 +3180,12 @@
     {
      "kind": "SignalDish_Array",
      "name": "Root_SignalDish_Array",
+     "parts": [
+      "SignalDish_Array_Dish1",
+      "SignalDish_Array_Dish2",
+      "SignalDish_Array_Dish3",
+      "SignalDish_Array_Mast"
+     ],
      "position": [
       0.034,
       6.3016,
@@ -2319,6 +3206,11 @@
     {
      "kind": "Solar_Pole",
      "name": "Root_Solar_Pole",
+     "parts": [
+      "Solar_Pole_Battery",
+      "Solar_Pole_Panel",
+      "Solar_Pole_Pole"
+     ],
      "position": [
       -0.9652,
       5.2348,
@@ -2339,6 +3231,10 @@
     {
      "kind": "Solar_Pole",
      "name": "Root_Solar_Pole.001",
+     "parts": [
+      "Solar_Pole_Panel",
+      "Solar_Pole_Pole"
+     ],
      "position": [
       0.5464,
       5.2348,
@@ -2359,6 +3255,12 @@
     {
      "kind": "TransformerBox",
      "name": "Root_TransformerBox",
+     "parts": [
+      "TransformerBox_Cabinet",
+      "TransformerBox_Conduits",
+      "TransformerBox_Door",
+      "TransformerBox_Plates"
+     ],
      "position": [
       -0.3868,
       0.0,
@@ -2385,6 +3287,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.005",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       3.235,
       0.0,
@@ -2405,6 +3311,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower.007",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       4.0542,
       0.0,
@@ -2425,6 +3338,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground.002",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       4.3586,
       4.8691,
@@ -2445,6 +3362,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground.003",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       3.9261,
       4.8691,
@@ -2465,6 +3386,11 @@
     {
      "kind": "CableBundle_Hanging",
      "name": "Root_CableBundle_Hanging.003",
+     "parts": [
+      "CableBundle_Hanging_Cables",
+      "CableBundle_Hanging_Posts",
+      "CableBundle_Hanging_Wraps"
+     ],
      "position": [
       5.302,
       0.0,
@@ -2485,6 +3411,14 @@
     {
      "kind": "Cauldron",
      "name": "Root_Cauldron",
+     "parts": [
+      "Cauldron_Chain",
+      "Cauldron_Fire",
+      "Cauldron_Ladle",
+      "Cauldron_Pot",
+      "Cauldron_Soup",
+      "Cauldron_Tripod"
+     ],
      "position": [
       -0.5691,
       0.0,
@@ -2505,6 +3439,13 @@
     {
      "kind": "GrindingStone_Saddle",
      "name": "Root_GrindingStone_Saddle",
+     "parts": [
+      "GrindingStone_Saddle_Bowl",
+      "GrindingStone_Saddle_Grinder",
+      "GrindingStone_Saddle_Mat",
+      "GrindingStone_Saddle_Piles",
+      "GrindingStone_Saddle_Quern"
+     ],
      "position": [
       3.9044,
       0.0,
@@ -2525,6 +3466,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       3.1392,
       0.0,
@@ -2545,6 +3491,17 @@
     {
      "kind": "LaundryLine",
      "name": "Root_LaundryLine",
+     "parts": [
+      "LaundryLine_Basket",
+      "LaundryLine_Cloth1",
+      "LaundryLine_Cloth2",
+      "LaundryLine_Cloth3",
+      "LaundryLine_Cloth4",
+      "LaundryLine_Cloth5",
+      "LaundryLine_Cloth6",
+      "LaundryLine_Lines",
+      "LaundryLine_Posts"
+     ],
      "position": [
       -3.8952,
       0.0,
@@ -2565,6 +3522,13 @@
     {
      "kind": "Salvage_EngineHusk",
      "name": "Root_Salvage_EngineHusk.001",
+     "parts": [
+      "Salvage_EngineHusk_Cables",
+      "Salvage_EngineHusk_Collar",
+      "Salvage_EngineHusk_Fins",
+      "Salvage_EngineHusk_Nozzle",
+      "Salvage_EngineHusk_SandMound"
+     ],
      "position": [
       -3.2631,
       0.0,
@@ -2585,6 +3549,15 @@
     {
      "kind": "Scaffold_Tower",
      "name": "Root_Scaffold_Tower",
+     "parts": [
+      "Scaffold_Tower_BasePlates",
+      "Scaffold_Tower_Clamps",
+      "Scaffold_Tower_Deck",
+      "Scaffold_Tower_Hoist",
+      "Scaffold_Tower_Ladder",
+      "Scaffold_Tower_Rope",
+      "Scaffold_Tower_Tubes"
+     ],
      "position": [
       1.9843,
       0.0,
@@ -2605,6 +3578,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.006",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -2.0265,
       0.0,
@@ -2625,6 +3608,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.007",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -0.1739,
       0.0,
@@ -2645,6 +3646,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.008",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -2.6573,
       -0.0,
@@ -2665,6 +3684,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.009",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       0.5056,
       0.0,
@@ -2685,6 +3722,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.010",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       1.2038,
       0.0,
@@ -2705,6 +3760,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish.003",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       4.3631,
       5.2403,
@@ -2725,6 +3786,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish.004",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       0.5425,
       0.0,
@@ -2745,6 +3812,12 @@
     {
      "kind": "SignalDish_Array",
      "name": "Root_SignalDish_Array.001",
+     "parts": [
+      "SignalDish_Array_Dish1",
+      "SignalDish_Array_Dish2",
+      "SignalDish_Array_Dish3",
+      "SignalDish_Array_Mast"
+     ],
      "position": [
       4.3688,
       6.3016,
@@ -2765,6 +3838,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.010",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       3.2308,
       0.0,
@@ -2785,6 +3864,10 @@
     {
      "kind": "Solar_Pole",
      "name": "Root_Solar_Pole.002",
+     "parts": [
+      "Solar_Pole_Panel",
+      "Solar_Pole_Pole"
+     ],
      "position": [
       4.8812,
       5.2348,
@@ -2805,6 +3888,11 @@
     {
      "kind": "Solar_Pole",
      "name": "Root_Solar_Pole.003",
+     "parts": [
+      "Solar_Pole_Battery",
+      "Solar_Pole_Panel",
+      "Solar_Pole_Pole"
+     ],
      "position": [
       3.3695,
       5.2348,
@@ -2825,6 +3913,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.005",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       1.8494,
       0.0,
@@ -2845,6 +3941,12 @@
     {
      "kind": "TransformerBox",
      "name": "Root_TransformerBox.001",
+     "parts": [
+      "TransformerBox_Cabinet",
+      "TransformerBox_Conduits",
+      "TransformerBox_Door",
+      "TransformerBox_Plates"
+     ],
      "position": [
       3.948,
       0.0,
@@ -2871,6 +3973,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower.008",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       2.7614,
       0.0551,
@@ -2891,6 +4000,16 @@
     {
      "kind": "Pipe_Manifold",
      "name": "Root_Pipe_Manifold",
+     "parts": [
+      "Pipe_Manifold_Fittings",
+      "Pipe_Manifold_Header",
+      "Pipe_Manifold_Pump",
+      "Pipe_Manifold_Skid",
+      "Pipe_Manifold_Wheel1",
+      "Pipe_Manifold_Wheel2",
+      "Pipe_Manifold_Wheel3",
+      "Pipe_Manifold_Wheel4"
+     ],
      "position": [
       -1.0942,
       -0.075,
@@ -2911,6 +4030,13 @@
     {
      "kind": "Pipe_Riser",
      "name": "Root_Pipe_Riser",
+     "parts": [
+      "Pipe_Riser_Collar",
+      "Pipe_Riser_Fittings",
+      "Pipe_Riser_Pipe",
+      "Pipe_Riser_Support",
+      "Pipe_Riser_ValveWheel"
+     ],
      "position": [
       0.3729,
       0.13,
@@ -2931,6 +4057,11 @@
     {
      "kind": "Pipe_Run",
      "name": "Root_Pipe_Run",
+     "parts": [
+      "Pipe_Run_Flanges",
+      "Pipe_Run_Pipe",
+      "Pipe_Run_Supports"
+     ],
      "position": [
       -1.2662,
       0.0011,
@@ -2951,6 +4082,11 @@
     {
      "kind": "Pipe_Run",
      "name": "Root_Pipe_Run.001",
+     "parts": [
+      "Pipe_Run_Flanges",
+      "Pipe_Run_Pipe",
+      "Pipe_Run_Supports"
+     ],
      "position": [
       -1.1784,
       0.0011,
@@ -2971,6 +4107,13 @@
     {
      "kind": "Pipe_Straight",
      "name": "Root_Pipe_Straight",
+     "parts": [
+      "Pipe_Straight_Fittings",
+      "Pipe_Straight_PipeLarge",
+      "Pipe_Straight_PipeSmall",
+      "Pipe_Straight_Repair",
+      "Pipe_Straight_Stands"
+     ],
      "position": [
       2.0303,
       -1.1618,
@@ -2991,6 +4134,13 @@
     {
      "kind": "PumpJack",
      "name": "Root_PumpJack",
+     "parts": [
+      "PumpJack_Base",
+      "PumpJack_Beam",
+      "PumpJack_Crank",
+      "PumpJack_Pitman",
+      "PumpJack_Post"
+     ],
      "position": [
       -3.4142,
       -0.006,
@@ -3011,6 +4161,12 @@
     {
      "kind": "PumpJack",
      "name": "Root_PumpJack.001",
+     "parts": [
+      "PumpJack_Base",
+      "PumpJack_Beam",
+      "PumpJack_Crank",
+      "PumpJack_Post"
+     ],
      "position": [
       1.0135,
       -0.006,
@@ -3031,6 +4187,12 @@
     {
      "kind": "PumpJack",
      "name": "Root_PumpJack.002",
+     "parts": [
+      "PumpJack_Base",
+      "PumpJack_Beam",
+      "PumpJack_Crank",
+      "PumpJack_Post"
+     ],
      "position": [
       -3.4581,
       -0.006,
@@ -3051,6 +4213,13 @@
     {
      "kind": "PumpJack",
      "name": "Root_PumpJack.003",
+     "parts": [
+      "PumpJack_Base",
+      "PumpJack_Beam",
+      "PumpJack_Crank",
+      "PumpJack_Pitman",
+      "PumpJack_Post"
+     ],
      "position": [
       0.9696,
       -0.006,
@@ -3071,6 +4240,13 @@
     {
      "kind": "WaterTank_Ground",
      "name": "Root_WaterTank_Ground",
+     "parts": [
+      "WaterTank_Ground_Bucket",
+      "WaterTank_Ground_Fittings",
+      "WaterTank_Ground_Plinth",
+      "WaterTank_Ground_TankLarge",
+      "WaterTank_Ground_TankSmall"
+     ],
      "position": [
       -1.456,
       -0.0603,
@@ -3097,6 +4273,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.001",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       4.5057,
       3.266,
@@ -3117,6 +4297,11 @@
     {
      "kind": "BannerPole_Single",
      "name": "Root_BannerPole_Single.001",
+     "parts": [
+      "BannerPole_Single_Arm",
+      "BannerPole_Single_Banner",
+      "BannerPole_Single_Pole"
+     ],
      "position": [
       5.4497,
       4.195,
@@ -3137,6 +4322,12 @@
     {
      "kind": "BannerPole_Twin",
      "name": "Root_BannerPole_Twin.001",
+     "parts": [
+      "BannerPole_Twin_BannerL",
+      "BannerPole_Twin_BannerR",
+      "BannerPole_Twin_Crossbar",
+      "BannerPole_Twin_Pole"
+     ],
      "position": [
       -0.7028,
       2.8075,
@@ -3157,6 +4348,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.002",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       4.6051,
       0.0,
@@ -3177,6 +4371,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.003",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       -3.5902,
       -0.1075,
@@ -3197,6 +4394,12 @@
     {
      "kind": "Bones_Skull",
      "name": "Root_Bones_Skull",
+     "parts": [
+      "Bones_Skull_Cranium",
+      "Bones_Skull_Horns",
+      "Bones_Skull_Sockets",
+      "Bones_Skull_Teeth"
+     ],
      "position": [
       -3.6977,
       2.1054,
@@ -3217,6 +4420,13 @@
     {
      "kind": "ButcherBlock",
      "name": "Root_ButcherBlock.001",
+     "parts": [
+      "ButcherBlock_Block",
+      "ButcherBlock_Bucket",
+      "ButcherBlock_Cleaver",
+      "ButcherBlock_HookRack",
+      "ButcherBlock_Meat"
+     ],
      "position": [
       -3.6434,
       -0.1664,
@@ -3237,6 +4447,17 @@
     {
      "kind": "Carry_Cart_Hand",
      "name": "Root_Carry_Cart_Hand",
+     "parts": [
+      "Carry_Cart_Hand_Axle",
+      "Carry_Cart_Hand_Bar",
+      "Carry_Cart_Hand_Floor",
+      "Carry_Cart_Hand_Ironwork",
+      "Carry_Cart_Hand_Load",
+      "Carry_Cart_Hand_Shafts",
+      "Carry_Cart_Hand_Sides",
+      "Carry_Cart_Hand_Wheel_L",
+      "Carry_Cart_Hand_Wheel_R"
+     ],
      "position": [
       -5.8924,
       0.7424,
@@ -3257,6 +4478,18 @@
     {
      "kind": "Carry_Tank_Oil",
      "name": "Root_Carry_Tank_Oil.002",
+     "parts": [
+      "Carry_Tank_Oil_Cap",
+      "Carry_Tank_Oil_Fittings",
+      "Carry_Tank_Oil_Foot",
+      "Carry_Tank_Oil_Frame",
+      "Carry_Tank_Oil_GaugeFace",
+      "Carry_Tank_Oil_Glass",
+      "Carry_Tank_Oil_Handle",
+      "Carry_Tank_Oil_LidFittings",
+      "Carry_Tank_Oil_Liquid",
+      "Carry_Tank_Oil_Shell"
+     ],
      "position": [
       -2.0691,
       0.6084,
@@ -3277,6 +4510,17 @@
     {
      "kind": "Crate_WoodStack",
      "name": "Root_Crate_WoodStack.001",
+     "parts": [
+      "Crate_WoodStack_Bottles",
+      "Crate_WoodStack_CrateA",
+      "Crate_WoodStack_CrateB",
+      "Crate_WoodStack_CrateB_Lid",
+      "Crate_WoodStack_CrateC",
+      "Crate_WoodStack_CrateC_Lid",
+      "Crate_WoodStack_CrateD",
+      "Crate_WoodStack_LooseLid",
+      "Crate_WoodStack_Straw"
+     ],
      "position": [
       1.2503,
       0.0,
@@ -3297,6 +4541,13 @@
     {
      "kind": "Cushions_Pile",
      "name": "Root_Cushions_Pile.001",
+     "parts": [
+      "Cushions_Pile_Cushion1",
+      "Cushions_Pile_Cushion2",
+      "Cushions_Pile_Cushion3",
+      "Cushions_Pile_Cushion4",
+      "Cushions_Pile_Cushion5"
+     ],
      "position": [
       -0.8717,
       0.0,
@@ -3317,6 +4568,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock.002",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       1.6844,
       0.0,
@@ -3337,6 +4593,17 @@
     {
      "kind": "LaundryLine",
      "name": "Root_LaundryLine.001",
+     "parts": [
+      "LaundryLine_Basket",
+      "LaundryLine_Cloth1",
+      "LaundryLine_Cloth2",
+      "LaundryLine_Cloth3",
+      "LaundryLine_Cloth4",
+      "LaundryLine_Cloth5",
+      "LaundryLine_Cloth6",
+      "LaundryLine_Lines",
+      "LaundryLine_Posts"
+     ],
      "position": [
       4.3867,
       0.0,
@@ -3357,6 +4624,12 @@
     {
      "kind": "MiningToolCrate",
      "name": "Root_MiningToolCrate.001",
+     "parts": [
+      "MiningToolCrate_Crate",
+      "MiningToolCrate_Helmet",
+      "MiningToolCrate_Lamp",
+      "MiningToolCrate_Tools"
+     ],
      "position": [
       1.0412,
       -0.0421,
@@ -3377,6 +4650,12 @@
     {
      "kind": "NetPoles",
      "name": "Root_NetPoles",
+     "parts": [
+      "NetPoles_Basket",
+      "NetPoles_Floats",
+      "NetPoles_Net",
+      "NetPoles_Poles"
+     ],
      "position": [
       4.7613,
       0.0064,
@@ -3397,6 +4676,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.002",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       -3.5513,
       3.8252,
@@ -3417,6 +4705,13 @@
     {
      "kind": "Roof_RustPatchwork",
      "name": "Root_Roof_RustPatchwork.001",
+     "parts": [
+      "Roof_RustPatchwork_Frame",
+      "Roof_RustPatchwork_Purlins",
+      "Roof_RustPatchwork_RidgeCap",
+      "Roof_RustPatchwork_Screws",
+      "Roof_RustPatchwork_Sheets"
+     ],
      "position": [
       0.9001,
       2.0903,
@@ -3437,6 +4732,13 @@
     {
      "kind": "Salvage_JunkAntenna",
      "name": "Root_Salvage_JunkAntenna",
+     "parts": [
+      "Salvage_JunkAntenna_Arms",
+      "Salvage_JunkAntenna_Beacon",
+      "Salvage_JunkAntenna_Dish",
+      "Salvage_JunkAntenna_Guys",
+      "Salvage_JunkAntenna_Mast"
+     ],
      "position": [
       -3.5052,
       5.99,
@@ -3457,6 +4759,14 @@
     {
      "kind": "Scaffold_Walkway",
      "name": "Root_Scaffold_Walkway.001",
+     "parts": [
+      "Scaffold_Walkway_BasePlates",
+      "Scaffold_Walkway_Cable",
+      "Scaffold_Walkway_Clamps",
+      "Scaffold_Walkway_Deck",
+      "Scaffold_Walkway_KickPlates",
+      "Scaffold_Walkway_Tubes"
+     ],
      "position": [
       0.5848,
       0.0,
@@ -3477,6 +4787,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.002",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -3.7396,
       3.8259,
@@ -3497,6 +4813,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.011",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -1.0683,
       0.0,
@@ -3517,6 +4839,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.001",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       -1.284,
       2.9344,
@@ -3537,6 +4867,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.006",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       0.5724,
       -0.0894,
@@ -3557,6 +4895,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.009",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       5.2391,
       4.2714,
@@ -3577,6 +4923,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.010",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.7102,
       4.2714,
@@ -3597,6 +4951,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.011",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       5.2391,
       2.9558,
@@ -3617,6 +4979,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.012",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.4278,
       1.7555,
@@ -3637,6 +5007,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.013",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -3.5951,
       1.9839,
@@ -3657,6 +5035,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.014",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -3.7898,
       3.7064,
@@ -3677,6 +5063,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.015",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -3.7898,
       5.0802,
@@ -3697,6 +5091,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.016",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.0073,
       5.0802,
@@ -3717,6 +5119,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.017",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -3.2746,
       5.0802,
@@ -3743,6 +5153,12 @@
     {
      "kind": "AnvilStone",
      "name": "Root_AnvilStone",
+     "parts": [
+      "AnvilStone_Block",
+      "AnvilStone_Hammer",
+      "AnvilStone_Scorch",
+      "AnvilStone_Stump"
+     ],
      "position": [
       1.3445,
       0.0,
@@ -3763,6 +5179,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       3.5048,
       3.266,
@@ -3783,6 +5203,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail.002",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       -3.5048,
       3.266,
@@ -3803,6 +5227,11 @@
     {
      "kind": "BannerPole_Single",
      "name": "Root_BannerPole_Single",
+     "parts": [
+      "BannerPole_Single_Arm",
+      "BannerPole_Single_Banner",
+      "BannerPole_Single_Pole"
+     ],
      "position": [
       4.2845,
       4.195,
@@ -3823,6 +5252,11 @@
     {
      "kind": "BannerPole_Single",
      "name": "Root_BannerPole_Single.002",
+     "parts": [
+      "BannerPole_Single_Arm",
+      "BannerPole_Single_Banner",
+      "BannerPole_Single_Pole"
+     ],
      "position": [
       -4.2845,
       4.195,
@@ -3843,6 +5277,12 @@
     {
      "kind": "BannerPole_Twin",
      "name": "Root_BannerPole_Twin",
+     "parts": [
+      "BannerPole_Twin_BannerL",
+      "BannerPole_Twin_BannerR",
+      "BannerPole_Twin_Crossbar",
+      "BannerPole_Twin_Pole"
+     ],
      "position": [
       3.8552,
       2.8075,
@@ -3863,6 +5303,12 @@
     {
      "kind": "BannerPole_Twin",
      "name": "Root_BannerPole_Twin.002",
+     "parts": [
+      "BannerPole_Twin_BannerL",
+      "BannerPole_Twin_BannerR",
+      "BannerPole_Twin_Crossbar",
+      "BannerPole_Twin_Pole"
+     ],
      "position": [
       -3.8552,
       2.8075,
@@ -3883,6 +5329,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       3.6171,
       -0.1075,
@@ -3903,6 +5352,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.001",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       3.5217,
       0.0,
@@ -3923,6 +5375,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.004",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       -3.617,
       -0.1075,
@@ -3943,6 +5398,9 @@
     {
      "kind": "BellFrame",
      "name": "Root_BellFrame.005",
+     "parts": [
+      "BellFrame_Tower"
+     ],
      "position": [
       -3.5217,
       0.0,
@@ -3963,6 +5421,14 @@
     {
      "kind": "Cauldron",
      "name": "Root_Cauldron.001",
+     "parts": [
+      "Cauldron_Chain",
+      "Cauldron_Fire",
+      "Cauldron_Ladle",
+      "Cauldron_Pot",
+      "Cauldron_Soup",
+      "Cauldron_Tripod"
+     ],
      "position": [
       -0.7444,
       0.0,
@@ -3983,6 +5449,17 @@
     {
      "kind": "Crate_WoodStack",
      "name": "Root_Crate_WoodStack",
+     "parts": [
+      "Crate_WoodStack_Bottles",
+      "Crate_WoodStack_CrateA",
+      "Crate_WoodStack_CrateB",
+      "Crate_WoodStack_CrateB_Lid",
+      "Crate_WoodStack_CrateC",
+      "Crate_WoodStack_CrateC_Lid",
+      "Crate_WoodStack_CrateD",
+      "Crate_WoodStack_LooseLid",
+      "Crate_WoodStack_Straw"
+     ],
      "position": [
       2.3869,
       0.0,
@@ -4003,6 +5480,17 @@
     {
      "kind": "Crate_WoodStack",
      "name": "Root_Crate_WoodStack.002",
+     "parts": [
+      "Crate_WoodStack_Bottles",
+      "Crate_WoodStack_CrateA",
+      "Crate_WoodStack_CrateB",
+      "Crate_WoodStack_CrateB_Lid",
+      "Crate_WoodStack_CrateC",
+      "Crate_WoodStack_CrateC_Lid",
+      "Crate_WoodStack_CrateD",
+      "Crate_WoodStack_LooseLid",
+      "Crate_WoodStack_Straw"
+     ],
      "position": [
       -2.3869,
       0.0,
@@ -4023,6 +5511,13 @@
     {
      "kind": "Cushions_Pile",
      "name": "Root_Cushions_Pile",
+     "parts": [
+      "Cushions_Pile_Cushion1",
+      "Cushions_Pile_Cushion2",
+      "Cushions_Pile_Cushion3",
+      "Cushions_Pile_Cushion4",
+      "Cushions_Pile_Cushion5"
+     ],
      "position": [
       1.9531,
       0.0,
@@ -4043,6 +5538,13 @@
     {
      "kind": "Cushions_Pile",
      "name": "Root_Cushions_Pile.002",
+     "parts": [
+      "Cushions_Pile_Cushion1",
+      "Cushions_Pile_Cushion2",
+      "Cushions_Pile_Cushion3",
+      "Cushions_Pile_Cushion4",
+      "Cushions_Pile_Cushion5"
+     ],
      "position": [
       -1.9531,
       0.0,
@@ -4063,6 +5565,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock.001",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       4.6029,
       0.0,
@@ -4083,6 +5590,11 @@
     {
      "kind": "Hammock",
      "name": "Root_Hammock.003",
+     "parts": [
+      "Hammock_Bed",
+      "Hammock_Posts",
+      "Hammock_Ropes"
+     ],
      "position": [
       -4.6029,
       0.0,
@@ -4103,6 +5615,14 @@
     {
      "kind": "Handcart",
      "name": "Root_Handcart",
+     "parts": [
+      "Handcart_Axle",
+      "Handcart_Bed",
+      "Handcart_Load",
+      "Handcart_Shafts",
+      "Handcart_WheelL",
+      "Handcart_WheelR"
+     ],
      "position": [
       1.8399,
       0.0,
@@ -4123,6 +5643,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       3.6422,
       3.8252,
@@ -4143,6 +5672,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.003",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       -3.6422,
       3.8252,
@@ -4163,6 +5701,13 @@
     {
      "kind": "Roof_RustPatchwork",
      "name": "Root_Roof_RustPatchwork",
+     "parts": [
+      "Roof_RustPatchwork_Frame",
+      "Roof_RustPatchwork_Purlins",
+      "Roof_RustPatchwork_RidgeCap",
+      "Roof_RustPatchwork_Screws",
+      "Roof_RustPatchwork_Sheets"
+     ],
      "position": [
       3.2907,
       2.0903,
@@ -4183,6 +5728,13 @@
     {
      "kind": "Roof_RustPatchwork",
      "name": "Root_Roof_RustPatchwork.002",
+     "parts": [
+      "Roof_RustPatchwork_Frame",
+      "Roof_RustPatchwork_Purlins",
+      "Roof_RustPatchwork_RidgeCap",
+      "Roof_RustPatchwork_Screws",
+      "Roof_RustPatchwork_Sheets"
+     ],
      "position": [
       -3.2907,
       2.0903,
@@ -4203,6 +5755,14 @@
     {
      "kind": "Scaffold_Walkway",
      "name": "Root_Scaffold_Walkway",
+     "parts": [
+      "Scaffold_Walkway_BasePlates",
+      "Scaffold_Walkway_Cable",
+      "Scaffold_Walkway_Clamps",
+      "Scaffold_Walkway_Deck",
+      "Scaffold_Walkway_KickPlates",
+      "Scaffold_Walkway_Tubes"
+     ],
      "position": [
       3.3527,
       0.0,
@@ -4223,6 +5783,14 @@
     {
      "kind": "Scaffold_Walkway",
      "name": "Root_Scaffold_Walkway.002",
+     "parts": [
+      "Scaffold_Walkway_BasePlates",
+      "Scaffold_Walkway_Cable",
+      "Scaffold_Walkway_Clamps",
+      "Scaffold_Walkway_Deck",
+      "Scaffold_Walkway_KickPlates",
+      "Scaffold_Walkway_Tubes"
+     ],
      "position": [
       -3.3527,
       0.0,
@@ -4243,6 +5811,9 @@
     {
      "kind": "ScrapPile_Small",
      "name": "Root_ScrapPile_Small",
+     "parts": [
+      "ScrapPile_Small_Scrap"
+     ],
      "position": [
       2.0255,
       0.0,
@@ -4263,6 +5834,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.004",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -1.2574,
       0.0,
@@ -4283,6 +5864,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.005",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -1.5524,
       0.0,
@@ -4303,6 +5894,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.005",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -0.2705,
       0.0,
@@ -4323,6 +5932,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.006",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -0.2656,
       0.0,
@@ -4343,6 +5970,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.019",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       3.6157,
       3.265,
@@ -4363,6 +6008,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.021",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       2.8327,
       3.2784,
@@ -4383,6 +6046,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.022",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -3.2216,
       3.2752,
@@ -4403,6 +6084,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.001",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       3.9305,
       3.8259,
@@ -4423,6 +6110,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.005",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -3.9305,
       3.8259,
@@ -4443,6 +6136,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       3.33,
       2.9344,
@@ -4463,6 +6164,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.002",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       -3.33,
       2.9344,
@@ -4483,6 +6192,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.6196,
       5.0802,
@@ -4503,6 +6220,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.001",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.6196,
       5.0802,
@@ -4523,6 +6248,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.002",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       2.6641,
       5.0802,
@@ -4543,6 +6276,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.003",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       2.6641,
       3.7064,
@@ -4563,6 +6304,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.004",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.8081,
       1.9839,
@@ -4583,6 +6332,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.005",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.4936,
       1.7555,
@@ -4603,6 +6360,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.006",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.4936,
       2.9558,
@@ -4623,6 +6388,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.007",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       4.4936,
       4.2714,
@@ -4643,6 +6416,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.008",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       2.7177,
       4.2714,
@@ -4663,6 +6444,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.018",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.6196,
       5.0802,
@@ -4683,6 +6472,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.019",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.6196,
       5.0802,
@@ -4703,6 +6500,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.020",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -2.6641,
       5.0802,
@@ -4723,6 +6528,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.021",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -2.6641,
       3.7064,
@@ -4743,6 +6556,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.022",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.8081,
       1.9839,
@@ -4763,6 +6584,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.023",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.4936,
       1.7555,
@@ -4783,6 +6612,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.024",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.4936,
       2.9558,
@@ -4803,6 +6640,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.025",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -4.4936,
       4.2714,
@@ -4823,6 +6668,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.026",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -2.7177,
       4.2714,
@@ -4843,6 +6696,11 @@
     {
      "kind": "ToolRack",
      "name": "Root_ToolRack",
+     "parts": [
+      "ToolRack_HungTools",
+      "ToolRack_LeaningTools",
+      "ToolRack_Rack"
+     ],
      "position": [
       -1.4888,
       0.0,
@@ -4869,6 +6727,10 @@
     {
      "kind": "Awning_Large",
      "name": "Root_Awning_Large",
+     "parts": [
+      "Awning_Large_Frame",
+      "Awning_Large_Roof"
+     ],
      "position": [
       -2.0206,
       0.0,
@@ -4889,6 +6751,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower.001",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       -5.0422,
       0.0,
@@ -4909,6 +6778,11 @@
     {
      "kind": "CableBundle_Hanging",
      "name": "Root_CableBundle_Hanging",
+     "parts": [
+      "CableBundle_Hanging_Cables",
+      "CableBundle_Hanging_Posts",
+      "CableBundle_Hanging_Wraps"
+     ],
      "position": [
       -1.21,
       0.0,
@@ -4929,6 +6803,11 @@
     {
      "kind": "CableBundle_Hanging",
      "name": "Root_CableBundle_Hanging.001",
+     "parts": [
+      "CableBundle_Hanging_Cables",
+      "CableBundle_Hanging_Posts",
+      "CableBundle_Hanging_Wraps"
+     ],
      "position": [
       -4.3859,
       0.0,
@@ -4949,6 +6828,14 @@
     {
      "kind": "CookingHearth_Pot",
      "name": "Root_CookingHearth_Pot",
+     "parts": [
+      "CookingHearth_Pot_Cauldron",
+      "CookingHearth_Pot_Embers",
+      "CookingHearth_Pot_Grille",
+      "CookingHearth_Pot_Ladle",
+      "CookingHearth_Pot_Stones",
+      "CookingHearth_Pot_Tripod"
+     ],
      "position": [
       -1.8882,
       0.0,
@@ -4969,6 +6856,13 @@
     {
      "kind": "DrillRig",
      "name": "Root_DrillRig",
+     "parts": [
+      "DrillRig_DrillString",
+      "DrillRig_Motor",
+      "DrillRig_Pipes",
+      "DrillRig_Platform",
+      "DrillRig_Tripod"
+     ],
      "position": [
       -1.6537,
       0.0,
@@ -4989,6 +6883,13 @@
     {
      "kind": "DrillRig",
      "name": "Root_DrillRig.001",
+     "parts": [
+      "DrillRig_DrillString",
+      "DrillRig_Motor",
+      "DrillRig_Pipes",
+      "DrillRig_Platform",
+      "DrillRig_Tripod"
+     ],
      "position": [
       3.3982,
       -0.0096,
@@ -5009,6 +6910,15 @@
     {
      "kind": "MineCart",
      "name": "Root_MineCart",
+     "parts": [
+      "MineCart_Bucket",
+      "MineCart_Chassis",
+      "MineCart_Ore",
+      "MineCart_WheelBL",
+      "MineCart_WheelBR",
+      "MineCart_WheelFL",
+      "MineCart_WheelFR"
+     ],
      "position": [
       1.8373,
       -0.0234,
@@ -5029,6 +6939,12 @@
     {
      "kind": "OrePile_Rust",
      "name": "Root_OrePile_Rust",
+     "parts": [
+      "OrePile_Rust_Basket",
+      "OrePile_Rust_Chunks",
+      "OrePile_Rust_Heap",
+      "OrePile_Rust_Shovel"
+     ],
      "position": [
       -4.3023,
       0.0,
@@ -5049,6 +6965,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.001",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -0.6848,
       0.0,
@@ -5069,6 +6995,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.002",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -2.7938,
       0.0,
@@ -5089,6 +7025,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -0.8448,
       0.0,
@@ -5109,6 +7063,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.001",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -2.9524,
       -0.0,
@@ -5129,6 +7101,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.002",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -0.7623,
       0.0,
@@ -5149,6 +7139,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.004",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       -3.1781,
       0.0,
@@ -5169,6 +7177,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       21.8153,
       0.0,
@@ -5189,6 +7203,9 @@
     {
      "kind": "Tableware_Set",
      "name": "Root_Tableware_Set",
+     "parts": [
+      "Tableware_Set_Set"
+     ],
      "position": [
       -1.7966,
       0.0,
@@ -5209,6 +7226,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.008",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       0.0356,
       -0.0049,
@@ -5235,6 +7260,13 @@
     {
      "kind": "BeaconTower",
      "name": "Root_BeaconTower",
+     "parts": [
+      "BeaconTower_Lantern",
+      "BeaconTower_Lattice",
+      "BeaconTower_Light",
+      "BeaconTower_Pennants",
+      "BeaconTower_Platform"
+     ],
      "position": [
       -12.5896,
       5.9189,
@@ -5255,6 +7287,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.001",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       0.0015,
       0.0,
@@ -5275,6 +7316,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.003",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       -0.7442,
       0.0,
@@ -5295,6 +7346,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.003",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       0.8968,
       0.0,
@@ -5315,6 +7384,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       -0.1105,
       3.0501,
@@ -5335,6 +7410,11 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish.001",
+     "parts": [
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       -0.235,
       5.3244,
@@ -5355,6 +7435,13 @@
     {
      "kind": "Solar_Array",
      "name": "Root_Solar_Array",
+     "parts": [
+      "Solar_Array_Frame",
+      "Solar_Array_Junction",
+      "Solar_Array_PanelL",
+      "Solar_Array_PanelM",
+      "Solar_Array_PanelR"
+     ],
      "position": [
       -0.1082,
       1.67,
@@ -5381,6 +7468,11 @@
     {
      "kind": "BannerPole_Single",
      "name": "Root_BannerPole_Single.005",
+     "parts": [
+      "BannerPole_Single_Arm",
+      "BannerPole_Single_Banner",
+      "BannerPole_Single_Pole"
+     ],
      "position": [
       -0.6416,
       -0.0182,
@@ -5401,6 +7493,17 @@
     {
      "kind": "Carry_Cart_Hand",
      "name": "Root_Carry_Cart_Hand.001",
+     "parts": [
+      "Carry_Cart_Hand_Axle",
+      "Carry_Cart_Hand_Bar",
+      "Carry_Cart_Hand_Floor",
+      "Carry_Cart_Hand_Ironwork",
+      "Carry_Cart_Hand_Load",
+      "Carry_Cart_Hand_Shafts",
+      "Carry_Cart_Hand_Sides",
+      "Carry_Cart_Hand_Wheel_L",
+      "Carry_Cart_Hand_Wheel_R"
+     ],
      "position": [
       4.7096,
       0.5924,
@@ -5421,6 +7524,18 @@
     {
      "kind": "Carry_Tank_Oil",
      "name": "Root_Carry_Tank_Oil.003",
+     "parts": [
+      "Carry_Tank_Oil_Cap",
+      "Carry_Tank_Oil_Fittings",
+      "Carry_Tank_Oil_Foot",
+      "Carry_Tank_Oil_Frame",
+      "Carry_Tank_Oil_GaugeFace",
+      "Carry_Tank_Oil_Glass",
+      "Carry_Tank_Oil_Handle",
+      "Carry_Tank_Oil_LidFittings",
+      "Carry_Tank_Oil_Liquid",
+      "Carry_Tank_Oil_Shell"
+     ],
      "position": [
       -2.4673,
       0.7401,
@@ -5441,6 +7556,14 @@
     {
      "kind": "CookingHearth_Pot",
      "name": "Root_CookingHearth_Pot.001",
+     "parts": [
+      "CookingHearth_Pot_Cauldron",
+      "CookingHearth_Pot_Embers",
+      "CookingHearth_Pot_Grille",
+      "CookingHearth_Pot_Ladle",
+      "CookingHearth_Pot_Stones",
+      "CookingHearth_Pot_Tripod"
+     ],
      "position": [
       1.4035,
       -0.0182,
@@ -5461,6 +7584,13 @@
     {
      "kind": "GrindingStone_Saddle",
      "name": "Root_GrindingStone_Saddle.001",
+     "parts": [
+      "GrindingStone_Saddle_Bowl",
+      "GrindingStone_Saddle_Grinder",
+      "GrindingStone_Saddle_Mat",
+      "GrindingStone_Saddle_Piles",
+      "GrindingStone_Saddle_Quern"
+     ],
      "position": [
       2.6088,
       -0.0182,
@@ -5481,6 +7611,12 @@
     {
      "kind": "MiningToolCrate",
      "name": "Root_MiningToolCrate.002",
+     "parts": [
+      "MiningToolCrate_Crate",
+      "MiningToolCrate_Helmet",
+      "MiningToolCrate_Lamp",
+      "MiningToolCrate_Tools"
+     ],
      "position": [
       -1.9516,
       -0.0182,
@@ -5501,6 +7637,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo.006",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       1.4286,
       -0.1556,
@@ -5521,6 +7666,16 @@
     {
      "kind": "Seat_Clay",
      "name": "Root_Seat_Clay.008",
+     "parts": [
+      "Seat_Clay_Band",
+      "Seat_Clay_Body",
+      "Seat_Clay_FootRing",
+      "Seat_Clay_LugLeft",
+      "Seat_Clay_LugRight",
+      "Seat_Clay_RimBead",
+      "Seat_Clay_StripeHigh",
+      "Seat_Clay_StripeLow"
+     ],
      "position": [
       1.6856,
       -0.0182,
@@ -5541,6 +7696,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.015",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       2.0085,
       -0.0182,
@@ -5561,6 +7734,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.016",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       2.916,
       -0.0182,
@@ -5581,6 +7772,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.017",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       0.0636,
       -0.0182,
@@ -5601,6 +7810,24 @@
     {
      "kind": "Seat_Pillow",
      "name": "Root_Seat_Pillow.018",
+     "parts": [
+      "Seat_Pillow_Button",
+      "Seat_Pillow_Cushion",
+      "Seat_Pillow_PipingSide",
+      "Seat_Pillow_PipingTop",
+      "Seat_Pillow_RopeBase",
+      "Seat_Pillow_RopeCoil1",
+      "Seat_Pillow_RopeCoil2",
+      "Seat_Pillow_RopeCoil3",
+      "Seat_Pillow_TasselHead1",
+      "Seat_Pillow_TasselHead2",
+      "Seat_Pillow_TasselHead3",
+      "Seat_Pillow_TasselHead4",
+      "Seat_Pillow_TasselSkirt1",
+      "Seat_Pillow_TasselSkirt2",
+      "Seat_Pillow_TasselSkirt3",
+      "Seat_Pillow_TasselSkirt4"
+     ],
      "position": [
       1.449,
       -0.0182,
@@ -5621,6 +7848,12 @@
     {
      "kind": "SignalDish_Array",
      "name": "Root_SignalDish_Array.002",
+     "parts": [
+      "SignalDish_Array_Dish1",
+      "SignalDish_Array_Dish2",
+      "SignalDish_Array_Dish3",
+      "SignalDish_Array_Mast"
+     ],
      "position": [
       0.6651,
       2.6927,
@@ -5641,6 +7874,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.013",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       -2.859,
       -0.0182,
@@ -5661,6 +7900,12 @@
     {
      "kind": "SleepingMat_Set",
      "name": "Root_SleepingMat_Set.014",
+     "parts": [
+      "SleepingMat_Set_Blanket",
+      "SleepingMat_Set_Bolster",
+      "SleepingMat_Set_Mat",
+      "SleepingMat_Set_SpareRoll"
+     ],
      "position": [
       3.1726,
       -0.0182,
@@ -5681,6 +7926,14 @@
     {
      "kind": "Tent_SailBanded",
      "name": "Root_Tent_SailBanded",
+     "parts": [
+      "Tent_SailBanded_Anchors",
+      "Tent_SailBanded_Canopy",
+      "Tent_SailBanded_Guys",
+      "Tent_SailBanded_Hem",
+      "Tent_SailBanded_Masts",
+      "Tent_SailBanded_Rigging"
+     ],
      "position": [
       -2.3363,
       -0.0182,
@@ -5701,6 +7954,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped.009",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       2.4158,
       -0.0182,
@@ -5721,6 +7982,11 @@
     {
      "kind": "ToolRack",
      "name": "Root_ToolRack.002",
+     "parts": [
+      "ToolRack_HungTools",
+      "ToolRack_LeaningTools",
+      "ToolRack_Rack"
+     ],
      "position": [
       0.8005,
       -0.0182,
@@ -5747,6 +8013,10 @@
     {
      "kind": "Awning_Large",
      "name": "Root_Awning_Large",
+     "parts": [
+      "Awning_Large_Frame",
+      "Awning_Large_Roof"
+     ],
      "position": [
       -2.6307,
       0.0,
@@ -5767,6 +8037,10 @@
     {
      "kind": "Awning_Sail",
      "name": "Root_Awning_Sail",
+     "parts": [
+      "Awning_Sail_Poles",
+      "Awning_Sail_Sail"
+     ],
      "position": [
       0.2168,
       0.0,
@@ -5787,6 +8061,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       -0.9134,
       1.6591,
@@ -5807,6 +8085,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground.001",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       -0.6198,
       2.0327,
@@ -5827,6 +8109,10 @@
     {
      "kind": "CableBundle_Ground",
      "name": "Root_CableBundle_Ground.002",
+     "parts": [
+      "CableBundle_Ground_Cables",
+      "CableBundle_Ground_Wraps"
+     ],
      "position": [
       -0.6198,
       1.8168,
@@ -5847,6 +8133,12 @@
     {
      "kind": "Carry_Bucket_Metal",
      "name": "Root_Carry_Bucket_Metal",
+     "parts": [
+      "Carry_Bucket_Metal_Bail",
+      "Carry_Bucket_Metal_Body",
+      "Carry_Bucket_Metal_Ears",
+      "Carry_Bucket_Metal_Plating"
+     ],
      "position": [
       -0.8321,
       0.5705,
@@ -5867,6 +8159,18 @@
     {
      "kind": "Carry_Tank_Oil",
      "name": "Root_Carry_Tank_Oil",
+     "parts": [
+      "Carry_Tank_Oil_Cap",
+      "Carry_Tank_Oil_Fittings",
+      "Carry_Tank_Oil_Foot",
+      "Carry_Tank_Oil_Frame",
+      "Carry_Tank_Oil_GaugeFace",
+      "Carry_Tank_Oil_Glass",
+      "Carry_Tank_Oil_Handle",
+      "Carry_Tank_Oil_LidFittings",
+      "Carry_Tank_Oil_Liquid",
+      "Carry_Tank_Oil_Shell"
+     ],
      "position": [
       0.7899,
       0.7366,
@@ -5887,6 +8191,15 @@
     {
      "kind": "Roof_RustLeanTo",
      "name": "Root_Roof_RustLeanTo",
+     "parts": [
+      "Roof_RustLeanTo_Gutter",
+      "Roof_RustLeanTo_Posts",
+      "Roof_RustLeanTo_Purlins",
+      "Roof_RustLeanTo_Rafters",
+      "Roof_RustLeanTo_Screws",
+      "Roof_RustLeanTo_Sheets",
+      "Roof_RustLeanTo_Straps"
+     ],
      "position": [
       0.7266,
       0.0,
@@ -5907,6 +8220,12 @@
     {
      "kind": "Salvage_CanopyPlanter",
      "name": "Root_Salvage_CanopyPlanter",
+     "parts": [
+      "Salvage_CanopyPlanter_Frame",
+      "Salvage_CanopyPlanter_Glass",
+      "Salvage_CanopyPlanter_Plants",
+      "Salvage_CanopyPlanter_Soil"
+     ],
      "position": [
       -3.3087,
       0.0,
@@ -5927,6 +8246,14 @@
     {
      "kind": "Salvage_ChainHoist",
      "name": "Root_Salvage_ChainHoist",
+     "parts": [
+      "Salvage_ChainHoist_Chain",
+      "Salvage_ChainHoist_DripTray",
+      "Salvage_ChainHoist_EngineBlock",
+      "Salvage_ChainHoist_Frame",
+      "Salvage_ChainHoist_Hoist",
+      "Salvage_ChainHoist_Stain"
+     ],
      "position": [
       -3.8971,
       0.0,
@@ -5947,6 +8274,13 @@
     {
      "kind": "Salvage_CorrugatedScreen",
      "name": "Root_Salvage_CorrugatedScreen",
+     "parts": [
+      "Salvage_CorrugatedScreen_Frame",
+      "Salvage_CorrugatedScreen_Sandbags",
+      "Salvage_CorrugatedScreen_SheetBent",
+      "Salvage_CorrugatedScreen_SheetGrey",
+      "Salvage_CorrugatedScreen_SheetRusted"
+     ],
      "position": [
       5.7127,
       0.0,
@@ -5967,6 +8301,13 @@
     {
      "kind": "Salvage_CorrugatedScreen",
      "name": "Root_Salvage_CorrugatedScreen.001",
+     "parts": [
+      "Salvage_CorrugatedScreen_Frame",
+      "Salvage_CorrugatedScreen_Sandbags",
+      "Salvage_CorrugatedScreen_SheetBent",
+      "Salvage_CorrugatedScreen_SheetGrey",
+      "Salvage_CorrugatedScreen_SheetRusted"
+     ],
      "position": [
       4.448,
       0.0,
@@ -5987,6 +8328,13 @@
     {
      "kind": "Salvage_HullFence",
      "name": "Root_Salvage_HullFence",
+     "parts": [
+      "Salvage_HullFence_PlateBlue",
+      "Salvage_HullFence_PlateHazard",
+      "Salvage_HullFence_PlateRust",
+      "Salvage_HullFence_PlateWhite",
+      "Salvage_HullFence_Posts"
+     ],
      "position": [
       -3.5724,
       0.0,
@@ -6007,6 +8355,13 @@
     {
      "kind": "Salvage_HullFence",
      "name": "Root_Salvage_HullFence.001",
+     "parts": [
+      "Salvage_HullFence_PlateBlue",
+      "Salvage_HullFence_PlateHazard",
+      "Salvage_HullFence_PlateRust",
+      "Salvage_HullFence_PlateWhite",
+      "Salvage_HullFence_Posts"
+     ],
      "position": [
       -5.5904,
       0.0,
@@ -6027,6 +8382,13 @@
     {
      "kind": "Salvage_HullShelter",
      "name": "Root_Salvage_HullShelter",
+     "parts": [
+      "Salvage_HullShelter_Crate",
+      "Salvage_HullShelter_Panel",
+      "Salvage_HullShelter_SandDrift",
+      "Salvage_HullShelter_Struts",
+      "Salvage_HullShelter_Tarp"
+     ],
      "position": [
       3.3267,
       0.0,
@@ -6047,6 +8409,13 @@
     {
      "kind": "Salvage_JunkAntenna",
      "name": "Root_Salvage_JunkAntenna",
+     "parts": [
+      "Salvage_JunkAntenna_Arms",
+      "Salvage_JunkAntenna_Beacon",
+      "Salvage_JunkAntenna_Dish",
+      "Salvage_JunkAntenna_Guys",
+      "Salvage_JunkAntenna_Mast"
+     ],
      "position": [
       -0.0894,
       7.9972,
@@ -6067,6 +8436,12 @@
     {
      "kind": "Salvage_SandbagWall",
      "name": "Root_Salvage_SandbagWall",
+     "parts": [
+      "Salvage_SandbagWall_BagsLow",
+      "Salvage_SandbagWall_BagsMid",
+      "Salvage_SandbagWall_BagsTop",
+      "Salvage_SandbagWall_Shield"
+     ],
      "position": [
       -5.562,
       0.0,
@@ -6087,6 +8462,12 @@
     {
      "kind": "Salvage_SandbagWall",
      "name": "Root_Salvage_SandbagWall.001",
+     "parts": [
+      "Salvage_SandbagWall_BagsLow",
+      "Salvage_SandbagWall_BagsMid",
+      "Salvage_SandbagWall_BagsTop",
+      "Salvage_SandbagWall_Shield"
+     ],
      "position": [
       -3.0259,
       0.0,
@@ -6107,6 +8488,12 @@
     {
      "kind": "Salvage_SandbagWall",
      "name": "Root_Salvage_SandbagWall.002",
+     "parts": [
+      "Salvage_SandbagWall_BagsLow",
+      "Salvage_SandbagWall_BagsMid",
+      "Salvage_SandbagWall_BagsTop",
+      "Salvage_SandbagWall_Shield"
+     ],
      "position": [
       -0.0731,
       0.0,
@@ -6127,6 +8514,12 @@
     {
      "kind": "SignalDish",
      "name": "Root_SignalDish",
+     "parts": [
+      "SignalDish_Cable",
+      "SignalDish_Dish",
+      "SignalDish_Mount",
+      "SignalDish_Tripod"
+     ],
      "position": [
       0.0956,
       3.5934,
@@ -6147,6 +8540,13 @@
     {
      "kind": "Solar_Array",
      "name": "Root_Solar_Array",
+     "parts": [
+      "Solar_Array_Frame",
+      "Solar_Array_Junction",
+      "Solar_Array_PanelL",
+      "Solar_Array_PanelM",
+      "Solar_Array_PanelR"
+     ],
      "position": [
       0.3596,
       7.8945,
@@ -6167,6 +8567,14 @@
     {
      "kind": "Tent_SailStriped",
      "name": "Root_Tent_SailStriped",
+     "parts": [
+      "Tent_SailStriped_Anchors",
+      "Tent_SailStriped_Canopy",
+      "Tent_SailStriped_Guys",
+      "Tent_SailStriped_Hem",
+      "Tent_SailStriped_Masts",
+      "Tent_SailStriped_Rigging"
+     ],
      "position": [
       -2.8718,
       0.0,
@@ -6187,6 +8595,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       0.9184,
       7.6413,
@@ -6207,6 +8623,14 @@
     {
      "kind": "Tool_Lantern",
      "name": "Root_Tool_Lantern.001",
+     "parts": [
+      "Tool_Lantern_Bail",
+      "Tool_Lantern_Base",
+      "Tool_Lantern_Cage",
+      "Tool_Lantern_Cap",
+      "Tool_Lantern_Glass",
+      "Tool_Lantern_Grip"
+     ],
      "position": [
       -0.4808,
       7.8968,
@@ -6227,6 +8651,19 @@
     {
      "kind": "Watchtower_MetalLattice",
      "name": "Root_Watchtower_MetalLattice",
+     "parts": [
+      "Watchtower_MetalLattice_Bracing",
+      "Watchtower_MetalLattice_DeckFrame",
+      "Watchtower_MetalLattice_GateL",
+      "Watchtower_MetalLattice_GateR",
+      "Watchtower_MetalLattice_Grating",
+      "Watchtower_MetalLattice_Ladder",
+      "Watchtower_MetalLattice_Legs",
+      "Watchtower_MetalLattice_Parapet",
+      "Watchtower_MetalLattice_RoofFrame",
+      "Watchtower_MetalLattice_SearchlightHead",
+      "Watchtower_MetalLattice_Sheets"
+     ],
      "position": [
       0.5013,
       -0.0,

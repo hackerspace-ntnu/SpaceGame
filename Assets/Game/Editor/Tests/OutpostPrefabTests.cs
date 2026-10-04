@@ -84,6 +84,30 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void APieceShowsExactlyTheMeshesTheBlendKeptUnderIt()
+        {
+            foreach (OutpostLayout layout in layouts.outposts)
+            {
+                Transform pieces = contents[layout.name].transform.Find("Pieces");
+                var counts = new Dictionary<string, int>();
+                foreach (OutpostPiece row in layout.pieces.Where(p => !OutpostProps.IsProp(p.kind)))
+                {
+                    counts[row.kind] = counts.TryGetValue(row.kind, out int n) ? n + 1 : 1;
+                    Transform piece = pieces.Find($"{row.kind}_{counts[row.kind]:00}");
+                    if (OutpostItemModels.IsItem(row.kind)) continue;
+
+                    Renderer[] all = piece.GetComponentsInChildren<Renderer>(true);
+                    if (!all.Any(r => row.parts.Contains(r.name))) continue;   // a one-mesh prefab names its mesh after the decoration
+
+                    string[] shown = piece.GetComponentsInChildren<Renderer>(false).Select(r => r.name).Distinct().ToArray();
+
+                    CollectionAssert.AreEquivalent(row.parts, shown.Where(row.parts.Contains), $"{layout.name}/{piece.name}: a part the blend kept is hidden");
+                    CollectionAssert.IsEmpty(shown.Except(row.parts), $"{layout.name}/{piece.name}: a part the blend removed is shown");
+                }
+            }
+        }
+
+        [Test]
         public void EverySitSpotHasASeatAndEverySeatPieceHasASpot()
         {
             float reach = ResidentTuning.Instance.seatReach;

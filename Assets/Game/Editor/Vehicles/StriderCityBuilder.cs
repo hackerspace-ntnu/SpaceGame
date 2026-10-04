@@ -119,6 +119,12 @@ namespace SpaceGame.EditorTools
         /// <summary>The house standing on the deck: posts go on the ring of deck around it.</summary>
         private const string HullColliderName = "COL_Hull";
 
+        /// <summary>Puffs of sand thrown per foot landing (VehicleDustWiring.AddFootfallDust).</summary>
+        public const int PuffsPerFootfall = 6;
+        /// <summary>Feet landing per second at the RigWalker's top speed: measured 2.4 walking flat out and
+        /// 2.5 turning on the spot, plus headroom. StriderDustPrefabTests walks the house to check.</summary>
+        public const float PeakFootfallsPerSecond = 3f;
+
         [MenuItem("Tools/SpaceGame/Vehicles/Build Strider Habitat Walker")]
         public static void BuildHabitat()
         {
@@ -134,6 +140,7 @@ namespace SpaceGame.EditorTools
             {
                 if (!RemoveHelm(instance) || !AddCrew(instance)) return;
                 AddBrain(instance);
+                VehicleDustWiring.AddFootfallDust(instance, PuffsPerFootfall, PeakFootfallsPerSecond);
                 PrefabUtility.SaveAsPrefabAsset(instance, HabitatPath);
             }
             finally

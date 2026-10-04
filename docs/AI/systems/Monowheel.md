@@ -106,7 +106,7 @@ The five desert monowheels (Runner, Hauler, Patched, Double, DoubleWide) spin th
 
 - **Worst case:** at most 340 particles per wheel, about 4 100 for six doubles. The dust puffs are big (up to ~13 m across when old), so the cost to watch is overdraw, not count: in a cloud's middle the screen is covered many times over.
 - **Distance LOD:** full effect to 60 m (`lodNear`), linear down to 0 at 150 m (`lodFar`). Spin never LODs.
-- **One recipe for every lingering cloud:** the dust layer is [`DustCloudRecipe.Cloud`](Assets/Game/Editor/Support/DustCloudRecipe.cs), shared with the other vehicles' dust and, in black, engine smoke. Change the look there, not per vehicle.
+- **One recipe for every lingering cloud:** the dust layer is [`DustCloudRecipe.Cloud`](Assets/Game/Editor/Support/DustCloudRecipe.cs), shared with the Strider city's footfall and track dust ([VehicleDust.md](VehicleDust.md)) and, in black, engine smoke. Change the look there, not per vehicle. The other machines share `SandDust.mat` (`VehicleDustWiring.SandMaterial`), with this dust's tint and `_SoftFade`; `MonowheelDust.mat` is its older twin and can switch to it.
 - **Materials:** `MonowheelDust.mat`, `MonowheelSpray.mat` and `MonowheelHubSmoke.mat` in `Assets/Game/Art/Materials/Vehicles/`, all on the textureless `JetSmoke` shader. Only the dust sets `_SoftFade` (1.2 m), the shader's soft-particle fade against the camera depth texture.
 - **Measured cost:** *not yet profiled* (plan Task 6: six moving doubles).
 

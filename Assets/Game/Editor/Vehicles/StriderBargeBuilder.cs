@@ -8,8 +8,8 @@
 //     ClientNetworkTransform carries the pose to every client;
 //   * the Strider faction, and a crew: lookout posts on the open roof, a gangway at the tracks' feet and
 //     a CrewShift, wired by CrewDeckWiring as the houses' are;
-//   * TrackContacts: one marker where each track meets the ground, front and rear of its ground run, for
-//     anything that reacts to the tracks on the sand (dust).
+//   * TrackContacts: one marker where each track meets the ground, front and rear of its ground run, and
+//     the rolling dust each one churns up there (VehicleDustWiring).
 //
 // Everything is measured from the barge itself: the ride height and footprint from the track links' mesh,
 // the posts from the roof (downward rays against the hull's own colliders). The dune barges are untouched.
@@ -51,6 +51,8 @@ namespace SpaceGame.EditorTools
         private static readonly Regex TrackLink = new Regex(@"^Mesh_TrackAssembly_(?<unit>[A-Za-z]+)_Link");
         /// <summary>A track link's vertex this close above the lowest is on the ground run, not the return run.</summary>
         private const float GroundRunTolerance = 0.4f;
+        /// <summary>Puffs of sand per second from each track contact at cruise speed (RollingDust).</summary>
+        public const float TrackDustPerContact = 3f;
 
         /// <summary>Lookouts at the four corners of the roof, as signs of the roof's half extents.</summary>
         private static readonly Vector2[] PostLayout =
@@ -135,8 +137,9 @@ namespace SpaceGame.EditorTools
                 float rideHeight = -contacts.Min(c => c.y);
                 if (!TryFindRoof(root, scene.GetPhysicsScene(), out Vector3[] posts, out Vector3 roofCentre)) return false;
 
-                AddTrackContacts(root, contacts, names, rideHeight);
+                Transform[] markers = AddTrackContacts(root, contacts, names, rideHeight);
                 AddBrain(root, variant, contacts, rideHeight);
+                VehicleDustWiring.AddRollingDust(root, markers, root.GetComponent<TrackedHullMotor>().TopSpeed, TrackDustPerContact);
                 var gangway = new Vector3(HullHalfWidth(root) + GangwayStandoff, -rideHeight, contacts.Average(c => c.z));
                 CrewDeckWiring.AddCrewDeck(root, posts, roofCentre, gangway, GangwayNavMeshReach);
 
@@ -186,16 +189,18 @@ namespace SpaceGame.EditorTools
             });
         }
 
-        private static void AddTrackContacts(GameObject root, Vector3[] contacts, string[] names, float rideHeight)
+        private static Transform[] AddTrackContacts(GameObject root, Vector3[] contacts, string[] names, float rideHeight)
         {
             var holder = new GameObject(TrackContactsName).transform;
             holder.SetParent(root.transform, false);
+            var markers = new Transform[contacts.Length];
             for (int i = 0; i < contacts.Length; i++)
             {
-                var marker = new GameObject(names[i]).transform;
-                marker.SetParent(holder, false);
-                marker.localPosition = new Vector3(contacts[i].x, -rideHeight, contacts[i].z);
+                markers[i] = new GameObject(names[i]).transform;
+                markers[i].SetParent(holder, false);
+                markers[i].localPosition = new Vector3(contacts[i].x, -rideHeight, contacts[i].z);
             }
+            return markers;
         }
 
         /// <summary>

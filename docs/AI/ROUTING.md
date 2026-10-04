@@ -190,6 +190,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a leashed animal is thrown into the sky for being walked along flat ground | [CarriedAgent](systems/CarriedAgent.md) |
 | a leashed animal walks steadily into its own collar for as long as the rope is taut | [LeashSystem](systems/LeashSystem.md) |
 | a leashed creature teleports or jitters instead of straining at the rope | [LeashSystem](systems/LeashSystem.md) |
+| a legged machine's dust thins out or stops at top speed | [VehicleDust](systems/VehicleDust.md) |
 | a lit shaft hangs in the air with the lamp switched off | [Flashlight](systems/Flashlight.md) |
 | a lit torch and a powered scanner, one per wrist, and only the right arm comes up | [Flashlight](systems/Flashlight.md) |
 | a lobby control looks enabled but does nothing while a request is in flight | [Lobby](systems/Lobby.md) |
@@ -834,6 +835,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the controls checklist does not tick while I am still strapped into the seat | [Objectives](systems/Objectives.md) |
 | the controls checklist is stuck on waiting for the rest of the crew | [Objectives](systems/Objectives.md) |
 | the corpse stays suspended in the air with its brain switched off | [Combat](systems/Combat.md) |
+| the crab outrider's rider sits metres above its shell after a rebuild | [VehicleDust](systems/VehicleDust.md) |
 | the crab outriders fall behind the city | [Striders](systems/Striders.md) |
 | the crab outriders hover among the houses or trail at the tail instead of flanking | [Striders](systems/Striders.md) |
 | the crab outriders stand among the lead house's legs at a stop | [Striders](systems/Striders.md) |
@@ -1220,6 +1222,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the walking city leaves while its crew are still ashore | [Striders](systems/Striders.md) |
 | the walking city turns round every few minutes and never reaches a stop | [Striders](systems/Striders.md) |
 | the walking houses stop 17 m apart with their decks through each other | [Striders](systems/Striders.md) |
+| the walking houses, crawlers, crabs or barges throw no dust | [VehicleDust](systems/VehicleDust.md) |
 | the warning banner shows no symbol at all, just the text | [Visor](systems/Visor.md) |
 | the wheels spin backwards, or sideways to the way it is moving | [Monowheel](systems/Monowheel.md) |
 | the white room does not exist — the singularity only makes bodies vanish where they stood | [BottledSingularity](systems/BottledSingularity.md) |
@@ -1489,6 +1492,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Environment/SkyFleetPlacement.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Tests/StriderDustEmitterTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Editor/Tests/StriderRosterAssetTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Traversal/LadderClimberWiring.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs` | [Striders](systems/Striders.md) |
@@ -1507,6 +1511,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Tests/MonowheelPoseMathTests.cs` | [Monowheel](systems/Monowheel.md) |
+| `Assets/Game/Editor/Tests/StriderDustPrefabTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Editor/Tests/StriderTribeAssetTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Vehicles](systems/Vehicles.md) |
@@ -1541,6 +1546,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/GroupMembershipTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Editor/Tests/MonowheelPrefabTests.cs` | [Monowheel](systems/Monowheel.md) |
+| `Assets/Game/Editor/Vehicles/VehicleDustWiring.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Flamethrower` | [Flamethrower](systems/Flamethrower.md) |
@@ -1550,6 +1556,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [SupplyGauge](systems/SupplyGauge.md) |
 | `Assets/Game/Art/Materials/Items/FlameBillow.mat` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Art/Materials/Vehicles/SandDust.mat` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Art/Shaders/Effects/Flashlight.hlsl` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Art/Shaders/Effects/JetFlame.shader` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Art/Shaders/Effects/JetSmoke.shader` | [Jetpack](systems/Jetpack.md) |
@@ -1562,10 +1569,12 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/ScoutRotaLogicTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/SkyFleetPrefabTests.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/WalkerFootfallTests.cs` | [Locomotion](systems/Locomotion.md) |
+| `Assets/Game/Editor/Tests/WalkerFootfallTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Editor/Vehicles/DuneBargeBuilder.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Prefabs/Agents/Characters/SkyTribe/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Agents/Characters/Striders/` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BodyVeil.cs` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Scripts/Locomotion/Core/Footfall.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [WorldStreaming](systems/WorldStreaming.md) |
@@ -1714,6 +1723,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Items/Supplies` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Vehicles/Crew/` | [Striders](systems/Striders.md) |
+| `Assets/Game/Scripts/Vehicles/Dust/` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Scripts/agents/Entity/` | [EntitySystem](systems/EntitySystem.md) |
 | `ProjectSettings/NavMeshAreas.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [SkyTribe](systems/SkyTribe.md) |
@@ -1770,4 +1780,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1293 symptoms, 451 paths, 65 docs -->
+<!-- 1296 symptoms, 458 paths, 66 docs -->

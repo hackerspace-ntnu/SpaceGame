@@ -373,6 +373,12 @@ The desert monowheels are tall iron rings with wooden paddles, which a rider sit
 
 **Worth knowing:** The two-wheeled versions lean their wheels out at an angle, so each wheel's spin axis is measured from the model itself when the prefab is built, never assumed. A fixed axis made tilted wheels wobble.
 
+### Dust off the walking city *(VehicleDust)*
+
+Everything in the Strider city kicks up the same sand clouds the monowheels do. Each time a foot of a walking house, a digging crawler or a crab outrider comes down, a ring of dust bursts out from under it, sized to the foot, and hangs in the air for several seconds; the barges leave a wall of it behind their tracks. Every computer works this out from what it already sees the machines doing, so nothing extra is sent over the network.
+
+**Worth knowing:** A dust cloud counts as something drawn, so anything that measures a machine by everything it draws sees the cloud too: the first build sat the crab outrider's rider eleven metres up in the air.
+
 ### The dune barge *(DuneBarge)*
 
 The dune barge is a rusted tracked land-ship you can walk around on and go inside. You reach its fenders by ladders at the front of each track, and you get in through a round armoured hatch in each side. Interact with a hatch and the lid swings up, you crawl through on your own, and it shuts behind you. Inside there is a hold, a gun deck at the stern and a stair up through the neck into the cockpit, with heavy steel doors between them. From outside you only ever see the hull. The rooms inside are drawn only once you are in them, or peering in through a hatch.

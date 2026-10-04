@@ -20,7 +20,7 @@ symptoms:
   - "a mounted ostrich vanishes out from under its rider on the other machine"
   - "the creature stopped walking after I added a LateUpdate to its subclass"
   - "the feet trail behind the body, or a planted foot slips along the ground"
-reads_with: [AgentSystem, Vehicles, Persistence]
+reads_with: [AgentSystem, Vehicles, Persistence, VehicleDust]
 updated: 2026-10-04
 ---
 
@@ -54,7 +54,7 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 | Type | File | Role |
 | --- | --- | --- |
 | `LeggedLocomotion` | [Core/LeggedLocomotion.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.cs) | Abstract base; serialized fields, `SetTwist`, `Step(dt)`, diagnostics. Order 100. `Footfalls` (the feet that came down in the last `Step`) + `StepCount` |
-| `Footfall` | [Core/Footfall.cs](Assets/Game/Scripts/Locomotion/Core/Footfall.cs) | One foot landing: leg index, world contact point, ground normal, `FootprintRadius`. What anything answering a step (dust, sound) reads |
+| `Footfall` | [Core/Footfall.cs](Assets/Game/Scripts/Locomotion/Core/Footfall.cs) | One foot landing: leg index, world contact point, ground normal, `FootprintRadius`. What `FootfallDust` ([VehicleDust.md](VehicleDust.md)) throws sand from |
 | ⤷ `.Rig.cs` | [Core/LeggedLocomotion.Rig.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Rig.cs) | Discovery, per-leg measurement, `MaxSpeed`/`MaxYawRate`, ride-height calibration |
 | ⤷ `.Gait.cs` | [Core/LeggedLocomotion.Gait.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Gait.cs) | Clock, swing timers, foothold resolution, swing lift, load transfer |
 | ⤷ `.Body.cs` | [Core/LeggedLocomotion.Body.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Body.cs) | Path integration, climb gate, `Survey()`, reach correction, gravity, `FollowBody` |

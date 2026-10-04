@@ -74,6 +74,12 @@ namespace SpaceGame.EditorTools
         private const float SyncPositionThreshold = 0.02f;
         private const float SyncRotationThreshold = 0.5f;
 
+        /// <summary>Puffs of sand thrown per foot landing (VehicleDustWiring.AddFootfallDust).</summary>
+        public const int PuffsPerFootfall = 5;
+        /// <summary>Feet landing per second at the crawler's top speed: measured 3.9 walking flat out and
+        /// 4.1 turning on the spot, plus headroom. StriderDustPrefabTests walks the crawler to check.</summary>
+        public const float PeakFootfallsPerSecond = 5f;
+
         private static readonly string[] LegIds = { "P1", "P2", "P3", "N1", "N2", "N3" };
 
         // Body meshes that get a collision box of their own, and the name the box takes. Anything not
@@ -166,6 +172,7 @@ namespace SpaceGame.EditorTools
             BuildBayFloor(root, parts, ref boxes);
 
             WireLocomotion(root, armature, carry);
+            VehicleDustWiring.AddFootfallDust(root, PuffsPerFootfall, PeakFootfallsPerSecond);
             WireNetworkAndPersistence(root, instance.transform);
 
             // Read anything wanted for the report BEFORE the scratch hierarchy goes away: `armature`

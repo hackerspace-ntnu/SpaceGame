@@ -32,6 +32,12 @@ namespace SpaceGame.EditorTools
         /// hovered among the houses. The crawler's figure, for the crawler's neighbours.</summary>
         private const float RegroupDistance = 150f;
 
+        /// <summary>Puffs of sand thrown per foot landing: few, since the crab's small feet land eight times a second.</summary>
+        public const int PuffsPerFootfall = 2;
+        /// <summary>Feet landing per second at the outrider's top speed (its 0.22 s steps): measured 8.05
+        /// walking flat out and 8.2 turning on the spot, plus headroom. StriderDustPrefabTests walks it to check.</summary>
+        public const float PeakFootfallsPerSecond = 10f;
+
         [MenuItem("Tools/Creatures/Build Strider Crab Outrider")]
         public static void Build()
         {
@@ -71,6 +77,9 @@ namespace SpaceGame.EditorTools
             SerializedFields.Edit(travel, so => SerializedFields.SetInt(so, "priority", ModulePriority.Fallback + 1));
 
             AttachRider(root);
+            // After the seat: AttachRider measures the shell from every Renderer, and a particle
+            // system's renderer is one -- added first, it lifted the rider 11 m into the air.
+            VehicleDustWiring.AddFootfallDust(root, PuffsPerFootfall, PeakFootfallsPerSecond);
 
             var tracked = root.AddComponent<SpaceGame.World.SceneTracked>();
             SerializedFields.Edit(tracked, so => SerializedFields.SetEnumByName(so, "policy", nameof(SpaceGame.World.SceneTracked.UnloadPolicy.Migrate)));

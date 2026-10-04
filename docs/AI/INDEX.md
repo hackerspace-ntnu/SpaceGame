@@ -56,10 +56,10 @@ grep -i 'client' docs/AI/ROUTING.md
 | [EntitySystem](systems/EntitySystem.md) | How a GameObject becomes an entity — identity, save opt-in, and following the streaming grid between chunks | [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [WorldStreaming](systems/WorldStreaming.md), [Vehicles](systems/Vehicles.md) |
 | [Flashlight](systems/Flashlight.md) | The torch: a worn forearm gauntlet whose lamp is a URP spot, long-throw shader globals and a beam volume | [PlayerCharacter](systems/PlayerCharacter.md), [BodyEquipment](systems/BodyEquipment.md), [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Environment](systems/Environment.md) |
 | [Ladders](systems/Ladders.md) | Ladder volumes, and the LadderClimber that climbs, slides down and steps off them | [PlayerCharacter](systems/PlayerCharacter.md), [ArtPipeline](systems/ArtPipeline.md), [Wingsuit](systems/Wingsuit.md) |
-| [Locomotion](systems/Locomotion.md) | Procedural legged walking: one LeggedLocomotion base plus four policy objects per creature or walker | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [Persistence](systems/Persistence.md) |
+| [Locomotion](systems/Locomotion.md) | Procedural legged walking: one LeggedLocomotion base plus four policy objects per creature or walker | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [Persistence](systems/Persistence.md), [VehicleDust](systems/VehicleDust.md) |
 | [PlayerCharacter](systems/PlayerCharacter.md) | The astronaut the player drives: rigidbody movement, first-person look, stances, upper-body rig, suit, death | [Persistence](systems/Persistence.md), [Inventory](systems/Inventory.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md), [Wingsuit](systems/Wingsuit.md) |
 | [SkyTribe](systems/SkyTribe.md) | The Sky Tribe end to end — faction, roster, city population and NPC-flown war-party vessels | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [NavMeshSystem](systems/NavMeshSystem.md), [Persistence](systems/Persistence.md), [TerrainGeneration](systems/TerrainGeneration.md), [Striders](systems/Striders.md) |
-| [Striders](systems/Striders.md) | The Striders end to end — faction, roster, and the walking city of crewed RigWalker houses | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [SkyTribe](systems/SkyTribe.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
+| [Striders](systems/Striders.md) | The Striders end to end — faction, roster, and the walking city of crewed RigWalker houses | [AgentSystem](systems/AgentSystem.md), [Vehicles](systems/Vehicles.md), [SkyTribe](systems/SkyTribe.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md), [VehicleDust](systems/VehicleDust.md) |
 
 ### Items — inventory, gadgets, interaction
 
@@ -97,6 +97,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | [Monowheel](systems/Monowheel.md) | Monowheel art: rings spin, paddles throw a lingering dust cloud, the ski rides the sand, the helm swings | [Vehicles](systems/Vehicles.md), [Jetpack](systems/Jetpack.md), [AgentSystem](systems/AgentSystem.md) |
 | [Ornithopter](systems/Ornithopter.md) | Folded wing pack deployed mid-air; point-mass energy flight model, stalls, crash damage. | [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Backpack](systems/Backpack.md), [Wingsuit](systems/Wingsuit.md) |
 | [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, the entry burn, and the crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md), [Terminal](systems/Terminal.md) |
+| [VehicleDust](systems/VehicleDust.md) | Sand dust off every Strider machine: footfall clouds under legs, rolling clouds at track contacts | [Striders](systems/Striders.md), [Monowheel](systems/Monowheel.md), [Locomotion](systems/Locomotion.md), [Vehicles](systems/Vehicles.md) |
 | [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md), [Diagnostics](systems/Diagnostics.md), [SkyTribe](systems/SkyTribe.md), [Striders](systems/Striders.md), [Locomotion](systems/Locomotion.md) |
 
 ### Presentation — UI, cutscenes, audio, modes
@@ -148,4 +149,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 65 system docs, 6 redirects -->
+<!-- 66 system docs, 6 redirects -->

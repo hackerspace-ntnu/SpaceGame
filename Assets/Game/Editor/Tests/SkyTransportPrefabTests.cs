@@ -47,16 +47,20 @@ namespace SpaceGame.EditorTools
         public void AFlownVesselIsNotARagdollBody()
         {
             // HealthComponent alone makes a prefab a body to RagdollWiring, and the transports have
-            // one so they can be shot down. The pilot is what says this is a hull, not a creature.
+            // one so they can be shot down. Two guards say this is a hull, not a creature: the pilot,
+            // wherever the prefab lives, and the Prefabs/Vehicles folder. The counter-case lives where
+            // neither folder rule applies, so it proves the pilot alone is enough.
             var hull = new GameObject("Transport");
             spawned.Add(hull);
             hull.AddComponent<HealthComponent>();
-            const string path = "Assets/Game/Prefabs/Vehicles/Sky/Transport.prefab";
+            const string creaturePath = "Assets/Game/Prefabs/Agents/creatures/Transport.prefab";
+            const string vehiclePath = "Assets/Game/Prefabs/Vehicles/Sky/Transport.prefab";
 
-            Assert.IsTrue(RagdollWiring.IsBody(hull, path), "counter-case: health alone is a body");
+            Assert.IsTrue(RagdollWiring.IsBody(hull, creaturePath), "counter-case: health alone is a body");
+            Assert.IsFalse(RagdollWiring.IsBody(hull, vehiclePath), "anything under Prefabs/Vehicles is a machine by folder");
 
             hull.AddComponent<VesselPilot>();
-            Assert.IsFalse(RagdollWiring.IsBody(hull, path), "a piloted hull must not ragdoll");
+            Assert.IsFalse(RagdollWiring.IsBody(hull, creaturePath), "a piloted hull must not ragdoll, wherever it lives");
         }
 
         [TestCaseSource(nameof(Transports))]

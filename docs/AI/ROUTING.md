@@ -327,6 +327,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
 | a sky transport flies stern-first, its cockpit house trailing instead of leading | [SkyTribe](systems/SkyTribe.md) |
 | a sky transport flies stern-first, its cockpit house trailing instead of leading | [Vehicles](systems/Vehicles.md) |
+| a Sky transport prefab carries a SaveableEntity and savers after a merge | [EntitySystem](systems/EntitySystem.md) |
 | a sky transport starts unloading while it is still sliding across its landing site | [SkyTribe](systems/SkyTribe.md) |
 | a sky transport starts unloading while it is still sliding across its landing site | [Vehicles](systems/Vehicles.md) |
 | a sky war party comes home with its riders still seated and nobody ever gets off | [SkyTribe](systems/SkyTribe.md) |
@@ -1736,4 +1737,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1279 symptoms, 431 paths, 65 docs -->
+<!-- 1280 symptoms, 431 paths, 65 docs -->

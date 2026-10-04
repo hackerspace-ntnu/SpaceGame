@@ -44,6 +44,10 @@
 //
 // A wave is a BAND, not a scatter: its members share a FormationModule id and the first one out
 // leads, so the reinforcements walk the town together the way the generated groups do.
+//
+// A settlement that MOVES -- the Sky City drifting between moorings -- has no NavMesh under its deck
+// while it is under way, so SettlementDeck sets SpawningSuspended for the voyage: the clock holds
+// exactly as it does for a raised alarm, and nobody is spawned onto a mesh the deck has left.
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -117,6 +121,13 @@ namespace SpaceGame.Agents
         [SerializeField] private bool drawGizmos = true;
 
         public int Population { get; private set; }
+
+        /// <summary>
+        /// Hold the clock, as a raised alarm does. Set by whatever knows the settlement cannot take
+        /// new people right now (SettlementDeck, while a moving settlement is under way). Runtime
+        /// only: the owner re-derives it every session.
+        /// </summary>
+        public bool SpawningSuspended { get; set; }
 
         private SettlementPopulationLogic.State state;
         private SettlementAlarm alarm;
@@ -201,11 +212,10 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,
-                                       transform.position, countRadius, people);
+            CollectPeople(people);
             Population = people.Count;
 
-            bool hold = holdWhileAlarmRaised && alarm != null && alarm.IsRaised;
+            bool hold = SpawningSuspended || (holdWhileAlarmRaised && alarm != null && alarm.IsRaised);
             int wanted = SettlementPopulationLogic.Step(ref state, Population, maxPopulation, spawnsPerWave,
                                                         hold, Time.time, spawnInterval,
                                                         initialWaves, initialWaveInterval);
@@ -226,6 +236,11 @@ namespace SpaceGame.Agents
                 }
             }
         }
+
+        /// <summary>Everyone of the owner's who counts toward this settlement's cap: allied, within countRadius.</summary>
+        public void CollectPeople(List<EntityFaction> into) =>
+            EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,
+                                       transform.position, countRadius, into);
 
         // The ground under countRadius. With no streamer there are no chunks to wait for; a streamer
         // that is not ready yet has no answer, which is a wait.

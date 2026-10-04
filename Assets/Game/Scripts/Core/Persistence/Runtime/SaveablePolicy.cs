@@ -392,6 +392,14 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(FormationSaveable));
             }
 
+            // Where a drifting hull is on its loop. The pose alone restores the Sky City mid-voyage
+            // believing it is moored at its first waypoint.
+            if (go.GetComponent<DriftRouteModule>() != null && go.GetComponent<DriftRouteSaveable>() == null)
+            {
+                go.AddComponent<DriftRouteSaveable>();
+                parts.Add(nameof(DriftRouteSaveable));
+            }
+
             // The phase offset that stops a crowd marching in step for a moment after every load.
             if (go.GetComponent<AgentController>() != null && go.GetComponent<AgentPacingSaveable>() == null)
             {

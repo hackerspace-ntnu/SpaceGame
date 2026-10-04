@@ -23,8 +23,22 @@ namespace SpaceGame.EditorTools
         public const string DeckVolumeName = "DeckVolume";
         public const string SmokePrefix = "EngineSmoke_";
 
-        // Coal-black, a touch warm so it reads as smoke rather than a hole in the sky.
-        public static readonly Color SmokeTint = new(0.06f, 0.055f, 0.05f, 1f);
+        // Sooty mid-grey, a touch warm: smoke against the sky rather than ink (coal-black read as a
+        // hole in it), still well darker than the sand dust (0.78, 0.66, 0.47).
+        public static readonly Color SmokeTint = new(0.30f, 0.29f, 0.27f, 1f);
+
+        // Thinner than the recipe's 0.6, so overlapping puffs build to grey rather than solid.
+        private const float SmokeAlpha = 0.45f;
+
+        // The exhaust is a JET, not thrown dust: a hull moves at only 2-6 m/s, so the recipe's
+        // 4-7.5 m/s puffs braked by drag 2.5 stopped within a metre or two and piled up as a ball at
+        // the nozzle. Engine puffs leave at their own astern speed (scaled with √ of the duct size) in a
+        // narrow cone and brake steadily, so the trail streams out tens of metres behind before it hangs.
+        private const float JetSpeedMin = 12f, JetSpeedMax = 18f;
+        // Speed-independent drag is a constant deceleration (m/s²): a 15 m/s puff coasts
+        // 15² / (2 × 4.5) ≈ 25 m before it hangs; scaled with the jet, the city's travel ~50 m.
+        private const float JetDrag = 4.5f;
+        private const float JetConeAngle = 10f;
 
         // Peak puffs per second per duct (EngineSmoke.fullRate); the cap that keeps such a cloud whole.
         public const float SmokePeakRate = 4f;
@@ -105,7 +119,9 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// One cloud per duct, at its after face, thrown astern, and an EngineSmoke driving them.
+        /// One cloud per duct, at its after face, blasted astern as a jet (the recipe's speed, cone,
+        /// drag and colour overridden here — the recipe's defaults suit thrown sand and stay as they
+        /// are for the monowheel), and an EngineSmoke driving them.
         /// <paramref name="model"/> is the transform the ducts are measured in (it may be scaled);
         /// <paramref name="scale"/> sizes the puffs to the duct (1 = an escort's 3 m fans).
         /// </summary>
@@ -128,8 +144,18 @@ namespace SpaceGame.EditorTools
                 size.constantMin *= scale;
                 size.constantMax *= scale;
                 main.startSize = size;
+                float jet = Mathf.Sqrt(scale);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(JetSpeedMin * jet, JetSpeedMax * jet);
+                // White: the JetSmoke shader multiplies its _Color (the tint) by the particle colour,
+                // so tinting both squares it — a 0.30 grey came out as 0.09, near-black again.
+                main.startColor = new Color(1f, 1f, 1f, SmokeAlpha);
                 ParticleSystem.ShapeModule shape = cloud.shape;
                 shape.radius *= scale;
+                shape.angle = JetConeAngle;
+                ParticleSystem.LimitVelocityOverLifetimeModule drag = cloud.limitVelocityOverLifetime;
+                drag.drag = JetDrag * jet;
+                // Not the default ∝ speed: that killed a 15 m/s jet within ~8 m.
+                drag.multiplyDragByParticleVelocity = false;
                 clouds[i] = cloud;
             }
 

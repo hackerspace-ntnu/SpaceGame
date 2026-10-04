@@ -20,17 +20,19 @@ GameObject:
   - component: {fileID: 3238984927745301974}
   - component: {fileID: 1642309058597889370}
   - component: {fileID: 331448846774997840}
-  - component: {fileID: 492191546643971381}
-  - component: {fileID: 7857512126732977476}
-  - component: {fileID: 3156677051930843391}
-  - component: {fileID: 8658085423492226292}
-  - component: {fileID: 7494206482319906787}
-  - component: {fileID: 3424376106898388120}
-  - component: {fileID: 8918582310463938383}
-  - component: {fileID: 5931984463851138326}
-  - component: {fileID: 1060274600071270367}
-  - component: {fileID: 5956089916096699494}
-  - component: {fileID: 7774747815185508774}
+  - component: {fileID: 6298752005580628538}
+  - component: {fileID: 6965703961616085697}
+  - component: {fileID: 3647138517190353419}
+  - component: {fileID: 5360083236196031162}
+  - component: {fileID: 8521703497193541095}
+  - component: {fileID: 5913182676740152954}
+  - component: {fileID: 4925378244459928563}
+  - component: {fileID: 5267261392698618307}
+  - component: {fileID: 5550949123970974592}
+  - component: {fileID: 7891564353136042925}
+  - component: {fileID: 5529052291479890839}
+  - component: {fileID: 5295570494583177076}
+  - component: {fileID: 6970281366816953356}
   m_Layer: 0
   m_Name: SkyCityFleet
   m_TagString: Untagged
@@ -55,7 +57,7 @@ Transform:
   - {fileID: 4383073381423933355}
   - {fileID: 7759350807338680934}
   - {fileID: 6925529498669827201}
-  - {fileID: 1780290396903340337}
+  - {fileID: 3046347877781187321}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2090661265713884377
@@ -272,9 +274,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.SettlementDeck
   route: {fileID: 3238984927745301974}
-  navMesh: {fileID: 492191546643971381}
-  population: {fileID: 8658085423492226292}
-  site: {fileID: 7857512126732977476}
+  navMesh: {fileID: 6298752005580628538}
+  population: {fileID: 5360083236196031162}
+  site: {fileID: 6965703961616085697}
   deckVolume: {fileID: 6454933080074281680}
   parkScanInterval: 0.5
   siteRefreshInterval: 5
@@ -301,7 +303,7 @@ MonoBehaviour:
   fullRate: 4
   lodNear: 600
   lodFar: 1500
---- !u!114 &492191546643971381
+--- !u!114 &6298752005580628538
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -314,7 +316,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.StaticNavMeshData
   navMeshData: {fileID: 23800000, guid: 1f9dd7803bcc48749a4aa3a8b21aa847, type: 2}
---- !u!114 &7857512126732977476
+--- !u!114 &6965703961616085697
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -332,7 +334,7 @@ MonoBehaviour:
   mirrorToMap: 0
   airborne: 1
   id: autoa09c3c9a9e4a9418
---- !u!114 &3156677051930843391
+--- !u!114 &3647138517190353419
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -359,7 +361,7 @@ MonoBehaviour:
       Data4: 0
     Path: 
   drawGizmos: 1
---- !u!114 &8658085423492226292
+--- !u!114 &5360083236196031162
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -394,11 +396,11 @@ MonoBehaviour:
   minPlayerDistance: 45
   navSampleDistance: 8
   placementAttempts: 24
-  reachableFrom: {fileID: 1780290396903340337}
+  reachableFrom: {fileID: 3046347877781187321}
   keepGroundChunksLoaded: 1
   chunkWaitWarningTimeout: 30
   drawGizmos: 1
---- !u!114 &7494206482319906787
+--- !u!114 &8521703497193541095
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -414,7 +416,7 @@ MonoBehaviour:
   instanceId: 
   authored: 0
   scope: 0
---- !u!114 &3424376106898388120
+--- !u!114 &5913182676740152954
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -426,7 +428,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
---- !u!114 &8918582310463938383
+--- !u!114 &4925378244459928563
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -439,7 +441,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
   drawGizmos: 1
---- !u!114 &5931984463851138326
+--- !u!114 &5267261392698618307
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -451,7 +453,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
---- !u!114 &1060274600071270367
+--- !u!114 &5550949123970974592
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -463,7 +465,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7c99d6c0650be04b80edb7b199b8ce9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.DriftRouteSaveable
---- !u!114 &5956089916096699494
+--- !u!114 &7891564353136042925
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -475,7 +477,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
---- !u!114 &7774747815185508774
+--- !u!114 &5529052291479890839
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -487,6 +489,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &5295570494583177076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 765982938715578520}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
+  minBoneWeightFraction: 0.015
+  maxBones: 20
+  minimumUsefulBones: 4
+  limbAspect: 0.3
+  minRadius: 0.04
+  totalMass: 70
+  minBoneMass: 0.6
+  maxJointMassRatio: 8
+  angularDamping: 0.6
+  linearDamping: 0.05
+  solverIterations: 14
+  sleepWhenSettled: 1
+  boneSleepThreshold: 0.05
+  selfCollision: 0
+  swingLimit: 45
+  twistLimit: 25
+  projectionDistance: 0.05
+  projectionAngle: 10
+  settleLinearSpeed: 0.35
+  settleAngularSpeed: 1.2
+  settleSeconds: 0.45
+  maxLimpSeconds: 4
+  recoverBlendSeconds: 0.35
+  groundProbeHeight: 3
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxConcurrentRagdolls: 12
+--- !u!114 &6970281366816953356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 765982938715578520}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  knockdown:
+    fallSeconds: 0.1
+    minSeconds: 0.1
+    maxSeconds: 0.2
+    threshold: 0.35
+    fullSeverity: 1
+    damageWeight: 1
+    lowHealthWeight: 0.5
+    knockbackWeight: 1
+    knockbackReferenceSpeed: 20
+    settleGraceSeconds: 1.5
+    reknockImmunitySeconds: 1
+  hitImpulse: 3
+  deathImpulse: 2.5
+  deathImpulseLift: 0.35
 --- !u!1 &1193916070837550130
 GameObject:
   m_ObjectHideFlags: 0
@@ -540,7 +609,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 147.64975, y: 93.78934, z: 206.16138}
   m_Center: {x: -2.394043, y: 19.530739, z: -0.8711548}
---- !u!1 &3136345458683694332
+--- !u!1 &3482002213029717099
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -548,7 +617,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1780290396903340337}
+  - component: {fileID: 3046347877781187321}
   m_Layer: 0
   m_Name: PromenadeAnchor
   m_TagString: Untagged
@@ -556,13 +625,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1780290396903340337
+--- !u!4 &3046347877781187321
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3136345458683694332}
+  m_GameObject: {fileID: 3482002213029717099}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 8.4, y: 0, z: 0}
@@ -740,8 +809,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 7.5
-      minScalar: 4
+      scalar: 36
+      minScalar: 24
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -794,7 +863,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.06, g: 0.055, b: 0.05, a: 0.6}
+      maxColor: {r: 1, g: 1, b: 1, a: 0.45}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -1236,7 +1305,7 @@ ParticleSystem:
     serializedVersion: 6
     enabled: 1
     type: 4
-    angle: 30
+    angle: 10
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
@@ -3209,12 +3278,12 @@ ParticleSystem:
     separateAxis: 0
     inWorldSpace: 0
     multiplyDragByParticleSize: 0
-    multiplyDragByParticleVelocity: 1
+    multiplyDragByParticleVelocity: 0
     dampen: 0
     drag:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 2.5
+      scalar: 9
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -5585,8 +5654,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 7.5
-      minScalar: 4
+      scalar: 36
+      minScalar: 24
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -5639,7 +5708,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.06, g: 0.055, b: 0.05, a: 0.6}
+      maxColor: {r: 1, g: 1, b: 1, a: 0.45}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -6081,7 +6150,7 @@ ParticleSystem:
     serializedVersion: 6
     enabled: 1
     type: 4
-    angle: 30
+    angle: 10
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
@@ -8054,12 +8123,12 @@ ParticleSystem:
     separateAxis: 0
     inWorldSpace: 0
     multiplyDragByParticleSize: 0
-    multiplyDragByParticleVelocity: 1
+    multiplyDragByParticleVelocity: 0
     dampen: 0
     drag:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 2.5
+      scalar: 9
       minScalar: 0
       maxCurve:
         serializedVersion: 2

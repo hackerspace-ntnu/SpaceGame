@@ -110,8 +110,11 @@ Parked residents are saved like any resident and re-parked after a load.
 
 ### Smoke (GDC-L1-FEEL-0004, GDC-L1-TECH-0002)
 
-`DustCloudRecipe.Cloud` with a near-black `DustCloudRecipe.Material(..., softFade: 0)`, one per duct
-(measured from each `SternGear` assembly: two ducted fans each), aimed astern. **`EngineSmoke`**
+`DustCloudRecipe.Cloud` with a sooty mid-grey `DustCloudRecipe.Material(..., softFade: 0)` (tint
+0.30/0.29/0.27, alpha 0.45 — the first, near-black version read as ink), one per duct (measured from
+each `SternGear` assembly: two ducted fans each), blasted astern as a jet: the builder overrides the
+recipe's thrown-sand speed/cone/drag with 12–18 m/s × √(duct scale), a 10° cone and a constant 4.5 m/s² × √(scale) braking (trail ~25 m astern, ~50 m on the city), white particle colour (JetSmoke multiplies its tint by it, which squared the first grey back to near-black), because
+hulls doing 2–6 m/s otherwise piled their smoke up in a ball at the nozzle (playtest feedback). **`EngineSmoke`**
 (every machine) drives `rateOverTime` from measured speed (`MonowheelPresentationMath`), idle when
 moored, more under way, faded out by camera distance; caps from `DustCloudRecipe.CapFor`.
 
@@ -124,5 +127,5 @@ city and of each other by more than their wander.
 
 Cruise speed 2 m/s · escort top speed 6 m/s · moored 120 s per waypoint · cruise altitude 280 m ·
 the four waypoints above · seven escorts and their stations · wander ±14 m horizontal / ±5 m
-vertical over 40–75 s · smoke 1 puff/s per duct idle, 4 under way, faded out between 600 and
+vertical over 40–75 s · smoke grey at alpha 0.45, jet 12–18 m/s (24–36 on the city), 1 puff/s per duct idle, 4 under way, faded out between 600 and
 1500 m · residents parked (standing still, still able to shoot) while under way.

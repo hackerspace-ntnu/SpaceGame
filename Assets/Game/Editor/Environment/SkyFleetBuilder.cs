@@ -9,7 +9,8 @@
 // reuses it, not a copy.
 //
 // Re-run from: Tools > Environment > Build Sky Fleet Prefabs. Where the fleet flies -- its route,
-// the escorts' stations, how many escorts -- is the scene's, not the prefabs': see SkyFleetPlacement.
+// the escorts' stations, how many escorts -- is the scene's, not the prefabs': see SkyFleetPlacement,
+// which the build runs last so the scene's overrides follow the rebuilt prefabs.
 //
 // Every hull MOVES, through the agent stack (SkyFleetMovers): an AgentController drives
 // FlyingRigidbodyMotor in kinematic-hull mode, the flagship's brain is DriftRouteModule and an
@@ -185,6 +186,9 @@ namespace SpaceGame.EditorTools
             // against the saved asset; reserialize so the real hash reaches the YAML.
             AssetDatabase.ForceReserializeAssets(paths);
             AssetDatabase.SaveAssets();
+            // The rebuilt flagship's components have new file ids, so the scene's overrides on them
+            // (route, baked save identity) are orphaned until placement writes them again.
+            report.AppendLine($"  {SkyFleetPlacement.Place()}");
             Debug.Log(report.ToString());
         }
 

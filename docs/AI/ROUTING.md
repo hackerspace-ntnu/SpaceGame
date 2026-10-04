@@ -1156,6 +1156,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the sky city moves but its houses and decks stay behind | [SkyTribe](systems/SkyTribe.md) |
 | the Sky City stands inside a rock spire south of the spawn | [SkyTribe](systems/SkyTribe.md) |
 | the Sky roster only ever has four people even though a fifth recipe exists | [SkyTribe](systems/SkyTribe.md) |
+| the sky ships' engine smoke is an inky ball at the engines instead of a trail behind them | [SkyTribe](systems/SkyTribe.md) |
 | the smoke cloud follows me instead of trailing behind | [Jetpack](systems/Jetpack.md) |
 | the spent booster fires itself across the desert when the burn ends | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the spinning loop clips through the camera or flickers at the top of the screen in first person | [Lasso](systems/Lasso.md) |
@@ -1766,4 +1767,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1291 symptoms, 449 paths, 65 docs -->
+<!-- 1292 symptoms, 449 paths, 65 docs -->

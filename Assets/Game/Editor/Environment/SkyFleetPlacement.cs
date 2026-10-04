@@ -2,7 +2,9 @@
 // route, and its escorts on station round it — in persistentScene, where the city lives because it is
 // bigger than a chunk and outlives any of them.
 //
-// Re-run from: Tools > Environment > Place Sky Fleet In World. Idempotent: it finds the fleet's roots
+// Re-run from: Tools > Environment > Place Sky Fleet In World, and run by Build Sky Fleet Prefabs as
+// its last step: a rebuild re-adds the flagship's components under new file ids, which orphans the
+// scene's overrides on them (the baked identity first of all) until they are written again. Idempotent: it finds the fleet's roots
 // by name, re-poses and re-configures them, adds what is missing and removes escorts beyond the list.
 // It opens persistentScene additively (leaving whatever the editor has open alone), saves only that
 // scene, and closes it again if it opened it.
@@ -135,6 +137,7 @@ namespace SpaceGame.EditorTools
 
             BakeIdentity(fleet, FlagshipId);
             Record(fleet.transform, route);
+            DropStaleOverrides(fleet);
             return fleet;
         }
 
@@ -165,6 +168,7 @@ namespace SpaceGame.EditorTools
 
             BakeIdentity(escort, EscortId(index));
             Record(escort.transform, module);
+            DropStaleOverrides(escort);
         }
 
         private static int RemoveSurplusEscorts(Scene scene)
@@ -201,6 +205,11 @@ namespace SpaceGame.EditorTools
             });
             Record(entity);
         }
+
+        // A rebuild of the fleet prefabs re-adds components under new file ids, which leaves the old
+        // overrides pointing at nothing in the scene file: dead weight that also no longer applies.
+        private static void DropStaleOverrides(GameObject instance) =>
+            PrefabUtility.RemoveUnusedOverrides(new[] { instance }, InteractionMode.AutomatedAction);
 
         private static void Record(params Object[] modified)
         {

@@ -4,7 +4,7 @@
 //   instead of writing a second copy with a new GUID beside a moved one;
 //   every hull is a moving vehicle on the agent stack — networked, kinematic, flown by
 //   FlyingRigidbodyMotor through an AgentController — and none of it is static;
-//   every hull smokes from each of its ducts, with the shared black cloud material;
+//   every hull smokes from each of its ducts, a sooty-grey jet blasted astern;
 //   the flagship is a settlement deck whose parts are wired and whose route survives a save;
 //   persistentScene holds the fleet, sailing a route that clears the ground, with escorts on
 //   stations that never touch the city or each other.
@@ -81,7 +81,7 @@ namespace SpaceGame.EditorTools
         }
 
         [TestCaseSource(nameof(HullPaths))]
-        public void Hull_SmokesFromEveryDuct_InBlack(string path)
+        public void Hull_SmokesFromEveryDuct_AsAGreyJetAstern(string path)
         {
             GameObject hull = Load(path);
             var smoke = hull.GetComponent<EngineSmoke>();
@@ -94,12 +94,15 @@ namespace SpaceGame.EditorTools
 
             var smokeMaterial = AssetDatabase.LoadAssetAtPath<Material>(SkyFleetMovers.SmokeMaterialPath);
             Assert.IsNotNull(smokeMaterial);
-            Assert.Less(smokeMaterial.GetColor("_Color").maxColorComponent, 0.1f, "smoke is black");
+            float grey = smokeMaterial.GetColor("_Color").maxColorComponent;
+            Assert.That(grey, Is.InRange(0.15f, 0.45f), "sooty grey: not ink against the sky, still darker than sand dust");
             foreach (ParticleSystem cloud in hull.GetComponentsInChildren<ParticleSystem>(true))
             {
                 Assert.AreSame(smokeMaterial, cloud.GetComponent<ParticleSystemRenderer>().sharedMaterial);
                 Assert.AreEqual(ParticleSystemSimulationSpace.World, cloud.main.simulationSpace,
                                 "a moving hull leaves its smoke behind");
+                Assert.GreaterOrEqual(cloud.main.startSpeed.constantMin, 10f,
+                                      "a jet blasted astern, not a puff that piles up at the nozzle");
             }
         }
 

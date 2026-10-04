@@ -33,23 +33,30 @@ namespace SpaceGame.EditorTools
         private const string MaterialFolder = "Assets/Game/Art/Materials/Vehicles";
         private const string DustMaterialPath = MaterialFolder + "/MonowheelDust.mat";
         private const string SmokeMaterialPath = MaterialFolder + "/MonowheelHubSmoke.mat";
+        private const string SprayMaterialPath = MaterialFolder + "/MonowheelSpray.mat";
+        // The dust cloud's soft fade where a puff meets the sand (JetSmoke _SoftFade). The spray keeps
+        // its own material without it: grains a few centimetres across would fade out entirely.
+        private const float DustSoftFade = 1.2f;
         private const string SmokeShader = "SpaceGame/Effects/JetSmoke";
 
         // The build recipe for the three layers (spec §3). Runtime rates live on the component.
         private static readonly Color SandTint = new Color(0.78f, 0.66f, 0.47f, 1f);
         private static readonly Color SmokeTint = new Color(0.36f, 0.33f, 0.30f, 1f);
-        public const int SprayCap = 60, DustCap = 120, SmokeCap = 40;
+        public const float DustMinLife = 8f, DustMaxLife = 12f;
+        // Twenty puffs a second at full speed for the longest life (MonowheelPresentation.dustAtFullSpeed).
+        public const int SprayCap = 60, DustCap = 240, SmokeCap = 40;
 
         public static string PrefabPath(string variant) => $"{PrefabFolder}/Monowheel_{variant}.prefab";
 
         [MenuItem("Tools/Vehicles/Build Monowheel Presentation")]
         public static void BuildAll()
         {
-            Material dust = SmokeMaterial(DustMaterialPath, SandTint);
-            Material smoke = SmokeMaterial(SmokeMaterialPath, SmokeTint);
+            Material dust = SmokeMaterial(DustMaterialPath, SandTint, DustSoftFade);
+            Material spray = SmokeMaterial(SprayMaterialPath, SandTint, 0f);
+            Material smoke = SmokeMaterial(SmokeMaterialPath, SmokeTint, 0f);
             foreach (var (variant, fbx, rings) in Variants)
             {
-                string path = Build(variant, $"{ModelFolder}/{fbx}.fbx", rings, dust, smoke);
+                string path = Build(variant, $"{ModelFolder}/{fbx}.fbx", rings, dust, spray, smoke);
                 SelfCheck(path);
             }
             AssetDatabase.SaveAssets();
@@ -60,7 +67,7 @@ namespace SpaceGame.EditorTools
 
         // A script-created ParticleSystem with no material draws NOTHING, silently (Jetpack gotcha),
         // so both are created here and a missing shader is an error, not an empty field.
-        private static Material SmokeMaterial(string path, Color tint)
+        private static Material SmokeMaterial(string path, Color tint, float softFade)
         {
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
@@ -73,13 +80,14 @@ namespace SpaceGame.EditorTools
                 AssetDatabase.CreateAsset(mat, path);
             }
             mat.SetColor("_Color", tint);
+            mat.SetFloat("_SoftFade", softFade);
             EditorUtility.SetDirty(mat);
             return mat;
         }
 
         // ── one prefab ──────────────────────────────────────────────────────────
 
-        private static string Build(string variant, string fbxPath, int ringCount, Material dust, Material smoke)
+        private static string Build(string variant, string fbxPath, int ringCount, Material dust, Material spray, Material smoke)
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
             if (model == null) throw new System.IO.FileNotFoundException("Monowheel model missing", fbxPath);
@@ -101,14 +109,17 @@ namespace SpaceGame.EditorTools
                     wheel.spray = Spray(root.transform, $"FX_Spray{side}", wheel.localContact);
                     wheel.dust = Dust(root.transform, $"FX_Dust{side}", wheel.localContact, dust);
                     wheel.smoke = Smoke(root.transform, $"FX_HubSmoke{side}", wheel.localHub, smoke);
-                    Renderer(wheel.spray, dust);
+                    Renderer(wheel.spray, spray);
                     measured.Add(wheel);
                 }
                 if (measured.Count != ringCount)
                     throw new System.InvalidOperationException($"{variant}: found {measured.Count} ring bone(s), expected {ringCount}.");
                 RequireForwardIsPlusZ(root.transform, measured, variant);
 
-                root.AddComponent<MonowheelPresentation>().Configure(measured.ToArray());
+                (Vector3 hinge, Vector3 axis) = MeasureTailPost(root.transform, FindPart(root.transform, "Mesh_TailPost_", variant));
+                root.AddComponent<MonowheelPresentation>().Configure(measured.ToArray(), MeasureSki(root.transform),
+                                                                     FindPart(root.transform, "Mesh_TailPanel_", variant),
+                                                                     hinge, axis);
 
                 System.IO.Directory.CreateDirectory(PrefabFolder);
                 string path = PrefabPath(variant);
@@ -138,6 +149,50 @@ namespace SpaceGame.EditorTools
             if (root.InverseTransformPoint(b.center).z <= hubZ)
                 throw new System.InvalidOperationException(
                     $"{variant}: the front cowl is not ahead of the wheels along the root's +Z — the import turned the model; fix the import, not this check.");
+        }
+
+        // The lowest point of the ski's runners, in root space, or null on a variant without a ski
+        // (the DoubleWide). The runner is a straight bar sloping down to the curl, so its lowest
+        // vertex is the one that meets the sand when the chassis tips forward about the hub.
+        private static Vector3? MeasureSki(Transform root)
+        {
+            Vector3? lowest = null;
+            foreach (MeshFilter runner in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!runner.name.StartsWith("Mesh_SkiRunners")) continue;
+                foreach (Vector3 v in runner.sharedMesh.vertices)
+                {
+                    Vector3 p = root.InverseTransformPoint(runner.transform.TransformPoint(v));
+                    if (!lowest.HasValue || p.y < lowest.Value.y) lowest = p;
+                }
+            }
+            if (lowest.HasValue) lowest = new Vector3(0f, lowest.Value.y, lowest.Value.z);   // on the centreline
+            return lowest;
+        }
+
+        private static Transform FindPart(Transform root, string prefix, string variant)
+        {
+            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith(prefix)) return t;
+            throw new System.InvalidOperationException($"{variant}: no {prefix}* in the model; the helm would never move.");
+        }
+
+        // The helm panel hangs on the tail post and turns about it, so the hinge is the post's centre
+        // and the axis is the post's long dimension, both in root space. The long dimension is judged
+        // AFTER the post's transform: the doubles' post is a unit cube stretched by its scale, so its
+        // mesh alone is the same size on every axis.
+        private static (Vector3 hinge, Vector3 axis) MeasureTailPost(Transform root, Transform post)
+        {
+            Bounds b = post.GetComponent<MeshFilter>().sharedMesh.bounds;
+            Vector3 axis = Vector3.zero;
+            foreach (Vector3 edge in new[] { Vector3.right * b.size.x, Vector3.up * b.size.y, Vector3.forward * b.size.z })
+            {
+                Vector3 inRoot = root.InverseTransformVector(post.TransformVector(edge));
+                if (inRoot.sqrMagnitude > axis.sqrMagnitude) axis = inRoot;
+            }
+            axis.Normalize();
+            if (Vector3.Dot(axis, Vector3.up) < 0f) axis = -axis;
+            return (root.InverseTransformPoint(post.TransformPoint(b.center)), axis);
         }
 
         private static IEnumerable<Transform> FindRingBones(Transform root)
@@ -237,26 +292,48 @@ namespace SpaceGame.EditorTools
 
         private static ParticleSystem Dust(Transform root, string name, Vector3 contact, Material mat)
         {
-            // Few, big, faint puffs that hang for a long time: a cloud, not a stream. Overdraw is paid per
-            // pixel covered, so the size went up and the count and alpha stayed down (GDC-L1-TECH-0002).
-            ParticleSystem ps = NewSystem(root, name, contact, Quaternion.identity, DustCap, 10f, 14f);
+            // Sand spun up off the paddles that then hangs: each puff is thrown up and back from the
+            // bottom of the wheel, drag stops it within about a second, and it billows out and lingers
+            // where it stopped. The emitter moves on and inherits nothing, so the puffs make a wall that
+            // stays behind the wheel. Overdraw is paid per pixel covered, so the alpha stays moderate and
+            // the count is capped (GDC-L1-TECH-0002); the soft fade in JetSmoke hides where a puff meets the sand.
+            Quaternion upAndBack = Quaternion.LookRotation(new Vector3(0f, 0.8f, -0.6f));
+            ParticleSystem ps = NewSystem(root, name, contact, upAndBack, DustCap, DustMinLife, DustMaxLife);
             ParticleSystem.MainModule main = ps.main;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 1.2f);
-            main.startSize = new ParticleSystem.MinMaxCurve(2.8f, 4.5f);
-            main.startColor = new Color(SandTint.r, SandTint.g, SandTint.b, 0.3f);
-            main.gravityModifier = -0.01f;   // hangs, drifting up a little
+            main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 7.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(2f, 3.2f);
+            main.startColor = new Color(SandTint.r, SandTint.g, SandTint.b, 0.6f);
+            main.gravityModifier = -0.02f;   // the hanging cloud drifts up a little
             ParticleSystem.ShapeModule shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(1.5f, 0.3f, 1.5f);
-            shape.position = new Vector3(0f, 1.4f, 0f);   // about half a puff up: the shader has no depth fade, so a
-                                                          // puff born on the contact would cut a hard line in the sand
-            ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 3f));
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 30f;
+            shape.radius = 0.6f;
+            shape.position = new Vector3(0f, 0.4f, 0f);   // shape space is the system's own; this sits it just off the sand
             ParticleSystem.LimitVelocityOverLifetimeModule drag = ps.limitVelocityOverLifetime;
             drag.enabled = true;
-            drag.drag = 0.6f;
-            FadeOut(ps, 0.3f);
+            drag.drag = 2.5f;
+            drag.multiplyDragByParticleSize = false;   // the puffs grow 3x; their drag must not grow with them
+            ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
+            size.enabled = true;
+            var billow = new AnimationCurve(new Keyframe(0f, 1f, 0f, 8f), new Keyframe(0.25f, 2.8f), new Keyframe(1f, 4.2f, 1f, 0f));
+            size.size = new ParticleSystem.MinMaxCurve(1f, billow);
+            ParticleSystem.NoiseModule noise = ps.noise;
+            noise.enabled = true;
+            noise.strength = 0.35f;
+            noise.frequency = 0.15f;
+            noise.scrollSpeed = 0.1f;
+            noise.damping = true;
+            noise.quality = ParticleSystemNoiseQuality.Medium;
+            ParticleSystem.RotationOverLifetimeModule spin = ps.rotationOverLifetime;
+            spin.enabled = true;
+            spin.z = new ParticleSystem.MinMaxCurve(-10f * Mathf.Deg2Rad, 10f * Mathf.Deg2Rad);
+            ParticleSystem.ColorOverLifetimeModule col = ps.colorOverLifetime;
+            col.enabled = true;
+            var fade = new Gradient();
+            fade.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                         new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.06f),
+                                 new GradientAlphaKey(0.75f, 0.45f), new GradientAlphaKey(0f, 1f) });
+            col.color = fade;
             Renderer(ps, mat);
             return ps;
         }

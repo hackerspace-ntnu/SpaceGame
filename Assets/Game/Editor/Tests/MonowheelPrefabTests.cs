@@ -51,15 +51,57 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void DustHangsInLargeCloudsForTenSecondsOrMore()
+        public void DustIsThrownUpLowThenHangsAsAGrowingCloud()
         {
             foreach (var (variant, _, _) in B.Variants)
-                foreach (MonowheelWheel w in Load(variant).Wheels)
+            {
+                MonowheelPresentation p = Load(variant);
+                foreach (MonowheelWheel w in p.Wheels)
                 {
-                    Assert.GreaterOrEqual(w.dust.main.startLifetime.constantMin, 10f, variant);
-                    Assert.GreaterOrEqual(w.dust.main.startSize.constantMin, 2.5f, variant);
-                    Assert.GreaterOrEqual(w.dust.main.maxParticles, 112, $"{variant}: the cap would cut a long-lived cloud short");
+                    ParticleSystem.MainModule main = w.dust.main;
+                    Assert.GreaterOrEqual(main.startLifetime.constantMin, 8f, $"{variant}: dust must linger");
+                    Assert.Greater(main.startSpeed.constantMin, 1f, $"{variant}: dust is thrown off the paddles, not set down");
+                    Assert.LessOrEqual(w.dust.shape.position.y, 1f, $"{variant}: dust is born at the sand, not floating over it");
+                    Assert.GreaterOrEqual(w.dust.limitVelocityOverLifetime.drag.constant, 1.5f, $"{variant}: thrown dust must stop and hang");
+                    Assert.IsTrue(w.dust.noise.enabled, $"{variant}: a hanging cloud churns");
+                    Assert.Greater(w.dust.sizeOverLifetime.size.curve.Evaluate(1f), 3f, $"{variant}: the cloud billows out");
+                    Assert.GreaterOrEqual(main.maxParticles, Mathf.CeilToInt(p.DustAtFullSpeed * main.startLifetime.constantMax),
+                                          $"{variant}: the cap would cut a long-lived cloud short");
                 }
+            }
+        }
+
+        [Test]
+        public void SkiVariantsKnowWhereTheirSkiMeetsTheSand()
+        {
+            foreach (var (variant, _, _) in B.Variants)
+            {
+                MonowheelPresentation p = Load(variant);
+                if (variant == "DoubleWide")
+                {
+                    Assert.IsFalse(p.HasSki, "the DoubleWide has no ski and must never be pitched");
+                    continue;
+                }
+                Assert.IsTrue(p.HasSki, variant);
+                foreach (MonowheelWheel w in p.Wheels)
+                {
+                    Assert.Greater(p.SkiLowPoint.z, w.localHub.z + 2f, $"{variant}: the ski is out front");
+                    Assert.Less(p.SkiLowPoint.y, w.localHub.y, $"{variant}: the ski is below the hub");
+                }
+            }
+        }
+
+        [Test]
+        public void EveryVariantHasItsHelmHingedOnTheTailPost()
+        {
+            foreach (var (variant, _, _) in B.Variants)
+            {
+                MonowheelPresentation p = Load(variant);
+                Assert.IsNotNull(p.Helm, variant);
+                StringAssert.StartsWith("Mesh_TailPanel_", p.Helm.name, variant);
+                Assert.Less(p.HelmHinge.z, p.Wheels[0].localHub.z - 2f, $"{variant}: the helm is the part furthest back");
+                Assert.Greater(Vector3.Dot(p.HelmAxis, Vector3.up), 0.9f, $"{variant}: the helm swings about its upright tail post");
+            }
         }
 
         [Test]

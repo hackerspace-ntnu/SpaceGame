@@ -21,6 +21,18 @@ namespace SpaceGame.Vehicles.Monowheel
         [Tooltip("Measured by MonowheelPresentationBuilder. One entry per ring.")]
         [SerializeField] private MonowheelWheel[] wheels = new MonowheelWheel[0];
 
+        [Header("Measured parts the chassis pose uses (MonowheelLean)")]
+        [Tooltip("Whether this variant has a ski out front. Without one the chassis is never pitched.")]
+        [SerializeField] private bool hasSki;
+        [Tooltip("The lowest point of the ski's runners, in root space: what is brought down onto the sand.")]
+        [SerializeField] private Vector3 skiLowPoint;
+        [Tooltip("The helm: the panel hinged on the tail post, the part furthest back. Swung with the rider's weight.")]
+        [SerializeField] private Transform helm;
+        [Tooltip("A point on the tail post's axis, in root space: what the helm turns about.")]
+        [SerializeField] private Vector3 helmHinge;
+        [Tooltip("The tail post's axis, in root space.")]
+        [SerializeField] private Vector3 helmAxis = Vector3.up;
+
         [Header("Speed")]
         [Tooltip("Ground speed (m/s) at which sand and smoke reach their maximum.")]
         [SerializeField] private float fullSpeed = 20f;
@@ -37,7 +49,7 @@ namespace SpaceGame.Vehicles.Monowheel
 
         [Header("Emission per wheel (particles/s)")]
         [SerializeField] private float sprayAtFullSpeed = 150f;
-        [SerializeField] private float dustAtFullSpeed = 8f;
+        [SerializeField] private float dustAtFullSpeed = 20f;
         [SerializeField] private float smokeIdle = 2f;
         [SerializeField] private float smokeAtFullSpeed = 12f;
 
@@ -53,11 +65,23 @@ namespace SpaceGame.Vehicles.Monowheel
 
         public IReadOnlyList<MonowheelWheel> Wheels => wheels;
         public float Speed => speed;
+        public bool HasSki => hasSki;
+        public Vector3 SkiLowPoint => skiLowPoint;
+        public Transform Helm => helm;
+        public Vector3 HelmHinge => helmHinge;
+        public Vector3 HelmAxis => helmAxis;
+        public float DustAtFullSpeed => dustAtFullSpeed;
+        public LayerMask GroundLayers => groundLayers;
 
-        /// <summary>Builder only: install the measured wheels.</summary>
-        public void Configure(MonowheelWheel[] measured)
+        /// <summary>Builder only: install the measured wheels and parts. <paramref name="ski"/> is null on a variant without one.</summary>
+        public void Configure(MonowheelWheel[] measured, Vector3? ski, Transform helmPanel, Vector3 hinge, Vector3 axis)
         {
             wheels = measured;
+            hasSki = ski.HasValue;
+            skiLowPoint = ski ?? Vector3.zero;
+            helm = helmPanel;
+            helmHinge = hinge;
+            helmAxis = axis.normalized;
             groundLayers = LayerMask.GetMask("Default", "Ground");
         }
 
@@ -112,18 +136,11 @@ namespace SpaceGame.Vehicles.Monowheel
             return cam == null ? float.NaN : Vector3.Distance(cam.transform.position, position);
         }
 
-        // Probed through the scene's OWN physics scene, so the builder's preview-scene check and a
-        // live world use the same code path. The vehicle's own colliders (the Strider prefab adds
-        // them) are skipped rather than excluded by layer, so no layer has to be reserved for it.
         private bool Touching(Vector3 contact)
         {
             Vector3 up = transform.up;
-            int n = gameObject.scene.GetPhysicsScene().Raycast(contact + up * groundProbe, -up, hits,
-                                                               groundProbe * 2f, groundLayers,
-                                                               QueryTriggerInteraction.Ignore);
-            for (int i = 0; i < n; i++)
-                if (!hits[i].collider.transform.IsChildOf(transform)) return true;
-            return false;
+            return MonowheelGround.TryHit(gameObject, transform, contact + up * groundProbe, -up, groundProbe * 2f,
+                                          groundLayers, hits, out _);
         }
 
         private static void SetRate(ParticleSystem system, float rate)

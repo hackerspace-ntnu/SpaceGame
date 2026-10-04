@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: MonowheelDust
+  m_Name: MonowheelSpray
   m_Shader: {fileID: 4800000, guid: 74c9ba5c6044b432d89f1401f5b65633, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -28,7 +28,7 @@ Material:
     - _Density: 0.7
     - _NoiseBite: 0.35
     - _NoiseScale: 5
-    - _SoftFade: 1.2
+    - _SoftFade: 0
     - _Softness: 0.75
     m_Colors:
     - _Color: {r: 0.78, g: 0.66, b: 0.47, a: 1}

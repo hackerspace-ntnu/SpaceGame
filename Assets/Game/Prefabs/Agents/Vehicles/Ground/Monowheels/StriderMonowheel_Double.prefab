@@ -1143,6 +1143,8 @@ GameObject:
   - component: {fileID: -5853260631361930941}
   - component: {fileID: 2270226924792986885}
   - component: {fileID: -8101378901102293655}
+  - component: {fileID: 285423304560193614}
+  - component: {fileID: 5785149778510747661}
   m_Layer: 0
   m_Name: StriderMonowheel_Double
   m_TagString: Untagged
@@ -1443,7 +1445,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  despawnDelay: 0
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &5218672248379477794
@@ -1932,6 +1934,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
+--- !u!114 &285423304560193614
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5705080575746212662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f211f46c2e177074287bb69c49794fd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AbandonedVehicle
+  lifetime: 300
+  unseenDistance: 150
+--- !u!114 &5785149778510747661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5705080575746212662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85fbbb8ee0af2284a8714c454c38c09d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AbandonedVehicleSaveable
 --- !u!1 &5755642645755353681
 GameObject:
   m_ObjectHideFlags: 0

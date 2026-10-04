@@ -823,7 +823,17 @@ namespace SpaceGame.Agents
         /// world store (NpcSpawn disowned it) with the savers a runtime vehicle gets.
         /// Server only; called from <see cref="GroupMembership"/> when the server seats a player.
         /// </summary>
-        public void ReleaseToPlayer(GameObject member)
+        public void ReleaseToPlayer(GameObject member) => ReleaseToWorld(member, "taken by a player");
+
+        /// <summary>
+        /// The group lost <paramref name="member"/> -- a vehicle whose driver is gone or which was
+        /// destroyed. It is released exactly as <see cref="ReleaseToPlayer"/> releases one, so it stays
+        /// where it stopped when the group folds or disbands, and is saved by the world store;
+        /// <see cref="AbandonedVehicle"/> takes it away once its lifetime is up. Server only.
+        /// </summary>
+        public void ReleaseDefeated(GameObject member) => ReleaseToWorld(member, "left behind defeated");
+
+        private void ReleaseToWorld(GameObject member, string how)
         {
             if (member == null || !member.TryGetComponent(out GroupMembership membership)) return;
 
@@ -845,7 +855,7 @@ namespace SpaceGame.Agents
             SaveablePolicy.EnsureSpawned(member);
             if (member.TryGetComponent(out SaveableEntity saveable)) saveable.ReclaimForWorld();
 
-            Log($"'{member.name}' was taken from '{group.Id}' by a player");
+            Log($"'{member.name}' left '{group.Id}': {how}");
         }
 
         // ── Despawning ───────────────────────────────────────────────────────────

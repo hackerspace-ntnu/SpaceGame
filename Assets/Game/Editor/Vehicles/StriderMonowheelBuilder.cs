@@ -13,7 +13,8 @@
 //
 // The mount itself never attacks: the riders shoot. The Strider wheels ride in the walking city's
 // formation and travel to goals, but only while somebody drives (MonowheelDriverGate), and stop dead
-// when killed (MonowheelWreck) before HealthReactionModule's corpse despawn takes them away. The
+// when killed (MonowheelWreck). A wheel its group loses -- driver gone or wrecked -- is left in the
+// world for AbandonedVehicle's lifetime rather than HealthReactionModule's corpse despawn. The
 // player's has no behaviour module but the mount-aware MountModule + SteerModule, so a parked wheel's motor brakes to a stop
 // and stays there.
 //
@@ -482,8 +483,12 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetInt(so, "maxHealth", maxHealth);
                 SerializedFields.SetInt(so, "currentHealth", maxHealth);
             });
-            root.AddComponent<HealthReactionModule>();
+            var reaction = root.AddComponent<HealthReactionModule>();
+            // A wreck is not a corpse: AbandonedVehicle leaves it in the world for its lifetime, so the
+            // players who won the fight can see it, and takes it away only once nobody is looking.
+            SerializedFields.Edit(reaction, so => SerializedFields.SetFloat(so, "despawnDelay", 0f));
             root.AddComponent<MonowheelWreck>();
+            root.AddComponent<AbandonedVehicle>();
 
             if (!EntityFactionWiring.Ensure(root, root.name))
                 Debug.LogError($"[StriderMonowheel] {root.name} got no EntityFaction; it is on nobody's side and invisible to targeting.");

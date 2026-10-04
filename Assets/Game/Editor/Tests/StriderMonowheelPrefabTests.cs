@@ -317,8 +317,8 @@ namespace SpaceGame.EditorTools
             var modules = Enumerable.Range(0, driven.arraySize).Select(i => driven.GetArrayElementAtIndex(i).objectReferenceValue).ToArray();
             CollectionAssert.AreEquivalent(new Object[] { wheel.GetComponent<FormationModule>(), wheel.GetComponent<GoalTravelModule>() }, modules);
 
-            Assert.IsNotNull(wheel.GetComponent<MonowheelWreck>(), "a killed wheel would roll on and stay mountable until despawned");
-            Assert.IsNotNull(wheel.GetComponent<HealthReactionModule>(), "the corpse path that despawns the wreck");
+            Assert.IsNotNull(wheel.GetComponent<MonowheelWreck>(), "a killed wheel would roll on and stay mountable");
+            Assert.IsNotNull(wheel.GetComponent<HealthReactionModule>(), "the corpse path that switches a killed wheel's brain off");
         }
 
         [TestCaseSource(nameof(StriderVariants))]

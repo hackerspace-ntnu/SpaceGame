@@ -107,6 +107,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a dab passes through foam that is already there and lands on the ground behind it | [FoamGun](systems/FoamGun.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
 | a decoration or tent placed by a Settlement renders enormous even though its own prefab measures correctly outside the settlement | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a defeated war-party monowheel vanishes the moment the fight ends | [Striders](systems/Striders.md) |
 | a deployed pack casts a shadow on the sand but I cannot see the pack itself | [Backpack](systems/Backpack.md) |
 | a dev teleport drops the player through the world and they fall forever | [EditorTooling](systems/EditorTooling.md) |
 | a disabled menu row stays stuck in its hover colour and never resets | [UI](systems/UI.md) |
@@ -214,6 +215,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a monowheel goes limp like a creature when it is killed or blasted | [Striders](systems/Striders.md) |
 | a monowheel rider lies on their back, or sits a metre in front of the seat | [Striders](systems/Striders.md) |
 | a monowheel the player drove off on vanishes from under them when they ride away from its war party | [Striders](systems/Striders.md) |
+| a monowheel whose driver I shot off is gone when I come back for it | [Striders](systems/Striders.md) |
 | a mount carries its rider into a cave and the rider still sees the exterior's lighting | [SceneTransitions](systems/SceneTransitions.md) |
 | a mount that walked into a cave cannot walk back out of it | [SceneTransitions](systems/SceneTransitions.md) |
 | a mounted NPC never fights back and can be shot off its animal at leisure | [Vehicles](systems/Vehicles.md) |
@@ -364,6 +366,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a worn item is scaled to the size of the model it is carried as | [BodyEquipment](systems/BodyEquipment.md) |
 | a worn model came out lying on its face, or rotated ninety degrees | [BodyEquipment](systems/BodyEquipment.md) |
+| a wrecked monowheel disappears a few seconds after it is killed | [Striders](systems/Striders.md) |
 | after a blast the ragdoll's limbs stretch away from the body | [Combat](systems/Combat.md) |
 | after a cutscene the camera stays at chest height instead of the head | [Cutscenes](systems/Cutscenes.md) |
 | after a quickload an empty sky transport hull stays parked at the city and no party owns it | [SkyTribe](systems/SkyTribe.md) |
@@ -1334,6 +1337,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Prefabs/Agents/Vehicles/Ground/StriderDuneBargeCompact.prefab` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Agents/Vehicles/Ground/StriderDuneBargeLookout.prefab` | [Striders](systems/Striders.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/AbandonedVehicleSaveable.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/StriderHostileLines.asset` | [Striders](systems/Striders.md) |
@@ -1497,6 +1501,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/JetpackNozzles.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
+| `Assets/Game/Scripts/agents/World/AbandonedVehicle.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Environment/SkyFleetPlacement.cs` | [SkyTribe](systems/SkyTribe.md) |
@@ -1535,6 +1540,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/Items/strap_on_booster.fbx` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Agents/StriderCityStartSite.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Environment/SkyFleetBuilder.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Tests/AbandonedVehicleTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/TrackedHullDriveTests.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Editor/Tests/TrackedHullMotorTests.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Editor/Vehicles/StriderCityBuilder.cs` | [Striders](systems/Striders.md) |
@@ -1791,4 +1797,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1302 symptoms, 463 paths, 66 docs -->
+<!-- 1305 symptoms, 466 paths, 66 docs -->

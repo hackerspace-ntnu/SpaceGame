@@ -1,14 +1,14 @@
 // What a monowheel does when it is killed: it stops dead and can no longer be ridden.
 //
-// HealthReactionModule parks a corpse by switching its AgentController off and despawns it after
-// its despawnDelay -- the repo's one corpse path, which the wheel keeps. That is not enough for a
-// physics vehicle: the MonowheelMotor runs on its own FixedUpdate and would keep rolling towards
-// its last destination until the body is taken away, and the MountModule would keep offering the
-// saddle of a wreck. So on death this stops the motor, switches it off, and switches the mount off
+// HealthReactionModule parks a corpse by switching its AgentController off; the wheel's corpse
+// despawn is off (despawnDelay 0), because a wreck its group lost stays in the world for
+// AbandonedVehicle's lifetime. That is not enough for a physics vehicle: the MonowheelMotor runs
+// on its own FixedUpdate and would keep rolling towards its last destination until the body is
+// taken away, and the MountModule would keep offering the saddle of a wreck. So on death this stops the motor, switches it off, and switches the mount off
 // (which dismounts a player riding it). Everyone the wheel carried gets down: the NPC driver
 // (NpcPassenger.Dismount) and a double's gunners (MountedGunners.ReleaseGunners) are stood beside
 // the wreck and fight on foot as the group's fighters -- counted, and killed, like any other --
-// instead of riding it until the corpse despawns and vanishing with it.
+// instead of riding it until the wreck is taken away and vanishing with it.
 //
 // Every one of those consequences is the authority's. HealthComponent also raises OnDeath through
 // RestoreHealth, which on a client is how the server's death arrives (NetworkedHealthComponent):

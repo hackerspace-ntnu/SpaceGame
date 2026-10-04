@@ -205,6 +205,14 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(CrewSaveable));
             }
 
+            // How long a vehicle its group lost has left in the world. Without it a load either
+            // never takes the abandoned vehicle away or restarts its countdown from full.
+            if (go.GetComponent<AbandonedVehicle>() != null && go.GetComponent<AbandonedVehicleSaveable>() == null)
+            {
+                go.AddComponent<AbandonedVehicleSaveable>();
+                parts.Add(nameof(AbandonedVehicleSaveable));
+            }
+
             // Who this was fighting, and what it remembers. AgentTargeting rather than
             // AgentController: an agent with no targeting has no combat state to lose, and the saver
             // would capture an empty bag on every entity in the world.

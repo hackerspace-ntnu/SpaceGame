@@ -223,6 +223,35 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void Seeding_StartsAGroupAtItsStop_ForItsInitialStay()
+        {
+            caravan.initialStaySeconds = 600f;
+            Call("Start");
+            NpcGroup group = sim.FindGroup("caravan");
+
+            Assert.AreEqual(600f, group.DwellRemaining, 0.001f);
+            Call("TickGroup", group, 1f);
+            Assert.IsFalse(group.HasGoal, "still at its first stop: it has not chosen where to go next");
+        }
+
+        [Test]
+        public void AGroupSpawnedMidStay_HandsTheRestOfTheStayToItsLeader()
+        {
+            Call("Start");
+            NpcGroup group = sim.FindGroup("caravan");
+            group.DwellRemaining = 40f;
+
+            var leader = new GameObject("Leader"); junk.Add(leader);
+            leader.AddComponent<FormationModule>();
+            var tasks = leader.AddComponent<NpcTaskModule>();
+            Call("Configure", leader, group, caravan, true);
+
+            Assert.IsTrue(tasks.AtStop, "spawned in the middle of a stop, the leader must not set off at once");
+            Assert.AreEqual(40f, tasks.PhaseTimer, 0.001f);
+            Assert.AreEqual(0f, group.DwellRemaining, "the leader owns the stay now; ReadBackCrew writes back what is left");
+        }
+
+        [Test]
         public void SteerSpawned_PointsTheRecordAtTheNewGoal()
         {
             NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);

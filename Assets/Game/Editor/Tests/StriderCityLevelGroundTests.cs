@@ -163,17 +163,44 @@ namespace SpaceGame.EditorTools
         // ── The start ────────────────────────────────────────────────────────
 
         [Test]
-        public void StartCandidates_BeginDirectlyAway_AtTheStartDistance_AndStayInTheBand()
+        public void StartCandidates_StayInTheBand_NearestTheStartDistanceFirst()
         {
             Vector2 spawn = new(1000f, 2000f);
-            List<Vector2> candidates = StriderCityStartSite.Candidates(spawn, Vector2.right);
+            List<Vector2> candidates = StriderCityStartSite.Candidates(spawn);
 
-            Assert.AreEqual(spawn + Vector2.right * StriderCityStartSite.CityStartDistance, candidates[0]);
+            Assert.AreEqual(StriderCityStartSite.CityStartDistance, Vector2.Distance(candidates[0], spawn), 0.01f);
+            float previous = 0f;
             foreach (Vector2 c in candidates)
-                Assert.That(Vector2.Distance(c, spawn),
+            {
+                float distance = Vector2.Distance(c, spawn);
+                Assert.That(distance,
                             Is.InRange(StriderCityStartSite.CityStartDistance - StriderCityStartSite.CityStartBand - 0.01f,
                                        StriderCityStartSite.CityStartDistance + StriderCityStartSite.CityStartBand + 0.01f));
+                float offBand = Mathf.Abs(distance - StriderCityStartSite.CityStartDistance);
+                Assert.GreaterOrEqual(offBand, previous - 0.01f, "nearest the start distance first");
+                previous = offBand;
+            }
             Assert.AreEqual(candidates.Count, candidates.Distinct().Count());
+        }
+
+        [Test]
+        public void StartCandidates_LeaveNoGapInTheBand()
+        {
+            // A fan of bearings stepped past the one level pan beside the spawn (2026-10-04): every
+            // point of the band must have a candidate within half a grid cell's diagonal.
+            Vector2 spawn = new(1000f, 2000f);
+            List<Vector2> candidates = StriderCityStartSite.Candidates(spawn);
+            float reach = StriderCityStartSite.CityStartBandStep * Mathf.Sqrt(2f) / 2f + 0.01f;
+
+            for (int bearing = 0; bearing < 360; bearing += 7)
+                for (float distance = StriderCityStartSite.CityStartDistance - StriderCityStartSite.CityStartBand + reach;
+                     distance <= StriderCityStartSite.CityStartDistance + StriderCityStartSite.CityStartBand - reach;
+                     distance += 37f)
+                {
+                    Vector3 turned = Quaternion.Euler(0f, bearing, 0f) * Vector3.forward * distance;
+                    Vector2 point = spawn + new Vector2(turned.x, turned.z);
+                    Assert.LessOrEqual(candidates.Min(c => Vector2.Distance(c, point)), reach, $"gap at {point}");
+                }
         }
 
         [Test]

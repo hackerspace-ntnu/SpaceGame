@@ -404,6 +404,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 1
     startPosition: {x: 3650, y: 100, z: 1620}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -515,6 +516,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 1
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -643,7 +645,8 @@ MonoBehaviour:
     travelSpeed: 2.6999998
     startNearSite: 2
     useStartPosition: 1
-    startPosition: {x: 2500, y: 106.12113, z: 500.00003}
+    startPosition: {x: 3340.1294, y: 109.16351, z: 1221.2712}
+    initialStaySeconds: 600
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -785,6 +788,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -810,6 +814,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 0}
@@ -835,6 +840,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 0}
@@ -860,6 +866,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 3975991240799448283, guid: 94f134b4aed0e0247ac1302ad4cd3e11, type: 3}
@@ -895,6 +902,7 @@ MonoBehaviour:
     startNearSite: 7
     useStartPosition: 1
     startPosition: {x: 3480, y: 100, z: 1740}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 0}
@@ -990,6 +998,7 @@ MonoBehaviour:
     startNearSite: 6
     useStartPosition: 1
     startPosition: {x: 3150, y: 113.7, z: 1350}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -1085,6 +1094,7 @@ MonoBehaviour:
     startNearSite: 6
     useStartPosition: 1
     startPosition: {x: 2200, y: 170.3, z: 1500}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -1180,6 +1190,7 @@ MonoBehaviour:
     startNearSite: 6
     useStartPosition: 1
     startPosition: {x: 2800, y: 104.9, z: -300}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -1264,6 +1275,7 @@ MonoBehaviour:
     startNearSite: 6
     useStartPosition: 1
     startPosition: {x: 3400, y: 104.7, z: 900}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}

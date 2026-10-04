@@ -480,6 +480,9 @@ namespace SpaceGame.EditorTools
         private static readonly Vector2 StriderCityDwell = new Vector2(90f, 180f);
         // A 21 m hull stops well short of a site marker; a person-sized arrive radius never arrives.
         private const float StriderCityArriveRadius = 25f;
+        // A new world's city stays parked at its start this long, so a player landing 570 m away can walk
+        // over and find it there rather than chase it toward a stop 1-2.5 km off (the user, 2026-10-04).
+        public const float StriderCityInitialStay = 600f;
         // The houses that carry the city; the first leads. Crew posts are per house, so the crew scales with it.
         public const int StriderCityHouses = 3;
         private const int StriderCityWorkers = 2;
@@ -579,7 +582,7 @@ namespace SpaceGame.EditorTools
             if (striders == null || habitat == null || crawler == null || crab == null
                 || scouts.Any(s => s == null) || barges.Any(b => b == null)) return;
 
-            // Near the middle of the map rather than at a Ruin: see StriderCityStartSite.
+            // Near the player's spawn rather than at a Ruin: see StriderCityStartSite.
             if (!StriderCityStartSite.TryChoose(out Vector3 start, out _)) return;
 
             WithWorldSim(sim =>
@@ -615,6 +618,7 @@ namespace SpaceGame.EditorTools
                 t.FindPropertyRelative("bountyHunters").boolValue = false;
                 t.FindPropertyRelative("useStartPosition").boolValue = true;
                 t.FindPropertyRelative("startPosition").vector3Value = start;
+                t.FindPropertyRelative("initialStaySeconds").floatValue = StriderCityInitialStay;
                 t.FindPropertyRelative("startNearSite").enumValueIndex = (int)SiteKind.Ruin;
                 t.FindPropertyRelative("travelSpeed").floatValue = StriderCityBuilder.CityLeaderSpeed;
 

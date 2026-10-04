@@ -212,6 +212,7 @@ namespace SpaceGame.Agents
                     TemplateId = template.id,
                     Position = ResolveStart(template),
                     RosterSeed = RosterDraw.StableHash(template.id),
+                    DwellRemaining = template.initialStaySeconds,
                 };
 
                 groups.Add(group);
@@ -751,6 +752,15 @@ namespace SpaceGame.Agents
 
                 if (group.HasGoal && member.TryGetComponent(out AgentGoal goal))
                     SetGoal(goal, group);
+
+                // Spawned partway through a stop: the leader works out the rest of it rather than
+                // setting off at once. It owns the stay from here; ReadBackCrew writes back what is
+                // left, so the record must not keep a copy to replay on the next fold or spawn.
+                if (!group.HasGoal && group.DwellRemaining > 0f)
+                {
+                    tasks.StayFor(group.DwellRemaining);
+                    group.DwellRemaining = 0f;
+                }
             }
 
             // See SceneTracked.SetKeepChunksLoaded. A spawned member is by definition within
@@ -877,9 +887,9 @@ namespace SpaceGame.Agents
         /// Whether any of the group's carriers still has crew off it, and how long the leader's stop
         /// has left — read before the group folds or saves, so it comes back on foot where it left
         /// them rather than seated mid-stop. Folded, <c>TickVirtual</c> keeps the crew ashore until
-        /// that stay runs out; the record's own <c>DwellRemaining</c> is set only by a virtual
-        /// arrival, so without the live one it is usually spent and the crew are called aboard on
-        /// the first folded tick.
+        /// that stay runs out; the record's own <c>DwellRemaining</c> is handed to the leader at
+        /// spawn (<see cref="Configure"/>), so without the live one it is spent and the crew are
+        /// called aboard on the first folded tick.
         /// </summary>
         private static void ReadBackCrew(NpcGroup group)
         {

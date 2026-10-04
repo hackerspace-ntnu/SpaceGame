@@ -1176,6 +1176,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the storm's fog and grit are drawn inside the ship, and the crew take sandstorm damage indoors | [PlayerShip](systems/PlayerShip.md) |
 | the strap-on booster does nothing at all when I aim at the ground or a wall | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the Strider city drops the frame rate and nobody knows which system | [Diagnostics](systems/Diagnostics.md) |
+| the Strider city has already walked off by the time I reach its start | [Striders](systems/Striders.md) |
 | the Strider city starts on a hillside, or inside the Clanker town's alarm ring | [Striders](systems/Striders.md) |
 | the Strider crew sit inside the walls of their walking house | [Vehicles](systems/Vehicles.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
@@ -1767,4 +1768,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1292 symptoms, 449 paths, 65 docs -->
+<!-- 1293 symptoms, 449 paths, 65 docs -->

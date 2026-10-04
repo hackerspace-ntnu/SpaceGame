@@ -154,6 +154,11 @@ namespace SpaceGame.Agents
         public bool useStartPosition;
         public Vector3 startPosition;
 
+        [Tooltip("Seconds a new world's group spends at its start before choosing where to go, as if " +
+                 "it had just arrived there. 0 sets off on the first tick. Lets a player who lands " +
+                 "nearby reach it before it walks out of range.")]
+        [Min(0f)] public float initialStaySeconds;
+
         [Tooltip("This group hunts players. It roams looking for you rather than working sites, and " +
                  "heads for your last known position when it loses you.")]
         public bool bountyHunters;

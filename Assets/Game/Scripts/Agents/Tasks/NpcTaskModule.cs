@@ -398,6 +398,18 @@ namespace SpaceGame.Agents
             lastSiteId = string.Empty;
         }
 
+        /// <summary>
+        /// Begin as though this NPC had just arrived at a stop with <paramref name="seconds"/> of it
+        /// left: used by NpcWorldSim when a group comes into range partway through a stay.
+        /// </summary>
+        public void StayFor(float seconds)
+        {
+            CurrentPhase = Phase.Dwelling;
+            phaseTimer = Mathf.Max(0f, seconds);
+            travelElapsed = 0f;
+            SetDwellFlag(CurrentTask != null ? CurrentTask.dwellFlag : null);
+        }
+
         /// <summary>Point this NPC's home somewhere specific, overriding the startup search.</summary>
         public void SetHome(Vector3 position)
         {

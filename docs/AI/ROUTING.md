@@ -357,6 +357,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a torso item is worn rotated to a random angle | [BodyEquipment](systems/BodyEquipment.md) |
 | a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
+| a vehicle at the back of the Strider column keeps riding up to the lead house | [Striders](systems/Striders.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
 | a war party stops at an old position and never follows me again | [AgentSystem](systems/AgentSystem.md) |
 | a war party's monowheel the player took is gone after a reload, or comes back crewed by Striders | [Striders](systems/Striders.md) |
@@ -1183,6 +1184,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the strap-on booster does nothing at all when I aim at the ground or a wall | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the Strider city drops the frame rate and nobody knows which system | [Diagnostics](systems/Diagnostics.md) |
 | the Strider city has already walked off by the time I reach its start | [Striders](systems/Striders.md) |
+| the Strider city rides in matching pairs, like a parade | [Striders](systems/Striders.md) |
 | the Strider city starts on a hillside, or inside the Clanker town's alarm ring | [Striders](systems/Striders.md) |
 | the Strider crew sit inside the walls of their walking house | [Vehicles](systems/Vehicles.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
@@ -1586,6 +1588,7 @@ Longest match wins.
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Art/Materials/Items/FlameEmber.mat` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Editor/Agents/StriderCityColumn.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Environment/FeatureEdges.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Editor/Items/FlamethrowerReseat.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Editor/Support/SerializedFields.cs` | [EditorTooling](systems/EditorTooling.md) |
@@ -1788,4 +1791,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1300 symptoms, 462 paths, 66 docs -->
+<!-- 1302 symptoms, 463 paths, 66 docs -->

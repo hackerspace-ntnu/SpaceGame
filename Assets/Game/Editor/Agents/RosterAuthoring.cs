@@ -3,6 +3,7 @@
 //
 // Run from: Tools > SpaceGame > Agents > Author Sand Tribe Roster / Author Sky Tribe Roster / Author Strider Roster
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -485,6 +486,9 @@ namespace SpaceGame.EditorTools
         public const float StriderCityInitialStay = 600f;
         // The houses that carry the city; the first leads. Crew posts are per house, so the crew scales with it.
         public const int StriderCityHouses = 3;
+        // The rows a carrier (a house or a barge) may ride in: the ground the city levels at a stop covers
+        // them (CityFarthestCarrierSlot). The shuffle keeps every carrier there (StriderCityColumn).
+        private const int CityCarrierRows = 6;
         private const int StriderCityWorkers = 2;
         private const int StriderCityOutriders = 2;
         // Monowheel scouts riding with the column; ScoutRota keeps two of them out on a sweep. Shared out
@@ -492,9 +496,8 @@ namespace SpaceGame.EditorTools
         public const int StriderCityScouts = 8;
         // One crewed barge of each kind (StriderBargeBuilder.Barges; the user, 2026-09-25).
         public static int StriderCityBarges => StriderBargeBuilder.Barges.Length;
-        // A barge (34 m) is longer than a row is deep, so no barge may follow another in its lane: the first
-        // two ride abreast, the rest behind the first single's scouts (StriderCityTemplateTests measures it).
-        private const int BargesAbreast = 2;
+        // A barge (34 m) is longer than a row is deep: StriderCityColumn only takes a shuffle in which every
+        // barge clears its neighbours at their slots (StriderCityTemplateTests measures it again).
 
         /// <summary>The walking city's column.</summary>
         public static readonly FormationShape CityShape = new FormationShape
@@ -526,10 +529,38 @@ namespace SpaceGame.EditorTools
         /// </summary>
         public static float CityFarthestSlot => FormationMath.FarthestSlot(CityFollowers, CityShape);
 
-        /// <summary>Follower slots up to and including the last carrier's (the barge behind the first single's scouts).</summary>
-        private static int CityCarrierSlots =>
-            StriderCityHouses - 1 + StriderCityWorkers + StriderCityOutriders + StriderCityBarges
-            + ScoutShare(0, StriderMonowheelBuilder.Singles.Length);
+        /// <summary>Beyond the column's farthest slot, so a member at the very back still holds its own.</summary>
+        private const float CityRegroupMargin = 30f;
+
+        /// <summary>
+        /// Every city member's FormationModule.regroupDistance: the column is shuffled
+        /// (<see cref="StriderCityColumn"/>), so any vehicle may ride in its farthest slot. Rebuild the
+        /// members after a change to the column.
+        /// </summary>
+        public static float CityRegroupDistance => CityFarthestSlot + CityRegroupMargin;
+
+        /// <summary>The follower slots a carrier may take: the first <see cref="CityCarrierRows"/> rows.</summary>
+        public static int CityCarrierSlots => CityCarrierRows * CityShape.Lanes;
+
+        /// <summary>Whether <paramref name="prefab"/> carries crew and stands still for a whole stop: a house or a barge.</summary>
+        public static bool IsCityCarrier(GameObject prefab) =>
+            IsAt(prefab, StriderCityBuilder.HabitatPath) || IsCityBarge(prefab);
+
+        private static bool IsCityBarge(GameObject prefab) =>
+            StriderBargeBuilder.Barges.Any(b => IsAt(prefab, StriderBargeBuilder.PrefabPath(b.Variant)));
+
+        /// <summary>
+        /// What a city member may not ride beside or behind (StriderCityColumn): its prefab, or "barge" for
+        /// every barge; null for the monowheel scouts, which go anywhere.
+        /// </summary>
+        public static string CityKind(GameObject prefab)
+        {
+            if (IsCityBarge(prefab)) return "barge";
+            if (StriderMonowheelBuilder.Singles.Any(v => IsAt(prefab, StriderMonowheelBuilder.PrefabPath(v)))) return null;
+            return prefab.name;
+        }
+
+        private static bool IsAt(GameObject prefab, string path) => AssetDatabase.GetAssetPath(prefab) == path;
 
         /// <summary>
         /// How far from the lead house the farthest carrier -- a house or a barge, whatever puts a crew
@@ -565,7 +596,8 @@ namespace SpaceGame.EditorTools
         /// outriders, three crewed barges, eight monowheel scouts and a crew that fills every crew post on
         /// the houses and barges.
         /// Carriers are listed before the crew because NpcWorldSim seats each crew member on a carrier already spawned.
-        /// It starts near the middle of the map (<see cref="StriderCityStartSite"/>).
+        /// The vehicles behind the lead house are shuffled (<see cref="StriderCityColumn"/>); it starts a
+        /// short walk from the player's spawn (<see cref="StriderCityStartSite"/>).
         /// Idempotent: finds its template by id and rewrites every field it owns.
         /// </summary>
         [MenuItem("Tools/SpaceGame/Agents/Wire Strider City")]
@@ -584,6 +616,16 @@ namespace SpaceGame.EditorTools
 
             // Near the player's spawn rather than at a Ruin: see StriderCityStartSite.
             if (!StriderCityStartSite.TryChoose(out Vector3 start, out _)) return;
+
+            // Every vehicle behind the lead house, shuffled so the column is not a parade of pairs.
+            var followers = Enumerable.Repeat(habitat, StriderCityHouses - 1)
+                .Concat(Enumerable.Repeat(crawler, StriderCityWorkers))
+                .Concat(Enumerable.Repeat(crab, StriderCityOutriders))
+                .Concat(barges)
+                .Concat(scouts.SelectMany((scout, i) => Enumerable.Repeat(scout, ScoutShare(i, scouts.Length))))
+                .ToList();
+            if (!StriderCityColumn.TryOrder(habitat, followers, CityKind, IsCityCarrier, IsCityBarge,
+                                            CityShape, CityCarrierSlots, out List<GameObject> column)) return;
 
             WithWorldSim(sim =>
             {
@@ -630,22 +672,10 @@ namespace SpaceGame.EditorTools
                 SerializedProperty members = t.FindPropertyRelative("members");
                 members.arraySize = 0;
                 AddMember(members, habitat, RosterRole.Scout, 1, leader: true, crew: false);
-                AddMember(members, habitat, RosterRole.Scout, StriderCityHouses - 1, leader: false, crew: false);
-                AddMember(members, crawler, RosterRole.Scout, StriderCityWorkers, leader: false, crew: false);
-                // A fixed prefab, never the roster's Rider draw: that is the war parties' monowheels. Before
-                // the scouts, so the slow crabs flank the column beside the crawlers (row 2) and the fast
-                // scouts take the rows behind.
-                AddMember(members, crab, RosterRole.Rider, StriderCityOutriders, leader: false, crew: false);
-                // The barges behind the crabs, but never one behind another in its lane (BargesAbreast).
-                for (int i = 0; i < BargesAbreast; i++)
-                    AddMember(members, barges[i], RosterRole.Scout, 1, leader: false, crew: false);
-                for (int i = 0; i < scouts.Length; i++)
-                {
-                    AddMember(members, scouts[i], RosterRole.Scout, ScoutShare(i, scouts.Length), leader: false, crew: false);
-                    if (i == 0)
-                        for (int b = BargesAbreast; b < barges.Length; b++)
-                            AddMember(members, barges[b], RosterRole.Scout, 1, leader: false, crew: false);
-                }
+                // One spec per vehicle, in slot order. The crabs are a fixed prefab, never the roster's
+                // Rider draw: that is the war parties' monowheels.
+                foreach (GameObject vehicle in column)
+                    AddMember(members, vehicle, vehicle == crab ? RosterRole.Rider : RosterRole.Scout, 1, leader: false, crew: false);
                 // Half fighters, half scouts, one per crew post on every carrier; an odd post goes to a scout.
                 int crew = StriderCityHouses * StriderCityBuilder.CrewPosts + barges.Length * StriderBargeBuilder.CrewPosts;
                 int fighters = crew / 2;
@@ -704,7 +734,7 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>The <paramref name="index"/>-th single's share of <see cref="StriderCityScouts"/>; the first ones take one extra each while the remainder lasts.</summary>
-        private static int ScoutShare(int index, int singles) =>
+        internal static int ScoutShare(int index, int singles) =>
             StriderCityScouts / singles + (index < StriderCityScouts % singles ? 1 : 0);
 
         private static void AddMember(SerializedProperty members, GameObject prefab, RosterRole role, int count, bool leader, bool crew)

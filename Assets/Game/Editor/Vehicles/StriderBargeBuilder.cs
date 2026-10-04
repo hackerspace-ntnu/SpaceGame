@@ -85,9 +85,6 @@ namespace SpaceGame.EditorTools
         private const float RestRadius = 45f;
         private const float SlotTolerance = 4f;
         private const float FormationNavSample = 20f;
-        /// <summary>Beyond the column's farthest slot, as the monowheels'.</summary>
-        private const float RegroupMargin = 30f;
-        private static float RegroupDistance => RosterAuthoring.CityFarthestSlot + RegroupMargin;
 
         [MenuItem("Tools/SpaceGame/Vehicles/Build Strider Barges")]
         public static void BuildAll()
@@ -184,7 +181,7 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetFloat(so, "restRadius", RestRadius);
                 SerializedFields.SetBool(so, "holdSlotAtRest", true);
                 SerializedFields.SetFloat(so, "slotTolerance", SlotTolerance);
-                SerializedFields.SetFloat(so, "regroupDistance", RegroupDistance);
+                SerializedFields.SetFloat(so, "regroupDistance", RosterAuthoring.CityRegroupDistance);
                 SerializedFields.SetFloat(so, "navSampleDistance", FormationNavSample);
             });
         }

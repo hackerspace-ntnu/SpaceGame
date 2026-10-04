@@ -172,9 +172,7 @@ namespace SpaceGame.EditorTools
         /// farthest scout slot, ~210 m back, or the rear scouts flip between slot and leader for ever.
         /// ScoutRota also counts a returning scout as home within it. A convoy's slots are far closer.
         /// </summary>
-        private static float RegroupDistance => RosterAuthoring.CityFarthestSlot + RegroupMargin;
-        /// <summary>Room to fall behind the farthest slot (a corner, a dune) before the shape is given up.</summary>
-        private const float RegroupMargin = 30f;
+        private static float RegroupDistance => RosterAuthoring.CityRegroupDistance;
 
         [MenuItem("Tools/SpaceGame/Vehicles/Build Strider Monowheels")]
         public static void Build()

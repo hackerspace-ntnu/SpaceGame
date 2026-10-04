@@ -65,7 +65,6 @@ namespace SpaceGame.EditorTools
         public const float WorkRadius = 60f;
         // Machine-sized formation tolerances: a 21 m crawler cannot hold a person-sized slot.
         private const float SlotTolerance = 8f;
-        private const float RegroupDistance = 150f;
         private const float FormationNavSample = 20f;
         // The crawler's hand-tuned mass, carried over from the prefab this builder used to overwrite.
         private const float BodyMass = 100f;
@@ -524,7 +523,7 @@ namespace SpaceGame.EditorTools
             SerializedFields.SetString(fso, "formationId", string.Empty);
             SerializedFields.SetFloat(fso, "restRadius", WorkRadius);
             SerializedFields.SetFloat(fso, "slotTolerance", SlotTolerance);
-            SerializedFields.SetFloat(fso, "regroupDistance", RegroupDistance);
+            SerializedFields.SetFloat(fso, "regroupDistance", RosterAuthoring.CityRegroupDistance);
             SerializedFields.SetFloat(fso, "navSampleDistance", FormationNavSample);
             fso.ApplyModifiedPropertiesWithoutUndo();
         }

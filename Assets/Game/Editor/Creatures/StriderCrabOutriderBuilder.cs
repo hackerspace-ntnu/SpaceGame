@@ -27,10 +27,6 @@ namespace SpaceGame.EditorTools
         private const float SeatRise = 0.2f;
         /// <summary>CrabWalker6's hand-tuned mass; at 1 the crab is shoved around by anything that touches it.</summary>
         private const float BodyMass = 100f;
-        /// <summary>The crabs flank the column on row 2, ~90 m behind the lead house. FormationModule's
-        /// default 40 m made them count as separated at their own slot and ride for the leader, so they
-        /// hovered among the houses. The crawler's figure, for the crawler's neighbours.</summary>
-        private const float RegroupDistance = 150f;
 
         /// <summary>Puffs of sand thrown per foot landing: few, since the crab's small feet land eight times a second.</summary>
         public const int PuffsPerFootfall = 2;
@@ -71,7 +67,7 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetString(so, "formationId", string.Empty);
                 // It flanks the lead house: gathering in the rest ring would park it among the legs.
                 SerializedFields.SetBool(so, "holdSlotAtRest", true);
-                SerializedFields.SetFloat(so, "regroupDistance", RegroupDistance);
+                SerializedFields.SetFloat(so, "regroupDistance", RosterAuthoring.CityRegroupDistance);
             });
             var travel = root.AddComponent<GoalTravelModule>();
             SerializedFields.Edit(travel, so => SerializedFields.SetInt(so, "priority", ModulePriority.Fallback + 1));

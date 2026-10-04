@@ -108,7 +108,6 @@ namespace SpaceGame.EditorTools
         // never settles into its slot).
         private const float RestRadius = 45f;
         private const float SlotTolerance = 8f;
-        private const float RegroupDistance = 120f;
         private const float FormationNavSample = 20f;
 
         /// <summary>How far out from the hull's side the gangway is, clear of the legs' swing.</summary>
@@ -192,7 +191,7 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetFloat(so, "restRadius", RestRadius);
                 SerializedFields.SetBool(so, "holdSlotAtRest", true);
                 SerializedFields.SetFloat(so, "slotTolerance", SlotTolerance);
-                SerializedFields.SetFloat(so, "regroupDistance", RegroupDistance);
+                SerializedFields.SetFloat(so, "regroupDistance", RosterAuthoring.CityRegroupDistance);
                 SerializedFields.SetFloat(so, "navSampleDistance", FormationNavSample);
             });
 

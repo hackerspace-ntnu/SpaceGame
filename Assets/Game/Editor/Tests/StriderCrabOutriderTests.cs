@@ -45,7 +45,7 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(passenger);
             var rider = new SerializedObject(passenger).FindProperty("riderPrefab").objectReferenceValue as GameObject;
             Assert.IsNotNull(rider);
-            StringAssert.StartsWith("StriderNomad_", rider.name, "faction is not replicated: the rider must ship as a Strider");
+            StringAssert.StartsWith("Strider_", rider.name, "faction is not replicated: the rider must ship as a Strider");
             Assert.IsNull(crab.GetComponent<CloseCombatModule>(), "the mount carries, the rider shoots");
             Assert.IsNull(crab.GetComponent<AgentRangedCombatModule>());
         }

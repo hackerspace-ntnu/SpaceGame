@@ -36,9 +36,9 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void StriderCloth_IsItsOwnMaterials_NotSandsOrSkys()
+        public void StriderPeople_WearTheirOwnModelsColours_NoTribesClothDye()
         {
-            string[] prefixes = { "NomadCloth_", "SkyNomadCloth_" };
+            string[] prefixes = { "NomadCloth_", "SkyNomadCloth_", "StriderNomadCloth_" };
             foreach (var recipe in NomadPrefabBuilder.StriderNomads)
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(recipe.PrefabPath);

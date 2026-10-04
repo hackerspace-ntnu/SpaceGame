@@ -54,7 +54,8 @@ namespace SpaceGame.EditorTools
             /// <summary>The roster whose <c>handItems</c> a <see cref="RandomWeapon"/> loadout is baked from.</summary>
             public string RosterPath;
 
-            /// <summary>What the cloth is dyed. See <see cref="NomadPrefabBuilder.ClothPalette"/>.</summary>
+            /// <summary>What the cloth is dyed. See <see cref="NomadPrefabBuilder.ClothPalette"/>. Null for a
+            /// character that keeps its model's own colours and has no wind cloth (the Striders).</summary>
             public ClothPalette ClothPalette;
 
             /// <summary>The flavour lines he says when talked to.</summary>
@@ -171,15 +172,6 @@ namespace SpaceGame.EditorTools
             "Rust holds better than you'd think, a mile up.",
         };
 
-        // Heavy rust red with iron-dark scarves: the Striders read as a red column from across a
-        // dune (spec §2, GDC-L1-LEVEL-0001).
-        private static readonly ClothPalette StriderCloth = new ClothPalette
-        {
-            MaterialPrefix = "StriderNomadCloth",
-            Cloth = new Color(0.62f, 0.16f, 0.10f),
-            Accents = new[] { ("_Scarf_Long", new Color(0.22f, 0.20f, 0.19f)) },
-        };
-
         private static readonly string[] StriderDialogLines =
         {
             "Mind the legs. They don't stop for anyone.",
@@ -247,15 +239,20 @@ namespace SpaceGame.EditorTools
         public static readonly NomadRecipe[] SkyTribePeople = SkyNomads.Append(SkySoldier).ToArray();
 
         private const string StriderCharacterFolder = CharacterFolder + "/Striders";
+        private const string StriderModelFolder = "Assets/Game/Art/Models/Characters/Striders";
 
-        // The same four bodies, dyed rust red and sworn to the Striders. They walk back to their
-        // walking house by goal when it calls them (CrewShift).
-        public static readonly NomadRecipe[] StriderNomads = ArmedNomadVariants
+        // The user's four Strider models (strider1.blend, rigged in strider_characters.blend), in their
+        // own palette colours. Each took over one of the old dyed-nomad prefabs by MoveAsset, so the
+        // order is those prefabs' (Umber, Tan, Maroon, StrawHat): the crab outrider and the monowheels
+        // seat index 0, and the doubles' gunners index 1. They walk back to their walking house by goal
+        // when it calls them (CrewShift).
+        public static readonly NomadRecipe[] StriderNomads = new[] { "Horned", "Longcoat", "Warrior", "Beanie" }
             .Select(variant =>
             {
-                NomadRecipe recipe = ArmedNomad(variant, "StriderNomad_", StriderCharacterFolder,
+                NomadRecipe recipe = ArmedNomad(variant, "Strider_", StriderCharacterFolder,
                                                 RosterAuthoring.StriderFactionPath, RosterAuthoring.StriderRosterPath,
-                                                StriderCloth, StriderDialogLines);
+                                                null, StriderDialogLines);
+                recipe.FbxPath = $"{StriderModelFolder}/strider_{variant.ToLowerInvariant()}.fbx";
                 recipe.TravelsToGoals = true;
                 return recipe;
             })
@@ -411,7 +408,7 @@ namespace SpaceGame.EditorTools
                       "as network prefabs, wired their savers and ragdolls.");
         }
 
-        /// The four Strider nomads. Run twice on a fresh project, around Author Strider Roster: the
+        /// The four Strider people. Run twice on a fresh project, around Author Strider Roster: the
         /// roster validates the prefabs' baked faction, and the prefabs bake the roster's hand items.
         [MenuItem("Tools/SpaceGame/Agents/Build Strider Nomad NPCs")]
         public static void BuildStriderNomads()
@@ -540,7 +537,7 @@ namespace SpaceGame.EditorTools
                 ConfigureCombat(root, recipe);
                 ConfigureProvocation(root);
                 ConfigureGait(root);
-                AddClothWind(root);
+                if (recipe.ClothPalette != null) AddClothWind(root);
 
                 // After the modules exist, as ClankerStack does: it empties their Hurt/Death
                 // trigger names, which the humanoid controller has no parameters for.
@@ -898,6 +895,8 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static void ApplyClothMaterial(GameObject model, NomadRecipe recipe)
         {
+            if (recipe.ClothPalette == null) return;
+
             int dressed = 0;
             foreach (var renderer in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {

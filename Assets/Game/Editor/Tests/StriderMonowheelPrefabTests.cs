@@ -242,7 +242,7 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(passenger);
             var rider = (GameObject)Field(passenger, "riderPrefab");
             Assert.IsNotNull(rider);
-            StringAssert.StartsWith("StriderNomad_", rider.name, "faction is not replicated: the rider must ship as a Strider");
+            StringAssert.StartsWith("Strider_", rider.name, "faction is not replicated: the rider must ship as a Strider");
             Assert.AreSame(Field(wheel.GetComponent<MountModule>(), "seatPoint"), Field(passenger, "seatPoint"));
         }
 
@@ -332,7 +332,7 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(wheel.GetComponent<ChairPose>());
             var gunner = (GameObject)Field(wheel.GetComponent<MountedGunners>(), "gunnerPrefab");
             Assert.IsNotNull(gunner);
-            StringAssert.StartsWith("StriderNomad_", gunner.name);
+            StringAssert.StartsWith("Strider_", gunner.name);
         }
 
         // -- the player's wheel --------------------------------------------------------------------

@@ -640,16 +640,16 @@ GameObject:
   - component: {fileID: 1269397774372443922}
   - component: {fileID: 672512574630638546}
   - component: {fileID: 7116223193897103495}
-  - component: {fileID: 8976371258682348537}
-  - component: {fileID: 6826098042665504125}
-  - component: {fileID: 8326179344253938023}
-  - component: {fileID: -993687498569164499}
-  - component: {fileID: 8958975578557169844}
-  - component: {fileID: -3217106438992309338}
-  - component: {fileID: -7376689250423296831}
-  - component: {fileID: 3637359224144003552}
-  - component: {fileID: -8658658807554345106}
-  - component: {fileID: 5266404811996202775}
+  - component: {fileID: -1496547833262833094}
+  - component: {fileID: 2989939519178355154}
+  - component: {fileID: -5913988516810622148}
+  - component: {fileID: 8914298918624267201}
+  - component: {fileID: -5826316058514760067}
+  - component: {fileID: 5979685132858174715}
+  - component: {fileID: -3076440580460084939}
+  - component: {fileID: 6071404137830301412}
+  - component: {fileID: -4194448571886238763}
+  - component: {fileID: -4507249720929464532}
   m_Layer: 0
   m_Name: StriderMonowheel_Runner
   m_TagString: Untagged
@@ -732,6 +732,7 @@ MonoBehaviour:
     repathTolerance: 3
     cornerArriveRadius: 8
     navMeshSampleDistance: 20
+    stillTargetRepathInterval: 0.5
   defaultStopDistance: 6
 --- !u!114 &8612772565980522391
 MonoBehaviour:
@@ -1020,7 +1021,7 @@ MonoBehaviour:
   leaderMovingSpeed: 0.4
   restRadius: 6
   holdSlotAtRest: 1
-  regroupDistance: 247.53503
+  regroupDistance: 352.35693
   navSampleDistance: 6
 --- !u!114 &673393483517334302
 MonoBehaviour:
@@ -1280,7 +1281,7 @@ MonoBehaviour:
   instanceId: 
   authored: 0
   scope: 0
---- !u!114 &8976371258682348537
+--- !u!114 &-1496547833262833094
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1292,7 +1293,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
---- !u!114 &6826098042665504125
+--- !u!114 &2989939519178355154
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1304,7 +1305,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
---- !u!114 &8326179344253938023
+--- !u!114 &-5913988516810622148
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1316,7 +1317,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
---- !u!114 &-993687498569164499
+--- !u!114 &8914298918624267201
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1328,7 +1329,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29154b1ccc6444e649bf651e558f5b84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MountSaveable
---- !u!114 &8958975578557169844
+--- !u!114 &-5826316058514760067
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1340,7 +1341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dba9c324820a2d3438abb638878e91eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CrewSaveable
---- !u!114 &-3217106438992309338
+--- !u!114 &5979685132858174715
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1353,7 +1354,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
   drawGizmos: 1
---- !u!114 &-7376689250423296831
+--- !u!114 &-3076440580460084939
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1365,7 +1366,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
---- !u!114 &3637359224144003552
+--- !u!114 &6071404137830301412
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1377,7 +1378,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
---- !u!114 &-8658658807554345106
+--- !u!114 &-4194448571886238763
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1389,7 +1390,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
---- !u!114 &5266404811996202775
+--- !u!114 &-4507249720929464532
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

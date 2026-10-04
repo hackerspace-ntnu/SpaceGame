@@ -140,13 +140,13 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void TheCitysRule_IsItsColumnsExtent_AndFairlyFlat()
+        public void TheCitysRule_IsItsCarriersExtent_AndFairlyFlat()
         {
             LevelGroundRule city = StriderCityBuilder.CityLevelGround;
 
             Assert.IsTrue(city.Enabled);
-            Assert.AreEqual(RosterAuthoring.CityFarthestSlot, city.footprintRadius, 0.001f,
-                            "every follower's slot is on the footprint, whichever way the column arrived");
+            Assert.AreEqual(RosterAuthoring.CityFarthestCarrierSlot, city.footprintRadius, 0.001f,
+                            "every house's and barge's slot is on the footprint, whichever way the column arrived");
             Assert.AreEqual(Mathf.Tan(city.maxSlopeDegrees * Mathf.Deg2Rad) * 2f * city.footprintRadius, city.MaxSpread, 0.001f);
             Assert.GreaterOrEqual(city.sampleReach, city.MaxSpread,
                                   "a sample must be able to find ground anywhere the limit accepts");

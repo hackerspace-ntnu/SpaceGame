@@ -50,13 +50,13 @@ namespace SpaceGame.EditorTools
         private const float CityStartBandStep = 50f;
 
         /// <summary>
-        /// How far the start keeps from the Clanker town's centre: its alarm ring plus the city's
-        /// footprint, so no member of the column stands inside the ring whichever way it faces.
-        /// (A flat 300 m once did; the city is ~435 m across, and the only level ground near the spawn
-        /// is the basin the town itself was sited on.)
+        /// How far the start keeps from the Clanker town's centre: its alarm ring plus the city's whole
+        /// column (its farthest slot, scouts included), so no member stands inside the ring whichever way
+        /// it faces. (A flat 300 m once did; the only level ground near the spawn is the basin the town
+        /// itself was sited on.)
         /// </summary>
         public static float ClankerTownClearance =>
-            ClankerSettlementBuilder.AlarmRadius + StriderCityBuilder.CityLevelGround.footprintRadius;
+            ClankerSettlementBuilder.AlarmRadius + RosterAuthoring.CityFarthestSlot;
 
         /// <summary>Directions tried round the centre, the first facing away from the Clanker town.</summary>
         private const int CandidateDirections = 16;

@@ -487,14 +487,21 @@ namespace SpaceGame.EditorTools
         // Monowheel scouts riding with the column; ScoutRota keeps two of them out on a sweep. Shared out
         // over the singles in order, one extra each to the first while the remainder lasts (3, 3, 2).
         public const int StriderCityScouts = 8;
+        // One crewed barge of each kind (StriderBargeBuilder.Barges; the user, 2026-09-25).
+        public static int StriderCityBarges => StriderBargeBuilder.Barges.Length;
+        // A barge (34 m) is longer than a row is deep, so no barge may follow another in its lane: the first
+        // two ride abreast, the rest behind the first single's scouts (StriderCityTemplateTests measures it).
+        private const int BargesAbreast = 2;
 
         /// <summary>The walking city's column.</summary>
         public static readonly FormationShape CityShape = new FormationShape
         {
             // Two lanes, so the column reads as a street of houses rather than a single file (spec §"strider-city").
             Lanes = 2,
-            // Rows and lanes ~30 m apart: a 21 m hull plus its swinging legs, the spacing the walking spike held.
-            RowSpacing = 30f,
+            // Lanes ~30 m apart: a 21 m hull plus its swinging legs, the spacing the walking spike held. Rows
+            // 35 m: a barge reaches 22 m behind its pivot, so a scout in the next row of its lane needs that
+            // much with every offset at its worst (measured from the prefabs by StriderCityTemplateTests).
+            RowSpacing = 35f,
             LaneSpacing = 30f,
             // The caravan's metre-scale jitter and drift, scaled up so the houses visibly stagger at this size
             // while staying well inside the ~9 m gap between hulls.
@@ -505,8 +512,9 @@ namespace SpaceGame.EditorTools
             DriftRate = 0.05f,
         };
 
-        /// <summary>Members of the city that hold a slot behind the lead house: the crew ride the houses instead.</summary>
-        public const int CityFollowers = StriderCityHouses - 1 + StriderCityWorkers + StriderCityOutriders + StriderCityScouts;
+        /// <summary>Members of the city that hold a slot behind the lead house: the crew ride the carriers instead.</summary>
+        public static int CityFollowers =>
+            StriderCityHouses - 1 + StriderCityWorkers + StriderCityOutriders + StriderCityBarges + StriderCityScouts;
 
         /// <summary>
         /// How far from the lead house the city's farthest follower slot can be, jitter and drift
@@ -514,6 +522,19 @@ namespace SpaceGame.EditorTools
         /// and rides for the leader instead, so it can never hold its place in the column.
         /// </summary>
         public static float CityFarthestSlot => FormationMath.FarthestSlot(CityFollowers, CityShape);
+
+        /// <summary>Follower slots up to and including the last carrier's (the barge behind the first single's scouts).</summary>
+        private static int CityCarrierSlots =>
+            StriderCityHouses - 1 + StriderCityWorkers + StriderCityOutriders + StriderCityBarges
+            + ScoutShare(0, StriderMonowheelBuilder.Singles.Length);
+
+        /// <summary>
+        /// How far from the lead house the farthest carrier -- a house or a barge, whatever puts a crew
+        /// ashore and stands still for the whole stop -- can be. The ground the city needs level at a stop
+        /// (<see cref="StriderCityBuilder.CityLevelGround"/>); the crawlers, crabs and scouts behind manage
+        /// a slope.
+        /// </summary>
+        public static float CityFarthestCarrierSlot => FormationMath.FarthestSlot(CityCarrierSlots, CityShape);
 
         /// <summary>
         /// A war party of monowheels: two abreast, sized from the wheels' footprints (the builder's
@@ -537,8 +558,9 @@ namespace SpaceGame.EditorTools
         };
 
         /// <summary>
-        /// The Striders' one walking city: three houses (the first leads), two worker crawlers, eight
-        /// monowheel scouts, two crab outriders and a crew that fills every crew post on the houses.
+        /// The Striders' one walking city: three houses (the first leads), two worker crawlers, two crab
+        /// outriders, three crewed barges, eight monowheel scouts and a crew that fills every crew post on
+        /// the houses and barges.
         /// Carriers are listed before the crew because NpcWorldSim seats each crew member on a carrier already spawned.
         /// It starts near the middle of the map (<see cref="StriderCityStartSite"/>).
         /// Idempotent: finds its template by id and rewrites every field it owns.
@@ -552,7 +574,10 @@ namespace SpaceGame.EditorTools
             var crab = Load<GameObject>(StriderCrabOutriderBuilder.PrefabPath);
             GameObject[] scouts = StriderMonowheelBuilder.Singles
                 .Select(v => Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v))).ToArray();
-            if (striders == null || habitat == null || crawler == null || crab == null || scouts.Any(s => s == null)) return;
+            GameObject[] barges = StriderBargeBuilder.Barges
+                .Select(b => Load<GameObject>(StriderBargeBuilder.PrefabPath(b.Variant))).ToArray();
+            if (striders == null || habitat == null || crawler == null || crab == null
+                || scouts.Any(s => s == null) || barges.Any(b => b == null)) return;
 
             // Near the middle of the map rather than at a Ruin: see StriderCityStartSite.
             if (!StriderCityStartSite.TryChoose(out Vector3 start, out _)) return;
@@ -607,10 +632,18 @@ namespace SpaceGame.EditorTools
                 // the scouts, so the slow crabs flank the column beside the crawlers (row 2) and the fast
                 // scouts take the rows behind.
                 AddMember(members, crab, RosterRole.Rider, StriderCityOutriders, leader: false, crew: false);
+                // The barges behind the crabs, but never one behind another in its lane (BargesAbreast).
+                for (int i = 0; i < BargesAbreast; i++)
+                    AddMember(members, barges[i], RosterRole.Scout, 1, leader: false, crew: false);
                 for (int i = 0; i < scouts.Length; i++)
+                {
                     AddMember(members, scouts[i], RosterRole.Scout, ScoutShare(i, scouts.Length), leader: false, crew: false);
-                // Half fighters, half scouts, one per crew post on every house; an odd post goes to a scout.
-                int crew = StriderCityHouses * StriderCityBuilder.CrewPosts;
+                    if (i == 0)
+                        for (int b = BargesAbreast; b < barges.Length; b++)
+                            AddMember(members, barges[b], RosterRole.Scout, 1, leader: false, crew: false);
+                }
+                // Half fighters, half scouts, one per crew post on every carrier; an odd post goes to a scout.
+                int crew = StriderCityHouses * StriderCityBuilder.CrewPosts + barges.Length * StriderBargeBuilder.CrewPosts;
                 int fighters = crew / 2;
                 AddMember(members, null, RosterRole.Warrior, fighters, leader: false, crew: true);
                 AddMember(members, null, RosterRole.Scout, crew - fighters, leader: false, crew: true);
@@ -655,7 +688,7 @@ namespace SpaceGame.EditorTools
             rule.FindPropertyRelative("sampleTolerance").floatValue = r.sampleTolerance;
         }
 
-        internal static void WriteShape(SerializedProperty shape, FormationShape s)
+        private static void WriteShape(SerializedProperty shape, FormationShape s)
         {
             shape.FindPropertyRelative("Lanes").intValue = s.Lanes;
             shape.FindPropertyRelative("RowSpacing").floatValue = s.RowSpacing;
@@ -712,7 +745,7 @@ namespace SpaceGame.EditorTools
         /// Open the world scene additively if needed, edit its NpcWorldSim, save, and leave the editor as
         /// it was found — the same dance NomadPrefabBuilder.AddSandNomadCaravan does, for the same reasons.
         /// </summary>
-        internal static void WithWorldSim(Action<NpcWorldSim> edit)
+        private static void WithWorldSim(Action<NpcWorldSim> edit)
         {
             Scene scene = SceneManager.GetSceneByPath(WorldScenePath);
             bool alreadyOpen = scene.IsValid() && scene.isLoaded;

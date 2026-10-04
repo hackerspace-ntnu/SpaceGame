@@ -16,7 +16,8 @@ namespace SpaceGame.EditorTools
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
         // The column's shape, as WireStriderCity writes it (Striders.md "The city").
         private const int CityLanes = 2;
-        private const float CitySpacing = 30f;
+        private const float CityRowSpacing = 35f;
+        private const float CityLaneSpacing = 30f;
 
         /// <summary>The template <paramref name="id"/> in the persistent scene, opened (and closed again) if needed.</summary>
         internal static NpcGroupTemplate ReadTemplate(string id) => ReadTemplates().Single(t => t.id == id);
@@ -38,7 +39,7 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void TheCity_IsItsHousesTwoWorkersTwoCrabsEightScoutsAndSixCrewPerHouse()
+        public void TheCity_IsItsHousesTwoWorkersTwoCrabsThreeBargesEightScouts_AndACrewPerPost()
         {
             NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
 
@@ -54,7 +55,17 @@ namespace SpaceGame.EditorTools
             // A fixed prefab: the roster's Rider role is the monowheels now, and the crabs stay the flank escort.
             Assert.AreEqual(2, Count(m => IsCrab(m) && !m.crew));
             Assert.IsFalse(city.members.Any(m => m.prefab == null && !m.crew), "only crew are drawn from the roster");
-            Assert.AreEqual(RosterAuthoring.StriderCityHouses * StriderCityBuilder.CrewPosts, Count(m => m.crew));
+            string[] barges = StriderBargeBuilder.Barges.Select(b => StriderBargeBuilder.PrefabPath(b.Variant)).ToArray();
+            bool IsBarge(NpcGroupMemberSpec m) => barges.Contains(AssetDatabase.GetAssetPath(m.prefab));
+            CollectionAssert.AreEquivalent(barges, city.members.Where(IsBarge).Select(m => AssetDatabase.GetAssetPath(m.prefab)),
+                                           "one barge of each kind (the user, 2026-09-25)");
+            Assert.IsTrue(city.members.Where(IsBarge).All(m => m.count == 1 && !m.crew && !m.isLeader));
+            Assert.Less(System.Array.FindIndex(city.members, IsCrab), System.Array.FindIndex(city.members, IsBarge),
+                        "the barges ride behind the crabs");
+            Assert.AreEqual(RosterAuthoring.StriderCityHouses * StriderCityBuilder.CrewPosts
+                            + barges.Length * StriderBargeBuilder.CrewPosts, Count(m => m.crew), "one crew member per post");
+            Assert.Greater(System.Array.FindIndex(city.members, m => m.crew), System.Array.FindLastIndex(city.members, IsBarge),
+                           "crew after every carrier, or they spawn with nowhere to sit");
 
             string[] singles = StriderMonowheelBuilder.Singles.Select(StriderMonowheelBuilder.PrefabPath).ToArray();
             bool IsScout(NpcGroupMemberSpec m) => singles.Contains(AssetDatabase.GetAssetPath(m.prefab));
@@ -70,8 +81,8 @@ namespace SpaceGame.EditorTools
             Assert.Less(System.Array.FindIndex(city.members, IsCrab), firstScout, "the crabs flank beside the crawlers, not at the tail");
 
             Assert.AreEqual(CityLanes, city.formation.Lanes, "formation shape unchanged");
-            Assert.AreEqual(CitySpacing, city.formation.RowSpacing, 0.01f);
-            Assert.AreEqual(CitySpacing, city.formation.LaneSpacing, 0.01f);
+            Assert.AreEqual(CityRowSpacing, city.formation.RowSpacing, 0.01f, "re-run Wire Strider City");
+            Assert.AreEqual(CityLaneSpacing, city.formation.LaneSpacing, 0.01f);
 
             Assert.IsTrue(city.tasks.All(t => t.targetSite == SiteKind.Ruin || t.targetSite == SiteKind.ScrapField));
             Assert.IsTrue(city.tasks.All(t => Mathf.Approximately(t.travelSpeedMultiplier, StriderCityBuilder.CityTravelMultiplier)));
@@ -107,6 +118,71 @@ namespace SpaceGame.EditorTools
             }
 
             Assert.AreEqual(RosterAuthoring.CityFollowers, followerIndex, "CityFollowers counts every slot the template fills");
+        }
+
+        /// A barge is 34 m long and its pivot 22 m from its stern, longer than a row is deep: every barge
+        /// must clear every other member at their slots, with each one's fixed offset and drift at its
+        /// worst (or both parked as far off their slots as their slotTolerance lets them), measured from
+        /// the prefabs' renderers. The rest of the column is the walking spike's; only barges are judged.
+        [Test]
+        public void EveryBarge_ClearsItsNeighbours_AtTheirSlots()
+        {
+            NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
+            FormationShape shape = city.formation;
+            string[] barges = StriderBargeBuilder.Barges.Select(b => StriderBargeBuilder.PrefabPath(b.Variant)).ToArray();
+
+            var column = new List<(string name, bool barge, Rect area, float tolerance)>();
+            int followerIndex = 0;
+            foreach (NpcGroupMemberSpec spec in city.members.Where(m => !m.crew))
+            {
+                Rect footprint = Footprint(spec.prefab);
+                float tolerance = new SerializedObject(spec.prefab.GetComponent<FormationModule>()).FindProperty("slotTolerance").floatValue;
+                for (int i = 0; i < spec.count; i++)
+                {
+                    // x right of the leader, y ahead of it (SlotOffset's y is metres behind).
+                    Vector2 slot = spec.isLeader && i == 0 ? Vector2.zero : FormationMath.SlotOffset(followerIndex++, shape) * new Vector2(1f, -1f);
+                    var area = new Rect(footprint.position + slot, footprint.size);
+                    column.Add(($"{spec.prefab.name}#{i}", barges.Contains(AssetDatabase.GetAssetPath(spec.prefab)), area, tolerance));
+                }
+            }
+
+            float sideSlop = 2f * (shape.LateralJitter + shape.DriftAmplitude);
+            float lengthSlop = 2f * (shape.LongitudinalJitter + shape.DriftAmplitude);
+            for (int a = 0; a < column.Count; a++)
+            for (int b = a + 1; b < column.Count; b++)
+            {
+                if (!column[a].barge && !column[b].barge) continue;
+                Rect p = column[a].area, q = column[b].area;
+                float side = Mathf.Max(p.xMin - q.xMax, q.xMin - p.xMax);
+                float length = Mathf.Max(p.yMin - q.yMax, q.yMin - p.yMax);
+                float parked = column[a].tolerance + column[b].tolerance;
+                Assert.IsTrue(side >= Mathf.Max(sideSlop, parked) || length >= Mathf.Max(lengthSlop, parked),
+                              $"{column[a].name} and {column[b].name} overlap: {side:F1} m apart side to side, {length:F1} m nose to tail");
+            }
+        }
+
+        /// <summary>A prefab's renderers seen from above, in its own space: x right, y forward.</summary>
+        private static Rect Footprint(GameObject prefab)
+        {
+            GameObject contents = PrefabUtility.LoadPrefabContents(AssetDatabase.GetAssetPath(prefab));
+            try
+            {
+                float minX = float.MaxValue, maxX = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue;
+                foreach (Renderer renderer in contents.GetComponentsInChildren<Renderer>(true))
+                {
+                    Bounds world = renderer.bounds;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var corner = new Vector3((i & 1) == 0 ? world.min.x : world.max.x, (i & 2) == 0 ? world.min.y : world.max.y,
+                                                 (i & 4) == 0 ? world.min.z : world.max.z);
+                        Vector3 p = contents.transform.InverseTransformPoint(corner);
+                        minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x);
+                        minZ = Mathf.Min(minZ, p.z); maxZ = Mathf.Max(maxZ, p.z);
+                    }
+                }
+                return Rect.MinMaxRect(minX, minZ, maxX, maxZ);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(contents); }
         }
     }
 

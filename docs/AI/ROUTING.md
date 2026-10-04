@@ -336,6 +336,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a sound went silent and only a single warning appeared in the console | [audio](systems/audio.md) |
 | a sprayer's tank is full again on the client while the host watches it empty | [SupplyCharge](systems/SupplyCharge.md) |
 | a status applied to the ship — burning, foamed — is only seen on the machine that applied it | [PlayerShip](systems/PlayerShip.md) |
+| a Strider barge drives into the scout behind it, or two barges overlap in the column | [Striders](systems/Striders.md) |
 | a Strider convoy stops for good after its lead monowheel's driver is knocked off | [Striders](systems/Striders.md) |
 | a Strider convoy's doubles fall behind the lead monowheel, or scouts crawl round their sweep | [Striders](systems/Striders.md) |
 | a Strider convoy's monowheels ride on top of each other | [Striders](systems/Striders.md) |
@@ -784,6 +785,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ball lightning orb drifts through creatures without ever hurting them | [Combat](systems/Combat.md) |
 | the bar is the wrong length or sits off-centre on its plate | [SupplyGauge](systems/SupplyGauge.md) |
 | the barge's interior is missing when I walk inside | [DuneBarge](systems/DuneBarge.md) |
+| the barges hold their place but the rear scouts keep riding up to the lead house | [Striders](systems/Striders.md) |
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
@@ -1311,6 +1313,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Art/Models/_Source~/models/vehicles/desert_monowheel_export.py` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Prefabs/Agents/Vehicles/Ground/StriderDuneBargeCompact.prefab` | [Striders](systems/Striders.md) |
+| `Assets/Game/Prefabs/Agents/Vehicles/Ground/StriderDuneBargeLookout.prefab` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/StriderHostileLines.asset` | [Striders](systems/Striders.md) |
@@ -1339,6 +1343,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentationMath.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
+| `Assets/Game/Prefabs/Agents/Vehicles/Ground/StriderDuneBarge.prefab` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/SingularityWell.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/SandstormSaveable.cs` | [Environment](systems/Environment.md) |
@@ -1489,6 +1494,7 @@ Longest match wins.
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Tests/MonowheelPoseMathTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/StriderTribeAssetTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Prefabs/agents/Characters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
@@ -1566,7 +1572,9 @@ Longest match wins.
 | `Assets/Game/Editor/Support/DustCloudRecipe.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/BoosterClampTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/HatchPassageTests.cs` | [DuneBarge](systems/DuneBarge.md) |
+| `Assets/Game/Editor/Tests/StriderBargeTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderBargeTests.cs` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Editor/Vehicles/CrewDeckWiring.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/CrewDeckWiring.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Effects/BodyFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters` | [InteractionSystem](systems/InteractionSystem.md) |
@@ -1741,4 +1749,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1281 symptoms, 434 paths, 65 docs -->
+<!-- 1283 symptoms, 440 paths, 65 docs -->

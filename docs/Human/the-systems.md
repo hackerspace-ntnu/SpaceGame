@@ -142,9 +142,9 @@ A second neutral tribe, camped in a city that stands 228 metres up in the air on
 
 ### The tribe that lives on walking machines *(Striders)*
 
-A third neutral tribe, dressed in rust red, whose home is a city that walks: three six-legged houses with a crew of six on each deck, two digging crawlers, two crab riders scouting alongside, and a column of one-wheeled monowheels — some ridden two-up with a gunner riding pillion — a pair of which are always off sweeping wide of the city and riding back in, all marching together from one salvage site to the next. At every stop the crew climb down one by one and work the ground while the crawlers spread out and dig; when the stay is over they are called back, and the city does not move off until the last of them is back aboard. Its war parties are convoys of those same monowheels, who dismount to fight on foot like every rider does.
+A third neutral tribe, dressed in rust red, whose home is a city that walks: three six-legged houses with a crew of six on each deck, three tracked dune barges with four lookouts on each roof, two digging crawlers, two crab riders scouting alongside, and a column of one-wheeled monowheels — some ridden two-up with a gunner riding pillion — a pair of which are always off sweeping wide of the city and riding back in, all marching together from one salvage site to the next. At every stop the crew climb down one by one and work the ground while the crawlers spread out and dig; when the stay is over they are called back, and the city does not move off until the last of them is back aboard. Its war parties are convoys of those same monowheels, who dismount to fight on foot like every rider does.
 
-**Worth knowing:** the houses are the player's own walking rig with the helm taken out — you can climb onto a deck and ride along, but nobody can steer a Strider house except the city itself, and in this first version the machines cannot be destroyed.
+**Worth knowing:** the houses are the player's own walking rig with the helm taken out — you can climb onto a deck and ride along, but nobody can steer a Strider house except the city itself; the barges are the same — you can walk aboard and go inside, but only the city drives them — and in this first version the machines cannot be destroyed.
 
 ### Picking a creature up off the ground *(CarriedAgent)*
 

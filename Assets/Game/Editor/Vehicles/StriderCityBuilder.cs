@@ -77,15 +77,15 @@ namespace SpaceGame.EditorTools
         public const float CityLevelSampleTolerance = 10f;
 
         /// <summary>
-        /// The ground the city needs level wherever it stands still: a square the size of its column
-        /// (<see cref="RosterAuthoring.CityFarthestSlot"/>, so every follower's slot is on it whichever
-        /// way the column arrived). Written onto every city stop by <c>RosterAuthoring.WireStriderCity</c>
-        /// and used by <see cref="StriderCityStartSite"/> for the start, so the city is held to one
+        /// The ground the city needs level wherever it stands still: a square reaching its farthest
+        /// carrier (<see cref="RosterAuthoring.CityFarthestCarrierSlot"/>, so every house's and barge's
+        /// slot is on it whichever way the column arrived; the scouts behind them manage a slope).
+        /// Written onto every city stop by <c>RosterAuthoring.WireStriderCity</c> and used by <see cref="StriderCityStartSite"/> for the start, so the city is held to one
         /// standard wherever it stands still.
         /// </summary>
         public static LevelGroundRule CityLevelGround => new LevelGroundRule
         {
-            footprintRadius = RosterAuthoring.CityFarthestSlot,
+            footprintRadius = RosterAuthoring.CityFarthestCarrierSlot,
             maxSlopeDegrees = CityMaxSlopeDegrees,
             searchRadius = CityLevelSearchRadius,
             searchStep = CityLevelSearchStep,

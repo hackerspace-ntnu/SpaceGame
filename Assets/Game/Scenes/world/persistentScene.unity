@@ -555,11 +555,26 @@ MonoBehaviour:
       isLeader: 0
       crew: 0
       count: 2
+    - prefab: {fileID: 6255694193989187041, guid: afebd3f8d7d7a724f9539e017fdfae07, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+    - prefab: {fileID: 5805050892606582730, guid: ac4ed41981380a04aa323bba4bdca998, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
     - prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 3
+    - prefab: {fileID: 8683533901673170491, guid: 30695acfc17cf384eac28a394d94684a, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
     - prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
       role: 0
       isLeader: 0
@@ -574,12 +589,12 @@ MonoBehaviour:
       role: 1
       isLeader: 0
       crew: 1
-      count: 9
+      count: 15
     - prefab: {fileID: 0}
       role: 0
       isLeader: 0
       crew: 1
-      count: 9
+      count: 15
     tasks:
     - label: picking over a ruin
       targetSite: 2
@@ -596,7 +611,7 @@ MonoBehaviour:
       arriveRadius: 25
       travelSpeedMultiplier: 0.45
       levelGround:
-        footprintRadius: 217.53503
+        footprintRadius: 218.47107
         maxSlopeDegrees: 3
         searchRadius: 200
         searchStep: 100
@@ -618,7 +633,7 @@ MonoBehaviour:
       arriveRadius: 25
       travelSpeedMultiplier: 0.45
       levelGround:
-        footprintRadius: 217.53503
+        footprintRadius: 218.47107
         maxSlopeDegrees: 3
         searchRadius: 200
         searchStep: 100
@@ -638,7 +653,7 @@ MonoBehaviour:
       dockSpacing: 45
     formation:
       Lanes: 2
-      RowSpacing: 30
+      RowSpacing: 35
       LaneSpacing: 30
       LateralJitter: 2
       LongitudinalJitter: 3

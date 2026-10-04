@@ -235,6 +235,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a palette slider moves and the Game view does not change | [LookLab](systems/LookLab.md) |
 | a parked hover craft keeps whatever angle it was left at and its deck is a slope | [Vehicles](systems/Vehicles.md) |
 | a parked ship, or a wreck loaded from a save, is sitting inside a ball of orange fire | [PlayerShip](systems/PlayerShip.md) |
+| a part of a model lands metres away from the body after its stacked duplicates were deleted | [ArtPipeline](systems/ArtPipeline.md) |
 | a particle system emits about one particle a second however high its rate is authored | [Flamethrower](systems/Flamethrower.md) |
 | a passenger sitting down in a chair takes the ship off the pilot | [PlayerShip](systems/PlayerShip.md) |
 | a patch of fire fires all its flames sideways across the sand | [Flamethrower](systems/Flamethrower.md) |
@@ -1007,6 +1008,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the modules on the schematic are almost impossible to click | [ShipSchematic](systems/ShipSchematic.md) |
 | the moment I press Play the game renders through some camera other than the player's, and nothing in the Hierarchy explains it | [Vehicles](systems/Vehicles.md) |
 | the monowheel dust is a row of separate blobs floating over the sand | [Monowheel](systems/Monowheel.md) |
+| the monowheel rider sits sunk into the seat | [Striders](systems/Striders.md) |
+| the monowheel rider stays upright when the wheel tilts | [Vehicles](systems/Vehicles.md) |
+| the monowheel stands on its ski with the wheel in the air | [Monowheel](systems/Monowheel.md) |
 | the monowheel's ski hangs in the air on flat ground, or digs into a slope | [Monowheel](systems/Monowheel.md) |
 | the monowheel's wheels wobble or orbit instead of spinning | [Monowheel](systems/Monowheel.md) |
 | the motors cut out and never come back on | [Jetpack](systems/Jetpack.md) |
@@ -1428,6 +1432,7 @@ Longest match wins.
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
+| `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelChassis.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Editor/Environment/SkyCitySettlementWiring.cs` | [SkyTribe](systems/SkyTribe.md) |
@@ -1450,6 +1455,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/StormCloudVolume.hlsl` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/MonowheelGroundContactTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/StriderCityLevelGroundTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderMonowheelPrefabTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/EyeBlink.cs` | [StylizedEyes](systems/StylizedEyes.md) |
@@ -1546,6 +1552,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/GroupMembershipTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Editor/Tests/MonowheelPrefabTests.cs` | [Monowheel](systems/Monowheel.md) |
+| `Assets/Game/Editor/Vehicles/SeatedBodyMeasure.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/VehicleDustWiring.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs` | [Ladders](systems/Ladders.md) |
@@ -1604,6 +1611,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/HatchPassageTests.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Tests/StriderBargeTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderBargeTests.cs` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Editor/Tests/TiltingSeatsTests.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Editor/Vehicles/CrewDeckWiring.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/CrewDeckWiring.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Effects/BodyFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
@@ -1780,4 +1788,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1296 symptoms, 458 paths, 66 docs -->
+<!-- 1300 symptoms, 462 paths, 66 docs -->

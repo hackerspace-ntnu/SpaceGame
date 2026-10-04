@@ -8,6 +8,8 @@ paths:
   - Assets/Game/Scripts/Vehicles/Monowheel/MonowheelWheel.cs
   - Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPoseMath.cs
   - Assets/Game/Scripts/Vehicles/Monowheel/MonowheelGround.cs
+  - Assets/Game/Scripts/Vehicles/Monowheel/MonowheelChassis.cs
+  - Assets/Game/Editor/Tests/MonowheelGroundContactTests.cs
   - Assets/Game/Editor/Vehicles/MonowheelPresentationBuilder.cs
   - Assets/Game/Editor/Support/DustCloudRecipe.cs
   - Assets/Game/Editor/Tests/MonowheelPresentationMathTests.cs
@@ -23,6 +25,7 @@ symptoms:
   - "a burst of dust appears when a monowheel is loaded or teleported"
   - "dust keeps pouring out while the monowheel is in the air"
   - "the monowheel's ski hangs in the air on flat ground, or digs into a slope"
+  - "the monowheel stands on its ski with the wheel in the air"
   - "the helm on the back of a monowheel never moves"
   - "the steering handles swing instead of the helm on the back"
   - "the monowheel dust is a row of separate blobs floating over the sand"
@@ -69,6 +72,7 @@ The five desert monowheels (Runner, Hauler, Patched, Double, DoubleWide) spin th
 | `MonowheelPresentation` | [MonowheelPresentation.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentation.cs) | The per-frame component. `Present(dt)` (LOD'd against `Camera.main`), `Present(dt, cameraDistance)` (NaN = no camera), `ResetBaseline()`. |
 | `MonowheelPoseMath` | [MonowheelPoseMath.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPoseMath.cs) | Pure: the ground line under the hub from two samples (`GroundUnderHub`) and the nose-down pitch that puts the ski on it (`SkiPitch`). |
 | `MonowheelGround` | [MonowheelGround.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelGround.cs) | The one ground probe the presentation and `MonowheelLean` share: own physics scene, own colliders skipped by hierarchy, nearest hit. |
+| `MonowheelChassis` | [MonowheelChassis.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelChassis.cs) | On the kinematic `Chassis` body under Body (Strider builder): suspends its contacts with the vehicle's own colliders (`RiderCollisionIgnore`) in `Awake`; `IgnoreOwnWheel()` is public for EditMode tests. |
 | `MonowheelPresentationBuilder` | [MonowheelPresentationBuilder.cs](Assets/Game/Editor/Vehicles/MonowheelPresentationBuilder.cs) | `Tools ▸ Vehicles ▸ Build Monowheel Presentation`: materials, measurement, systems, prefabs, then a self-check of each in a preview scene. |
 
 ## Flows
@@ -90,7 +94,9 @@ The five desert monowheels (Runner, Hauler, Patched, Double, DoubleWide) spin th
 
 ## Chassis pose
 
-`MonowheelLean.Pose(dt)` runs in `LateUpdate` on every machine and writes only the Body's local pose, so the physics root and its colliders stay upright and the seats (under Body) carry their riders with it.
+`MonowheelLean.Pose(dt)` runs in `LateUpdate` on every machine and writes only the Body's local pose, so the physics root and its wheel colliders stay upright, while everything under Body tips with it: the seats, with their riders held on them by `TiltingSeats` ([Vehicles.md](Vehicles.md)), and the chassis.
+
+- **The wheel carries the vehicle, nothing else.** Pitching about the hub keeps the hub where it is, so the pose is only right while the hub stands one wheel radius off the ground. Two things used to hold it higher: the hoop's boxes poked past the paddles (see [Striders.md](Striders.md) Gotchas), and the chassis boxes sat level on the upright root while the art tipped, so on ground rising about 13° or more their noses met the slope first. Either way the pose then put the ski on the sand and left the wheel hanging in the air. The chassis boxes are now on a kinematic `Chassis` body under Body (`MonowheelChassis`): they tip with the frame, so shots and bodies meet the frame where it is drawn, and a kinematic body makes no contacts with static ground, so it never props the vehicle up. It still shoves moving bodies and blocks raycasts. `MonowheelGroundContactTests` pins it.
 
 - **Roll:** into turns, from the root's measured yaw rate and speed (`MonowheelDrive.Lean`).
 - **Ski pitch:** the chassis tips about the **hub**. The wheel is round, so it still touches the ground at any pitch, and only the ski has to come down. Ground is probed under the wheel contact and under the ski's low point from the **unpitched** pose (so the answer does not chase its own tilt), and `MonowheelPoseMath` finds the pitch that puts the ski on that line. It is clamped to `maxPitch` (30°), eased by `pitchFollow`, and relaxes to level with no ski or no ground under either probe. On flat ground a Runner tips about 5.4° nose-down.
@@ -119,6 +125,8 @@ Every machine runs this locally, from the transform it already sees (a replicate
 N/A: **no state worth persisting.** Speed, spin angle and particles are re-derived every frame, and a loaded monowheel resumes presenting on its first frame of motion. A load is a snap, and snap detection keeps it from reading as speed.
 
 ## Gotchas
+
+- **Anything that collides on the upright root and reaches past the wheel props the vehicle up**, and the ski pose then hides it by bringing the ski down to the sand: the symptom is the wheel in the air, never a wrong ski. Keep every root collider inside the wheel's circle, and put anything that must follow the frame under Body on its own kinematic body, never on Body alone (its colliders would join the root's compound collider, prop the root up as the pose tips them, and the pose, probing from the higher hub, would tip them further).
 
 - **The doubles' tail post is a unit cube stretched by its transform.** Its mesh is the same size on every axis, so the hinge axis is judged from the box's edges after the transform, in root space. Judged from the mesh alone, it came out horizontal.
 

@@ -73,9 +73,17 @@ namespace SpaceGame.EditorTools
         public const string RiderSeatName = SeatPrefix + "Rider";
         public const string PassengerSeatName = SeatPrefix + "Passenger";
         public const string SideSeatPrefix = SeatPrefix + "Side_";
-        private const string RiderSocketPrefix = "Socket_Rider_";
-        private const string PassengerSocketPrefix = "Socket_Passenger_";
-        private const string SideCushionPrefix = "Mesh_SideSeatCushion";
+        /// <summary>The kinematic chassis body under Body, posed with the art (MonowheelChassis).</summary>
+        public const string ChassisName = "Chassis";
+        // The parts a seated body rests on: the seat cushion and the cushion on the backrest behind
+        // it. Distinct prefixes: "Mesh_SeatCushion_" is not a prefix of "Mesh_SideSeatCushion".
+        public const string RiderCushionPrefix = "Mesh_SeatCushion_";
+        public const string RiderBackCushionPrefix = "Mesh_BackCushion_";
+        public const string PassengerCushionPrefix = "Mesh_PassengerSeatCushion_";
+        public const string PassengerBackCushionPrefix = "Mesh_PassengerBackCushion_";
+        public const string SideCushionPrefix = "Mesh_SideSeatCushion";
+        private static readonly string[] SeatPartPrefixes =
+            { RiderCushionPrefix, RiderBackCushionPrefix, PassengerCushionPrefix, PassengerBackCushionPrefix, SideCushionPrefix };
         private const int SideSeats = 2;
         private const int GunnerSeats = 1 + SideSeats;   // the rear passenger seat and one inside each wheel
 
@@ -98,20 +106,21 @@ namespace SpaceGame.EditorTools
         /// without interpolation.</summary>
         private const RigidbodyInterpolation Interpolation = RigidbodyInterpolation.Interpolate;
         /// <summary>Placeholder until the drive spike: how far the chassis boxes float above the lowest
-        /// wheel contact. Pitch is frozen, so a box's nose (~4 m ahead of the ring) must clear rising
-        /// ground -- 1 m clears about 13 degrees. It must also stay above MonowheelPresentation's
-        /// 0.6 m ground probe, which would otherwise read the box as ground.</summary>
+        /// wheel contact at rest. They are posed with the art and never stand on the ground (see
+        /// MonowheelChassis), so this only keeps them off the sand under the frame.</summary>
         private const float ChassisGroundClearance = 1f;
         /// <summary>Placeholder until the drive spike: how far (m, along the wheel) the chassis boxes stop
-        /// short of the nearest seat, so a seated rider's body is in the open and can be shot.</summary>
+        /// short of the seat cushions, so a seated rider's body is in the open and can be shot.</summary>
         private const float ChassisSeatClearance = 0.8f;
         /// <summary>Placeholder until the drive spike: the sphere the wheel rolls on, at the bottom of each
         /// ring. It must be at least MonowheelPresentation's 0.6 m ground probe, which starts inside it
         /// (a raycast never reports the collider it starts in), or the probe reads the wheel as ground.</summary>
         private const float ContactRadius = 0.7f;
         /// <summary>Placeholder until the drive spike: thin boxes round each ring make it a hollow hoop --
-        /// solid where the ring is, empty inside where its riders sit.</summary>
-        private const int HoopSegments = 12;
+        /// solid where the ring is, empty inside where its riders sit. The hoop is inscribed in the
+        /// paddles' circle, so its flat faces sit inside it by radius * (1 - cos(180 / n) degrees):
+        /// 16 segments keep that under 4 cm.</summary>
+        private const int HoopSegments = 16;
         /// <summary>Placeholder until the drive spike: radial thickness (m) of a hoop segment.</summary>
         private const float HoopThickness = 0.3f;
         /// <summary>Hoop segments within this angle of straight down are left out: the contact sphere
@@ -122,10 +131,32 @@ namespace SpaceGame.EditorTools
 
         // -- seats -----------------------------------------------------------------------------------
 
-        /// <summary>How far below a seat marker a seated rider's origin (its feet) goes: the robot horse's
-        /// Clanker drop, NOT measured for the 3 m Strider nomad. Placeholder until seen in play.</summary>
-        private const float RiderSeatDrop = 0.95f;
-        private static Vector3 SeatOffset => Vector3.down * RiderSeatDrop;
+        /// <summary>The body a player sits in; the player's seat offset is measured off it.</summary>
+        public const string PlayerBodyPath = "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";
+
+        /// <summary>
+        /// Where a seated rider's origin goes from a seat marker (which is at the seat's back corner),
+        /// measured off the rider's own body in the Sit state (SeatedBodyMeasure). The player's origin
+        /// is a metre above its soles and a Strider's is at its feet, so one number cannot seat both.
+        /// </summary>
+        public readonly struct RiderOffsets
+        {
+            public readonly Vector3 Player, Strider;
+            public RiderOffsets(Vector3 player, Vector3 strider) { Player = player; Strider = strider; }
+        }
+
+        /// <summary>Sit the player and a Strider nomad down and read their seat offsets off them.</summary>
+        public static RiderOffsets MeasureRiderOffsets()
+        {
+            string striderPath = NomadPrefabBuilder.StriderNomads[0].PrefabPath;
+            var player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerBodyPath);
+            var strider = AssetDatabase.LoadAssetAtPath<GameObject>(striderPath);
+            if (player == null || strider == null)
+                throw new System.InvalidOperationException(
+                    $"[StriderMonowheel] Cannot measure where riders sit: no body at {(player == null ? PlayerBodyPath : striderPath)}. " +
+                    "Build the Strider nomads first.");
+            return new RiderOffsets(-SeatedBodyMeasure.SitCorner(player), -SeatedBodyMeasure.SitCorner(strider));
+        }
 
         // -- Strider brain ---------------------------------------------------------------------------
 
@@ -148,12 +179,13 @@ namespace SpaceGame.EditorTools
         [MenuItem("Tools/SpaceGame/Vehicles/Build Strider Monowheels")]
         public static void Build()
         {
+            RiderOffsets offsets = MeasureRiderOffsets();
             var built = new List<string>();
             foreach (string variant in Singles)
-                if (BuildStrider(variant, isDouble: false)) built.Add(PrefabPath(variant));
+                if (BuildStrider(variant, isDouble: false, offsets)) built.Add(PrefabPath(variant));
             foreach (string variant in Doubles)
-                if (BuildStrider(variant, isDouble: true)) built.Add(PrefabPath(variant));
-            if (BuildPlayer()) built.Add(PlayerPrefabPath);
+                if (BuildStrider(variant, isDouble: true, offsets)) built.Add(PrefabPath(variant));
+            if (BuildPlayer(offsets)) built.Add(PlayerPrefabPath);
 
             Debug.Log(NetworkPrefabRegistrar.Sync(out _, out _));
             if (!SaveableWiring.TryWirePrefabs())
@@ -167,34 +199,35 @@ namespace SpaceGame.EditorTools
             Debug.Log($"[StriderMonowheel] Built {built.Count} monowheel prefab(s) in {Folder}.");
         }
 
-        private static bool BuildStrider(string variant, bool isDouble)
+        private static bool BuildStrider(string variant, bool isDouble, RiderOffsets offsets)
         {
             string path = PrefabPath(variant);
             GameObject root = BuildVehicle(System.IO.Path.GetFileNameWithoutExtension(path), variant,
-                                           isDouble ? DoubleTopSpeed : SingleTopSpeed, out Transform body, out Transform riderSeat);
+                                           isDouble ? DoubleTopSpeed : SingleTopSpeed, offsets.Player,
+                                           out Transform body, out Transform riderSeat);
             if (root == null) return false;
 
-            if (!AddStriderCrew(root, body, riderSeat, isDouble ? DoubleHealth : SingleHealth, isDouble))
+            if (!AddStriderCrew(root, body, riderSeat, isDouble ? DoubleHealth : SingleHealth, isDouble, offsets.Strider))
             {
                 Object.DestroyImmediate(root);
                 return false;
             }
 
-            return Finish(root, body, path);
+            return Finish(root, body, path, offsets.Strider);
         }
 
-        private static bool BuildPlayer()
+        private static bool BuildPlayer(RiderOffsets offsets)
         {
             GameObject root = BuildVehicle(System.IO.Path.GetFileNameWithoutExtension(PlayerPrefabPath), PlayerVariant,
-                                           SingleTopSpeed, out Transform body, out _);
-            return root != null && Finish(root, body, PlayerPrefabPath);
+                                           SingleTopSpeed, offsets.Player, out Transform body, out _);
+            return root != null && Finish(root, body, PlayerPrefabPath, offsets.Strider);
         }
 
         /// <summary>
         /// Everything a monowheel is before anyone rides it: the art, the body, the motor, the saddle.
-        /// Null (and an error) when the art prefab or its rider socket is missing.
+        /// Null (and an error) when the art prefab or its rider's cushions are missing.
         /// </summary>
-        private static GameObject BuildVehicle(string name, string variant, float topSpeed,
+        private static GameObject BuildVehicle(string name, string variant, float topSpeed, Vector3 playerSeatOffset,
                                                out Transform body, out Transform riderSeat)
         {
             body = null;
@@ -215,13 +248,12 @@ namespace SpaceGame.EditorTools
             nested.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
             Transform artRoot = nested.transform;
 
-            Transform socket = FindSingle(artRoot, RiderSocketPrefix, name);
-            if (socket == null)
+            Transform seat = BackedSeatMarker(artRoot, RiderSeatName, RiderCushionPrefix, RiderBackCushionPrefix, name);
+            if (seat == null)
             {
                 Object.DestroyImmediate(root);
                 return null;
             }
-            Transform seat = SeatMarker(artRoot, RiderSeatName, socket.position);
 
             var rigidbody = root.AddComponent<Rigidbody>();
             rigidbody.isKinematic = false;
@@ -244,7 +276,7 @@ namespace SpaceGame.EditorTools
             SerializedFields.Edit(mount, so =>
             {
                 SerializedFields.Set(so, "seatPoint", seat);
-                SerializedFields.SetVector3(so, "seatOffset", SeatOffset);
+                SerializedFields.SetVector3(so, "seatOffset", playerSeatOffset);
                 SerializedFields.SetBool(so, "mountableByDirectInteraction", true);
                 SerializedFields.SetEnumByName(so, "defaultPerspective", nameof(MountModule.CameraPerspective.ThirdPerson));
                 SerializedFields.SetBool(so, "followMountPitch", false);
@@ -284,10 +316,11 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// Per ring: a small contact sphere at the bottom that the wheel rolls on, and a hollow hoop of
         /// thin boxes where the ring is (measured paddle radius, ring width from the Bone_Ring*
-        /// renderers). Then chassis boxes fore and aft of the seats, from the art's renderer bounds. A
-        /// solid sphere the size of the ring would enclose every rider (nobody could shoot them) and make
-        /// the wheel as wide as it is tall. All of it hangs off the root, never Body, so the lean does
-        /// not roll it.
+        /// renderers), both on the root, never Body, so the lean does not roll them: the wheel is round.
+        /// A solid sphere the size of the ring would enclose every rider (nobody could shoot them) and
+        /// make the wheel as wide as it is tall. Then chassis boxes fore and aft of the seats, from the
+        /// art's renderer bounds, on a kinematic body under Body that the pose tips with the art and
+        /// that never stands on the ground (MonowheelChassis).
         /// </summary>
         private static void AddColliders(GameObject root, Transform body)
         {
@@ -302,53 +335,84 @@ namespace SpaceGame.EditorTools
                 contact.radius = ContactRadius;
                 contact.sharedMaterial = frictionless;
 
-                float ringWidth = RendererBoundsInRoot(root.transform, wheel.ringBone).size.x;
-                AddHoop(root.transform, $"Hoop_{w}", wheel.localHub, wheel.paddleRadius, ringWidth, frictionless);
+                Vector3 axle = root.transform.InverseTransformDirection(wheel.ringBone.TransformDirection(wheel.localAxle)).normalized;
+                AddHoop(root.transform, $"Hoop_{w}", wheel.localHub, axle, wheel.paddleRadius,
+                        WidthAlong(root.transform, wheel.ringBone, axle), frictionless);
 
                 lowestContact = Mathf.Min(lowestContact, wheel.localContact.y);
                 highestHub = Mathf.Max(highestHub, wheel.localHub.y);
             }
 
-            float[] seatZ = body.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name.StartsWith(SeatPrefix))
-                .Select(t => root.transform.InverseTransformPoint(t.position).z)
+            // Where seated bodies are: every seat and back cushion, front edge to back.
+            Bounds[] seatParts = body.GetComponentsInChildren<MeshFilter>(true)
+                .Where(f => SeatPartPrefixes.Any(f.name.StartsWith))
+                .Select(f => MeshBoundsInRoot(root.transform, f))
                 .ToArray();
+            float seatsFront = seatParts.Max(b => b.max.z), seatsBack = seatParts.Min(b => b.min.z);
             Bounds art = RendererBoundsInRoot(root.transform, body);
             float floor = lowestContact + ChassisGroundClearance;
-            AddChassisBox(root, art, floor, highestHub, seatZ.Max() + ChassisSeatClearance, art.max.z);
-            AddChassisBox(root, art, floor, highestHub, art.min.z, seatZ.Min() - ChassisSeatClearance);
+            Transform chassis = AddChassis(body);
+            AddChassisBox(root.transform, chassis, art, floor, highestHub, seatsFront + ChassisSeatClearance, art.max.z);
+            AddChassisBox(root.transform, chassis, art, floor, highestHub, art.min.z, seatsBack - ChassisSeatClearance);
         }
 
-        private static void AddHoop(Transform root, string name, Vector3 hub, float radius, float width, PhysicsMaterial material)
+        /// <summary>The kinematic chassis body: an added child of Body (the art prefab is untouched), at its origin.</summary>
+        private static Transform AddChassis(Transform body)
+        {
+            var chassis = new GameObject(ChassisName);
+            chassis.transform.SetParent(body, false);
+            var rigidbody = chassis.AddComponent<Rigidbody>();
+            rigidbody.isKinematic = true;
+            rigidbody.useGravity = false;
+            rigidbody.interpolation = RigidbodyInterpolation.None;
+            chassis.AddComponent<MonowheelChassis>();
+            return chassis.transform;
+        }
+
+        /// <summary>
+        /// A ring of boxes round <paramref name="hub"/> in the wheel's own plane (square to its axle), so a
+        /// cambered ring's hoop leans with it: an upright hoop round a ring cambered 20 degrees reached
+        /// below its real lowest point.
+        /// </summary>
+        private static void AddHoop(Transform root, string name, Vector3 hub, Vector3 axle, float radius, float width,
+                                    PhysicsMaterial material)
         {
             var hoop = new GameObject(name).transform;
             hoop.SetParent(root, false);
-            float step = 360f / HoopSegments;
-            float length = 2f * radius * Mathf.Tan(step * 0.5f * Mathf.Deg2Rad);
+            Vector3 forward = Vector3.ProjectOnPlane(Vector3.forward, axle).normalized;
+            Vector3 up = Vector3.Cross(axle, forward).normalized;
+            if (up.y < 0f) up = -up;
+            // Inscribed, so no corner reaches past the paddles: a segment's outer face is a chord of the
+            // wheel's circle. Centred on the circle, the boxes' corners stood 13 cm below the contact
+            // and the whole vehicle rested on them with its wheel in the air.
+            float halfStep = 180f / HoopSegments * Mathf.Deg2Rad;
+            float length = 2f * radius * Mathf.Sin(halfStep);
+            float centreRadius = radius * Mathf.Cos(halfStep) - HoopThickness * 0.5f;
             for (int i = 0; i < HoopSegments; i++)
             {
-                // Segment 0 is straight down; the angle runs round the ring in the root's YZ plane.
-                float degrees = -90f + i * step;
+                // Segment 0 is straight down; the angle runs round the ring in its own plane.
+                float degrees = -90f + i * 360f / HoopSegments;
                 if (Mathf.Abs(Mathf.DeltaAngle(-90f, degrees)) < HoopOpenBelowDegrees) continue;
 
                 float theta = degrees * Mathf.Deg2Rad;
-                var radial = new Vector3(0f, Mathf.Sin(theta), Mathf.Cos(theta));
-                var tangent = new Vector3(0f, Mathf.Cos(theta), -Mathf.Sin(theta));
+                Vector3 radial = Mathf.Sin(theta) * up + Mathf.Cos(theta) * forward;
+                Vector3 tangent = Mathf.Cos(theta) * up - Mathf.Sin(theta) * forward;
                 var segment = new GameObject($"Segment_{i}");
                 segment.transform.SetParent(hoop, false);
-                segment.transform.SetLocalPositionAndRotation(hub + radius * radial, Quaternion.LookRotation(tangent, radial));
+                segment.transform.SetLocalPositionAndRotation(hub + centreRadius * radial, Quaternion.LookRotation(tangent, radial));
                 var box = segment.AddComponent<BoxCollider>();
                 box.size = new Vector3(width, HoopThickness, length);
                 box.sharedMaterial = material;
             }
         }
 
-        /// <summary>A chassis box between two points along the wheel; nothing when the span is empty.</summary>
-        private static void AddChassisBox(GameObject root, Bounds art, float floor, float top, float fromZ, float toZ)
+        /// <summary>A chassis box between two points along the wheel (root space); nothing when the span is empty.</summary>
+        private static void AddChassisBox(Transform root, Transform chassis, Bounds art, float floor, float top, float fromZ, float toZ)
         {
             if (toZ <= fromZ) return;
-            var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(art.center.x, (floor + top) * 0.5f, (fromZ + toZ) * 0.5f);
+            var box = chassis.gameObject.AddComponent<BoxCollider>();
+            box.center = chassis.InverseTransformPoint(root.TransformPoint(
+                new Vector3(art.center.x, (floor + top) * 0.5f, (fromZ + toZ) * 0.5f)));
             box.size = new Vector3(art.size.x, top - floor, toZ - fromZ);
         }
 
@@ -373,6 +437,31 @@ namespace SpaceGame.EditorTools
             return material;
         }
 
+        /// <summary>How wide the ring's meshes are along its axle (root space). An axis-aligned box would
+        /// count a cambered ring's lean as width.</summary>
+        private static float WidthAlong(Transform root, Transform ringBone, Vector3 axle)
+        {
+            float min = float.MaxValue, max = float.MinValue;
+            foreach (MeshFilter part in ringBone.GetComponentsInChildren<MeshFilter>(true))
+            foreach (Vector3 vertex in part.sharedMesh.vertices)
+            {
+                float along = Vector3.Dot(root.InverseTransformPoint(part.transform.TransformPoint(vertex)), axle);
+                min = Mathf.Min(min, along);
+                max = Mathf.Max(max, along);
+            }
+            return max - min;
+        }
+
+        /// <summary>One part's bounds in root space, from its vertices: tighter than its renderer's, which
+        /// boxes the mesh's own bounds again after the model's import rotation.</summary>
+        private static Bounds MeshBoundsInRoot(Transform root, MeshFilter part)
+        {
+            Vector3[] vertices = part.sharedMesh.vertices;
+            var bounds = new Bounds(root.InverseTransformPoint(part.transform.TransformPoint(vertices[0])), Vector3.zero);
+            foreach (Vector3 vertex in vertices) bounds.Encapsulate(root.InverseTransformPoint(part.transform.TransformPoint(vertex)));
+            return bounds;
+        }
+
         private static Bounds RendererBoundsInRoot(Transform root, Transform under)
         {
             MeshRenderer[] renderers = under.GetComponentsInChildren<MeshRenderer>(true);
@@ -386,7 +475,8 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>The Strider half: health, side, the column brain, the driver, and a double's gunners.</summary>
-        private static bool AddStriderCrew(GameObject root, Transform body, Transform riderSeat, int maxHealth, bool isDouble)
+        private static bool AddStriderCrew(GameObject root, Transform body, Transform riderSeat, int maxHealth, bool isDouble,
+                                           Vector3 seatOffset)
         {
             var health = root.AddComponent<HealthComponent>();
             SerializedFields.Edit(health, so =>
@@ -425,7 +515,7 @@ namespace SpaceGame.EditorTools
             {
                 SerializedFields.Set(so, "riderPrefab", driver);
                 SerializedFields.Set(so, "seatPoint", riderSeat);
-                SerializedFields.SetVector3(so, "seatOffset", SeatOffset);
+                SerializedFields.SetVector3(so, "seatOffset", seatOffset);
                 SerializedFields.SetBool(so, "spawnOnStart", true);
                 // NpcPassenger's default names the Clanker controller's flag; every Strider wears the
                 // humanoid controller, whose only seated flag is Seated. A missing name is skipped silently.
@@ -443,20 +533,21 @@ namespace SpaceGame.EditorTools
                 for (int i = 0; i < driven.Length; i++) modules.GetArrayElementAtIndex(i).objectReferenceValue = driven[i];
             });
 
-            return !isDouble || AddGunnerSeats(root, body);
+            return !isDouble || AddGunnerSeats(root, body, seatOffset);
         }
 
         /// <summary>
-        /// Seat 0 on the rear passenger socket, seats 1-2 on top of the two side cushions inside the wheels.
+        /// Seat 0 on the rear passenger seat, seats 1-2 on the two side cushions inside the wheels.
         /// </summary>
-        private static bool AddGunnerSeats(GameObject root, Transform body)
+        private static bool AddGunnerSeats(GameObject root, Transform body, Vector3 seatOffset)
         {
-            Transform passengerSocket = FindSingle(body, PassengerSocketPrefix, root.name);
-            if (passengerSocket == null) return false;
+            Transform passengerSeat = BackedSeatMarker(body, PassengerSeatName, PassengerCushionPrefix, PassengerBackCushionPrefix, root.name);
+            if (passengerSeat == null) return false;
 
-            MeshRenderer[] cushions = body.GetComponentsInChildren<MeshRenderer>(true)
-                .Where(r => r.name.StartsWith(SideCushionPrefix))
-                .OrderBy(r => root.transform.InverseTransformPoint(r.bounds.center).x)
+            Bounds[] cushions = body.GetComponentsInChildren<MeshFilter>(true)
+                .Where(f => f.name.StartsWith(SideCushionPrefix))
+                .Select(f => MeshBoundsInRoot(root.transform, f))
+                .OrderBy(b => b.center.x)
                 .ToArray();
             if (cushions.Length != SideSeats)
             {
@@ -466,11 +557,13 @@ namespace SpaceGame.EditorTools
             }
 
             var seats = new Transform[GunnerSeats];
-            seats[0] = SeatMarker(body, PassengerSeatName, passengerSocket.position);
+            seats[0] = passengerSeat;
+            // No backrest: the back corner is the cushion's rear edge.
             for (int i = 0; i < SideSeats; i++)
             {
-                Bounds cushion = cushions[i].bounds;
-                seats[1 + i] = SeatMarker(body, $"{SideSeatPrefix}{i}", new Vector3(cushion.center.x, cushion.max.y, cushion.center.z));
+                Bounds cushion = cushions[i];
+                seats[1 + i] = SeatMarker(body, $"{SideSeatPrefix}{i}",
+                                          root.transform.TransformPoint(new Vector3(cushion.center.x, cushion.max.y, cushion.min.z)));
             }
 
             var chair = root.GetComponent<ChairPose>();   // the saddle's, added with the mount
@@ -480,7 +573,7 @@ namespace SpaceGame.EditorTools
                 SerializedProperty array = so.FindProperty("seats");
                 array.arraySize = seats.Length;
                 for (int i = 0; i < seats.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = seats[i];
-                SerializedFields.SetVector3(so, "seatOffset", SeatOffset);
+                SerializedFields.SetVector3(so, "seatOffset", seatOffset);
                 SerializedFields.Set(so, "chairPose", chair);
             });
 
@@ -504,10 +597,30 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// The seat marker of a seat with a backrest: at its back corner, where the top of the seat
+        /// cushion meets the front of the back cushion -- the corner a seated body's bottom and the back
+        /// of its pelvis go into. Measured off the cushions because the art's Socket_* empties are not
+        /// on them (the Double's rider socket is 0.16 m ahead of its backrest). Null and an error when
+        /// either cushion is missing.
+        /// </summary>
+        private static Transform BackedSeatMarker(Transform body, string name, string cushionPrefix, string backPrefix, string forWhom)
+        {
+            MeshFilter cushion = FindSingle(body, cushionPrefix, forWhom)?.GetComponent<MeshFilter>();
+            MeshFilter back = FindSingle(body, backPrefix, forWhom)?.GetComponent<MeshFilter>();
+            if (cushion == null || back == null) return null;
+
+            Transform root = body.parent;
+            Bounds seat = MeshBoundsInRoot(root, cushion);
+            float backFront = MeshBoundsInRoot(root, back).max.z;
+            return SeatMarker(body, name, root.TransformPoint(new Vector3(seat.center.x, seat.max.y, backFront)));
+        }
+
+        /// <summary>
         /// An upright seat marker at a point on the art. Not the art's socket itself: the Blender empties
         /// import pitched -90 degrees, so a rider seated on one lies on their back and the seat offset
         /// pushes them forward instead of down. Parented to Body (an added child on the connected
-        /// instance -- the art prefab's own file is untouched) so a player's seat rolls with the lean.
+        /// instance -- the art prefab's own file is untouched) so the seat tips with the chassis pose,
+        /// and TiltingSeats carries its rider with it.
         /// </summary>
         private static Transform SeatMarker(Transform body, string name, Vector3 worldPosition)
         {
@@ -528,11 +641,12 @@ namespace SpaceGame.EditorTools
             return null;
         }
 
-        /// <summary>The colliders (last, because they keep clear of every seat), the netcode and save stack,
-        /// then the save. The temp root is destroyed either way.</summary>
-        private static bool Finish(GameObject root, Transform body, string path)
+        /// <summary>The colliders (last, because they keep clear of every seat), the seats' tilt, the netcode
+        /// and save stack, then the save. The temp root is destroyed either way.</summary>
+        private static bool Finish(GameObject root, Transform body, string path, Vector3 npcSeatOffset)
         {
             AddColliders(root, body);
+            AddTiltingSeats(root, body, npcSeatOffset);
 
             // A new prefab, so no scene holds an instance: the identity is ours to add, and Ensure (which
             // refuses to add one) fills in the rest of the netcode set around it.
@@ -549,6 +663,21 @@ namespace SpaceGame.EditorTools
             Object.DestroyImmediate(root);
             if (!saved) Debug.LogError($"[StriderMonowheel] Could not save {path}; the AssetDatabase refused the write.");
             return saved;
+        }
+
+        /// <summary>Every rider sits on a seat under Body, which the chassis pose tips: hold them on it.</summary>
+        private static void AddTiltingSeats(GameObject root, Transform body, Vector3 npcSeatOffset)
+        {
+            Transform[] seats = body.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith(SeatPrefix)).ToArray();
+            var tilting = root.AddComponent<TiltingSeats>();
+            SerializedFields.Edit(tilting, so =>
+            {
+                SerializedProperty array = so.FindProperty("seats");
+                array.arraySize = seats.Length;
+                for (int i = 0; i < seats.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = seats[i];
+                SerializedFields.SetVector3(so, "npcSeatOffset", npcSeatOffset);
+                SerializedFields.Set(so, "mount", root.GetComponent<MountModule>());
+            });
         }
 
         private static void Verify(List<string> built)

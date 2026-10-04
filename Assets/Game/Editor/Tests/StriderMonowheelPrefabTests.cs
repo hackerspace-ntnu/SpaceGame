@@ -84,15 +84,31 @@ namespace SpaceGame.EditorTools
         }
 
         /// The art's sockets import pitched -90 degrees: a rider seated on one lies on their back. The
-        /// seat is an upright marker at the socket, under Body so a player's seat rolls with the lean.
-        private static void AssertUprightSeatOn(GameObject wheel, Transform seat, string socketPrefix)
+        /// seat is an upright marker under Body (so it tips with the chassis pose) at the seat's back
+        /// corner: on top of the seat cushion, against the front of the back cushion.
+        private static void AssertUprightSeatOn(GameObject wheel, Transform seat, string cushionPrefix, string backPrefix)
         {
             Assert.IsNotNull(seat);
             Transform body = BodyOf(wheel);
             Assert.AreSame(body, seat.parent);
             Assert.AreEqual(Quaternion.identity, seat.localRotation, "an unrotated seat, or the rider lies down");
-            Transform socket = body.GetComponentsInChildren<Transform>(true).Single(t => t.name.StartsWith(socketPrefix));
-            Assert.Less(Vector3.Distance(socket.position, seat.position), 1e-3f);
+            Bounds cushion = MeshBoundsInRoot(wheel, cushionPrefix), back = MeshBoundsInRoot(wheel, backPrefix);
+            Vector3 corner = wheel.transform.InverseTransformPoint(seat.position);
+            Assert.AreEqual(cushion.max.y, corner.y, 1e-3f, $"{seat.name} sits on top of the cushion");
+            Assert.AreEqual(back.max.z, corner.z, 1e-3f, $"{seat.name} is against the back cushion");
+            Assert.AreEqual(cushion.center.x, corner.x, 1e-3f, $"{seat.name} is in the middle of the cushion");
+        }
+
+        /// A mesh part's bounds in the wheel's root space, from its vertices (a prefab asset has no
+        /// renderer bounds).
+        private static Bounds MeshBoundsInRoot(GameObject wheel, string prefix)
+        {
+            MeshFilter part = BodyOf(wheel).GetComponentsInChildren<MeshFilter>(true).Single(f => f.name.StartsWith(prefix));
+            Vector3[] points = part.sharedMesh.vertices
+                .Select(v => wheel.transform.InverseTransformPoint(part.transform.TransformPoint(v))).ToArray();
+            var bounds = new Bounds(points[0], Vector3.zero);
+            foreach (Vector3 point in points) bounds.Encapsulate(point);
+            return bounds;
         }
 
         private static Object Field(Object target, string name) =>
@@ -151,21 +167,47 @@ namespace SpaceGame.EditorTools
                 Assert.IsNotNull(hoop, "the ring is a hoop of boxes under the root, not under Body");
                 BoxCollider[] segments = hoop.GetComponentsInChildren<BoxCollider>();
                 Assert.Greater(segments.Length, 0);
+                Vector3 hubInRoot = wheel.transform.InverseTransformPoint(BodyOf(wheel).TransformPoint(ring.localHub));
+                Vector3 axle = wheel.transform.InverseTransformDirection(ring.ringBone.TransformDirection(ring.localAxle)).normalized;
                 foreach (BoxCollider segment in segments)
                 {
-                    Assert.AreEqual(ring.paddleRadius, Vector3.Distance(segment.transform.localPosition, ring.localHub), 1e-3f,
-                        "every hoop segment sits on the ring");
+                    // Radially, in the ring's plane: the hoop's width along the axle is the ring's own.
+                    float reach = BoxCorners(segment).Max(c =>
+                        Vector3.ProjectOnPlane(wheel.transform.InverseTransformPoint(c) - hubInRoot, axle).magnitude);
+                    Assert.LessOrEqual(reach, ring.paddleRadius + 1e-3f,
+                        $"{segment.name} reaches past the paddles: the vehicle rests on its corners with the wheel in the air");
+                    Assert.Greater(reach, ring.paddleRadius - 0.05f, $"{segment.name} sits on the ring");
                     Assert.AreSame(contacts[i].sharedMaterial, segment.sharedMaterial);
                 }
             }
+        }
 
-            float lowestContact = presentation.Wheels.Min(w => w.localContact.y);
-            foreach (BoxCollider chassis in wheel.GetComponents<BoxCollider>())
+        private static Vector3[] BoxCorners(BoxCollider box)
+        {
+            var corners = new Vector3[8];
+            for (int c = 0; c < 8; c++)
             {
-                float chassisFloor = chassis.center.y - chassis.size.y * 0.5f;   // root space: a prefab asset has no world bounds
-                Assert.Greater(chassisFloor - lowestContact, PresentationGroundProbe,
-                    "a chassis box must clear MonowheelPresentation's ground probe, or the rings throw sand in the air");
+                var sign = new Vector3((c & 1) == 0 ? -0.5f : 0.5f, (c & 2) == 0 ? -0.5f : 0.5f, (c & 4) == 0 ? -0.5f : 0.5f);
+                corners[c] = box.transform.TransformPoint(box.center + Vector3.Scale(box.size, sign));
             }
+            return corners;
+        }
+
+        [TestCaseSource(nameof(AllPaths))]
+        public void TheChassis_IsAKinematicBodyPosedWithTheArt_ThatNeverStandsOnTheGround(string path)
+        {
+            GameObject wheel = Load(path);
+            Assert.IsEmpty(wheel.GetComponents<BoxCollider>(),
+                "a chassis box on the upright root holds the vehicle up on rising ground while the art tips the other way");
+
+            Transform chassis = BodyOf(wheel).Find(StriderMonowheelBuilder.ChassisName);
+            Assert.IsNotNull(chassis, "the chassis hangs under Body, so the pose tips it with the frame");
+            var body = chassis.GetComponent<Rigidbody>();
+            Assert.IsNotNull(body, "its own body, or its colliders join the root's and prop the wheel up again");
+            Assert.IsTrue(body.isKinematic, "kinematic: it makes no contact with static ground");
+            Assert.IsFalse(body.useGravity);
+            Assert.IsNotNull(chassis.GetComponent<MonowheelChassis>(), "without it the chassis shoves its own wheel");
+            Assert.IsNotEmpty(chassis.GetComponents<BoxCollider>());
         }
 
         [TestCaseSource(nameof(AllPaths))]
@@ -188,7 +230,7 @@ namespace SpaceGame.EditorTools
             var mount = wheel.GetComponent<MountModule>();
             Assert.IsNotNull(mount);
             var seat = (Transform)Field(mount, "seatPoint");
-            AssertUprightSeatOn(wheel, seat, "Socket_Rider_");
+            AssertUprightSeatOn(wheel, seat, StriderMonowheelBuilder.RiderCushionPrefix, StriderMonowheelBuilder.RiderBackCushionPrefix);
             var steer = wheel.GetComponent<SteerModule>();
             Assert.IsNotNull(steer);
             Assert.AreEqual(ModulePriority.Scripted, steer.Priority, "SteerModule.Reset's default, which AddComponent never runs");
@@ -313,7 +355,8 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(seats);
             Assert.AreEqual(3, seats.Capacity);
             SerializedProperty markers = new SerializedObject(seats).FindProperty("seats");
-            AssertUprightSeatOn(wheel, (Transform)markers.GetArrayElementAtIndex(0).objectReferenceValue, "Socket_Passenger_");
+            AssertUprightSeatOn(wheel, (Transform)markers.GetArrayElementAtIndex(0).objectReferenceValue,
+                                StriderMonowheelBuilder.PassengerCushionPrefix, StriderMonowheelBuilder.PassengerBackCushionPrefix);
             Transform body = BodyOf(wheel);
             MeshRenderer[] cushions = body.GetComponentsInChildren<MeshRenderer>(true)
                 .Where(r => r.name.StartsWith("Mesh_SideSeatCushion")).ToArray();
@@ -328,11 +371,66 @@ namespace SpaceGame.EditorTools
                     new Vector2(c.transform.position.x, c.transform.position.z),
                     new Vector2(side.position.x, side.position.z))).First();
                 Assert.Greater(side.position.y, cushion.transform.position.y, $"{side.name} sits above {cushion.name}");
+                Bounds top = MeshBoundsInRoot(wheel, cushion.name);
+                Vector3 corner = wheel.transform.InverseTransformPoint(side.position);
+                Assert.AreEqual(top.max.y, corner.y, 1e-3f, $"{side.name} sits on top of {cushion.name}");
+                Assert.AreEqual(top.min.z, corner.z, 1e-3f, $"{side.name} is at the back edge of {cushion.name}");
             }
             Assert.IsNotNull(wheel.GetComponent<ChairPose>());
             var gunner = (GameObject)Field(wheel.GetComponent<MountedGunners>(), "gunnerPrefab");
             Assert.IsNotNull(gunner);
             StringAssert.StartsWith("Strider_", gunner.name);
+        }
+
+        // -- seats ---------------------------------------------------------------------------------
+
+        private static StriderMonowheelBuilder.RiderOffsets measured;
+        private static bool hasMeasured;
+
+        /// Sitting two rigs down takes a moment; measure once for the fixture.
+        private static StriderMonowheelBuilder.RiderOffsets Measured()
+        {
+            if (!hasMeasured) { measured = StriderMonowheelBuilder.MeasureRiderOffsets(); hasMeasured = true; }
+            return measured;
+        }
+
+        private static Vector3 OffsetOf(Object component, string field = "seatOffset") =>
+            new SerializedObject(component).FindProperty(field).vector3Value;
+
+        [TestCaseSource(nameof(AllPaths))]
+        public void APlayerSitsOnTheCushion_ByTheirOwnMeasuredBody(string path)
+        {
+            GameObject wheel = Load(path);
+            Vector3 expected = Measured().Player;
+            Assert.Less(Vector3.Distance(expected, OffsetOf(wheel.GetComponent<MountModule>())), 1e-3f,
+                "the player's origin is a metre above its soles: a Strider's drop sinks them into the chassis");
+            Assert.Greater(expected.y, 0f, "a seated player's origin is ABOVE the cushion (PlayerCharacter.md: root 1 m above the soles)");
+        }
+
+        [TestCaseSource(nameof(StriderVariants))]
+        public void EveryStriderSitsOnTheCushion_ByTheirOwnMeasuredBody(string variant)
+        {
+            GameObject wheel = Load(StriderMonowheelBuilder.PrefabPath(variant));
+            Vector3 expected = Measured().Strider;
+            Assert.Less(Vector3.Distance(expected, OffsetOf(wheel.GetComponent<NpcPassenger>())), 1e-3f, "the driver");
+            Assert.Less(Vector3.Distance(expected, OffsetOf(wheel.GetComponent<TiltingSeats>(), "npcSeatOffset")), 1e-3f,
+                "TiltingSeats must hold an NPC where it was seated");
+            var gunners = wheel.GetComponent<VesselSeats>();
+            if (gunners != null) Assert.Less(Vector3.Distance(expected, OffsetOf(gunners)), 1e-3f, "the gunners");
+        }
+
+        [TestCaseSource(nameof(AllPaths))]
+        public void EveryRiderTiltsWithTheirSeat(string path)
+        {
+            GameObject wheel = Load(path);
+            var tilting = wheel.GetComponent<TiltingSeats>();
+            Assert.IsNotNull(tilting, "without it a rider stays upright while the chassis rolls and pitches under them");
+            Assert.AreSame(wheel.GetComponent<MountModule>(), Field(tilting, "mount"));
+            SerializedProperty listed = new SerializedObject(tilting).FindProperty("seats");
+            Transform[] seats = Seats(wheel);
+            Assert.AreEqual(seats.Length, listed.arraySize);
+            for (int i = 0; i < listed.arraySize; i++)
+                CollectionAssert.Contains(seats, listed.GetArrayElementAtIndex(i).objectReferenceValue);
         }
 
         // -- the player's wheel --------------------------------------------------------------------

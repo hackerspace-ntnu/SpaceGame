@@ -66,10 +66,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private float stoodUpAt = float.NegativeInfinity;
 
-        // TEMPORARY (2026-09-25): every ragdoll switched off to find out whether ragdolls cause the
-        // current lag. Deaths, knockdowns, hits and nets all stop here. Set back to false, or revert
-        // this file, to turn ragdolls on again.
-        private static readonly bool RagdollsDisabled = true;
+        // TEMPORARY (2026-09-25): a switch to turn every ragdoll off while hunting lag. Deaths,
+        // knockdowns, hits and nets all stop here when true. Back to false on 2026-10-04 so the
+        // knockdown settle fix can be play-tested; removed outright once the profiling capture has
+        // measured ragdoll cost (plan 2026-10-04-test-failures-and-strider-perf, task A3).
+        private static readonly bool RagdollsDisabled = false;
 
         public KnockdownTuning Tuning => knockdown;
 

@@ -514,6 +514,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | everyone except the host drops straight into a half-built world with no loading screen | [UI](systems/UI.md) |
 | everything is blurry for a few seconds after the crash landing | [Cutscenes](systems/Cutscenes.md) |
 | everything not on the rack disappears when the pack is reshouldered or restored | [Backpack](systems/Backpack.md) |
+| everything that ragdolls spasms around | [Combat](systems/Combat.md) |
 | exit momentum is confiscated a fraction of a second after coming through | [Portals](systems/Portals.md) |
 | Failed to bind UDP socket' or a 409 'already a member of the lobby' when launching two instances | [Multiplayer](systems/Multiplayer.md) |
 | Failed to create agent because it is not close enough to the NavMesh logged once per rider when a group spawns in the air | [AgentSystem](systems/AgentSystem.md) |
@@ -740,6 +741,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | sampling the skin around the eyes finds no vertices near either socket | [StylizedEyes](systems/StylizedEyes.md) |
 | scenes are full of missing prefab instances a GUID grep cannot find | [EditorTooling](systems/EditorTooling.md) |
 | scouts stay home in the column and nobody rides out | [Striders](systems/Striders.md) |
+| seated crew never shoot out of their walking house | [AgentSystem](systems/AgentSystem.md) |
 | selecting the grappling hook on the hotbar leaves my hands empty | [BodyEquipment](systems/BodyEquipment.md) |
 | setting transform.position on the player does nothing, it snaps back the same frame | [PlayerCharacter](systems/PlayerCharacter.md) |
 | shots at a monowheel rider hit the wheel instead | [Striders](systems/Striders.md) |
@@ -1750,4 +1752,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1284 symptoms, 440 paths, 65 docs -->
+<!-- 1286 symptoms, 440 paths, 65 docs -->

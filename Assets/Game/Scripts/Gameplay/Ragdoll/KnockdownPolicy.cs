@@ -46,7 +46,9 @@ namespace SpaceGame.Gameplay.Ragdoll
     /// <summary>
     /// The knobs, one set per body prefab so a boss and a rat can price the same blast differently.
     /// Field initialisers are the agreed defaults: fall 0.1 s, hits 0.1–0.2 s — a tenth of the
-    /// first cut (2026-09-24), which playtesting found kept bodies down far too long.
+    /// first cut (2026-09-24), which playtesting found kept bodies down far too long. The settle
+    /// grace stays 1.5 s (2026-10-04): cut with the rest, it stood every knockdown up mid-fall, and
+    /// the half-collapse-and-snap-back read as the bodies spasming.
     /// </summary>
     [Serializable]
     public sealed class KnockdownTuning
@@ -81,9 +83,12 @@ namespace SpaceGame.Gameplay.Ragdoll
         public float knockbackReferenceSpeed = 20f;
 
         [Tooltip("Once the down-time is up, how much longer to wait for a still-tumbling body to " +
-                 "come to rest before standing it up anyway, seconds. The ceiling that keeps a body " +
-                 "wedged against a rock from never getting up (GDC-L1-FEEL-0002).")]
-        public float settleGraceSeconds = 0.15f;
+                 "come to rest before standing it up anyway, seconds. Long enough for a body knocked " +
+                 "over from standing to land (about 0.4 s to fall from the hips, more to topple): a " +
+                 "body that is at rest stands up at once, so this only ever delays a body still " +
+                 "falling. The ceiling that keeps one wedged against a rock from never getting up " +
+                 "(GDC-L1-FEEL-0002).")]
+        public float settleGraceSeconds = 1.5f;
 
         [Tooltip("Seconds after standing up during which HITS cannot knock the body down again. " +
                  "0 disables. Blasts and falls ignore it.")]

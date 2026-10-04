@@ -76,11 +76,23 @@ namespace SpaceGame.Characters
         {
             if (upper == null || lower == null || pointer == null) return;
 
-            upper.rotation = HeadAim.Share(Remaining(pointer, target, maxDegrees, weight), shoulderShare)
-                             * upper.rotation;
+            Vector3 wanted = target - pointer.position;
+            bool beyondLimit = Vector3.Angle(pointer.forward, wanted) > Mathf.Max(0f, maxDegrees);
+
+            // Past the limit the arm reaches for the furthest direction it may, fixed now: re-reading
+            // the target after the shoulder moved would hand every stage its own full limit, and the
+            // swing would add up to several of them. A direction has no parallax, so the elbow passes
+            // still converge, onto exactly the limit.
+            Vector3 limitedDirection = Swing(pointer.forward, wanted, maxDegrees) * pointer.forward;
+
+            Quaternion Next() => beyondLimit
+                ? HeadAim.Share(Quaternion.FromToRotation(pointer.forward, limitedDirection), Mathf.Clamp01(weight))
+                : Remaining(pointer, target, maxDegrees, weight);
+
+            upper.rotation = HeadAim.Share(Next(), shoulderShare) * upper.rotation;
 
             for (int pass = 0; pass < Mathf.Max(1, elbowPasses); pass++)
-                lower.rotation = Remaining(pointer, target, maxDegrees, weight) * lower.rotation;
+                lower.rotation = Next() * lower.rotation;
         }
 
         /// <summary>What is left of the swing onto <paramref name="target"/>, at this weight.</summary>

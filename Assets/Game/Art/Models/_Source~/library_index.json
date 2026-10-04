@@ -656340,6 +656340,1690 @@
       "Mesh_WalkerLeg_Raised_Upper.003"
     ]
   },
+  "models/vehicles/strider_characters.blend": {
+    "collections": [
+      {
+        "name": "Char_Beanie",
+        "objects": [
+          "Rig_Beanie",
+          "Strider_Beanie"
+        ],
+        "children": []
+      },
+      {
+        "name": "Char_Horned",
+        "objects": [
+          "Rig_Horned",
+          "Strider_Horned"
+        ],
+        "children": []
+      },
+      {
+        "name": "Char_Longcoat",
+        "objects": [
+          "Rig_Longcoat",
+          "Strider_Longcoat"
+        ],
+        "children": []
+      },
+      {
+        "name": "Char_StriderElder",
+        "objects": [
+          "Rig_StriderElder",
+          "Mesh_Elder_Chest",
+          "Mesh_Elder_Head",
+          "Mesh_Elder_Neck",
+          "Mesh_Elder_Pelvis",
+          "Mesh_ElderLeg_FL_Upper",
+          "Mesh_ElderLeg_FL_Lower",
+          "Mesh_ElderLeg_FL_Foot",
+          "CoxaPin_FL",
+          "HipPin_FL",
+          "KneePin_FL",
+          "AnklePin_FL",
+          "FootPin_FL",
+          "Mesh_ElderLeg_FR_Upper",
+          "Mesh_ElderLeg_FR_Lower",
+          "Mesh_ElderLeg_FR_Foot",
+          "CoxaPin_FR",
+          "HipPin_FR",
+          "KneePin_FR",
+          "AnklePin_FR",
+          "FootPin_FR",
+          "Mesh_ElderLeg_RL_Upper",
+          "Mesh_ElderLeg_RL_Lower",
+          "Mesh_ElderLeg_RL_Foot",
+          "CoxaPin_RL",
+          "HipPin_RL",
+          "KneePin_RL",
+          "AnklePin_RL",
+          "FootPin_RL",
+          "Mesh_ElderLeg_RR_Upper",
+          "Mesh_ElderLeg_RR_Lower",
+          "Mesh_ElderLeg_RR_Foot",
+          "CoxaPin_RR",
+          "HipPin_RR",
+          "KneePin_RR",
+          "AnklePin_RR",
+          "FootPin_RR"
+        ],
+        "children": []
+      },
+      {
+        "name": "Char_Warrior",
+        "objects": [
+          "Rig_Warrior",
+          "Strider_Warrior"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "AnklePin_FL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.135,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "AnklePin_FR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.135,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "AnklePin_RL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.135,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "AnklePin_RR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.135,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "CoxaPin_FL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "CoxaPin_FR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "CoxaPin_RL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "CoxaPin_RR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "FootPin_FL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.08,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "FootPin_FR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.08,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "FootPin_RL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.08,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "FootPin_RR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.08,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "HipPin_FL",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -0.371,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "HipPin_FR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.371,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "HipPin_RL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.371,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "HipPin_RR",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -0.371,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "KneePin_FL",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -0.6714,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "KneePin_FR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.6714,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "KneePin_RL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.6714,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "KneePin_RR",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.6714,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.0342,
+          0.036,
+          0.07
+        ],
+        "vertices": 20,
+        "polygons": 12,
+        "materials": [
+          "Mat_Metal_Steel_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Elder_Chest",
+        "type": "MESH",
+        "location": [
+          -0.7293,
+          -0.8721,
+          -0.8377
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          1.1832,
+          0.5702,
+          0.9671
+        ],
+        "vertices": 17675,
+        "polygons": 16362,
+        "materials": [
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Hide_Claw_Horn",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Paint_White_Arctic",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Paint_Blue_Station",
+          "Mat_Plastic_Safety_Yellow",
+          "Mat_Paint_Warn_Red",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Emissive_Portal_Blue",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Rust_Deep",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Foliage_Moss_Deep",
+          "Mat_Foliage_Leaf_Pale",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Wood_Timber_Silvered"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Elder_Head",
+        "type": "MESH",
+        "location": [
+          -0.0808,
+          -1.7609,
+          -0.023
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.4142,
+          0.6101,
+          0.8159
+        ],
+        "vertices": 16584,
+        "polygons": 15788,
+        "materials": [
+          "Mat_Hide_Slate_Teal",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Hide_Scute_Umber",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Warn_Red",
+          "Mat_Emissive_Red_Warn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Elder_Neck",
+        "type": "MESH",
+        "location": [
+          0.7249,
+          -1.3831,
+          -0.0721
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.1868,
+          0.1519,
+          0.1839
+        ],
+        "vertices": 194,
+        "polygons": 192,
+        "materials": [
+          "Mat_Hide_Dune_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Elder_Pelvis",
+        "type": "MESH",
+        "location": [
+          0.3772,
+          -0.8446,
+          -0.7546
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.5139,
+          0.2396,
+          0.3049
+        ],
+        "vertices": 1658,
+        "polygons": 1614,
+        "materials": [
+          "Mat_Hide_Claw_Horn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_FL_Foot",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -0.7642,
+          -0.1572
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.2131,
+          0.2167,
+          0.1816
+        ],
+        "vertices": 880,
+        "polygons": 660,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_FL_Lower",
+        "type": "MESH",
+        "location": [
+          -0.6765,
+          0.0658,
+          0.3025
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.3179,
+          0.3108,
+          0.7435
+        ],
+        "vertices": 2734,
+        "polygons": 2522,
+        "materials": [
+          "Mat_Metal_Rust_Deep",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_FL_Upper",
+        "type": "MESH",
+        "location": [
+          0.4924,
+          -0.9147,
+          -0.1161
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.5333,
+          0.5034,
+          0.6456
+        ],
+        "vertices": 3218,
+        "polygons": 2990,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_FR_Foot",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.7119,
+          -0.1572
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.2131,
+          0.2167,
+          0.1816
+        ],
+        "vertices": 880,
+        "polygons": 660,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_FR_Lower",
+        "type": "MESH",
+        "location": [
+          0.6122,
+          0.0814,
+          0.3213
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.3179,
+          0.3108,
+          0.7435
+        ],
+        "vertices": 2734,
+        "polygons": 2522,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_FR_Upper",
+        "type": "MESH",
+        "location": [
+          -0.5036,
+          -0.8731,
+          -0.1697
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.5333,
+          0.5034,
+          0.6456
+        ],
+        "vertices": 3218,
+        "polygons": 2990,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_RL_Foot",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.7274,
+          -0.1572
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.25,
+          0.2492,
+          0.1816
+        ],
+        "vertices": 880,
+        "polygons": 660,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_RL_Lower",
+        "type": "MESH",
+        "location": [
+          -0.5179,
+          0.0766,
+          -0.48
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.3316,
+          0.2683,
+          0.7435
+        ],
+        "vertices": 2734,
+        "polygons": 2522,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_RL_Upper",
+        "type": "MESH",
+        "location": [
+          0.1927,
+          -0.8859,
+          -0.4859
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.606,
+          0.3814,
+          0.6456
+        ],
+        "vertices": 3218,
+        "polygons": 2990,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_RR_Foot",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.6674,
+          -0.1572
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.25,
+          0.2492,
+          0.1816
+        ],
+        "vertices": 880,
+        "polygons": 660,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_RR_Lower",
+        "type": "MESH",
+        "location": [
+          0.4537,
+          0.0955,
+          -0.4642
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.3316,
+          0.2683,
+          0.7435
+        ],
+        "vertices": 2734,
+        "polygons": 2522,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ElderLeg_RR_Upper",
+        "type": "MESH",
+        "location": [
+          -0.2347,
+          -0.8355,
+          -0.5064
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "dimensions": [
+          0.606,
+          0.3814,
+          0.6456
+        ],
+        "vertices": 3218,
+        "polygons": 2990,
+        "materials": [
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Steel_Worn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Rig_Beanie",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Beanie"
+        ],
+        "bones": [
+          "Hips",
+          "Spine",
+          "Chest",
+          "Neck",
+          "Head",
+          "LeftShoulder",
+          "LeftUpperArm",
+          "LeftLowerArm",
+          "LeftHand",
+          "RightShoulder",
+          "RightUpperArm",
+          "RightLowerArm",
+          "RightHand",
+          "LeftUpperLeg",
+          "LeftLowerLeg",
+          "LeftFoot",
+          "RightUpperLeg",
+          "RightLowerLeg",
+          "RightFoot"
+        ]
+      },
+      {
+        "name": "Rig_Horned",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Horned"
+        ],
+        "bones": [
+          "Hips",
+          "Spine",
+          "Chest",
+          "Neck",
+          "Head",
+          "LeftShoulder",
+          "LeftUpperArm",
+          "LeftLowerArm",
+          "LeftHand",
+          "RightShoulder",
+          "RightUpperArm",
+          "RightLowerArm",
+          "RightHand",
+          "LeftUpperLeg",
+          "LeftLowerLeg",
+          "LeftFoot",
+          "RightUpperLeg",
+          "RightLowerLeg",
+          "RightFoot"
+        ]
+      },
+      {
+        "name": "Rig_Longcoat",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Longcoat"
+        ],
+        "bones": [
+          "Hips",
+          "Spine",
+          "Chest",
+          "Neck",
+          "Head",
+          "LeftShoulder",
+          "LeftUpperArm",
+          "LeftLowerArm",
+          "LeftHand",
+          "RightShoulder",
+          "RightUpperArm",
+          "RightLowerArm",
+          "RightHand",
+          "LeftUpperLeg",
+          "LeftLowerLeg",
+          "LeftFoot",
+          "RightUpperLeg",
+          "RightLowerLeg",
+          "RightFoot"
+        ]
+      },
+      {
+        "name": "Rig_StriderElder",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_StriderElder"
+        ],
+        "bones": [
+          "Root",
+          "Pelvis",
+          "Chest",
+          "Neck",
+          "Head",
+          "Coxa_FL",
+          "Hip_FL",
+          "Knee_FL",
+          "Ankle_FL",
+          "Foot_FL",
+          "Coxa_FR",
+          "Hip_FR",
+          "Knee_FR",
+          "Ankle_FR",
+          "Foot_FR",
+          "Coxa_RL",
+          "Hip_RL",
+          "Knee_RL",
+          "Ankle_RL",
+          "Foot_RL",
+          "Coxa_RR",
+          "Hip_RR",
+          "Knee_RR",
+          "Ankle_RR",
+          "Foot_RR"
+        ]
+      },
+      {
+        "name": "Rig_Warrior",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Warrior"
+        ],
+        "bones": [
+          "Hips",
+          "Spine",
+          "Chest",
+          "Neck",
+          "Head",
+          "LeftShoulder",
+          "LeftUpperArm",
+          "LeftLowerArm",
+          "LeftHand",
+          "RightShoulder",
+          "RightUpperArm",
+          "RightLowerArm",
+          "RightHand",
+          "LeftUpperLeg",
+          "LeftLowerLeg",
+          "LeftFoot",
+          "RightUpperLeg",
+          "RightLowerLeg",
+          "RightFoot"
+        ]
+      },
+      {
+        "name": "Strider_Beanie",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Beanie"
+        ],
+        "dimensions": [
+          1.1352,
+          0.6649,
+          1.7786
+        ],
+        "vertices": 27309,
+        "polygons": 26273,
+        "materials": [
+          "Mat_Paint_Olive_Deep",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Hide_Claw_Horn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Teal_Deep",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Paint_White_Arctic",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Paint_Blue_Station",
+          "Mat_Plastic_Safety_Yellow",
+          "Mat_Paint_Warn_Red",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Emissive_Portal_Blue",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Rust_Deep",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Paint_Hull_Bleached"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Strider_Horned",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Horned"
+        ],
+        "dimensions": [
+          1.1352,
+          0.5372,
+          1.8518
+        ],
+        "vertices": 30757,
+        "polygons": 29425,
+        "materials": [
+          "Mat_Hide_Slate_Teal",
+          "Mat_Hide_Claw_Horn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Hide_Scute_Umber",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Teal_Deep",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Paint_White_Arctic",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Paint_Blue_Station",
+          "Mat_Plastic_Safety_Yellow",
+          "Mat_Paint_Warn_Red",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Emissive_Portal_Blue",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Metal_Rust_Deep",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Foliage_Moss_Deep",
+          "Mat_Foliage_Leaf_Pale",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Wood_Timber_Silvered"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Strider_Longcoat",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Longcoat"
+        ],
+        "dimensions": [
+          1.1352,
+          0.5372,
+          1.7814
+        ],
+        "vertices": 24470,
+        "polygons": 23711,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Hide_Claw_Horn",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Teal_Deep",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Paint_White_Arctic",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Paint_Blue_Station",
+          "Mat_Plastic_Safety_Yellow",
+          "Mat_Paint_Warn_Red",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Emissive_Portal_Blue",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Paint_Hull_Bleached"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Strider_Warrior",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Char_Warrior"
+        ],
+        "dimensions": [
+          1.1352,
+          0.5348,
+          1.7814
+        ],
+        "vertices": 32680,
+        "polygons": 31219,
+        "materials": [
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Hide_Slate_Teal",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Hide_Claw_Horn",
+          "Mat_Hide_Dune_Tan",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Paint_Teal_Deep",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Olive_Deep",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Paint_White_Arctic",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Paint_Blue_Station",
+          "Mat_Plastic_Safety_Yellow",
+          "Mat_Paint_Warn_Red",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Emissive_Portal_Blue",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Rust_Deep",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Foliage_Moss_Deep",
+          "Mat_Foliage_Leaf_Pale",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Wood_Timber_Silvered"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Emissive_Green_CRT",
+      "Mat_Emissive_Portal_Blue",
+      "Mat_Emissive_Red_Warn",
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Rope_Hemp",
+      "Mat_Fabric_Seat_Ochre",
+      "Mat_Fabric_Tarp_Azure",
+      "Mat_Foliage_Leaf_Pale",
+      "Mat_Foliage_Moss_Deep",
+      "Mat_Glass_Canopy_Tinted",
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Dune_Tan",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale",
+      "Mat_Hide_Scute_Umber",
+      "Mat_Hide_Slate_Teal",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Chrome_Scuffed",
+      "Mat_Metal_Gold_Leaf",
+      "Mat_Metal_HullRust_Orange",
+      "Mat_Metal_Rust_Deep",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Rust_Pale",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Neutral_Panel_Grey",
+      "Mat_Neutral_Slate_Dark",
+      "Mat_Paint_Blue_Station",
+      "Mat_Paint_Hazard_Yellow",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Olive_Deep",
+      "Mat_Paint_Safety_Orange",
+      "Mat_Paint_Teal_Deep",
+      "Mat_Paint_Warn_Red",
+      "Mat_Paint_White_Arctic",
+      "Mat_Plastic_Rubber_Black",
+      "Mat_Plastic_Safety_Yellow",
+      "Mat_Wood_Ply_Worn",
+      "Mat_Wood_Timber_Silvered"
+    ],
+    "linked_libraries": [
+      "C:\\Users\\tobia\\Documents\\spaceGame\\SpaceGame\\Assets\\Game\\Art\\Models\\_Source~\\palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/vehicles/wing_pack_folded.blend": {
     "collections": [
       {

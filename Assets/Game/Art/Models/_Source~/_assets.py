@@ -10,7 +10,9 @@ library root, the file the Asset Browser reads catalogues from. Register this fo
 Blender (Preferences > File Paths > Asset Libraries) and every part can be dragged into a scene.
 
 The finished characters listed in CHARACTERS are marked too, one asset each (body, rig and eyes)
-in catalogue `Characters/Drifters`. Add a character there by hand when it is finished.
+in catalogue `Characters/Drifters`. Add a character there by hand when it is finished. A file in
+CHARACTER_FILES holds several finished characters, each already in its own `Char_<Name>`
+collection (body and rig); every such collection is marked, in that file's catalogue.
 
 Dual-purpose like _index_library.py: run under plain Python it drives Blender over each file;
 run inside Blender (`--background <file> --python _assets.py -- --mark`) it marks that file.
@@ -46,6 +48,12 @@ CHARACTERS = {
     "models/characters/drifters/raxy_classic.blend": "RaxyClassic",
 }
 CHARACTER_CATALOG = "Characters/Drifters"
+
+# Files holding several finished characters, each in its own Char_<Name> collection: file -> catalogue.
+CHARACTER_FILES = {
+    "models/vehicles/strider_characters.blend": "Characters/Striders",
+}
+CHARACTER_FILE_PREFIX = "Char_"
 CHARACTER_BODY_COLLECTION = "Coll_HumanSculptBase"   # body + rig, in every character file
 CHARACTER_EYE_PREFIX = "Sphere"                      # the eyes sit loose in the scene
 
@@ -120,6 +128,18 @@ def mark_open_character(name):
     save_and_report(marked, no_preview)
 
 
+def mark_open_character_file(catalog):
+    import bpy
+    marked, no_preview = [], []
+    for coll in bpy.data.collections:
+        if not coll.name.startswith(CHARACTER_FILE_PREFIX):
+            continue
+        name = coll.name[len(CHARACTER_FILE_PREFIX):]
+        mark_asset(coll, catalog, "%s — rigged character: body and rig" % words(name),
+                   ("Character", catalog.split("/")[-1], name), marked, no_preview)
+    save_and_report(marked, no_preview)
+
+
 # ── driver ───────────────────────────────────────────────────────────────────
 
 def component_files(only):
@@ -159,6 +179,7 @@ def main(argv):
     only = set(argv[argv.index("--only") + 1:]) if "--only" in argv else set()
     jobs = [(rel, ["--mark", rel.split("/")[1]]) for rel in component_files(only)]
     jobs += [(rel, ["--mark-character", name]) for rel, name in CHARACTERS.items() if not only or rel in only]
+    jobs += [(rel, ["--mark-characters", cat]) for rel, cat in CHARACTER_FILES.items() if not only or rel in only]
     paths, failed = [], []
     for rel, mode in jobs:
         proc = subprocess.run([blender, "--background", os.path.join(LIB_ROOT, rel), "--python",
@@ -185,6 +206,8 @@ def main(argv):
 
 if "--mark" in sys.argv:
     mark_open_file(sys.argv[sys.argv.index("--mark") + 1])
+elif "--mark-characters" in sys.argv:
+    mark_open_character_file(sys.argv[sys.argv.index("--mark-characters") + 1])
 elif "--mark-character" in sys.argv:
     mark_open_character(sys.argv[sys.argv.index("--mark-character") + 1])
 elif __name__ == "__main__":

@@ -216,4 +216,18 @@ not in Play mode, no prefab open in Prefab Mode for the prefab steps, `Chunk_6_3
   has an archetype and a source prefab, 58 distinct prefabs; a second Generate gave the identical sequence.
   Copy deleted; real TerrainData_6_3 untouched; Chunk_6_3 unchanged apart from the approved Scout apply.
   `Chunk_6_3` still uses NomadSettlement (switching it is the user's call).
+- **2026-10-04 16:4x–18:5x, Chunk_6_3 switched to RaxySettlement and REGENERATED (user approved):** 70/70,
+  Warrior 16/12, Scout 4/3, muster spot placed by Generate (west lane now, (2914.9, 116.1, 610.2)), settlement
+  id kept; scene + TerrainData_6_3 and TerrainData_5_3 saved (Generate re-sculpts across the border); catalog
+  re-baked (55 stand-in prefabs); world NavMesh re-baked. **Expedition autotests on the regenerated settlement:
+  host PASS, client PASS, persist PASS** — after three test-harness fixes found on the way: (1) the test build
+  now holds chunk columns 4–7, rows 1–5 (the road out runs west into column 4); (2) the observer was pinned in
+  the arrival ship's seat for 180 s (`SeatedRider.HoldSeats` undoes every teleport) → `LeaveArrivalSeat` waits
+  for `ArrivalDirector` to finish and stands up, and every observer move is checked; (3) another session
+  populated the astronaut colony in Chunk_5_3 with residents, so the probes now take the settlement whose
+  culture has an expedition profile (`FindExpeditionSettlement`) and count only its bodies. `NpcWorldSim.Spawn`
+  now warns instead of returning silently when a group's plan is empty. Two open defects recorded in
+  DEFECTS.md: a client keeps reading `IsWithBand` after the homecoming, and the join-mid-stream double chunk load.
+- **Found the "dead bridge" cause:** the `World ▸ Streaming ▸ Bake World NavMesh` menu ends in a modal "OK" dialog
+  that stalls the Editor (bridge calls + menu clicks) until dismissed.
 - **State at hand-back (2026-10-04 ~02:05):** all code and docs written and reviewed; `typecheck --editor` clean; 109 pure tests pass, the 4 failing ones need the Editor (Newtonsoft / Resources); `docs_check --index`: 2 errors, both pre-existing in another session's ColonyInterior.md. Both Unity bridges are unusable (`unity-mcp` hung twice for 30 min; `unityMCP` sessions disconnect mid-command) and another session is waiting on the Editor, so the Editor runbook above (steps 1–12) is NOT done beyond the two menus noted. Not started: Task 0.7 spike. Nothing verified in play, on a client or through a reload.

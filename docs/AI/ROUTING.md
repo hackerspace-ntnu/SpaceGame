@@ -44,6 +44,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a .blend in the library will not open: 'not a blend file | [ArtPipeline](systems/ArtPipeline.md) |
 | a band hands off in plain view at ~360–400 m: the residents vanish and no stand-ins appear | [Expeditions](systems/Expeditions.md) |
 | a basket or crate in a settlement never moves, though haulers walk to it | [Errands](systems/Errands.md) |
+| a bell frame's deck cannot be walked on and its ladder leads nowhere | [Outposts](systems/Outposts.md) |
 | a belt or pouch near the hip gets dragged along by a swinging arm | [CharacterClothes](systems/CharacterClothes.md) |
 | a big building is a tangle of stray triangles in the wrong materials in play mode, but fine in the Scene view, the prefab and Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
@@ -94,8 +95,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client's resident census throws a NullReferenceException on a held place | [Residents](systems/Residents.md) |
 | a clothes prefab shows nothing when opened or dropped into a scene | [CharacterClothes](systems/CharacterClothes.md) |
 | a collider a tool added is on the prefab but nothing ever hits it | [EditorTooling](systems/EditorTooling.md) |
+| a colonist sleeps standing beside its bunk, or pops onto the top bunk while I watch | [ColonyResidents](systems/ColonyResidents.md) |
+| a colonist stands on a building's roof and never comes down | [ColonyResidents](systems/ColonyResidents.md) |
+| a colonist waits at an airlock and nothing opens, or the hatch shuts on one in the doorway | [ColonyResidents](systems/ColonyResidents.md) |
 | a colony doorway or tube is blocked by an invisible wall | [ColonyInterior](systems/ColonyInterior.md) |
 | a colony room has three airlocks in a row and one part of it cannot be reached | [ColonyInterior](systems/ColonyInterior.md) |
+| a colony rover stays parked and the log says it found no drivable loop | [ColonyResidents](systems/ColonyResidents.md) |
+| a colony's walkable heart is on a roof, so every place indoors is unreachable | [ColonyResidents](systems/ColonyResidents.md) |
 | a component I added to PlayerShip.prefab by hand disappeared after a rebuild | [PlayerShip](systems/PlayerShip.md) |
 | a continuous item only affects what the crosshair is exactly on, and its visible spray does nothing | [Artifacts](systems/Artifacts.md) |
 | a cook stirs, ploughs or swings a pickaxe at the stove | [HumanoidAnimation](systems/HumanoidAnimation.md) |
@@ -517,6 +523,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject | [Multiplayer](systems/Multiplayer.md) |
 | an old save's provocation/resident record is ignored after the creature moved to a new saver | [Persistence](systems/Persistence.md) |
 | an outfit prefab is missing a piece of clothing | [CharacterClothes](systems/CharacterClothes.md) |
+| an Outpost generates but nobody moves in, with a clean console | [Outposts](systems/Outposts.md) |
+| an outpost prefab I hand-edited lost its changes | [Outposts](systems/Outposts.md) |
+| an outpost prefab renders at the wrong place or mirrored compared to the .blend | [Outposts](systems/Outposts.md) |
 | an oxygen tank stands on end on the mat and eats a third of the leaf | [Oxygen](systems/Oxygen.md) |
 | an unwatched band is handed off at ~415 m in a second instead of walking out to 150 m | [Expeditions](systems/Expeditions.md) |
 | AnimationEvent 'X' has no receiver! Are you missing a component?, once per step | [ArtPipeline](systems/ArtPipeline.md) |
@@ -550,6 +559,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | client join fails with Scene Hash N does not exist in the HashToBuildIndex table | [WorldStreaming](systems/WorldStreaming.md) |
 | closing focus mode leaves a black screen with only the HUD, and no sound | [Backpack](systems/Backpack.md) |
 | collisions inside the ship went weird once there was gear on the wall | [Backpack](systems/Backpack.md) |
+| colonists never go through an airlock, every interior place says unusable or an island the settlement cannot walk to | [ColonyResidents](systems/ColonyResidents.md) |
+| colonists never sit at the dining nooks | [ColonyResidents](systems/ColonyResidents.md) |
 | colony props flicker / speckle where a label, drawer front or trim meets its panel | [ArtPipeline](systems/ArtPipeline.md) |
 | combat feels unnaturally slow or untimed even though damage lands on schedule | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | console warns No prefab registered for id when loading a world | [EntitySystem](systems/EntitySystem.md) |
@@ -785,6 +796,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | only the residents who saw me hit somebody react; the ones next to them never hear about it | [ResidentReputation](systems/ResidentReputation.md) |
 | only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
 | other players do not see the items lying on my pack | [Backpack](systems/Backpack.md) |
+| Outpost: Generate says No config assigned | [Outposts](systems/Outposts.md) |
 | paint lands somewhere the stream of droplets was never seen to go | [Portals](systems/Portals.md) |
 | palette_preview.py --check fails after a look was retuned | [LookLab](systems/LookLab.md) |
 | part of my backpack rig sits in the wrong place after I put the pack back on | [BodyEquipment](systems/BodyEquipment.md) |
@@ -829,9 +841,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | residents fighting me run straight past a neighbour who never joins in | [ResidentReputation](systems/ResidentReputation.md) |
 | residents forget I hit their kin after a reload | [Residents](systems/Residents.md) |
 | residents never reach a spot on a terrace across a narrow gap or a short drop | [NavMeshSystem](systems/NavMeshSystem.md) |
+| residents never sit on the outpost's seats or only stand beside them | [Outposts](systems/Outposts.md) |
 | residents pop out of existence in front of me at bedtime | [Residents](systems/Residents.md) |
 | residents sit in the air, or inside a bench, instead of on something | [Seats](systems/Seats.md) |
 | residents sit in the house but never talk to each other | [HouseVisits](systems/HouseVisits.md) |
+| residents stand at the foot of an outpost ladder and never climb it | [Outposts](systems/Outposts.md) |
 | residents stroll to or sit about at the muster spot | [Residents](systems/Residents.md) |
 | residents vanish 1.5 m in front of the door instead of stepping into the doorway | [Residents](systems/Residents.md) |
 | residents vanish in front of a house instead of walking in, or pop out of thin air | [Residents](systems/Residents.md) |
@@ -959,6 +973,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the colony oxygen filler is dark with no battery in it | [ColonyInterior](systems/ColonyInterior.md) |
 | the colony windows are opaque orange from inside | [ColonyInterior](systems/ColonyInterior.md) |
 | the colony's outer hatch swings into the building instead of out | [ColonyInterior](systems/ColonyInterior.md) |
+| the colony's resident census reads walkable heart (0, 0, 0) after a reload | [ColonyResidents](systems/ColonyResidents.md) |
 | the colours are right but the world looks flat and detail-free, whole cliff faces one colour | [Environment](systems/Environment.md) |
 | the compiler cannot resolve Unity's Lobby type inside this folder | [Lobby](systems/Lobby.md) |
 | the console warns that a hull module measures more than any surface on the pack | [PlayerShip](systems/PlayerShip.md) |
@@ -1147,6 +1162,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the open inner airlock door glitches where the two leaves meet | [ColonyInterior](systems/ColonyInterior.md) |
 | the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
 | the orientation fix logs 'saved' for a prefab and then FAILED verification on the same run | [Backpack](systems/Backpack.md) |
+| the outpost's second copy appears when I raise the settlement size | [Outposts](systems/Outposts.md) |
 | the oxygen bottle's socket paints red when the bottle is dragged out of the hotbar, and the click turns it instead of placing it | [Backpack](systems/Backpack.md) |
 | the oxygen gauge is missing but health shows fine | [Visor](systems/Visor.md) |
 | the oxygen gauge says RESERVE when I am carrying a full tank | [Visor](systems/Visor.md) |
@@ -1454,17 +1470,21 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementEntrance.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPolyline.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/SettlementMuster.cs` | [Expeditions](systems/Expeditions.md) |
+| `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.Colony.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPlaza.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/astronaut_decorations_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Transport/Deco_Handcart_Hover.prefab` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/StandingTerminal.prefab` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/OxygenGenerator.prefab` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Biomes/Outpost.cs` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/nomad_interiors_export.py` | [HouseVisits](systems/HouseVisits.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Transport/Deco_Handcart.prefab` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Art/Models/Environment/Structures/Outpost/OutpostLayouts.json` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Art/Models/_Source~/models/buildings/raxy_outposts_export.py` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs` | [Oxygen](systems/Oxygen.md) |
@@ -1475,6 +1495,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Decorations/Tavern/Deco_FoodCart.prefab` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Scripts/Presentation/UI/HelmetHUD/JetpackHeatGaugeSource.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicView.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/agents/Residents/Editor/Tests/ColonyContentTests.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/mars_colony_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Messaging/Vocabulary/LassoVerb.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/BodyEquipmentSaveable.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1511,6 +1532,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineCounts.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Prefabs/Environment/Decorations/Astronaut/Exterior/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement/` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Flamethrower.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackFlight.cs` | [Jetpack](systems/Jetpack.md) |
@@ -1519,6 +1541,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Movement/PlayerSeating.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
+| `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineTrack.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/StationAuthoring.cs` | [Stations](systems/Stations.md) |
@@ -1538,6 +1561,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StormCloud.prefab` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StormFlask.prefab` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/SkyTribe.asset` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/ScriptableObjects/Residents/Lines/ColonyLines.txt` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackPose.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs` | [Placeables](systems/Placeables.md) |
@@ -1557,6 +1581,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/Residents/Body/ResidentSeating.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/agents/Residents/Data/ChoreDefinition.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamBlob.prefab` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/ScriptableObjects/Residents/ColonyCulture.asset` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
@@ -1568,6 +1593,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
+| `Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
@@ -1576,6 +1602,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Art/Textures/Effects/AirlockMist_Negative.png` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Textures/Effects/AirlockMist_Positive.png` | [ColonyInterior](systems/ColonyInterior.md) |
+| `Assets/Game/Editor/World/ColonyAirlockPassageAuthoring.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/SeatPlacer.cs` | [Seats](systems/Seats.md) |
@@ -1598,6 +1625,7 @@ Longest match wins.
 | `Assets/Game/Resources/Items/Artifacts/StormFlask.asset` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Gameplay/Status/SwallowedStatus.cs` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Scripts/Gameplay/Traversal/INavLinkGate.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/BottledSingularity` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1622,6 +1650,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/Animation/ActionReachMeasurer.cs` | [StationTable](systems/StationTable.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| `Assets/Game/Prefabs/Environment/Structures/Outpost/` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs` | [Portals](systems/Portals.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs` | [Hogtie](systems/Hogtie.md) |
@@ -1645,6 +1674,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/WingPackItem.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitItem.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal` | [Terminal](systems/Terminal.md) |
+| `Assets/Game/Scripts/World/Colony/AirlockPassage.cs` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/World/Colony/AirlockTransit.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Favor.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Art/Materials/Effects/AirlockMist.mat` | [ColonyInterior](systems/ColonyInterior.md) |
@@ -1683,8 +1714,10 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Effects/JetSmoke.shader` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Editor/Agents/StylizedEyeBuilder.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Environment/LookLabWindow.cs` | [LookLab](systems/LookLab.md) |
+| `Assets/Game/Editor/Tests/AirlockTransitTests.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Editor/Tests/CartPoseSolverTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Agents/Characters/SkyTribe/` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Prefabs/Vehicles/ColonyRover.prefab` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/ScriptableObjects/Residents/Chores/` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BodyVeil.cs` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/` | [TerrainGeneration](systems/TerrainGeneration.md) |
@@ -1697,6 +1730,8 @@ Longest match wins.
 | `Assets/Game/Editor/Support/SerializedFields.cs` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Editor/Tests/BoosterWiringTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/BurningStatusTests.cs` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Editor/Tests/OutpostPrefabTests.cs` | [Outposts](systems/Outposts.md) |
+| `Assets/Game/Editor/World/ColonyStandSnapper.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
@@ -1744,9 +1779,11 @@ Longest match wins.
 | `Assets/Game/Editor/Agents/DrifterRigSync.cs` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Editor/Agents/EyeStyleEditor.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Items/WornGearPreview.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Editor/Terrain/OutpostEditor.cs` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Editor/Tests/AgentCarryTests.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Editor/Tests/CartPusherTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Editor/Tests/GroundFireTests.cs` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Editor/Tests/RoverRouteTests.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Editor/World/PushablePreview.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Environment/Decorations` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab` | [UI](systems/UI.md) |
@@ -1763,6 +1800,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Animation` | [NpcAnimationPlan](systems/NpcAnimationPlan.md) |
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/` | [Combat](systems/Combat.md) |
+| `Assets/Game/Scripts/Vehicles/Rover/Patrol/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Art/Materials/Characters/Raxy` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Models/Items/squirter.fbx` | [FoamGun](systems/FoamGun.md) |
@@ -1817,6 +1855,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/Residents/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Settings/PC_RPAsset.asset` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Art/Shaders/Environment/` | [Environment](systems/Environment.md) |
+| `Assets/Game/Editor/Terrain/Outposts/` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Health/` | [Combat](systems/Combat.md) |
@@ -1912,4 +1951,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1413 symptoms, 473 paths, 77 docs -->
+<!-- 1429 symptoms, 496 paths, 79 docs -->

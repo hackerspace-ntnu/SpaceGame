@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &47120726723330292
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 495427348069227665}
+  m_Layer: 0
+  m_Name: Face_Galley_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &495427348069227665
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 47120726723330292}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.815, y: 1.6749998, z: 0.06249976}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4078674548763772453}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1383821253166727562
 GameObject:
   m_ObjectHideFlags: 0
@@ -53,7 +84,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.03, y: 3.35, z: 1.1250002}
   m_Center: {x: 0.014999986, y: 1.6749998, z: 0.06249976}
---- !u!1 &3201513225362607298
+--- !u!1 &4243456211767624918
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -61,29 +92,77 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1129045496590131290}
+  - component: {fileID: 2753450360149031064}
   m_Layer: 0
-  m_Name: Face_Kitchen_2
+  m_Name: Face_Galley_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1129045496590131290
+--- !u!4 &2753450360149031064
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3201513225362607298}
+  m_GameObject: {fileID: 4243456211767624918}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.815, y: 1.6749998, z: 0.06249976}
+  m_LocalPosition: {x: -0.785, y: 1.6749998, z: 0.06249976}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4078674548763772453}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4312847288023064411
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1944090881723083236}
+  - component: {fileID: 4171415710401297884}
+  m_Layer: 0
+  m_Name: Spot_Galley_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1944090881723083236
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4312847288023064411}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
+  m_LocalPosition: {x: -0.785, y: 0, z: 1.5249999}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4078674548763772453}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4171415710401297884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4312847288023064411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
+  use: {fileID: 11400000, guid: 997b81fde19d5449ebd232ba035a509e, type: 2}
+  face: {fileID: 2753450360149031064}
+  group: 
+  stationCue: {fileID: 0}
 --- !u!1 &4319907681902636226
 GameObject:
   m_ObjectHideFlags: 0
@@ -116,10 +195,10 @@ Transform:
   m_Children:
   - {fileID: 8551811322678427841}
   - {fileID: 2607076989771979230}
-  - {fileID: 8919939229433468041}
-  - {fileID: 5468875161055911250}
-  - {fileID: 1129045496590131290}
-  - {fileID: 7534277955433995290}
+  - {fileID: 2753450360149031064}
+  - {fileID: 1944090881723083236}
+  - {fileID: 495427348069227665}
+  - {fileID: 8181293065372572294}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8428698746322060474
@@ -168,7 +247,7 @@ Transform:
   - {fileID: 5101912975493753151}
   m_Father: {fileID: 4078674548763772453}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &8307714649958510274
+--- !u!1 &7958688651918687411
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -176,125 +255,46 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7534277955433995290}
-  - component: {fileID: 8119561041074780822}
+  - component: {fileID: 8181293065372572294}
+  - component: {fileID: 3306858781331164577}
   m_Layer: 0
-  m_Name: Spot_Kitchen_2
+  m_Name: Spot_Galley_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7534277955433995290
+--- !u!4 &8181293065372572294
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8307714649958510274}
+  m_GameObject: {fileID: 7958688651918687411}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0.815, y: 0, z: 2.125}
+  m_LocalPosition: {x: 0.815, y: 0, z: 1.5249999}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4078674548763772453}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8119561041074780822
+--- !u!114 &3306858781331164577
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8307714649958510274}
+  m_GameObject: {fileID: 7958688651918687411}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
-  use: {fileID: 11400000, guid: 08d5617274c6410e89999ad223b88f3e, type: 2}
-  face: {fileID: 1129045496590131290}
+  use: {fileID: 11400000, guid: 997b81fde19d5449ebd232ba035a509e, type: 2}
+  face: {fileID: 495427348069227665}
   group: 
-  stationCue: {fileID: 11400000, guid: aa2b112cca9694242a608e2f1f878928, type: 2}
---- !u!1 &8769585508405954624
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5468875161055911250}
-  - component: {fileID: 2916441990389150862}
-  m_Layer: 0
-  m_Name: Spot_Kitchen_1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5468875161055911250
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8769585508405954624}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: -0.785, y: 0, z: 2.125}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4078674548763772453}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2916441990389150862
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8769585508405954624}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
-  use: {fileID: 11400000, guid: 08d5617274c6410e89999ad223b88f3e, type: 2}
-  face: {fileID: 8919939229433468041}
-  group: 
-  stationCue: {fileID: 11400000, guid: aa2b112cca9694242a608e2f1f878928, type: 2}
---- !u!1 &8886967455211553322
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8919939229433468041}
-  m_Layer: 0
-  m_Name: Face_Kitchen_1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8919939229433468041
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8886967455211553322}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.785, y: 1.6749998, z: 0.06249976}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4078674548763772453}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  stationCue: {fileID: 0}
 --- !u!1001 &8152811013370292010
 PrefabInstance:
   m_ObjectHideFlags: 0

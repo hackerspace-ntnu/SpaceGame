@@ -31,8 +31,8 @@ namespace SpaceGame.Agents.Residents.EditorTools
         private const string ColonyBuildingDir = "Assets/Game/Prefabs/Environment/Structures/AstronautSettlement";
 
         // Metres in front of a prop's box a resident stands: the NavMesh keeps half a metre off every solid, so a spot closer than that is
-        // snapped, and the 3 m crew need room for their arms.
-        private const float ColonyStandOff = 1.5f;
+        // snapped; a work loop's reach (a strike lands about half a metre ahead) puts the tool on the prop from here.
+        private const float ColonyStandOff = 0.9f;
         // How far apart two spots on one wide prop stand, and the width a prop needs to take two.
         private const float PairSpacing = 1.6f, PairWidth = 2.6f;
         // Where the two berths of a bunk lie along its length, so each bed's stand spot is plainly nearest its own seat; and how far the
@@ -76,9 +76,9 @@ namespace SpaceGame.Agents.Residents.EditorTools
             new("AstroDeco_RoverJackStands", "RoverBay"),
             new("AstroDeco_HydroponicsRack", "Garden", 2),
             new("AstroDeco_PlantPots", "Garden"),
-            new("AstroDeco_GalleyCounter", "Kitchen", 2, "wipe"),
-            new("AstroDeco_MedBayCot", "Infirmary"),
-            new("AstroDeco_SampleFreezer", "Infirmary", 1, "rummage"),
+            new("AstroDeco_GalleyCounter", "Galley", 2),
+            new("AstroDeco_MedBayCot", "MedBay"),
+            new("AstroDeco_SampleFreezer", "MedBay", 1, "rummage"),
             // Errand stops: where a chore goes.
             new("AstroDeco_HydroponicsRack", "Plant"),
             new("AstroDeco_PlantPots", "Plant"),
@@ -140,9 +140,11 @@ namespace SpaceGame.Agents.Residents.EditorTools
             bunk.sleeps = true;
             Save(bunk);
 
+            // The galley and the med bay are their own uses, not the nomad kitchen and infirmary: those hold loops that need a ladle or a
+            // mortar, and a colonist works with empty hands.
+            SpotUse galley = Spot("Galley", "the galley", SpotRole.Work, "wipe");
+            SpotUse medBay = Spot("MedBay", "the med bay", SpotRole.Work, "tend");
             SpotUse garden = Require<SpotUse>($"{SpotDir}/Garden.asset");
-            SpotUse kitchen = Require<SpotUse>($"{SpotDir}/Kitchen.asset");
-            SpotUse infirmary = Require<SpotUse>($"{SpotDir}/Infirmary.asset");
             ChoreDefinition water = Require<ChoreDefinition>($"{ChoreDir}/Water.asset");
             ChoreDefinition carrySamples = Chore("CarrySamples", "carrying samples", sampleStop, sampleStop, null, new Vector2Int(1, 2), carryThroughout: false);
 
@@ -151,8 +153,8 @@ namespace SpaceGame.Agents.Residents.EditorTools
             ResidentArchetype geologist = ColonyArchetype("Geologist", "geologist", rockAnalysis, TripKind.None, carrySamples, ResidentDuty.None, 0.5f, 0.4f);
             ResidentArchetype roverTech = ColonyArchetype("RoverTech", "rover tech", roverBay, TripKind.None, null, ResidentDuty.None, 0.6f, 0.5f);
             ResidentArchetype botanist = ColonyArchetype("Botanist", "botanist", garden, TripKind.None, water, ResidentDuty.None, 0.3f, 0.2f);
-            ResidentArchetype chef = ColonyArchetype("Chef", "chef", kitchen, TripKind.None, null, ResidentDuty.None, 0.4f, 0.5f);
-            ResidentArchetype medic = ColonyArchetype("Medic", "medic", infirmary, TripKind.None, null, ResidentDuty.None, 0.5f, 0.2f);
+            ResidentArchetype chef = ColonyArchetype("Chef", "chef", galley, TripKind.None, null, ResidentDuty.None, 0.4f, 0.5f);
+            ResidentArchetype medic = ColonyArchetype("Medic", "medic", medBay, TripKind.None, null, ResidentDuty.None, 0.5f, 0.2f);
             ResidentArchetype surveyor = ColonyArchetype("Surveyor", "surveyor", null, TripKind.Survey, null, ResidentDuty.None, 0.7f, 0.4f);
             ResidentArchetype evaGuard = ColonyArchetype("EvaGuard", "EVA guard", null, TripKind.None, null, ResidentDuty.Patrol, 0.9f, 0.7f);
             evaGuard.challengesArmed = true;
@@ -267,18 +269,23 @@ namespace SpaceGame.Agents.Residents.EditorTools
                 BoxCollider box = root.GetComponentInChildren<BoxCollider>(true);
                 if (box == null) { notes.Add($"{prop}: no collider box to stand beside"); return; }
 
-                int before = root.GetComponentsInChildren<SettlementSpot>(true).Length;
+                ClearColonySpots(root);
                 edit(root, box);
-                int after = root.GetComponentsInChildren<SettlementSpot>(true).Length;
-                if (after == before) return;
-
                 PrefabUtility.SaveAsPrefabAsset(root, path);
-                notes.Add($"{prop}: {after - before} spot(s) added ({after} now)");
+                notes.Add($"{prop}: {root.GetComponentsInChildren<SettlementSpot>(true).Length} spot(s)");
             }
             finally
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        // What an earlier run put on a prop is taken off first, so a changed table of spots replaces rather than adds to it.
+        private static void ClearColonySpots(GameObject root)
+        {
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true).Reverse())
+                if (child != root.transform && (child.name.StartsWith("Spot_") || child.name.StartsWith("Face_") || child.name.StartsWith("Seat_Berth_")))
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
         }
 
         // The prop's front is +Z (its collider box's far side from the wall it backs onto); the spot stands ColonyStandOff beyond it.
@@ -308,8 +315,6 @@ namespace SpaceGame.Agents.Residents.EditorTools
         // A bunk: two berths a body-length apart in height, each with a Lie seat and a bed spot in front of it.
         private static void PutBerths(GameObject root, BoxCollider box, SpotUse bed)
         {
-            if (root.GetComponentsInChildren<Seat>(true).Length > 0) return;
-
             Vector3 centre = box.transform.TransformPoint(box.center);
             float front = centre.z + box.size.z * 0.5f;
             float[] heights = { BottomBerthHeight, TopBerthHeight };
@@ -336,7 +341,8 @@ namespace SpaceGame.Agents.Residents.EditorTools
             }
         }
 
-        private static void AddSpotObject(GameObject root, SpotUse use, string name, Vector3 stand, Vector3 look, CharacterCue cue)
+        // Also how the outpost builder puts a spot on a prefab, so a spot is made one way.
+        internal static void AddSpotObject(GameObject root, SpotUse use, string name, Vector3 stand, Vector3 look, CharacterCue cue)
         {
             var face = new GameObject($"Face_{name.Substring("Spot_".Length)}").transform;
             face.SetParent(root.transform, false);

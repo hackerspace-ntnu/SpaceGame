@@ -1,36 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &29565776539628826
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8971980350465223442}
-  m_Layer: 0
-  m_Name: Face_RoverBay_1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8971980350465223442
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 29565776539628826}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.004999995, y: 0.705, z: 0.07550001}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 5746827970785046066}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &413969970024377987
 GameObject:
   m_ObjectHideFlags: 0
@@ -84,7 +53,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.908, y: 1.41, z: 0.829}
   m_Center: {x: -0.004999995, y: 0.705, z: 0.07550001}
---- !u!1 &1273902460705154883
+--- !u!1 &2385871593930274362
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -92,8 +61,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 846225478390990024}
-  - component: {fileID: 3517042112461491151}
+  - component: {fileID: 4596802904709653007}
+  - component: {fileID: 5683739449580557418}
   m_Layer: 0
   m_Name: Spot_RoverBay_1
   m_TagString: Untagged
@@ -101,37 +70,68 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &846225478390990024
+--- !u!4 &4596802904709653007
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1273902460705154883}
+  m_GameObject: {fileID: 2385871593930274362}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: -0.004999995, y: 0, z: 1.99}
+  m_LocalPosition: {x: -0.004999995, y: 0, z: 1.39}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5746827970785046066}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3517042112461491151
+--- !u!114 &5683739449580557418
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1273902460705154883}
+  m_GameObject: {fileID: 2385871593930274362}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
   use: {fileID: 11400000, guid: f303266b7c4cf478eae39d0387d741ed, type: 2}
-  face: {fileID: 8971980350465223442}
+  face: {fileID: 4155901541767415861}
   group: 
   stationCue: {fileID: 0}
+--- !u!1 &3548780337374700894
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4155901541767415861}
+  m_Layer: 0
+  m_Name: Face_RoverBay_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4155901541767415861
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3548780337374700894}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.004999995, y: 0.705, z: 0.07550001}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5746827970785046066}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4436674257298658378
 GameObject:
   m_ObjectHideFlags: 0
@@ -164,8 +164,8 @@ Transform:
   m_Children:
   - {fileID: 4049775566373899852}
   - {fileID: 4469776836544754907}
-  - {fileID: 8971980350465223442}
-  - {fileID: 846225478390990024}
+  - {fileID: 4155901541767415861}
+  - {fileID: 4596802904709653007}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5442686560275319272

@@ -56,12 +56,17 @@ namespace SpaceGame.World
             foreach (Transform child in generated)
             {
                 if (child.name is "Decorations" or "Characters" or "Streets") continue;
-                Renderer[] renderers = child.GetComponentsInChildren<Renderer>();
-                if (renderers.Length == 0) continue;
-
-                Bounds box = renderers[0].bounds;
-                for (int r = 1; r < renderers.Length; r++) box.Encapsulate(renderers[r].bounds);
-                footprints.Add(box);
+                // Not a particle system's: its bounds sit at the world origin until it has run, and one such renderer (an airlock's mist) turns a
+                // building into a box a kilometre across.
+                Bounds box = default;
+                bool any = false;
+                foreach (Renderer renderer in child.GetComponentsInChildren<Renderer>())
+                {
+                    if (renderer is ParticleSystemRenderer) continue;
+                    if (any) box.Encapsulate(renderer.bounds);
+                    else (box, any) = (renderer.bounds, true);
+                }
+                if (any) footprints.Add(box);
             }
             return footprints;
         }

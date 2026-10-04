@@ -27,16 +27,22 @@ namespace SpaceGame.Vehicles
         private const int MaxHits = 16;
         private const int MaxOverlaps = 16;
         private const int SamplesPerCheck = 2;
+        // Distance between the points checked along a straight way, in clearance radii.
+        private const float LegStepInRadii = 1.5f;
 
         [Header("Loop")]
         [Tooltip("Metres beyond the settlement's outermost building walls the loop stays between (inner, outer).")]
-        [SerializeField] private Vector2 ringMargin = new(30f, 90f);
+        [SerializeField] private Vector2 ringMargin = new(8f, 60f);
         [Tooltip("Control points the loop is drawn through.")]
         [SerializeField, Min(RoverRoute.MinControlPoints)] private int controlPoints = 8;
         [Tooltip("Other places tried for a control point whose first choice is undrivable.")]
-        [SerializeField, Min(1)] private int alternatives = 6;
-        [Tooltip("Whole new loops tried before the rover gives up and stays parked.")]
+        [SerializeField, Min(1)] private int alternatives = 12;
+        [Tooltip("Whole new loops tried in one go.")]
         [SerializeField, Min(1)] private int loopAttempts = 4;
+        [Tooltip("Seconds before a rover that found no loop looks again: a neighbouring chunk the loop needs may still be streaming in.")]
+        [SerializeField, Min(0.5f)] private float retrySeconds = 5f;
+        [Tooltip("Seconds of looking, in all, before the rover stays parked and says so.")]
+        [SerializeField, Min(1f)] private float giveUpAfterSeconds = 60f;
 
         [Header("Driving")]
         [Tooltip("Metres per second along the loop.")]
@@ -66,6 +72,7 @@ namespace SpaceGame.Vehicles
         private Rigidbody body;
         private RoverRoute route;
         private bool gaveUp;
+        private float nextAttemptAt, firstAttemptAt = -1f;
         private double phaseMetres;
         private float direction = 1f;
         private Vector3 settledUp = Vector3.up;
@@ -107,7 +114,8 @@ namespace SpaceGame.Vehicles
         // False while it cannot be built yet (the chunk is still loading) or has been given up on.
         private bool TryBuildRoute()
         {
-            if (gaveUp) return false;
+            if (gaveUp || Time.time < nextAttemptAt) return false;
+            if (firstAttemptAt < 0f) firstAttemptAt = Time.time;
 
             Settlement settlement = GetComponentInParent<Settlement>();
             Transform generated = settlement != null ? settlement.GeneratedRoot : null;
@@ -119,7 +127,11 @@ namespace SpaceGame.Vehicles
             }
 
             List<Bounds> buildings = SettlementPlaces.BuildingBounds(generated);
-            if (buildings.Count == 0) return false;
+            if (buildings.Count == 0)
+            {
+                nextAttemptAt = Time.time + retrySeconds;
+                return false;
+            }
 
             Vector2 centre = Vector2.zero;
             foreach (Bounds box in buildings) centre += new Vector2(box.center.x, box.center.z) / buildings.Count;
@@ -140,12 +152,18 @@ namespace SpaceGame.Vehicles
                 return true;
             }
 
-            Debug.LogWarning($"[Rover] '{name}' found no drivable loop {ringMargin.x:0}-{ringMargin.y:0} m out from its settlement " +
-                             "(slope, rocks or walls everywhere it looked); it stays parked.", this);
+            // Not final: a neighbouring chunk the loop needs may still be streaming in.
+            nextAttemptAt = Time.time + retrySeconds;
+            if (Time.time - firstAttemptAt < giveUpAfterSeconds) return false;
+
+            Debug.LogWarning($"[Rover] '{name}' found no drivable loop {ringMargin.x:0}-{ringMargin.y:0} m out from its settlement in " +
+                             $"{giveUpAfterSeconds:0} s (slope, rocks or walls everywhere it looked); it stays parked.", this);
             gaveUp = true;
             return false;
         }
 
+        // Each point is taken only where the ground is drivable AND the way from the last one is: a loop round a colony on a chunk's edge
+        // would otherwise cross ground that is not there, and one bad stretch would throw the whole loop away.
         private RoverRoute Propose(int seed, Vector2 centre, float inner, float outer)
         {
             var points = new List<Vector2>(controlPoints);
@@ -153,12 +171,26 @@ namespace SpaceGame.Vehicles
                 for (int alternative = 0; alternative < alternatives; alternative++)
                 {
                     Vector2 candidate = RoverRoute.Candidate(seed, slot, controlPoints, alternative, centre, inner, outer);
-                    if (!IsDrivable(candidate)) continue;
+                    if (!IsDrivable(candidate) || (points.Count > 0 && !LegClear(points[^1], candidate))) continue;
+                    // The last point is also the one the loop closes from.
+                    if (slot == controlPoints - 1 && points.Count > 0 && !LegClear(candidate, points[0])) continue;
 
                     points.Add(candidate);
                     break;
                 }
+
+            // The loop closes on its first point: drop the last ones until the way back is clear too.
+            while (points.Count >= RoverRoute.MinControlPoints && !LegClear(points[^1], points[0])) points.RemoveAt(points.Count - 1);
             return points.Count >= RoverRoute.MinControlPoints ? new RoverRoute(points) : null;
+        }
+
+        private bool LegClear(Vector2 from, Vector2 to)
+        {
+            float step = clearanceRadius * LegStepInRadii;
+            int steps = Mathf.CeilToInt(Vector2.Distance(from, to) / step);
+            for (int i = 1; i < steps; i++)
+                if (!IsDrivable(Vector2.Lerp(from, to, i / (float)steps))) return false;
+            return true;
         }
 
         private bool IsDrivable(RoverRoute candidate)

@@ -170,6 +170,13 @@ namespace SpaceGame.Agents.Residents.Tests
         }
 
         [Test]
+        public void ThePlaceTokenIsKnownAndSaysHereWhenThereIsNoSpot()
+        {
+            CollectionAssert.Contains(SpeechTokens.Known, "{place}");
+            Assert.AreEqual("Quiet at here.", SpeechTokens.Resolve("Quiet at {place}.", null, null));
+        }
+
+        [Test]
         public void ShippedLines_WarnAboutAShoveInItsOwnWordsForEveryStance()
         {
             LineTable t = LineTable.Parse(File.ReadAllText(Path.Combine(Application.dataPath, ShippedLines)));

@@ -9827,9 +9827,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14adaa437f19b43548badd36be8ee5cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.RoverPatrol
-  ringMargin: {x: 30, y: 90}
+  ringMargin: {x: 8, y: 60}
   controlPoints: 8
-  alternatives: 6
+  alternatives: 12
   loopAttempts: 4
   cruiseSpeed: 2.5
   poseSettleSeconds: 0.3

@@ -16,7 +16,8 @@ namespace SpaceGame.Agents.Residents.Tests
         private const int Seed = 1234, Today = 5, DaysChecked = 8;
         private const float DaySeconds = 1600f, Epsilon = 1e-2f;
         private const int FirstStallSeat = 4, StallSeats = 3, GateSeat = 7, FirstStroll = 15, FirstTrip = 25, OutriderIndex = 9, DeadIndex = 10;
-        private const int RoamerA = 6, RoamerB = 7;
+        private const int RoamerA = 6, RoamerB = 7, BedPlace = 28;
+        private const float NearMinutes = 4f;
 
         private ResidentTuning tuning;
         private SpotUse stall, gate, forge;
@@ -39,6 +40,8 @@ namespace SpaceGame.Agents.Residents.Tests
                 SpotUse post = i >= FirstStallSeat && i < FirstStallSeat + StallSeats ? stall : i == GateSeat ? gate : i == 8 ? forge : null;
                 places.Add(new PlannerPlace { index = i, kind = kind, post = post, seatIndex = post == stall ? i - FirstStallSeat : 0 });
             }
+
+            places.Add(new PlannerPlace { index = BedPlace, kind = PlaceKind.Bed });
 
             residents = new List<PlannerResident>
             {
@@ -304,6 +307,51 @@ namespace SpaceGame.Agents.Residents.Tests
             float friends = SharedCircleMinutes(RoamerA, RoamerB);
 
             Assert.Greater(friends, strangers, "friends are planned into the circle a friend already sits in");
+        }
+
+        [Test]
+        public void ASleeperWithABedSleepsAtItAndOneWithoutAtHome_AndNobodyIsPlannedOntoABedButItsSleeper()
+        {
+            PlannerResident bedded = residents[RoamerA];
+            bedded.bedPlusOne = BedPlace + 1;
+            residents[RoamerA] = bedded;
+
+            for (int day = 0; day < DaysChecked; day++)
+                foreach (DayPlan plan in Build(day))
+                    foreach (PlanSegment segment in plan.segments)
+                    {
+                        if (segment.activity == Activity.Sleep)
+                            Assert.AreEqual(plan.residentIndex == RoamerA ? BedPlace : residents[plan.residentIndex].homeIndex, segment.place,
+                                            $"day {day}, resident {plan.residentIndex} slept in the wrong place");
+                        else
+                            Assert.AreNotEqual(BedPlace, segment.place, $"day {day}, resident {plan.residentIndex} was planned onto a bed awake");
+                    }
+        }
+
+        [Test]
+        public void AReachKeepsFreeTimeNearWhereTheResidentIs()
+        {
+            float unbound = FreeTimeTravelMinutes(RoamerA, reach: 0f), bound = FreeTimeTravelMinutes(RoamerA, reach: NearMinutes);
+
+            Assert.Less(bound, unbound, "with a reach the roamer should walk less between its free-time places");
+        }
+
+        // Minutes walked, over DaysChecked days, between the places of everything the roamer does but sleep.
+        private float FreeTimeTravelMinutes(int resident, float reach)
+        {
+            PlannerResident roamer = residents[resident];
+            roamer.freeTimeReach = reach;
+            residents[resident] = roamer;
+
+            float walked = 0f;
+            for (int day = 0; day < DaysChecked; day++)
+            {
+                DayPlan plan = Build(day)[resident];
+                for (int i = 1; i < plan.segments.Count; i++)
+                    if (plan.segments[i].activity != Activity.Sleep && plan.segments[i - 1].activity != Activity.Sleep)
+                        walked += Travel(plan.segments[i - 1].place, plan.segments[i].place);
+            }
+            return walked;
         }
 
         private DayPlan[] Build(int day) => DayPlanner.BuildAll(Seed, day, residents, places, Travel, tuning, DaySeconds);

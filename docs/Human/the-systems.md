@@ -82,6 +82,12 @@ A second set of pieces for the same planned towns, in the nomads' clay. Streets 
 
 **Worth knowing:** nothing in this kit is ever stretched, so the style's step height and stair lengths must match the models exactly — a test checks them.
 
+### Outposts *(Outposts)*
+
+A hand-built camp — tents, scaffold walkways, bell towers, a fire ring, a drill rig — that a handful of people live at. Eleven of them were built in Blender out of the same decoration pieces the settlements use, so each one arrives with the seats, work posts and ladders those pieces carry. To put one in the world you drop an Outpost component on an empty object, give it an outpost prefab and the character prefabs that live there, and press Generate: the ground is levelled, the people move in, and they sit at the fire, climb the towers and carry things between the stacks like any settlement's residents.
+
+**Worth knowing:** an outpost has no beds, so exactly the characters you list move in, and they sleep where they stand; and rebuilding the prefabs from the Blender layout wipes any hand edits made to them.
+
 ### Where characters can walk *(NavMeshSystem)*
 
 One single walkable-surface map is baked for the entire world at author time and simply switched on when the game starts — nothing is calculated at runtime. All 48 tiles are opened at once to bake it, which means editing any one tile invalidates the whole thing and there is no per-tile shortcut. Caves are excluded and carry their own separate bake.
@@ -118,7 +124,7 @@ quietly drifting into a dozen half-finished variants.
 
 The Mars colony's buildings are hollow now, and you walk straight into them: no loading, no fade. Climb the stairs and right-click the round hull door: the chamber vents in a blast of mist under a spinning amber beacon, and the door swings open. Step in, shut it behind you, right-click the inner hatch, and the chamber fills with haze as it pressurises before the inner hatch slides apart. If you forget the door behind you, the inner hatch tells you to close it first. Inside, modules, domed hubs and the tubes between them are one connected station, with windows you can look out of and a geodesic dome you can see the sky through. You can breathe in there, and every room is furnished from one library of colony props: bunks sized for a suited 3 m crew, lockers, a galley, hydroponics, research desks, rock analysis benches, workbenches, shelving and crates along the walls, the real EVA suits hanging on their stands, an oxygen filler that already has power, a map projector and, in the domed buildings, a gear wall. The large colony has a rover bay: the real rover parked on a lift under the dome, with its tool wall, wheel rack and diagnostic cart round it. Gear lies only on the gear walls and the small wall boards, and only batteries and oxygen tanks: take them and they stay taken, even after a reload.
 
-**Worth knowing:** the server decides every hatch, so every player sees the same ones — but only in a colony that stands in a generated settlement; one placed by hand runs a separate airlock on each machine. A hatch someone left open on the far side is sealed for you when you cannot reach it, never on someone standing in it, and nothing about the airlocks is saved: after a load every hatch is shut; and sleeping, research and crafting are scenery for now — the game has no mechanic behind the bunks, desks and benches yet.
+**Worth knowing:** the server decides every hatch, so every player sees the same ones — but only in a colony that stands in a generated settlement; one placed by hand runs a separate airlock on each machine. A hatch someone left open on the far side is sealed for you when you cannot reach it, never on someone standing in it, and nothing about the airlocks is saved: after a load every hatch is shut; and research and crafting are scenery for now — the game has no mechanic behind the desks and benches yet (the colonists do sleep in the bunks: see the next entry).
 
 ### Doorways, interiors and teleporting *(SceneTransitions)*
 
@@ -133,6 +139,12 @@ Sprayable pairs of openings you walk through, treated as doors rather than windo
 **Worth knowing:** trigger volumes never worked here — the collider is on a child object, so Unity never delivered the messages — and the crossing is instead swept by hand once per frame; reintroducing triggers would break it again.
 
 ## Characters and creatures
+
+### The colony's people and rovers *(ColonyResidents)*
+
+Fourteen astronauts live in the colony, and you can watch them do it. An engineer tends life support, a chef works the galley, a botanist waters the hydroponics, a geologist carries cores between the drill site and the lab, a rover tech works on rover parts in the bay or out on a service pad, a medic keeps the med bay, and a surveyor walks out to read the land; guards walk the perimeter in pairs, and the rest of the crew wander the corridors and sit on the stools in the evening. At night they go to bed in the bunks, lying down where you can see them (the top bunk only when nobody is looking). They go in and out through the real airlocks: a colonist waits at the outer hatch, it vents and opens, the colonist walks in, the hatch shuts, the chamber fills, the inner hatch slides apart. Several who arrive together cross on one cycle. Three rovers drive slow loops round the colony, over the same ground every time, and they are in the same place on every player's screen with nothing sent between them.
+
+**Worth knowing:** a colonist whose turn at an airlock never comes, and whom nobody can see, hops across instead of waiting forever; while anyone watches, it keeps waiting. The colonists work with empty hands for now (the astronaut's hands are bigger than the tools were made for), the exterior stations reuse existing props (no new art), about one place in eight is still unusable (the window benches and a table nook that furniture walls in), and none of this has been run on a client or through a save and reload yet.
 
 ### The astronaut you play *(PlayerCharacter)*
 

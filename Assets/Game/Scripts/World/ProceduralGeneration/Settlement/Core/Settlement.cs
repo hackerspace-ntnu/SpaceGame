@@ -54,12 +54,15 @@ namespace SpaceGame.World
         private static readonly Vector2 DefaultFootprint = new Vector2(8f, 8f);
         // Tries per item before it is given up on; every miss is reported by Generate.
         private const int PlacementAttempts = 30;
+        // The heart counts as on the NavMesh when the mesh is this close, metres.
+        private const float HeartOnMeshWithin = 2f;
         // Halvings when sliding a new building up to its neighbour: 2^-20 of the slide, far below visible.
         private const int GapSearchSteps = 20;
         // Float slack when re-checking a gap the slide already guaranteed.
         private const float GapTolerance = 0.001f;
 
-        protected SettlementConfig Config => config;
+        /// <summary>What this settlement is made of. A subclass whose configuration lives on the component itself overrides it.</summary>
+        protected virtual SettlementConfig Config => config;
 
         /// <summary>The seed every roll in this settlement derives from: its own position.</summary>
         public int Seed => SettlementPlacementUtil.SeedFromPosition(transform.position);
@@ -91,10 +94,10 @@ namespace SpaceGame.World
         public bool HasResidents => Culture != null;
 
         /// <summary>Who the people are: lines, names, archetypes. Null = the characters are plain NPCs.</summary>
-        public SettlementCulture Culture => config != null ? config.culture : null;
+        public SettlementCulture Culture => Config != null ? Config.culture : null;
 
         /// <summary>The street style the layout was planned with; null for a cluster.</summary>
-        public SettlementStreetStyle StreetStyle => config != null ? config.streets : null;
+        public SettlementStreetStyle StreetStyle => Config != null ? Config.streets : null;
 
         /// <summary>
         /// Which settlement this is, for anything that outlives its chunk: the baked id of its own authored
@@ -122,10 +125,10 @@ namespace SpaceGame.World
         /// <summary>Every character prefab Generate may place: the config's characters and special characters.</summary>
         public IEnumerable<GameObject> CharacterPrefabs()
         {
-            if (config == null) yield break;
-            foreach (var entry in config.characters)
+            if (Config == null) yield break;
+            foreach (var entry in Config.characters)
                 if (entry?.prefab != null) yield return entry.prefab;
-            foreach (var special in config.specialCharacters)
+            foreach (var special in Config.specialCharacters)
                 if (special?.prefab != null) yield return special.prefab;
         }
 
@@ -151,7 +154,7 @@ namespace SpaceGame.World
         /// </summary>
         public void Generate()
         {
-            if (config == null)
+            if (Config == null)
             {
                 Debug.LogError($"[{GetType().Name}] No config assigned.", this);
                 return;
@@ -178,9 +181,9 @@ namespace SpaceGame.World
 
             // Layer 1: buildings and the ground under them -- planned along streets on terraces when
             // the config has a street style, else grown as a cluster on flattened pads.
-            List<GameObject> buildingPrefabs = RollCopies(config.buildings, ref rng);
-            SettlementLayoutResult layout = config.streets != null
-                ? SettlementStreetLayout.Generate(config, buildingPrefabs, root, transform.position, seed)
+            List<GameObject> buildingPrefabs = RollCopies(Config.buildings, ref rng);
+            SettlementLayoutResult layout = Config.streets != null
+                ? SettlementStreetLayout.Generate(Config, buildingPrefabs, root, transform.position, seed)
                 : LayOutCluster(buildingPrefabs, root, seed, ref rng);
             generatedExtent = layout.extent;
             terrainBackup = layout.terrainBackup;
@@ -195,7 +198,7 @@ namespace SpaceGame.World
             if (layout.pavingRoot != null) solids.Add(layout.pavingRoot);
             Transform decorationsRoot = new GameObject("Decorations").transform;
             decorationsRoot.SetParent(root, worldPositionStays: false);
-            List<GameObject> decorationPrefabs = RollCopies(config.decorations, ref rng);
+            List<GameObject> decorationPrefabs = RollCopies(Config.decorations, ref rng);
             int decorationsPlaced = ScatterDecorations(decorationPrefabs, decorationsRoot, solids, layout.paving, ref rng);
 
             // Anything placed that is itself a hand-authored arrangement (a section prefab) gets its
@@ -209,7 +212,7 @@ namespace SpaceGame.World
             // settlement has (ground, courtyards, walkable roofs); the NavMesh keeps them out of walls.
             Transform charactersRoot = new GameObject("Characters").transform;
             charactersRoot.SetParent(root, worldPositionStays: false);
-            Population population = Populate(root, charactersRoot, RollCopies(config.characters, ref rng), layout.lanes, ref rng);
+            Population population = Populate(root, charactersRoot, RollCopies(Config.characters, ref rng), layout.lanes, ref rng);
 
             Report(root, layout, buildingPrefabs.Count, decorationsPlaced, decorationPrefabs.Count, population);
         }
@@ -246,7 +249,7 @@ namespace SpaceGame.World
             population.beds = BedsUnder(root);
 
             var newcomers = new List<(GameObject prefab, ResidentArchetype archetype, bool special)>();
-            foreach (var special in config.specialCharacters)
+            foreach (var special in Config.specialCharacters)
                 if (special?.prefab != null) newcomers.Add((special.prefab, special.archetype, true));
             population.specials = newcomers.Count;
 
@@ -441,10 +444,10 @@ namespace SpaceGame.World
                 result.buildings.Add(b.instance);
                 result.buildingFootprints.Add(world);
             }
-            result.extent = clusterRadius + config.outskirts;
+            result.extent = clusterRadius + Config.outskirts;
             result.terrainBackup = SettlementTerrainSculptor.Shape(
-                transform.position, result.extent, config.blendDistance, config.flattenPadding,
-                config.ambientNoiseAmplitude, config.ambientNoiseScale, seed, footprints);
+                transform.position, result.extent, Config.blendDistance, Config.flattenPadding,
+                Config.ambientNoiseAmplitude, Config.ambientNoiseScale, seed, footprints);
             return result;
         }
 
@@ -559,7 +562,7 @@ namespace SpaceGame.World
                     SettlementFootprint anchor = placed[rng.NextIndex(placed.Count)].footprint;
                     float angle = rng.NextFloat01() * Mathf.PI * 2f;
                     Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                    float gap = rng.NextRange(config.minBuildingGap, config.maxBuildingGap);
+                    float gap = rng.NextRange(Config.minBuildingGap, Config.maxBuildingGap);
                     float reach = anchor.Circumradius + local.size.magnitude * 0.5f + gap;
 
                     // Facing may depend on where the building ends up (DesertSettlement faces the
@@ -615,7 +618,7 @@ namespace SpaceGame.World
         {
             foreach (var other in placed)
             {
-                if (SettlementFootprint.Gap(other.footprint, footprint) < config.minBuildingGap - GapTolerance) return true;
+                if (SettlementFootprint.Gap(other.footprint, footprint) < Config.minBuildingGap - GapTolerance) return true;
             }
             return false;
         }
@@ -633,9 +636,9 @@ namespace SpaceGame.World
                     if (!SettlementPlacementUtil.SampleGround(world, out float groundY)) continue;
 
                     Vector3 spawnPos = new Vector3(world.x, groundY, world.z);
-                    if (IsCloserThan(spawnPos, placed, config.decorationSpacing)) continue;
-                    if (OverlapsAnySolid(spawnPos, config.decorationSpacing * 0.5f, solids)) continue;
-                    if (IsOnPaving(spawnPos, config.decorationSpacing * 0.5f, paving)) continue;
+                    if (IsCloserThan(spawnPos, placed, Config.decorationSpacing)) continue;
+                    if (OverlapsAnySolid(spawnPos, Config.decorationSpacing * 0.5f, solids)) continue;
+                    if (IsOnPaving(spawnPos, Config.decorationSpacing * 0.5f, paving)) continue;
 
                     SettlementPlacementUtil.SpawnPrefab(prefab, parent, spawnPos, GetSpawnRotation(localXZ, ref rng));
                     placed.Add(spawnPos);
@@ -661,12 +664,16 @@ namespace SpaceGame.World
         {
             var spawned = new List<ResidentAssignment.Newcomer>(newcomers.Count);
             var taken = new List<Vector3>(newcomers.Count);
+            // Residents stand where the settlement's heart can walk to: a roof of a sealed building is walkable too, and a body put there
+            // can never come down. Judged only once the heart is on the mesh (a settlement whose heart was not found places anywhere).
+            bool reachableOnly = HasResidents && UnityEngine.AI.NavMesh.SamplePosition(walkableHeart, out _, HeartOnMeshWithin, UnityEngine.AI.NavMesh.AllAreas);
             foreach (var (prefab, archetype, special) in newcomers)
             {
                 for (int attempt = 0; attempt < PlacementAttempts; attempt++)
                 {
                     Vector3 spawnPos = walkable.Sample(ref rng);
-                    if (IsCloserThan(spawnPos, taken, config.characterSpacing)) continue;
+                    if (IsCloserThan(spawnPos, taken, Config.characterSpacing)) continue;
+                    if (reachableOnly && !NavMeshReach.CanWalk(walkableHeart, spawnPos)) continue;
 
                     Vector2 localXZ = new Vector2(spawnPos.x - transform.position.x, spawnPos.z - transform.position.z);
                     GameObject body = SettlementPlacementUtil.SpawnPrefab(prefab, parent, spawnPos, GetSpawnRotation(localXZ, ref rng));
@@ -705,7 +712,7 @@ namespace SpaceGame.World
                 return;
             }
 
-            string missingBuildings = config.streets != null
+            string missingBuildings = Config.streets != null
                 ? " Missing buildings found no frontage before the streets stopped growing -- raise maxSegments or frontageSlack."
                 : " Missing buildings found no spot minBuildingGap from every other building with ground under it.";
             Debug.LogWarning(summary +
@@ -775,11 +782,11 @@ namespace SpaceGame.World
 
         private void OnDrawGizmosSelected()
         {
-            if (config == null || generatedExtent <= 0f) return;
+            if (Config == null || generatedExtent <= 0f) return;
             Gizmos.color = new Color(0.2f, 1f, 0.4f, 0.5f);
             DrawCircle(transform.position, generatedExtent);
             Gizmos.color = new Color(1f, 0.6f, 0.2f, 0.3f);
-            DrawCircle(transform.position, generatedExtent + config.blendDistance);
+            DrawCircle(transform.position, generatedExtent + Config.blendDistance);
         }
 
         private static void DrawCircle(Vector3 center, float radius, int segments = 48)

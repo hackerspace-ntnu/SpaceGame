@@ -37,6 +37,8 @@ namespace SpaceGame.Agents.Residents
         [SerializeField, Min(1f)] private float settleDistance = 30f;
         [Tooltip("On enable or load, a sleeper this close to its door goes straight indoors.")]
         [SerializeField, Min(0f)] private float doorstepDistance = 2f;
+        [Tooltip("A body this close to the NavMesh counts as on it, when judging whether its place can be walked to at all.")]
+        [SerializeField, Min(0.1f)] private float onMeshWithin = 2f;
         [Tooltip("A resident farther than this from an elevated post it should be at is moved there while unwatched.")]
         [SerializeField, Min(1f)] private float deckReach = 3f;
         [Tooltip("How far short of a noise an approaching resident stops.")]
@@ -292,7 +294,9 @@ namespace SpaceGame.Agents.Residents
         private bool Settle(double now, AgentGoal goal)
         {
             if (resident.IsAway) return false;
-            if (FlatDistance(transform.position, goal.Position) > settleDistance && Unwatched(goal.Position))
+            // Too far from its place, or on a piece of the mesh that never leads to it (a roof): put there, while nobody sees.
+            bool strayed = FlatDistance(transform.position, goal.Position) > settleDistance || CutOff(goal.Position);
+            if (strayed && Unwatched(goal.Position))
                 Teleport(now, goal, "moved to its plan unseen");
 
             bool asleepAtDoor = targetIsPlan && Current.Value.activity == Activity.Sleep &&
@@ -301,6 +305,11 @@ namespace SpaceGame.Agents.Residents
             if (asleepAtDoor) GoIndoors(now, "indoors at once on load");
             return asleepAtDoor;
         }
+
+        // On the mesh but with no path to the place: a roof, a sealed room. A body off the mesh is not judged (the world's mesh may not be loaded yet).
+        private bool CutOff(Vector3 place) =>
+            UnityEngine.AI.NavMesh.SamplePosition(transform.position, out _, onMeshWithin, UnityEngine.AI.NavMesh.AllAreas) &&
+            !NavMeshReach.CanWalk(transform.position, place);
 
         // A post up a ladder is walked to over its link. Only when no path leads there (a deck nothing climbs to) is its
         // worker put there, and taken down, while nobody sees it — never mid-climb.

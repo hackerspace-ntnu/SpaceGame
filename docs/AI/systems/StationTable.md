@@ -43,6 +43,7 @@ Generated; do not edit between the markers. `Target` is spots with a `face` of a
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Apiary | Work | InsectHive, NomadWorkYard | 4/4 | 1.8 m, reach -0.1 m | wipe | Wipe Surface | empty hands | Beekeeper (Lantern+SandBrush) | ok |
 | Bar | Work | BarCounter, Keg_Tap, NomadBuilding_B10, NomadKitchen, market | 6/6 | 1.6-2.4 m, reach 0.0 m | serve | Bartend Hold | Flask | Barkeep (Flask+Ladle) | ok |
+| Bunk | Leisure, sits | AstroBunk | 2/2 | 1.8 m | - | - | - | - | stands (no clip yet) |
 | Butchery | Work | ButcherBlock, NomadGardenTerrace, NomadMarketPlaza, market | 4/4 | 2.2-4.0 m, reach 0.0 m | chop | Chop Food, Chop Vegetables | Cleaver, HerbKnife, SkinningKnife, HuntingKnife | Butcher (Cleaver+SkinningKnife) | ok |
 | Butchery | Work | DryingRack_Meat, FishRack, NomadBuilding_B17, NomadBuilding_B22, NomadGardenTerrace (+2) | 13/13 | 1.9-3.0 m, reach -0.1 m | wipe | Wipe Surface | empty hands | Butcher (Cleaver+SkinningKnife) | ok |
 | Customer | Leisure | NomadMarketStand | 0/2 | - | listen | Lean On Counter | any | - | ok |
@@ -50,37 +51,47 @@ Generated; do not edit between the markers. `Target` is spots with a `face` of a
 | Firebox | Errand | CookingHearth_Pot, FirePit, BreadOven, GrillBrazier, Forge (+10) | 19/19 | 1.7-3.9 m | - | - | - | - | stands (an errand's stop) |
 | Fodder | Errand | FodderStack, NomadAnimalKeep | 2/2 | 3.1-4.1 m | - | - | - | - | stands (an errand's stop) |
 | Forge | Work | AnvilStone, Forge, NomadBuilding_B17, NomadBuilding_B18, NomadSmithy | 7/7 | 1.7-2.5 m, reach 0.5 m | hammer | Hammer, Hammer Ground | Hammer, Mallet, RockHammer | Apprentice (Hammer+Chisel+Trowel); Smith (Hammer+Chisel+Whetstone) | ok |
-| Garden | Work | Hydroponic_Column, Hydroponic_Wall, GrowLampFrame_Bed, HydroponicRack, NomadFarmPlot (+1) | 16/19 | 1.4-2.7 m, reach 0.5 m | tend | Gather Plants, Gather Crouch Hold, Kneel Work | empty hands | Gardener (WateringCan+Dibber+Sickle); Waterkeeper (HandPump+Wrench_Open) | ok |
+| Galley | Work | AstroGalleyCounter | 2/2 | 1.5 m, reach -0.1 m | wipe | Wipe Surface | empty hands | Chef (nothing) | ok |
+| Garden | Work | Hydroponic_Column, Hydroponic_Wall, AstroHydroponicsRack, AstroPlantPots, GrowLampFrame_Bed (+3) | 19/22 | 1.3-2.7 m, reach 0.5 m | tend | Gather Plants, Gather Crouch Hold, Kneel Work | empty hands | Botanist (nothing); Gardener (WateringCan+Dibber+Sickle); Waterkeeper (HandPump+Wrench_Open) | ok |
 | Gate | Work | NomadSolarMast | 0/1 | - | - | - | - | Lookout (SignalFlag+SignalHorn) | stands (no clip yet) |
 | GoodsPile | Errand | HarvestCrates, MiningToolCrate, MarketStall_Bare, MarketStall_Cloth, MarketStall_Produce (+24) | 32/49 | 1.5-4.4 m | - | - | - | - | stands (an errand's stop) |
-| HearthSeat | Gathering, sits | NomadHearthPlaza | 0/6 | - | sitground | Sit Cross Leg, Sit Ground | any | - | ok |
+| HearthSeat | Gathering, sits | AstroStool, NomadHearthPlaza | 1/7 | 1.2 m | sitground | Sit Cross Leg, Sit Ground | any | - | ok |
 | Infirmary | Work | ApothecaryShelf, NomadMarketPlaza | 2/2 | 1.5-2.0 m, reach 0.0 m | rummage | Rummage | empty hands | Healer (PoulticeBowl+BandageRoll+Splint) | ok |
 | Infirmary | Work | AlchemyTable, NomadMarketPlaza | 2/2 | 1.6-2.5 m, reach 0.2 m | stir | Stir Pot, Stir | Ladle, PoulticeBowl, MortarPestle | Healer (PoulticeBowl+BandageRoll+Splint) | ok |
 | Infirmary | Work | HealerCot, NomadHealerCot | 2/2 | 2.0-2.9 m, reach 0.5 m | tend | Gather Plants, Gather Crouch Hold, Kneel Work | empty hands | Healer (PoulticeBowl+BandageRoll+Splint) | ok |
 | Kitchen | Work | BreadOven, NomadKitchen, market | 3/3 | 2.2-2.7 m, reach -0.1 m | cookpan | Cook Pan | Ladle | Brewer (Ladle+Flask+Carry_Tank_Water); Cook (Ladle+Cleaver+Flask) | ok |
 | Kitchen | Work | GrillBrazier, NomadBuilding_B10, NomadKitchen, market | 4/4 | 1.7-2.6 m, reach 0.0 m | grill | Grill Meat | Ladle | Brewer (Ladle+Flask+Carry_Tank_Water); Cook (Ladle+Cleaver+Flask) | ok |
 | Kitchen | Work | CookingHearth_Pot, NomadBuilding_B22, NomadHearthPlaza, NomadKitchen | 4/6 | 2.0-3.5 m, reach 0.2 m | stir | Stir Pot, Stir | Ladle, PoulticeBowl, MortarPestle | Brewer (Ladle+Flask+Carry_Tank_Water); Cook (Ladle+Cleaver+Flask) | ok |
+| LifeSupport | Work | AstroServerRack | 1/1 | 1.6 m | operate | Radio Call, Fax Hold | any | Engineer (nothing) | ok |
+| LifeSupport | Work | AstroLifeSupportUnit, AstroMaintenancePanel, AstroExt_SolarArray | 5/5 | 1.1-3.4 m, reach -0.1 m | wipe | Wipe Surface | empty hands | Engineer (nothing) | ok |
 | Loom | Work | Loom, NomadBuilding_B35, NomadMarketPlaza | 3/3 | 1.9-3.3 m, reach 0.1 m | weave | Coil Rope | Spindle | Weaver (Spindle) | ok |
+| MedBay | Work | AstroSampleFreezer | 1/1 | 1.6 m, reach 0.0 m | rummage | Rummage | empty hands | Medic (nothing) | ok |
+| MedBay | Work | AstroMedBayCot | 1/1 | 1.9 m, reach 0.5 m | tend | Gather Plants, Gather Crouch Hold, Kneel Work | empty hands | Medic (nothing) | ok |
 | Mill | Work | GrindingStone_Rotary, GrindingStone_Saddle, NomadBuilding_B07, NomadBuilding_B10 | 4/4 | 1.0-2.7 m, reach 0.5 m | hammer | Hammer, Hammer Ground | Hammer, Mallet, RockHammer | Miller (Mallet) | ok |
 | Mine | Work | MineCart, SluiceBox, NomadBuilding_B10, NomadMineYard, NomadSmithy | 5/5 | 1.7-2.9 m, reach 0.3 m | dig | Dig | Shovel | Miner (Pickaxe+RockHammer+Shovel) | ok |
-| Mine | Work | DrillRig, NomadMineYard | 5/5 | 3.1-6.3 m, reach 0.9 m | mine | Mine Ground, Mine Wall | Pickaxe, Pickaxe_Rust | Miner (Pickaxe+RockHammer+Shovel) | ok |
+| Mine | Work | AstroExt_DrillSite, DrillRig, NomadMineYard | 6/6 | 3.1-6.3 m, reach 0.9 m | mine | Mine Ground, Mine Wall | Pickaxe, Pickaxe_Rust | Miner (Pickaxe+RockHammer+Shovel) | ok |
 | Muster | Assembly | - | 0/0 | - | bored | Mope, Idle Impatient, Idle Waiting, Sit Bored (+5) | empty hands | - | ok |
 | OrePile | Errand | OrePile_Crystal, OrePile_Rust, NomadBuilding_B18, NomadMineYard | 5/5 | 2.3-5.7 m | - | - | - | - | stands (an errand's stop) |
 | Pen | Work | Pen_Round, StableStall, NomadAnimalKeep, NomadAnimalPen | 3/5 | 3.3-4.7 m | - | - | - | Drover (Lasso); Herder (HerdingCrook+Sling) | stands (no clip yet) |
-| Plant | Errand | PlanterBed_Bulbs, PlanterBed_Round, PlanterBed_Spikes, FarmBed_Grain, FarmBed_Leafy (+15) | 56/56 | 1.1-6.0 m | - | - | - | - | stands (an errand's stop) |
+| Plant | Errand | PlanterBed_Bulbs, PlanterBed_Round, PlanterBed_Spikes, AstroHydroponicsRack, AstroPlantPots (+17) | 58/58 | 1.1-6.0 m | - | - | - | - | stands (an errand's stop) |
 | Pottery | Work | Kiln, PotteryWheel, NomadBuilding_B29, NomadMarketPlaza | 5/5 | 1.9-4.1 m, reach -0.1 m | wipe | Wipe Surface | empty hands | Potter (Trowel+BrickMould) | ok |
-| Seat | Leisure, sits | Bench_Carved, Stool_Set, Cushions_Pile, SeatingStones_Ring, BarStools (+4) | 14/17 | 1.4-2.8 m | sitground | Sit Cross Leg, Sit Ground | any | - | ok |
+| RockAnalysis | Work | AstroResearchDesk, AstroResearchMicroscope, AstroRockAnalysisStation, AstroExt_DrillSite | 5/5 | 1.5-2.6 m, reach 0.0 m | rummage | Rummage | empty hands | Geologist (nothing) | ok |
+| RoverBay | Work | AstroRoverDiagnosticCart, AstroRoverJackStands, AstroRoverPartsTable, AstroRoverWorkStation, AstroExt_RoverService | 10/10 | 1.3-1.6 m, reach -0.1 m | wipe | Wipe Surface | empty hands | RoverTech (nothing) | ok |
+| SampleStop | Errand | AstroDrillCoreRack, AstroSampleFreezer, AstroSpecimenCase, AstroExt_DrillSite | 4/4 | 1.3-1.6 m | - | - | - | - | stands (an errand's stop) |
+| Seat | Leisure, sits | AstroBench, AstroChair, Bench_Carved, Stool_Set, Cushions_Pile (+6) | 17/20 | 1.2-2.8 m | sitground | Sit Cross Leg, Sit Ground | any | - | ok |
 | Shade | Leisure, sits | NomadGardenTerrace, NomadHearthPlaza, market, NomadSail_HexLow, NomadSail_QuadLarge (+1) | 0/13 | - | sitground | Sit Cross Leg, Sit Ground | any | - | ok |
 | Shrine | Work | Podium, OfferingShrine, NomadMarketPlaza, NomadShrinePlaza | 4/4 | 1.7-3.4 m | - | - | - | ShrineKeeper (nothing) | stands (no clip yet) |
 | Smelter | Errand | Smelter, Forge, Kiln, NomadBuilding_B17, NomadBuilding_B18 (+2) | 9/9 | 1.7-4.6 m | - | - | - | - | stands (an errand's stop) |
 | Smeltery | Work | Smelter, NomadBuilding_B18, NomadSmithy | 3/3 | 2.7-4.4 m, reach 0.5 m | hammer | Hammer, Hammer Ground | Hammer, Mallet, RockHammer | Smelter (Hammer+Crowbar) | ok |
 | Stall | Work | MarketStall_Bare, MarketStall_Cloth, MarketStall_Produce, NomadGardenTerrace, NomadMarketPlaza (+1) | 10/12 | 2.1-3.9 m | explain | Talk Explain, Talk Lecture | empty hands | Tinker (Wrench_Ring+Pliers+PatchKit); Trader (HandScales) | ok |
-| Table | Leisure | GameTable, CouncilTable, Table_Dining, LowTable_Meal, TavernTable (+6) | 13/15 | 1.7-4.5 m | listen | Lean On Counter | any | - | ok |
+| Table | Leisure | AstroTable, GameTable, CouncilTable, Table_Dining, LowTable_Meal (+7) | 15/17 | 1.7-4.5 m | listen | Lean On Counter | any | - | ok |
 | Tannery | Work | HideFrame, NomadMarketPlaza, market | 3/3 | 2.1-2.6 m, reach -0.1 m | wipe | Wipe Surface | empty hands | Tanner (TanningPaddle+FleshingScraper) | ok |
+| Terminal | Work | AstroMonitorDesk, AstroResearchTerminal, AstroWallConsole, AstroExt_SensorMast | 5/5 | 1.2-1.6 m | operate | Radio Call, Fax Hold | any | Operator (nothing) | ok |
 | TowerWatch | Work | Watchtower_MetalLattice, Watchtower_MetalScaffold, Watchtower_Wood, NomadWatchtower | 4/4 | 4.0-6.6 m | - | - | - | TowerGuard (Spear_Stone+SignalHorn) | stands (no clip yet) |
 | Trough | Errand | FeedingTrough_Clay, NomadGardenTerrace | 2/2 | 1.6 m | - | - | - | - | stands (an errand's stop) |
 | View | Leisure | NomadGardenTerrace, NomadHearthPlaza | 0/2 | - | bored | Mope, Idle Impatient, Idle Waiting, Sit Bored (+5) | empty hands | - | ok |
-| Well | Errand | WaterWell_Windlass | 1/1 | 2.1 m | - | - | - | - | stands (an errand's stop) |
+| Wander | Errand | - | 0/0 | - | - | - | - | - | stands (an errand's stop) |
+| Well | Errand | AstroWaterDispenser, AstroWaterTank, WaterWell_Windlass | 3/3 | 1.4-2.1 m | - | - | - | - | stands (an errand's stop) |
 | Woodpile | Errand | Firewood_Stack, NomadWorkYard, market | 4/4 | 1.7-2.2 m | - | - | - | - | stands (an errand's stop) |
 | Workshop | Work | Workbench, Worktable_Metal, Worktable_Wood, NomadBuilding_B19, NomadBuilding_B35 (+2) | 9/9 | 1.6-2.8 m, reach 0.4 m | repair | Screwdriver, Wrench Loosen, Wrench Tighten | Wrench_Ring, Wrench_Open, PipeWrench, Pliers | Mechanic (Wrench_Ring+Pliers+PipeWrench) | ok |
 

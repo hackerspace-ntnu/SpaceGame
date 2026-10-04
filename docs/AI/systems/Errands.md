@@ -77,7 +77,7 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
   `IInteractable`. A solid collider with one would also answer the crosshair for everything behind it.
 - **Amble.** A roamer's free-time slot is, with `ambleChance` (a paired resident: always), a seeded Stroll/Hearth spot taken
   **unbooked** as the anchor. The runner then alternates spots nobody stands at and points in the street, each held
-  `ambleStopSeconds`. Anyone can share a spot's pose; nobody shares a point.
+  `ambleStopSeconds`. Anyone can share a spot's pose; nobody shares a point. In a building with spots of the culture's `ambleUse` (the colony's `Wander` spots) the amble stays in that building and its free points are those spots ([ColonyResidents.md](ColonyResidents.md)).
 - **Patrol.** One segment for the working day, anchored at ring point `slot * points / slots`; the runner walks the ring
   (direction by slot parity, so pairs meet), advancing on coming within 70 % of the offset of the next point. The follower
   stands beside the leader (`pairGap`), hurries when more than 3 m back, and the leader waits when it is more than

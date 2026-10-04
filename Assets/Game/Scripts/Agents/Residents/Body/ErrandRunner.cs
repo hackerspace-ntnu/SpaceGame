@@ -353,11 +353,7 @@ namespace SpaceGame.Agents.Residents
         {
             if (wanders.Count > 0) return NextLocalAmble(resident, society);
 
-            if (rng.NextDouble() < SpotAmbleShare || society.AmbleRadius <= 0f)
-            {
-                int spot = FreeSpot(resident, society);
-                if (spot >= 0) return Spot(society, lastSpot = spot, Activity.Amble, AmbleStay(), 0);
-            }
+            if ((rng.NextDouble() < SpotAmbleShare || society.AmbleRadius <= 0f) && TrySpotStop(resident, society, out ErrandStop atSpot)) return atSpot;
 
             for (int attempt = 0; attempt < PointAttempts; attempt++)
             {
@@ -367,25 +363,16 @@ namespace SpaceGame.Agents.Residents
                 Vector3 candidate = heart + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance;
                 if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, PointSnap, NavMesh.AllAreas) || !NavMeshReach.CanWalk(heart, hit.position)) continue;
 
-                return new ErrandStop
-                {
-                    position = hit.position, place = ResidentPresence.NoPlace, shown = Activity.Amble, radius = LooseRadius, speed = 1f,
-                    dwellSeconds = (float)rng.NextDouble() * PointDwellMax, hold = false,
-                };
+                return PointStop(hit.position);
             }
 
-            int fallback = FreeSpot(resident, society);
-            return fallback >= 0 ? Spot(society, lastSpot = fallback, Activity.Amble, AmbleStay(), 0) : default;
+            return TrySpotStop(resident, society, out ErrandStop fallback) ? fallback : default;
         }
 
         // A seat or a counter of the building, or between those a wander spot: a room's middle, a tube's, a corner by a window.
         private ErrandStop NextLocalAmble(Resident resident, SettlementSociety society)
         {
-            if (rng.NextDouble() < SpotAmbleShare)
-            {
-                int spot = FreeSpot(resident, society);
-                if (spot >= 0) return Spot(society, lastSpot = spot, Activity.Amble, AmbleStay(), 0);
-            }
+            if (rng.NextDouble() < SpotAmbleShare && TrySpotStop(resident, society, out ErrandStop atSpot)) return atSpot;
 
             int offset = rng.Next(wanders.Count);
             for (int k = 0; k < wanders.Count; k++)
@@ -395,16 +382,26 @@ namespace SpaceGame.Agents.Residents
                 if (wander == lastSpot || Occupied(resident, society, place.Position)) continue;
 
                 lastSpot = wander;
-                return new ErrandStop
-                {
-                    position = place.Position, place = ResidentPresence.NoPlace, shown = Activity.Amble, radius = LooseRadius, speed = 1f,
-                    dwellSeconds = (float)rng.NextDouble() * PointDwellMax, hold = false,
-                };
+                return PointStop(place.Position);
             }
 
-            int fallback = FreeSpot(resident, society);
-            return fallback >= 0 ? Spot(society, lastSpot = fallback, Activity.Amble, AmbleStay(), 0) : default;
+            return TrySpotStop(resident, society, out ErrandStop fallback) ? fallback : default;
         }
+
+        // A free spot of the amble's places, held for a while; false when every one is taken.
+        private bool TrySpotStop(Resident resident, SettlementSociety society, out ErrandStop stop)
+        {
+            int spot = FreeSpot(resident, society);
+            stop = spot >= 0 ? Spot(society, lastSpot = spot, Activity.Amble, AmbleStay(), 0) : default;
+            return spot >= 0;
+        }
+
+        // A point to stand at a moment, holding no pose: a street point, or a room's middle.
+        private ErrandStop PointStop(Vector3 position) => new ErrandStop
+        {
+            position = position, place = ResidentPresence.NoPlace, shown = Activity.Amble, radius = LooseRadius, speed = 1f,
+            dwellSeconds = (float)rng.NextDouble() * PointDwellMax, hold = false,
+        };
 
         private int FreeSpot(Resident resident, SettlementSociety society)
         {

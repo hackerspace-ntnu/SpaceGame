@@ -18,8 +18,12 @@ namespace SpaceGame.EditorTools
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
-            var settlement = (Settlement)target;
+            DrawButtons((Settlement)target);
+        }
 
+        /// <summary>Generate, Generate + Bake World NavMesh, Clear and the residents window: shared by every settlement's inspector.</summary>
+        public static void DrawButtons(Settlement settlement)
+        {
             EditorGUILayout.Space();
             using (new EditorGUI.DisabledScope(EditorApplication.isPlaying))
             {

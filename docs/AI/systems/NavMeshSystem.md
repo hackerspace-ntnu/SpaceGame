@@ -32,7 +32,7 @@ symptoms:
   - "penned animals walk out through the fence although the gate is shut"
   - "an NPC leaps over a thin wall or fence"
 reads_with: [WorldStreaming, AgentSystem, Locomotion, SkyTribe]
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # NavMesh
@@ -155,6 +155,7 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 
 Every off-mesh link is crossed by `NavMeshAgentMotor`: `autoTraverseOffMeshLink` is off in its `Awake`, the agent halts at the link start and the motor takes the body by hand (`updatePosition` off, `CompleteOffMeshLink`, `Warp` onto the mesh at the far end so the next `MoveTo` re-plans; `AgentGroundConform` stands down via `IsRidingLink` / `IsLeaping`). The link's **owner** picks the crossing:
 - **Owner is a `Ladder`** (area `Ladder`, registered by `Ladder.OnEnable`, bidirectional): a climb at `ladderClimbSpeed` / `ladderDescendSpeed` — [Ladders.md](Ladders.md).
+- **Owner is an `INavLinkGate`** (a colony airlock's `AirlockPassage`, registered like a ladder's link, area Walkable, `costModifier` 4): the motor stops the traveller at the link's start and asks the gate each tick what to do (wait, walk to a point, done); the gate works the hatches. A nomad door or a pen gate could implement it later. `NavLinkGates.TransitSecondsBetween` lets `SettlementSociety.TravelMinutes` charge the crossing. See [ColonyInterior.md](ColonyInterior.md).
 - **A `NavMeshLink` component outside `Jump`** (the narrow stair flight): a straight walk at `plainLinkSpeed`.
 - **Anything else** (area `Jump`, no owner, a baked drop — the auto linker's): a leap through the mounted-leap machinery, arc `jumpLinkArcHeight + horizontal * jumpLinkArcPerMetre` at `jumpLinkSpeed`.
 - **Your own link:** `NavMesh.AddLink` in `NavLinkAreas.Jump`, both ends snapped onto the mesh, `costModifier = -1` (the default 0 is free), no owner. **"Can it get there via links?"** `NavMeshReach.CanWalk` already says yes (`AllAreas`); a walker that cannot cross links queries with `NavLinkAreas.GroundMask`; a creature that cannot climb sets `usesLadders = false`.

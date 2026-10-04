@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &537208522920752432
+--- !u!1 &781689217038719654
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,8 +8,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6636809133286161080}
-  - component: {fileID: 7828129131318921257}
+  - component: {fileID: 8424305981294506930}
+  - component: {fileID: 3795201669380727382}
   m_Layer: 0
   m_Name: Spot_LifeSupport_1
   m_TagString: Untagged
@@ -17,35 +17,35 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6636809133286161080
+--- !u!4 &8424305981294506930
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 537208522920752432}
+  m_GameObject: {fileID: 781689217038719654}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: 2.221}
+  m_LocalPosition: {x: 0, y: 0, z: 1.6209999}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2635517782542182305}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7828129131318921257
+--- !u!114 &3795201669380727382
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 537208522920752432}
+  m_GameObject: {fileID: 781689217038719654}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
   use: {fileID: 11400000, guid: d00a9438328a548e09f59dfdb0dcfbbc, type: 2}
-  face: {fileID: 5564016321187412181}
+  face: {fileID: 7746958454383256186}
   group: 
   stationCue: {fileID: 11400000, guid: c1c2fe439b2804401815d4c67a92144d, type: 2}
 --- !u!1 &1029117560598952499
@@ -112,8 +112,8 @@ Transform:
   m_Children:
   - {fileID: 1271516859020517587}
   - {fileID: 8787614522283891871}
-  - {fileID: 5564016321187412181}
-  - {fileID: 6636809133286161080}
+  - {fileID: 7746958454383256186}
+  - {fileID: 8424305981294506930}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &945021620209927585
@@ -183,7 +183,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.2919692, y: 3.525, z: 1.4210004}
   m_Center: {x: 0, y: 1.7624999, z: 0.010499775}
---- !u!1 &2989898710085908769
+--- !u!1 &7170932074996814922
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -191,7 +191,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5564016321187412181}
+  - component: {fileID: 7746958454383256186}
   m_Layer: 0
   m_Name: Face_LifeSupport_1
   m_TagString: Untagged
@@ -199,13 +199,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5564016321187412181
+--- !u!4 &7746958454383256186
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2989898710085908769}
+  m_GameObject: {fileID: 7170932074996814922}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1.7624999, z: 0.010499775}

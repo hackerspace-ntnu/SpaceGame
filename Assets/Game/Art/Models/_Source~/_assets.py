@@ -9,7 +9,7 @@ description, and asks Blender for a preview. It also writes `blender_assets.cats
 library root, the file the Asset Browser reads catalogues from. Register this folder once in
 Blender (Preferences > File Paths > Asset Libraries) and every part can be dragged into a scene.
 
-Dual-purpose like index_library.py: run under plain Python it drives Blender over each file;
+Dual-purpose like _index_library.py: run under plain Python it drives Blender over each file;
 run inside Blender (`--background <file> --python _assets.py -- --mark`) it marks that file.
 Re-running is safe: marking is idempotent and only asset metadata changes — no geometry.
 

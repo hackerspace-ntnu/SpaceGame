@@ -41,6 +41,11 @@ namespace SpaceGame.Vehicles
         [Tooltip("How far around the gangway marker to look for NavMesh.")]
         [SerializeField] private float gangwaySampleDistance = 8f;
 
+        [Tooltip("How many of the VesselSeats seats, counted from the last, are standing posts: " +
+                 "taken only by a StandingRider (the city's elders), never by ordinary crew.")]
+        [Min(0)]
+        [SerializeField] private int standingPosts;
+
         // Ashore crew are walked back to somewhere inside half the tether, not to its very edge, so
         // one step outward does not send them straight back again.
         private const float TetherReturnFraction = 0.5f;
@@ -75,8 +80,23 @@ namespace SpaceGame.Vehicles
         private float recallElapsed;
 
         public CrewState State { get; private set; } = CrewState.Aboard;
-        public bool HasRoom => crew.Count < Seats.Capacity;
         private VesselSeats Seats => seats != null ? seats : seats = GetComponent<VesselSeats>();
+        private int StandingPosts => Mathf.Clamp(standingPosts, 0, Seats.Capacity);
+        private int CrewPosts => Seats.Capacity - StandingPosts;
+
+        /// <summary>
+        /// Whether this house has a post for <paramref name="memberOrPrefab"/> (a spawned member or the
+        /// prefab about to be spawned): a standing post for a <see cref="StandingRider"/>, a crew post for
+        /// anyone else. The two never borrow from each other.
+        /// </summary>
+        public bool HasRoomFor(GameObject memberOrPrefab)
+        {
+            bool standing = StandingRider.Is(memberOrPrefab);
+            int taken = 0;
+            foreach (GameObject member in crew)
+                if (member != null && StandingRider.Is(member) == standing) taken++;
+            return taken < (standing ? StandingPosts : CrewPosts);
+        }
 
         public Vector3 GangwayPoint
         {
@@ -91,7 +111,7 @@ namespace SpaceGame.Vehicles
         /// <summary>Add a crew member: seated on a free post, or left ashore by the gangway.</summary>
         public void Take(GameObject member, bool aboard)
         {
-            if (member == null || !HasRoom) return;
+            if (member == null || !HasRoomFor(member)) return;
 
             // The spawner configures this house's formation before any crew are taken, so the gate
             // can go up now. Waiting for Update would let a leader spawned mid-stop pick its next
@@ -100,7 +120,7 @@ namespace SpaceGame.Vehicles
 
             if (aboard)
             {
-                if (Seats.Seat(member) < 0)
+                if (!SeatOnItsPost(member))
                 {
                     Debug.LogError($"[CrewShift] Could not seat '{member.name}' aboard '{name}': no free post, " +
                                    "or this machine is not the authority.", this);
@@ -116,10 +136,11 @@ namespace SpaceGame.Vehicles
             crew.Add(member);
         }
 
-        public static CrewShift FirstWithRoom(IEnumerable<GameObject> members)
+        /// <summary>The first house among <paramref name="members"/> with a post for <paramref name="memberOrPrefab"/>.</summary>
+        public static CrewShift FirstWithRoom(IEnumerable<GameObject> members, GameObject memberOrPrefab)
         {
             foreach (GameObject member in members)
-                if (member != null && member.TryGetComponent(out CrewShift house) && house.HasRoom)
+                if (member != null && member.TryGetComponent(out CrewShift house) && house.HasRoomFor(memberOrPrefab))
                     return house;
             return null;
         }
@@ -213,13 +234,25 @@ namespace SpaceGame.Vehicles
                 if (force || Flat(member.transform.position - gangwayPoint) <= boardRadius)
                 {
                     AgentGoal.GetOrAdd(member).Clear();
-                    Seats.Seat(member);
+                    SeatOnItsPost(member);
                 }
                 else
                 {
                     AgentGoal.GetOrAdd(member).Set(gangwayPoint, boardRadius * BoardApproachFraction, "boarding the walker");
                 }
             }
+        }
+
+        /// <summary>Seat <paramref name="member"/> on the first free post of its own kind.</summary>
+        private bool SeatOnItsPost(GameObject member)
+        {
+            bool standing = StandingRider.Is(member);
+            int first = standing ? CrewPosts : 0;
+            int end = standing ? Seats.Capacity : CrewPosts;
+            for (int seat = first; seat < end; seat++)
+                if (Seats.OccupantAt(seat) == null)
+                    return Seats.Seat(seat, member);
+            return false;
         }
 
         private CrewCensus Count()

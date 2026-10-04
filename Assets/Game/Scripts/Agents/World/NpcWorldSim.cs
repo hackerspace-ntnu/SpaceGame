@@ -587,7 +587,7 @@ namespace SpaceGame.Agents
 
                 // Crew ride a carrier already spawned earlier in the plan (templates list carriers
                 // first). Marching, they wake seated; stopped, they wake on foot at its gangway.
-                CrewShift carrier = planned.Crew ? CrewShift.FirstWithRoom(group.Live) : null;
+                CrewShift carrier = planned.Crew ? CrewShift.FirstWithRoom(group.Live, planned.Prefab) : null;
                 bool crewAboard = carrier != null && !group.CrewAshore;
                 if (carrier != null) slot = crewAboard ? carrier.transform.position : carrier.GangwayPoint;
 

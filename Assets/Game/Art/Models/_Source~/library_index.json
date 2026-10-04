@@ -432725,6 +432725,16 @@
   "models/characters/drifters/alien_rigged.blend": {
     "collections": [
       {
+        "name": "Char_Alien",
+        "objects": [
+          "Mesh_HumanSculptBase",
+          "Human_Rig",
+          "Sphere",
+          "Sphere.001"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_HumanSculptBase",
         "objects": [
           "Mesh_HumanSculptBase",
@@ -432748,6 +432758,7 @@
           1.0
         ],
         "collections": [
+          "Char_Alien",
           "Coll_HumanSculptBase"
         ],
         "bones": [
@@ -432819,6 +432830,7 @@
           1.0
         ],
         "collections": [
+          "Char_Alien",
           "Coll_HumanSculptBase"
         ],
         "dimensions": [
@@ -432849,6 +432861,7 @@
           0.0349
         ],
         "collections": [
+          "Char_Alien",
           "Scene Collection"
         ],
         "dimensions": [
@@ -432879,6 +432892,7 @@
           0.0335
         ],
         "collections": [
+          "Char_Alien",
           "Scene Collection"
         ],
         "dimensions": [
@@ -432908,6 +432922,16 @@
   "models/characters/drifters/crumpy_rigged.blend": {
     "collections": [
       {
+        "name": "Char_Crumpy",
+        "objects": [
+          "Mesh_HumanSculptBase",
+          "Human_Rig",
+          "Sphere",
+          "Sphere.001"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_HumanSculptBase",
         "objects": [
           "Mesh_HumanSculptBase",
@@ -432931,6 +432955,7 @@
           1.0
         ],
         "collections": [
+          "Char_Crumpy",
           "Coll_HumanSculptBase"
         ],
         "bones": [
@@ -433002,6 +433027,7 @@
           1.0
         ],
         "collections": [
+          "Char_Crumpy",
           "Coll_HumanSculptBase"
         ],
         "dimensions": [
@@ -433032,6 +433058,7 @@
           0.0349
         ],
         "collections": [
+          "Char_Crumpy",
           "Scene Collection"
         ],
         "dimensions": [
@@ -433062,6 +433089,7 @@
           0.0335
         ],
         "collections": [
+          "Char_Crumpy",
           "Scene Collection"
         ],
         "dimensions": [
@@ -433269,6 +433297,16 @@
   "models/characters/drifters/gary.blend": {
     "collections": [
       {
+        "name": "Char_Gary",
+        "objects": [
+          "Mesh_HumanSculptBase",
+          "Human_Rig",
+          "Sphere",
+          "Sphere.001"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_HumanSculptBase",
         "objects": [
           "Mesh_HumanSculptBase",
@@ -433292,6 +433330,7 @@
           1.0
         ],
         "collections": [
+          "Char_Gary",
           "Coll_HumanSculptBase"
         ],
         "bones": [
@@ -433363,6 +433402,7 @@
           1.0
         ],
         "collections": [
+          "Char_Gary",
           "Coll_HumanSculptBase"
         ],
         "dimensions": [
@@ -433393,6 +433433,7 @@
           0.0544
         ],
         "collections": [
+          "Char_Gary",
           "Scene Collection"
         ],
         "dimensions": [
@@ -433423,6 +433464,7 @@
           0.0567
         ],
         "collections": [
+          "Char_Gary",
           "Scene Collection"
         ],
         "dimensions": [
@@ -433452,6 +433494,16 @@
   "models/characters/drifters/human_sculpt_base_rigged.blend": {
     "collections": [
       {
+        "name": "Char_HumanSculptBase",
+        "objects": [
+          "Mesh_HumanSculptBase",
+          "Human_Rig",
+          "Sphere",
+          "Sphere.001"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_HumanSculptBase",
         "objects": [
           "Mesh_HumanSculptBase",
@@ -433475,6 +433527,7 @@
           1.0
         ],
         "collections": [
+          "Char_HumanSculptBase",
           "Coll_HumanSculptBase"
         ],
         "bones": [
@@ -433546,6 +433599,7 @@
           1.0
         ],
         "collections": [
+          "Char_HumanSculptBase",
           "Coll_HumanSculptBase"
         ],
         "dimensions": [
@@ -433576,6 +433630,7 @@
           0.0487
         ],
         "collections": [
+          "Char_HumanSculptBase",
           "Scene Collection"
         ],
         "dimensions": [
@@ -433606,6 +433661,7 @@
           0.0487
         ],
         "collections": [
+          "Char_HumanSculptBase",
           "Scene Collection"
         ],
         "dimensions": [
@@ -433634,6 +433690,16 @@
   },
   "models/characters/drifters/raxy.blend": {
     "collections": [
+      {
+        "name": "Char_Raxy",
+        "objects": [
+          "Mesh_HumanSculptBase",
+          "Human_Rig",
+          "Sphere_L",
+          "Sphere_R"
+        ],
+        "children": []
+      },
       {
         "name": "Clothes",
         "objects": [
@@ -434363,6 +434429,7 @@
           1.0
         ],
         "collections": [
+          "Char_Raxy",
           "Coll_HumanSculptBase"
         ],
         "bones": [
@@ -434449,6 +434516,7 @@
           1.0
         ],
         "collections": [
+          "Char_Raxy",
           "Coll_HumanSculptBase"
         ],
         "dimensions": [
@@ -434480,6 +434548,7 @@
           0.0489
         ],
         "collections": [
+          "Char_Raxy",
           "Scene Collection"
         ],
         "dimensions": [
@@ -434508,6 +434577,7 @@
           0.0468
         ],
         "collections": [
+          "Char_Raxy",
           "Scene Collection"
         ],
         "dimensions": [
@@ -434575,6 +434645,16 @@
   "models/characters/drifters/raxy_classic.blend": {
     "collections": [
       {
+        "name": "Char_RaxyClassic",
+        "objects": [
+          "Mesh_HumanSculptBase",
+          "Human_Rig",
+          "Sphere_L",
+          "Sphere_R"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_HumanSculptBase",
         "objects": [
           "Mesh_HumanSculptBase",
@@ -434598,6 +434678,7 @@
           1.0
         ],
         "collections": [
+          "Char_RaxyClassic",
           "Coll_HumanSculptBase"
         ],
         "bones": [
@@ -434683,6 +434764,7 @@
           1.0
         ],
         "collections": [
+          "Char_RaxyClassic",
           "Coll_HumanSculptBase"
         ],
         "dimensions": [
@@ -434713,6 +434795,7 @@
           0.0631
         ],
         "collections": [
+          "Char_RaxyClassic",
           "Scene Collection"
         ],
         "dimensions": [
@@ -434741,6 +434824,7 @@
           0.0631
         ],
         "collections": [
+          "Char_RaxyClassic",
           "Scene Collection"
         ],
         "dimensions": [

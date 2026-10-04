@@ -15138,7 +15138,7 @@ Armature `Armature.002`: 91 bone(s) — `mixamorig:Hips`, `mixamorig:Spine`, `mi
 
 ### `models/characters/drifters/alien_rigged.blend`
 
-Variations / collections: `Coll_HumanSculptBase`
+Variations / collections: `Char_Alien`, `Coll_HumanSculptBase`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -15152,7 +15152,7 @@ Armature `Human_Rig`: 52 bone(s) — `Root`, `Hips`, `Spine`, `Chest`, `Neck`, `
 
 ### `models/characters/drifters/crumpy_rigged.blend`
 
-Variations / collections: `Coll_HumanSculptBase`
+Variations / collections: `Char_Crumpy`, `Coll_HumanSculptBase`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -15180,7 +15180,7 @@ Armature `Human_Rig`: 52 bone(s) — `Root`, `Hips`, `Spine`, `Chest`, `Neck`, `
 
 ### `models/characters/drifters/gary.blend`
 
-Variations / collections: `Coll_HumanSculptBase`
+Variations / collections: `Char_Gary`, `Coll_HumanSculptBase`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -15194,7 +15194,7 @@ Armature `Human_Rig`: 52 bone(s) — `Root`, `Hips`, `Spine`, `Chest`, `Neck`, `
 
 ### `models/characters/drifters/human_sculpt_base_rigged.blend`
 
-Variations / collections: `Coll_HumanSculptBase`
+Variations / collections: `Char_HumanSculptBase`, `Coll_HumanSculptBase`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -15208,7 +15208,7 @@ Armature `Human_Rig`: 52 bone(s) — `Root`, `Hips`, `Spine`, `Chest`, `Neck`, `
 
 ### `models/characters/drifters/raxy.blend`
 
-Variations / collections: `Clothes`, `Coll_HumanSculptBase`
+Variations / collections: `Char_Raxy`, `Clothes`, `Coll_HumanSculptBase`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -15245,7 +15245,7 @@ Armature `Human_Rig`: 67 bone(s) — `Root`, `Hips`, `Spine`, `Chest`, `Neck`, `
 
 ### `models/characters/drifters/raxy_classic.blend`
 
-Variations / collections: `Coll_HumanSculptBase`
+Variations / collections: `Char_RaxyClassic`, `Coll_HumanSculptBase`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|

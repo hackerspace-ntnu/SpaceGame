@@ -303,6 +303,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a saddle on an animal holds nothing, or its faces are on a slope | [Backpack](systems/Backpack.md) |
 | a saddled animal can be ridden but not driven — the rider has no control | [Saddles](systems/Saddles.md) |
 | a saddled animal comes back bare after a save and reload | [Saddles](systems/Saddles.md) |
+| a Sand herder stands in the middle of the herd instead of riding beside it | [AgentSystem](systems/AgentSystem.md) |
 | a save file's item records sit at y = -30000 and get deeper on every load | [Persistence](systems/Persistence.md) |
 | a save-restored creature is on the NavMesh but never moves | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a saved world comes back with a singularity still open in it | [BottledSingularity](systems/BottledSingularity.md) |
@@ -1213,6 +1214,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the white sphere is opaque, or disappears when the camera is inside it | [BottledSingularity](systems/BottledSingularity.md) |
 | the whole terrain chunk caught fire as one object | [Flamethrower](systems/Flamethrower.md) |
 | the whole world is missing from high up and the console is clean | [Environment](systems/Environment.md) |
+| the wild Appa group sits at the world origin and never moves | [AgentSystem](systems/AgentSystem.md) |
 | the wing billows at the WRIST end instead of at the hem | [Wingsuit](systems/Wingsuit.md) |
 | the wing pack floats off the back instead of sitting on the pack's cross bar | [BodyEquipment](systems/BodyEquipment.md) |
 | the wing pack is worn as a folded bundle instead of as wings | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1253,6 +1255,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | there is a second column of smoke standing where the pack is not | [Jetpack](systems/Jetpack.md) |
 | there is an oxygen tank on the expedition rig that nothing can take off | [Oxygen](systems/Oxygen.md) |
 | there is an oxygen tank on the pack that nothing can take off | [Backpack](systems/Backpack.md) |
+| there is no Appa anywhere in the world | [AgentSystem](systems/AgentSystem.md) |
 | there is no ground under the ship for most of the descent, only sky | [PlayerShip](systems/PlayerShip.md) |
 | there is no monowheel beside the ship after the crash landing | [PlayerShip](systems/PlayerShip.md) |
 | there is no smoke at all, however hot the pack gets | [Jetpack](systems/Jetpack.md) |
@@ -1733,4 +1736,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1276 symptoms, 431 paths, 65 docs -->
+<!-- 1279 symptoms, 431 paths, 65 docs -->

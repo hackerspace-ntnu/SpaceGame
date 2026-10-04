@@ -895,8 +895,8 @@ MonoBehaviour:
       LongitudinalJitter: 0.6
       DriftAmplitude: 0.35
       DriftRate: 0.1
-  - id: wild-appa
-    displayName: Appa
+  - id: appa-herd-dunes
+    displayName: Appa Herd (dunes)
     tribe: {fileID: 0}
     runtimeOnly: 0
     members:
@@ -905,6 +905,11 @@ MonoBehaviour:
       isLeader: 1
       crew: 0
       count: 1
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 4
     tasks:
     - label: grazing the open ground
       targetSite: 6
@@ -914,7 +919,7 @@ MonoBehaviour:
       yields: {fileID: 0}
       yieldChance: 1
       chatter: []
-      dwellFlag: 
+      dwellFlag: IsGrazing
       weight: 2
       arriveRadius: 25
       travelSpeedMultiplier: 1
@@ -968,8 +973,8 @@ MonoBehaviour:
         sampleTolerance: 0
     travelSpeed: 1.4
     startNearSite: 6
-    useStartPosition: 0
-    startPosition: {x: 3480, y: 100, z: 1740}
+    useStartPosition: 1
+    startPosition: {x: 3150, y: 113.7, z: 1350}
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -978,13 +983,287 @@ MonoBehaviour:
       homeSiteName: Sky City
       dockSpacing: 45
     formation:
-      Lanes: 2
-      RowSpacing: 3
-      LaneSpacing: 2.2
-      LateralJitter: 0.5
-      LongitudinalJitter: 0.6
-      DriftAmplitude: 0.35
-      DriftRate: 0.1
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
+  - id: appa-herd-plateau
+    displayName: Appa Herd (plateau)
+    tribe: {fileID: 0}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 5
+    tasks:
+    - label: grazing the open ground
+      targetSite: 6
+      searchRadius: 1800
+      searchFromHome: 0
+      dwellSeconds: {x: 120, y: 300}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: IsGrazing
+      weight: 2
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drinking
+      targetSite: 4
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 150}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 18
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drifting across country
+      targetSite: 7
+      searchRadius: 2200
+      searchFromHome: 0
+      dwellSeconds: {x: 40, y: 120}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 0.6
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 1
+    startPosition: {x: 2200, y: 170.3, z: 1500}
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
+  - id: appa-herd-south
+    displayName: Appa Herd (south)
+    tribe: {fileID: 0}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 4
+    tasks:
+    - label: grazing the open ground
+      targetSite: 6
+      searchRadius: 1800
+      searchFromHome: 0
+      dwellSeconds: {x: 120, y: 300}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: IsGrazing
+      weight: 2
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drinking
+      targetSite: 4
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 150}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 18
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drifting across country
+      targetSite: 7
+      searchRadius: 2200
+      searchFromHome: 0
+      dwellSeconds: {x: 40, y: 120}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 0.6
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 1
+    startPosition: {x: 2800, y: 104.9, z: -300}
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
+  - id: sand-appa-herders
+    displayName: Sand Appa Herders
+    tribe: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 2370927830721863249, guid: 3376a5ba2f4d5ff4ca4c2e1a08b34d55, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+    - prefab: {fileID: 3306571613298777548, guid: 8dac043065b0ca04c9f7e80c0069a1ae, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 6
+    - prefab: {fileID: 2370927830721863249, guid: 3376a5ba2f4d5ff4ca4c2e1a08b34d55, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+    tasks:
+    - label: driving the herd to new grazing
+      targetSite: 6
+      searchRadius: 1600
+      searchFromHome: 0
+      dwellSeconds: {x: 150, y: 320}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Keep them moving. The grass is thin here.
+      - Watch the young one, it wanders.
+      dwellFlag: IsGrazing
+      weight: 2
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: watering the herd
+      targetSite: 4
+      searchRadius: 1400
+      searchFromHome: 0
+      dwellSeconds: {x: 80, y: 160}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - They smell water before we do.
+      - Let them drink. Long walk after.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 1
+    startPosition: {x: 3400, y: 104.7, z: 900}
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
   spawnRadius: 250
   despawnRadius: 360
   spawnSampleDistance: 25

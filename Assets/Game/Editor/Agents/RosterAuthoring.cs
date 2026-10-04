@@ -655,7 +655,7 @@ namespace SpaceGame.EditorTools
             rule.FindPropertyRelative("sampleTolerance").floatValue = r.sampleTolerance;
         }
 
-        private static void WriteShape(SerializedProperty shape, FormationShape s)
+        internal static void WriteShape(SerializedProperty shape, FormationShape s)
         {
             shape.FindPropertyRelative("Lanes").intValue = s.Lanes;
             shape.FindPropertyRelative("RowSpacing").floatValue = s.RowSpacing;
@@ -712,7 +712,7 @@ namespace SpaceGame.EditorTools
         /// Open the world scene additively if needed, edit its NpcWorldSim, save, and leave the editor as
         /// it was found — the same dance NomadPrefabBuilder.AddSandNomadCaravan does, for the same reasons.
         /// </summary>
-        private static void WithWorldSim(Action<NpcWorldSim> edit)
+        internal static void WithWorldSim(Action<NpcWorldSim> edit)
         {
             Scene scene = SceneManager.GetSceneByPath(WorldScenePath);
             bool alreadyOpen = scene.IsValid() && scene.isLoaded;

@@ -19,7 +19,10 @@ namespace SpaceGame.EditorTools
         private const float CitySpacing = 30f;
 
         /// <summary>The template <paramref name="id"/> in the persistent scene, opened (and closed again) if needed.</summary>
-        internal static NpcGroupTemplate ReadTemplate(string id)
+        internal static NpcGroupTemplate ReadTemplate(string id) => ReadTemplates().Single(t => t.id == id);
+
+        /// <summary>Every template in the persistent scene's NpcWorldSim, opened (and closed again) if needed.</summary>
+        internal static NpcGroupTemplate[] ReadTemplates()
         {
             Scene scene = SceneManager.GetSceneByPath(ScenePath);
             bool opened = !scene.isLoaded;
@@ -29,7 +32,7 @@ namespace SpaceGame.EditorTools
                 NpcWorldSim sim = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<NpcWorldSim>(true)).Single();
                 var templates = (NpcGroupTemplate[])typeof(NpcWorldSim)
                     .GetField("templates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(sim);
-                return templates.Single(t => t.id == id);
+                return templates;
             }
             finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
         }

@@ -113,6 +113,11 @@ index)` when `prefab` is null. Seeded by `RosterDraw.StableHash(template.id)`, s
 re-spawns with the same faces and guns after every fold (`GroupMembership.MemberIndex` feeds
 `NpcRandomLoadout`'s own seeded roll).
 
+**A herding caravan** (the Sand `sand-appa-herders`, `AppaHerdAuthoring`): the leader and the herders are fixed
+mount prefabs carrying an `NpcPassenger` rider and a `HerdingModule`, the livestock a riderless prefab that
+serializes the tribe's faction, all sharing the group's `FormationModule` band. List the herders **after** the
+livestock so their unused column slots are the tail's.
+
 ## 7. Tests
 
 Add a fixture beside [RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs),

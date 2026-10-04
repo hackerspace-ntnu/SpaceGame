@@ -213,5 +213,63 @@ namespace SpaceGame.EditorTools
             }
             finally { Object.DestroyImmediate(house); Object.DestroyImmediate(person); }
         }
+
+        private static readonly WeightedCount[] ElderCounts =
+        {
+            new WeightedCount { count = 1, weight = 0.65f },
+            new WeightedCount { count = 2, weight = 0.25f },
+            new WeightedCount { count = 3, weight = 0.10f },
+        };
+
+        [Test]
+        public void NoCountWeights_UsesCount()
+        {
+            var spec = new NpcGroupMemberSpec { count = 4 };
+            for (int seed = 0; seed < 50; seed++) Assert.AreEqual(4, spec.DrawCount(seed, 7));
+        }
+
+        [Test]
+        public void CountWeights_StayInRange_AndAreDeterministic()
+        {
+            var spec = new NpcGroupMemberSpec { count = 1, countWeights = ElderCounts };
+            for (int seed = 0; seed < 500; seed++)
+            {
+                int n = spec.DrawCount(seed, 30);
+                Assert.That(n, Is.InRange(1, 3));
+                Assert.AreEqual(n, spec.DrawCount(seed, 30), "a reloaded city must draw the same elders");
+            }
+        }
+
+        [Test]
+        public void CountWeights_MatchTheirWeights_OverManySeeds()
+        {
+            var spec = new NpcGroupMemberSpec { count = 1, countWeights = ElderCounts };
+            var tally = new int[4];
+            const int seeds = 10000;
+            for (int seed = 0; seed < seeds; seed++) tally[spec.DrawCount(RosterDraw.StableHash("city" + seed), 30)]++;
+            Assert.AreEqual(0.65, tally[1] / (double)seeds, 0.02);
+            Assert.AreEqual(0.25, tally[2] / (double)seeds, 0.02);
+            Assert.AreEqual(0.10, tally[3] / (double)seeds, 0.02);
+        }
+
+        [Test]
+        public void Resolve_PlansTheDrawnCount()
+        {
+            var elder = new GameObject("Elder");
+            try
+            {
+                var template = new NpcGroupTemplate
+                {
+                    id = "city",
+                    members = new[] { new NpcGroupMemberSpec { prefab = elder, crew = true, count = 1, countWeights = ElderCounts } },
+                };
+                for (int seed = 0; seed < 40; seed++)
+                {
+                    var group = new NpcGroup { Id = "city", RosterSeed = seed };
+                    Assert.AreEqual(template.members[0].DrawCount(seed, 0), NpcGroupComposition.Resolve(group, template).Count);
+                }
+            }
+            finally { Object.DestroyImmediate(elder); }
+        }
     }
 }

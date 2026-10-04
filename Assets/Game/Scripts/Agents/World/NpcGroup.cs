@@ -37,6 +37,34 @@ namespace SpaceGame.Agents
 
         [Min(1)]
         public int count = 1;
+
+        [Tooltip("When set, how many of this member a group gets is drawn from these weights instead " +
+                 "of being count: seeded by the group's roster seed, so a group that folds, unfolds or " +
+                 "reloads comes back with the same number. Empty uses count.")]
+        public WeightedCount[] countWeights = Array.Empty<WeightedCount>();
+
+        // Keeps this draw apart from the roster draw made for the same plan index.
+        private const int CountSalt = 0x5EED;
+
+        /// <summary>How many of this member the group with <paramref name="rosterSeed"/> gets;
+        /// <paramref name="index"/> is the plan index the first of them would take.</summary>
+        public int DrawCount(int rosterSeed, int index)
+        {
+            if (countWeights == null || countWeights.Length == 0) return Mathf.Max(1, count);
+
+            var weights = new float[countWeights.Length];
+            for (int i = 0; i < weights.Length; i++) weights[i] = countWeights[i].weight;
+            int pick = RosterDraw.PickWeighted(weights, RosterDraw.Roll01(rosterSeed, index + CountSalt));
+            return pick < 0 ? Mathf.Max(1, count) : Mathf.Max(1, countWeights[pick].count);
+        }
+    }
+
+    /// <summary>One possible member count and how likely it is (NpcGroupMemberSpec.countWeights).</summary>
+    [Serializable]
+    public struct WeightedCount
+    {
+        [Min(1)] public int count;
+        [Min(0f)] public float weight;
     }
 
     /// <summary>

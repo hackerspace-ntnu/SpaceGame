@@ -65,7 +65,8 @@ namespace SpaceGame.Agents
             {
                 if (spec == null) continue;
 
-                for (int i = 0; i < Mathf.Max(1, spec.count); i++)
+                int count = spec.DrawCount(group.RosterSeed, plan.Count);
+                for (int i = 0; i < count; i++)
                 {
                     GameObject prefab = spec.prefab != null
                         ? spec.prefab

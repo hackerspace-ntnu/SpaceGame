@@ -29,8 +29,8 @@ symptoms:
   - "I spawn with no camera, no HUD and no controls, and ticking the camera on by hand fixes it"
   - "the world renders through some camera that is not my player's"
   - "editing a script while the game is running kills my camera and controls for the rest of the session"
-reads_with: [Persistence, Inventory, Artifacts, Vehicles, Wingsuit]
-updated: 2026-09-25
+reads_with: [Persistence, Inventory, Artifacts, Vehicles, Wingsuit, Pushables]
+updated: 2026-10-03
 ---
 
 # Player Character
@@ -56,7 +56,9 @@ The astronaut the human drives: rigidbody movement, first-person look, stances, 
 | `PlayerController` | [Core/PlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerController.cs) | Enable/disable the local player, cutscene handover, death freeze, spectator swap, `OnPlayerDeath`/`OnPlayerRevive` |
 | `PlayerMovement` | [Movement/Movement.cs](Assets/Game/Scripts/Characters/Player/Movement/Movement.cs) | Walk/sprint/crouch speeds, jump, dash, ground probe (`IsOnGround`, `GroundNormal`), fall damage, animator blend + stride rate, `CarryMomentum`/`SetTethered`/`SetGliding`/`SetClimbing`/`SetBouncing`/`EnsureMovableBody`, `BodyCapsule` (the one body capsule; the ragdoll adds others) |
 | `PlayerLook` | [Movement/PlayerLook.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerLook.cs) | Mouse look, cursor lock, FOV base+offset, the look-down eye slide, `LookAlong`/`RestorePitch`/`Pitch`, per-camera hiding of own helmet/scarf (serialized) and worn gear (`SetWornHidden`, runtime) |
-| `PlayerStance` | [Movement/PlayerStance.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerStance.cs) | Crouch (capsule + eye, **C**) and sprint (**Shift** held, or a double tap of forward — both end when forward is released) with a charge tank; runs on every machine |
+| `PlayerSeating` | [Movement/PlayerSeating.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerSeating.cs) | Sits the player on a `Seat` and stands them up (Jump or interact): owner asks, server decides into a `NetworkVariable<int>`, the owner moves its own body. On `PlayerCharacterNetworked`. [Seats.md](Seats.md) |
+| `PlayerPushing` | [Movement/PlayerPushing.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerPushing.cs) | Puts the player's hands on a `Pushable` cart and takes them off (interact, jump, a drawn item, death): owner asks, server decides into a `NetworkVariable<int>`, every machine poses the cart from the body (`CartPusher`); the owner's speed is held to `pushSpeed` through `PlayerMovement.StartHauling`. On `PlayerCharacterNetworked`. [Pushables.md](Pushables.md) |
+| `PlayerStance` | [Movement/PlayerStance.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerStance.cs) | Crouch (capsule + eye, **C**) and sprint (**Shift** held, or a double tap of forward — both end when forward is released) with a charge tank; runs on every machine. While sprinting the owner sends `NetMsg.SprintRacket` (at most one per `racketInterval` 2 s) and the server emits a `NoiseType.Custom` noise of `racketRadius` 12 m from its copy of the body — sprint itself is never replicated |
 | `PlayerAimRig` | [Combat/PlayerAimRig.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs) | Owns **both** masked layers — `Upper Body` (hold pose weight, the gauntlet arm raise on either hand via `RaiseArm`, driven by `BodyEquipmentController` — [BodyEquipment.md](BodyEquipment.md)) and `Worn Left`, the left arm alone, which carries a left-forearm device while the right arm holds the main layer ([Flashlight.md](Flashlight.md)); runs on every machine. Named for the `AimPitch` the raise blends on, not for an ADS — that was deleted on 2026-09-03 |
 | `PoseBlend` | [Combat/PoseBlend.cs](Assets/Game/Scripts/Characters/Player/Combat/PoseBlend.cs) | Pure maths: the frame-rate independent ease every upper-body weight travels on |
 | `PlayerHeadLook` | [Combat/PlayerHeadLook.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerHeadLook.cs) | The one owner of head/neck aim: `Mode` (Free/Seated), `AddLook`, `Yaw`/`Pitch`/`LookRotation`; writes both bones in `LateUpdate` at order **950**. Runs on every machine; added at runtime by `PlayerViewNetwork` |

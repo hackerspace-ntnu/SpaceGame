@@ -79,6 +79,15 @@ namespace SpaceGame.Items
         public PackShape ShapeFor(InventoryItem item) => PackShapes.For(item, shapes);
 
         /// <summary>
+        /// Whether this container is built with gear already on it. Read by a saver that has to
+        /// tell "emptied by the players" from "never touched": both are an empty layout, and only
+        /// the first may be written as nothing, because the second is laid on again on load.
+        /// </summary>
+        public bool HasStartingContents =>
+            (startingStrapItems != null && startingStrapItems.Count > 0) ||
+            (startingMainItems != null && startingMainItems.Count > 0);
+
+        /// <summary>
         /// How much bigger than its own grid this container is DRAWN. 1 on the rig,
         /// <see cref="PackScale.WallDisplay"/> on the ship's gear wall.
         ///

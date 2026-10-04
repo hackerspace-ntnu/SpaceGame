@@ -108,8 +108,8 @@ namespace SpaceGame.EditorTools
 
         private const string Ostrich = "Assets/Game/Prefabs/agents/creatures/Ostrich.prefab";
         private const string Golem = "Assets/Game/Prefabs/agents/creatures/Golem.prefab";
+        private const string ClankerOutrider = "Assets/Game/Prefabs/agents/Robots/ClankerOutrider.prefab";
         private const string DuneFoil = "Assets/Game/Prefabs/agents/Vehicles/Ground/DuneFoil.prefab";
-        private const string PatrolRobot = "Assets/Game/Prefabs/agents/Robots/PatrolRobot.prefab";
         private const string PlayerShip = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
         [Test]
@@ -138,7 +138,7 @@ namespace SpaceGame.EditorTools
         public void Golem_RemembersWhatItWasFighting() =>
             PersistenceProbe.For(Golem)
                 .Mutate(go => go.GetComponent<AgentTargeting>()
-                    .RestoreMemory(null, new Vector3(30f, 2f, 12f), true, 1.5f, null))
+                    .RestoreMemory(null, false, new Vector3(30f, 2f, 12f), true, 1.5f, null))
                 .AssertSurvivesRoundTrip();
 
         /// <summary>
@@ -208,74 +208,23 @@ namespace SpaceGame.EditorTools
                 .AssertSurvivesRoundTrip();
 
         /// <summary>
-        /// Threshold latches, which did not merely go missing — they misfired.
-        ///
-        /// <c>HealthThresholdReaction.triggered</c> was reset in <c>OnEnable</c> and never recorded,
-        /// so <c>onThresholdReached</c> fired again on the first hit after every single load. A badly
-        /// hurt creature replayed its enrage event and its scream every time the world was opened.
+        /// A search in progress reloads as a search in progress, walking to the same place with the
+        /// same time left. The ClankerOutrider, because it carries a <c>SearchModule</c>: this test
+        /// used to probe the Golem, which has none, and returned early without asserting anything.
+        /// Not the plain Clanker: its inventory and equipment savers need state built in
+        /// <c>Awake</c>, which edit mode never runs, so its capture logs errors before any search
+        /// is compared.
         /// </summary>
         [Test]
-        public void Golem_RemembersWhichThresholdsHaveFired()
+        public void ClankerOutrider_ResumesTheSearchItWasOn()
         {
-            PersistenceProbe.For(Golem)
-                .Mutate(go =>
-                {
-                    var reactions = go.GetComponent<HealthReactionModule>();
-                    if (reactions == null) return;
-
-                    bool[] fired = reactions.TriggeredThresholds();
-                    if (fired.Length == 0) return;
-
-                    fired[0] = true;
-                    reactions.RestoreThresholds(fired);
-                })
-                .AssertSurvivesRoundTrip();
-        }
-
-        /// <summary>
-        /// A guard's territory, which drifted a little further on every save/load cycle.
-        ///
-        /// In <c>PatrolMode.RadiusBased</c> the anchor was re-latched from <c>transform.position</c>
-        /// after a load, so the patrol circle silently re-centred on wherever the guard happened to
-        /// be standing when the game was saved.
-        /// </summary>
-        [Test]
-        public void PatrolRobot_KeepsItsPostAndItsPlaceOnTheRoute() =>
-            PersistenceProbe.For(PatrolRobot)
-                .Mutate(go =>
-                {
-                    var patrol = go.GetComponent<PatrolModule>();
-                    patrol.RestoreSpawnAnchor(true, new Vector3(84f, 3f, -19f));
-                    patrol.RestorePatrolLeg(true, new Vector3(90f, 3f, -12f), 1.25f);
-                })
-                .AssertSurvivesRoundTrip();
-
-        /// <summary>
-        /// The patrol robots are the reason patrol progress had to leave <c>AgentStateSaveable</c>:
-        /// they have a <c>PatrolModule</c> and no <c>AgentTargeting</c>, so the saver keyed off the
-        /// latter never reached the one population whose entire identity is a route.
-        /// </summary>
-        [Test]
-        public void PatrolRobot_IsWiredForSaving() =>
-            PersistenceProbe.For(PatrolRobot).AssertWiredCorrectly();
-
-        /// <summary>
-        /// What makes the memory <c>AgentStateSaveable</c> already kept actually do something.
-        ///
-        /// <c>SearchModule</c> starts only on a falling edge — had a target, lost it — and after a
-        /// load <c>hadTarget</c> was always false, so the edge could never fire. The last-known
-        /// position the save went out of its way to preserve was never walked to.
-        /// </summary>
-        [Test]
-        public void Golem_ResumesTheSearchItWasOn()
-        {
-            PersistenceProbe.For(Golem)
+            PersistenceProbe.For(ClankerOutrider)
                 .Mutate(go =>
                 {
                     var search = go.GetComponent<SearchModule>();
-                    if (search == null) return;
+                    Assert.IsNotNull(search, "the ClankerOutrider must carry a SearchModule for this test to mean anything");
 
-                    search.RestoreSearch(true, 3f, new Vector3(12f, 1f, 40f), true);
+                    search.RestoreSearch(true, 3f, new Vector3(12f, 1f, 40f));
                 })
                 .AssertSurvivesRoundTrip();
         }

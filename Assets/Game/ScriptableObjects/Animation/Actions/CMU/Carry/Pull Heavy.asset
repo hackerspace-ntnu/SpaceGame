@@ -21,12 +21,14 @@ MonoBehaviour:
     enter: {fileID: 0}
     exit: {fileID: 0}
     selectionWeight: 1
+    contactAt: 0
   authoredHand: 0
   mirrorForOtherArm: 0
   speedRange: {x: 1, y: 1}
   fadeIn: 0.2
   fadeOut: 0.25
   marks: []
+  reach: {x: 0, y: 0, z: 0}
   cues:
   - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
   - {fileID: 11400000, guid: c026cf2ee0b8c417383f9f106d6f5632, type: 2}

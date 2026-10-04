@@ -165,8 +165,7 @@ namespace SpaceGame.Locomotion
         /// <para>
         /// The node the tilt lands on is animated on some rigs and not on others. The Golem's clips
         /// carry a rotation curve for <c>Bone_Root</c> and the DuneRat's for <c>Arm_DuneRat</c>; the
-        /// Nomad's <c>Model</c>, the PatrolRobots' <c>Armature</c> and the Vrescal's <c>vrescal</c>
-        /// have nothing driving them at all. The two cases want opposite treatment, and getting it
+        /// Nomad's <c>Model</c> and the Vrescal's <c>vrescal</c> have nothing driving them at all. The two cases want opposite treatment, and getting it
         /// wrong fails loudly in both directions: tilt from the rest pose on an animated node and
         /// the tilt erases the animation; tilt from the read-back value on a node nothing drives and
         /// last frame's tilt is multiplied in again, every frame, until the body is spinning.

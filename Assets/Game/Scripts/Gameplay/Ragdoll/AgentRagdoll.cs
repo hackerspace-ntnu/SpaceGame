@@ -174,7 +174,12 @@ namespace SpaceGame.Gameplay.Ragdoll
             // (the rig follows the hips into the transform, so the transform is where the body
             // lies). What must not happen is throwing it again: a body relaunched on every load
             // walks its way across the desert one reload at a time.
-            bool restoring = health != null && health.IsRestoring;
+            //
+            // The server's death reaching a client live is NOT a load, though it also arrives as a
+            // restore: that body is falling right now and must flail like the host's. It is never
+            // thrown twice either way — a watching machine does not apply the impulse (see
+            // RagdollRig.GoLimp), it follows the replicated hips.
+            bool restoring = health != null && health.IsRestoring && !health.IsReplicating;
 
             // Read before Suspend, which switches the motor off underneath it.
             Vector3 carried = restoring ? Vector3.zero : CarriedVelocity;

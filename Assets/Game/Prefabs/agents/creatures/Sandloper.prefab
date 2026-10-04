@@ -191,9 +191,6 @@ PrefabInstance:
       addedObject: {fileID: -4770600856821276478}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -1920526351586795887}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 3025819800490467034}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
@@ -313,6 +310,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 4323444541838615247}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.2413493
@@ -364,10 +370,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 5773246978882158280}
   animatorDriver: {fileID: 6073845140653462437}
-  nearbyAgentScanRadius: 0
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &5250026723770419512
@@ -479,6 +481,7 @@ MonoBehaviour:
   sampleDistance: 6
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 1.5
   maxWaitTime: 6
   stopDistance: 0.2
@@ -834,18 +837,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &-1920526351586795887
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6906698745191926969}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &3025819800490467034
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,0 +1,515 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ac44fc89311d4439a38d5be8105067a, type: 3}
+  m_Name: WorldStreamingConfigSites
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WorldSiteCatalog
+  sites: []
+  settlements:
+  - settlementId: 1c3973d9ea094a5bb1c9e91a52a50f8a
+    name: Settlement
+    position: {x: 2999, y: 128.69003, z: 618}
+    hasMuster: 1
+    musterPosition: {x: 2914.9211, y: 116.09183, z: 610.19775}
+    musterForward: {x: -0.9995226, y: 0, z: 0.030896366}
+    beds: 70
+    cultureProfileIndex: 0
+    roster:
+    - residentKey: r:0
+      archetypeIndex: 6
+      roles: 0
+      adult: 1
+      bonds: 010000000200000003000000040000000b0000000a000000
+      sourcePrefabGuid: 4f284d4a656604161b70bb841ec01d61
+      displayName: Sefa
+    - residentKey: r:1
+      archetypeIndex: 6
+      roles: 0
+      adult: 1
+      bonds: 000000000200000003000000040000000c0000000d000000
+      sourcePrefabGuid: 7d4a3ada411a446dc9ac4317d45b64ad
+      displayName: Oren
+    - residentKey: r:2
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 000000000100000003000000040000002400000038000000
+      sourcePrefabGuid: 9e7fd6836c1eb4625a847a487fc6ea96
+      displayName: Lesh
+    - residentKey: r:3
+      archetypeIndex: 2
+      roles: 0
+      adult: 1
+      bonds: 000000000100000002000000040000000500000007000000
+      sourcePrefabGuid: 81ea567969f7f4330add1a6066ca8121
+      displayName: Ulla
+    - residentKey: r:4
+      archetypeIndex: 21
+      roles: 8
+      adult: 1
+      bonds: 000000000100000002000000030000003c0000003d000000
+      sourcePrefabGuid: 2a28a2a29eacc416a8e2562a7dfafdb8
+      displayName: Dasra
+    - residentKey: r:5
+      archetypeIndex: 17
+      roles: 0
+      adult: 1
+      bonds: 060000000700000008000000090000002000000021000000
+      sourcePrefabGuid: 172915b40f756480a9df328461e89868
+      displayName: Mirza
+    - residentKey: r:6
+      archetypeIndex: 29
+      roles: 32
+      adult: 1
+      bonds: 050000000700000008000000090000000300000004000000
+      sourcePrefabGuid: 614738acaf01149c4b520fbdf6894b6c
+      displayName: Emru
+    - residentKey: r:7
+      archetypeIndex: 27
+      roles: 0
+      adult: 1
+      bonds: 050000000600000008000000090000000a0000000b000000
+      sourcePrefabGuid: 7439fdc30295f4676a28874bb9023bc9
+      displayName: Farid
+    - residentKey: r:8
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 050000000600000007000000090000000300000004000000
+      sourcePrefabGuid: 00e5e3143faba40f4a0c9d4f22a234b5
+      displayName: Bina
+    - residentKey: r:9
+      archetypeIndex: 14
+      roles: 0
+      adult: 1
+      bonds: 050000000600000007000000080000000300000004000000
+      sourcePrefabGuid: 6eabcf8a2c144405e9b53c006afa32cc
+      displayName: Nadia
+    - residentKey: r:10
+      archetypeIndex: 12
+      roles: 4
+      adult: 1
+      bonds: 0b0000000c0000000d0000000e0000003800000024000000
+      sourcePrefabGuid: 56eb1a823ad4947e3b8010316ee4842e
+      displayName: Rasha
+    - residentKey: r:11
+      archetypeIndex: 23
+      roles: 0
+      adult: 1
+      bonds: 0a0000000c0000000d0000000e0000000500000007000000
+      sourcePrefabGuid: 97c27ca5afc2b440ea8dbf6236ebb85a
+      displayName: Dalit
+    - residentKey: r:12
+      archetypeIndex: 28
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000d0000000e0000000500000007000000
+      sourcePrefabGuid: f2a1bce75c71646f698b5d8935877f1b
+      displayName: Qadi
+    - residentKey: r:13
+      archetypeIndex: 5
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000c0000000e0000004000000041000000
+      sourcePrefabGuid: 2ed95719bca964cdfa4dba1c0c5df707
+      displayName: Bekir
+    - residentKey: r:14
+      archetypeIndex: 11
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000c0000000d0000000500000007000000
+      sourcePrefabGuid: 55d15e02fccf94f97be4aa62258398bc
+      displayName: Faro
+    - residentKey: r:15
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 100000001100000012000000130000000500000007000000
+      sourcePrefabGuid: eb71ed0c8299e42a98a4d257003bc368
+      displayName: Jessa
+    - residentKey: r:16
+      archetypeIndex: 11
+      roles: 0
+      adult: 1
+      bonds: 0f0000001100000012000000130000000500000007000000
+      sourcePrefabGuid: ac01c64fafe234319b80da96e277c9b8
+      displayName: Nour
+    - residentKey: r:17
+      archetypeIndex: 34
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000012000000130000000500000007000000
+      sourcePrefabGuid: ea0d7a7c48707469cac37e8ee09deb3a
+      displayName: Idris
+    - residentKey: r:18
+      archetypeIndex: 24
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000011000000130000000500000007000000
+      sourcePrefabGuid: 63d1dd6311b31483e8a06ee70d5f4f4b
+      displayName: Asha
+    - residentKey: r:19
+      archetypeIndex: 35
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000011000000120000003e0000003f000000
+      sourcePrefabGuid: ea0d7a7c48707469cac37e8ee09deb3a
+      displayName: Parsa
+    - residentKey: r:20
+      archetypeIndex: 19
+      roles: 0
+      adult: 1
+      bonds: 150000001600000017000000180000000a00000005000000
+      sourcePrefabGuid: 7678f5b5e12cf42a4a4a0f6ddb15ba92
+      displayName: Hasna
+    - residentKey: r:21
+      archetypeIndex: 18
+      roles: 0
+      adult: 1
+      bonds: 140000001600000017000000180000000a00000005000000
+      sourcePrefabGuid: 75b8a315d2cf849148b247ddf8b672b9
+      displayName: Varo
+    - residentKey: r:22
+      archetypeIndex: 23
+      roles: 0
+      adult: 1
+      bonds: 14000000150000001700000018000000050000000a000000
+      sourcePrefabGuid: 354422bd6f3b3490b9abaae651f28d65
+      displayName: Imra
+    - residentKey: r:23
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 14000000150000001600000018000000050000000a000000
+      sourcePrefabGuid: 71a668d9b98c1427dbbc2acd31c89c9d
+      displayName: Kadir
+    - residentKey: r:24
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 140000001500000016000000170000000a00000013000000
+      sourcePrefabGuid: 4f284d4a656604161b70bb841ec01d61
+      displayName: Corin
+    - residentKey: r:25
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 1a0000001b0000001c0000001d0000000500000013000000
+      sourcePrefabGuid: 71a668d9b98c1427dbbc2acd31c89c9d
+      displayName: Yara
+    - residentKey: r:26
+      archetypeIndex: 23
+      roles: 0
+      adult: 1
+      bonds: 190000001b0000001c0000001d0000000a00000013000000
+      sourcePrefabGuid: 8dd77c340c0d24738ad012c40c0b0459
+      displayName: Galen
+    - residentKey: r:27
+      archetypeIndex: 23
+      roles: 0
+      adult: 1
+      bonds: 190000001a0000001c0000001d0000000a00000005000000
+      sourcePrefabGuid: 354422bd6f3b3490b9abaae651f28d65
+      displayName: Esra
+    - residentKey: r:28
+      archetypeIndex: 9
+      roles: 3
+      adult: 1
+      bonds: 190000001a0000001b0000001d0000000500000013000000
+      sourcePrefabGuid: 495d3a418e5ae4c75827e121eef641f1
+      displayName: Zeph
+    - residentKey: r:29
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 190000001a0000001b0000001c0000000500000013000000
+      sourcePrefabGuid: ebeb475745d3c4a28afbacf713f00555
+      displayName: Kesh
+    - residentKey: r:30
+      archetypeIndex: 12
+      roles: 4
+      adult: 1
+      bonds: 1f0000002000000021000000220000001700000006000000
+      sourcePrefabGuid: 0187ca26c394f4f469b1a3006ede0eeb
+      displayName: Amun
+    - residentKey: r:31
+      archetypeIndex: 23
+      roles: 0
+      adult: 1
+      bonds: 1e0000002000000021000000220000004000000041000000
+      sourcePrefabGuid: 60f54e71973fe4226b1d48e4c4c19527
+      displayName: Tamir
+    - residentKey: r:32
+      archetypeIndex: 14
+      roles: 0
+      adult: 1
+      bonds: 1e0000001f00000021000000220000000500000032000000
+      sourcePrefabGuid: 28e63b20028a64f7990e896d3762cfbf
+      displayName: 
+    - residentKey: r:33
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 1e0000001f00000020000000220000000500000006000000
+      sourcePrefabGuid: 00e5e3143faba40f4a0c9d4f22a234b5
+      displayName: 
+    - residentKey: r:34
+      archetypeIndex: 15
+      roles: 16
+      adult: 1
+      bonds: 1e0000001f00000020000000210000000a00000005000000
+      sourcePrefabGuid: f7d3c79419384464386a1973b4865422
+      displayName: 
+    - residentKey: r:35
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 240000002500000026000000270000000a00000005000000
+      sourcePrefabGuid: 7718fe4cf55ed4b29bec192e7a251133
+      displayName: 
+    - residentKey: r:36
+      archetypeIndex: 22
+      roles: 1
+      adult: 1
+      bonds: 230000002500000026000000270000000a00000033000000
+      sourcePrefabGuid: 12b3f030e79454abfa363cdcf726bcd1
+      displayName: 
+    - residentKey: r:37
+      archetypeIndex: 17
+      roles: 0
+      adult: 1
+      bonds: 230000002400000026000000270000003c0000000a000000
+      sourcePrefabGuid: 753771bef15834ad6989d6382051573b
+      displayName: 
+    - residentKey: r:38
+      archetypeIndex: 17
+      roles: 0
+      adult: 1
+      bonds: 230000002400000025000000270000000500000029000000
+      sourcePrefabGuid: 6cbc8eee5705a4efab681b8b6d19063d
+      displayName: 
+    - residentKey: r:39
+      archetypeIndex: 25
+      roles: 0
+      adult: 1
+      bonds: 23000000240000002500000026000000050000002a000000
+      sourcePrefabGuid: d4db20334765645fd8ed2bfd92da9752
+      displayName: 
+    - residentKey: r:40
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 290000002a0000002b0000002c0000002400000020000000
+      sourcePrefabGuid: 9e7fd6836c1eb4625a847a487fc6ea96
+      displayName: 
+    - residentKey: r:41
+      archetypeIndex: 20
+      roles: 8
+      adult: 1
+      bonds: 280000002a0000002b0000002c0000000200000024000000
+      sourcePrefabGuid: d7b830fd7553b4d07a97cadffa0ba701
+      displayName: 
+    - residentKey: r:42
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 28000000290000002b0000002c0000002400000020000000
+      sourcePrefabGuid: b1a441d697d7244e5a2d03264d70e8fd
+      displayName: 
+    - residentKey: r:43
+      archetypeIndex: 20
+      roles: 8
+      adult: 1
+      bonds: 28000000290000002a0000002c0000002400000002000000
+      sourcePrefabGuid: 4ad0310048f5745ea9be8e0d4d46770f
+      displayName: 
+    - residentKey: r:44
+      archetypeIndex: 26
+      roles: 0
+      adult: 1
+      bonds: 28000000290000002a0000002b0000002400000005000000
+      sourcePrefabGuid: 5225001ddcd6246e29c43f9aa68f6557
+      displayName: 
+    - residentKey: r:45
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 2e0000002f00000030000000310000002400000005000000
+      sourcePrefabGuid: eb71ed0c8299e42a98a4d257003bc368
+      displayName: 
+    - residentKey: r:46
+      archetypeIndex: 21
+      roles: 8
+      adult: 1
+      bonds: 2d0000002f00000030000000310000000500000020000000
+      sourcePrefabGuid: d7b830fd7553b4d07a97cadffa0ba701
+      displayName: 
+    - residentKey: r:47
+      archetypeIndex: 8
+      roles: 2
+      adult: 1
+      bonds: 2d0000002e00000030000000310000000500000020000000
+      sourcePrefabGuid: f2a1bce75c71646f698b5d8935877f1b
+      displayName: 
+    - residentKey: r:48
+      archetypeIndex: 16
+      roles: 0
+      adult: 1
+      bonds: 2d0000002e0000002f00000031000000200000002a000000
+      sourcePrefabGuid: 4e48d8650da0b48b7b8e9afa8c0b41e8
+      displayName: 
+    - residentKey: r:49
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 2d0000002e0000002f000000300000002000000005000000
+      sourcePrefabGuid: 8c707996962274518bd451ff5dab9258
+      displayName: 
+    - residentKey: r:50
+      archetypeIndex: 16
+      roles: 0
+      adult: 1
+      bonds: 330000003400000035000000360000002000000002000000
+      sourcePrefabGuid: 403b506b1d2da494eb2e8de34dfcba19
+      displayName: 
+    - residentKey: r:51
+      archetypeIndex: 0
+      roles: 0
+      adult: 1
+      bonds: 320000003400000035000000360000002400000020000000
+      sourcePrefabGuid: 2cbfe744a7e1b436f8c1988429c46e9c
+      displayName: 
+    - residentKey: r:52
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 320000003300000035000000360000002400000020000000
+      sourcePrefabGuid: b71338158374943ea8234f7ff3ba6a5a
+      displayName: 
+    - residentKey: r:53
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 320000003300000034000000360000002400000002000000
+      sourcePrefabGuid: c87391b23c12d4857bc382aa3edc3668
+      displayName: 
+    - residentKey: r:54
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 320000003300000034000000350000002000000026000000
+      sourcePrefabGuid: 8c707996962274518bd451ff5dab9258
+      displayName: 
+    - residentKey: r:55
+      archetypeIndex: 31
+      roles: 0
+      adult: 1
+      bonds: 38000000390000003a0000003b0000000200000020000000
+      sourcePrefabGuid: 17730c20645fa4ecfb865e8e263e59a0
+      displayName: 
+    - residentKey: r:56
+      archetypeIndex: 5
+      roles: 0
+      adult: 1
+      bonds: 37000000390000003a0000003b0000000a00000002000000
+      sourcePrefabGuid: 135b9e832943c4c8a97e537b23e53e5f
+      displayName: 
+    - residentKey: r:57
+      archetypeIndex: 20
+      roles: 8
+      adult: 1
+      bonds: 37000000380000003a0000003b0000000a00000020000000
+      sourcePrefabGuid: 42b14c93f650343d9904c00262437ec4
+      displayName: 
+    - residentKey: r:58
+      archetypeIndex: 34
+      roles: 0
+      adult: 1
+      bonds: 3700000038000000390000003b0000002000000028000000
+      sourcePrefabGuid: 5be15441b015f45f380bf876a5c4786f
+      displayName: 
+    - residentKey: r:59
+      archetypeIndex: 21
+      roles: 8
+      adult: 1
+      bonds: 3700000038000000390000003a0000002000000028000000
+      sourcePrefabGuid: 4ad0310048f5745ea9be8e0d4d46770f
+      displayName: 
+    - residentKey: r:60
+      archetypeIndex: 3
+      roles: 8
+      adult: 1
+      bonds: 3d0000003e0000003f000000400000002500000042000000
+      sourcePrefabGuid: c8f281bb0a3ec471c800cb947618f526
+      displayName: 
+    - residentKey: r:61
+      archetypeIndex: 14
+      roles: 0
+      adult: 1
+      bonds: 3c0000003e0000003f000000400000002500000013000000
+      sourcePrefabGuid: c87391b23c12d4857bc382aa3edc3668
+      displayName: 
+    - residentKey: r:62
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 3c0000003d0000003f00000040000000130000000d000000
+      sourcePrefabGuid: 192105a79d9644a9ba3346e28a99c798
+      displayName: 
+    - residentKey: r:63
+      archetypeIndex: 12
+      roles: 4
+      adult: 1
+      bonds: 3c0000003d0000003e00000040000000130000000d000000
+      sourcePrefabGuid: eea9913c3325d4eeb9a68d5e1927f6c5
+      displayName: 
+    - residentKey: r:64
+      archetypeIndex: 9
+      roles: 3
+      adult: 1
+      bonds: 3c0000003d0000003e0000003f0000000d00000013000000
+      sourcePrefabGuid: 495d3a418e5ae4c75827e121eef641f1
+      displayName: 
+    - residentKey: r:65
+      archetypeIndex: 22
+      roles: 1
+      adult: 1
+      bonds: 420000004300000044000000450000000d0000003c000000
+      sourcePrefabGuid: 12b3f030e79454abfa363cdcf726bcd1
+      displayName: 
+    - residentKey: r:66
+      archetypeIndex: 12
+      roles: 4
+      adult: 1
+      bonds: 410000004300000044000000450000003c0000000d000000
+      sourcePrefabGuid: eea9913c3325d4eeb9a68d5e1927f6c5
+      displayName: 
+    - residentKey: r:67
+      archetypeIndex: 1
+      roles: 0
+      adult: 1
+      bonds: 410000004200000044000000450000003c0000000d000000
+      sourcePrefabGuid: d837e39f7c1dd47939ac2078d62f04d4
+      displayName: 
+    - residentKey: r:68
+      archetypeIndex: 11
+      roles: 0
+      adult: 1
+      bonds: 410000004200000043000000450000003c00000020000000
+      sourcePrefabGuid: 12c6429098b884b78afb13a7ebe15ae2
+      displayName: 
+    - residentKey: r:69
+      archetypeIndex: 20
+      roles: 8
+      adult: 1
+      bonds: 410000004200000043000000440000003c00000020000000
+      sourcePrefabGuid: 8dfde592622fd47888528caeb6b86738
+      displayName: 

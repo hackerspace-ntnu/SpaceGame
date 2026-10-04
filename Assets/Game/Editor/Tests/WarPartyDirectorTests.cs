@@ -99,6 +99,7 @@ namespace SpaceGame.EditorTools
 
             Assert.IsNotNull(party);
             Assert.AreEqual(Player, party.QuarryProfileId);
+            Assert.AreEqual(NpcGroup.OwnerWar, party.Owner);
             Assert.AreEqual(0, party.Tier);
             Assert.AreEqual(250f + 30f + 100f, new Vector2(party.Position.x, party.Position.z).magnitude, 0.5f);
             Assert.IsTrue(party.HasLead);

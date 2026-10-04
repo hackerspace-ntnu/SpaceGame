@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54862c0fb1d14b798837a1e081db32ca, type: 3}
+  m_Name: Brewer
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentArchetype
+  roleName: brewer
+  post: {fileID: 11400000, guid: 08d5617274c6410e89999ad223b88f3e, type: 2}
+  trips: 0
+  chore: {fileID: 0}
+  duty: 0
+  challengesArmed: 0
+  nerve: 0.5
+  temper: 0.3
+  pushesCart: 0
+  heldItem: {fileID: 11400000, guid: e792006a20a6e4cf48fff311b972bbf1, type: 2}
+  beltItems:
+  - {fileID: 11400000, guid: 00774aaf3eccf481fa373f0f322d223f, type: 2}
+  - {fileID: 11400000, guid: 243a28d045535489bb1166385f2f4482, type: 2}

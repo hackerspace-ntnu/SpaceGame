@@ -21,6 +21,7 @@ MonoBehaviour:
     enter: {fileID: 0}
     exit: {fileID: 0}
     selectionWeight: 1
+    contactAt: 0
   authoredHand: 0
   mirrorForOtherArm: 0
   speedRange: {x: 1, y: 1}
@@ -30,4 +31,4 @@ MonoBehaviour:
   cues:
   - {fileID: 11400000, guid: 599dfae6df6354d2aae60815659b1082, type: 2}
   - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
-  postures: 0
+  postures: 5

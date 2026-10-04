@@ -98,9 +98,22 @@ namespace SpaceGame.Presentation
         /// <summary>Points the vignette at the wearer's health. Safe with null, and idempotent.</summary>
         public void Watch(HealthComponent health) => watched = health;
 
-        private void Awake()
+        /// <summary>
+        /// Builds the two arc panels. Called by <see cref="HelmetHUDController"/> straight after it
+        /// adds this component, with a shader it holds a serialized reference to: a shader found by
+        /// name is stripped from a player build, and the stand-in that "works" there is a full-screen
+        /// red rectangle per side.
+        /// </summary>
+        public void Build(Shader vignetteShader)
         {
-            BuildPanels();
+            if (vignetteShader == null)
+            {
+                Debug.LogError("[HelmetDangerVignette] No vignette shader assigned on HelmetHUDController; " +
+                               "the damage arcs are disabled.", this);
+                return;
+            }
+
+            BuildPanels(vignetteShader);
         }
 
         private void OnEnable()
@@ -128,15 +141,8 @@ namespace SpaceGame.Presentation
             else HitBoth(strength);
         }
 
-        private void BuildPanels()
+        private void BuildPanels(Shader shader)
         {
-            var shader = Shader.Find("UI/HelmetHUDDangerVignette");
-            if (shader == null)
-            {
-                Debug.LogWarning("[HelmetDangerVignette] Shader 'UI/HelmetHUDDangerVignette' not found. Falling back to UI/Default.");
-                shader = Shader.Find("UI/Default");
-                if (shader == null) return;
-            }
             material = new Material(shader) { hideFlags = HideFlags.DontSave };
 
             for (int i = 0; i < SideCount; i++)

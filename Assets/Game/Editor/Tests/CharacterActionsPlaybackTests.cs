@@ -4,6 +4,7 @@
 // way and the runtime another, a layer left at weight 1 over a pose it no longer plays, a loop that
 // restarts every time gameplay re-asserts it. These drive the real controller on a real drifter,
 // frame by frame, and read back what the Animator actually did.
+using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using SpaceGame.Items;
@@ -35,7 +36,7 @@ namespace SpaceGame.EditorTools
 
             // No Awake is raised, deliberately: CharacterActions must work for a caller that reaches
             // it first — another module's OnEnable during Instantiate did, on every NPC spawn. Edit
-            // mode raises no Update either; Advance does.
+            // mode raises no LateUpdate either; Advance does.
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             animator.Rebind();
             animator.Update(0f);
@@ -139,12 +140,52 @@ namespace SpaceGame.EditorTools
                           "a full-body action stops the overriding slots only; an additive kick adds to it");
         }
 
+        [Test]
+        public void EveryVariantOfEveryActionEntersItsFirstStateOnARealBody()
+        {
+            var failures = new List<string>();
+            foreach (CharacterAction action in HumanoidControllerBuilder.CollectActions())
+            {
+                int layer = animator.GetLayerIndex(HumanoidLayers.ForSlot(action.BodySlot));
+                var first = action.Mode == CharacterAction.Playback.EnterLoopExit
+                    ? HumanoidLayers.Stage.Enter
+                    : HumanoidLayers.Stage.Main;
+
+                for (int variant = 0; variant < action.VariantCount; variant++)
+                {
+                    CharacterAction.Variant v = action.GetVariant(variant);
+                    AnimationClip played = first == HumanoidLayers.Stage.Enter ? v.enter : v.clip;
+
+                    // The Animator reports the state being left until the crossfade ends, and a clip
+                    // shorter than its own fade has already handed the layer back by then.
+                    float wait = action.FadeIn + 0.1f;
+                    if (played == null || played.length < wait + 0.1f) continue;
+
+                    if (!actions.Play(action, null, variant))
+                    {
+                        failures.Add($"{action.name} variant {variant} would not start");
+                        continue;
+                    }
+
+                    Advance(wait);
+                    int expected = Animator.StringToHash(HumanoidLayers.StateName(action, variant, first));
+                    if (animator.GetCurrentAnimatorStateInfo(layer).shortNameHash != expected)
+                        failures.Add($"{action.name} variant {variant} did not reach its '{first}' state");
+
+                    actions.Stop(action);
+                    Advance(0.5f);
+                }
+            }
+
+            Assert.IsEmpty(failures, "actions that never play on a wired body:\n  " + string.Join("\n  ", failures));
+        }
+
         private void Advance(float seconds)
         {
             for (float t = 0f; t < seconds; t += Step)
             {
                 animator.Update(Step);
-                Call("Update");
+                Call("LateUpdate");
             }
         }
 

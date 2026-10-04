@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: Tool_SiftingPan
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: f60f1d25384b14da6b55f8e69e74fc51
+  itemName: Sifting Pan
+  itemPrefab: {fileID: 9111930214885007490, guid: a7f18f7d2156840c394797a70b424b06, type: 3}
+  icon: {fileID: 21300000, guid: 8aaeaafc5254045c6a38fd6ef62c9333, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0
+  menacing: 0
+  curiosity: 0
+  showInDevBrowser: 0

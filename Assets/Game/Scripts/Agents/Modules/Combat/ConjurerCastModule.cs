@@ -66,8 +66,7 @@
 //
 // Claims movement only while settling and casting. Out of range it returns null and
 // passes, so ChaseModule (priority 20, below this one's 22) closes the gap on its
-// own. That is the same division AgentRangedCombatModule uses and it is why this
-// module does no walking.
+// own. That division is why this module does no walking.
 //
 // ---- why there is a SETTLE phase at all --------------------------------------
 //

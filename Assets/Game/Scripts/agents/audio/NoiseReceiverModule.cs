@@ -37,6 +37,14 @@ namespace SpaceGame.Agents
         [Header("Events")]
         public UnityEvent<Vector3> OnHearNoise;
 
+        /// <summary>
+        /// Every noise this receiver hears — type, origin, instigator — whatever its masks say.
+        /// Raised where noise is processed, which is the server: <see cref="Noise"/> is emitted on
+        /// the machine that decided the sound happened. For code that reacts in its own way (a
+        /// settlement resident waking to a racket) without being an investigate or aggro type.
+        /// </summary>
+        public event Action<NoiseType, Vector3, Transform> Heard;
+
         private AgentTargeting targeting;
 
         private bool isInvestigating;
@@ -45,6 +53,16 @@ namespace SpaceGame.Agents
 
         // Set by RestoreInvestigation, consumed by the next OnEnable.
         private bool restoredInvestigation;
+
+        /// <summary>
+        /// Replaces which noises are investigated and which make the instigator a target. For an owner
+        /// that answers the rest itself — a settlement resident, whose routine must not be walked off.
+        /// </summary>
+        public void ReactTo(NoiseTypeMask investigate, NoiseTypeMask aggro)
+        {
+            investigateOn = investigate;
+            aggroOn = aggro;
+        }
 
         // ── Persisted state ───────────────────────────────────────────────────────
         public bool IsInvestigating => isInvestigating;
@@ -117,6 +135,7 @@ namespace SpaceGame.Agents
             NoiseTypeMask typeMask = TypeToMask(type);
 
             OnHearNoise?.Invoke(origin);
+            Heard?.Invoke(type, origin, instigator);
 
             // Never aggro onto yourself. AgentTargeting.ForceTarget has no self-check of its own,
             // and a creature handed its own transform chases a target it can never lose and melees
@@ -143,18 +162,20 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            // A gunshot heard by an agent with a meter winds it up as well as sending it to look.
-            // Deliberately BOTH: the walk to the source is what the player sees, and the meter is
-            // why the seventh shot near a camp is different from the first.
+            // A gunshot heard by an agent with a meter winds it up — and, if Gunshot is an
+            // investigate type, sends it to look as well. Deliberately outside that gate: the walk
+            // to the source is what the player sees, the meter is why the seventh shot near a camp
+            // is different from the first, and an agent that does not walk toward shots (a
+            // settlement resident) still has to count them.
+            if (type == NoiseType.Gunshot && instigator && !IsAlly(instigator)
+                && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                && TryGetComponent(out ProvocationModule heard))
+            {
+                heard.AddAggression(AggressionInput.Gunshot, 1f, instigator);
+            }
+
             if ((investigateOn & typeMask) != 0)
             {
-                if (type == NoiseType.Gunshot && instigator && !IsAlly(instigator)
-                    && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
-                    && TryGetComponent(out ProvocationModule heard))
-                {
-                    heard.AddAggression(AggressionInput.Gunshot, 1f, instigator);
-                }
-
                 investigatePosition = origin;
                 investigateTimer = investigateDuration;
                 isInvestigating = true;

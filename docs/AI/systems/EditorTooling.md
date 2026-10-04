@@ -18,7 +18,7 @@ symptoms:
   - "a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects"
   - "the menu item a doc names is not in the Tools menu"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-28
+updated: 2026-10-02
 ---
 # Editor Tooling
 
@@ -76,11 +76,12 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | Tools/SpaceGame/Ragdoll/Wire Prefabs | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Adds `AgentRagdoll`/`PlayerRagdoll` across creature + player prefabs |
 | Tools/SpaceGame/Ragdoll/{Report Candidates, Audit Skeletons, Diagnose Wired Prefabs} | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Read-only: felling candidates, skinned vs rigid-part rigs, broken joints on wired prefabs |
 | Tools/Tests/Run EditMode Tests (headless) | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Runs the EditMode suite, writes a result file |
-| Tools/Tests/{Build Multiplayer Test Player, Print Multiplayer Test Commands} | [MultiplayerTestPlayerBuilder.cs](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) | Builds the standalone player for two-machine tests; logs the host/client CLI invocations |
+| Tools/Tests/{Build Multiplayer Test Player, Print Multiplayer Test Commands} | [MultiplayerTestPlayerBuilder.cs](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) | Builds the standalone player for two-machine tests (the three core scenes plus the 11 chunk scenes around the nomad settlement and the spawn); logs the host/client CLI invocations |
 | Tools/World/Bake Sandstorm Noise | [SandstormNoiseGenerator.cs](Assets/Game/Editor/Weather/SandstormNoiseGenerator.cs) | Writes `Textures/Environment/SandstormNoise.asset` |
 | Tools/World Streaming/Chunk World | [WorldChunkerEditor.cs](Assets/Game/Editor/World/WorldChunkerEditor.cs) | Window: splits a master scene into 500×500 m chunk scenes + TerrainData, rewrites `WorldStreamingConfig.asset` |
 | Tools/World Streaming/Bake Map Meshes | [MapMeshBaker.cs](Assets/Game/Editor/Map/MapMeshBaker.cs) | Window: one low-poly mesh per chunk into `Resources/MapMeshes` |
 | World/Streaming/Bake World NavMesh | [WorldNavMeshBaker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) | Bakes all chunk collision into one NavMesh asset (edit mode only) |
+| World/Streaming/Audit Settlement NavMesh · Show Settlement NavMesh Audit Findings | [SettlementNavMeshAudit.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/SettlementNavMeshAudit.cs) | Read-only. NavMesh islands, then every loaded settlement's spots, entrances, ladders and pen gates checked on-mesh and reachable from the walkable heart, plus narrow stair flights; failures logged by path and drawn in the Scene view |
 | World/Streaming/Check World NavMesh Is Current | [WorldNavMeshStaleness.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) | Compares per-chunk dependency hashes against bake-time hashes |
 | World/Streaming/Run Chunk Traversal Probe | [ChunkStreamingProbeMenu.cs](Assets/Game/Scripts/World/Streaming/Diagnostics/Editor/ChunkStreamingProbeMenu.cs) | Deletes the old report, arms a streaming probe run |
 

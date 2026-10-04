@@ -25,6 +25,17 @@ namespace SpaceGame.World
 
             public float NextFloat01() => TerrainNoiseHelper.Hash01(seed, salt++);
 
+            /// <summary>
+            /// True with probability <paramref name="chance"/>. Draws nothing when the chance is
+            /// certain, so giving an existing layout a chance of 1 never shifts its later draws.
+            /// </summary>
+            public bool NextChance(float chance) => chance >= 1f || NextFloat01() < chance;
+
+            public float NextRange(float min, float max) => Mathf.Lerp(min, max, NextFloat01());
+
+            /// <summary>Uniform index in [0, count).</summary>
+            public int NextIndex(int count) => Mathf.Min(Mathf.FloorToInt(NextFloat01() * count), count - 1);
+
             /// <summary>Uniformly distributed point inside a disc of the given radius, centered on the origin.</summary>
             public Vector2 NextPointInDisk(float radius)
             {
@@ -50,16 +61,25 @@ namespace SpaceGame.World
         }
 
         /// <summary>
-        /// A prefab's true rendered XZ footprint, measured from its mesh bounds by walking every
+        /// A prefab's true rendered XZ footprint size, measured from its mesh bounds by walking every
         /// <see cref="MeshFilter"/> in its hierarchy. Falls back to <paramref name="fallback"/> when
         /// the prefab has no mesh (e.g. it's an empty spawn marker).
         /// </summary>
-        public static Vector2 ComputeFootprint(GameObject prefab, Vector2 fallback)
+        public static Vector2 ComputeFootprint(GameObject prefab, Vector2 fallback) =>
+            MeasureFootprint(prefab, fallback).size;
+
+        /// <summary>
+        /// Like <see cref="ComputeFootprint"/>, but keeps where the footprint sits relative to the
+        /// prefab's pivot (x = X, y = Z, in the root's unscaled local frame) -- a building whose
+        /// pivot is not at its middle would otherwise be spaced as if it were.
+        /// </summary>
+        public static Rect MeasureFootprint(GameObject prefab, Vector2 fallback)
         {
-            if (prefab == null) return fallback;
+            Rect fallbackRect = new Rect(-fallback * 0.5f, fallback);
+            if (prefab == null) return fallbackRect;
 
             var filters = prefab.GetComponentsInChildren<MeshFilter>(true);
-            if (filters.Length == 0) return fallback;
+            if (filters.Length == 0) return fallbackRect;
 
             Bounds combined = default;
             bool init = false;
@@ -93,29 +113,76 @@ namespace SpaceGame.World
                 }
             }
 
-            return init ? new Vector2(combined.size.x, combined.size.z) : fallback;
+            return init
+                ? Rect.MinMaxRect(combined.min.x, combined.min.z, combined.max.x, combined.max.z)
+                : fallbackRect;
         }
 
-        /// <summary>Half the clearance a prefab needs from its neighbours: its own longest XZ extent plus the configured spacing.</summary>
-        public static float ClearanceRadius(GameObject prefab, float minSpacing, Vector2 fallbackFootprint)
-        {
-            Vector2 footprint = ComputeFootprint(prefab, fallbackFootprint);
-            float longest = Mathf.Max(footprint.x, footprint.y);
-            return (longest + minSpacing) * 0.5f;
-        }
+        /// <summary>
+        /// Raycasts straight down onto whatever terrain/ground collider is loaded at this XZ. Mask
+        /// defaults to everything, matching the existing settlement generator. Colliders under
+        /// <paramref name="ignoreUnder"/> are looked through -- terrain shares layer Default with
+        /// buildings, so the mask alone cannot keep a building off its neighbour's roof.
+        /// </summary>
+        public static bool SampleGround(Vector3 worldXZ, out float groundY, LayerMask mask = default, Transform ignoreUnder = null) =>
+            SampleGround(worldXZ, out groundY, out _, mask, ignoreUnder);
 
-        /// <summary>Raycasts straight down onto whatever terrain/ground collider is loaded at this XZ. Mask defaults to everything, matching the existing settlement generator.</summary>
-        public static bool SampleGround(Vector3 worldXZ, out float groundY, LayerMask mask = default)
+        /// <summary><see cref="SampleGround(Vector3, out float, LayerMask, Transform)"/>, plus the surface normal there.</summary>
+        public static bool SampleGround(Vector3 worldXZ, out float groundY, out Vector3 normal, LayerMask mask = default, Transform ignoreUnder = null)
         {
             if (mask == default) mask = ~0;
             Vector3 origin = new Vector3(worldXZ.x, worldXZ.y + 500f, worldXZ.z);
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 2000f, mask, QueryTriggerInteraction.Ignore))
-            {
-                groundY = hit.point.y;
-                return true;
-            }
+            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, 2000f, mask, QueryTriggerInteraction.Ignore);
+
+            float nearest = float.PositiveInfinity;
             groundY = worldXZ.y;
-            return false;
+            normal = Vector3.up;
+            foreach (var hit in hits)
+            {
+                if (ignoreUnder != null && hit.transform.IsChildOf(ignoreUnder)) continue;
+                if (hit.distance >= nearest) continue;
+                nearest = hit.distance;
+                groundY = hit.point.y;
+                normal = hit.normal;
+            }
+            return !float.IsPositiveInfinity(nearest);
+        }
+
+        /// <summary>
+        /// Height of the terrain tile under <paramref name="xz"/> among <paramref name="terrains"/>, or
+        /// <paramref name="fallback"/> off every tile. Terrain only -- no raycast, so buildings,
+        /// rocks and a settlement's own output never count; cheap enough to sample a whole grid.
+        /// </summary>
+        public static float TerrainHeightAt(Terrain[] terrains, Vector2 xz, float fallback)
+        {
+            foreach (var terrain in terrains)
+            {
+                if (terrain == null || terrain.terrainData == null) continue;
+                Vector3 p = terrain.transform.position, size = terrain.terrainData.size;
+                if (xz.x < p.x || xz.y < p.z || xz.x > p.x + size.x || xz.y > p.z + size.z) continue;
+                return p.y + terrain.SampleHeight(new Vector3(xz.x, 0f, xz.y));
+            }
+            return fallback;
+        }
+
+        /// <summary>
+        /// Instantiates <paramref name="prefab"/> as a prefab instance (in the editor) at a pose, then
+        /// syncs physics so later ground rays and overlap tests in the same generate see it there.
+        /// </summary>
+        public static GameObject SpawnPrefab(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation)
+        {
+            GameObject go;
+#if UNITY_EDITOR
+            go = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab, parent);
+            go.transform.SetPositionAndRotation(position, rotation);
+#else
+            go = Object.Instantiate(prefab, position, rotation, parent);
+#endif
+            // Physics auto-sync is off in this project (DynamicsManager), so without this the
+            // colliders stay where InstantiatePrefab created them -- at the settlement centre --
+            // and every later ground ray and overlap test in this Generate hits them there.
+            Physics.SyncTransforms();
+            return go;
         }
     }
 }

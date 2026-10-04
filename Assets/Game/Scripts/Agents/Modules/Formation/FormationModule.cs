@@ -1,9 +1,8 @@
 // Keeps a group travelling together in a loose column.
 //
-// Sibling to HerdModule, not a replacement for it, and deliberately not an edit of it: a herd
-// spreads onto a CIRCLE around a shared destination, which is right for animals settling at a
-// waterhole and wrong for anything crossing a map. A caravan wants a line — mostly. Both live at
-// Social priority and a prefab takes whichever it wants.
+// A line rather than a circle: spreading onto a ring around a shared destination is right for
+// animals settling at a waterhole and wrong for anything crossing a map. A caravan wants a line —
+// mostly. Lives at Social priority.
 //
 // The division of labour: the LEADER is not managed at all. It runs its own task, goal, wander and
 // combat modules exactly as if it were alone, and this module only reads where it is and which way
@@ -114,7 +113,7 @@ namespace SpaceGame.Agents
         private void OnDisable() => Unregister(this);
 
         public override string ModuleDescription =>
-            "Group travel in a loose column. Sibling to HerdModule, which spreads onto a circle instead.\n\n" +
+            "Group travel in a loose column.\n\n" +
             "• formationId — members sharing this string travel together\n" +
             "• isLeader — this member routes; everyone else follows. Its own task/goal drives the group.\n" +
             "• shape.Lanes — 1 = single file, 2 = mostly a line, 3+ = a travelling mob\n" +

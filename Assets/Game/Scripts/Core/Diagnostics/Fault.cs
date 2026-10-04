@@ -24,6 +24,7 @@
 // N independent plug-ins and the others are entitled to run.
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Diagnostics
@@ -37,6 +38,12 @@ namespace SpaceGame.Diagnostics
         public const float WindowSeconds = 10f;
 
         private static FaultBudget budget = new(MaxFaultsPerWindow, WindowSeconds);
+
+        // Instance ids of owners with at least one quarantined site. The budget is keyed by a
+        // string, and building that string on every entry is an allocation per call — on the agent
+        // loop, one per module per creature per frame. Only an owner listed here can be quarantined,
+        // so every other owner is let in without the key ever being built.
+        private static readonly HashSet<int> ownersWithQuarantine = new();
 
         /// <summary>Raised for every fault, quarantining or not.</summary>
         public static event Action<FaultRecord> Raised;
@@ -52,6 +59,7 @@ namespace SpaceGame.Diagnostics
         public static void ResetForPlaySession()
         {
             budget = new FaultBudget(MaxFaultsPerWindow, WindowSeconds);
+            ownersWithQuarantine.Clear();
             Raised = null;
             Quarantined = null;
             FaultLedger.Clear();
@@ -68,15 +76,7 @@ namespace SpaceGame.Diagnostics
         /// </summary>
         public static bool Run(Component owner, string site, Action body)
         {
-            if (body == null) return false;
-
-            // Unity's null: a destroyed object compares equal to null while the C# reference lives.
-            // A body whose owner has gone is not a fault, it is a teardown — reporting it would fill
-            // the ledger with noise on every scene unload.
-            if (owner == null) return false;
-
-            string key = Key(owner, site);
-            if (budget.IsQuarantined(key)) return false;
+            if (body == null || !TryEnter(owner, site)) return false;
 
             try
             {
@@ -85,13 +85,55 @@ namespace SpaceGame.Diagnostics
             }
             catch (Exception e)
             {
-                Report(owner, site, key, e);
+                Report(owner, site, e);
                 return false;
             }
         }
 
+        /// <summary>
+        /// The allocation-free half of <see cref="Run"/>, for hot loops that cannot afford a closure
+        /// per call: true when the caller may enter <paramref name="site"/>. The caller then runs its
+        /// body in its own try/catch and hands any exception to
+        /// <see cref="Report(Component, string, Exception)"/>.
+        ///
+        /// <para>
+        /// False when the owner is gone or the site is quarantined — the same two cases in which
+        /// <see cref="Run"/> does not enter its body. The site key is built only for an owner that
+        /// already has a quarantined site, so the common case allocates nothing.
+        /// </para>
+        /// </summary>
+        public static bool TryEnter(Component owner, string site)
+        {
+            // Unity's null: a destroyed object compares equal to null while the C# reference lives.
+            // A body whose owner has gone is not a fault, it is a teardown — reporting it would fill
+            // the ledger with noise on every scene unload.
+            if (owner == null) return false;
+
+            return !ownersWithQuarantine.Contains(owner.GetInstanceID())
+                || !budget.IsQuarantined(Key(owner, site));
+        }
+
+        /// <summary>
+        /// Counts, logs and — on the fault that exhausts the budget — quarantines a throw caught by a
+        /// caller that entered through <see cref="TryEnter"/>. It is the same report <see cref="Run"/>
+        /// makes, and it counts against the budget, so call it once per caught exception and never
+        /// for a body that was not entered.
+        /// </summary>
+        public static void Report(Component owner, string site, Exception e)
+        {
+            // A body that destroyed its own owner and then threw: nothing is left to count against
+            // or switch off, but the exception is still real and nothing else will show it.
+            if (owner == null)
+            {
+                Debug.LogException(e);
+                return;
+            }
+
+            Report(owner, site, Key(owner, site), e);
+        }
+
         public static bool IsQuarantined(Component owner, string site) =>
-            owner != null && budget.IsQuarantined(Key(owner, site));
+            owner != null && !TryEnter(owner, site);
 
         /// <summary>
         /// Wraps <paramref name="body"/> so a throw inside it ends the coroutine instead of killing
@@ -161,6 +203,7 @@ namespace SpaceGame.Diagnostics
 
             if (!trips) return;
 
+            ownersWithQuarantine.Add(owner.GetInstanceID());
             Quarantine(owner);
             Raise(Quarantined, record);
         }

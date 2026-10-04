@@ -41,8 +41,8 @@ Execution order of the whole stack:
 | 100 | `LeggedLocomotion` (asmdef `SpaceGame.Locomotion`) |
 | LateUpdate | `AgentAnimatorDriver` self-drive; `EntityEquipmentController` aim |
 
-Modules are discovered with `GetComponentsInChildren<MonoBehaviour>(true)` in `Awake`. Adding a
-module at runtime requires `AgentController.RefreshModules()`.
+Modules are discovered with `GetComponentsInChildren<MonoBehaviour>(true)` once, in `Awake`. A
+module added at runtime is never ticked; put modules on the prefab.
 
 ---
 
@@ -77,8 +77,7 @@ void OnValidate()`.
 `Reactive 20`, `Social 15`, `Ambient 10`, `Personality 5`, `Fallback 0`.
 
 `AI/Core/MoveIntent.cs` factories: `MoveIntent.Idle()`,
-`MoveIntent.MoveTo(pos, stopDistance = 0.2f, speedMultiplier = 1f, overrideFacingDirection = false,
-facingDirection = default, isRunning = false)`, `MoveIntent.StopAndFace(facePosition)`, and the
+`MoveIntent.MoveTo(pos, stopDistance = 0.2f, speedMultiplier = 1f, isRunning = false)`, `MoveIntent.StopAndFace(facePosition)`, and the
 instance method `.WithFacing(Vector3)`.
 
 `AI/Core/AgentContext.cs` fields: `Transform Self`, `Vector3 Position`, `Vector3 Velocity`,
@@ -96,11 +95,10 @@ instance method `.WithFacing(Vector3)`.
 |---|---|---|---|
 | `WanderModule` | Fallback 0 | Random NavMesh roaming, optional radius limit, wait between points | NavMesh |
 | `PatrolModule` | Fallback 0 | RadiusBased or PatrolPoints waypoint cycling (sequence / ping-pong / random) | NavMesh, optional waypoint Transforms |
-| `BasePatrolModule` | Fallback 0 | Random NavMesh points around a fixed base position | NavMesh |
 | `GoalTravelModule` | Fallback+1 = 1 | Walks to `AgentGoal.Position`; returns null on arrival so wander takes over | `AgentGoal` (auto-added) |
 | `KeepDistanceModule` | Ambient 10 | Kites: backs off when too close, faces otherwise | NavMesh |
 | `SearchModule` | Reactive-1 = 19 | On losing the target, moves to `AgentTargeting.LastKnownPosition`, searches, then passes | `AgentTargeting` |
-| `ChaseModule` | Reactive 20 | Drives at `AgentTargeting.Target`; auto-tightens stop distance and disables herd spread when a `CloseCombatModule` is present | `AgentTargeting` |
+| `ChaseModule` | Reactive 20 | Drives at `AgentTargeting.Target`; auto-tightens stop distance when a `CloseCombatModule` is present | `AgentTargeting` |
 | `FleeModule` | Override 30 | Runs from the nearest entity of a chosen `FactionRelationship`; hysteresis via triggerRadius/safeRadius | `EntityFaction`, NavMesh |
 | `SteerModule` | Scripted 100 | Rider input, camera, jump, hold-to-leap | `MountModule`, `AgentController` |
 
@@ -108,23 +106,21 @@ instance method `.WithFacing(Vector3)`.
 
 | Module | Default priority | What it does | Requires |
 |---|---|---|---|
-| `HerdModule` | Social 15 | Rebroadcasts the highest-priority intent in the herd; members spread onto a ring, then settle. Also provides `GetSlotPositionAround` | shared `herdId` string |
 | `FormationModule` | Social 15 | Keeps a group in a column behind an unmanaged leader | leader reference / group id |
 
 ### Facing (second channel)
 
 `WatchModule` (Ambient), `IdleLookAroundModule` (Personality) and
 `InteractionFocusModule` (Scripted) are **movement** modules that return `StopAndFace` — they are
-not `IFacingModule`. The only true `IFacingModule` implementors are `AgentRangedCombatModule`
-(`FacingPriority => Priority`) and `NpcItemUseModule` (serialized `facingPriority`).
+not `IFacingModule`. The true `IFacingModule` implementors are `NpcItemUseModule` (serialized
+`facingPriority`), `AggressionTelegraphModule`, `ConjurerCastModule` and `ResidentAwareness`.
 
 ### Combat
 
 | Module | Priority | Claims movement | Notes |
 |---|---|---|---|
 | `CloseCombatModule` | MeleeAttack 23 | yes (`StopAndFace`) | `rangeExitFactor` hysteresis + `attackCommitDuration`; exposes `AttackRange` |
-| `AgentRangedCombatModule` | RangedAttack 22 | yes | Owns the whole engagement (backs off to `preferredRange`, strafes). Needs `AgentWeaponDefinition` + `AgentFireProfile` + `AgentAimProfile`; exposes `MaxRange`. Also `IFacingModule` |
-| `NpcItemUseModule` | RangedAttack 22 | **no** | Fires a real `InventoryItem` from `EntityInventoryComponent`; triggers `TargetInRange` / `WhenHurt` / `OnInterval`. Needs `EntityEquipmentController` |
+| `NpcItemUseModule` | RangedAttack 22 | **no** | The only NPC gun. Fires a real `InventoryItem` from `EntityInventoryComponent`; triggers `TargetInRange` / `WhenHurt` / `OnInterval`. Needs `EntityEquipmentController` |
 
 ### Sensing / reaction
 
@@ -132,7 +128,7 @@ not `IFacingModule`. The only true `IFacingModule` implementors are `AgentRanged
 |---|---|---|
 | `AlertReceiverModule` | Reactive-1 = 19 | `AgentTargeting.ForceTarget` from an ally's `AlertBroadcaster` |
 | `NoiseReceiverModule` | Reactive-2 = 18 | Hears `NoiseEmitter` events; investigate or aggro per `NoiseType` |
-| `PerceptionModule` | n/a | FOV + LoS. `CanSee` writes memory, `IsVisible` does not. `occlusionLayers = Nothing` falls back to Default/Ground/Interior with a warning |
+| `PerceptionModule` | n/a | FOV + LoS, stateless — `IsVisible` is the one sight query; target memory lives in `AgentTargeting`. `occlusionLayers = Nothing` falls back to Default/Ground/Interior with a warning |
 
 ### Personality / tasks
 
@@ -156,15 +152,12 @@ decides whether AI keeps running while ridden) + `SteerModule` (Scripted 100). O
 | Motor | For | Extra interfaces |
 |---|---|---|
 | `NavMeshAgentMotor` | Everything that walks on the baked NavMesh | `IMountJumpMotor`, `IMountLeapMotor`, `IRiderControllable`, `ISelfDrivingMotor` |
-| `RigidbodyMotor` | Physics ground vehicles | `IRiderControllable` |
 | `HoverRigidbodyMotor` + `HoverGroundSensor` | Hovercraft | |
-| `FlyingRigidbodyMotor` | Free 3D flight | |
 | `OrnithopterFlightMotor` | The ornithopter's energy flight model | |
 | `LeggedDriver` (abstract) | Procedurally animated legged rigs | `IRiderControllable`, `IMovementMotor` |
 
 `IMovementMotor`: `Velocity`, `IsImmobile`, `HasReachedDestination`, `CurrentDestination`,
-`Tick(in MoveIntent, float)`, `ForceStop()`, `NudgeDestination(Vector3)`,
-`SuggestDestination(Vector3)`.
+`TopSpeed`, `Tick(in MoveIntent, float)`, `ForceStop()`.
 
 `ISelfDrivingMotor`: `SuspendSelfDrive()` / `ResumeSelfDrive()`, both idempotent. Implement it on
 any motor that keeps moving the transform when nobody ticks it — a `NavMeshAgent` does.
@@ -193,7 +186,7 @@ no `AgentAnimatorDriver` because nothing is keyframed.
   `LastAttacker`, `Relationship`, `SightRange`, `LoseRange`, `SimulatesHere`, `ForceTarget`,
   `ClearTarget`, `ApplyProfile`, `IsFightingWith`, `RestoreMemory`, `GetOrAdd`.
   Acquisition range is auto-widened at Awake to `longest weapon range + 5 m` by reading
-  `AgentRangedCombatModule.MaxRange`, `CloseCombatModule.AttackRange` and `NpcItemUseModule.MaxRange`.
+  `CloseCombatModule.AttackRange` and `NpcItemUseModule.MaxRange`.
   Scoring is "effective distance": `currentTargetBias`, `lastAttackerBias`, `occludedPenalty`.
   Sight range is multiplied by `Sandstorms.SightFactorAt(position)`, floored at
   `proximityAcquireRange`.

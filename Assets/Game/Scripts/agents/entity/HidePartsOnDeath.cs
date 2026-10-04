@@ -48,8 +48,10 @@ namespace SpaceGame.Agents
         private void HandleDeath()
         {
             // A save being loaded, not a kill. The loot from this death was dropped in the session
-            // that caused it; a creature that comes back from a save comes back whole.
-            if (health && health.IsRestoring) return;
+            // that caused it; a creature that comes back from a save comes back whole. A death
+            // replicated live to a client is a kill, though, and its loot is landing right now — so
+            // the staff leaves the fist there too.
+            if (health && health.IsRestoring && !health.IsReplicating) return;
 
             SetPartsVisible(false);
         }

@@ -1,9 +1,10 @@
 using UnityEngine;
+using SpaceGame.Presentation.Speech;
 
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// A body talks with its hands: while the dialog popup types out a line this character said,
+    /// A body talks with its hands: while this character's <see cref="Speaker"/> reveals a line,
     /// it holds a talking loop and gestures on the beats, greets at the start of a conversation and
     /// reacts to its own questions and exclamations.
     ///
@@ -16,9 +17,10 @@ namespace SpaceGame.Presentation
     /// whole body may talk (GDC-L1-ANIM-0005: the incidental motion is what sells life).
     /// </para>
     /// <para>
-    /// <b>Multiplayer.</b> Follows the popup, like <see cref="TalkingMouth"/>: chatter and war cries
-    /// show on every nearby machine and gesture there; a dialog line is local to the player who
-    /// pressed interact, and only that player sees the NPC gesture. Beat timing is this machine's
+    /// <b>Multiplayer.</b> Follows the <see cref="Speaker"/>, like <see cref="TalkingMouth"/>: chatter,
+    /// war cries and resident lines are said on every machine in earshot and gesture there; a dialog
+    /// line is local to the player who pressed interact, and only that player sees the NPC gesture.
+    /// Beat timing is this machine's
     /// own, so two players watching the same chatter may see different beats — cosmetic, nothing is
     /// sent.
     /// </para>
@@ -39,12 +41,17 @@ namespace SpaceGame.Presentation
         [SerializeField, Min(0f)] private float newConversationAfter = 10f;
 
         private BodyLanguage body;
+        private Speaker voice;
         private int lineSeen = -1;
         private float nextBeatAt;
         private float lastSpokeAt = float.NegativeInfinity;
         private bool holding;
 
-        private void Awake() => body = BodyLanguage.Of(this);
+        private void Awake()
+        {
+            body = BodyLanguage.Of(this);
+            voice = Speaker.Of(transform);
+        }
 
         private void OnDisable() => StopTalking();
 
@@ -52,17 +59,16 @@ namespace SpaceGame.Presentation
         {
             if (body == null) return;
 
-            NpcDialogPopupUI popup = NpcDialogPopupUI.Instance;
-            if (popup == null || !popup.IsTyping || !Says(popup.Speaker))
+            if (!voice.IsSpeaking || body.Dormant)
             {
                 StopTalking();
                 return;
             }
 
-            if (popup.LineNumber != lineSeen)
+            if (voice.LineNumber != lineSeen)
             {
-                lineSeen = popup.LineNumber;
-                StartLine(popup.Line);
+                lineSeen = voice.LineNumber;
+                StartLine(voice.CurrentText);
             }
 
             body.Hold(talking);
@@ -92,9 +98,6 @@ namespace SpaceGame.Presentation
             holding = false;
             if (body != null) body.Release(talking);
         }
-
-        private bool Says(Transform speaker) =>
-            speaker != null && (speaker == transform || speaker.IsChildOf(transform));
 
         private void OnValidate()
         {

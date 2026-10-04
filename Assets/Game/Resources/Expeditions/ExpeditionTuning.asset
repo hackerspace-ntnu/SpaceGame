@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8e38ab78832940189e5be6b5cbfaf32, type: 3}
+  m_Name: ExpeditionTuning
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionTuning
+  travelDawn: 6
+  travelDusk: 19
+  departHour: 7.5
+  musterMinutes: 30
+  musterInset: 5
+  musterSpacing: 1.2
+  departRadius: 150
+  maxHandoffDistance: 400
+  handoffObserveRadius: 400
+  walkLimitMinutes: 240
+  restDays: 2
+  minHomeShare: 0.8
+  observeRadius: 150
+  varietyPenalty: 0.5
+  decisionInterval: 0.5
+  searchRing: {x: 150, y: 300}
+  travelReach: {x: 800, y: 1600}
+  travelSiteKinds: 020000000300000007000000
+  arriveRadius: 15
+  destinationSampleDistance: 25
+  spawnedLegLength: 120
+  leaderStopRadius: 5

@@ -55,9 +55,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         [Tooltip("Fewest bones that count as a body.\n\n" +
                  "A body that comes out of the build with fewer than this folds at almost no joints, " +
                  "so it is worth a warning: from the prefab, a two-bone ragdoll and a good one look " +
-                 "exactly alike. Usually an asset limit rather than a wiring mistake — PatrolRobot 1 " +
-                 "genuinely has four mesh parts and near-rigid skinning, and no threshold here will " +
-                 "change that.")]
+                 "exactly alike. Usually an asset limit rather than a wiring mistake — a model with " +
+                 "four mesh parts and near-rigid skinning genuinely has nothing more to give, and no " +
+                 "threshold here will change that.")]
         [SerializeField] private int minimumUsefulBones = 4;
 
         [Header("Shape")]
@@ -886,9 +886,9 @@ namespace SpaceGame.Gameplay.Ragdoll
             List<Transform> kept = Select(importance, rig);
             if (kept.Count == 0) return;
 
-            // Not a failure to abort on — a model can genuinely have nothing more to give, and
-            // PatrolRobot 1 ("Robert") maxes out at two bones because it has four mesh parts and
-            // near-rigid skinning. Worth saying out loud, because from the prefab a two-bone
+            // Not a failure to abort on — a model can genuinely have nothing more to give: one with
+            // four mesh parts and near-rigid skinning maxes out at two bones. Worth saying out loud,
+            // because from the prefab a two-bone
             // ragdoll and a good one look exactly alike.
             if (kept.Count < minimumUsefulBones)
                 Debug.LogWarning($"{name}: RagdollRig kept only {kept.Count} bone(s) of " +
@@ -1215,8 +1215,8 @@ namespace SpaceGame.Gameplay.Ragdoll
             // Shallowest first, so the joint pass finds every bone's parent body already built —
             // and, among equals, the heaviest BRANCH first, so the bone the rest of the body hangs
             // from is the one carrying the creature. Its own bulk is the wrong tiebreak: a thigh
-            // outweighs a chest, which is how PatrolRobot 1 came out rooted at its right leg with
-            // the left leg jointed to it. See RagdollSkeleton.SubtreeBulk.
+            // outweighs a chest, which is how a robot with light hips came out rooted at its right
+            // leg with the left leg jointed to it. See RagdollSkeleton.SubtreeBulk.
             float[] branch = BranchBulk(importance, rig);
             selected.Sort((a, b) =>
             {
@@ -1304,8 +1304,8 @@ namespace SpaceGame.Gameplay.Ragdoll
                 // Adopted for FILTERING either way — PhysX attaches it to this body whatever this
                 // thinks of it — but only a collider with nothing DRAWN at or below it is the
                 // bone's own SHAPE. Anything that leads to a renderer is a prop riding along: the
-                // patrol robots carry a sword and a gun under the right hand, and counting those
-                // left four of them with a fourteen-kilo hand that had no collision of its own at
+                // patrol robots (since deleted) carried a sword and a gun under the right hand, and
+                // counting those left four of them with a fourteen-kilo hand that had no collision of its own at
                 // all. Below it, not on it — the sword's collider sits on a bare object whose mesh
                 // hangs one level down, so asking only about the collider's own GameObject still
                 // took the weapon for a hand. A hull authored by hand, like the crab's COL_* boxes,

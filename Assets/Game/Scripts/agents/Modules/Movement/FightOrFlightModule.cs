@@ -97,13 +97,6 @@ namespace SpaceGame.Agents
         [Tooltip("A sound FILE under StreamingAssets/Audio that replaces the FMOD event above for this creature. Named, it wins; empty, the catalog id plays as before. This exists because new FMOD events cannot be authored in this project - the Studio project that built the banks is not in the repo - so the 19 shipped events are all there is. It is a file rather than an AudioClip because Unity audio is DISABLED project-wide (AudioManager m_DisableAudio) and there is no Unity AudioListener, so an AudioSource here is silent; SfxFile plays it through FMOD instead.")]
         [SerializeField] private string roarFile;
 
-        [Tooltip("Animator bool held true for the length of the roar. The controller uses it to " +
-                 "stop Hurt and the attack from cutting the roar short: they fire from AnyState, " +
-                 "Unity consumes only the trigger it takes, and a Hurt set by the same shot that " +
-                 "enraged the animal interrupts the roar one frame in - which looks exactly like " +
-                 "the roar never playing at all. Empty to skip the gate.")]
-        [SerializeField] private string roaringFlag = "IsRoaring";
-
         [Tooltip("How far the roar carries, in metres. A telegraph the player cannot hear is not a telegraph.")]
         [SerializeField] private float roarClipRange = 60f;
 
@@ -325,12 +318,6 @@ namespace SpaceGame.Agents
         /// server plays is heard by nobody on a client.
         /// </para>
         /// </summary>
-        private void SetRoaringFlag(bool value)
-        {
-            if (animatorDriver != null && !string.IsNullOrEmpty(roaringFlag))
-                animatorDriver.SetBoolByName(roaringFlag, value);
-        }
-
         private void PlayRoar()
         {
             // The file first, the catalog second. SfxFile returns false when the file is

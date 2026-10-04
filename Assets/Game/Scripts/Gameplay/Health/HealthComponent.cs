@@ -61,8 +61,9 @@ namespace SpaceGame.Gameplay
         public event Action OnRevive;
 
         /// <summary>
-        /// Raised when health is assigned rather than changed by gameplay — currently only by a
-        /// save being loaded. Replication listens to this; damage feedback deliberately does not,
+        /// Raised when health is assigned rather than changed by gameplay — by a save being loaded,
+        /// or by the server's value reaching a client. Replication listens to this; damage feedback
+        /// deliberately does not,
         /// because loading at half health should not flash the screen red as though you were just
         /// hit.
         /// </summary>
@@ -77,8 +78,9 @@ namespace SpaceGame.Gameplay
         public bool Alive => currentHealth > 0;
 
         /// <summary>
-        /// True only while <see cref="RestoreHealth"/> is applying a saved value, so a listener can
-        /// tell "this just died" from "this was already dead when the world loaded".
+        /// True only while <see cref="RestoreHealth"/> is assigning a value this machine did not
+        /// decide — a saved value, or the server's value arriving on a client — so a listener can
+        /// tell "this just died here" from "this death was decided somewhere else".
         ///
         /// It has to be askable, because <see cref="OnDeath"/> fires in both cases and the
         /// consequences of death are not repeatable: <c>HealthReactionModule</c> plays the death
@@ -86,6 +88,20 @@ namespace SpaceGame.Gameplay
         /// this flag, killing one creature and reloading five times dropped five sets of loot.
         /// </summary>
         public bool IsRestoring { get; private set; }
+
+        /// <summary>
+        /// True only while <see cref="RestoreHealth"/> is applying a LIVE change replicated from the
+        /// server — never a save, and never the snapshot a late joiner reads on spawn. Always read
+        /// together with <see cref="IsRestoring"/>, which is also true then.
+        ///
+        /// It separates the two kinds of restored death that look the same from inside
+        /// <see cref="OnDeath"/> and must not be treated the same. A save (or a late joiner's
+        /// snapshot) meets a body that has been dead for a while, so the corpse goes at once. A
+        /// replicated change is a death happening right now on the server, so a client must show
+        /// it — the fall, the despawn countdown — exactly as the host does. Treating it as a load
+        /// switched every NPC corpse off on clients the frame it died.
+        /// </summary>
+        public bool IsReplicating { get; private set; }
 
         public Transform LastDamageSource { get; private set; }
 
@@ -199,15 +215,19 @@ namespace SpaceGame.Gameplay
         /// answer.
         ///
         /// Listeners that act on death rather than merely observing it must check
-        /// <see cref="IsRestoring"/> — see that property.
+        /// <see cref="IsRestoring"/> — see that property — and, if a death seen live on a client
+        /// should look different from a loaded corpse, <see cref="IsReplicating"/>.
         /// </summary>
-        public void RestoreHealth(int value)
+        /// <param name="replicated">The server's live value reaching a client. Not a save, and not
+        /// the snapshot read on network spawn: both of those meet a death that is already over.</param>
+        public void RestoreHealth(int value, bool replicated = false)
         {
             int clamped = Math.Clamp(value, 0, maxHealth);
             bool wasAlive = Alive;
             bool changed = clamped != currentHealth;
 
             IsRestoring = true;
+            IsReplicating = replicated;
 
             try
             {
@@ -230,6 +250,7 @@ namespace SpaceGame.Gameplay
                 // In a finally block because a listener throwing must not leave every later death in
                 // the session looking like a restore — which would silently stop all loot dropping.
                 IsRestoring = false;
+                IsReplicating = false;
             }
         }
 

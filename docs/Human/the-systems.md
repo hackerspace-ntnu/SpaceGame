@@ -66,9 +66,27 @@ The main world is 4000 by 3000 metres cut into 48 tiles of 500 metres square, an
 
 ### Generated landmarks, caves and settlements *(TerrainGeneration)*
 
-Several generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, and caves grown from a seeded room-and-corridor graph. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand. One settlement generator rings buildings, patrols and vehicles around a core structure from a recipe of prefabs and counts; it built the one Clanker robot settlement in the world today. A second, general-purpose settlement generator scatters buildings, decorations and characters from a simple prefab-and-count list around wherever you place it, reshaping the ground under and around them so buildings sit flat without leaving an obvious flattened circle — its layout comes from where you put it in the world, so the same list of buildings can be dropped in many places and always look a little different.
+Several generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, and caves grown from a seeded room-and-corridor graph. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand. One settlement generator rings buildings, patrols and vehicles around a core structure from a recipe of prefabs and counts; it built the one Clanker robot settlement in the world today. A second, general-purpose settlement generator grows a tight cluster of buildings from a simple prefab-and-count list wherever you place it — each building a set number of metres from its neighbour, with a size dial that doubles it or adds a random half again — then fills it with decorations and people standing anywhere walkable, reshaping the ground under and around them so buildings sit flat without leaving an obvious flattened circle — its layout comes from where you put it in the world, so the same list of buildings can be dropped in many places and always look a little different.
 
 **Worth knowing:** only two landmark types survive, mesas and cliffs; a dozen others were deleted, and because scenes store the type as a number, those numbers must never be renumbered or reused.
+
+### Planned towns on terraces *(SettlementStreets)*
+
+The second way the general-purpose settlement generator can lay a town out. Instead of growing a loose cluster, it grows streets the way city generators do — a main street out of the centre, side streets branching off it, alleys off those — and lines both sides of every street with buildings facing it, the biggest ones on the main street near the middle. Every such town is built round a square, its town centre: its larger buildings ring an open plaza facing its centre, and two to four lanes leave the square between them with the rest of the houses along them. The middle of town is packed tight, with a second row of houses tucked behind the street-front ones and reached through narrow passages; the edges are looser, and every street ends at its last house. The ground is cut into flat terraces a man's half-height apart, with concrete retaining walls topped by a paved edge between them, and wherever a street climbs from one terrace to the next there is a flight of stairs. Streets and door paths are simple concrete slabs with gaps between them.
+
+**Worth knowing:** on steep ground this means a lot of wall — a big hillside town can run to thousands of wall blocks — because every 1.5 m of height is a terrace.
+
+### Clay roads, stone paths and long stairs *(SettlementTerraceKit)*
+
+A second set of pieces for the same planned towns, in the nomads' clay. Streets get one of three surfaces by how important they are: only the heart of the main street becomes a kerbed flagstone road (with a large round paved node at its crossings and a frayed end where it stops), the next most important stretches get plain concrete slabs, and everything else — the outskirts, every alley and the paths to front doors — is loose stepping stones in the sand. A small town gets no road at all. Stone paths simply climb with the hill; where a road or slab street climbs, it can take several terraces in one long flight of stairs with landings, framed at the top by two lantern pillars. Walls between buildings are stacked from stone courses instead of stretched, with pillars at the bends.
+
+**Worth knowing:** nothing in this kit is ever stretched, so the style's step height and stair lengths must match the models exactly — a test checks them.
+
+### Outposts *(Outposts)*
+
+A hand-built camp — tents, scaffold walkways, bell towers, a fire ring, a drill rig — that a handful of people live at. Eleven of them were built in Blender out of the same decoration pieces the settlements use, so each one arrives with the seats, work posts and ladders those pieces carry. To put one in the world you drop an Outpost component on an empty object, give it an outpost prefab and the character prefabs that live there, and press Generate: the ground is levelled, the people move in, and they sit at the fire, climb the towers and carry things between the stacks like any settlement's residents.
+
+**Worth knowing:** an outpost has no beds, so exactly the characters you list move in, and they sleep where they stand; and rebuilding the prefabs from the Blender layout wipes any hand edits made to them.
 
 ### Where characters can walk *(NavMeshSystem)*
 
@@ -102,6 +120,12 @@ It is a workshop, not a wardrobe. You can try as many looks as you like in it, b
 still ships with exactly one, written into the code — which is what keeps the palette from
 quietly drifting into a dozen half-finished variants.
 
+### The Mars colony: airlocks, stairs and interiors *(ColonyInterior)*
+
+The Mars colony's buildings are hollow now, and you walk straight into them: no loading, no fade. Climb the stairs and right-click the round hull door: the chamber vents in a blast of mist under a spinning amber beacon, and the door swings open. Step in, shut it behind you, right-click the inner hatch, and the chamber fills with haze as it pressurises before the inner hatch slides apart. If you forget the door behind you, the inner hatch tells you to close it first. Inside, modules, domed hubs and the tubes between them are one connected station, with windows you can look out of and a geodesic dome you can see the sky through. You can breathe in there, and every room is furnished from one library of colony props: bunks sized for a suited 3 m crew, lockers, a galley, hydroponics, research desks, rock analysis benches, workbenches, shelving and crates along the walls, the real EVA suits hanging on their stands, an oxygen filler that already has power, a map projector and, in the domed buildings, a gear wall. The large colony has a rover bay: the real rover parked on a lift under the dome, with its tool wall, wheel rack and diagnostic cart round it. Gear lies only on the gear walls and the small wall boards, and only batteries and oxygen tanks: take them and they stay taken, even after a reload.
+
+**Worth knowing:** the server decides every hatch, so every player sees the same ones — but only in a colony that stands in a generated settlement; one placed by hand runs a separate airlock on each machine. A hatch someone left open on the far side is sealed for you when you cannot reach it, never on someone standing in it, and nothing about the airlocks is saved: after a load every hatch is shut; and research and crafting are scenery for now — the game has no mechanic behind the desks and benches yet (the colonists do sleep in the bunks: see the next entry).
+
 ### Doorways, interiors and teleporting *(SceneTransitions)*
 
 Cave and building interiors load alongside the outdoor world rather than replacing it, so stepping back outside is instant and everything you left out there is still alive. A doorway is assembled from three interchangeable pieces — what triggers it, where it sends you, and what the screen does while it happens — so a new kind of door is one new file. Every instant move in the whole game funnels through a single teleport function that also tells legged rigs, riders and pathing agents to rebase their world-space state.
@@ -115,6 +139,12 @@ Sprayable pairs of openings you walk through, treated as doors rather than windo
 **Worth knowing:** trigger volumes never worked here — the collider is on a child object, so Unity never delivered the messages — and the crossing is instead swept by hand once per frame; reintroducing triggers would break it again.
 
 ## Characters and creatures
+
+### The colony's people and rovers *(ColonyResidents)*
+
+Fourteen astronauts live in the colony, and you can watch them do it. An engineer tends life support, a chef works the galley, a botanist waters the hydroponics, a geologist carries cores between the drill site and the lab, a rover tech works on rover parts in the bay or out on a service pad, a medic keeps the med bay, and a surveyor walks out to read the land; guards walk the perimeter in pairs, and the rest of the crew wander the corridors and sit on the stools in the evening. At night they go to bed in the bunks, lying down where you can see them (the top bunk only when nobody is looking). They go in and out through the real airlocks: a colonist waits at the outer hatch, it vents and opens, the colonist walks in, the hatch shuts, the chamber fills, the inner hatch slides apart. Several who arrive together cross on one cycle. Three rovers drive slow loops round the colony, over the same ground every time, and they are in the same place on every player's screen with nothing sent between them.
+
+**Worth knowing:** a colonist whose turn at an airlock never comes, and whom nobody can see, hops across instead of waiting forever; while anyone watches, it keeps waiting. The colonists work with empty hands for now (the astronaut's hands are bigger than the tools were made for), the exterior stations reuse existing props (no new art), about one place in eight is still unusable (the window benches and a table nook that furniture walls in), and none of this has been run on a client or through a save and reload yet.
 
 ### The astronaut you play *(PlayerCharacter)*
 
@@ -133,6 +163,66 @@ Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump h
 Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.
 
 **Worth knowing:** a creature with no faction is invisible to every targeting system with no error at all, and a species is peaceful precisely by having *zero* relationship rows — adding one "for completeness" makes the whole faction attack on sight.
+
+### The people who live in a settlement *(Residents)*
+
+A settlement is one component and one Generate button: it lays out the buildings, puts one villager in every bed the houses have (plus any one-of-a-kind characters, such as a quest giver, who always appear), and gives each a name, a trade, a home and a family. Everything a villager can do comes with the buildings themselves — the market stand brings a place behind its counter and places for customers, the hearth brings seats round the fire, a sail tent brings shade to sit in — so a new building or decoration brings new things to do without touching the settlement. The villagers live a day: they wake, walk to their work (the forge, the stall, the kitchen, the pen, the garden or the watch) and hold it, take staggered breaks so a post is never left empty, spend their free time on seats, in the shade and at the stalls — preferring wherever a friend already is — gather at the hearth in the evening and go home to bed, and a few leave in the morning to hunt or scout and come back before dusk. Each person's whole day is worked out in advance from the settlement's layout and the date, so loading a save, joining late or skipping the clock forward simply asks "where should they be now". How a villager treats you comes from two dials — how bold they are and how prickly — plus what they remember: whether they know you, and whether you hurt them or their family recently. What they say is picked from a spreadsheet of lines by matching the situation, and everyone nearby sees it as a speech bubble.
+
+**Worth knowing:** a punch or a shot is a fight on the spot, and the people nearby join it — the bold ones and anyone close to whoever you hurt — while the timid hurry home and stay out of it. Bumping into someone is what warns first: shove a villager and you get a warning, then a last warning, then a fight, and how many shoves that takes depends on their temper. Word of what you did gets round the settlement by itself — see the next entry.
+
+### Seats *(Seats)*
+
+Sitting used to be a trick: a villager was lifted to whatever height was under its spot. Now a seat is a real object — a clay drum, a rope-ringed cushion, a wooden chair — placed on every spot where somebody sits. A villager walks to its spot, takes a free seat there and sits on it facing the way the seat faces; if there is no seat it simply stays standing. You sit the same way: right-click a free seat, and jump or right-click again to get up. One person per seat, and a seat that is moved lets go of whoever sits on it.
+
+**Worth knowing:** nothing about who is sitting where is saved. After a load the villagers walk back to their spots and sit down again, and you stand wherever you were.
+
+### Carts you can push *(Pushables)*
+
+A cart used to be a prop glued to a pair of hands, held up over the head with its wheels in the air. Now it is a real object standing on the ground: walk up, right-click, and your hands close on its handlebar; the cart comes round in front of you, wheels on the sand, and follows wherever you walk, turning when you turn. Shafts lift as your hands do. Let go (right-click again, jump, or draw something) and it stays where it stands. A villager whose job calls for a cart does the same.
+
+**Worth knowing:** nothing is sent while a cart moves, because it simply follows the body that pushes it; only where it was left is remembered, for everyone and in the save. Carts do not yet bump into walls, and no settlement has a cart beside the drover's post yet, so the drover still works empty-handed.
+
+### Work stations: the right motion at the right prop *(Stations)*
+
+A villager at work used to pick a motion out of a grab-bag: a cook might swing a pickaxe, a weaver might chop vegetables, and a farmer's hoe stopped a metre short of the bed. Now every kind of work has its own word (stirring, grilling, chopping, wiping, weaving, mining, ploughing, hammering), the prop decides which one a villager does there (the pot stirs, the grill grills, the bread oven works a pan), and the motion is only ever one that was made for that job. The villager takes the tool the motion is made for out of its bag, or puts its tool away for work done with bare hands, and stands where the tool actually reaches the bed, the ore or the stove, measured from the animation itself. Where no motion exists for a prop yet (animals, the shrine, the kiln, the drying racks, a smith's grindstone) the villager just stands there instead of miming something unrelated; the list of those, prop by prop, is in the station table.
+
+**Worth knowing:** a station that looks wrong is almost always data, not code: the cue a prop holds, the loops behind the cue, or the tool its clips need. Nothing here is saved or sent between machines: every machine works out the same station from the same scenery.
+
+### The station table *(StationTable)*
+
+A table, written automatically from the game's data, lists every kind of workplace and place to sit: what props carry it, which motion the villager does there, which tool that motion needs, who works there and what they carry, and whether it is fine, has no motion yet (the villager stands) or has a fault. Next to it sit the honest notes (which motions are only the nearest available) and the measured reach of every work motion. A test fails if the table is out of date.
+
+### Callers in the houses *(HouseVisits)*
+
+Every house door opens into the same round room, and it used to be a still room you were always alone in. Now, while you are inside, the village drops in: a resident with nothing to do is let in by the door, takes one of the seats round the hearth, sits and talks with whoever is already there, and leaves again after a few minutes — some people are already settled when you walk in. They are the same villagers you meet outside (people who live in that house first, then their friends and family, then anyone), so after they leave they walk on to wherever their day was taking them.
+
+Violence follows you in: anyone you hurt in the room stands up and fights it out there rather than being whisked outside, and villagers who were chasing you when you went through the door run in after you a few seconds later.
+
+**Worth knowing:** there are three seats, so at most three people sit at once, and at night everyone is asleep so the room stays empty — evening, when people are free, is when it is lively. Nothing about who was there is saved; the next time you walk in, a new set of callers comes.
+
+### Recording a settlement's day *(ResidentsBaseline)*
+
+A test you start from the editor that plays one whole day of the settlement on its own — no player input, the clock sped up — and writes down, for every villager and every part of their day, where they were meant to be, whether they got there, and what they did: errands run, things carried, conversations, and the gossip passed on at midnight. Running it before and after a change to the villagers shows whether the change kept their day the same.
+
+**Worth knowing:** it only means something when the settlement's walkable ground is up to date — over a stale one every villager spends the day on a break at their own door, and the record looks perfect because nobody goes anywhere.
+
+### Errands, wandering and the watch *(Errands)*
+
+On top of that day, villagers have errands. A gardener goes round the beds with a bucket, filling it at the well and watering each plant in turn; an apprentice carries ore from the pile to the smelter; a hauler carries goods between the stores and the stalls. People with nothing in particular to do wander the streets and drop in at the shops, and friends and relatives often walk in pairs, talking as they go. A settlement is also guarded: pairs of guards walk its perimeter a few metres outside the buildings, one pair the other way round from the next, and talk about keeping the peace as they walk, while a guard stands watch on each tower. Guards are quick to challenge anyone who goes armed or runs in their sight — a warning, then a last warning — but a single shove is never a fight.
+
+**Worth knowing:** none of this needs the settlement to be rebuilt by hand — a chore is just two kinds of place and a thing to carry, so a new decoration that offers one (a well, a plant bed, an ore pile) puts people to work the moment the settlement lists it. A guard on a tower is put up there, and taken down again, only while nobody is looking, because no one can walk up a ladder but you.
+
+### What a settlement says about you *(ResidentReputation)*
+
+Everything you do to a villager — or for one — becomes news. The person it happened to and anyone who saw it know at once, and they tell whoever is within earshot, who tell whoever is near them, so it walks across the settlement neighbour to neighbour. Each villager's opinion of you moves by what it was worth, and by how close they are to the person it happened to: the most for that person, then their family, their friends, their workmates, and a little for everyone else. Hit someone and the whole settlement likes you a little less and their family a lot less; step in when something is attacking a villager and they thank you, and the news warms everyone in the same way.
+
+**Worth knowing:** news only changes how people feel about you — the fighting spreads another way. A Raxy fighting you shouts for help every second, in a settlement or out in the dunes, and every Raxy and friendly character within earshot answers: the bold ones and the fighter's friends and family join in and start shouting too, the timid ones run home. Lost favor does not wear off with time — talking to people and doing them good is how you win it back.
+
+### Bands that leave the settlement *(Expeditions)*
+
+A settlement always has one band of its own people out in the world. In the morning the chosen few gather at the edge of town with spears in hand, stand together for a while, and walk out down the road; once they are far enough away the game swaps them for copies that carry their names and gear and roam the land for days — travelling, searching, stopping for the night — while their beds at home stay empty. Then they walk back in as the same people, minus anyone who died on the way, and the next band sets out. It keeps going while nobody is anywhere near the settlement.
+
+**Worth knowing:** who is out, where they are and who has died is remembered in the save, so a band you leave mid-trip is still mid-trip when you come back. So far there is only one kind of trip (scouting) and no farewell ceremony or campfire yet, and none of it has been tried in a real game.
 
 ### The tribe that lives in the sky *(SkyTribe)*
 
@@ -435,11 +525,23 @@ Clothes are modelled on the character in Blender and then each one becomes its o
 
 ### How people move, gesture and fight *(HumanoidAnimation)*
 
-Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and patrol robot — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
+Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and astronaut colonist — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
 
-On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About three hundred animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
+On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About four hundred and fifty animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
 
 **Worth knowing:** The player's body is animated only on its owner's machine and copied to everyone else, while an NPC is animated on every machine at once; mixing the two up is how a gesture ends up playing twice or not at all for other players.
+
+### What the animation library covers *(AnimationCatalog)*
+
+The animations come from free packs and mocap libraries, and none of them arrives game-ready: a bartender's performance is twenty-seven seconds long, a mocap walk travels across a stage, a "loop" may not close. Each pack gets a small import rule and a cut list that says which seconds of a long take are the usable beats and which of them repeat, and every cut is checked by drawing it as a row of stick figures. The latest pass added the Mixamo singles, the Mocap Central sample, the Motion Cast emotions, a cooking set, a crate-carrying set and the Kevin Iglesias work animations: farming, fishing, mining, hammering, cooking, serving, dancing, singing, piano, reading, falling over and getting up, crying, laughing, exhaustion, and an injured, a drunk, a swaggering and a heavy way of walking.
+
+The same doc keeps the honest list of what is still missing (hits that depend on where the blow came from, sword blocks, nodding, seated work, getting into bed) and the plan for how each kind of NPC should use all of this: which jobs hold which animation, which moments trigger which reaction, and what is pure data versus a bit of code.
+
+**Worth knowing:** A clip that moves across the floor looks fine in a preview and then slides the character out of its own collision capsule in game. Half of the older mocap clips did exactly that until the import rule was corrected; every new clip is measured on a real animated body before it is used.
+
+### How every kind of NPC should move and act *(NpcAnimationPlan)*
+
+A written plan, not a feature: for each situation an NPC can be in — walking hurt or drunk, working a field, serving drinks, fishing, fighting, falling over, sleeping — it lists which animation is available now, what is still missing, and whether the fix is just data (tag a spot, pick a walk style for a character) or a small piece of code. It also records that none of the animation work has been watched in a running game yet, which is the first thing to do before building more.
 
 ### The build menus *(EditorTooling)*
 
@@ -454,6 +556,12 @@ Some items are meant to be set down rather than carried: you point at a patch of
 The first one is a camp lantern: set it down and it lights the ground around it, pick it up and it is a lantern in your pack again.
 
 **Worth knowing:** Q is the "take that back" key everywhere, which is why it also strips a saddle off an animal. It is kept separate from E on purpose: a placed thing that *does* something keeps E for doing it, so a lamp lights with E and goes back in your pack with Q, and you never have to guess which one a single key meant this time. Placing refuses steep ground, and nothing is taken from your pack unless something actually appeared where you aimed.
+
+### Tools in the hand and on the belt *(HandTools)*
+
+Settlers carry things: hammers, spears, buckets, baskets, water tanks, carts and an electric harpoon gun, all modelled in the decoration library. A Raxy holds one in its fist and hangs the rest on its belt. They are props: using one does nothing except, for a few, a short body animation.
+
+**Worth knowing:** every resident with a trade carries its tools (17 trades; storytellers, elders and villagers carry none), and the harpoon gun does not fire.
 
 ### Saddling an animal *(Saddles)*
 

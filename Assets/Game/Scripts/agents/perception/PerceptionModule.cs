@@ -1,17 +1,15 @@
 // Line-of-sight and field-of-view gate for entity targeting.
-// Other modules call CanSee(target) before acting. Fully optional — remove it and modules
-// revert to radius-only detection. Emits noise when target is spotted (for alert system).
-// Also supports a "last seen" position used by SearchModule.
+// Other modules call IsVisible(target) before acting. Fully optional — remove it and modules
+// revert to radius-only detection. Stateless apart from whether the agent is moving: what the
+// agent remembers about a target lives in AgentTargeting.
 //
 // Authoritative perception API — other modules should route here instead of re-implementing
 // FOV/LoS. Public entry points:
-//   CanSee(target)                     — full FOV + LoS from the eye, updates memory
-//   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV, no memory update
+//   IsVisible(target)                  — full FOV + LoS from the eye
+//   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV
 //   HasLineOfSightFrom(origin, target) — LoS to the body only, from an arbitrary origin (e.g. a weapon muzzle)
 using System.Collections.Generic;
 using UnityEngine;
-using FMODUnity;
-using SpaceGame.Audio;
 
 namespace SpaceGame.Agents
 {
@@ -45,27 +43,10 @@ namespace SpaceGame.Agents
                  "top grazes a ceiling or an overhang the head itself would be under.")]
         [SerializeField] private float headInset = 0.15f;
 
-        [Header("Memory")]
-        [Tooltip("How long the entity remembers the last known position after losing sight.")]
-        [SerializeField] private float memoryDuration = VisionBaseline.MinMemory;
-
-        [Header("Noise on Spot")]
-        [SerializeField] private bool emitNoiseOnSpot = true;
-        [SerializeField] private float spotNoiseRadius = 12f;
-
-        [Header("Audio")]
-        [SerializeField] private bool playSpotSound = true;
-        [SerializeField] private SfxId spotId = SfxId.EntityAlert;
-        [SerializeField] private EventReference spotSound;
-
-        public Vector3 LastKnownPosition { get; private set; }
-        public bool HasLastKnownPosition { get; private set; }
-        public float TimeSinceLastSeen { get; private set; }
-
         public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
-        public float MemoryDuration => memoryDuration;
 
-        private NoiseEmitter noiseEmitter;
+        // Read for AgentController.Offstage: an agent out of the scene's action does not move.
+        private AgentController controller;
         private Vector3 prevPosition;
         private bool isMoving;
 
@@ -89,7 +70,7 @@ namespace SpaceGame.Agents
 
         private void Awake()
         {
-            noiseEmitter = GetComponent<NoiseEmitter>();
+            controller = GetComponentInParent<AgentController>();
             prevPosition = transform.position;
 
             if (occlusionLayers == 0)
@@ -104,36 +85,19 @@ namespace SpaceGame.Agents
 
         private void Update()
         {
-            if (HasLastKnownPosition)
-                TimeSinceLastSeen += Time.deltaTime;
-
-            if (TimeSinceLastSeen > memoryDuration)
+            // Offstage: a body being placed is not "moving".
+            if (controller != null && controller.Offstage)
             {
-                HasLastKnownPosition = false;
-                TimeSinceLastSeen = 0f;
+                isMoving = false;
+                prevPosition = transform.position;
+                return;
             }
 
             isMoving = (transform.position - prevPosition).sqrMagnitude > 0.0001f;
             prevPosition = transform.position;
         }
 
-        // Full perception check: FOV + LoS from the eye. Updates last-known memory when visible.
-        // Only call this for the target the agent is actually committed to — see IsVisible().
-        public bool CanSee(Transform target)
-        {
-            if (!IsVisible(target))
-                return false;
-
-            LastKnownPosition = target.position;
-            HasLastKnownPosition = true;
-            TimeSinceLastSeen = 0f;
-
-            return true;
-        }
-
-        // FOV + LoS with no memory side effect. Use when testing candidates the agent has not
-        // committed to: CanSee() writes LastKnownPosition, so scoring a crowd with it would
-        // overwrite the memory of the target actually being tracked.
+        // Full perception check: FOV + LoS from the eye.
         public bool IsVisible(Transform target)
         {
             if (!target)
@@ -157,7 +121,7 @@ namespace SpaceGame.Agents
             return CanSightReach(origin, target);
         }
 
-        // LoS from the eye only — no FOV, no memory update. Body or head, like IsVisible.
+        // LoS from the eye only — no FOV. Body or head, like IsVisible.
         public bool HasLineOfSight(Transform target) => CanSightReach(EyePosition, target);
 
         // An eye sees a target when either its body or its head is unobstructed, so waist-high cover
@@ -254,38 +218,6 @@ namespace SpaceGame.Agents
             return blocker == null || blocker == target || blocker.IsChildOf(target);
         }
 
-        /// <summary>
-        /// Restore-only. Called by the save system; do not call from gameplay.
-        ///
-        /// This component keeps a second copy of the same memory <c>AgentTargeting</c> keeps, written
-        /// from <see cref="CanSee"/>. Only one of them is persisted — AgentTargeting's, which is the
-        /// authority, since it is the caller that decides when <see cref="CanSee"/> runs at all. This
-        /// method exists so <c>AgentStateSaveable</c> can push that one answer into both, rather than
-        /// letting a second saver restore a copy that could disagree with the first.
-        ///
-        /// The elapsed time is clamped to this component's own <c>memoryDuration</c>, which may be
-        /// shorter than the targeting profile's — a memory this module would already have dropped
-        /// must not come back alive.
-        /// </summary>
-        public void RestoreMemory(Vector3 lastKnownPosition, bool hasLastKnownPosition, float timeSinceLastSeen)
-        {
-            LastKnownPosition = lastKnownPosition;
-            HasLastKnownPosition = hasLastKnownPosition;
-            TimeSinceLastSeen = hasLastKnownPosition
-                ? Mathf.Clamp(timeSinceLastSeen, 0f, memoryDuration)
-                : 0f;
-        }
-
-        // Call when a target is spotted for the first time to alert nearby allies.
-        public void NotifySpotted(Transform target)
-        {
-            if (emitNoiseOnSpot && noiseEmitter)
-                noiseEmitter.Emit(NoiseType.Alert, spotNoiseRadius);
-
-            if (playSpotSound)
-                Sfx.Play(spotId, transform.position, spotSound, GetInstanceID());
-        }
-
         private Vector3 GetForward() => transform.forward;
 
         private static Vector3 FlattenHorizontal(Vector3 v)
@@ -301,8 +233,6 @@ namespace SpaceGame.Agents
             targetAimHeight = Mathf.Max(0f, targetAimHeight);
             headAimHeight = Mathf.Max(0f, headAimHeight);
             headInset = Mathf.Max(0f, headInset);
-            memoryDuration = Mathf.Max(0f, memoryDuration);
-            spotNoiseRadius = Mathf.Max(0f, spotNoiseRadius);
         }
 
         private void OnDrawGizmosSelected()

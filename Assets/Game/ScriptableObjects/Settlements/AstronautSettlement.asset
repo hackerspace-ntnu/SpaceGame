@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e00213ead7e543929b7d6cb03079ebb, type: 3}
+  m_Name: AstronautSettlement
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementConfig
+  buildings:
+  - prefab: {fileID: 3428557189900082357, guid: 0c36012fe2ba545daaae59edce277b0b, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 6563565134816234893, guid: 2188d3e4c8d5a474cae8ec0d413f8fa4, type: 3}
+    count: 1
+    spawnChance: 0.75
+  - prefab: {fileID: 4481370591559357774, guid: 23edba37abb0142c2a2d2ee5dd18432d, type: 3}
+    count: 1
+    spawnChance: 0.75
+  - prefab: {fileID: 4683598867956909013, guid: 4f4cf2cc038604aeea6e163652d5cd8c, type: 3}
+    count: 1
+    spawnChance: 0.75
+  - prefab: {fileID: 191986076428647629, guid: 6586ab54e89544b81b57ca7fd1922faf, type: 3}
+    count: 1
+    spawnChance: 0.75
+  - prefab: {fileID: 2933431237966747623, guid: 0653fc000be604d25b579720cad1ca5a, type: 3}
+    count: 2
+    spawnChance: 0.75
+  - prefab: {fileID: 3808004275049042514, guid: 248745458a5784153911a6df31651193, type: 3}
+    count: 2
+    spawnChance: 0.75
+  decorations:
+  - prefab: {fileID: 4620269976808099183, guid: 14b77aae010ca4409aea4f74e61b5549, type: 3}
+    count: 3
+    spawnChance: 1
+  - prefab: {fileID: 7914058175596575615, guid: c4ad81b1590bb453587dc8a7d82da78c, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 3562478265710845628, guid: a400a81ae61484efd98decec18be724e, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 809557494842136864, guid: ffad6fe666a5e49968a543cad3a13396, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 3036774635713524569, guid: a91417a2db3c9422cbce85f1ab4edd6c, type: 3}
+    count: 1
+    spawnChance: 1
+  characters:
+  - prefab: {fileID: 2578966956616729156, guid: d0f638635216a414e9bf763407759c52, type: 3}
+    count: 30
+    spawnChance: 1
+  specialCharacters: []
+  culture: {fileID: 11400000, guid: f5ce67b421e664829a6a218cffc24634, type: 2}
+  streets: {fileID: 0}
+  minBuildingGap: 4
+  maxBuildingGap: 10
+  outskirts: 40
+  decorationSpacing: 24
+  characterSpacing: 0.6
+  flattenPadding: 3
+  blendDistance: 10
+  ambientNoiseAmplitude: 0.6
+  ambientNoiseScale: 0.05

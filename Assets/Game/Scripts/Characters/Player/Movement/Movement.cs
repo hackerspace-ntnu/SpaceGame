@@ -212,11 +212,35 @@ namespace SpaceGame.Characters
         {
             get
             {
-                if (stance != null && stance.IsCrouching) return crouchSpeed;
-                if (stance == null) return moveSpeed;
-                return stance.IsSprinting ? sprintSpeed : moveSpeed;
+                if (stance != null && stance.IsCrouching) return Mathf.Min(crouchSpeed, haulSpeedCap);
+                if (stance == null) return Mathf.Min(moveSpeed, haulSpeedCap);
+                return Mathf.Min(stance.IsSprinting ? sprintSpeed : moveSpeed, haulSpeedCap);
             }
         }
+
+        private float haulSpeedCap = float.PositiveInfinity;
+        private int haulEndedFrame = -1;
+
+        /// <summary>
+        /// Takes both hands and a heavy load: speed is held to <paramref name="maxSpeed"/>, and jumping and dashing are off. The
+        /// caller must give it back with <see cref="StopHauling"/> — it is reached from a release, a death and a teardown alike.
+        /// </summary>
+        public void StartHauling(float maxSpeed) => haulSpeedCap = Mathf.Max(0.1f, maxSpeed);
+
+        /// <summary>Gives the body its speed and its jump back. The press that let go of the load does not also jump.</summary>
+        public void StopHauling()
+        {
+            if (!IsHauling) return;
+
+            haulSpeedCap = float.PositiveInfinity;
+            haulEndedFrame = Time.frameCount;
+        }
+
+        /// <summary>Whether something heavy is in both hands.</summary>
+        public bool IsHauling => haulSpeedCap < float.PositiveInfinity;
+
+        // Jumping and dashing are off while hauling, and on the frame it ends: the press that lets go is not also a jump.
+        private bool HaulingBlocksActions => IsHauling || Time.frameCount == haulEndedFrame;
 
         private void Awake()
         {
@@ -678,7 +702,7 @@ namespace SpaceGame.Characters
             // merely tidiness: the leg jump is 7 m/s and it SETS the vertical axis, so pressing it
             // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
             // a smaller number and the player would go lower for having timed it well.
-            if (bouncing || climbing)
+            if (bouncing || climbing || HaulingBlocksActions)
             {
                 return;
             }
@@ -697,7 +721,7 @@ namespace SpaceGame.Characters
 
         public void OnDash()
         {
-            if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+            if (rb == null || !isActiveAndEnabled || rb.isKinematic || HaulingBlocksActions)
             {
                 return;
             }

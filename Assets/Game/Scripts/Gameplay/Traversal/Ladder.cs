@@ -11,10 +11,17 @@
 // Blender's FBX axis conversion rotated and scaled x100, and a direction read off the geometry that
 // was route-checked is one the importer cannot turn round.
 //
+// NPCs climb it too. On enable the ladder registers an off-mesh link from the foot of the rungs to the
+// exit floor, in the Ladder area; NavMeshAgentMotor recognises the link's owner and climbs it. The
+// link is built from world positions rather than a NavMeshLink component, whose points live in the
+// local space of a transform that the Sky City's FBX markers scale x100.
+//
 // Static scene geometry: no network state, nothing to save. Each machine's own player asks its own
-// copy of the same ladders.
+// copy of the same ladders, and each machine registers its own copy of the link.
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace SpaceGame.Gameplay
 {
@@ -48,6 +55,27 @@ namespace SpaceGame.Gameplay
 
         [Tooltip("How far back from the rungs, onto the exit floor, the top band reaches.")]
         [SerializeField, Min(0f)] private float topReach = 1.3f;
+
+        [Header("NPC navigation")]
+        [Tooltip("Whether agents may route over this ladder. Registers a NavMesh link on enable.")]
+        [SerializeField] private bool navigable = true;
+
+        [Tooltip("How far in front of the rungs the lower end of the link stands, so an agent " +
+                 "arrives clear of the rails.")]
+        [SerializeField, Min(0.1f)] private float linkApproach = 1f;
+
+        [Tooltip("How far from each end of the link the NavMesh may be, in metres, for the end to " +
+                 "attach to it.")]
+        [SerializeField, Min(0.1f)] private float linkSnapDistance = 1f;
+
+        [Tooltip("Seconds between attempts to attach the link while there is no NavMesh at an end of " +
+                 "it yet -- a streamed world's mesh may arrive after the ladder.")]
+        [SerializeField, Min(0.1f)] private float linkRetryInterval = 1f;
+
+        [Tooltip("Seconds to keep trying before giving up and saying so.")]
+        [SerializeField, Min(0.1f)] private float linkRetryTimeout = 30f;
+
+        private NavMeshLinkInstance navLink;
 
         private static readonly List<Ladder> ActiveLadders = new List<Ladder>();
 
@@ -94,6 +122,9 @@ namespace SpaceGame.Gameplay
                 return away.normalized;
             }
         }
+
+        /// <summary>The line a climber's body follows, <paramref name="standoff"/> metres in front of the rungs, on the foot's level.</summary>
+        public Vector3 ClimbLine(float standoff) => Foot + TowardClimber * standoff;
 
         public bool IsValid => top != null && exit != null;
 
@@ -150,9 +181,62 @@ namespace SpaceGame.Gameplay
                                  "to climb from.", this);
 
             ActiveLadders.Add(this);
+            if (navigable) StartCoroutine(RegisterNavLink());
         }
 
-        private void OnDisable() => ActiveLadders.Remove(this);
+        private void OnDisable()
+        {
+            ActiveLadders.Remove(this);
+            if (NavMesh.IsLinkValid(navLink)) NavMesh.RemoveLink(navLink);
+            navLink = default;
+        }
+
+        // Retries rather than trusting enable order: the ladder may wake before the NavMesh under
+        // either end exists, and a link added to nothing attaches to nothing.
+        private IEnumerator RegisterNavLink()
+        {
+            int area = NavLinkAreas.Ladder;
+            if (area < 0)
+            {
+                Debug.LogError($"[Ladder] The project has no '{NavLinkAreas.LadderName}' NavMesh area " +
+                               "(Navigation > Areas); agents cannot use " + name + ".", this);
+                yield break;
+            }
+
+            var wait = new WaitForSeconds(linkRetryInterval);
+            for (float waited = 0f; !TryAddNavLink(area); waited += linkRetryInterval)
+            {
+                if (waited >= linkRetryTimeout)
+                {
+                    Debug.LogWarning($"[Ladder] {name} found no NavMesh within {linkSnapDistance} m of its " +
+                                     $"foot ({LowerLinkPoint}) or exit ({ExitPoint}) after " +
+                                     $"{linkRetryTimeout:0.#}s; agents cannot use it.", this);
+                    yield break;
+                }
+                yield return wait;
+            }
+        }
+
+        private bool TryAddNavLink(int area)
+        {
+            if (!NavMesh.SamplePosition(LowerLinkPoint, out NavMeshHit lower, linkSnapDistance, NavMesh.AllAreas) ||
+                !NavMesh.SamplePosition(ExitPoint, out NavMeshHit upper, linkSnapDistance, NavMesh.AllAreas))
+                return false;
+
+            navLink = NavMesh.AddLink(new NavMeshLinkData
+            {
+                startPosition = lower.position,
+                endPosition = upper.position,
+                bidirectional = true,
+                area = area,
+                // -1 is "use the area's cost"; the struct's default of 0 would make the ladder free.
+                costModifier = -1f,
+            });
+            NavMesh.SetLinkOwner(navLink, this);
+            return NavMesh.IsLinkValid(navLink);
+        }
+
+        private Vector3 LowerLinkPoint => ClimbLine(linkApproach);
 
         private void OnDrawGizmosSelected()
         {

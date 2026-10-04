@@ -18,6 +18,12 @@ namespace SpaceGame.World
         public IReadOnlyList<SettlementFootprint> paving = Array.Empty<SettlementFootprint>();
         /// <summary>Parent of the stairs and walls, whose colliders decorations must not stand in. Null for a cluster.</summary>
         public Transform pavingRoot;
+        /// <summary>
+        /// The streets that leave the centre (a plaza's lanes, or the main street's two halves), each a world polyline from the
+        /// centre outward on the finished ground, each point marked paved unless the street is a stone path there: where the
+        /// muster spot is placed (SettlementMuster). Empty for a cluster.
+        /// </summary>
+        public readonly List<SettlementMuster.StreetPoint[]> lanes = new();
         /// <summary>Appended to the summary line.</summary>
         public string summary = "";
         /// <summary>Streets that run into another on a different terrace, so they end at a wall instead of stairs.</summary>

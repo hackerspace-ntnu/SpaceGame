@@ -4,10 +4,13 @@
 // position always give the same people (and their saved memories find them again after a regenerate).
 //
 // Beds go in order: special characters first, then everyone else; whoever shares a dwelling is family.
-// A job archetype is handed out only where a spot of its post exists, an errand-only one where both ends of
-// its chore exist, and lifestyles fill towards the culture's shares. A character whose prefab has a profile in the
+// A character prefab made for one role (its Resident names an archetype) is always that role: a miner is a miner
+// from the start, and Generate leaves it out of a settlement where its role has no place (CanHost).
+// Everyone else is handed a role: a job archetype only where a spot of its post exists, an errand-only one where
+// both ends of its chore exist, and lifestyles fill towards the culture's shares. A character whose prefab has a profile in the
 // culture is drawn from the archetypes that profile suits, when any of them is usable here. Guards (a standing duty, no post) are
 // handed out first, up to the culture's patrol share, so a settlement has pairs rather than one stray.
+// Each resident also remembers the prefab it was placed from, so an expedition stand-in can be spawned from it.
 // Values only — the component stack is the character prefab's own.
 using System.Collections.Generic;
 using System.Linq;
@@ -61,8 +64,11 @@ namespace SpaceGame.Agents.Residents
 
                 resident.index = roster.Count;
                 resident.settlement = settlement;
-                resident.archetype = newcomer.archetype != null ? newcomer.archetype
-                    : PickArchetype(roster, Suited(archetypes, culture.SuitsOf(newcomer.prefab)), culture, newcomers.Count);
+                resident.sourcePrefab = newcomer.prefab;
+                // The body is a fresh instance, so an archetype it already carries is its prefab's own role.
+                if (newcomer.archetype != null) resident.archetype = newcomer.archetype;
+                else if (resident.archetype == null)
+                    resident.archetype = PickArchetype(roster, Suited(archetypes, culture.SuitsOf(newcomer.prefab)), culture, newcomers.Count);
                 // A special character keeps the name its prefab gives it; everyone else is named by the culture.
                 if (!newcomer.special || string.IsNullOrEmpty(resident.displayName))
                     resident.displayName = names.Count > 0 ? names.Dequeue() : string.Empty;
@@ -81,33 +87,63 @@ namespace SpaceGame.Agents.Residents
             }
         }
 
-        // Job archetypes only where a spot of their post was generated, in a seeded order per settlement.
-        private static List<ResidentArchetype> UsableArchetypes(Settlement settlement, SettlementCulture culture, int seed)
+        /// <summary>The culture's archetypes this settlement can hand out: job archetypes only where a spot of their post was generated, in a seeded order.</summary>
+        public static List<ResidentArchetype> UsableArchetypes(Settlement settlement, SettlementCulture culture, int seed)
         {
-            var jobs = new HashSet<SpotUse>();
-            var errands = new HashSet<SpotUse>();
-            Transform generated = settlement.GeneratedRoot;
-            if (generated != null)
-                foreach (SettlementSpot spot in generated.GetComponentsInChildren<SettlementSpot>())
-                {
-                    if (spot.Use == null) continue;
-                    if (spot.Use.role == SpotRole.Work) jobs.Add(spot.Use);
-                    else if (spot.Use.role == SpotRole.Errand) errands.Add(spot.Use);
-                }
-
+            Places places = Places.Of(settlement);
             return culture.archetypes
-                .Where(a => a != null && IsUsable(a, jobs, errands))
+                .Where(a => a != null && places.CanHost(a))
                 .Distinct()
                 .OrderBy(a => Hash(seed, a.name))
                 .ToList();
         }
 
-        // A job needs a spot of its post; a standing duty needs nothing; an errand-only archetype needs both ends of its chore.
-        private static bool IsUsable(ResidentArchetype a, HashSet<SpotUse> jobs, HashSet<SpotUse> errands)
+        /// <summary>The role a character prefab is made for (its Resident's archetype); null for one Generate hands a role to.</summary>
+        public static ResidentArchetype RoleOf(GameObject prefab) =>
+            prefab != null && prefab.TryGetComponent(out Resident resident) ? resident.archetype : null;
+
+        /// <summary>
+        /// The archetypes a copy of <paramref name="prefab"/> is certain to be dealt one of by <see cref="Assign"/>, given the
+        /// settlement's <paramref name="usable"/> archetypes: its own role when it is made for one, else those its culture
+        /// profile suits. Empty when it may be dealt none: from guards alone it gets none once the patrol is full.
+        /// </summary>
+        public static IReadOnlyList<ResidentArchetype> CertainOneOf(GameObject prefab, SettlementCulture culture, List<ResidentArchetype> usable)
         {
-            if (a.duty != ResidentDuty.None) return true;
-            if (a.Lifestyle == Lifestyle.Stationed) return jobs.Contains(a.post);
-            return a.chore == null || (a.chore.IsComplete && errands.Contains(a.chore.source) && errands.Contains(a.chore.target));
+            ResidentArchetype role = RoleOf(prefab);
+            if (role != null) return new[] { role };
+
+            List<ResidentArchetype> suited = Suited(usable, culture.SuitsOf(prefab));
+            return suited.Any(a => a.duty == ResidentDuty.None) ? suited : new List<ResidentArchetype>();
+        }
+
+        /// <summary>The work and errand spots a generated settlement has, which decide the roles it can host.</summary>
+        public sealed class Places
+        {
+            private readonly HashSet<SpotUse> jobs = new();
+            private readonly HashSet<SpotUse> errands = new();
+
+            public static Places Of(Settlement settlement)
+            {
+                var places = new Places();
+                Transform generated = settlement.GeneratedRoot;
+                if (generated == null) return places;
+
+                foreach (SettlementSpot spot in generated.GetComponentsInChildren<SettlementSpot>())
+                {
+                    if (spot.Use == null) continue;
+                    if (spot.Use.role == SpotRole.Work) places.jobs.Add(spot.Use);
+                    else if (spot.Use.role == SpotRole.Errand) places.errands.Add(spot.Use);
+                }
+                return places;
+            }
+
+            /// <summary>A job needs a spot of its post; a standing duty needs nothing; an errand-only role needs both ends of its chore.</summary>
+            public bool CanHost(ResidentArchetype a)
+            {
+                if (a.duty != ResidentDuty.None) return true;
+                if (a.Lifestyle == Lifestyle.Stationed) return jobs.Contains(a.post);
+                return a.chore == null || (a.chore.IsComplete && errands.Contains(a.chore.source) && errands.Contains(a.chore.target));
+            }
         }
 
         // The usable archetypes a character's profile suits, in the settlement's order; all of them without a usable match.

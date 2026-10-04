@@ -1,0 +1,356 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e00213ead7e543929b7d6cb03079ebb, type: 3}
+  m_Name: RaxySettlement
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementConfig
+  buildings:
+  - prefab: {fileID: 4753198146456751024, guid: 66d4b28f628b54dae9f98cf523729df6, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2522525099514216163, guid: fe1b561af7f114b718df25f47160458d, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8880752566591065812, guid: 6ba00a9cd69dd446ca4b1aa340ce4c83, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 29812862079559774, guid: e1313b0d192474f33acb106ff09b6f11, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 17140939085119691, guid: fca2f51baee9d463f9dac976b8c253be, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 7443808564631417406, guid: 8e3fd284c080747bc9f64d97e717ccc2, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 3829745173037757931, guid: aa25f53075b1a47a6995c82f2fe20803, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1957290673614712193, guid: a6d22deeae9b24ce2ab5162582d26cc3, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 4495854470687426005, guid: 31d8cc93cdd994e579db7fe13cdb546e, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8755641659769857358, guid: 6b9e4c730536e458ea7398a45d671064, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 30112438898074234, guid: 92d4acb9fd6d642adb8fb0bc90414bca, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2688095760443978097, guid: 48b9f72f5899f43e087e25e9cd1404ae, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 499032633134228038, guid: 8d88f7a8b1cf7491d8c013461c8c3006, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1301079911386176519, guid: b66f36997369f49fe956797096334bdf, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8622380716988595588, guid: 345dc887a60014b61841988d94c2c1ac, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 5457810169111362905, guid: 73dee9edc572849d2b630c7b6a40ce9f, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 7836450097882197030, guid: c6ec614a9f2f34730b100fe8cd2da2cd, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1389406946623361535, guid: 23c37e86fcba04a26bd4da11a91edcd3, type: 3}
+    count: 1
+    spawnChance: 0.7
+  - prefab: {fileID: 1916532523183800790, guid: 8576da62ff26f4971a2d2ed6035e4c34, type: 3}
+    count: 1
+    spawnChance: 0.7
+  - prefab: {fileID: 8109292149792427120, guid: 6a63138c64fc346fa840e3a6ff8a0117, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2058160704727719115, guid: 0e295ca2239ab47989fc90718fcd7bf9, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1955574918160196976, guid: e2acf97e1bcc54e8cb351422f099d4d2, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 5334377907979166932, guid: 57c7dbb6283cc4d5fab3e812f2d2e2c1, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 7975350247430251023, guid: 9061697ff36e941e6bfecffa55042cb8, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8469090776545575255, guid: 4bbd0441ff2d042c285477be2f3bf3ec, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 5901555421537983517, guid: 1b3a1ca5687bb4db0bcd66df03d78792, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 3474718121195194260, guid: c743d6ca6024943ee9dfffd567092bff, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8004751455468580982, guid: d3902135e4a5b42b1bb7121bcc253db0, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2851193425406132299, guid: 8831c2282a3de42089fa48e6f24d3e94, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 4675552115370696300, guid: fceed9abfbdfb4ab2a9b5595e1538b8f, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1598615471610837708, guid: dd84db1321ac849e4b894d9c9fcb21a1, type: 3}
+    count: 1
+    spawnChance: 1
+  decorations:
+  - prefab: {fileID: 7654199781468129003, guid: 4ab17c1d3269245a4b1f09a510a236c1, type: 3}
+    count: 1
+    spawnChance: 0.8
+  - prefab: {fileID: 6226597173709128931, guid: bf567d36a9402418b91c666fe8e6b99f, type: 3}
+    count: 1
+    spawnChance: 0.8
+  - prefab: {fileID: 2344912346831665768, guid: ff440b7479a15412586b842911c05a12, type: 3}
+    count: 1
+    spawnChance: 0.8
+  characters:
+  - prefab: {fileID: 6320590716706008551, guid: 42b14c93f650343d9904c00262437ec4, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 9e7fd6836c1eb4625a847a487fc6ea96, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 945875e2c9c034aca8157a89589e2e6f, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: b1a441d697d7244e5a2d03264d70e8fd, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 600a297774679412697efb8407ef232b, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 3105438250342313871, guid: 2a4b9ce2f062c490583b57550c0e8d6a, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 3329947332983915974, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 3329947332983915974, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6041516499664464153, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 9073734896679703001, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 8868609454500565137, guid: f2a1bce75c71646f698b5d8935877f1b, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6643838780466197570, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 4f284d4a656604161b70bb841ec01d61, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 7439fdc30295f4676a28874bb9023bc9, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: ffd6ce667ab644930862dfe31068fb15, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: ebeb475745d3c4a28afbacf713f00555, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: d331d99758b16401aa91335195d00b8f, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 26de078b165624b48bab903240fa9b2c, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 172915b40f756480a9df328461e89868, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: d4db20334765645fd8ed2bfd92da9752, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 17730c20645fa4ecfb865e8e263e59a0, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 614738acaf01149c4b520fbdf6894b6c, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 63d1dd6311b31483e8a06ee70d5f4f4b, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 2a28a2a29eacc416a8e2562a7dfafdb8, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: dd45e0c9787e6445584a29f67babe2ea, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 753771bef15834ad6989d6382051573b, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 5225001ddcd6246e29c43f9aa68f6557, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 4f09e9c90d81a4832b0987ffffbeb948, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 5be15441b015f45f380bf876a5c4786f, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 2cbfe744a7e1b436f8c1988429c46e9c, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: d837e39f7c1dd47939ac2078d62f04d4, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 81ea567969f7f4330add1a6066ca8121, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 12b783936a1a641668195145997844e1, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 135b9e832943c4c8a97e537b23e53e5f, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 7d4a3ada411a446dc9ac4317d45b64ad, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 80944b6778f11420db2f3f3b72246c6e, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 190ece0690131479aa500a0aa514f7ec, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: ab099db0bab2d4c69b7abc7a4a6d6eac, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 0c5be68f8e772483c82f942d618a7224, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 8dd77c340c0d24738ad012c40c0b0459, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 12c6429098b884b78afb13a7ebe15ae2, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 60f54e71973fe4226b1d48e4c4c19527, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: eea9913c3325d4eeb9a68d5e1927f6c5, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 613bda6e405a44cd6a4d1bdcb69d0df3, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: f7d3c79419384464386a1973b4865422, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 403b506b1d2da494eb2e8de34dfcba19, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 75b8a315d2cf849148b247ddf8b672b9, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 7678f5b5e12cf42a4a4a0f6ddb15ba92, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 7597401561177595076, guid: d7b830fd7553b4d07a97cadffa0ba701, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 7597401561177595076, guid: 6cbc8eee5705a4efab681b8b6d19063d, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 969caf8b7b3ff4fb3a619dc84ee1645d, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 495d3a418e5ae4c75827e121eef641f1, type: 3}
+    count: 3
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 71a668d9b98c1427dbbc2acd31c89c9d, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: eb71ed0c8299e42a98a4d257003bc368, type: 3}
+    count: 3
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 55d15e02fccf94f97be4aa62258398bc, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 8dfde592622fd47888528caeb6b86738, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 00e5e3143faba40f4a0c9d4f22a234b5, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 8c707996962274518bd451ff5dab9258, type: 3}
+    count: 3
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 5b39234bf47954c4580d733487ceb106, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 28e63b20028a64f7990e896d3762cfbf, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: d1a9a5424ffea45458be5092ca918501, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 0187ca26c394f4f469b1a3006ede0eeb, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: e7579f2f4198441b3941b7342ef79045, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 12b3f030e79454abfa363cdcf726bcd1, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 56eb1a823ad4947e3b8010316ee4842e, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: ac01c64fafe234319b80da96e277c9b8, type: 3}
+    count: 1
+    spawnChance: 0.9
+  - prefab: {fileID: 6320590716706008551, guid: 2ed95719bca964cdfa4dba1c0c5df707, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 7718fe4cf55ed4b29bec192e7a251133, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 4e48d8650da0b48b7b8e9afa8c0b41e8, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 9073734896679703001, guid: 354422bd6f3b3490b9abaae651f28d65, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: 631daf7ceddef473a82365c20b25e6ec, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 3329947332983915974, guid: 4ad0310048f5745ea9be8e0d4d46770f, type: 3}
+    count: 2
+    spawnChance: 0.6
+  - prefab: {fileID: 6320590716706008551, guid: b71338158374943ea8234f7ff3ba6a5a, type: 3}
+    count: 2
+    spawnChance: 0.6
+  specialCharacters: []
+  culture: {fileID: 11400000, guid: 98f1700352364ba9aa28043a52d9ea73, type: 2}
+  streets: {fileID: 11400000, guid: d5ae737c4eaaf4fa4869cc320d65c9ee, type: 2}
+  minBuildingGap: 0
+  maxBuildingGap: 1
+  outskirts: 6
+  decorationSpacing: 0.4
+  characterSpacing: 0.3
+  flattenPadding: 3
+  blendDistance: 10
+  ambientNoiseAmplitude: 0.6
+  ambientNoiseScale: 0.05

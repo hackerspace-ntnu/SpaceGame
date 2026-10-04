@@ -11,6 +11,9 @@ namespace SpaceGame.Agents.Residents
 {
     public static class ObserverCheck
     {
+        /// <summary>Where a watcher looks at a body: its chest, this far above its feet, not the ground under them.</summary>
+        public const float ChestHeight = 1f;
+
         // The player's camera rides 1.45 m above its root, the root ~1 m above the soles (PlayerCharacter.prefab).
         private const float EyeAboveRoot = 1.45f;
         private const int MaxOccluderHits = 16;

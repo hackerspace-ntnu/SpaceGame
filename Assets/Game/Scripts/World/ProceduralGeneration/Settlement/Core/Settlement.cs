@@ -14,8 +14,11 @@
 // At runtime the same component hosts the settlement's people (SettlementSociety): the places its
 // buildings' spots brought along, the residents' day plans, their conversations and their rumours.
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using SpaceGame.Agents.Expeditions;
 using SpaceGame.Agents.Residents;
+using SpaceGame.Core.Persistence;
 
 namespace SpaceGame.World
 {
@@ -43,6 +46,8 @@ namespace SpaceGame.World
 
         private SettlementSociety society;
         private SettlementProps props;
+        private SaveableEntity identity;
+        private bool warnedNoIdentity;
 
         private const string GeneratedRootName = "Generated";
         private const string LivestockRootName = "Livestock";
@@ -62,6 +67,16 @@ namespace SpaceGame.World
         /// <summary>Everything the last Generate placed; null before the first.</summary>
         public Transform GeneratedRoot => transform.Find(GeneratedRootName);
 
+        /// <summary>The beds of every dwelling Generate placed, as Populate counts them; 0 before a Generate.</summary>
+        public int Beds => GeneratedRoot is { } generated ? BedsUnder(generated) : 0;
+
+        private static int BedsUnder(Transform root)
+        {
+            int beds = 0;
+            foreach (Dwelling dwelling in root.GetComponentsInChildren<Dwelling>()) beds += dwelling.Beds;
+            return beds;
+        }
+
         /// <summary>Where the settlement's walkable area is; every resident place must be reachable from here.</summary>
         public Vector3 WalkableHeart => walkableHeart;
 
@@ -77,6 +92,32 @@ namespace SpaceGame.World
 
         /// <summary>Who the people are: lines, names, archetypes. Null = the characters are plain NPCs.</summary>
         public SettlementCulture Culture => config != null ? config.culture : null;
+
+        /// <summary>The street style the layout was planned with; null for a cluster.</summary>
+        public SettlementStreetStyle StreetStyle => config != null ? config.streets : null;
+
+        /// <summary>
+        /// Which settlement this is, for anything that outlives its chunk: the baked id of its own authored
+        /// <see cref="SaveableEntity"/>. Identity, not position: <see cref="Seed"/> moves with the transform.
+        /// Empty, with one warning, until <c>Tools/SpaceGame/Expeditions/Stamp Settlement Identity</c> has run.
+        /// </summary>
+        public string SettlementId
+        {
+            get
+            {
+                if (identity == null) identity = GetComponent<SaveableEntity>();
+                if (identity != null && identity.IsAuthored && !string.IsNullOrEmpty(identity.InstanceId))
+                    return identity.InstanceId;
+
+                if (!warnedNoIdentity)
+                {
+                    warnedNoIdentity = true;
+                    Debug.LogWarning($"[{GetType().Name}] {name} has no authored SaveableEntity, so it has no settlement id. " +
+                                     "Run Tools/SpaceGame/Expeditions/Stamp Settlement Identity.", this);
+                }
+                return string.Empty;
+            }
+        }
 
         /// <summary>Every character prefab Generate may place: the config's characters and special characters.</summary>
         public IEnumerable<GameObject> CharacterPrefabs()
@@ -168,7 +209,7 @@ namespace SpaceGame.World
             // settlement has (ground, courtyards, walkable roofs); the NavMesh keeps them out of walls.
             Transform charactersRoot = new GameObject("Characters").transform;
             charactersRoot.SetParent(root, worldPositionStays: false);
-            Population population = Populate(root, charactersRoot, RollCopies(config.characters, ref rng), ref rng);
+            Population population = Populate(root, charactersRoot, RollCopies(config.characters, ref rng), layout.lanes, ref rng);
 
             Report(root, layout, buildingPrefabs.Count, decorationsPlaced, decorationPrefabs.Count, population);
         }
@@ -178,18 +219,31 @@ namespace SpaceGame.World
             public int placed, movingIn, wanted, beds, specials;
             public int stock, stockWanted;
             public List<string> problems, penProblems;
+            /// <summary>Roles of character copies left out because this settlement has no place for them.</summary>
+            public List<string> leftOut;
+            /// <summary>Each quota of the culture's expedition profile: the residents now holding its role, and the quota.</summary>
+            public List<(ExpeditionRole role, int held, int count)> quotas;
         }
 
         /// <summary>
         /// Who moves in: every special character, then copies of the config's characters (seeded order) until
-        /// the dwellings' beds are full -- or, with no dwellings at all, every copy rolled. Then checks every
-        /// door and spot can be walked to, places the people, and makes residents of them when there is a culture.
+        /// the dwellings' beds are full -- or, with no dwellings at all, every copy rolled. A copy made for one role
+        /// stays out when that role has no place here (a miner where there is no mine). A culture that sends bands
+        /// out keeps its quotas from the start: copies certain to have a quota's role move in first
+        /// (<see cref="ExpeditionRules.PlanMoveIn"/>). Then checks every door and spot can be walked to, places the
+        /// people, and makes residents of them when there is a culture.
+        /// A culture that sends bands out gets its muster spot on one of the <paramref name="lanes"/> first.
         /// </summary>
-        private Population Populate(Transform root, Transform parent, List<GameObject> pool, ref SettlementPlacementUtil.SeededRng rng)
+        private Population Populate(Transform root, Transform parent, List<GameObject> pool, IReadOnlyList<SettlementMuster.StreetPoint[]> lanes,
+                                    ref SettlementPlacementUtil.SeededRng rng)
         {
             var dwellings = new List<Dwelling>(root.GetComponentsInChildren<Dwelling>());
-            var population = new Population { problems = new List<string>(), penProblems = new List<string>() };
-            foreach (Dwelling dwelling in dwellings) population.beds += dwelling.Beds;
+            var population = new Population
+            {
+                problems = new List<string>(), penProblems = new List<string>(), leftOut = new List<string>(),
+                quotas = new List<(ExpeditionRole role, int held, int count)>(),
+            };
+            population.beds = BedsUnder(root);
 
             var newcomers = new List<(GameObject prefab, ResidentArchetype archetype, bool special)>();
             foreach (var special in config.specialCharacters)
@@ -197,8 +251,16 @@ namespace SpaceGame.World
             population.specials = newcomers.Count;
 
             Shuffle(pool, ref rng);
-            int room = population.beds > 0 ? Mathf.Max(0, population.beds - population.specials) : pool.Count;
-            for (int i = 0; i < pool.Count && i < room; i++) newcomers.Add((pool[i], null, false));
+            ResidentAssignment.Places places = HasResidents ? ResidentAssignment.Places.Of(this) : null;
+            var hostable = new List<GameObject>(pool.Count);
+            foreach (GameObject prefab in pool)
+            {
+                ResidentArchetype role = ResidentAssignment.RoleOf(prefab);
+                if (places != null && role != null && !places.CanHost(role)) population.leftOut.Add(role.roleName);
+                else hostable.Add(prefab);
+            }
+            int room = population.beds > 0 ? Mathf.Max(0, population.beds - population.specials) : hostable.Count;
+            foreach (int i in MoveIn(hostable, newcomers, population.beds, room)) newcomers.Add((hostable[i], null, false));
             population.movingIn = newcomers.Count;
             population.wanted = population.beds > 0 ? Mathf.Max(population.beds, population.specials) : newcomers.Count;
 
@@ -216,13 +278,68 @@ namespace SpaceGame.World
 
             float[] doorDistances = ResidentTuning.Instance.doorStandDistances;
             walkableHeart = SettlementPlaces.FindHeart(root, doorDistances, transform.position);
+            PlaceMusterSpot(root, lanes);
             population.problems = SettlementPlaces.Problems(root, walkableHeart, doorDistances);
 
             List<ResidentAssignment.Newcomer> placed = PlaceCharacters(newcomers, parent, walkable, ref rng);
             population.placed = placed.Count;
-            if (HasResidents) ResidentAssignment.Assign(this, Culture, placed, dwellings);
+            if (HasResidents)
+            {
+                ResidentAssignment.Assign(this, Culture, placed, dwellings);
+                population.quotas = QuotaFill(placed, population.beds);
+            }
             StockPens(pens, root, walkable, ref population);
             return population;
+        }
+
+        /// <summary>
+        /// The indices of <paramref name="pool"/> that move into <paramref name="room"/> beds, in pool order. Without an
+        /// expedition profile, the first copies; with one, copies certain to have a quota's role first, counting the
+        /// <paramref name="settled"/> special characters (<see cref="ExpeditionRules.PlanMoveIn"/>).
+        /// </summary>
+        private List<int> MoveIn(List<GameObject> pool, IEnumerable<(GameObject prefab, ResidentArchetype archetype, bool special)> settled,
+                                 int beds, int room)
+        {
+            ExpeditionProfile profile = Culture != null ? Culture.expeditions : null;
+            if (profile == null)
+                return ExpeditionRules.PlanMoveIn(new MoveInCandidate[pool.Count], System.Array.Empty<(ExpeditionRole, int)>(),
+                                                  System.Array.Empty<ExpeditionRole>(), room);
+
+            List<ResidentArchetype> usable = ResidentAssignment.UsableArchetypes(this, Culture, Seed);
+            List<MoveInCandidate> candidates = pool
+                .Select(prefab => new MoveInCandidate(CertainRoles(prefab, usable), ResidentAssignment.RoleOf(prefab) != null))
+                .ToList();
+            List<ExpeditionRole> settledRoles = settled
+                .Select(s => s.archetype != null ? s.archetype.expeditionRoles : CertainRoles(s.prefab, usable))
+                .ToList();
+            return ExpeditionRules.PlanMoveIn(candidates, ExpeditionRules.Quotas(profile, beds), settledRoles, room);
+        }
+
+        // The roles every archetype a copy of the prefab may be dealt here shares; None when its archetype is not certain.
+        private ExpeditionRole CertainRoles(GameObject prefab, List<ResidentArchetype> usable)
+        {
+            IReadOnlyList<ResidentArchetype> dealt = ResidentAssignment.CertainOneOf(prefab, Culture, usable);
+            if (dealt.Count == 0) return ExpeditionRole.None;
+
+            ExpeditionRole roles = dealt[0].expeditionRoles;
+            foreach (ResidentArchetype archetype in dealt) roles &= archetype.expeditionRoles;
+            return roles;
+        }
+
+        /// <summary>For each quota of the culture's expedition profile: how many of the <paramref name="placed"/> residents hold its role.</summary>
+        private List<(ExpeditionRole role, int held, int count)> QuotaFill(List<ResidentAssignment.Newcomer> placed, int beds)
+        {
+            var fill = new List<(ExpeditionRole role, int held, int count)>();
+            ExpeditionProfile profile = Culture.expeditions;
+            if (profile == null) return fill;
+
+            foreach ((ExpeditionRole role, int count) in ExpeditionRules.Quotas(profile, beds))
+            {
+                int held = placed.Count(n => n.body.TryGetComponent(out Resident resident) && resident.archetype != null &&
+                                             (resident.archetype.expeditionRoles & role) != 0);
+                fill.Add((role, held, count));
+            }
+            return fill;
         }
 
         /// <summary>
@@ -276,6 +393,21 @@ namespace SpaceGame.World
             var path = new UnityEngine.AI.NavMeshPath();
             return UnityEngine.AI.NavMesh.CalculatePath(from, walkableHeart, UnityEngine.AI.NavMesh.AllAreas, path) &&
                    path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete;
+        }
+
+        // A people that sends bands out musters them at a spot of its profile's muster use. One a prefab brought along is
+        // kept; else SettlementMuster's rule places one where the road out's paving ends, on this Generate's throwaway NavMesh and before the places
+        // are checked, so the summary names it when nobody can walk to it.
+        private void PlaceMusterSpot(Transform root, IReadOnlyList<SettlementMuster.StreetPoint[]> lanes)
+        {
+            ExpeditionProfile profile = Culture != null ? Culture.expeditions : null;
+            if (profile == null || profile.musterUse == null || SettlementMuster.Find(root, profile.musterUse) != null) return;
+
+            if (!SettlementMuster.TryChoose(transform.position, lanes, ExpeditionTuning.Instance.musterInset, out Pose pose))
+                Debug.LogWarning($"[{GetType().Name}] No street leaves the centre, so {profile.name} has no muster spot here: " +
+                                 $"put a SettlementSpot using {profile.musterUse.name} under {root.name} by hand.", this);
+            else if (!SettlementMuster.TryPlace(root, profile.musterUse, pose, walkableHeart, out _, out string why))
+                Debug.LogWarning($"[{GetType().Name}] No muster spot for {profile.name}: {why}.", this);
         }
 
         private static void Shuffle(List<GameObject> list, ref SettlementPlacementUtil.SeededRng rng)
@@ -555,15 +687,19 @@ namespace SpaceGame.World
                 ? $"{characters}/{charactersWanted} characters in {population.beds} beds ({population.specials} special)"
                 : $"{characters}/{charactersWanted} characters (no dwellings: they sleep in the open)";
             string livestock = population.stockWanted > 0 ? $", {population.stock}/{population.stockWanted} penned animals" : "";
+            string quotas = population.quotas.Count > 0
+                ? $" (quotas: {string.Join(", ", population.quotas.Select(q => $"{q.role} {q.held}/{q.count}"))})"
+                : "";
+            var quotasShort = population.quotas.Where(q => q.held < q.count).ToList();
             string summary = $"[{GetType().Name}] Generated {buildings}/{buildingsWanted} buildings, " +
                              $"{decorations}/{decorationsWanted} decorations, {people}{livestock}" +
-                             (HasResidents ? " as residents" : " as plain NPCs (no culture)") +
+                             (HasResidents ? " as residents" + quotas : " as plain NPCs (no culture)") +
                              $" over {generatedExtent:0.#} m under {root.name}" +
                              (layout.summary.Length > 0 ? $"; {layout.summary}." : ".");
 
             if (buildings == buildingsWanted && decorations == decorationsWanted && characters == charactersWanted &&
                 layout.streetsEndingAtWalls == 0 && layout.wallsTooTall == 0 && population.problems.Count == 0 &&
-                population.penProblems.Count == 0)
+                population.penProblems.Count == 0 && quotasShort.Count == 0)
             {
                 Debug.Log(summary, root);
                 return;
@@ -576,6 +712,11 @@ namespace SpaceGame.World
                              (buildings < buildingsWanted ? missingBuildings : "") +
                              (decorations < decorationsWanted ? " Missing decorations found no free ground -- raise outskirts or lower decorationSpacing." : "") +
                              (characters < charactersWanted ? MissingCharacters(population) : "") +
+                             (quotasShort.Count > 0
+                                 ? $" Short of the expedition quota for {string.Join(", ", quotasShort.Select(q => $"{q.role} ({q.count - q.held} short)"))}: " +
+                                   "the characters list rolls too few copies certain to have the role here -- add copies of a character " +
+                                   "prefab made for it (its Resident names the archetype), or run Tools/SpaceGame/Expeditions/Apply Role Quotas."
+                                 : "") +
                              (population.problems.Count > 0 ? $" {population.problems.Count} place(s) residents cannot use: {string.Join("; ", population.problems)}." : "") +
                              (population.penProblems.Count > 0 ? $" Pen problem(s): {string.Join("; ", population.penProblems)}." : "") +
                              (layout.streetsEndingAtWalls > 0 ? $" {layout.streetsEndingAtWalls} street(s) run into another on a different terrace and end at its wall -- too steep to step down in time; raise contourBias so streets follow the slope." : "") +
@@ -588,8 +729,12 @@ namespace SpaceGame.World
         private string MissingCharacters(Population population)
         {
             bool listRanOut = population.movingIn < population.wanted;
+            string leftOut = population.leftOut.Count > 0
+                ? $" {population.leftOut.Count} cop(ies) made for a role with no place here stayed out " +
+                  $"({string.Join(", ", population.leftOut.GroupBy(r => r).Select(g => $"{g.Key} x{g.Count()}"))})."
+                : "";
             return listRanOut
-                ? $" {population.wanted - population.movingIn} bed(s) stayed empty: the characters list rolled fewer copies than there are beds -- raise counts."
+                ? $" {population.wanted - population.movingIn} bed(s) stayed empty: the characters list rolled fewer copies than there are beds -- raise counts.{leftOut}"
                 : " Missing characters found no free NavMesh -- raise outskirts or lower characterSpacing.";
         }
 

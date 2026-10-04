@@ -34,18 +34,33 @@ MonoBehaviour:
   - prefab: {fileID: 3808004275049042514, guid: 248745458a5784153911a6df31651193, type: 3}
     count: 2
     spawnChance: 0.75
-  decorations: []
+  decorations:
+  - prefab: {fileID: 4620269976808099183, guid: 14b77aae010ca4409aea4f74e61b5549, type: 3}
+    count: 3
+    spawnChance: 1
+  - prefab: {fileID: 7914058175596575615, guid: c4ad81b1590bb453587dc8a7d82da78c, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 3562478265710845628, guid: a400a81ae61484efd98decec18be724e, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 809557494842136864, guid: ffad6fe666a5e49968a543cad3a13396, type: 3}
+    count: 2
+    spawnChance: 1
+  - prefab: {fileID: 3036774635713524569, guid: a91417a2db3c9422cbce85f1ab4edd6c, type: 3}
+    count: 1
+    spawnChance: 1
   characters:
   - prefab: {fileID: 2578966956616729156, guid: d0f638635216a414e9bf763407759c52, type: 3}
-    count: 12
-    spawnChance: 0.75
+    count: 30
+    spawnChance: 1
   specialCharacters: []
-  culture: {fileID: 0}
+  culture: {fileID: 11400000, guid: f5ce67b421e664829a6a218cffc24634, type: 2}
   streets: {fileID: 0}
   minBuildingGap: 4
   maxBuildingGap: 10
-  outskirts: 15
-  decorationSpacing: 1.5
+  outskirts: 40
+  decorationSpacing: 24
   characterSpacing: 0.6
   flattenPadding: 3
   blendDistance: 10

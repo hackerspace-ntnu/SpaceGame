@@ -221,5 +221,18 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(prefab.transform.position.y, seat.FeetPosition.y, 1e-4f, "the feet hang to the floor the root stands on");
             Assert.IsTrue(prefab.GetComponents<Collider>().Any(c => c.isTrigger), "a trigger on the root the crosshair can hit");
         }
+
+        // Read off the prefab assets, not the class: the field's default is Stool and a prefab keeps whatever it stored.
+        [TestCase("Clay", SeatPose.Stool)]
+        [TestCase("Wood", SeatPose.Stool)]
+        [TestCase("Pillow", SeatPose.Stool)]
+        public void ASeatPrefabSaysHowItsSitterSits(string kind, SeatPose expected)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsDir}/Decorations/Furniture/Deco_Seat_{kind}.prefab");
+
+            Assert.AreEqual(expected, prefab.GetComponent<Seat>().Pose,
+                            "all three sit 0.56 m up with a body under the sitter, so its legs hang down the front: the cross-legged loops " +
+                            "(Floor) put the lower legs inside the pillow and fit only a cushion on the ground");
+        }
     }
 }

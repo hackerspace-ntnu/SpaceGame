@@ -76,6 +76,12 @@ namespace SpaceGame.Agents
         // ── Published state ──────────────────────────────────────────────────────
 
         public int EquippedSlotIndex => equippedSlotIndex;
+
+        /// <summary>The item's instance in the hand; null with an empty hand.</summary>
+        public GameObject HeldObject => equippedObject;
+
+        /// <summary>The bone the held item is seated on.</summary>
+        public Transform HandBone => socket != null ? socket.Socket : null;
         public UsableItem HeldUsable => equippedUsable;
         public bool HasItem => equippedUsable != null;
 

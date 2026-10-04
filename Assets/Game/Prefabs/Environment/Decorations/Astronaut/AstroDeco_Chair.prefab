@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3478067907539513181
+--- !u!1 &2588222262427378536
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,21 +8,69 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2308206340318108809}
+  - component: {fileID: 8255033962461272059}
+  - component: {fileID: 2875577445713845061}
   m_Layer: 0
-  m_Name: Colliders
+  m_Name: Spot_Seat_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 94
+  m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2308206340318108809
+--- !u!4 &8255033962461272059
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3478067907539513181}
+  m_GameObject: {fileID: 2588222262427378536}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 1.2260001}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 869964706904480148}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2875577445713845061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2588222262427378536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
+  use: {fileID: 11400000, guid: de9a4075d0ab4b7080414dd9c74d43cc, type: 2}
+  face: {fileID: 7839405278920144426}
+  group: 
+  stationCue: {fileID: 0}
+--- !u!1 &3498478683704201612
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4333537272718401691}
+  m_Layer: 0
+  m_Name: Colliders
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4333537272718401691
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3498478683704201612}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -31,6 +79,109 @@ Transform:
   m_Children: []
   m_Father: {fileID: 869964706904480148}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4029597380246125321
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7839405278920144426}
+  m_Layer: 0
+  m_Name: Face_Seat_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7839405278920144426
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4029597380246125321}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.082, z: 0.026}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 869964706904480148}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6422147288694496567
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9175941223251465700}
+  - component: {fileID: 8816475832572536407}
+  - component: {fileID: 2283836037540863393}
+  m_Layer: 0
+  m_Name: Seat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9175941223251465700
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6422147288694496567}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.082, z: 0.026}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 869964706904480148}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8816475832572536407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6422147288694496567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 157ab214a93794506a01760f548f848a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Seat
+  sitPoint: {fileID: 0}
+  pose: 0
+  footDrop: 1.082
+  standUpDistance: 1.2
+  moveTolerance: 0.05
+  turnTolerance: 10
+--- !u!65 &2283836037540863393
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6422147288694496567}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2, y: 1.15, z: 1.2}
+  m_Center: {x: 0, y: -0.475, z: 0}
 --- !u!1 &8109676432600908969
 GameObject:
   m_ObjectHideFlags: 0
@@ -40,13 +191,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 869964706904480148}
-  - component: {fileID: 24762983550601442}
+  - component: {fileID: 7822061174472164236}
   m_Layer: 0
   m_Name: AstroDeco_Chair
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 94
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &869964706904480148
 Transform:
@@ -61,12 +212,14 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 6476109497394346493}
-  - {fileID: 2308206340318108809}
-  - {fileID: 2675080237323290675}
+  - {fileID: 854278651072270276}
+  - {fileID: 4333537272718401691}
+  - {fileID: 9175941223251465700}
+  - {fileID: 7839405278920144426}
+  - {fileID: 8255033962461272059}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &24762983550601442
+--- !u!114 &7822061174472164236
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -78,80 +231,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
-  displayName: Chair
+  displayName: 
   scanClass: 2
---- !u!1 &8216213058366729700
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2675080237323290675}
-  - component: {fileID: 2835712289667223695}
-  - component: {fileID: 4993900156009180721}
-  m_Layer: 0
-  m_Name: Seat
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 94
-  m_IsActive: 1
---- !u!4 &2675080237323290675
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8216213058366729700}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.09, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 869964706904480148}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2835712289667223695
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8216213058366729700}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 157ab214a93794506a01760f548f848a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Seat
-  sitPoint: {fileID: 0}
-  footDrop: 1.09
-  standUpDistance: 1
-  moveTolerance: 0.05
-  turnTolerance: 10
---- !u!65 &4993900156009180721
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8216213058366729700}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.2, y: 1.4, z: 1.2}
-  m_Center: {x: 0, y: -0.4, z: 0}
---- !u!1001 &6797473610031455766
+--- !u!1001 &887693552981747759
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -159,13 +241,9 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 869964706904480148}
     m_Modifications:
-    - target: {fileID: -9217373157657141527, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
-      objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalPosition.y
@@ -177,11 +255,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071067
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalRotation.y
@@ -189,7 +267,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -203,41 +281,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -7886136742534692118, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
-      objectReference: {fileID: 0}
-    - target: {fileID: -6433709650569512943, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
-      objectReference: {fileID: 0}
-    - target: {fileID: -4640107736162371079, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
-      objectReference: {fileID: 0}
-    - target: {fileID: -4270439651095397301, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
-      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
       propertyPath: m_Name
       value: Model
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
-      objectReference: {fileID: 0}
-    - target: {fileID: 4902251571127618796, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
---- !u!4 &6476109497394346493 stripped
+--- !u!4 &854278651072270276 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: aa748493abfe34cd5a7404528e0c9b39, type: 3}
-  m_PrefabInstance: {fileID: 6797473610031455766}
+  m_PrefabInstance: {fileID: 887693552981747759}
   m_PrefabAsset: {fileID: 0}

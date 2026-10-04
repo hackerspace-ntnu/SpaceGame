@@ -11,6 +11,9 @@ namespace SpaceGame.World
 {
     public static class SettlementStreetLayout
     {
+        /// <summary>The child of Generated every stair, wall, street piece and door path is laid under.</summary>
+        public const string StreetsRootName = "Streets";
+
         // Streets draw from their own sequence off the settlement's seed.
         private const int StreetSeedSalt = 0x57EE7;
         // Terrace cells this far round a plot are held at the plot's ground height, so its walls clear it.
@@ -152,7 +155,7 @@ namespace SpaceGame.World
             }
 
             // 5. Stairs, terrace walls, street slabs and door paths.
-            Transform streetsRoot = new GameObject("Streets").transform;
+            Transform streetsRoot = new GameObject(StreetsRootName).transform;
             streetsRoot.SetParent(root, worldPositionStays: false);
             var paver = new SettlementStreetPaver(style, streetsRoot, root);
             if (style.ChainsStairs && sections != null) paver.LayStairChains(chains, plotFootprints);
@@ -167,6 +170,21 @@ namespace SpaceGame.World
             result.pavingRoot = streetsRoot;
             result.wallsTooTall = paver.WallsTooTall;
             result.summary = Summary(network, paver, style, plots.BackRows);
+            // The streets that leave the centre, on the sculpted ground and paved wherever they are not a stone path: the
+            // muster spot is placed where one's paving ends. The street kit paves every street end to end.
+            for (int s = 0; s < network.streets.Count; s++)
+            {
+                var street = network.streets[s];
+                if (street.parent >= 0) continue;
+                var lane = new SettlementMuster.StreetPoint[street.points.Count];
+                for (int i = 0; i < lane.Length; i++)
+                {
+                    Vector2 xz = street.points[i];
+                    lane[i] = new SettlementMuster.StreetPoint(new Vector3(xz.x, ground(xz), xz.y),
+                                                              sections == null || SettlementStreetSurfaces.IsTerraced(sections[s], street.arcs[i]));
+                }
+                result.lanes.Add(lane);
+            }
             return result;
         }
 

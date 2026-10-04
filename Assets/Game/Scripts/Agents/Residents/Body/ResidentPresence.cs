@@ -42,7 +42,8 @@ namespace SpaceGame.Agents.Residents
         /// <summary>Hands on no cart; no Pushable derives this id.</summary>
         public const int NoCart = 0;
 
-        // The deciding machine's own record: offline there is no spawn to write the variables through.
+        // The deciding machine's own record: offline there is no spawn to write the variables through, and online what is
+        // published before the spawn is written into them when the body spawns.
         private Activity decidedActivity;
         private byte decidedProp;
         private bool decidedHidden;
@@ -65,6 +66,8 @@ namespace SpaceGame.Agents.Residents
         private Resident resident;
         private ResidentHands hands;
         private BodyLanguage body;
+        private Animator animator;
+        private AnimatorCullingMode cullingBeforeHide;
         private SeatedBodyFit seatFit;
         private CartPusher pusher;
         private CharacterCue heldCue;
@@ -91,10 +94,13 @@ namespace SpaceGame.Agents.Residents
         private void Awake()
         {
             resident = GetComponent<Resident>();
+            var belt = GetComponent<BeltCarrier>();
+            if (belt != null) belt.TransitSeconds = ResidentTuning.Instance.toolTransitSeconds;
             hands = new ResidentHands(resident, GetComponent<EntityInventoryComponent>(),
-                                      GetComponent<EntityEquipmentController>(), GetComponent<BeltCarrier>(), this);
+                                      GetComponent<EntityEquipmentController>(), belt, this);
             body = GetComponentInChildren<BodyLanguage>();
-            seatFit = new SeatedBodyFit(GetComponentInChildren<Animator>(), transform);
+            animator = GetComponentInChildren<Animator>();
+            seatFit = new SeatedBodyFit(animator, transform);
             pusher = CartPusher.On(gameObject);
             // The body's own capsule, the one AgentRagdoll also owns — never a ragdoll bone's.
             hitCapsule = GetComponent<Collider>();
@@ -114,23 +120,17 @@ namespace SpaceGame.Agents.Residents
             decidedSeat = newSeat;
             decidedCart = newCart;
 
-            if (IsSpawned && IsServer)
-            {
-                activity.Value = (byte)newActivity;
-                prop.Value = newProp;
-                hidden.Value = newHidden;
-                place.Value = heldPlace;
-                attending.Value = newAttending;
-                seat.Value = newSeat;
-                cart.Value = newCart;
-            }
+            if (IsSpawned && IsServer) WriteReplicatedCopy();
 
             Apply();
         }
 
         public override void OnNetworkSpawn()
         {
-            if (!IsServer)
+            // What was published before the spawn (a resident sent offstage or away as its chunk loads) went to the server's
+            // own copy only: it reaches clients from here, with the spawn.
+            if (IsServer) WriteReplicatedCopy();
+            else
             {
                 activity.OnValueChanged += OnStateChanged;
                 prop.OnValueChanged += OnStateChanged;
@@ -154,6 +154,17 @@ namespace SpaceGame.Agents.Residents
             attending.OnValueChanged -= OnAttendingChanged;
             seat.OnValueChanged -= OnSeatChanged;
             cart.OnValueChanged -= OnCartChanged;
+        }
+
+        private void WriteReplicatedCopy()
+        {
+            activity.Value = (byte)decidedActivity;
+            prop.Value = decidedProp;
+            hidden.Value = decidedHidden;
+            place.Value = decidedPlace;
+            attending.Value = decidedAttending;
+            seat.Value = decidedSeat;
+            cart.Value = decidedCart;
         }
 
         private void OnStateChanged(byte previous, byte next) => Apply();
@@ -196,13 +207,15 @@ namespace SpaceGame.Agents.Residents
                 ResolveCart();
                 if (cueStale) Apply();
             }
-            hands.Update();
+            if (hands.Update() && body != null) body.DropGesturesOverHands();
             if (heldCue != null && body != null && !shownAttending && hands.Ready) body.Hold(heldCue, shownPlace);
         }
 
-        // After the animator has posed the body: a sitter is lifted until its hips rest on the seat's sit point.
-        private void LateUpdate() =>
-            seatFit.Update(!shownHidden && heldCue != null && shownSeat != null ? shownSeat.SitPosition.y : (float?)null, Time.deltaTime);
+        // After the animator has posed the body: a sitter is moved until its hips rest on the seat's sit point. A floor sit
+        // is the held loop, a stool sit is the animator's own, so only the floor sit asks for the loop.
+        private void LateUpdate() => seatFit.Update(IsSitting ? shownSeat : null, Time.deltaTime);
+
+        private bool IsSitting => !shownHidden && shownSeat != null && (shownSeat.Pose == SeatPose.Stool || heldCue != null);
 
         private void Apply()
         {
@@ -220,11 +233,16 @@ namespace SpaceGame.Agents.Residents
             if (shownActivity == Activity && shownPlace == Place && !cueStale) return;
 
             bool changed = shownActivity != Activity;
+            int previousPlace = shownPlace;
             shownActivity = Activity;
             shownPlace = Place;
             cueStale = false;
-            if (heldCue != null && body != null) body.Release(heldCue);
-            heldCue = CueFor(shownActivity, shownPlace);
+            CharacterCue cue = CueFor(shownActivity, shownPlace);
+            // The same loop at the same place carries on through a change of activity: a sitter that starts to talk keeps its pose,
+            // where releasing and holding it again fades the sit out and back in (the body stood for a frame or two).
+            bool sameLoop = cue != null && cue == heldCue && shownPlace == previousPlace;
+            if (heldCue != null && body != null && !sameLoop) body.Release(heldCue);
+            heldCue = cue;
             hands.Doing(shownActivity, shownPlace != NoPlace);
             hands.Station(heldCue);
             if (changed) Changed?.Invoke(shownActivity);
@@ -245,8 +263,13 @@ namespace SpaceGame.Agents.Residents
             if (at == null) return null;
             if (at.Kind == PlaceKind.Camp) return shown == Activity.Sleep ? ResidentTuning.Instance.campSleepCue : null;
 
+            // A bed: the lying loop on its seat, and only while asleep (a rest on the bed in the day stands).
+            if (at.Kind == PlaceKind.Bed)
+                return shown == Activity.Sleep && shownSeat != null && shownSeat.Pose == SeatPose.Lie ? ResidentTuning.Instance.campSleepCue : null;
+
             // A sit is held only on a seat: with none (no Seat near the spot, or its chunk not loaded here yet) the body stands.
-            if (at.Seated && shownSeat == null) return null;
+            // A stool sit holds no loop of the spot's: the animator's own chair sit is the pose (SetChairSit).
+            if (at.Seated && (shownSeat == null || shownSeat.Pose == SeatPose.Stool)) return null;
             return at.HoldCue;
         }
 
@@ -264,10 +287,18 @@ namespace SpaceGame.Agents.Residents
         private void ResolveSeat()
         {
             shownSeat = Seat.Find(shownSeatId);
+            if (body != null) body.SitOn(shownSeat != null);
+            SetChairSit(shownSeat != null && shownSeat.Pose == SeatPose.Stool);
             if (shownSeat == null) return;
 
             shownSeat.TryClaim(transform);
             cueStale = true;
+        }
+
+        // The chair sit of the base layer, the one the player's chair raises: knees bent, feet down, arms at rest.
+        private void SetChairSit(bool on)
+        {
+            if (animator != null && animator.runtimeAnimatorController != null) animator.SetBool(HumanoidParams.SeatedHash, on);
         }
 
         // The cart every machine puts this resident's hands on: the claim is replicated as an id and resolved to the local cart.
@@ -314,6 +345,14 @@ namespace SpaceGame.Agents.Residents
         private void ShowHidden(bool hide)
         {
             shownHidden = hide;
+            // Nobody sees the body, so it does no animation work: no gesture or fidget starts, and the animator stops evaluating
+            // (its renderers are off, which is what lets it cull itself completely) until the body is seen again.
+            if (body != null) body.Dormant = hide;
+            if (animator != null)
+            {
+                if (hide) cullingBeforeHide = animator.cullingMode;
+                animator.cullingMode = hide ? AnimatorCullingMode.CullCompletely : cullingBeforeHide;
+            }
 
             if (hide)
             {

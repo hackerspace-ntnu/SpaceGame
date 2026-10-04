@@ -51,6 +51,7 @@ namespace SpaceGame.Agents.Residents
         private readonly Queue<ErrandStop> queue = new();
         private readonly List<int> strolls = new();
         private readonly List<int> targets = new();
+        private readonly List<int> wanders = new();
         private System.Random rng;
         private ErrandStop stop;
         private Activity mode;
@@ -324,13 +325,24 @@ namespace SpaceGame.Agents.Residents
 
         // ── amble ────────────────────────────────────────────────────────────────────────────────
 
+        // An amble stays in the building it starts in when that building has wander spots (the colony's rooms and tubes): its
+        // places and its free points are that building's own, so a stroll never crosses an airlock. A building with none (every
+        // nomad house and street) ambles over the whole settlement, to points out in the street.
         private void BeginAmble(SettlementSociety society, in PlanSegment segment)
         {
+            Transform building = society.BuildingOf(segment.place);
+            wanders.Clear();
+            SpotUse wanderUse = society.Culture != null ? society.Culture.ambleUse : null;
+            if (building != null && wanderUse != null)
+                foreach (int stop in society.ErrandPlaces(wanderUse))
+                    if (society.BuildingOf(stop) == building) wanders.Add(stop);
+
             strolls.Clear();
             for (int i = 0; i < society.PlaceCount; i++)
             {
                 SettlementPlace place = society.Place(i);
-                if (place.Kind is PlaceKind.Stroll or PlaceKind.Hearth && place.Usable) strolls.Add(i);
+                if (place.Kind is PlaceKind.Stroll or PlaceKind.Hearth && place.Usable && (wanders.Count == 0 || society.BuildingOf(i) == building))
+                    strolls.Add(i);
             }
             lastSpot = segment.place;
             queue.Enqueue(Spot(society, segment.place, Activity.Amble, AmbleStay(), 0));
@@ -339,6 +351,8 @@ namespace SpaceGame.Agents.Residents
         // A spot (a seat, a shop counter) or, between those, a point out in the street; never a spot someone stands at.
         private ErrandStop NextAmble(Resident resident, SettlementSociety society)
         {
+            if (wanders.Count > 0) return NextLocalAmble(resident, society);
+
             if (rng.NextDouble() < SpotAmbleShare || society.AmbleRadius <= 0f)
             {
                 int spot = FreeSpot(resident, society);
@@ -356,6 +370,34 @@ namespace SpaceGame.Agents.Residents
                 return new ErrandStop
                 {
                     position = hit.position, place = ResidentPresence.NoPlace, shown = Activity.Amble, radius = LooseRadius, speed = 1f,
+                    dwellSeconds = (float)rng.NextDouble() * PointDwellMax, hold = false,
+                };
+            }
+
+            int fallback = FreeSpot(resident, society);
+            return fallback >= 0 ? Spot(society, lastSpot = fallback, Activity.Amble, AmbleStay(), 0) : default;
+        }
+
+        // A seat or a counter of the building, or between those a wander spot: a room's middle, a tube's, a corner by a window.
+        private ErrandStop NextLocalAmble(Resident resident, SettlementSociety society)
+        {
+            if (rng.NextDouble() < SpotAmbleShare)
+            {
+                int spot = FreeSpot(resident, society);
+                if (spot >= 0) return Spot(society, lastSpot = spot, Activity.Amble, AmbleStay(), 0);
+            }
+
+            int offset = rng.Next(wanders.Count);
+            for (int k = 0; k < wanders.Count; k++)
+            {
+                int wander = wanders[(offset + k) % wanders.Count];
+                SettlementPlace place = society.Place(wander);
+                if (wander == lastSpot || Occupied(resident, society, place.Position)) continue;
+
+                lastSpot = wander;
+                return new ErrandStop
+                {
+                    position = place.Position, place = ResidentPresence.NoPlace, shown = Activity.Amble, radius = LooseRadius, speed = 1f,
                     dwellSeconds = (float)rng.NextDouble() * PointDwellMax, hold = false,
                 };
             }

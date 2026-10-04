@@ -20,8 +20,6 @@ namespace SpaceGame.Agents.Residents
         private const int TraceLength = 10;
         private const float MinutesPerDay = 1440f;
         private const float MinutesPerHour = 60f;
-        // Where a watcher looks at a body: its chest, not the ground under its feet.
-        private const float ChestHeight = 1f;
 
         [Header("Routine")]
         [SerializeField, Min(0.05f)] private float evaluateEvery = 0.5f;
@@ -89,7 +87,7 @@ namespace SpaceGame.Agents.Residents
         public override string ModuleDescription =>
             "Server only. Every half second turns the resident's day plan (or its one live override) into an " +
             "AgentGoal with a hold; GoalTravelModule walks there and stands facing the work.\n\n" +
-            "• Sleep: goes offstage at its door once unwatched (or after a wait); lies down at a camp\n" +
+            "• Sleep: goes offstage at its door once unwatched (or after a wait); lies down at a camp or in its bed\n" +
             "• Enable/load: an unwatched resident far from its plan is moved there\n" +
             "• Publishes ResidentPresence and keeps a ten-line decision trace";
 
@@ -122,6 +120,17 @@ namespace SpaceGame.Agents.Residents
         /// <summary>Gets the resident up off its seat where it is, ahead of a move that must not leave it sitting.</summary>
         public void StandUp() => seating.Release();
 
+        /// <summary>
+        /// Puts down everything the body holds in the settlement — a carried prop lands where it was going, the seat and
+        /// the cart are freed — ahead of an absence the routine will not tick through (<see cref="Resident.GoAway"/>).
+        /// </summary>
+        public void LetGo()
+        {
+            errands.Reset();
+            seating.Release();
+            pushing.Release();
+        }
+
         // A load or a time jump rebuilds the plans, and that is when a body can be far from where its day says.
         private void OnPlansRebuilt(SettlementSociety rebuilt)
         {
@@ -141,6 +150,7 @@ namespace SpaceGame.Agents.Residents
                 seating.Abandon();
                 pushing.Release();
             }
+            // Offstage covers away: a resident out with a band is offstage until it comes home.
             if (society == null || context.Goal == null || resident.IsDead || resident.IsOffstage)
             {
                 seating.Release();
@@ -236,8 +246,8 @@ namespace SpaceGame.Agents.Residents
             if (needsSettle) { needsSettle = false; if (Settle(now, goal)) return; }
             if (!overridden && place != null && Hop(society, place, goal, now)) return;
 
-            // A camp has no door to go in by: its sleeper lies down where it is.
-            bool sleepingIndoors = !overridden && Current.Value.activity == Activity.Sleep && place.Kind != PlaceKind.Camp;
+            // A camp has no door to go in by and a bed is slept in where it stands: their sleepers lie down in sight.
+            bool sleepingIndoors = !overridden && Current.Value.activity == Activity.Sleep && place.Kind == PlaceKind.Door;
             if (sleepingIndoors && (TryGoIndoors(now, goal) || Backstop(now, goal))) return;
 
             Publish(overridden && resident.Override == OverrideKind.Shelter);
@@ -277,9 +287,11 @@ namespace SpaceGame.Agents.Residents
             }
         }
 
-        // Step 5. True when the resident went indoors, which ends this evaluation.
+        // Step 5. True when the resident went indoors, which ends this evaluation. Never for one away with a band: a
+        // teleport home would put a body back that its band still has on the road.
         private bool Settle(double now, AgentGoal goal)
         {
+            if (resident.IsAway) return false;
             if (FlatDistance(transform.position, goal.Position) > settleDistance && Unwatched(goal.Position))
                 Teleport(now, goal, "moved to its plan unseen");
 
@@ -314,7 +326,7 @@ namespace SpaceGame.Agents.Residents
             }
             if (arrivedAtDoorAt < 0f) arrivedAtDoorAt = Time.time;
 
-            bool watched = ObserverCheck.AnyPlayerSees(transform.position + Vector3.up * ChestHeight, observedWithin);
+            bool watched = ObserverCheck.AnyPlayerSees(transform.position + Vector3.up * ObserverCheck.ChestHeight, observedWithin);
             if (watched && Time.time - arrivedAtDoorAt < offstageAfterSeconds) return false;
 
             SettlementPlace door = resident.Society.Place(Current.Value.place);
@@ -329,10 +341,11 @@ namespace SpaceGame.Agents.Residents
             return true;
         }
 
-        // Step 6: a sleeper still out long past bedtime is put on its doorstep, unseen; the next pass takes it in.
+        // Step 6: a sleeper still out long past bedtime is put on its doorstep, unseen; the next pass takes it in. Never one
+        // away with a band (as Settle).
         private bool Backstop(double now, AgentGoal goal)
         {
-            if (now < Current.Value.arrive + ResidentTuning.Instance.backstopDelay || !Unwatched(goal.Position)) return false;
+            if (resident.IsAway || now < Current.Value.arrive + ResidentTuning.Instance.backstopDelay || !Unwatched(goal.Position)) return false;
 
             Teleport(now, goal, "backstop: put on its doorstep");
             return true;
@@ -369,6 +382,7 @@ namespace SpaceGame.Agents.Residents
             Activity shown = talking ? Activity.Talking
                 : climbing ? Activity.Climbing
                 : sheltering ? Activity.Sheltering
+                : resident.IsWithBand ? Activity.Expedition
                 : errands.Active ? errands.Stop.shown
                 : AtPlace ? Holding(Current.Value.activity)
                 : Activity.Walking;
@@ -406,8 +420,8 @@ namespace SpaceGame.Agents.Residents
         }
 
         private bool Unwatched(Vector3 destination) =>
-            !ObserverCheck.AnyPlayerSees(transform.position + Vector3.up * ChestHeight, observedWithin) &&
-            !ObserverCheck.AnyPlayerSees(destination + Vector3.up * ChestHeight, observedWithin);
+            !ObserverCheck.AnyPlayerSees(transform.position + Vector3.up * ObserverCheck.ChestHeight, observedWithin) &&
+            !ObserverCheck.AnyPlayerSees(destination + Vector3.up * ObserverCheck.ChestHeight, observedWithin);
 
         private void Note(double now, string why)
         {

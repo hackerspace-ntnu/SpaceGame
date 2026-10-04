@@ -35,6 +35,9 @@ namespace SpaceGame.World
         public SpotUse Use => use;
         public string Group => group;
 
+        /// <summary>Sets what the spot is for, on a spot placed by rule (<see cref="SettlementMuster"/>) rather than authored on a prefab.</summary>
+        public void SetUse(SpotUse spotUse) => use = spotUse;
+
         /// <summary>The loop a resident holds here: this prop's own station cue, else what the spot's use is for.</summary>
         public CharacterCue HoldCue => stationCue != null ? stationCue : use != null ? use.holdCue : null;
 
@@ -63,6 +66,7 @@ namespace SpaceGame.World
                 SpotRole.Work => new Color(1f, 0.6f, 0.1f),
                 SpotRole.Gathering => new Color(1f, 0.3f, 0.6f),
                 SpotRole.Errand => new Color(0.4f, 0.9f, 0.4f),
+                SpotRole.Assembly => new Color(1f, 0.95f, 0.2f),
                 _ => new Color(0.3f, 0.8f, 1f),
             };
         }

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentTuning
   workSession: {x: 180, y: 360}
   breakLength: {x: 30, y: 90}
+  attendResumeSeconds: 2.5
   minDwellRealSeconds: 20
   windowJitter: 30
   bedtimeSpread: {x: 1260, y: 1440}
@@ -78,34 +79,22 @@ MonoBehaviour:
   backstopDelay: 60
   tripKinds:
   - kind: 1
-    siteKinds: AnimalGround
-    maxRadius: 400
-    armed: 1
     cue: {fileID: 11400000, guid: 715904eee05614279aac9c04ad3c3f5a, type: 2}
     prop: {fileID: 0}
   - kind: 2
-    siteKinds: Landmark,Ruin,Camp
-    maxRadius: 600
-    armed: 1
     cue: {fileID: 11400000, guid: 599dfae6df6354d2aae60815659b1082, type: 2}
     prop: {fileID: 0}
   - kind: 4
-    siteKinds: Landmark,WaterHole
-    maxRadius: 250
-    armed: 0
     cue: {fileID: 11400000, guid: e1b10f80b9d86409689a49d385d0a58f, type: 2}
     prop: {fileID: 0}
   - kind: 8
-    siteKinds: ScrapField,Ruin
-    maxRadius: 500
-    armed: 0
     cue: {fileID: 11400000, guid: 68e2eae465f494ceeb182ec73c79d9d4, type: 2}
     prop: {fileID: 0}
   - kind: 16
-    siteKinds: WaterHole
-    maxRadius: 400
-    armed: 0
     cue: {fileID: 11400000, guid: 2732a566aaa1144999e8a015b7c14fa5, type: 2}
+    prop: {fileID: 0}
+  - kind: 32
+    cue: {fileID: 11400000, guid: b3acfe6aaab834790bda024e73f5109c, type: 2}
     prop: {fileID: 0}
   tripPoints: 8
   tripDistance: {x: 60, y: 150}
@@ -140,6 +129,22 @@ MonoBehaviour:
   - 6
   campSleepCue: {fileID: 11400000, guid: 8a6433e000b314ec7aadac154bf9c6ca, type: 2}
   climbCue: {fileID: 11400000, guid: cd05d4cabedb4059a4bf713e8732cb01, type: 2}
+  standSnapRadius: 1.2
+  standSnapHeight: 1.5
+  doorThresholdSnap: 1.5
+  standRecheckSeconds: 20
+  stationMaxShift: 0.6
+  stationMinDistance: 1
+  stationReachTolerance: 0.4
+  seatReach: 1.5
+  elevatedSeatRise: 1.5
+  seatWatchRadius: 60
+  seatHipsAboveSurface: 0.1
+  stoolHipsAboveSurface: 0.18
+  stoolMaxDrop: 0.1
+  seatBlendSeconds: 0.2
+  cartReach: 4
+  toolTransitSeconds: 0.25
   noticeRadius: 14
   earshot: 20
   avoidRadius: 10

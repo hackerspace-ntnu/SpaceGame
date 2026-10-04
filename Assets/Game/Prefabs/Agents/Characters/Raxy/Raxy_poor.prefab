@@ -780,6 +780,9 @@ GameObject:
   - component: {fileID: 6771126978103814590}
   - component: {fileID: 9142834357035251292}
   - component: {fileID: 5280264038832420965}
+  - component: {fileID: 1392879471972199868}
+  - component: {fileID: 3744787824584236024}
+  - component: {fileID: 2030679491753581476}
   m_Layer: 0
   m_Name: Raxy_poor
   m_TagString: Untagged
@@ -1972,6 +1975,7 @@ MonoBehaviour:
   seed: 0
   bonds: []
   settlement: {fileID: 0}
+  sourcePrefab: {fileID: 0}
 --- !u!114 &2702842624706687347
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2202,6 +2206,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ccab4434762d49a88cea06ccea44c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityEquipmentSaveable
+--- !u!114 &1392879471972199868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3329947332983915974}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1db4b89c49b7446df9a0b6ce88faa892, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionMember
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &3744787824584236024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3329947332983915974}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: 
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 4.5
+    LaneSpacing: 3
+    LateralJitter: 0.9
+    LongitudinalJitter: 1.2
+    DriftAmplitude: 0.7
+    DriftRate: 0.08
+  slotTolerance: 1.6
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 6
+  regroupDistance: 40
+  navSampleDistance: 6
+--- !u!114 &2030679491753581476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3329947332983915974}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
 --- !u!1 &3443596958315817166
 GameObject:
   m_ObjectHideFlags: 0

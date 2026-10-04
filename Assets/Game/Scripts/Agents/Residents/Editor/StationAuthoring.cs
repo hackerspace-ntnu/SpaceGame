@@ -103,6 +103,9 @@ namespace SpaceGame.Agents.Residents.EditorTools
             ("Stall", "explain"), ("Pen", null), ("Shrine", null), ("Gate", null), ("TowerWatch", null),
             ("Well", null), ("Plant", null), ("OrePile", null), ("Smelter", null), ("GoodsPile", null),
             ("Fodder", null), ("Trough", null), ("Woodpile", null), ("Firebox", null),
+            // The colony: bare-handed loops only, until the tool grips are fitted to the astronaut's hand.
+            ("LifeSupport", "wipe"), ("Terminal", "operate"), ("RockAnalysis", "rummage"), ("RoverBay", "wipe"),
+            ("SampleStop", null), ("Wander", null), ("Bunk", null),
         };
 
         [MenuItem("Tools/SpaceGame/Residents/Author Station Cues")]

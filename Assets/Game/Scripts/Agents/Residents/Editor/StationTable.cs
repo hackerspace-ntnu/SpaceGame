@@ -161,7 +161,7 @@ namespace SpaceGame.Agents.Residents.EditorTools
                 string props = s.Props.Count == 0 ? "-" : string.Join(", ", s.Props.Take(PropsShown)) + (s.Props.Count > PropsShown ? " (+" + (s.Props.Count - PropsShown) + ")" : "");
                 string cue = s.Cue != null ? s.Cue.name : "-";
                 string loops = s.Loops.Count == 0 ? "-" : string.Join(", ", s.Loops.Take(4).Select(a => a.name)) + (s.Loops.Count > 4 ? " (+" + (s.Loops.Count - 4) + ")" : "");
-                string tools = s.Cue == null ? "-" : s.Cue.BareHands ? "empty hands" : s.Cue.Tools.Count == 0 ? "any" : string.Join(", ", s.Cue.Tools.Select(t => t.name.Replace("Tool_", "")));
+                string tools = s.Cue == null ? "-" : ResidentHandsRule.EmptyHandsFor(s.Cue) ? "empty hands" : s.Cue.Tools.Count == 0 ? "any" : string.Join(", ", s.Cue.Tools.Select(t => t.name.Replace("Tool_", "")));
                 string workers = s.Workers.Count == 0 ? "-" : string.Join("; ", s.Workers.Select(w => w.name + " (" + Carried(w) + ")"));
                 text.AppendLine("| " + s.Use.name + " | " + s.Use.role + (s.Use.seated ? ", sits" : "") + " | " + props + " | " + s.WithTarget + "/" + s.Spots +
                                 " | " + stand + " | " + cue + " | " + loops + " | " + tools + " | " + workers + " | " + s.Status + " |");

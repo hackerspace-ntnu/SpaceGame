@@ -28,15 +28,15 @@ symptoms:
   - "after a quickload the old caravan is still standing beside the new one"
   - "pressing F5 warns that this is a disposable session and is never saved"
   - "an old save's provocation/resident record is ignored after the creature moved to a new saver"
-reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe, Pushables]
-updated: 2026-10-03
+reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe, Pushables, Expeditions]
+updated: 2026-10-04
 ---
 
 # Persistence / Save-Load
 
 Identity-keyed, streaming-aware save system: one JSON document per world, assembled from per-component `ISaveable` payloads on the server.
 
-**Scope:** [Assets/Game/Scripts/Core/Persistence/](Assets/Game/Scripts/Core/Persistence/) — `Format/` (asmdef `SpaceGame.Persistence`, zero refs, Newtonsoft only), `Runtime/`, `Adapters/` (61 savers), `Editor/` (Assembly-CSharp).
+**Scope:** [Assets/Game/Scripts/Core/Persistence/](Assets/Game/Scripts/Core/Persistence/) — `Format/` (asmdef `SpaceGame.Persistence`, zero refs, Newtonsoft only), `Runtime/`, `Adapters/` (59 savers), `Editor/` (Assembly-CSharp).
 **Related:** [.claude/skills/spacegame-persistence/SKILL.md](.claude/skills/spacegame-persistence/SKILL.md) (recipes) + [reference.md](.claude/skills/spacegame-persistence/reference.md) (record shapes) · [EntitySystem.md](EntitySystem.md) · [InteriorScenes.md](InteriorScenes.md) · [MountSystem.md](MountSystem.md) · [Lobby.md](Lobby.md)
 
 ## Model
@@ -73,16 +73,16 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | `SaveFileStore` / `SaveSlots` / `WorldIdentity` | [Format/](Assets/Game/Scripts/Core/Persistence/Format/) | Atomic `.tmp`→`File.Replace`→`.bak` write, `.bak` fallback read; slot listing; world naming + config guard |
 | `SaveMigrator` + `Migrations/V1GlobalEntities` | [Format/SaveMigrator.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveMigrator.cs) | Version ladder; v1 (per-scene records) → v2 (flat) |
 
-### Adapters (63) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
+### Adapters (59) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
 
 | Category | Savers (key) |
 |---|---|
 | Pose & motion | `Transform`(transform) `Rigidbody`(rigidbody, velocity only) `MotorState`(motor) `LeggedGait`(gait) `ArticulatedParts`(parts, keyed by hierarchy path) |
-| Vitals & kit | `Health`(health, 0 HP *is* dead) `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` |
+| Vitals & kit | `Health`(health, 0 HP *is* dead) `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` (a slot an `ILentSlots` sibling reports as lent is written empty, positions kept — a band's kit weapon lent to a resident is never saved) |
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
-| Agent routine | `Patrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again) |
+| Agent routine | `Patrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again; `owner` appended 2026-10-03, older saves read null — a `runtimeOnly` record is restored only when a director claimed its owner or it still hunts a quarry) `Expedition`(expeditions — beside `NpcWorld` on the sim's entity: every settlement's rotation and every band record, [Expeditions.md](Expeditions.md)) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret` |
-| World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `ShelfStock`(shelfStock, "this shelf has laid its pickups" — see [ColonyInterior.md](ColonyInterior.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
+| World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `WallInventory`(wallInventory, a gear wall or board's placements — a wall authored WITH starting gear writes an empty `placements` list once emptied, because building it lays that gear on again and only a record clears it; see [ColonyInterior.md](ColonyInterior.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` `FactionGoodwill`(factionGoodwill — one `Standing{value,band,warTier}` per tracked faction; `warTier` appended 2026-09-16 so a tribe's war escalation survives a quit mid-cooldown, older saves read 0) |
 | Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `Leash`(leashes)ᴰ `PushableLedger`(pushables — where each moved cart was left, by its hierarchy-derived id; lives in `World/Pushables`, not `Adapters/`; [Pushables.md](Pushables.md)) |
 
@@ -142,6 +142,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | Resolving a `SaveRef` in `RestoreState` | Rider never re-seated; second player's mount empty forever | Resolve in `OnLoadComplete`, consume only on success |
 | Leaving a `SaveableEntity` on a copy that is carried rather than lying in the world | The carried thing is captured **inside its carrier** and re-spawned as a loose root object at that pose on the next hydrate — one more copy per load, each falling further than the last | `CaptureScene` walks `GetComponentsInChildren` from every scene ROOT, so a saveable nested under a player, a vehicle or a fixture is a world record. Take it off the copy (`EquipItemSocket.Sanitize`) or `DisownToExternal()` it |
 | Restoring an entity's state *before* network-spawning it | `Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects` from `NetworkSpawnManager.AuthorityLocalSpawn`, once per affected entity, and the entity stays host-only. Restore is what nests the child: `EntityEquipmentSaveable` puts the NPC's weapon back in its hand and every item prefab ships a NetworkObject. A chunk with five armed Clankers logged it five times on hydrate. NGO **logs** this rather than throwing, so the `try/catch` around `Spawn()` never sees it | Network-spawn between `AdoptIdentity` and `Restore`. A child attached to an already-spawned root is just an unspawned child — which is what a held item is at runtime anyway |
+| Waiting on `SaveManager.OnLoadApplied` for "the load has finished" | It fires only when a binding player's record was restored, so in a world saved before any player had a record it never fires: whatever it gates never runs (the expedition rotation stayed held for good) | `WorldSaveStore.OnSceneHydrated` with `SceneKey.Persistent` — `SaveManager.Start` hydrates the persistent scene on every load |
 | Treating `OnLoadComplete` as once-only | State re-applied over a world that moved on | Idempotent — it fires per player bind and per late chunk |
 | Network-spawning something its owner rebuilds on load with plain `NetworkObject.Spawn()` | Only an **in-session** reload (F9 quickload) shows it — quit-to-menu tears the session down. The default is `destroyWithScene: false`, and NGO's `LoadScene(Single)` parks every such dynamic root in DontDestroyOnLoad and moves it back into the new scene, so it stands beside the copy its record rebuilds. Measured 2026-09-17: 21 of 113 NPC/hull objects survived (a Sand caravan, bounty hunters, a Sky hull and its riders) | `Spawn(destroyWithScene: true)`, as `WorldService` and `NpcSpawn` do (`SaveNetworking.SpawnIfNetworked` still does not — [DEFECTS.md](../DEFECTS.md)). It also changes a chunk unload: a `destroyWithScene` object in the unloading chunk scene is despawned rather than rescued, which is right for anything a save or a record rebuilds |
 | Restoring pose with `transform.position` | Object snaps back within a frame | The record's pose is applied for you via `SaveTeleport.Move` |
@@ -157,6 +158,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | `AddComponent`-ing a saver at runtime | Never captured — the saver list is cached on first `Savers()` | `entity.InvalidateSavers()` |
 | Renaming/re-parenting an *unwired* scene object | Derived id (`DeriveAuthoredId`: scene + hierarchy path + sibling index, FNV-1a) changes → record orphaned | Bake real GUIDs with the wiring tool |
 | Prefab-instance `instanceId` assigned + `SetDirty` | Value equals the prefab's, Unity records no override, nothing hits the scene file | `RecordAsPrefabOverrides` via `SerializedObject`; grep with `grep -A1 "propertyPath: instanceId"` |
+| An editor tool adding a `SaveableEntity` to a scene object and saving | `AddComponent` alone bakes nothing (the wiring menus only add components), so the id is whatever `OnValidate` happened to assign in memory, if it ran before the save at all | Call `SaveableEntity.StampSceneIdentity()` (editor-only; the scene branch of `OnValidate`, returns whether anything changed), save that scene, then read the id back from the file — as `ExpeditionAuthoring`'s *Stamp Settlement Identity* does |
 | Making a prefab **variant** instead of moving it | `OnValidate` stamps a new `prefabId` from the variant's GUID; disagrees with every existing record | Move the prefab |
 | Unresolvable `prefabId` | `[Save] No prefab registered for id …` — record is **kept** in `unresolved`, not dropped | Register in NetworkManager, or `Resources/Saveable/`, or run the wiring tool |
 | **EMPTY** `prefabId` (not merely unresolvable) | `[Save] Dropped N runtime record(s) that named no prefab at all` at SAVE time, then silence — the object is absent on load with nothing said, because `Compact` deletes a record that can never name anything. Total loss, not degradation | Stamp the prefab. The two are opposites on purpose: an id nobody has registered is recoverable, a blank one is not |

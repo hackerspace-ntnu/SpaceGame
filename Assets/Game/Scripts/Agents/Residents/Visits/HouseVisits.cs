@@ -28,9 +28,6 @@ namespace SpaceGame.Agents.Residents
     [RequireComponent(typeof(HouseRoom))]
     public sealed class HouseVisits : MonoBehaviour
     {
-        // Where a watcher looks at a body: its chest, not the ground under its feet.
-        private const float ChestHeight = 1f;
-
         [Header("Who comes")]
         [Tooltip("Real seconds between one invitation and the next while a seat is free.")]
         [SerializeField] private Vector2 arrivalGapSeconds = new Vector2(20f, 60f);
@@ -388,7 +385,7 @@ namespace SpaceGame.Agents.Residents
             return false;
         }
 
-        private bool Watched(Vector3 point) => ObserverCheck.AnyPlayerSees(point + Vector3.up * ChestHeight, observedWithin);
+        private bool Watched(Vector3 point) => ObserverCheck.AnyPlayerSees(point + Vector3.up * ObserverCheck.ChestHeight, observedWithin);
 
         // Back out of the dwelling's door, facing away from it; the day plan walks the resident on from there.
         private void SendHome(Resident guest)

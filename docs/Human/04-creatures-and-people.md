@@ -203,3 +203,4 @@ Idle chatter is a small behaviour that speaks the NPC's *current task* out loud 
 - `docs/AI/systems/NavMeshSystem.md` — the single world bake, its settings, its off-mesh links (jumps, ladders), caves, and how agents get snapped onto the mesh.
 - `docs/AI/systems/Combat.md` — damage, death, loot and ragdolls, which creatures share with the player.
 - `docs/AI/systems/MountSystem.md` — riding the creatures that can be ridden.
+- `docs/AI/systems/Expeditions.md` — settlement bands: the rotation, the muster and hand-off to stand-ins, the road, and the walk home.

@@ -35,7 +35,7 @@ namespace SpaceGame.Agents.Residents
             float radiusSqr = noticeRadius * noticeRadius;
             foreach (Resident r in society.Residents)
             {
-                if (r == null || r.IsDead || r.Memory == null) continue;
+                if (r == null || r.IsDead || r.IsAway || r.Memory == null) continue;
                 bool saw = r == subject ||
                            ((r.transform.position - subject.transform.position).sqrMagnitude <= radiusSqr &&
                             CanSee(r.transform, subject.transform, doer));
@@ -164,7 +164,8 @@ namespace SpaceGame.Agents.Residents
             return false;
         }
 
-        private static bool IsListening(Resident r) => r != null && !r.IsDead && r.Memory != null && r.bonds != null;
+        // A resident out with a band is not at home to tell or be told: its hidden body stands wherever it left from.
+        private static bool IsListening(Resident r) => r != null && !r.IsDead && !r.IsAway && r.Memory != null && r.bonds != null;
 
         // Eye to chest; the witness's own body, the victim's and the attacker's never count as cover.
         private static bool CanSee(Transform witness, Transform victim, Transform attacker)

@@ -25,7 +25,7 @@ symptoms:
   - "the tower guard stands at the foot of the tower instead of on the deck"
   - "two residents talk while walking but stop dead to face each other"
 reads_with: [Residents, ResidentReputation, HandTools, NavMeshSystem, Multiplayer, Pushables]
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Errands
@@ -70,7 +70,7 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
   nearest-neighbour order (the cursor carries on, so every plant is watered in turn), then the nearest source again.
 - **Prop round** (`carriesProps`, `PlanPropRound`): nearest source with an unpromised prop on one of its rests (item in `carryItems`),
   nearest other target with a free rest; both promised; stops `pick` then `drop` (carry byte = the prop's item). `FinishProps` acts
-  when a dwell ends; `LandCarried` (new segment, `Reset`, routine off, death) puts it down.
+  when a dwell ends; `LandCarried` (new segment, `Reset`, routine off, death, `LetGo`) puts it down.
 - **A pushed cart is not a prop.** `Deco_Handcart` & co. are `Pushable`s a body grips and poses ([Pushables.md](Pushables.md)); a `SettlementProp` is still something a hand carries between rests. The pen's `Carry_Cart_Hand__01` is the second kind, so a hauler lifts the cart item (the old overhead cart) until that prop is made pushable.
 - **Players cannot take or use props and fixtures.** Only building doors (`InteractableTrigger` → `SceneTransition`) and pen gates
   (`DoorInteraction`) are interactable in a settlement; `SettlementInteractableTests` fails if any NomadSettlement prefab carries another
@@ -126,8 +126,7 @@ restores home, a legacy `Taken` (old saves) stays gone; a regenerate orphans the
 - **A prop's item needs a free bag slot** (`RaxyToolLoadouts.BagSize = 4`): held + belt + chore item + every distinct prop item
   the resident has carried. Archetypes with a prop chore keep at most one belt tool; a full bag logs "no room in the bag" and the
   carry is invisible, the move still happens.
-- **A carried prop is only as safe as `LandCarried`.** Anything new that stops a resident's errands without `ErrandRunner.Reset`
-  (or disabling the routine) leaves a prop `Carried` — invisible on every machine until the next load.
+- **A carried prop is only as safe as `LandCarried`.** Anything new that stops a resident's errands without `ErrandRunner.Reset` (or disabling the routine) leaves a prop `Carried` — invisible on every machine until the next load. The sanctioned stop for an absence the routine will not tick through is `ResidentRoutine.LetGo()` (errands reset so the prop lands, seat and cart released), which `Resident.GoAway` calls before a resident leaves with a band ([Expeditions.md](Expeditions.md)).
 - Rests: each prop's authored pose, plus two floor patches beside every `GoodsPile`/`Smelter` stop; a prop with no errand stop within
   3 m got its own `GoodsPile` stop. Job posts take the back or a side where the front was already an errand stop (`Jobs` table).
   What each post and each errand stop holds is the station data ([Stations.md](Stations.md)): no job cue falls back to `work` any more, an errand stop holds nothing (the resident stands with the carried item), `Pen` holds nothing (no animal clip), `Garden` holds `tend`.

@@ -19,6 +19,7 @@ namespace SpaceGame.Agents.Residents
             { "{item}", "tool" },
             { "{ambition}", "a quiet life" },
             { "{need}", "water" },
+            { "{place}", "here" },
         };
 
         public static IReadOnlyCollection<string> Known => Fallbacks.Keys;
@@ -42,6 +43,7 @@ namespace SpaceGame.Agents.Residents
         /// <c>{name}</c> is the subject when there is one (gossip, grief), else the speaker.
         /// <c>{friend}</c>/<c>{kin}</c> name the subject when the speaker holds that bond to it, else the
         /// speaker's first such bond. <c>{item}</c> is what the speaker's archetype carries.
+        /// <c>{place}</c> is what the speaker's held spot is called (its use's display name), or "here" when it holds none.
         /// <c>{ambition}</c> and <c>{need}</c> have no data behind them yet and always say the neutral word.
         /// </summary>
         public static string Resolve(string text, Resident speaker, Resident subject)
@@ -71,8 +73,17 @@ namespace SpaceGame.Agents.Residents
             "{item}" => speaker != null && speaker.archetype != null && speaker.archetype.heldItem != null
                 ? speaker.archetype.heldItem.itemName
                 : null,
+            "{place}" => PlaceNameOf(speaker),
             _ => null,
         };
+
+        private static string PlaceNameOf(Resident speaker)
+        {
+            if (speaker == null || speaker.Presence == null || speaker.Presence.Place == ResidentPresence.NoPlace) return null;
+
+            string name = speaker.Society?.Place(speaker.Presence.Place)?.Use?.displayName;
+            return string.IsNullOrWhiteSpace(name) ? null : name;
+        }
 
         private static string Bonded(Resident speaker, Resident subject, BondKind kind)
         {

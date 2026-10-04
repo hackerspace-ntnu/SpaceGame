@@ -1889,6 +1889,9 @@ GameObject:
   - component: {fileID: 1113561454548522301}
   - component: {fileID: 6268164576740523372}
   - component: {fileID: 4667382059134872857}
+  - component: {fileID: 775568285759300640}
+  - component: {fileID: 968353629134964809}
+  - component: {fileID: 1670040555096517193}
   m_Layer: 0
   m_Name: Drifter_Raxy 1
   m_TagString: Untagged
@@ -2552,7 +2555,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1146429813
+  GlobalObjectIdHash: 3250575084
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2664,7 +2667,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 600a297774679412697efb8407ef232b
+  prefabId: 42b14c93f650343d9904c00262437ec4
   instanceId: 
   authored: 0
   scope: 0
@@ -3086,6 +3089,7 @@ MonoBehaviour:
   seed: 0
   bonds: []
   settlement: {fileID: 0}
+  sourcePrefab: {fileID: 0}
 --- !u!114 &332937928952071894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3316,6 +3320,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ccab4434762d49a88cea06ccea44c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityEquipmentSaveable
+--- !u!114 &775568285759300640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1db4b89c49b7446df9a0b6ce88faa892, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionMember
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &968353629134964809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: 
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 4.5
+    LaneSpacing: 3
+    LateralJitter: 0.9
+    LongitudinalJitter: 1.2
+    DriftAmplitude: 0.7
+    DriftRate: 0.08
+  slotTolerance: 1.6
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 6
+  regroupDistance: 40
+  navSampleDistance: 6
+--- !u!114 &1670040555096517193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
 --- !u!1 &6352483063516593831
 GameObject:
   m_ObjectHideFlags: 0

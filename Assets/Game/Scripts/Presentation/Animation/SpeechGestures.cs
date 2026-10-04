@@ -59,7 +59,7 @@ namespace SpaceGame.Presentation
         {
             if (body == null) return;
 
-            if (!voice.IsSpeaking)
+            if (!voice.IsSpeaking || body.Dormant)
             {
                 StopTalking();
                 return;

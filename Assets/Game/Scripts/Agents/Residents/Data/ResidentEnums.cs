@@ -28,6 +28,8 @@ namespace SpaceGame.Agents.Residents
         Amble,
         /// <summary>On a ladder between a street and a deck: shows the climb pose, holds no place.</summary>
         Climbing,
+        /// <summary>With a band: a stand-in on the road, or a resident mustering, walking out or walking in. Carries its kit's weapon, holds no place.</summary>
+        Expedition,
     }
 
     /// <summary>The kind of a settlement place a plan segment points at.</summary>
@@ -49,6 +51,10 @@ namespace SpaceGame.Agents.Residents
         Errand,
         /// <summary>A point on the settlement's perimeter ring, gathered where plans are built (like trip points).</summary>
         Patrol,
+        /// <summary>An Assembly spot: where a band musters. The day planner never plans anyone onto it.</summary>
+        Assembly,
+        /// <summary>A bed spot (a <see cref="SpotUse.sleeps"/> use): where one resident of its dwelling sleeps, in sight.</summary>
+        Bed,
     }
 
     /// <summary>A standing assignment that replaces a lifestyle's ordinary work hours.</summary>
@@ -69,6 +75,8 @@ namespace SpaceGame.Agents.Residents
         Forage = 4,
         Salvage = 8,
         Water = 16,
+        /// <summary>Out to read the land: sensors, samples, a line of sight to a ridge.</summary>
+        Survey = 32,
     }
 
     /// <summary>Derived from <see cref="ResidentArchetype"/>: post → Stationed, trips → Outrider, else Roamer.</summary>

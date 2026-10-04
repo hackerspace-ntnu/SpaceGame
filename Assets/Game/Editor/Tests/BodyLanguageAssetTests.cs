@@ -5,6 +5,7 @@ using System.Linq;
 using NUnit.Framework;
 using SpaceGame.Presentation;
 using UnityEditor;
+using UnityEngine;
 
 namespace SpaceGame.EditorTools
 {
@@ -70,6 +71,38 @@ namespace SpaceGame.EditorTools
             {
                 Assert.IsTrue(actions.Any(a => a.Cues.Contains(talk) && a.Loops && a.Fits(posture)),
                               $"an NPC talking while {posture} has no talking loop and stands stiff through its line");
+            }
+        }
+
+        [Test]
+        public void ASeatedBodyGesturesWithItsArmsOnlyWhileAStandingOneMayBowOrStretch()
+        {
+            var host = new GameObject("sitter");
+            try
+            {
+                host.AddComponent<CharacterActions>();
+                var body = host.AddComponent<BodyLanguage>();
+                CharacterCue greet = HumanoidControllerBuilder.CollectCues().First(c => c.name == "greet");
+
+                bool standingTookTheWholeBody = false;
+                for (int i = 0; i < 60; i++)
+                    standingTookTheWholeBody |= body.Pick(greet).BodySlot == CharacterAction.Slot.Full;
+                Assert.IsTrue(standingTookTheWholeBody, "a standing body is greeted with a bow or a curtsey, or this test proves nothing");
+
+                body.SitOn(true);
+                for (int i = 0; i < 60; i++)
+                    Assert.AreNotEqual(CharacterAction.Slot.Full, body.Pick(greet).BodySlot,
+                                       "a greeting that stands a resident up out of its seat for a second");
+
+                body.SitOn(false);
+                standingTookTheWholeBody = false;
+                for (int i = 0; i < 60; i++)
+                    standingTookTheWholeBody |= body.Pick(greet).BodySlot == CharacterAction.Slot.Full;
+                Assert.IsTrue(standingTookTheWholeBody, "standing up gives the whole body back");
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
             }
         }
 

@@ -75,9 +75,19 @@ namespace SpaceGame.Presentation
                     byName.Add(t.name, t);
 
             var bones = new Transform[boneNames.Length];
+            bool[] weighted = null;
             for (int i = 0; i < bones.Length; i++)
             {
                 if (byName.TryGetValue(boneNames[i], out bones[i])) continue;
+
+                // A bone the mesh gives no weight (the jaw, under a belt) contributes nothing, so a skeleton without it can wear
+                // the garment: the slot is bound to the wearer's root, which is never moved by it.
+                weighted ??= WeightedBones(skin.sharedMesh, bones.Length);
+                if (!weighted[i])
+                {
+                    bones[i] = wearer;
+                    continue;
+                }
 
                 Debug.LogError($"{name}: the character it is on has no bone '{boneNames[i]}', so the " +
                                "garment cannot be worn by it. Clothes fit the skeleton they were " +
@@ -131,10 +141,29 @@ namespace SpaceGame.Presentation
             var bones = skin.bones;
             if (bones.Length != boneNames.Length) return false;
 
+            // A slot bound to the wearer's root itself is a bone the mesh never uses (see Bind).
             for (int i = 0; i < bones.Length; i++)
-                if (bones[i] == null || bones[i].name != boneNames[i] || !bones[i].IsChildOf(wearer))
+                if (bones[i] == null || !bones[i].IsChildOf(wearer) || (bones[i].name != boneNames[i] && bones[i] != wearer))
                     return false;
             return true;
+        }
+
+        /// <summary>
+        /// Which of the first <paramref name="boneCount"/> bones <paramref name="mesh"/> gives any weight to. All of them when the
+        /// mesh cannot be read: an unreadable mesh is not known to leave a bone alone.
+        /// </summary>
+        public static bool[] WeightedBones(Mesh mesh, int boneCount)
+        {
+            var weighted = new bool[boneCount];
+            if (mesh == null || !mesh.isReadable)
+            {
+                System.Array.Fill(weighted, true);
+                return weighted;
+            }
+
+            foreach (BoneWeight1 weight in mesh.GetAllBoneWeights())
+                if (weight.weight > 0f && weight.boneIndex < boneCount) weighted[weight.boneIndex] = true;
+            return weighted;
         }
     }
 }

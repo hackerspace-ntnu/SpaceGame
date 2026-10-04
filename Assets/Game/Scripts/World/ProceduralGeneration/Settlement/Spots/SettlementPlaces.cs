@@ -12,12 +12,20 @@ namespace SpaceGame.World
 {
     public static class SettlementPlaces
     {
+        // How far from a named heart the NavMesh may lie, metres.
+        private const float HeartSnap = 3f;
+
         /// <summary>
         /// A point in the largest walkable area joining the settlement's doors and spots — the streets and
         /// yards, not an island on a roof. <paramref name="fallback"/> when nothing is on the NavMesh.
         /// </summary>
         public static Vector3 FindHeart(Transform generated, IReadOnlyList<float> doorDistances, Vector3 fallback)
         {
+            // A prop that names the open ground (a colony's rover pad) settles it: the biggest group of places may be a roof.
+            SettlementHeart named = generated.GetComponentInChildren<SettlementHeart>();
+            if (named != null && NavMesh.SamplePosition(named.transform.position, out NavMeshHit onGround, HeartSnap, NavMesh.AllAreas))
+                return onGround.position;
+
             var landmarks = new List<Vector3>();
             foreach (Dwelling dwelling in generated.GetComponentsInChildren<Dwelling>())
             {
@@ -41,6 +49,32 @@ namespace SpaceGame.World
             return false;
         }
 
+        /// <summary>The world bounds of each building under a settlement's generated root: everything but its decorations, characters and streets.</summary>
+        public static List<Bounds> BuildingBounds(Transform generated)
+        {
+            var footprints = new List<Bounds>();
+            foreach (Transform child in generated)
+            {
+                if (child.name is "Decorations" or "Characters" or "Streets") continue;
+                Renderer[] renderers = child.GetComponentsInChildren<Renderer>();
+                if (renderers.Length == 0) continue;
+
+                Bounds box = renderers[0].bounds;
+                for (int r = 1; r < renderers.Length; r++) box.Encapsulate(renderers[r].bounds);
+                footprints.Add(box);
+            }
+            return footprints;
+        }
+
+        /// <summary>How many spots of a sleeping use (a bed) the dwelling holds.</summary>
+        public static int BedSpotsOf(Dwelling dwelling)
+        {
+            int count = 0;
+            foreach (SettlementSpot spot in dwelling.GetComponentsInChildren<SettlementSpot>())
+                if (spot.Use != null && spot.Use.sleeps) count++;
+            return count;
+        }
+
         /// <summary>One line per dwelling or spot a resident could not use, naming it — empty when all is well.</summary>
         public static List<string> Problems(Transform generated, Vector3 heart, IReadOnlyList<float> doorDistances)
         {
@@ -49,6 +83,10 @@ namespace SpaceGame.World
             {
                 if (dwelling.Door == null) problems.Add($"{dwelling.name} has no SettlementEntrance — its door is its own pivot");
                 if (!TryDoorStand(dwelling, heart, doorDistances, out _)) problems.Add($"{dwelling.name}: nothing walkable out from its door");
+
+                int bedSpots = BedSpotsOf(dwelling);
+                if (bedSpots > 0 && bedSpots != dwelling.Beds)
+                    problems.Add($"{dwelling.name} has {dwelling.Beds} beds but {bedSpots} bed spots, so residents share a bed or one lies unused");
             }
             var sitSpots = new List<SettlementSpot>();
             foreach (SettlementSpot spot in generated.GetComponentsInChildren<SettlementSpot>())

@@ -1,11 +1,14 @@
 // Plan §10.3: everything a settlement's residents need that would otherwise fail silently at runtime —
 // archetypes that read alike, a line table that does not parse or leaves a topic × stance unanswered,
-// residents without an archetype, components added on an instance, and residents of another faction.
-// Whether every door and spot can be walked to is the generator's own check (SettlementPlaces.Problems).
+// residents without an archetype, components added on an instance, residents of another faction, a
+// broken expedition profile on the culture, fewer residents with a role than its quota, and a missing or unreachable
+// muster spot.
+// Whether every other door and spot can be walked to is the generator's own check (SettlementPlaces.Problems).
 // The inspector's Generate runs this after every pass.
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SpaceGame.Agents.Expeditions;
 using SpaceGame.World;
 using UnityEditor;
 using UnityEngine;
@@ -52,7 +55,55 @@ namespace SpaceGame.Agents.Residents.EditorTools
             CheckErrands(findings, culture);
             CheckLines(findings, culture);
             CheckResidents(findings, settlement.Society);
+            CheckExpeditions(findings, settlement);
             return findings;
+        }
+
+        // A settlement whose culture names a profile sends bands out, so every fault in that profile is one it ships.
+        private static void CheckExpeditions(List<Finding> findings, Settlement settlement)
+        {
+            ExpeditionProfile profile = settlement.Culture.expeditions;
+            if (profile == null) return;
+
+            foreach (string problem in ExpeditionValidation.Problems(profile))
+                findings.Add(new Finding(Severity.Error, $"expeditions {profile.name}: {problem}", profile));
+            CheckQuotas(findings, settlement, profile);
+            CheckMusterSpot(findings, settlement, profile.musterUse);
+        }
+
+        // Generate moves enough residents with each quota's role in first; one short of a quota cannot raise every band its goals need.
+        private static void CheckQuotas(List<Finding> findings, Settlement settlement, ExpeditionProfile profile)
+        {
+            IReadOnlyList<Resident> residents = settlement.Society.Residents;
+            foreach ((ExpeditionRole role, int count) in ExpeditionRules.Quotas(profile, settlement.Beds))
+            {
+                int held = residents.Count(r => r != null && r.archetype != null && (r.archetype.expeditionRoles & role) != 0);
+                if (held < count)
+                    findings.Add(new Finding(Severity.Error, $"expeditions {profile.name}: {held} resident(s) with the {role} role for " +
+                                                             $"{settlement.Beds} beds, quota {count}. Add copies of a character made for the role " +
+                                                             "to the config's characters and regenerate, or run Tools/SpaceGame/Expeditions/Apply " +
+                                                             "Role Quotas (selected settlement).", settlement));
+            }
+        }
+
+        // The band needs a spot of the muster use under Generated that a resident can walk to from the heart. Checked on the
+        // baked world NavMesh (WorldNavMeshScope), so a layout regenerated without Generate + Bake World NavMesh can read wrong.
+        private static void CheckMusterSpot(List<Finding> findings, Settlement settlement, SpotUse muster)
+        {
+            if (muster == null) return;   // ExpeditionValidation has named it
+
+            SettlementSpot spot = SettlementMuster.Find(settlement.GeneratedRoot, muster);
+            if (spot == null)
+            {
+                findings.Add(new Finding(Severity.Error, $"no muster spot: no SettlementSpot under Generated uses {muster.name}. " +
+                                                         "Run Tools/SpaceGame/Expeditions/Place Muster Spots.", settlement));
+                return;
+            }
+
+            using (new WorldNavMeshScope(spot.Position))
+                if (!SettlementPlaces.TryStand(spot.Position, muster.elevated, settlement.WalkableHeart, out _, out string why))
+                    findings.Add(new Finding(Severity.Error, $"the muster spot {SettlementPlaces.PathBelow(settlement.GeneratedRoot, spot.transform)} " +
+                                                             $"is unusable: {why}.", spot));
         }
 
         private static void CheckArchetypes(List<Finding> findings, SettlementCulture culture)

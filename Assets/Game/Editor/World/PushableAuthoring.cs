@@ -8,7 +8,8 @@
 // The flags a building prefab carries on its nested cart instance are overrides, so those are cleared there too.
 //
 // Around the carts: the PushableLedger on the NetworkGameManager prefab (where a left-behind cart is remembered and shown to
-// everyone) and PlayerPushing on the networked player. The Drover archetype pushes a cart instead of holding a cart item.
+// everyone) and PlayerPushing on the networked player. The Drover archetype pushes a cart; its tool (the lasso, RaxyToolLoadouts) is
+// stowed on the belt while it does, so this never writes its held item.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -324,10 +325,9 @@ namespace SpaceGame.EditorTools
 
             var serialized = new SerializedObject(drover);
             SerializedFields.SetBool(serialized, "pushesCart", true);
-            SerializedFields.Set(serialized, "heldItem", null);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(drover);
-            notes.Add("Drover pushes a cart and holds no cart item");
+            notes.Add("Drover pushes a cart");
         }
 
         private static bool IsOpen(string path, List<string> notes)

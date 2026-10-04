@@ -19,11 +19,29 @@ using UnityEngine;
 
 namespace SpaceGame.World
 {
+    /// <summary>How a body sits on a seat, which is a fact about the seat's height and shape. Append only: prefabs store the number.</summary>
+    public enum SeatPose
+    {
+        /// <summary>A stool, a pot, a bench: the base layer's chair sit (knees bent, feet down the front of the seat).</summary>
+        Stool = 0,
+
+        /// <summary>A cushion on the ground: the cross-legged floor sit, held as a loop of the spot's cue.</summary>
+        Floor = 1,
+
+        /// <summary>A bunk: the sleeper lies on it, the body root on the mattress, the sleep loop held.</summary>
+        Lie = 2,
+    }
+
     [DisallowMultipleComponent]
     public sealed class Seat : MonoBehaviour, IInteractable, IContextualInteractable, IInteractionReadout, IInteractionMoment
     {
         [Tooltip("Where the hips rest, +Z the way the sitter faces. Empty = this transform.")]
         [SerializeField] private Transform sitPoint;
+
+        [Tooltip("How a resident sits here. Stool: the chair sit, legs down the front, for anything with a solid body under the " +
+                 "sitter (a pot, a stool, a bench). Floor: the cross-legged sit, for a cushion with room for the legs on it. " +
+                 "Lie: a bed, where only a sleeping resident lies.")]
+        [SerializeField] private SeatPose pose = SeatPose.Stool;
 
         [Tooltip("Metres, in this seat's own units, from the sit point straight down to the floor the feet hang to. " +
                  "The sitter's body stands there: a floor cushion is 0, a stool is its height.")]
@@ -49,6 +67,9 @@ namespace SpaceGame.World
         public event Action<Seat, Transform> Vacated;
 
         public Transform SitPoint => sitPoint != null ? sitPoint : transform;
+
+        /// <summary>How a resident sits here. A player's pose is the chair's (<c>ChairPose</c>) whatever this says.</summary>
+        public SeatPose Pose => pose;
 
         /// <summary>Where the hips rest, in the world.</summary>
         public Vector3 SitPosition => SitPoint.position;
@@ -180,7 +201,7 @@ namespace SpaceGame.World
 
         // ── the player's way onto it ─────────────────────────────────────────────────────────────
 
-        public bool CanInteract() => IsFree;
+        public bool CanInteract() => IsFree && pose != SeatPose.Lie;
 
         public bool CanInteract(Interactor interactor)
         {

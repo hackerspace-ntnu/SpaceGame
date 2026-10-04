@@ -2,7 +2,8 @@
 // of seed and day, no seat is ever double-booked, an always-manned post is never empty inside its work
 // window, every walk pays its travel time, nothing is shorter than the minimum dwell, a night-manned post
 // keeps exactly one worker past midnight, today hands over seamlessly from yesterday, trips are home
-// by returnBy, and friends meet in one circle more than strangers would.
+// by returnBy, friends meet in one circle more than strangers would, an assembly place (where a band
+// musters) is never planned onto, and a resident away with a band has no day and holds nobody else's.
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
@@ -146,6 +147,24 @@ namespace SpaceGame.Agents.Residents.Tests
         }
 
         [Test]
+        public void AssemblyPlaces_AreNeverPlannedAsStrollOrLeisure()
+        {
+            Assert.AreEqual(PlaceKind.Assembly, SettlementSociety.KindOf(SpotRole.Assembly), "an assembly spot is gathered as an assembly place, not a stroll");
+
+            var assembly = new HashSet<int> { FirstStroll - 1, FirstStroll, FirstStroll + 1 };
+            foreach (int i in assembly) places[i] = new PlannerPlace { index = i, kind = PlaceKind.Assembly };
+            foreach (float ambleChance in new[] { 0f, 1f })
+            {
+                tuning.ambleChance = ambleChance;
+                for (int day = 0; day < DaysChecked; day++)
+                    foreach (DayPlan plan in Build(day))
+                        foreach (PlanSegment segment in plan.segments)
+                            Assert.IsFalse(assembly.Contains(segment.place),
+                                           $"amble chance {ambleChance}, day {day}: resident {plan.residentIndex} is planned at assembly place {segment.place} ({segment.activity})");
+            }
+        }
+
+        [Test]
         public void NightMannedPost_KeepsExactlyOneWorker_PastMidnight()
         {
             float midnight = (Today + 1) * DayPlanner.MinutesPerDay;
@@ -227,6 +246,49 @@ namespace SpaceGame.Agents.Residents.Tests
         }
 
         [Test]
+        public void Plan_AwayResident_IsEmpty()
+        {
+            residents[RoamerA] = Away(residents[RoamerA]);
+
+            DayPlan plan = Build(Today)[RoamerA];
+            Assert.IsEmpty(plan.segments, "a resident out with a band has no day at home");
+            Assert.IsFalse(plan.At(Today * DayPlanner.MinutesPerDay + 600f, out _));
+        }
+
+        [Test]
+        public void Plan_AwayResident_IsSkippedForNightShiftsAndPairing()
+        {
+            const int AwayGateWorker = 3;
+            residents[AwayGateWorker] = Away(residents[AwayGateWorker]);
+            for (int day = 0; day < DaysChecked; day++)
+            {
+                float midnight = (day + 1) * DayPlanner.MinutesPerDay;
+                int nightWorkers = 0;
+                foreach (DayPlan plan in Build(day))
+                    if (plan.segments.Exists(s => s.activity == Activity.Work && s.place == GateSeat && s.arrive < midnight && s.leave > midnight)) nightWorkers++;
+                Assert.AreEqual(1, nightWorkers, $"day {day}: the night rota passes over the away worker, so the gate is still kept");
+            }
+
+            // A paired stall worker away leaves no trace on anyone's day: no booking, no seat held, no night on the rota.
+            const int AwayStallWorker = 0;
+            PlannerResident absent = Away(residents[AwayStallWorker]);
+            (absent.paired, absent.shareSeed) = (true, residents[1].seed);
+            residents[AwayStallWorker] = absent;
+            var without = new List<PlannerResident>(residents);
+            without.RemoveAll(r => r.away);
+            for (int day = 0; day < DaysChecked; day++)
+            {
+                DayPlan[] withAway = Build(day);
+                DayPlan[] withoutAway = DayPlanner.BuildAll(Seed, day, without, places, Travel, tuning, DaySeconds);
+                foreach (DayPlan expected in withoutAway)
+                {
+                    DayPlan actual = System.Array.Find(withAway, p => p.residentIndex == expected.residentIndex);
+                    CollectionAssert.AreEqual(expected.segments, actual.segments, $"day {day}, resident {expected.residentIndex}");
+                }
+            }
+        }
+
+        [Test]
         public void Friends_SpendMoreFreeTimeInOneCircle_ThanStrangersWould()
         {
             for (int i = 0; i < places.Count; i++)
@@ -267,6 +329,12 @@ namespace SpaceGame.Agents.Residents.Tests
         private static PlannerResident Befriend(PlannerResident resident, int friend)
         {
             resident.friends = new[] { friend };
+            return resident;
+        }
+
+        private static PlannerResident Away(PlannerResident resident)
+        {
+            resident.away = true;
             return resident;
         }
 

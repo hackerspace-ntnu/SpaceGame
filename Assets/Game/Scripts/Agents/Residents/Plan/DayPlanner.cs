@@ -20,24 +20,36 @@ namespace SpaceGame.Agents.Residents
     /// One resident as the planner sees it. <c>friends</c> are the indices it likes to spend free time near;
     /// <c>shareSeed</c> (0 = none) is a companion's seed, drawn from instead of its own so a pair's days match;
     /// <c>slot</c> of <c>slots</c> is the patrol pair it walks with, so pairs start spread round the ring.
+    /// <c>away</c> is out with a band: like the dead it has no day here and holds no place, but it is coming back.
     /// </summary>
     public struct PlannerResident
     {
         public int index, homeIndex, seed, shareSeed, slot, slots;
+        /// <summary>The place index of the bed this resident sleeps in, plus one; 0 = none, it sleeps at its home place (door or camp).</summary>
+        public int bedPlusOne;
+        /// <summary>Game minutes' walk free time stays within (<see cref="SettlementCulture.freeTimeReachMinutes"/>); 0 = anywhere.</summary>
+        public float freeTimeReach;
         public Lifestyle lifestyle;
         public SpotUse post;
         public TripKind trips;
         public ChoreDefinition chore;
         public ResidentDuty duty;
-        public bool paired, dead;
+        public bool paired, dead, away;
         public float bedtimeOffset;
         public int[] friends;
 
         internal int PlanSeed => shareSeed != 0 ? shareSeed : seed;
+
+        /// <summary>Where the night is spent: its own bed when it has one, else home.</summary>
+        internal int SleepPlace => bedPlusOne > 0 ? bedPlusOne - 1 : homeIndex;
+
+        /// <summary>Alive and at home: only such a resident is planned, booked or put on a night rota.</summary>
+        internal bool Home => !dead && !away;
     }
     /// <summary>
     /// One place as the planner sees it. <c>group</c> is its circle (0 = none): friends are planned into one together.
-    /// An <c>unusable</c> place keeps its index but is never planned onto: nobody can stand there.
+    /// An <c>unusable</c> place keeps its index but is never planned onto: nobody can stand there. Neither is an
+    /// <see cref="PlaceKind.Assembly"/> place, where a band musters.
     /// </summary>
     public struct PlannerPlace { public int index; public PlaceKind kind; public SpotUse post; public int seatIndex; public int group; public bool unusable; }
 
@@ -113,6 +125,7 @@ namespace SpaceGame.Agents.Residents
             private readonly Dictionary<SpotUse, List<int>> seats = new();
             private readonly List<int> hearths = new(), strolls = new(), fillers = new(), patrolPoints = new();
             private readonly Dictionary<SpotUse, List<int>> errands = new();
+            private readonly List<int> nearFillers = new();
             private PlannerResident r;
             private System.Random rng;
             private List<PlanSegment> segs;
@@ -126,7 +139,9 @@ namespace SpaceGame.Agents.Residents
                 {
                     kinds[place.index] = place.kind;
                     groups[place.index] = place.group;
-                    if (place.unusable) continue;
+                    // An assembly place is where a band musters: only the band's performer sends anyone there, so it is no
+                    // candidate for a post, a stroll, an amble, a break, the hearth or an errand.
+                    if (place.unusable || place.kind == PlaceKind.Assembly) continue;
                     if (place.kind == PlaceKind.Hearth) hearths.Add(place.index);
                     else if (place.kind == PlaceKind.Stroll) strolls.Add(place.index);
                     else if (place.kind == PlaceKind.Post && place.post != null) postSeats.Add(place);
@@ -147,13 +162,13 @@ namespace SpaceGame.Agents.Residents
                 fillers.AddRange(hearths);
             }
 
-            /// <summary>One living worker per seated night-manned post, rotating through the workers by day.</summary>
+            /// <summary>One worker at home per seated night-manned post, rotating through the workers by day.</summary>
             public HashSet<int> NightWorkers(int forDay, IReadOnlyList<PlannerResident> residents)
             {
                 var workers = new Dictionary<SpotUse, List<int>>();
                 foreach (PlannerResident resident in residents)
                 {
-                    if (resident.dead || resident.lifestyle != Lifestyle.Stationed || resident.post == null || !resident.post.nightManned || !seats.ContainsKey(resident.post)) continue;
+                    if (!resident.Home || resident.lifestyle != Lifestyle.Stationed || resident.post == null || !resident.post.nightManned || !seats.ContainsKey(resident.post)) continue;
                     if (!workers.TryGetValue(resident.post, out List<int> list)) workers[resident.post] = list = new List<int>();
                     list.Add(resident.index);
                 }
@@ -177,15 +192,15 @@ namespace SpaceGame.Agents.Residents
             public DayPlan Plan(PlannerResident resident, bool nightTonight, bool workedLastNight)
             {
                 var plan = new DayPlan { residentIndex = resident.index, day = day };
-                if (resident.dead) return plan;
+                if (!resident.Home) return plan;
                 (r, segs, rng) = (resident, plan.segments, new System.Random(Hash(seed, day, resident.PlanSeed, DaySalt)));
                 float start = workedLastNight ? NightEnd(day - 1, t) : Wake(seed, day, resident.PlanSeed, t);
                 segs.Add(new PlanSegment { depart = start, arrive = start, leave = start, activity = workedLastNight ? Activity.Work : Activity.Sleep,
-                                           place = workedLastNight ? seats[resident.post][0] : resident.homeIndex });
+                                           place = workedLastNight ? seats[resident.post][0] : resident.SleepPlace });
                 float cursor = start;
                 if (workedLastNight)
                 {
-                    DayPlanner.Append(segs, Activity.Sleep, resident.homeIndex, start, travel);
+                    DayPlanner.Append(segs, Activity.Sleep, resident.SleepPlace, start, travel);
                     cursor = start + MinutesPerDay - (t.bedtimeSpread.x - t.wake.y);   // a normal night's length
                 }
                 float end = nightTonight ? dayStart + t.bedtimeSpread.x
@@ -209,7 +224,7 @@ namespace SpaceGame.Agents.Residents
                 if (nightTonight) Night(Math.Max(end, cursor));
                 else
                 {
-                    DayPlanner.Append(segs, Activity.Sleep, resident.homeIndex, Math.Max(end, cursor), travel);
+                    DayPlanner.Append(segs, Activity.Sleep, resident.SleepPlace, Math.Max(end, cursor), travel);
                     Close(Wake(seed, day + 1, resident.PlanSeed, t));
                 }
                 MergeShort();
@@ -340,8 +355,9 @@ namespace SpaceGame.Agents.Residents
                 {
                     float until = Math.Min(to, clock + Range(t.breakLength, rng));
                     if (to - until < minDwell) until = to;
-                    bool amble = rng.NextDouble() < (r.paired ? 1f : t.ambleChance) && fillers.Count > 0;
-                    int place = amble ? fillers[rng.Next(fillers.Count)] : Choose(fillers, clock, until, -1, false);
+                    List<int> nearby = NearFillers();
+                    bool amble = rng.NextDouble() < (r.paired ? 1f : t.ambleChance) && nearby.Count > 0;
+                    int place = amble ? nearby[rng.Next(nearby.Count)] : Choose(fillers, clock, until, -1, false);
                     float arrived;
                     if (amble) arrived = DayPlanner.Append(segs, Activity.Amble, place, clock, travel);
                     else if (place < 0) arrived = DayPlanner.Append(segs, Activity.Break, r.homeIndex, clock, travel);   // nothing free: wait at the door
@@ -357,6 +373,19 @@ namespace SpaceGame.Agents.Residents
                 }
             }
 
+            // Free-time places within the culture's reach of where this resident is: with a reach set (a settlement of separate
+            // buildings joined by slow crossings) free time stays in the building it is in. Reach 0, or nothing near: every filler.
+            private List<int> NearFillers()
+            {
+                if (r.freeTimeReach <= 0f) return fillers;
+
+                int from = Last.place;
+                nearFillers.Clear();
+                foreach (int place in fillers)
+                    if (travel(from, place) <= r.freeTimeReach) nearFillers.Add(place);
+                return nearFillers.Count > 0 ? nearFillers : fillers;
+            }
+
             // A free candidate, starting at a seeded offset, that leaves the current segment its minimum dwell
             // (and, given a seat to return to, keeps its own) — one in a friend's circle first, if any fits;
             // `strict` refuses a candidate that only fits the booking.
@@ -369,6 +398,7 @@ namespace SpaceGame.Agents.Residents
                 {
                     int place = candidates[(offset + k) % candidates.Count];
                     if (place == previous.place || !IsFree(place, from, to)) continue;
+                    if (r.freeTimeReach > 0f && travel(previous.place, place) > r.freeTimeReach) { if (fallback < 0) fallback = place; continue; }
                     bool fits = (segs.Count == 1 || from - travel(previous.place, place) - previous.arrive >= minDwell)
                                 && (returnTo < 0 || to - from - travel(place, returnTo) >= minDwell);
                     if (!fits) { if (fallback < 0) fallback = place; continue; }
@@ -404,7 +434,7 @@ namespace SpaceGame.Agents.Residents
             private void Book(int place, float from, float to, int owner)
             {
                 if (to <= from || !kinds.TryGetValue(place, out PlaceKind kind) ||
-                    kind is PlaceKind.Door or PlaceKind.Trip or PlaceKind.Camp or PlaceKind.Errand or PlaceKind.Patrol) return;
+                    kind is PlaceKind.Door or PlaceKind.Trip or PlaceKind.Camp or PlaceKind.Bed or PlaceKind.Errand or PlaceKind.Patrol) return;
                 if (!booked.TryGetValue(place, out var list)) booked[place] = list = new List<(float, float, int)>();
                 list.Add((from, to, owner));
             }

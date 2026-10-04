@@ -694,7 +694,9 @@ namespace SpaceGame.Agents
 
             agent.isStopped = false;
 
-            if (!agent.hasPath || Vector3.Distance(agent.destination, intent.TargetPosition) > 0.2f)
+            // Never while a request is still being computed: hasPath stays false until it finishes, and a long path
+            // spans several frames of NavMesh.pathfindingIterationsPerFrame, so re-asking every frame restarts it forever.
+            if (!agent.pathPending && (!agent.hasPath || Vector3.Distance(agent.destination, intent.TargetPosition) > 0.2f))
             {
                 agent.SetDestination(intent.TargetPosition);
             }

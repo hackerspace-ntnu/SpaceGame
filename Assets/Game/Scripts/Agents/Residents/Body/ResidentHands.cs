@@ -4,7 +4,8 @@
 // has put in its arms — and it resolves them to a bag slot (ResidentHandsRule): the tool for work, the
 // carried item for an errand, nothing for everything else. Nothing is sent. Every machine gets the same
 // activity and prop from the presence's NetworkVariables and so draws the same hand; the bag it draws
-// from is the one every machine builds from the archetype (ResidentCarry).
+// from is the one every machine builds from the archetype (ResidentCarry), or a stand-in's from its kit
+// (ExpeditionMember).
 //
 // The resolved slot is re-asserted every frame, so it wins over a slot a save restored and over the
 // equipment's own starting draw, which can land after a late joiner's first state. The belt needs no
@@ -111,10 +112,10 @@ namespace SpaceGame.Agents.Residents
             dirty = true;
         }
 
-        /// <summary>Every frame, after the state is applied and before a loop is held.</summary>
-        public void Update()
+        /// <summary>Every frame, after the state is applied and before a loop is held. True when it changed what the hand holds.</summary>
+        public bool Update()
         {
-            if (equipment == null || inventory == null) return;
+            if (equipment == null || inventory == null) return false;
 
             if (dirty)
             {
@@ -123,15 +124,16 @@ namespace SpaceGame.Agents.Residents
                 wantedSlot = Resolve();
             }
 
-            if (failed || equipment.EquippedSlotIndex == wantedSlot) return;
+            if (failed || equipment.EquippedSlotIndex == wantedSlot) return false;
 
             if (wantedSlot == NoSlot) equipment.Unequip();
             else equipment.EquipSlot(wantedSlot);
-            if (equipment.EquippedSlotIndex == wantedSlot) return;
+            if (equipment.EquippedSlotIndex == wantedSlot) return true;
 
             failed = true;
             Report($"cannot draw:{resident.name}:{activity}",
                    $"[Residents] {resident.name} cannot draw its tool for {activity}; the activity is skipped rather than mimed.");
+            return false;
         }
 
         // The bag fills after the first state on a client, and a looted or restored slot changes it: resolve again.
@@ -139,7 +141,7 @@ namespace SpaceGame.Agents.Residents
 
         private int Resolve()
         {
-            InventoryItem tool = ToolForStation(resident.archetype != null ? resident.archetype.heldItem : null);
+            InventoryItem tool = ToolForStation(resident.HeldItem);
             int toolSlot = SlotOf(tool);
             int carriedSlot = EnsureSlot(carried);
             toolMissing = false;
@@ -147,8 +149,9 @@ namespace SpaceGame.Agents.Residents
             bool stowable = toolSlot != NoSlot && belt != null && belt.CanStow(toolSlot, out refusal);
 
             HandContents contents = ResidentHandsRule.Wanted(activity, atPlace, carriedSlot != NoSlot, stowable, pushing);
-            // Work whose clips are done with empty hands (wiping, rummaging): the tool goes on the belt, if it can.
-            if (contents == HandContents.Tool && stowable && station != null && station.BareHands && ResidentHandsRule.NeedsTool(activity, atPlace))
+            // Work whose clips are done with empty hands (wiping, rummaging) or move both arms like a gesture (explaining at a stall):
+            // the tool goes on the belt, if it can.
+            if (contents == HandContents.Tool && stowable && ResidentHandsRule.EmptyHandsFor(station) && ResidentHandsRule.NeedsTool(activity, atPlace))
                 contents = HandContents.Empty;
 
             if (contents == HandContents.Tool && toolSlot != NoSlot && !ResidentHandsRule.NeedsTool(activity, atPlace) && refusal != null)

@@ -1,6 +1,6 @@
-// Which prefabs a group spawns, in spawn order. Kept out of NpcWorldSim so the rule — explicit prefab,
-// else the roster's draw for the role, and a war party's people from its tier — is tested without
-// spawning anything.
+// Which prefabs a group spawns, in spawn order. Kept out of NpcWorldSim so the rule — the owner's
+// planned members when it set them, else explicit prefab, else the roster's draw for the role, and a
+// war party's people from its tier — is tested without spawning anything.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,6 +29,9 @@ namespace SpaceGame.Agents
 
         public static List<PlannedMember> Resolve(NpcGroup group, NpcGroupTemplate template)
         {
+            // The owner's own people: a copy, so the sim never hands back the owner's list.
+            if (group.PlannedOverride != null) return new List<PlannedMember>(group.PlannedOverride);
+
             var plan = new List<PlannedMember>();
             FactionRoster roster = template.tribe != null ? template.tribe.roster : null;
 

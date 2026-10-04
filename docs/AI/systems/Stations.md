@@ -12,8 +12,9 @@ symptoms:
   - "a resident holds the wrong tool at a work spot, or mimes holding one"
   - "a worker stands at its spot doing nothing, with a clean console"
   - "a spot holds a cue and no looping action fits (resident has nothing to do)"
+  - "a trader or tinker stands motionless at its stall with a tool in its hand"
 reads_with: [StationTable, Residents, HumanoidAnimation, HandTools, Errands, AnimationCatalog, NpcAnimationPlan]
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Stations
@@ -49,6 +50,7 @@ A **station** is the contract that replaces that, kept entirely in data.
   A spot with no target, no measured reach, a seat or no cue is untouched.
 - **A station with nothing to show stands.** No cue means the resident waits at the place (`stands`); a cue with no loop for its posture fails
   `StationTableTests`. Faking a clip with the nearest unrelated one is what this replaced.
+- **A station whose loops are gestures empties the hands, like a bare-handed one** (`ResidentHandsRule.EmptyHandsFor`: `BareHands` or `NeedsFreeHands`). The stall holds `explain`, a body-language cue whose loops (`Talk Explain`, `Talk Lecture`) move both arms, and `BodyLanguage` never plays those over a held item: a trader with its scales in the hand stood motionless for the whole shift (1,041 Play samples at the stall, nothing playing; found 2026-10-03). The scales now go on the belt while it explains, and the station table says `empty hands` for the stall and `bored` (view).
 
 ## Key types
 
@@ -73,7 +75,7 @@ reach of every work action are in [StationTable.md](StationTable.md).
 Nothing new is replicated. Spots, their `stationCue`, the cues, the actions and their reach are assets and scenery, identical bytes on every machine.
 `ResidentPresence` already derives the held place from the replicated place index on every machine and holds `SettlementPlace.HoldCue` of it; the
 hand slot follows (`ResidentHands.Station`) from the same state. The stand point is derived where the server walks (`SettlementSociety.RefreshStands`
-runs only where `Network.Decides`); clients see the body where its transform sync puts it. **Not run on a client.**
+runs only where `Network.Decides`); clients see the body where its transform sync puts it. **Run in Play on the host 2026-10-03, not on a client.**
 
 ## Persistence
 
@@ -92,9 +94,9 @@ as before. State explicitly: no station state is saved, and a reload re-derives 
   and the asset test accepts either for a seated spot.
 - **The tool contract is checked against what the post carries.** `TOOL MISMATCH` means an archetype whose `post` is this kind of spot carries (held or on the
   belt) none of the tools the cue's clips are made for. Fixing it is a profession row in `RaxyToolLoadouts` (it rewrites the archetype's tools on *Equip
-  Residents*): Brewer now holds a ladle with the flask and the water tank on the belt, and Apprentice a hammer with the chisel and trowel, but the table in
-  `RaxyToolLoadouts.cs` still says tank and trowel until its owner edits it.
-- **A bare-hands cue stows the tool only if it can be stowed.** The Drover's cart and anyone on `Drifter_RaxyClassic` (no belt) keep it in the hand and play the loop over it.
+  Residents*): Brewer holds a ladle with the flask and the water tank on the belt, and Apprentice a hammer with the chisel and trowel; the table in
+  `RaxyToolLoadouts.cs` says the same (checked against the assets 2026-10-04).
+- **A bare-hands cue stows the tool only if it can be stowed.** Anyone on a skeleton with no belt keeps it in the hand and plays the loop over it (`Drifter_RaxyClassic` got a belt 2026-10-04, see [HandTools.md](HandTools.md)); the Drover's cart is not a hand tool any more.
 - **Hand-tracked reach understates a tool.** See above; the stand point never moves more than `stationMaxShift` for that reason, and the exit check counts a tool that lands on the prop's footprint as a hit.
 - **`Kneel`, `Mount On Wall` and one-shots keep their `repair` tag** (a Hold never plays a one-shot); only loops were removed from the pools.
 

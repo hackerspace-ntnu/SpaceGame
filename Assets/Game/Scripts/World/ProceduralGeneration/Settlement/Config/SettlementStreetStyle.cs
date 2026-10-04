@@ -4,6 +4,7 @@
 // piece is a plain scenery prefab measured by its mesh; see SettlementStreetPaver for where each
 // piece's origin must sit. Distances in metres.
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.World
@@ -250,6 +251,24 @@ namespace SpaceGame.World
 
         /// <summary>Whether terrace walls are stacked from courses instead of one block stretched to the drop.</summary>
         public bool StacksWalls => wallCourses.Length > 0;
+
+        /// <summary>Every prefab a street, a stair or a door path is laid with -- what is walked along -- as opposed to the walls.</summary>
+        public IEnumerable<GameObject> SurfacePieces()
+        {
+            foreach (GameObject piece in PavedPieces()) yield return piece;
+            foreach (WeightedPiece stone in stones.pieces)
+                if (stone != null && stone.prefab != null) yield return stone.prefab;
+        }
+
+        /// <summary>The surface pieces that are built paving (road, slabs, stairs), as opposed to a stone path's stepping stones.</summary>
+        public IEnumerable<GameObject> PavedPieces()
+        {
+            foreach (WeightedPiece[] set in new[] { slabs, road.tiles })
+                foreach (WeightedPiece piece in set)
+                    if (piece != null && piece.prefab != null) yield return piece.prefab;
+            foreach (GameObject single in new[] { narrowStairs, wideStairs, road.node, road.end, flightWide, flightNarrow, landing })
+                if (single != null) yield return single;
+        }
 
         /// <summary>Most levels a street of <paramref name="order"/> climbs at one place.</summary>
         public int StairLevels(int order) =>

@@ -59,6 +59,18 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void InventoryCapture_SavesALentSlotEmpty_AndKeepsEveryPosition()
+        {
+            // A band's kit weapon lent to a resident for its muster (ILentSlots) must not become its own on a load.
+            string[] held = { "Tool_Hammer", "Tool_Spear_Stone", null, "Tool_Rope" };
+
+            List<string> ids = LentSlots.SavedIds(held.Length, i => held[i], i => i == 1);
+
+            CollectionAssert.AreEqual(new[] { "Tool_Hammer", null, null, "Tool_Rope" }, ids);
+            CollectionAssert.AreEqual(held, LentSlots.SavedIds(held.Length, i => held[i], _ => false), "nothing lent: the bag as it is");
+        }
+
+        [Test]
         public void NeedsSaving_IsFalseForAKinematicBodyThatIsNothingElse()
         {
             // The counter-case, so the clause above is not simply saving everything. A kinematic body

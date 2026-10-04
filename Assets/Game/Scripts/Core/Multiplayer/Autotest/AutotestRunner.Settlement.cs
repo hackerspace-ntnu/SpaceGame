@@ -12,6 +12,7 @@ using System.IO;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents.Residents;
 using SpaceGame.Gameplay;
 using SpaceGame.World;
 
@@ -31,7 +32,26 @@ namespace SpaceGame.Core
         /// <summary>Seconds a pen gate stays open before the stock is counted again.</summary>
         private const float GateWatchSeconds = 40f;
 
+        /// <summary>Seconds between the body lines each machine logs, and how many it logs: the two logs are compared line by line.</summary>
+        private const float BodyLineEverySeconds = 5f;
+        private const int BodyLineCount = 14;
+
         private const string SettlementWorldName = "mptest-settlement";
+
+        /// <summary>How far from the visit point a cart may stand and still be the one the persistence run moves.</summary>
+        private const float CartSearchMetres = 120f;
+
+        /// <summary>How far a resident is moved with its hands on the cart, so the cart is left where it was not authored.</summary>
+        private const float CartCarryMetres = 6f;
+
+        /// <summary>Seconds the cart follows the moved body before it is let go, and settles after it.</summary>
+        private const float CartFollowSeconds = 1.5f;
+
+        /// <summary>How near a reloaded cart has to stand to where it was left.</summary>
+        private const float CartRestoredWithinMetres = 0.25f;
+
+        private int leftCartId;
+        private Vector3 leftCartAt;
 
         private IEnumerator RunSettlementHost()
         {
@@ -55,6 +75,7 @@ namespace SpaceGame.Core
 
             yield return VisitSettlement("HOST");
             ReportSettlement("HOST");
+            StartCoroutine(LogBodyLines("HOST"));
 
             SettlementPen pen = FirstGatedPen();
             if (pen == null)
@@ -105,6 +126,7 @@ namespace SpaceGame.Core
             yield return WaitAtMost(() => AutotestProbes.FindSettlement().Society.Residents.Count > 0, StepTimeout);
             yield return new WaitForSeconds(SettlementSettleSeconds);
             ReportSettlement("CLIENT");
+            StartCoroutine(LogBodyLines("CLIENT"));
 
             yield return WaitAtMost(() => AutotestProbes.TakeSettlementCensus(AutotestProbes.FindSettlement()).gatesOpen > 0, StepTimeout);
             Report("CLIENT_GATE_OPEN_SEEN", AutotestProbes.TakeSettlementCensus(AutotestProbes.FindSettlement()).gatesOpen > 0);
@@ -147,6 +169,7 @@ namespace SpaceGame.Core
             }
 
             pen.Gate.Interact(null);
+            yield return LeaveACartElsewhere();
             yield return new WaitForSeconds(GateWatchSeconds);
             ReportSettlement("PERSIST_BEFORE_SAVE");
 
@@ -164,6 +187,7 @@ namespace SpaceGame.Core
             Report("PERSIST_SAVE_BYTES", saveText.Length);
             Report("PERSIST_SAVE_RESIDENT_RECORDS", CountOccurrences(saveText, $"\"{SpaceGame.Agents.Residents.ResidentSaveable.Key}\""));
             Report("PERSIST_SAVE_DOOR_RECORDS", CountOccurrences(saveText, $"\"{Persistence.DoorSaveable.Key}\""));
+            Report("PERSIST_SAVE_CART_RECORDS", CountOccurrences(saveText, $"\"{PushableLedger.Key}\""));
 
             if (!Persistence.WorldSession.StageExisting(worldId, null, out string error))
             {
@@ -179,6 +203,7 @@ namespace SpaceGame.Core
             yield return VisitSettlement("PERSIST_AFTER");
             yield return new WaitForSeconds(GateWatchSeconds);
             ReportSettlement("PERSIST_AFTER_LOAD");
+            ReportLeftCart();
 
             Report("PERSIST_DONE", true);
             Finish();
@@ -194,6 +219,61 @@ namespace SpaceGame.Core
             Report(side + "_SETTLEMENT_FOUND", true);
             yield return WaitAtMost(() => AutotestProbes.FindSettlement().Society.Residents.Count > 0, StepTimeout);
             yield return new WaitForSeconds(SettlementSettleSeconds);
+        }
+
+        /// <summary>
+        /// A resident takes hold of the nearest cart, is moved a few metres with it and lets go: the cart stands where nobody authored
+        /// it, which is the one thing the ledger and the save have to carry across a reload.
+        /// </summary>
+        private IEnumerator LeaveACartElsewhere()
+        {
+            Settlement settlement = AutotestProbes.FindSettlement();
+            Pushable cart = Pushable.NearestFree(SettlementVisitPoint, CartSearchMetres);
+            Resident pusher = null;
+            foreach (Resident resident in settlement.Society.Residents)
+                if (pusher == null && !resident.IsOffstage && !resident.IsDead) pusher = resident;
+            if (cart == null || pusher == null)
+            {
+                Report("PERSIST_CART", cart == null ? "no free cart near the visit point" : "no resident on stage to push it");
+                yield break;
+            }
+
+            CartPusher hands = CartPusher.On(pusher.gameObject);
+            Report("PERSIST_CART_GRIPPED", hands.Grip(cart));
+            NetworkedTeleport.Move(pusher.gameObject, pusher.transform.position + Vector3.right * CartCarryMetres, pusher.transform.rotation);
+            yield return new WaitForSeconds(CartFollowSeconds);
+
+            hands.Release();
+            yield return new WaitForSeconds(CartFollowSeconds);
+
+            leftCartId = cart.Id;
+            leftCartAt = cart.transform.position;
+            Report("PERSIST_CART_MOVED_METRES", Vector3.Distance(cart.HomePose.Position, leftCartAt));
+        }
+
+        /// <summary>Whether the cart <see cref="LeaveACartElsewhere"/> moved stands where it was left, after a reload.</summary>
+        private void ReportLeftCart()
+        {
+            if (leftCartId == 0) return;
+
+            Pushable cart = Pushable.Find(leftCartId);
+            Report("PERSIST_CART_FOUND_AFTER_LOAD", cart != null);
+            if (cart == null) return;
+
+            float off = Vector3.Distance(cart.transform.position, leftCartAt);
+            Report("PERSIST_CART_OFF_BY_METRES", off);
+            Report("PERSIST_CART_RESTORED", off <= CartRestoredWithinMetres);
+        }
+
+        /// <summary>One body line every few seconds, for the caller to lay beside the other machine's: see <see cref="AutotestProbes.TakeBodyLine"/>.</summary>
+        private IEnumerator LogBodyLines(string prefix)
+        {
+            for (int i = 0; i < BodyLineCount; i++)
+            {
+                Settlement settlement = AutotestProbes.FindSettlement();
+                if (settlement != null) Report(prefix + "_BODIES", AutotestProbes.TakeBodyLine(settlement));
+                yield return new WaitForSeconds(BodyLineEverySeconds);
+            }
         }
 
         private static SettlementPen FirstGatedPen()
@@ -225,6 +305,7 @@ namespace SpaceGame.Core
             Report(prefix + "_STOCK_IN_PENS", census.stockInPens);
             Report(prefix + "_GATES", census.gates);
             Report(prefix + "_GATES_OPEN", census.gatesOpen);
+            Report(prefix + "_BODIES", AutotestProbes.TakeBodyLine(settlement));
         }
 
         private static int CountOccurrences(string text, string needle)

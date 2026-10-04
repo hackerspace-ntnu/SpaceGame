@@ -3,7 +3,8 @@
 // A spot whose use is a sit does not make a resident sit by itself. Once the resident has walked to the spot's stand
 // point, this claims the nearest free Seat there, takes the resident's feet (the NavMesh agent and its motors, through the
 // same NpcSeating a vessel's passengers use) and puts the body on the seat, facing the way the seat faces. A spot with no
-// free Seat makes nobody sit: the resident stays standing and the gap is reported once per spot.
+// free Seat makes nobody sit: the resident stays standing and the gap is reported once per spot. A seat well above the floor
+// (a top bunk) is only taken while no player can see it.
 //
 // It lets go when the plan moves the resident on, when something overrides the plan, when the resident goes indoors,
 // and when the seat is carried away from where it was claimed; a resident that dies or is torn down is let go where it is. The body goes back to the spot's stand point, on
@@ -87,6 +88,10 @@ namespace SpaceGame.Agents.Residents
                                      "so nobody sits there. Run Tools > SpaceGame > Residents > Place Seats At Sit Spots.", body);
                 return;
             }
+            // A berth well above the floor (the top bunk) is climbed onto by being put there: only while nobody can see it happen.
+            ResidentTuning tuning = ResidentTuning.Instance;
+            bool elevated = found.FeetPosition.y - body.transform.position.y > tuning.elevatedSeatRise;
+            if (elevated && ObserverCheck.AnyPlayerSees(found.SitPosition, tuning.seatWatchRadius)) return;
             if (!found.TryClaim(body.transform)) return;
 
             seat = found;

@@ -88,6 +88,21 @@ namespace SpaceGame.World
             _ => presented.Vented ? "Chamber vented" : "Chamber pressurised",
         };
 
+        /// <summary>The middle of the chamber, where a crossing colonist waits for the cycle.</summary>
+        public Vector3 ChamberCentre => chamber.Centre;
+
+        /// <summary>The middle of one hatch's doorway.</summary>
+        public Vector3 DoorwayCentre(AirlockSide side) => (side == AirlockSide.Inner ? innerDoorway : outerDoorway).Centre;
+
+        /// <summary>Every leaf of this side is out of its doorway.</summary>
+        public bool IsFullyOpen(AirlockSide side) => AllOpen(side == AirlockSide.Inner ? inner : outer);
+
+        /// <summary>Every leaf of this side is in its doorway.</summary>
+        public bool IsShut(AirlockSide side) => AllShut(side == AirlockSide.Inner ? inner : outer);
+
+        /// <summary>Whoever stands in this side's doorway: a player, or a colonist mid-crossing.</summary>
+        public bool DoorwayOccupied(AirlockSide side) => Occupied(side == AirlockSide.Inner ? innerDoorway : outerDoorway);
+
         /// <summary>Which chamber this is on its entity: the A of every message, so the others drop it.</summary>
         private int Index => index ??= NetChannel.IndexOf(this);
 
@@ -206,8 +221,21 @@ namespace SpaceGame.World
 
             // Re-checked here rather than trusted: somebody else may have clicked, or stepped into a doorway, while
             // this request was on the wire. A refusal here says nothing; the clicker saw the state that allowed it.
-            cycle.Operate(side, fromChamber, Occupied(innerDoorway), Occupied(outerDoorway));
+            ServerOperate(side, fromChamber);
+        }
+
+        /// <summary>
+        /// A hatch operated by the world rather than a click: a colonist crossing (<see cref="AirlockPassage"/>). The same
+        /// decision a click gets, so an occupied doorway or a running cycle refuses it; the refusal says nothing, the caller
+        /// asks again. Server (or the only machine) only.
+        /// </summary>
+        public AirlockRefusal ServerOperate(AirlockSide side, bool fromChamber)
+        {
+            if (!Network.Simulates(this)) return AirlockRefusal.Cycling;
+
+            AirlockRefusal refusal = cycle.Operate(side, fromChamber, Occupied(innerDoorway), Occupied(outerDoorway));
             Publish();
+            return refusal;
         }
 
         /// <summary>Show the cycle's state here and tell everyone, when it changed.</summary>
@@ -260,6 +288,14 @@ namespace SpaceGame.World
             if (leaves == null) return true;
             foreach (AirlockHatch leaf in leaves)
                 if (leaf != null && !leaf.IsShut) return false;
+            return true;
+        }
+
+        private static bool AllOpen(AirlockHatch[] leaves)
+        {
+            if (leaves == null) return false;
+            foreach (AirlockHatch leaf in leaves)
+                if (leaf != null && !leaf.IsFullyOpen) return false;
             return true;
         }
 

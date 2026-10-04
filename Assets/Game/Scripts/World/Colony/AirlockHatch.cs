@@ -44,6 +44,9 @@ namespace SpaceGame.World
         /// <summary>Fully shut: the leaf is in the doorway.</summary>
         public bool IsShut => travel <= 0f;
 
+        /// <summary>Fully open: nothing of the leaf is in the doorway.</summary>
+        public bool IsFullyOpen => travel >= 1f;
+
         private void Awake()
         {
             shutPosition = transform.localPosition;

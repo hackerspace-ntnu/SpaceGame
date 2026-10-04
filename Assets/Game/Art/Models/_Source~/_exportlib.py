@@ -195,7 +195,7 @@ def _triangulate():
 
 def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
            fix_inverted=False, keep_collection=None, prepare=None, scale_all=False,
-           triangulate=False):
+           triangulate=False, animations=False):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -234,6 +234,11 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
 
     `triangulate` ships triangles only -- see `_triangulate`. Off by default so nothing
     already shipping changes; turn it on for a resculpted mesh whose n-gons Unity rejects.
+
+    `animations` bakes EVERY action in the file as its own take, named `<object>|<action>` and
+    bounded by the action's own frame range rather than the scene's. Trim and rename the actions
+    in `prepare` first: whatever actions exist when the FBX is written are what ships. Off by
+    default, because a static model has none and the takes cost import time.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
@@ -287,11 +292,13 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
     else:
         print("  dropped %d armature(s); meshes flattened in place" % dropped)
 
-    _write_fbx(dst, types, scale_all=scale_all)
+    if animations:
+        print("  baking %d action(s) as takes" % len(bpy.data.actions))
+    _write_fbx(dst, types, scale_all=scale_all, animations=animations)
     # Deliberately no save_mainfile: the .blend is the source of truth.
 
 
-def _write_fbx(dst, types, use_selection=False, scale_all=False):
+def _write_fbx(dst, types, use_selection=False, scale_all=False, animations=False):
     """The twelve load-bearing flags, in one place. See the module docstring."""
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     bpy.ops.export_scene.fbx(
@@ -304,7 +311,10 @@ def _write_fbx(dst, types, use_selection=False, scale_all=False):
         mesh_smooth_type='FACE',
         use_mesh_modifiers=True,
         add_leaf_bones=False,
-        bake_anim=False,
+        bake_anim=animations,
+        bake_anim_use_all_actions=animations,
+        bake_anim_use_nla_strips=False,
+        bake_anim_force_startend_keying=True,
         armature_nodetype='NULL',
         bake_space_transform=False,
         path_mode='COPY',

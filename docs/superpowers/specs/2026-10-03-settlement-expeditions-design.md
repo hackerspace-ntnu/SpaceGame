@@ -1,6 +1,10 @@
 # Settlement Expeditions — design
 
-Status: **draft 2026-10-03, revision 4**, after four rounds of review with the user; no open questions. Nothing is built.
+Status: **revision 5, 2026-10-04.** Revision 4 was approved by the user on 2026-10-03. Revision 5 folds in the
+corrections the Phase 0–1 plan made and what building Phases 0–1 found (§0.2, §1, §3.3, §4, §10.1, §12, §14.2,
+§17). Phases 0–1 are built but not yet verified in play: see
+[the progress file](../plans/2026-10-03-settlement-expeditions-progress.md). The system reference is
+[Expeditions.md](../../AI/systems/Expeditions.md).
 Related: [2026-09-16-rosters-and-war-parties-design.md](2026-09-16-rosters-and-war-parties-design.md)
 (the runtime-group and war-party machinery this builds on), [2026-09-13-nomad-settlements-design.md](2026-09-13-nomad-settlements-design.md),
 [2026-10-02-agent-restructure-design.md](2026-10-02-agent-restructure-design.md) (stale: its Phase 1 brain was discarded
@@ -79,7 +83,7 @@ Two consequences:
 | Day length | `Sun.prefab` `cycleDuration: 1600`, so **1 game day ≈ 26.7 real min**. | 3 days ≈ 80 min. |
 | The Raxy settlement | One settlement, in `Chunk_6_3`, with 70 residents authored at edit time, each with a stamped `SaveableEntity` id and a `Resident.index`. 8 Guards and 1 Hunter. | Below D10's quota for its size (§3.3). **No resident is ever added or replaced** today (§3.4). |
 | Raxy combat | Fists only. All 89 Raxy tools are inert, including the spear and the harpoon gun. | Real weapons (§6.3). |
-| World sites | **One** `WorldSiteMarker` in the project; the registry only knows sites in chunks loaded this session. | A baked site catalog (§8.1). |
+| World sites | **No** `WorldSiteMarker` in any chunk scene; the only one is on `SkyCityFleet.prefab`, which no scene places (found 2026-10-04). The registry only knows sites in chunks loaded this session. | A baked site catalog (§8.1). It bakes 0 sites until markers are placed. |
 | Map | 4000 × 3000 m; the NavMesh is world-wide and always loaded. A day's walk is ~3 km. | Long trips come from stages, not distance (§5.1). |
 | Dune rats | Hand-placed only, in `Chunk_6_3`, `Chunk_7_4` and `Chunk_7_5` (`DuneRat`, `DuneRat_Penned`). No spawner. A rope can lift and carry a dune rat (CarriedAgent.md). | Rat colonies are needed (§7.2). |
 | Capture tools | `Hogtie` ties a body that is already down; `Leash` ropes anything. Both are player artifacts. | NPC use is new (§7.2). |
@@ -91,8 +95,8 @@ Two consequences:
 
 | Owner | Where | Owns |
 |---|---|---|
-| **`ExpeditionDirector`** | on the `NpcWorldSim` object in `persistentScene`, beside `WarPartyDirector`. Server-only. | Every band in the world: records, stages, off-screen resolution, the hand-off to stand-ins. Saved under `expeditions`. |
-| **`SettlementExpeditions`** | on each `Settlement`. Server-only. | Only what needs bodies: ceremonies, muster, walk-out, hand-off, walk-in, applying `Away`. **Keeps no state.** The rotation, band choice, grudges, tales and known world live in the director per `settlementId`, because a settlement component exists only while its chunk is loaded (plan 2026-10-03, decisions). |
+| **`ExpeditionDirector`** | on the `NpcWorldSim` object in `persistentScene`, beside `WarPartyDirector`. Server-only. | Every band in the world: records, stages, off-screen resolution, the band's group and its stand-ins (`BeginHandOff`). **Every settlement's state too** (rotation, roster snapshot, rest days; later grudges, tales and the known world), keyed by `settlementId` and seeded from the baked site catalog, so "one band always out" holds while the settlement's chunk is unloaded. Saved under `expeditions`. |
+| **`SettlementExpeditions`** | on each `Settlement` whose culture has an expedition profile. Server-only; registered with the director only while its chunk is loaded. | Only what needs bodies: ceremonies, muster, walk-out, hand-off, walk-in, applying `Away`. **Keeps no state.** With the chunk unloaded, departures and homecomings run abstractly in the director (§10.1). |
 | **`SettlementCitizens`** | on each `Settlement`. Server-only. | The population cycle: remembrance, newcomers, births (§3.4). |
 | `NpcWorldSim` | unchanged role | **Moves** bands, as it moves war parties today. |
 
@@ -196,6 +200,10 @@ expedition mode (§4.1), so it ends at the gate:
 1. Eligible: alive, not away, an adult, has the role, and back from a band more than `restDays` ago.
 2. Fill the `min` slots, then the `max` slots, within §3.3.
 3. Once the first member is picked, **prefer that member's bonded residents** (`Resident.CloseTo`).
+   - *As built (2026-10-04, user):* a slot may set `fillFromAnyAdult`. After every slot has taken its role holders
+     (mins, then maxes), such a slot still short of its `min` takes any free adult for the rest, within §3.3. The
+     stand-in keeps its archetype but draws the role's kit and plays the role: `MemberRecord.role` is the slot's role
+     for every member, and road behaviour keys on it. Never on a Warrior slot. `Goal_Scout`'s Scout slot has it.
 
 ### 3.3 Bounds and the warrior quota
 
@@ -205,7 +213,14 @@ expedition mode (§4.1), so it ends at the gate:
   - It has 8 Guards and 1 Hunter today. Phase 0 **reassigns 3 existing adults to Guard** in the scene: their
     archetype and kit change; nobody is regenerated or moved. A full regenerate is avoided because the settlement holds
     hand edits.
+    - *As built:* only adults whose body suits a Warrior archetype qualify, highest nerve first. The user approved
+      #10 Rasha, #47 and #56 (2026-10-03). They become the settlement's **Guard**, not the first Warrior archetype
+      their body suits (TowerGuard, which has one post).
   - From then on, newcomers keep the quota filled (§3.4).
+  - *As built (2026-10-04, user):* the warrior quota is one of the profile's quotas; `roleQuotas` adds others in the
+    same bed bands. The nomads keep **Scouts 1–2 small, 3 large** (Scout and Lookout archetypes): with one Scout left
+    after the warrior picks, no Scout band could form while it rested. `Apply Role Quotas` recasts residents for every
+    quota, warriors first; it never recasts a warrior or anybody twice in one run.
 - At least `minWarriorsHome` = ⌈quota / 2⌉ (**6** here) warriors stay home.
   - With 12 warriors, 6 can go: enough for a regular band (2–3) and a hand-over band (2–3), or one Vengeance band of
     up to 6.
@@ -314,6 +329,9 @@ loaded, and would be teleported home by `ResidentRoutine`.
 - **Spawn:** health from the record, the kit, the name. The dead are not spawned; captives spawn on their ropes.
 - **Fold** (the player leaves): health, deaths, captives and kills are read back into the record. Unlike other
   groups, **losses persist**: members come from `members[]`, never re-rolled.
+  - *As built:* a death is taken from the stand-in's own `OnDeath`, not from the read-back, because a chunk unload
+    destroys members with no read-back (and must not kill them). A spawn applies the record's `health01`, so a fold
+    does not heal.
 - **No loot (D15):** a dead stand-in drops nothing. Its body ragdolls as normal and is removed at fold.
 
 ### 4.4 Separate from tribe war parties
@@ -730,7 +748,15 @@ and the night shift joins after its shift.
 
 **Duration:** about 1.5 game hours (~100 s real). With the settlement's chunk loaded, the ceremony runs whether or not
 anyone watches, so a player arriving late sees it in progress. With the chunk unloaded (no player anywhere near), the
-departure happens abstractly: members are `Away` when the chunk next loads.
+departure happens **abstractly** in the director: the band's group is created folded at the road point and the
+members are `Away` when the chunk next loads. Homecomings are the same: performed with bodies when the chunk is
+loaded, abstract when it is not.
+
+**Phase 1 (built):** no ceremony yet. The band musters for `musterMinutes` (30 game min) from `departHour` (07:30) at
+the settlement's **muster spot**, a `SettlementSpot` with role `Assembly` (never planned as a stroll or leisure place).
+Settlements have no gate, so the spot is **placed by rule**: on the lane whose trail reaches farthest from the centre,
+`musterInset` (5 m) back from where its paving ends, facing out along it. Generate places it; existing settlements
+get it from a menu. Phase 2's ceremony moves to the plaza.
 
 **Multiplayer:** everything is ordinary resident movement, cues and `ResidentSaid` speech. Nothing new replicates
 except the line-up stand points, which come from the seed.
@@ -785,6 +811,10 @@ Empty beds, fewer guards on the walls, residents answering "where is X?", and a 
 | Vengeance `maxTier` / `giveUpDays` / `fearDecayDays` | 2 / 2 / 10 |
 | `meetRadius` / `hopDecay` / `taleExpiryDays` | 200 m / 1 severity per hop / 20 |
 | `missingDays` / `homeKnownRadius` / `antennaRadius` | 2 / 800 m / 600 m |
+| *added in Phase 1:* `departHour` / `musterMinutes` / `musterInset` / `musterSpacing` | 07:30 / 30 game min / 5 m / 1.2 m |
+| `handoffObserveRadius` / `observeRadius` / `walkLimitMinutes` | 400 m (capped by the sim's despawn radius) / 150 m / 240 game min |
+| `travelReach` / `searchRing` / `arriveRadius` / `destinationSampleDistance` | 800–1600 m / 150–300 m / 15 m / 25 m |
+| small-settlement warrior quota | equal bands of bed count across 6–8 (0–13 → 6, 14–26 → 7, 27–39 → 8, ≥ 40 → 12) |
 
 ---
 
@@ -829,9 +859,16 @@ updated. Phase 1 creates `docs/AI/systems/Expeditions.md` and the `docs/Human/th
 ### 14.2 Persistence
 | Key / owner | Holds |
 |---|---|
-| `expeditions` (director, `persistentScene`) | band records |
-| `expeditions` (director, per `settlementId`) | rotation state, roster snapshot, the next band, grudges, **tales**, `knownSites` / `knownChunks`, news, remembrance |
-| `SettlementCitizens` (settlement, chunk) | newcomer records, the pen count |
+| `expeditions` (director, `persistentScene`) | `bands[]`: the band records |
+| `expeditions` (director, `settlements[]` by `settlementId`) | rotation count, roster snapshot, `restUntilDay`, last goal (Phase 1); later grudges, **tales**, `knownSites` / `knownChunks`, news, remembrance |
+| `SettlementCitizens` (settlement, chunk) | Phase 4: newcomer records, the pen count |
+
+- **Not saved:** stand-ins (the record rebuilds them), `Resident.away` (the director answers it), and a kit weapon
+  lent to a resident at home (`ILentSlots`: its bag slot saves empty).
+- After a load the rotation waits for the persistent scene's hydrate (`WorldSaveStore.OnSceneHydrated`), not for
+  `SaveManager.OnLoadApplied`, which only fires when a player had a saved record. A band saved mid-muster loads as
+  departed (Out, folded at the hand-off point); a band saved mid-walk-in loads as Home.
+- The settlement's own `SaveableEntity` exists for identity only and is `External`: it writes no record.
 | `NpcGroup.Record.owner` | appended |
 | colony records | in the `npcworld` group records |
 | `OutpostState` | in the outpost's chunk |
@@ -901,7 +938,9 @@ plan once the user approves it.
 ## 17. Risks
 - **The identity hand-off**: a resident shown at home while `Away`, or a stand-in saved into a chunk (DEFECTS.md:41).
   This is Phase 1's whole purpose.
-- **The visible pop** at an in-place swap. Fallback: swap only while unobserved.
+- **The visible pop** at an in-place swap. Fallback: swap only while unobserved. Stand-ins can only exist within the
+  sim's despawn radius (360 m), so a watcher farther away counts as not watching, as it does for every group's fold.
+  Not yet measured on a client.
 - **The routine fights `Away`** (settle-teleport, bedtime backstop): both must check `Away` first.
 - **Runtime residents** (newcomers): roster registration, plan rebuilds, and every system that gathered the roster
   once (`EnsureResidents`, `HouseVisits`, `Conversations`, `Rumours`) must see them.

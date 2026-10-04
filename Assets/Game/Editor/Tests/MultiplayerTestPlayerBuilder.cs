@@ -26,14 +26,18 @@ namespace SpaceGame.EditorTools
             "Assets/Game/Scenes/world/persistentScene.unity",
         };
 
-        // Chunk (column, row) around the settlement at Chunk_6_3 (the 3x3 the streamer loads about it) and around the
-        // spawn in the north-east corner, Chunk_7_5. A chunk the streamer asks for that is not in the build is an error.
+        // Chunk (column, row) around the settlement at Chunk_6_3 and around the spawn in the north-east corner,
+        // Chunk_7_5, one ring wider than the 3x3 the streamer loads about a player there: an expedition band hands
+        // off ~400 m out along the settlement's road and walks on, so a player following it reaches the next column
+        // (column 4 since the 2026-10-04 regenerate). A chunk the streamer asks for that is not in the build is an
+        // error, and a player put there has no ground.
         private static readonly Vector2Int[] ChunkGridCells =
         {
-            new(5, 2), new(6, 2), new(7, 2),
-            new(5, 3), new(6, 3), new(7, 3),
-            new(5, 4), new(6, 4), new(7, 4),
-            new(6, 5), new(7, 5),
+            new(4, 1), new(5, 1), new(6, 1), new(7, 1),
+            new(4, 2), new(5, 2), new(6, 2), new(7, 2),
+            new(4, 3), new(5, 3), new(6, 3), new(7, 3),
+            new(4, 4), new(5, 4), new(6, 4), new(7, 4),
+            new(4, 5), new(5, 5), new(6, 5), new(7, 5),
         };
 
         private static string[] Scenes
@@ -127,6 +131,13 @@ namespace SpaceGame.EditorTools
                 "  CLIENT_STOCK == HOST_STOCK              ...and every penned animal\n" +
                 "  CLIENT_GATE_OPEN_SEEN=True              ...and the gate the host opened\n" +
                 "  PERSIST_AFTER_LOAD_* == PERSIST_BEFORE_SAVE_*   residents, stock and the open gate survive a reload\n\n" +
+                "The settlement's expedition band, across two machines and across a reload (about 10 minutes each):\n\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode expedition-host   -logFile /tmp/mp_expedition_host.log &\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode expedition-client -logFile /tmp/mp_expedition_client.log &\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode expedition-persist -logFile /tmp/mp_expedition_persist.log\n\n" +
+                "  HOST_EXP_PASS=True / CLIENT_EXP_PASS=True / PERSIST_EXP_PASS=True   every check held; else *_FAILED names each\n" +
+                "  CLIENT_EXP_STAND_INS == HOST_EXP_STAND_INS             the client sees every stand-in the host spawned\n" +
+                "  CLIENT_EXP_STAND_IN_LINE == HOST_EXP_STAND_IN_LINE     ...with the same names and the same weapons in hand\n\n" +
                 "To PLAY this build against the editor instead of running the autotest, launch it with\n" +
                 "its own Unity Services profile — a player and the editor share one PlayerPrefs file, so\n" +
                 "they otherwise sign in as the same anonymous PlayerId and the lobby refuses the second\n" +

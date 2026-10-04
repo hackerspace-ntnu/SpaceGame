@@ -30,7 +30,7 @@ symptoms:
   - "a flight of stairs stops short of the ground at its foot or sinks into it"
   - "settlement buildings stand on a raised platform of flat terrain instead of sitting in the hillside"
 reads_with: [SettlementTerraceKit, TerrainGeneration, ArtPipeline, NavMeshSystem]
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Settlement streets and terraces
@@ -86,7 +86,7 @@ per feature when a style holds its pieces.
 | Type | Role |
 | --- | --- |
 | `SettlementStreetStyle` | ScriptableObject on `SettlementConfig.streets`: growth rules, slabs across per street order, `verge`, `setback`, terrace knobs (`stepHeight`, `minRunBetweenStairs`, `groundSmoothing`, `gradeDistance`, `wallReach`, `wallStraightening`, `fieldCellSize`), street-kit pieces (`slabs`, `narrowStairs`, `wideStairs`), `terraceWalls` (either kit's wall block / top piece), then the terrace-kit block |
-| `SettlementStreetLayout` | Static `Generate`: grow + plot, terrace field, sculpt, spawn buildings, lay. Returns a `SettlementLayoutResult` (the cluster layout returns one too) with `streetsEndingAtWalls` and `wallsTooTall`; the summary counts streets by order and every piece |
+| `SettlementStreetLayout` | Static `Generate`: grow + plot, terrace field, sculpt, spawn buildings, lay. Returns a `SettlementLayoutResult` (the cluster layout returns one too) with `streetsEndingAtWalls`, `wallsTooTall` and `lanes` (the streets leaving the centre, on the sculpted ground, each point paved unless a stone path: the muster spot goes where one's paving ends, [Residents.md](Residents.md)); the summary counts streets by order and every piece. Pieces go under `Generated/` + `StreetsRootName`. `SettlementStreetStyle.SurfacePieces()` = every prefab walked along (not the walls), `PavedPieces()` = those minus stepping stones |
 | `SettlementStreetNetwork` | The growth. `Street` = polyline + `order`, `halfWidth`, `parent`/`parentArc`, `endsOn`/`endsOnArc`; `Grow(targetFrontage, obstacles)`, `Corridors()`; static `KeepLengths` + `Trim` (renumbers streets) |
 | `SettlementStreetPlots` | Lines streets with buildings; keeps a cursor per street side across rounds; `TownRadius`, `Looseness`, passages and back rows, `LastHouseArcs`, `Renumber` |
 | `SettlementTerraceField` | Level grid: `Profile` (+ static `ClampSteps`), `StreetProfile.Steps()`, `Lock(street, profile, margin)`, `LockRamp`, `Lock(footprint)`, `Grade` (nearest-level assignment, correction, wall-step hold), `WallBetween`, `Contours` (marching squares per level), `TerrainHeight` for the sculptor |
@@ -136,6 +136,7 @@ N/A — no runtime state. Pieces are scene content; the terrain edit is backed u
 
 ## Gotchas
 
+- **The street network is not kept after Generate**: only pieces remain; `SettlementMuster.TraceStreets` re-traces them (links within 6 m: the node is ~3.5 m from its tiles).
 - **The heightmap cannot make a vertical step, so the wall block hides it.** Chunk terrain samples are ~1.95 m apart;
   the rise between two levels spans one sample gap, up to ~2.8 m on a diagonal. The block is a wall face plus a 3-slab
   deck (3.76 m deep; the terrace kit's top piece 3.75 m) with a solid fill under it, and the sculptor keeps the ground one

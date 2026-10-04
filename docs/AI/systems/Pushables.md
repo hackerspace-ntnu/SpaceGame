@@ -26,7 +26,7 @@ symptoms:
   - "a pushed cart stands in a wall, or a resident works at a pen with empty hands although a cart stands beside it"
   - "[Pushable] 'X' and 'Y' derive the same id"
 reads_with: [Seats, Residents, InteractionSystem, Multiplayer, Persistence, HandTools, PlayerCharacter]
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Pushables
@@ -67,7 +67,7 @@ A cart used to be a *held item*: `Carry_Cart_Hand` scaled to 3.5 m and parented 
 
 - **Why not a `NetworkObject`.** Carts sit inside building prefabs in chunk scenes; a nested scene-placed `NetworkObject` needs a baked hash in every holding scene and a regenerated settlement. The pusher's body already replicates, so a pose derived from it costs nothing and cannot disagree with it. What cannot be derived (where it was left) is the ledger.
 - Server decides both grips; only ids travel. A late joiner reads the pusher's id and the ledger list with the spawn; a cart in a chunk not loaded yet is resolved later (`PlayerPushing.Update`, `ResidentPresence.Update` retry).
-- **Not run on a second machine.** Verified in edit mode only: solver, arms, claim, ledger and save round trip, Raxy grips (tests below). Not run: any client, `PlayerPushing` in Play, residents in Play.
+- **Verified in Play 2026-10-03, offline host:** a cart moved beside the Drover's pen post was gripped within 0.5 s of its next work pass (`ResidentPushing`, id published, hand empty, handlebar in both fists, wheels on the ground), left standing where it was when the Drover's shift ended, and a resident gripped a mine cart and walked it 18 m (`CartPusher`: handles 0.44 m from the body all the way, wheels within 2 cm of the ground, a 26 degree slope followed). The ledger did not record offline (no `NetworkGameManager`, so `PushableLedger` has no instance). **Not run:** any client, `PlayerPushing` in Play (the offline player has no `PlayerPushing`), a save/reload of a pushed cart (`settlement-persist` now leaves a cart off its authored pose before the save and checks `PERSIST_CART_RESTORED`; the player build was not made, see Testing.md).
 
 ## Persistence
 
@@ -83,8 +83,8 @@ A cart used to be a *held item*: `Carry_Cart_Hand` scaled to 3.5 m and parented 
 - **The cart is solid to everyone but its holder** (`Physics.IgnoreCollision` for the grip) and does **not** collide with the world: it clips walls its pusher is stopped by. The settlement NavMesh keeps the cart's authored footprint as an obstacle.
 - **Ground probes skip the pusher and anything on its own physics** (`WalkerGround`, the pusher's colliders registered with `SetSeenByGround`); a miss (chunk not loaded) keeps the last height.
 - **`Pushable.Register` captures home**, not `OnEnable`: an edit-mode test registers by hand. A cart's id includes its sibling index, so a test must put the cart at index 0.
-- **`RaxyToolLoadouts` still lists `("Drover", "Carry_Cart_Hand", ...)`**: running **Equip Residents** gives the Drover the cart item back (and `ResidentHands` would then draw it for work). Remove that row before the next run.
-- **Nothing places a cart by a pen post**, so the Drover currently works empty-handed. The pen's own cart is a `SettlementProp` on the platform, 7 m from its gate spots.
+- **The Drover holds a lasso, not a cart (2026-10-04).** `RaxyToolLoadouts` has `("Drover", "Tool_Lasso", ...)`, so *Equip Residents* gives it the lasso in the hand and `ResidentHandsRule` stows it on the belt while it pushes; `PushableAuthoring` no longer writes the Drover's held item (it used to null it, and `ThePlayerTheSessionAndTheDroverAreWiredForCarts` pinned null; it now only rejects a `Carry_Cart_*` item).
+- **A cart stands in the pen (2026-10-04).** `NomadAnimalPen` nests `Decor/Handcart__01` (`Deco_Handcart` at 1.4x, local to the pen at (-0.64, 1.09, -1.6) in `Decor`, yawed 270 degrees so its nose points east, into the pen, handles toward the gate), on the open dirt floor inside the fence: the Herd spots stand OUTSIDE the fence on a 0.05 m ledge with no room for a 3.7 m cart, and the goods piles are markers within 1 m of the free ground by the gate. Handles are 3.06 m (Herd_1) and 3.31 m (Herd_2) from the spots, inside `cartReach` (4 m, measured to the **body**, which a stand point may shift by up to `standSnapRadius`). Static flags are clear (`FreeNestedCarts`). A cart is placed like the three nested ones (child of `Decor`, last sibling, so no other id moves). Not seen working in Play: the Drover must still grip it, push it to its spot and leave it; the pen's own `Carry_Cart_Hand__01` prop (7.5 m away, carried by haulers) is untouched.
 
 ## Extending
 

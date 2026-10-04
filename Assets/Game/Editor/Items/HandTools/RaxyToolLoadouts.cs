@@ -153,8 +153,9 @@ namespace SpaceGame.EditorTools
             worn.layer = root.layer;
             if (worn.GetComponent<SkinnedGarment>().Bind()) return;
 
-            // A skeleton the belt was not modelled on (the Classic head's) cannot wear it: an unbound
-            // belt draws nothing and its mount points have no bone to ride on.
+            // A skeleton the belt was not modelled on cannot wear it: an unbound belt draws nothing and its
+            // mount points have no bone to ride on. (A skeleton that only lacks a bone the belt gives no
+            // weight, the Classic's jaw, binds: SkinnedGarment.WeightedBones.)
             Object.DestroyImmediate(worn);
             Debug.LogError($"[HandTools] {root.name}: its skeleton cannot wear {beltName}; it stays beltless.");
         }

@@ -109,6 +109,11 @@ namespace SpaceGame.Agents.Residents
                     Debug.LogError($"[HouseRoom] '{spot.name}' has no SpotUse, so nobody can be placed there.", spot);
                     continue;
                 }
+                if (spot.Use.role == SpotRole.Assembly)
+                {
+                    Debug.LogError($"[HouseRoom] '{spot.name}' is an Assembly spot ({spot.Use.name}); a band musters outside, never in a room.", spot);
+                    continue;
+                }
 
                 int group = 0;
                 if (!string.IsNullOrEmpty(spot.Group))

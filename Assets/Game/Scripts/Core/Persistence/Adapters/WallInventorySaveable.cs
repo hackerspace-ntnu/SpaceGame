@@ -60,15 +60,22 @@ namespace SpaceGame.Core.Persistence
             public List<PackSaveCodec.PackPlacementRecord> placements;
         }
 
-        // null stores nothing — the right answer for an empty wall, and it keeps a ship that has
-        // never been used out of the file entirely.
+        // null stores nothing — the right answer for an empty wall that was BUILT empty, and it
+        // keeps a ship that has never been used out of the file entirely.
+        //
+        // A wall built with starting gear writes its record even when it is empty. Its starting
+        // gear is laid on again by every load (WallInventory.Awake), and only a record — the
+        // codec's "stored empty", an empty placements list — clears it back off. Writing nothing
+        // for a wall the players emptied would hand them its battery again on every reload.
         public object CaptureState()
         {
             if (Wall == null) return null;
 
             PackSaveCodec.State captured = PackSaveCodec.Capture(Wall.Layout);
 
-            return captured.placements == null || captured.placements.Count == 0
+            bool empty = captured.placements == null || captured.placements.Count == 0;
+
+            return empty && !Wall.HasStartingContents
                 ? null
                 // Taken from the codec rather than restated, so the two cannot drift apart the next
                 // time the format moves.

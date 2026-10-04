@@ -7,6 +7,9 @@ namespace SpaceGame.World
     /// place it needs, and a typo in a string would silently mean "this NPC never finds anywhere to
     /// go" — which reads in play as an NPC that simply stands still, with nothing anywhere to say
     /// why.
+    ///
+    /// Serialized as an int (markers in chunk scenes, task and group templates, the baked site catalog):
+    /// append only.
     /// </summary>
     public enum SiteKind
     {
@@ -33,5 +36,11 @@ namespace SpaceGame.World
 
         /// <summary>Nothing in particular — a navigation reference, and a fallback destination.</summary>
         Landmark,
+
+        /// <summary>A small standing shelter away from home that a settlement keeps up. What a band goes to repair.</summary>
+        Outpost,
+
+        /// <summary>High ground where a settlement can raise an antenna to watch the land around it.</summary>
+        AntennaSite,
     }
 }

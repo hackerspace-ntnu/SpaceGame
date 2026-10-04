@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 950571b05940e42a293d1a7ee7dbd23e, type: 3}
+  m_Name: Kit_Warrior
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionKit
+  weapon: {fileID: 11400000, guid: 3936e41db67864c51809e73895b90014, type: 2}
+  tool: {fileID: 0}
+  beltItems:
+  - {fileID: 11400000, guid: b28e2ac0707a74dd3a2f292d6a8a6a4b, type: 2}

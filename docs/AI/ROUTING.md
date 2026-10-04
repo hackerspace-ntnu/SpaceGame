@@ -42,6 +42,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | [WorldService] Spawn('Clanker') called on a client while playing | [AgentSystem](systems/AgentSystem.md) |
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
 | a .blend in the library will not open: 'not a blend file | [ArtPipeline](systems/ArtPipeline.md) |
+| a band hands off in plain view at ~360–400 m: the residents vanish and no stand-ins appear | [Expeditions](systems/Expeditions.md) |
 | a basket or crate in a settlement never moves, though haulers walk to it | [Errands](systems/Errands.md) |
 | a belt or pouch near the hip gets dragged along by a swinging arm | [CharacterClothes](systems/CharacterClothes.md) |
 | a big building is a tangle of stray triangles in the wrong materials in play mode, but fine in the Scene view, the prefab and Blender | [ArtPipeline](systems/ArtPipeline.md) |
@@ -69,6 +70,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a cave regenerates on Start and stalls play mode for seconds | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a chain of stairs floats above the hillside or sinks into it | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | a character never blinks, or its eyes stay open after it dies | [StylizedEyes](systems/StylizedEyes.md) |
+| a character prefab (a miner) never moves into a settlement | [Residents](systems/Residents.md) |
 | a character stands correctly in the rest pose and its hands shred into spikes the moment it is posed | [ArtPipeline](systems/ArtPipeline.md) |
 | a character's eyes are the same colour as its skin, two bare beads in the sockets | [StylizedEyes](systems/StylizedEyes.md) |
 | a character's eyes went back to the old colour, or stopped matching its style asset | [StylizedEyes](systems/StylizedEyes.md) |
@@ -85,6 +87,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client sees no damage numbers at all, or its own shots do nothing | [Combat](systems/Combat.md) |
 | a client sits on the loading screen forever and the console repeats still waiting on terrain streaming | [UI](systems/UI.md) |
 | a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing | [WorldStreaming](systems/WorldStreaming.md) |
+| a client that joined while the host was streaming chunks has every settlement object twice, and 'Server Scene Handle already exist!' in its log | [Multiplayer](systems/Multiplayer.md) |
 | a client walks through a door and nothing happens | [SceneTransitions](systems/SceneTransitions.md) |
 | a client's booster clamps to whatever the host was looking at | [StrapOnBooster](systems/StrapOnBooster.md) |
 | a client's damage arcs never point anywhere, but the host's do | [Visor](systems/Visor.md) |
@@ -92,6 +95,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a clothes prefab shows nothing when opened or dropped into a scene | [CharacterClothes](systems/CharacterClothes.md) |
 | a collider a tool added is on the prefab but nothing ever hits it | [EditorTooling](systems/EditorTooling.md) |
 | a colony doorway or tube is blocked by an invisible wall | [ColonyInterior](systems/ColonyInterior.md) |
+| a colony room has three airlocks in a row and one part of it cannot be reached | [ColonyInterior](systems/ColonyInterior.md) |
 | a component I added to PlayerShip.prefab by hand disappeared after a rebuild | [PlayerShip](systems/PlayerShip.md) |
 | a continuous item only affects what the crosshair is exactly on, and its visible spray does nothing | [Artifacts](systems/Artifacts.md) |
 | a cook stirs, ploughs or swings a pickaxe at the stove | [HumanoidAnimation](systems/HumanoidAnimation.md) |
@@ -198,6 +202,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a leashed animal is thrown into the sky for being walked along flat ground | [CarriedAgent](systems/CarriedAgent.md) |
 | a leashed animal walks steadily into its own collar for as long as the rope is taut | [LeashSystem](systems/LeashSystem.md) |
 | a leashed creature teleports or jitters instead of straining at the rope | [LeashSystem](systems/LeashSystem.md) |
+| a lent spear became a resident's own after a save | [Expeditions](systems/Expeditions.md) |
 | a lit shaft hangs in the air with the lamp switched off | [Flashlight](systems/Flashlight.md) |
 | a lit torch and a powered scanner, one per wrist, and only the right arm comes up | [Flashlight](systems/Flashlight.md) |
 | a lobby control looks enabled but does nothing while a request is in flight | [Lobby](systems/Lobby.md) |
@@ -291,13 +296,17 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
 | a resculpted character's whole left side follows the right side's bones | [ArtPipeline](systems/ArtPipeline.md) |
 | a resculpted drifter's head deforms wrong in game after a clean re-export | [ArtPipeline](systems/ArtPipeline.md) |
+| a resident away with a band is hidden on the host but stands visible at home for a client | [Expeditions](systems/Expeditions.md) |
 | a resident carries nothing in its hand during a chore | [Errands](systems/Errands.md) |
+| a resident goes on stretching or looking around through the basket or tool it has just taken up | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a resident holds the wrong tool at a work spot, or mimes holding one | [Stations](systems/Stations.md) |
 | a resident I defended never thanks me | [ResidentReputation](systems/ResidentReputation.md) |
 | a resident I hurt in the house vanishes and appears outside | [HouseVisits](systems/HouseVisits.md) |
 | a resident I saved is no friendlier to me than one who never met me | [ResidentReputation](systems/ResidentReputation.md) |
 | a resident indoors never hears what her family saw me do | [ResidentReputation](systems/ResidentReputation.md) |
 | a resident is left in the house void, or far from the settlement, after I left or reloaded | [HouseVisits](systems/HouseVisits.md) |
+| a resident on an expedition is standing at home after a reload | [Expeditions](systems/Expeditions.md) |
+| a resident on the pillow sits with its lower legs inside the cushion and a foot poking out underneath | [Seats](systems/Seats.md) |
 | a resident says nothing when I talk to it, or the same line every time | [Residents](systems/Residents.md) |
 | a resident sits inside a bench or hovers above the floor when sitting | [Residents](systems/Residents.md) |
 | a resident stands a metre short of its anvil, seat or counter, or faces the wrong way | [Residents](systems/Residents.md) |
@@ -345,7 +354,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a scene I did not touch opens with a missing-prefab placeholder after I deleted an item | [Inventory](systems/Inventory.md) |
 | a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
 | a seated player's head stays turned after they stand up | [PlayerCharacter](systems/PlayerCharacter.md) |
+| a seated resident hovers above its seat, or its feet hang above the floor | [Seats](systems/Seats.md) |
+| a seated resident stands up for a second to greet or stretch, then sits again | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| a seated resident stands up for a second to greet or stretch, then sits again | [Seats](systems/Seats.md) |
+| a seated resident stands up for a second when it greets | [Residents](systems/Residents.md) |
 | a seated resident's body is dragged off its seat, or its NavMeshAgent is enabled while it sits | [Seats](systems/Seats.md) |
+| a seated resident's legs pass through the pot or cushion it sits on | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| a seated resident's legs pass through the pot or cushion it sits on | [Seats](systems/Seats.md) |
 | a second copy of my gauntlet or jetpack appears at my feet and falls through the world | [BodyEquipment](systems/BodyEquipment.md) |
 | a second copy of the item I am holding appears at my feet and falls through the world | [Inventory](systems/Inventory.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
@@ -373,10 +388,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a sky war party is raised and given up on the next moment when I am far from the Sky City | [SkyTribe](systems/SkyTribe.md) |
 | a small Settlement building stands on a 20 m terrain cliff it raised under itself | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a sound went silent and only a single warning appeared in the console | [audio](systems/audio.md) |
+| a spawned band never walks: the leader's NavMeshAgent stays pathPending=True, hasPath=False, velocity 0, followers mill around it | [Expeditions](systems/Expeditions.md) |
 | a spear, shovel or pickaxe hangs from a Raxy's hip instead of its back | [HandTools](systems/HandTools.md) |
 | a spot holds a cue and no looping action fits (resident has nothing to do) | [StationTable](systems/StationTable.md) |
 | a spot holds a cue and no looping action fits (resident has nothing to do) | [Stations](systems/Stations.md) |
 | a sprayer's tank is full again on the client while the host watches it empty | [SupplyCharge](systems/SupplyCharge.md) |
+| a stand-in is nameless, unarmed or walks off alone, with an error naming ExpeditionMember or FormationModule | [Expeditions](systems/Expeditions.md) |
+| a stand-in walks with its trade's tools instead of the band's spear | [Expeditions](systems/Expeditions.md) |
 | a status applied to the ship — burning, foamed — is only seen on the machine that applied it | [PlayerShip](systems/PlayerShip.md) |
 | a stone path climbs the hill by stairs | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | a stone path is mostly the smallest stepping stone, with long bare stretches | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
@@ -394,9 +412,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a tool is too long to stow on the backpack | [HandTools](systems/HandTools.md) |
 | a tool logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
 | a tool preview render shows the arm hanging while the tool sits where the hand really is | [HandTools](systems/HandTools.md) |
+| a tool vanishes from a resident's hand and appears on its belt in one frame | [HandTools](systems/HandTools.md) |
+| a tool vanishes from a resident's hand and appears on its belt in one frame | [Residents](systems/Residents.md) |
 | a tool's collider query says everything is already in the right place and nothing moves | [EditorTooling](systems/EditorTooling.md) |
 | a torso item is worn rotated to a random angle | [BodyEquipment](systems/BodyEquipment.md) |
 | a tower guard is teleported up and down although a ladder leads there | [Residents](systems/Residents.md) |
+| a trader or tinker stands motionless at its stall holding its tool | [Residents](systems/Residents.md) |
+| a trader or tinker stands motionless at its stall with a tool in its hand | [Stations](systems/Stations.md) |
+| a trader stands motionless at its stall holding its scales | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a villager warns me when I punch him instead of fighting back | [Residents](systems/Residents.md) |
@@ -415,6 +438,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | after I hit one villager every resident in the settlement is cold to me | [ResidentReputation](systems/ResidentReputation.md) |
 | after landing I could not look around from the seat until I stood up | [Cutscenes](systems/Cutscenes.md) |
 | after loading a save the rider is standing next to the mount instead of in the seat | [Vehicles](systems/Vehicles.md) |
+| after one scouting trip no band can form for days: 'no goal's slots can be filled from the residents at home and rested | [Expeditions](systems/Expeditions.md) |
 | after reloading, the ship hangs in the sky nose-down and never comes down level | [PlayerShip](systems/PlayerShip.md) |
 | after the crash-landing intro the player walks and steers but never falls | [WorldStreaming](systems/WorldStreaming.md) |
 | agents refuse to cross a gap or take a jump link | [NavMeshSystem](systems/NavMeshSystem.md) |
@@ -431,6 +455,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an arch, doorway or pen gate in a settlement is blocked by an invisible solid that is much bigger than the object | [ArtPipeline](systems/ArtPipeline.md) |
 | an artifact's tank refills itself when I stow it on the pack | [SupplyCharge](systems/SupplyCharge.md) |
 | an authored interior fog volume fades out as soon as I step into the room it is in | [Environment](systems/Environment.md) |
+| an autotest moves its player and it is back where it was the next frame; stand-ins never spawn beside the observer | [Testing](systems/Testing.md) |
 | an effect on a worn item stops the moment the item goes on the body | [BodyEquipment](systems/BodyEquipment.md) |
 | an empty battery still reads as part charged | [SupplyGauge](systems/SupplyGauge.md) |
 | an entity duplicates every time I reload the world | [Persistence](systems/Persistence.md) |
@@ -493,6 +518,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an old save's provocation/resident record is ignored after the creature moved to a new saver | [Persistence](systems/Persistence.md) |
 | an outfit prefab is missing a piece of clothing | [CharacterClothes](systems/CharacterClothes.md) |
 | an oxygen tank stands on end on the mat and eats a third of the leaf | [Oxygen](systems/Oxygen.md) |
+| an unwatched band is handed off at ~415 m in a second instead of walking out to 150 m | [Expeditions](systems/Expeditions.md) |
 | AnimationEvent 'X' has no receiver! Are you missing a component?, once per step | [ArtPipeline](systems/ArtPipeline.md) |
 | another player disconnecting blacks out my long-throw lighting | [Flashlight](systems/Flashlight.md) |
 | another player gliding stands bolt upright while sliding through the air | [Wingsuit](systems/Wingsuit.md) |
@@ -505,8 +531,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | back gear sits half a metre off the pack's rail until I re-equip it | [BodyEquipment](systems/BodyEquipment.md) |
 | both status lamps on the pack are lit at once and flicker against each other | [Backpack](systems/Backpack.md) |
 | bounds computed from a decoration FBX's mesh data come out 100 times too small for a rug, decal or other single-mesh item | [ArtPipeline](systems/ArtPipeline.md) |
+| bright stepped bands of light cut across the airlock mist | [ColonyInterior](systems/ColonyInterior.md) |
 | bumping into a villager once starts a fight | [Residents](systems/Residents.md) |
 | camera shake does nothing anywhere in the game | [Cutscenes](systems/Cutscenes.md) |
+| can form no band today: it is not in this world's site catalog | [Expeditions](systems/Expeditions.md) |
 | Can't remove SupplyReservoir (Script) because DockableSupply (Script) depends on it, logged on startup or whenever the pack rebuilds | [Backpack](systems/Backpack.md) |
 | carried or worn items duplicate in the world, one more copy after every load | [Persistence](systems/Persistence.md) |
 | chairs are boardable from outside again after a hull mesh was deleted in the .blend | [PlayerShip](systems/PlayerShip.md) |
@@ -522,6 +550,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | client join fails with Scene Hash N does not exist in the HashToBuildIndex table | [WorldStreaming](systems/WorldStreaming.md) |
 | closing focus mode leaves a black screen with only the HUD, and no sound | [Backpack](systems/Backpack.md) |
 | collisions inside the ship went weird once there was gear on the wall | [Backpack](systems/Backpack.md) |
+| colony props flicker / speckle where a label, drawer front or trim meets its panel | [ArtPipeline](systems/ArtPipeline.md) |
 | combat feels unnaturally slow or untimed even though damage lands on schedule | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | console warns No prefab registered for id when loading a world | [EntitySystem](systems/EntitySystem.md) |
 | Copied Avatar Rig Configuration mis-match: Transform not found in HumanDescription | [ArtPipeline](systems/ArtPipeline.md) |
@@ -538,6 +567,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled | [UI](systems/UI.md) |
 | dark patches that look like holes punched in the model, symmetric on both sides | [ArtPipeline](systems/ArtPipeline.md) |
 | dead NPCs re-instantiate themselves on every reload | [EntitySystem](systems/EntitySystem.md) |
+| died, but … has no such resident' warning; a finished band with dead is never retired | [Expeditions](systems/Expeditions.md) |
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
 | editing a script while the game is running kills my camera and controls for the rest of the session | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -570,6 +600,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | everything is blurry for a few seconds after the crash landing | [Cutscenes](systems/Cutscenes.md) |
 | everything not on the rack disappears when the pack is reshouldered or restored | [Backpack](systems/Backpack.md) |
 | exit momentum is confiscated a fraction of a second after coming through | [Portals](systems/Portals.md) |
+| expedition-host reports STAND_INS=0 though the band is Out, folded and 4/4 away; the console is clean | [Expeditions](systems/Expeditions.md) |
 | Failed to bind UDP socket' or a 409 'already a member of the lobby' when launching two instances | [Multiplayer](systems/Multiplayer.md) |
 | Failed to create agent because it is not close enough to the NavMesh logged once per rider when a group spawns in the air | [AgentSystem](systems/AgentSystem.md) |
 | Failed to create agent because it is not close enough to the NavMesh logged twice every time a Sky war party spawns | [SkyTribe](systems/SkyTribe.md) |
@@ -599,12 +630,15 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Generate reports a spot residents cannot walk to | [Residents](systems/Residents.md) |
 | Generate says 40-odd places residents cannot use after the buildings were authored fine | [Residents](systems/Residents.md) |
 | Generate says beds stayed empty | [Residents](systems/Residents.md) |
+| Generate says copies made for a role with no place here stayed out | [Residents](systems/Residents.md) |
 | gliding into a cliff at full speed costs nothing | [Wingsuit](systems/Wingsuit.md) |
 | guards never patrol, or patrol alone, or one of the pair is left standing behind | [Errands](systems/Errands.md) |
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
 | has waited over 30 s for its ground chunks to load' logged and the settlement never spawns anyone | [AgentSystem](systems/AgentSystem.md) |
 | hauling somebody on a rope overheats the pack much sooner than flying alone | [Jetpack](systems/Jetpack.md) |
 | headless_tests.txt says CANCELLED, or my queued test run was discarded as too old | [Testing](systems/Testing.md) |
+| hidden residents (indoors, offstage) still start gestures and fidgets | [Residents](systems/Residents.md) |
+| hidden residents still start gestures and fidgets, and their animators still evaluate | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
 | holding W does the same thing whether I look up or down | [Jetpack](systems/Jetpack.md) |
 | how do I actually prove this works on a client and not just the host | [Testing](systems/Testing.md) |
@@ -687,6 +721,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | letting go of Space parks me in the air instead of dropping me | [Jetpack](systems/Jetpack.md) |
 | loading a save does not put the player back inside the cave they were in | [SceneTransitions](systems/SceneTransitions.md) |
 | loading takes a minute or two with several players when it takes seconds alone | [WorldStreaming](systems/WorldStreaming.md) |
+| long white streaks or puffs shoot out of the airlock kilometres away | [ColonyInterior](systems/ColonyInterior.md) |
 | looking at the saddle always offers to ride, never to take it off | [Saddles](systems/Saddles.md) |
 | looking straight down I see my own chest instead of the floor I am standing on | [PlayerCharacter](systems/PlayerCharacter.md) |
 | loot drops all over again every time I load the world | [AgentSystem](systems/AgentSystem.md) |
@@ -713,6 +748,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my tank reads full in my hand but the server is draining it | [SupplyCharge](systems/SupplyCharge.md) |
 | my worn gear is flung off my body when I die | [Combat](systems/Combat.md) |
 | Newtonsoft stack-overflows saving a storm | [Environment](systems/Environment.md) |
+| no band ever leaves a settlement and the console is clean | [Expeditions](systems/Expeditions.md) |
+| no bone 'Jaw' on Drifter_RaxyClassic when a garment is put on | [HandTools](systems/HandTools.md) |
 | no flames at all during the descent — nothing appears, and the console is clean | [PlayerShip](systems/PlayerShip.md) |
 | no hint ever appears telling me how to get out of the crashed ship | [Cutscenes](systems/Cutscenes.md) |
 | no item works while I am flying, or every item fires at the sand under the craft | [Ornithopter](systems/Ornithopter.md) |
@@ -795,9 +832,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | residents pop out of existence in front of me at bedtime | [Residents](systems/Residents.md) |
 | residents sit in the air, or inside a bench, instead of on something | [Seats](systems/Seats.md) |
 | residents sit in the house but never talk to each other | [HouseVisits](systems/HouseVisits.md) |
+| residents stroll to or sit about at the muster spot | [Residents](systems/Residents.md) |
 | residents vanish 1.5 m in front of the door instead of stepping into the doorway | [Residents](systems/Residents.md) |
 | residents vanish in front of a house instead of walking in, or pop out of thin air | [Residents](systems/Residents.md) |
 | residents walk hunched forward while holding a tool | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| ResidentValidator says no muster spot | [Residents](systems/Residents.md) |
 | respawning put me on open sand at the world's starting coordinates instead of back in my ship | [GameModes](systems/GameModes.md) |
 | retuning a shader default changed nothing in the game | [FoamGun](systems/FoamGun.md) |
 | Rig Error: Required human bone 'LeftLowerLeg' not found, and the bone is plainly in the FBX | [ArtPipeline](systems/ArtPipeline.md) |
@@ -834,12 +873,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | something invisible shoves me around inside the ship as soon as I step off the middle of the aisle | [PlayerShip](systems/PlayerShip.md) |
 | Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released | [Persistence](systems/Persistence.md) |
 | speech bubbles appear for the host but not for a client | [Residents](systems/Residents.md) |
+| stand-ins appear next to residents walking in | [Expeditions](systems/Expeditions.md) |
 | state resets to prefab defaults after I save, quit and load the world | [Persistence](systems/Persistence.md) |
 | StationTableTests: the documented station table is stale | [StationTable](systems/StationTable.md) |
 | steering under the wing is far slower than turning my head on foot | [Wingsuit](systems/Wingsuit.md) |
 | stirrup irons or buckles float on the flank with nothing joining them to a strap | [Saddles](systems/Saddles.md) |
 | streaming stops dead — no chunk ever loads or unloads again after one error | [WorldStreaming](systems/WorldStreaming.md) |
 | surface detail I dialled up does not show in the meshed feature | [TerrainGeneration](systems/TerrainGeneration.md) |
+| surfaces in the colony flicker (a board on the airlock wall, the gear wall, overlapping pipes) | [ColonyInterior](systems/ColonyInterior.md) |
 | switching the torch on changes nothing about how the body stands | [Flashlight](systems/Flashlight.md) |
 | taking the gauntlet off leaves a light burning on someone's arm | [Flashlight](systems/Flashlight.md) |
 | team names or player names overlap each other with more than four teams | [Lobby](systems/Lobby.md) |
@@ -854,6 +895,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the agent benchmark entered play mode and then sat on the main menu | [Diagnostics](systems/Diagnostics.md) |
 | the agent just stands there doing nothing and the console is clean | [AgentSystem](systems/AgentSystem.md) |
 | the airlock cycles silently with no mist, beacon or flashing lamps | [ColonyInterior](systems/ColonyInterior.md) |
+| the airlock door glitches along its edge once it is open | [ArtPipeline](systems/ArtPipeline.md) |
+| the airlock mist can be seen from outside the building, as huge flat rectangles | [ColonyInterior](systems/ColonyInterior.md) |
+| the airlock mist looks like cotton balls / is drawn black or flat white with no shading | [ColonyInterior](systems/ColonyInterior.md) |
 | the airlock opened for the host and stays shut for a client | [ColonyInterior](systems/ColonyInterior.md) |
 | the animal cannot be ridden, or can be ridden with no saddle on it | [AgentSystem](systems/AgentSystem.md) |
 | the animal cannot be ridden, or can be ridden with no saddle on it | [Saddles](systems/Saddles.md) |
@@ -876,6 +920,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the backpack's flaps move on their own after a death | [Combat](systems/Combat.md) |
 | the ball lightning orb drifts through creatures without ever hurting them | [Combat](systems/Combat.md) |
 | the bar is the wrong length or sits off-centre on its plate | [SupplyGauge](systems/SupplyGauge.md) |
+| the battery I took off a colony gear board is back after a reload | [ColonyInterior](systems/ColonyInterior.md) |
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
@@ -909,8 +954,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the clothes show a noise pattern in game | [CharacterClothes](systems/CharacterClothes.md) |
 | the cloud's underside is as bright as its top | [StormFlask](systems/StormFlask.md) |
 | the collar is drawn in one place and the rope goes taut against another | [Lasso](systems/Lasso.md) |
+| the colony buildings overlap each other in the world after the rescale | [ColonyInterior](systems/ColonyInterior.md) |
+| the colony gear wall pokes through the ceiling and its grid does not line up with the bays | [ColonyInterior](systems/ColonyInterior.md) |
 | the colony oxygen filler is dark with no battery in it | [ColonyInterior](systems/ColonyInterior.md) |
 | the colony windows are opaque orange from inside | [ColonyInterior](systems/ColonyInterior.md) |
+| the colony's outer hatch swings into the building instead of out | [ColonyInterior](systems/ColonyInterior.md) |
 | the colours are right but the world looks flat and detail-free, whole cliff faces one colour | [Environment](systems/Environment.md) |
 | the compiler cannot resolve Unity's Lobby type inside this folder | [Lobby](systems/Lobby.md) |
 | the console warns that a hull module measures more than any surface on the pack | [PlayerShip](systems/PlayerShip.md) |
@@ -1096,6 +1144,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the nozzle tips never go red however hot the pack gets | [Jetpack](systems/Jetpack.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
 | the off hand grips empty air in front of a one-handed item | [Inventory](systems/Inventory.md) |
+| the open inner airlock door glitches where the two leaves meet | [ColonyInterior](systems/ColonyInterior.md) |
 | the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
 | the orientation fix logs 'saved' for a prefab and then FAILED verification on the same run | [Backpack](systems/Backpack.md) |
 | the oxygen bottle's socket paints red when the bottle is dragged out of the hotbar, and the click turns it instead of placing it | [Backpack](systems/Backpack.md) |
@@ -1183,6 +1232,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the rope stops dead in the middle of the loop instead of joining it | [Lasso](systems/Lasso.md) |
 | the rope tows the player like a grappling hook and launches them | [LeashSystem](systems/LeashSystem.md) |
 | the roster shows the wrong team, team colour or suit for a player | [Lobby](systems/Lobby.md) |
+| the rotation never raises a band after loading a save | [Expeditions](systems/Expeditions.md) |
+| the rover in the colony bay is too big and its ramps are in the way | [ColonyInterior](systems/ColonyInterior.md) |
 | the saddle arrives a hundred times too big, or floating beside the animal | [Saddles](systems/Saddles.md) |
 | the saddle is the right size for the world but too small for the animal wearing it | [Saddles](systems/Saddles.md) |
 | the saddle stands off the animal like a shelf instead of lying on it | [Saddles](systems/Saddles.md) |
@@ -1229,6 +1280,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the singularity eats things but they never go anywhere | [BottledSingularity](systems/BottledSingularity.md) |
 | the singularity is invisible — no sphere, no ring, just the bottle | [BottledSingularity](systems/BottledSingularity.md) |
 | the Sky roster only ever has four people even though a fifth recipe exists | [SkyTribe](systems/SkyTribe.md) |
+| the small gear board only takes one item | [ColonyInterior](systems/ColonyInterior.md) |
 | the smoke cloud follows me instead of trailing behind | [Jetpack](systems/Jetpack.md) |
 | the spent booster fires itself across the desert when the burn ends | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the spinning loop clips through the camera or flickers at the top of the screen in first person | [Lasso](systems/Lasso.md) |
@@ -1246,6 +1298,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the storm's fog and blowing grit are drawn inside a ship or a cave, where the sand cannot reach | [Environment](systems/Environment.md) |
 | the storm's fog and grit are drawn inside the ship, and the crew take sandstorm damage indoors | [PlayerShip](systems/PlayerShip.md) |
 | the strap-on booster does nothing at all when I aim at the ground or a wall | [StrapOnBooster](systems/StrapOnBooster.md) |
+| the suit on the colony suit stand is in a T-pose / clips the posts | [ColonyInterior](systems/ColonyInterior.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
 | the supply gauge bar floats in the air behind the grip | [Flamethrower](systems/Flamethrower.md) |
 | the swinger keeps rope steering after somebody cut their grapple cable | [RopeCutting](systems/RopeCutting.md) |
@@ -1287,7 +1340,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the walker stands frozen and never takes a step, with no error in the console | [Locomotion](systems/Locomotion.md) |
 | the walker stops dead at the rim of a portal it should be able to cross | [Locomotion](systems/Locomotion.md) |
 | the warning banner shows no symbol at all, just the text | [Visor](systems/Visor.md) |
-| the weapon rack lays its guns again after every reload | [ColonyInterior](systems/ColonyInterior.md) |
 | the white room does not exist — the singularity only makes bodies vanish where they stood | [BottledSingularity](systems/BottledSingularity.md) |
 | the white room is grey on one side, or the floor and the sky are different | [BottledSingularity](systems/BottledSingularity.md) |
 | the white sphere is opaque, or disappears when the camera is inside it | [BottledSingularity](systems/BottledSingularity.md) |
@@ -1401,6 +1453,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementWallStack.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementEntrance.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPolyline.cs` | [SettlementStreets](systems/SettlementStreets.md) |
+| `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/SettlementMuster.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPlaza.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/astronaut_decorations_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Transport/Deco_Handcart_Hover.prefab` | [Pushables](systems/Pushables.md) |
@@ -1425,6 +1478,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/buildings/mars_colony_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Messaging/Vocabulary/LassoVerb.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/BodyEquipmentSaveable.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/WallInventorySaveable.cs` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/expedition_rig.blend` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/BottledSingularity.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FlashlightGauntlet.prefab` | [Flashlight](systems/Flashlight.md) |
@@ -1437,7 +1491,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/ScriptableObjects/Settlements/NomadTerraceStreets.asset` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
-| `Assets/Game/Scripts/Core/Persistence/Adapters/ShelfStockSaveable.cs` | [ColonyInterior](systems/ColonyInterior.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/ExpeditionSaveable.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineSettings.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
@@ -1520,6 +1574,8 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/Residents/Body/SeatedBodyFit.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/agents/Residents/Core/PerimeterRing.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
+| `Assets/Game/Art/Textures/Effects/AirlockMist_Negative.png` | [ColonyInterior](systems/ColonyInterior.md) |
+| `Assets/Game/Art/Textures/Effects/AirlockMist_Positive.png` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/SeatPlacer.cs` | [Seats](systems/Seats.md) |
@@ -1572,6 +1628,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitWings.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Art/Models/Props/standing_terminal.fbx` | [Terminal](systems/Terminal.md) |
@@ -1590,9 +1647,13 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Favor.cs` | [ResidentReputation](systems/ResidentReputation.md) |
+| `Assets/Game/Art/Materials/Effects/AirlockMist.mat` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Models/Items/strap_on_booster.fbx` | [StrapOnBooster](systems/StrapOnBooster.md) |
+| `Assets/Game/Art/Shaders/Effects/SixWayMist.shader` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Editor/Animation/HoldClipGenerator.cs` | [HandTools](systems/HandTools.md) |
+| `Assets/Game/Editor/Tests/SettlementMusterTests.cs` | [Residents](systems/Residents.md) |
 | `Assets/Game/Editor/Tests/TerraceKitLayoutTests.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
+| `Assets/Game/Editor/World/WorldSiteCatalogBaker.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
@@ -1602,6 +1663,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/JetpackItem.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Items/Supplies/SupplyGauge.cs` | [SupplyGauge](systems/SupplyGauge.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Scanner` | [Artifacts](systems/Artifacts.md) |
+| `Assets/Game/Art/Materials/Effects/AirlockFog.mat` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Editor/Tests/LadderTraversalTests.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Editor/Tests/TerraceKitAssetTests.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
@@ -1648,6 +1710,7 @@ Longest match wins.
 | `Assets/Game/Editor/Animation/ClipPoseSheet.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Editor/Tests/BoosterClampTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
+| `Assets/Game/Editor/Tests/ColonyZFightTests.cs` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Editor/World/PushableAuthoring.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Resources/Effects/BodyFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters` | [InteractionSystem](systems/InteractionSystem.md) |
@@ -1695,6 +1758,7 @@ Longest match wins.
 | `Assets/Game/Tests/EditMode/WalkerTestRig.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Editor/Tests/FoamFieldTests.cs` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Ghosts` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/ScriptableObjects/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/Presentation/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Presentation/Animation` | [NpcAnimationPlan](systems/NpcAnimationPlan.md) |
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
@@ -1730,7 +1794,9 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/HUD` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Vehicles/SkyVessel/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/` | [Diagnostics](systems/Diagnostics.md) |
+| `Assets/Game/Scripts/agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Settings/WorldNavMesh.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
+| `Assets/Game/Editor/Agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Editor/Tests/LassoTests.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Prefabs/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -1772,6 +1838,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Characters` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Items/HandTools` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Prefabs/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Resources/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/Core/Registry/` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/Scripts/Core/Settings/` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/Scripts/Gameplay/Game/` | [GameModes](systems/GameModes.md) |
@@ -1835,6 +1902,7 @@ Longest match wins.
 | `tools/palette_preview.py` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Art/Models` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Packages/manifest.json` | [ProjectConfig](systems/ProjectConfig.md) |
+| `tools/mist_flipbook.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/ThirdParty/CMU` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Scenes/` | [Scenes](systems/Scenes.md) |
@@ -1844,4 +1912,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1361 symptoms, 457 paths, 76 docs -->
+<!-- 1413 symptoms, 473 paths, 77 docs -->

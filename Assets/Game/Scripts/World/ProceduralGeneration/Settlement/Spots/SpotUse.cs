@@ -19,6 +19,8 @@ namespace SpaceGame.World
         Leisure,
         /// <summary>A stop on an errand — a well, a plant, a stack of goods. Shared, never booked, not a place to idle.</summary>
         Errand,
+        /// <summary>Where a band musters before it walks out. Never planned onto: only the band's own performer sends people here.</summary>
+        Assembly,
     }
 
     [CreateAssetMenu(menuName = "SpaceGame/Settlement/Spot Use", fileName = "SpotUse")]
@@ -27,7 +29,7 @@ namespace SpaceGame.World
         [Tooltip("What residents call the place in speech: the forge, the stall.")]
         public string displayName;
 
-        [Tooltip("Work: a job the archetypes posted here hold. Gathering: the evening hearth. Leisure: anywhere to spend free time. Errand: a stop on a chore, used by any number of residents.")]
+        [Tooltip("Work: a job the archetypes posted here hold. Gathering: the evening hearth. Leisure: anywhere to spend free time. Errand: a stop on a chore, used by any number of residents. Assembly: where a band musters, never a free-time spot.")]
         public SpotRole role = SpotRole.Work;
 
         [Tooltip("Looping cue held while a resident is at the spot: work, sit, listen. Empty = stand.")]
@@ -37,6 +39,10 @@ namespace SpaceGame.World
         [Tooltip("The hold cue is a sit: the resident claims a free Seat near the spot and sits on its sit point, or - with no " +
                  "Seat there - does not sit at all. Seat Placer puts a Seat on every sit spot.")]
         public bool seated;
+
+        [Tooltip("A bed: the place its resident sleeps at, in sight, instead of going offstage at its door. Only a dwelling's own " +
+                 "residents are planned onto it, one each. Needs a seated use with a Seat whose pose is Lie.")]
+        public bool sleeps;
 
         [Tooltip("Seated only. The Seat prefab Seat Placer puts on this use's spots. Empty = it cycles through the default seats.")]
         public GameObject seatPrefab;

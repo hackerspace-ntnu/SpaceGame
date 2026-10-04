@@ -117,6 +117,66 @@ namespace SpaceGame.Agents.Residents.Tests
             Assert.IsNotNull(c.archetype);
         }
 
+        [Test]
+        public void ACharacterMadeForARole_KeepsIt_WhateverTheSharesOrProfilesSay()
+        {
+            ResidentArchetype miner = Make(ScriptableObject.CreateInstance<ResidentArchetype>());
+            miner.name = "Miner";
+            GameObject minerPrefab = Make(new GameObject("Miner prefab"));
+            culture.profiles = new[] { new CharacterProfile { prefab = minerPrefab, suits = new[] { villager } } };
+
+            Resident a = Body("A"), b = Body("B");
+            a.archetype = miner;   // the instance of a prefab that names its role
+            ResidentAssignment.Assign(settlement, culture, new List<ResidentAssignment.Newcomer>
+            {
+                new(a.gameObject, null, false, minerPrefab),
+                new(b.gameObject, null, false, minerPrefab),
+            }, new[] { pairHouse, singleHouse });
+
+            Assert.AreEqual(miner, a.archetype, "a role the body came with is not re-dealt, even outside the culture's list");
+            Assert.AreEqual(villager, b.archetype, "a body without one is still handed a role");
+        }
+
+        [Test]
+        public void ARoleIsHostedOnlyWhereItsPlaceExists()
+        {
+            SpotUse mineFace = Make(ScriptableObject.CreateInstance<SpotUse>());
+            mineFace.role = SpotRole.Work;
+            ResidentArchetype miner = Make(ScriptableObject.CreateInstance<ResidentArchetype>());
+            miner.post = mineFace;
+
+            Assert.IsFalse(ResidentAssignment.Places.Of(settlement).CanHost(miner), "no mine face: no miner");
+            Assert.IsTrue(ResidentAssignment.Places.Of(settlement).CanHost(villager), "no post: always");
+
+            var spot = new GameObject("Mine face").AddComponent<SettlementSpot>();
+            spot.transform.SetParent(settlement.GeneratedRoot, false);
+            var so = new SerializedObject(spot);
+            so.FindProperty("use").objectReferenceValue = mineFace;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(ResidentAssignment.Places.Of(settlement).CanHost(miner), "a mine face: a miner");
+        }
+
+        [Test]
+        public void Assign_StampsSourcePrefab_ForEveryResident()
+        {
+            GameObject elderPrefab = Make(new GameObject("Elder prefab")), commonPrefab = Make(new GameObject("Common prefab"));
+            Resident special = Body("Quest giver", "Old Mara");
+            Resident a = Body("A"), b = Body("B"), homeless = Body("C");
+
+            ResidentAssignment.Assign(settlement, culture, new List<ResidentAssignment.Newcomer>
+            {
+                new(special.gameObject, elder, true, elderPrefab),
+                new(a.gameObject, null, false, commonPrefab),
+                new(b.gameObject, null, false, commonPrefab),
+                new(homeless.gameObject, null, false, elderPrefab),
+            }, new[] { pairHouse, singleHouse });
+
+            Assert.AreEqual(elderPrefab, special.sourcePrefab, "a special character keeps the prefab it was placed from");
+            Assert.AreEqual(commonPrefab, a.sourcePrefab);
+            Assert.AreEqual(commonPrefab, b.sourcePrefab, "two copies of one prefab both name it");
+            Assert.AreEqual(elderPrefab, homeless.sourcePrefab, "and so does a resident without a bed");
+        }
+
         private void Assign(Resident special, ResidentArchetype specialArchetype, params Resident[] everyone)
         {
             var newcomers = new List<ResidentAssignment.Newcomer>();

@@ -1889,6 +1889,9 @@ GameObject:
   - component: {fileID: 8469972399166704617}
   - component: {fileID: 5645805499731835923}
   - component: {fileID: 6650596274385378544}
+  - component: {fileID: 2987148961743032277}
+  - component: {fileID: 6620234270643040724}
+  - component: {fileID: 4834189110320616185}
   m_Layer: 0
   m_Name: Drifter_rax_young
   m_TagString: Untagged
@@ -2102,18 +2105,6 @@ MonoBehaviour:
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
-  memoryDuration: 12
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
 --- !u!114 &8850766705227383606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2560,7 +2551,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3590691163
+  GlobalObjectIdHash: 3650592022
   InScenePlacedSourceGlobalObjectIdHash: 3650592022
   DeferredDespawnTick: 0
   Ownership: 1
@@ -3094,6 +3085,7 @@ MonoBehaviour:
   seed: 0
   bonds: []
   settlement: {fileID: 0}
+  sourcePrefab: {fileID: 0}
 --- !u!114 &8622949227192492552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3272,8 +3264,6 @@ MonoBehaviour:
   - hand.R
   - mixamorig:RightHand
   startingSlot: 0
-  autoUse: 0
-  autoUseInterval: 1
   aimHeldItem: 0
   aimTurnSpeed: 540
   holdScaleMultiplier: 1
@@ -3290,16 +3280,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70907c7e318e24dc7a78b57f4ba82b6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.BeltCarrier
-  anchors:
-  - slot: 0
-    position: {x: 0.33, y: 1.45, z: 0}
-    euler: {x: 0, y: 90, z: 0}
-  - slot: 1
-    position: {x: -0.33, y: 1.45, z: 0}
-    euler: {x: 0, y: -90, z: 0}
-  - slot: 2
-    position: {x: 0, y: 1.5, z: -0.26}
-    euler: {x: 0, y: 180, z: 0}
 --- !u!114 &8469972399166704617
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3336,6 +3316,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ccab4434762d49a88cea06ccea44c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityEquipmentSaveable
+--- !u!114 &2987148961743032277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1db4b89c49b7446df9a0b6ce88faa892, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionMember
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &6620234270643040724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: 
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 4.5
+    LaneSpacing: 3
+    LateralJitter: 0.9
+    LongitudinalJitter: 1.2
+    DriftAmplitude: 0.7
+    DriftRate: 0.08
+  slotTolerance: 1.6
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 6
+  regroupDistance: 40
+  navSampleDistance: 6
+--- !u!114 &4834189110320616185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
 --- !u!1 &6352483063516593831
 GameObject:
   m_ObjectHideFlags: 0

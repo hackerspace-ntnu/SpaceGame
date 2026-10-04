@@ -10,8 +10,10 @@
 // because an offstage agent ticks no modules at all.
 using System;
 using UnityEngine;
+using SpaceGame.Agents.Expeditions;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents.Residents
@@ -55,14 +57,19 @@ namespace SpaceGame.Agents.Residents
         public int seed;
         public ResidentBond[] bonds = Array.Empty<ResidentBond>();
         public Settlement settlement;
+        [Tooltip("The prefab this resident was placed from; a stand-in on an expedition is spawned from it.")]
+        public GameObject sourcePrefab;
 
         private HealthComponent health;
         private EntityFaction faction;
         private NoiseReceiverModule ears;
         private AlertReceiverModule alerts;
         private ResidentVoice voice;
+        private ResidentRoutine routine;
+        private ExpeditionMember expedition;
         private OverrideKind overrideKind;
         private bool offstage;
+        private bool away;
         private int gunshotsHeard;
         private float racketStart, lastRacket = float.NegativeInfinity;
         private Vector3 glancePoint;
@@ -81,10 +88,24 @@ namespace SpaceGame.Agents.Residents
             {
                 // Only the settlement this character was generated into (or stands under). The same
                 // character prefab also walks in caravans, and a copy out there is nobody's resident.
+                // Nor is a stand-in: its resident is away at home, and the routine stands down for it.
+                if (IsStandIn) return null;
                 if (!settlement) settlement = GetComponentInParent<Settlement>();
                 return settlement;
             }
         }
+
+        /// <summary>The body of a resident out with a band (<see cref="ExpeditionMember"/>): it belongs to no settlement while it is out.</summary>
+        public bool IsStandIn => expedition != null && expedition.IsStandIn;
+
+        /// <summary>
+        /// At home with its band: mustering, walking out or walking back in (<see cref="ExpeditionMember.IsWithBand"/>). Its
+        /// presence shows <see cref="Activity.Expedition"/> and it holds its kit's weapon. Every machine.
+        /// </summary>
+        public bool IsWithBand => expedition != null && expedition.IsWithBand;
+
+        /// <summary>What this resident holds to do its work: its band's kit weapon on the road or with its band, else its archetype's held item; null for none.</summary>
+        public InventoryItem HeldItem => IsStandIn || IsWithBand ? expedition.KitWeapon : archetype ? archetype.heldItem : null;
 
         /// <summary>The settlement's people this resident is one of; null for a copy that belongs to none.</summary>
         public SettlementSociety Society => Settlement ? Settlement.Society : null;
@@ -96,6 +117,13 @@ namespace SpaceGame.Agents.Residents
         public string DisplayName => !string.IsNullOrEmpty(displayName) ? displayName : RoleName;
         public bool IsDead => health && !health.Alive;
         public bool IsOffstage => offstage;
+
+        /// <summary>
+        /// Server: out with a band. Away is offstage too, so whatever skips an offstage resident skips it; unlike a
+        /// sleeper it is not brought back out by its plan or a noise, only by <see cref="ComeHome"/>. Never saved: whoever
+        /// keeps the bands is asked again after a load.
+        /// </summary>
+        public bool IsAway => away;
 
         // §6.4: temper runs warm (0) → prickly (1).
         public int JostlesToFight => Mathf.RoundToInt(Mathf.Lerp(MostJostlesToFight, FewestJostlesToFight, Temper));
@@ -128,6 +156,8 @@ namespace SpaceGame.Agents.Residents
             ears = GetComponentInChildren<NoiseReceiverModule>(true);
             alerts = GetComponentInChildren<AlertReceiverModule>(true);
             voice = GetComponent<ResidentVoice>();
+            routine = GetComponent<ResidentRoutine>();
+            expedition = GetComponent<ExpeditionMember>();
         }
 
         private void OnEnable()
@@ -162,7 +192,7 @@ namespace SpaceGame.Agents.Residents
 
         private void Update()
         {
-            if (offstage && Network.Decides && PlanWantsAwake()) ComeOnstage();
+            if (offstage && !away && Network.Decides && PlanWantsAwake()) ComeOnstage();
         }
 
         /// <summary>
@@ -246,10 +276,10 @@ namespace SpaceGame.Agents.Residents
             if (Presence) Presence.Publish(Activity.Sleep, 0, true);
         }
 
-        /// <summary>Server: back out of the door. The routine publishes the real activity on its next pass.</summary>
+        /// <summary>Server: back out of the door. The routine publishes the real activity on its next pass. Not while away.</summary>
         public void ComeOnstage()
         {
-            if (!offstage) return;
+            if (!offstage || away) return;
 
             offstage = false;
             if (Agent) Agent.Offstage = false;
@@ -257,9 +287,34 @@ namespace SpaceGame.Agents.Residents
             if (Presence) Presence.Publish(Activity.Walking, 0, false);
         }
 
-        /// <summary>Server: a disturbance got it up. Looks at the source; a bold one walks over to see.</summary>
+        /// <summary>
+        /// Server: gone with a band. Puts down what the body holds in the settlement (a carried prop lands, a seat and a
+        /// cart are freed), then goes offstage where it stands; every machine sees only the body hidden. Safe to repeat.
+        /// </summary>
+        public void GoAway()
+        {
+            if (away) return;
+
+            away = true;
+            if (routine) routine.LetGo();
+            GoOffstage();
+        }
+
+        /// <summary>Server: back from a band, at <paramref name="at"/>. Safe to repeat: a resident at home is not moved.</summary>
+        public void ComeHome(Vector3 at, Quaternion facing)
+        {
+            if (!away) return;
+
+            away = false;
+            NetworkedTeleport.Move(gameObject, at, facing);
+            ComeOnstage();
+        }
+
+        /// <summary>Server: a disturbance got it up. Looks at the source; a bold one walks over to see. Nobody away hears it.</summary>
         public void Wake(Vector3 source, bool approach)
         {
+            if (away) return;
+
             ComeOnstage();
 
             float settle = ResidentTuning.Instance.settleSeconds;

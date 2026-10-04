@@ -7,9 +7,16 @@ using SpaceGame.Presentation;
 namespace SpaceGame.World
 {
     /// <summary>
-    /// What an airlock cycle looks and sounds like: mist jets blasting out of the vent nozzles while the chamber
-    /// vents, the chamber's haze dragged out toward the outer hatch, jets filling it with swirling haze while it
-    /// pressurises, a rotating amber beacon, flashing status lamps, a klaxon, a hiss and a valve thud you feel.
+    /// What an airlock cycle looks and sounds like: while the chamber vents, its air flashes into condensation fog
+    /// (the pressure drop chills it below its dew point) that streams up into the vent intakes; while it
+    /// pressurises, white jets roar out of the low nozzles and billow into a fog that fills the chamber from the
+    /// floor up. A rotating amber beacon, flashing status lamps, a klaxon, a hiss and a valve thud you feel.
+    ///
+    /// <para>
+    /// <b>The mist never leaves the chamber.</b> Every system collides with the chamber's own planes (authored on
+    /// the airlock prefab, not found at runtime) and the jets brake hard, so nothing is drawn through a hull wall or
+    /// seen from outside. Their material (<c>SixWayMist</c>) is soft where it meets geometry and lit by every lamp.
+    /// </para>
     ///
     /// <para>
     /// <b>Presentation only, on every machine.</b> It reads <see cref="AirlockChamber.State"/>, which on a client is
@@ -32,11 +39,11 @@ namespace SpaceGame.World
         [SerializeField] private AirlockChamber chamber;
 
         [Header("Jets")]
-        [Tooltip("Mist jets that blast while the chamber VENTS, at the vent nozzles. Each plays for the cycle at its " +
+        [Tooltip("Streaks drawn into the vent intakes while the chamber VENTS. Each plays for the cycle at its " +
                  "authored emission rate, shaped by Jet Envelope.")]
         [SerializeField] private ParticleSystem[] ventJets = new ParticleSystem[0];
 
-        [Tooltip("Jets that fire while the chamber PRESSURISES, filling it.")]
+        [Tooltip("Jets that fire while the chamber PRESSURISES, filling it: each nozzle's billow and its fast core.")]
         [SerializeField] private ParticleSystem[] fillJets = new ParticleSystem[0];
 
         [Tooltip("Jet emission over a cycle, as a fraction of each jet's authored rate (Y) against cycle progress " +
@@ -44,19 +51,29 @@ namespace SpaceGame.World
         [SerializeField] private AnimationCurve jetEnvelope = new(
             new Keyframe(0f, 0f), new Keyframe(0.06f, 1f), new Keyframe(0.7f, 0.8f), new Keyframe(1f, 0f));
 
+        [Header("Venting")]
+        [Tooltip("The condensation fog the pressure drop flashes through the whole chamber as it vents (a box over " +
+                 "the chamber). Its authored rate is its peak.")]
+        [SerializeField] private ParticleSystem ventFog;
+
+        [Tooltip("Vent fog emission over a venting cycle, as a fraction of its authored rate (Y) against progress " +
+                 "(X): the chamber fogs at once, then stops fogging early so the intakes can clear it before the " +
+                 "hatch opens.")]
+        [SerializeField] private AnimationCurve ventFogEnvelope = new(
+            new Keyframe(0f, 0f), new Keyframe(0.04f, 1f), new Keyframe(0.25f, 0.6f), new Keyframe(0.5f, 0f));
+
+        [Tooltip("Force fields at the vent intakes, switched on only while the chamber vents: they draw the vent fog " +
+                 "and whatever haze is left into the vents. Each listed system names them in its External Forces.")]
+        [SerializeField] private ParticleSystemForceField[] intakes = new ParticleSystemForceField[0];
+
         [Header("Chamber haze")]
-        [Tooltip("A looping haze filling the chamber (box shape, noise for swirl). Its authored rate is the rate at " +
-                 "the end of pressurising.")]
+        [Tooltip("Fog rising off the chamber floor (a thin box at the floor). Its authored rate is the rate at the end " +
+                 "of pressurising.")]
         [SerializeField] private ParticleSystem haze;
 
-        [Tooltip("Fraction of the haze's authored rate kept while the chamber sits pressurised. 0 is clear air.")]
+        [Tooltip("Fraction of the haze's authored rate kept while the chamber sits pressurised: a low mist on the " +
+                 "floor. 0 is clear air.")]
         [SerializeField, Range(0f, 1f)] private float restingHaze = 0.15f;
-
-        [Tooltip("Where venting drags the haze: the outer hatch, or the exhaust grille.")]
-        [SerializeField] private Transform ventTarget;
-
-        [Tooltip("Acceleration, in m/s2, pulling the haze toward Vent Target while the chamber vents.")]
-        [SerializeField, Min(0f)] private float ventPull = 14f;
 
         [Header("Warning beacon")]
         [Tooltip("The beacon's lamp, lit only while a cycle runs. A spot light on the rotor reads as a sweep.")]
@@ -109,6 +126,7 @@ namespace SpaceGame.World
         private float[] ventRates;
         private float[] fillRates;
         private float hazeRate;
+        private float ventFogRate;
         private float statusIntensity;
         private AirlockPhase shownPhase;
 
@@ -117,8 +135,10 @@ namespace SpaceGame.World
             ventRates = AuthoredRates(ventJets);
             fillRates = AuthoredRates(fillJets);
             if (haze != null) hazeRate = haze.emission.rateOverTimeMultiplier;
+            if (ventFog != null) ventFogRate = ventFog.emission.rateOverTimeMultiplier;
             if (statusLight != null) statusIntensity = statusLight.intensity;
             if (beaconLight != null) beaconLight.enabled = false;
+            DrawIntoIntakes(false);
             if (chamber == null)
                 Debug.LogError($"[Airlock] '{name}' has no chamber to read, so no cycle will show.", this);
         }
@@ -137,6 +157,7 @@ namespace SpaceGame.World
             float progress = chamber.CycleProgress ?? 0f;
             DriveJets(ventJets, ventRates, state.Phase == AirlockPhase.Venting, progress);
             DriveJets(fillJets, fillRates, state.Phase == AirlockPhase.Pressurising, progress);
+            DriveVentFog(state.Phase == AirlockPhase.Venting, progress);
             DriveHaze(state, progress);
 
             if (beaconRotor != null && state.Phase != AirlockPhase.Settled)
@@ -156,7 +177,7 @@ namespace SpaceGame.World
             else hiss.Play(cycleLoop, gameObject);
 
             if (beaconLight != null) beaconLight.enabled = phase != AirlockPhase.Settled;
-            PullHaze(phase == AirlockPhase.Venting);
+            DrawIntoIntakes(phase == AirlockPhase.Venting);
             Kick();
         }
 
@@ -172,16 +193,23 @@ namespace SpaceGame.World
         {
             float k = firing ? Mathf.Max(0f, jetEnvelope.Evaluate(progress)) : 0f;
             for (int i = 0; i < systems.Length; i++)
-            {
-                ParticleSystem jet = systems[i];
-                if (jet == null) continue;
+                Drive(systems[i], rates[i], firing, k);
+        }
 
-                ParticleSystem.EmissionModule emission = jet.emission;
-                emission.rateOverTimeMultiplier = rates[i] * k;
+        /// <summary>The pressure drop's flash fog: thick at once, fed only through the first part of the vent.</summary>
+        private void DriveVentFog(bool venting, float progress) =>
+            Drive(ventFog, ventFogRate, venting, venting ? Mathf.Max(0f, ventFogEnvelope.Evaluate(progress)) : 0f);
 
-                if (firing && !jet.isPlaying) jet.Play(true);
-                else if (!firing && jet.isEmitting) jet.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-            }
+        /// <summary>Plays a system at a fraction of its authored rate while it should run; lets its particles live out.</summary>
+        private static void Drive(ParticleSystem system, float authoredRate, bool running, float fraction)
+        {
+            if (system == null) return;
+
+            ParticleSystem.EmissionModule emission = system.emission;
+            emission.rateOverTimeMultiplier = authoredRate * fraction;
+
+            if (running && !system.isPlaying) system.Play(true);
+            else if (!running && system.isEmitting) system.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         }
 
         /// <summary>
@@ -204,19 +232,11 @@ namespace SpaceGame.World
             if (k > 0f && !haze.isPlaying) haze.Play(true);
         }
 
-        private void PullHaze(bool venting)
+        /// <summary>The vent intakes suck only while the chamber vents; at rest the floor mist must lie still.</summary>
+        private void DrawIntoIntakes(bool venting)
         {
-            if (haze == null) return;
-
-            ParticleSystem.ForceOverLifetimeModule force = haze.forceOverLifetime;
-            force.enabled = venting && ventTarget != null;
-            if (!force.enabled) return;
-
-            Vector3 pull = (ventTarget.position - haze.transform.position).normalized * ventPull;
-            force.space = ParticleSystemSimulationSpace.World;
-            force.x = new ParticleSystem.MinMaxCurve(pull.x);
-            force.y = new ParticleSystem.MinMaxCurve(pull.y);
-            force.z = new ParticleSystem.MinMaxCurve(pull.z);
+            foreach (ParticleSystemForceField intake in intakes)
+                if (intake != null) intake.enabled = venting;
         }
 
         private void PaintLamps(AirlockState state)

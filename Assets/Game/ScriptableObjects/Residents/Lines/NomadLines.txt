@@ -20,6 +20,11 @@ bye.friendly.1		Farewell	friendly				Statement	Mind the dunes. Come back whole.
 bye.neutral.1		Farewell	neutral				Statement	Go on, then.
 bye.wary.1		Farewell	wary				Statement	Keep walking.
 bye.hostile.1		Farewell	hostile				Exclamation	And stay gone!
+# -- A band leaving: its leader, as the walk-out begins. Activity Expedition: only a body with its band says these --
+depart.friendly.1		Farewell	friendly		Expedition		Statement	Keep the fires lit. We'll be back before the water runs low.
+depart.neutral.1		Farewell	neutral		Expedition		Statement	We go. Look after the well while we're gone.
+depart.wary.1		Farewell	wary		Expedition		Statement	Stay close. Eyes on the ridges.
+depart.hostile.1		Farewell	hostile		Expedition		Exclamation	Move out. Nobody stops until I say!
 # -- Remarks: what a resident notices --
 remark.generic.hostile		Remark	hostile				Statement	You've done enough here. Go.
 remark.armed.neutral		Remark	neutral	ArmedHeld			Statement	We don't carry those loose in here.

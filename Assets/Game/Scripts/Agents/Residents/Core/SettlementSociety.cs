@@ -11,7 +11,8 @@
 //
 // Plans are never saved and never patched. Today's and yesterday's (a night shift belongs to the day it
 // started) are rebuilt from the places and seed ⊕ day whenever the answer could have changed — start, a
-// loaded save, a new day, a time jump — so reload, late join and skipping time are all one operation.
+// loaded save, a new day, a time jump, residents leaving with a band or coming home (OnAbsenceChanged) — so
+// reload, late join and skipping time are all one operation.
 // Plans are built where the server decides; everything else here is cheap lookups.
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Gameplay;
 using SpaceGame.Presentation;
 using SpaceGame.World;
 
@@ -48,6 +50,7 @@ namespace SpaceGame.Agents.Residents
         private readonly Dictionary<long, float> travelCache = new();
         private readonly Dictionary<Dwelling, int> doorOf = new();
         private readonly Dictionary<Resident, int> campOf = new();
+        private readonly Dictionary<Resident, int> bedOf = new();
         private readonly Dictionary<SettlementSpot, int> placeOfSpot = new();
         private readonly Dictionary<int, SettlementSpot> spotOfPlace = new();
         private readonly List<int> spotPlaces = new();
@@ -70,6 +73,15 @@ namespace SpaceGame.Agents.Residents
 
         public static event Action<SettlementSociety> PlansRebuilt;
 
+        /// <summary>
+        /// Server: is this resident (by settlement id and <see cref="ResidentKey"/>) out with a band? Set by whatever keeps the
+        /// bands, which outlives every settlement, so the residents never name it; null = nobody is away. An away resident
+        /// gets no day and walks with nobody.
+        /// </summary>
+        public static Func<string, string, bool> AbsenceQuery;
+
+        private static event Action<string> AbsenceReported;
+
         public SettlementSociety(Settlement settlement, SettlementCulture culture)
         {
             this.settlement = settlement;
@@ -79,7 +91,18 @@ namespace SpaceGame.Agents.Residents
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => PlansRebuilt = null;
+        private static void ResetStatics()
+        {
+            PlansRebuilt = null;
+            AbsenceQuery = null;
+            AbsenceReported = null;
+        }
+
+        /// <summary>Whoever answers <see cref="AbsenceQuery"/> reports here that its answer changed for a settlement, which re-plans.</summary>
+        public static void OnAbsenceChanged(string settlementId) => AbsenceReported?.Invoke(settlementId);
+
+        /// <summary>How a band's record names a resident of a settlement: <c>r:</c> and its roster index.</summary>
+        public static string ResidentKey(Resident resident) => Expeditions.ResidentKey.ForAuthored(resident.index);
 
         public Settlement Settlement => settlement;
         public SettlementCulture Culture => culture;
@@ -95,12 +118,14 @@ namespace SpaceGame.Agents.Residents
         {
             DayNightCycle.AnchorMoved += HandleAnchorMoved;
             SaveManager.OnLoadApplied += RebuildWhereDecided;
+            AbsenceReported += HandleAbsenceChanged;
         }
 
         public void Disable()
         {
             DayNightCycle.AnchorMoved -= HandleAnchorMoved;
             SaveManager.OnLoadApplied -= RebuildWhereDecided;
+            AbsenceReported -= HandleAbsenceChanged;
         }
 
         public void Start() => RebuildWhereDecided();
@@ -191,6 +216,40 @@ namespace SpaceGame.Agents.Residents
             return stops;
         }
 
+        /// <summary>The first usable assembly place of this use — where a band musters — or null when the settlement has none.</summary>
+        public SettlementPlace AssemblyPlace(SpotUse use)
+        {
+            int index = AssemblyIndex(use);
+            return index >= 0 ? places[index] : null;
+        }
+
+        /// <summary>
+        /// Where a band of this use musters: the assembly place's stand point, turned out along its spot's +Z (the way the band
+        /// leaves). False when the settlement has no usable one — a missing muster spot must not read as the world origin.
+        /// </summary>
+        public bool TryMusterPose(SpotUse use, out Pose pose)
+        {
+            int index = AssemblyIndex(use);
+            if (index < 0)
+            {
+                pose = default;
+                return false;
+            }
+
+            pose = new Pose(places[index].Position, Quaternion.LookRotation(SettlementPlaces.OutwardOf(spotOfPlace[index].transform)));
+            return true;
+        }
+
+        private int AssemblyIndex(SpotUse use)
+        {
+            EnsurePlaces();
+            for (int i = 0; i < places.Count; i++)
+                if (places[i].Kind == PlaceKind.Assembly && places[i].Use == use && places[i].Usable &&
+                    spotOfPlace.TryGetValue(i, out SettlementSpot spot) && spot != null)
+                    return i;
+            return -1;
+        }
+
         /// <summary>False for a spot whose stand point was measured and cannot be stood at; the planner never sends anyone there.</summary>
         public bool IsUsable(int index)
         {
@@ -236,6 +295,28 @@ namespace SpaceGame.Agents.Residents
             if (resident == null) return -1;
             if (resident.home != null && doorOf.TryGetValue(resident.home, out int door)) return door;
             return campOf.TryGetValue(resident, out int camp) ? camp : -1;
+        }
+
+        /// <summary>
+        /// The place index of the bed this resident sleeps in, or -1 when its dwelling has no bed spots, or its bed cannot be stood at (it
+        /// goes to its door and indoors instead, as a nomad does).
+        /// </summary>
+        public int BedOf(Resident resident)
+        {
+            EnsurePlaces();
+            return resident != null && bedOf.TryGetValue(resident, out int bed) && places[bed].Usable ? bed : -1;
+        }
+
+        /// <summary>The building a spot's place belongs to: the child of the generated root that holds it. Null for a door, camp, trip or ring point.</summary>
+        public Transform BuildingOf(int place)
+        {
+            SettlementSpot spot = SpotAt(place);
+            Transform generated = settlement.GeneratedRoot;
+            if (spot == null || generated == null) return null;
+
+            Transform building = spot.transform;
+            while (building.parent != null && building.parent != generated) building = building.parent;
+            return building;
         }
 
         /// <summary>The resident with this <see cref="Resident.index"/>, or null when there is none.</summary>
@@ -315,6 +396,15 @@ namespace SpaceGame.Agents.Residents
             if (Network.Decides) RebuildPlans();
         }
 
+        private void HandleAbsenceChanged(string settlementId)
+        {
+            if (!string.IsNullOrEmpty(settlementId) && settlementId == settlement.SettlementId) RebuildWhereDecided();
+        }
+
+        // Out with a band, by the word of whoever keeps the bands. Asked only when something answers.
+        private bool IsAway(Resident resident) =>
+            AbsenceQuery != null && AbsenceQuery(settlement.SettlementId, ResidentKey(resident));
+
         private DayPlan[] Build(int day)
         {
             DayPlan[] plans = DayPlanner.BuildAll(settlement.Seed, day, PlannerResidents(), PlannerPlaces(), TravelMinutes,
@@ -341,6 +431,8 @@ namespace SpaceGame.Agents.Residents
                 {
                     index = resident.index,
                     homeIndex = HomeOf(resident),
+                    bedPlusOne = BedOf(resident) + 1,
+                    freeTimeReach = culture != null ? culture.freeTimeReachMinutes : 0f,
                     seed = resident.seed,
                     lifestyle = resident.Lifestyle,
                     post = archetype ? archetype.post : null,
@@ -353,6 +445,7 @@ namespace SpaceGame.Agents.Residents
                     shareSeed = lead ? lead.seed : 0,
                     bedtimeOffset = lead ? lead.bedtimeOffset : resident.bedtimeOffset,
                     dead = resident.IsDead,
+                    away = IsAway(resident),
                     friends = resident.CloseTo(),
                 });
             }
@@ -407,7 +500,11 @@ namespace SpaceGame.Agents.Residents
                 places.Add(new SettlementPlace(PlaceKind.Camp, null, 0, 0, resident.campPosition, null));
             }
 
-            if (generated != null) AddSpots(generated);
+            if (generated != null)
+            {
+                AddSpots(generated);
+                AssignBeds();
+            }
             RefreshStands();
         }
 
@@ -509,15 +606,44 @@ namespace SpaceGame.Agents.Residents
                 placeOfSpot[spot] = places.Count;
                 spotOfPlace[places.Count] = spot;
                 spotPlaces.Add(places.Count);
-                places.Add(new SettlementPlace(KindOf(spot.Use.role), spot.Use, group, seat, spot.Position, spot.FacePoint, spot.HoldCue, spot.HasTarget));
+                PlaceKind kind = spot.Use.sleeps ? PlaceKind.Bed : KindOf(spot.Use.role);
+                places.Add(new SettlementPlace(kind, spot.Use, group, seat, spot.Position, spot.FacePoint, spot.HoldCue, spot.HasTarget));
             }
         }
 
-        private static PlaceKind KindOf(SpotRole role) => role switch
+        // Each resident of a dwelling that has bed spots takes one, in roster order. A dwelling with fewer beds than people shares the
+        // last ones round (the validator names it); a dwelling with none keeps its residents on the door-then-offstage bedtime.
+        private void AssignBeds()
+        {
+            var bedsOfDwelling = new Dictionary<Dwelling, List<int>>();
+            foreach (int index in spotPlaces)
+            {
+                if (places[index].Kind != PlaceKind.Bed) continue;
+
+                Dwelling dwelling = spotOfPlace[index].GetComponentInParent<Dwelling>();
+                if (dwelling == null) continue;
+                if (!bedsOfDwelling.TryGetValue(dwelling, out List<int> beds)) bedsOfDwelling[dwelling] = beds = new List<int>();
+                beds.Add(index);
+            }
+
+            var taken = new Dictionary<Dwelling, int>();
+            foreach (Resident resident in EnsureResidents())
+            {
+                if (resident == null || resident.home == null || !bedsOfDwelling.TryGetValue(resident.home, out List<int> beds)) continue;
+
+                taken.TryGetValue(resident.home, out int count);
+                bedOf[resident] = beds[count % beds.Count];
+                taken[resident.home] = count + 1;
+            }
+        }
+
+        /// <summary>The kind of place a spot of this role is gathered as; Leisure (and anything unmapped) is a stroll.</summary>
+        public static PlaceKind KindOf(SpotRole role) => role switch
         {
             SpotRole.Work => PlaceKind.Post,
             SpotRole.Gathering => PlaceKind.Hearth,
             SpotRole.Errand => PlaceKind.Errand,
+            SpotRole.Assembly => PlaceKind.Assembly,
             _ => PlaceKind.Stroll,
         };
 
@@ -559,20 +685,11 @@ namespace SpaceGame.Agents.Residents
             Transform generated = settlement.GeneratedRoot;
             if (generated == null) return;
 
-            var footprints = new List<Bounds>();
-            var centers = Vector3.zero;
-            foreach (Transform child in generated)
-            {
-                if (child.name is "Decorations" or "Characters" or "Streets") continue;
-                Renderer[] renderers = child.GetComponentsInChildren<Renderer>();
-                if (renderers.Length == 0) continue;
-
-                Bounds box = renderers[0].bounds;
-                for (int r = 1; r < renderers.Length; r++) box.Encapsulate(renderers[r].bounds);
-                footprints.Add(box);
-                centers += box.center;
-            }
+            List<Bounds> footprints = SettlementPlaces.BuildingBounds(generated);
             if (footprints.Count == 0) return;
+
+            var centers = Vector3.zero;
+            foreach (Bounds box in footprints) centers += box.center;
 
             ResidentTuning tuning = ResidentTuning.Instance;
             Vector3 heart = settlement.WalkableHeart;
@@ -603,13 +720,14 @@ namespace SpaceGame.Agents.Residents
             }
         }
 
-        // Guards pair off in roster order; roamers pair with a friend or relative who is also a free roamer.
+        // Guards pair off in roster order; roamers pair with a friend or relative who is also a free roamer. The dead and the
+        // away walk with nobody, so their partners walk alone (or with the next guard) until they are back.
         private void EnsureCompanions()
         {
             var candidates = new List<CompanionCandidate>();
             foreach (Resident resident in EnsureResidents())
             {
-                if (!resident || resident.IsDead) continue;
+                if (!resident || resident.IsDead || IsAway(resident)) continue;
 
                 ResidentArchetype archetype = resident.archetype;
                 bool patrols = archetype && archetype.duty == ResidentDuty.Patrol;
@@ -625,10 +743,15 @@ namespace SpaceGame.Agents.Residents
             if (!NavMesh.CalculatePath(from, to, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
                 return Vector3.Distance(from, to) * detourFactor;
 
-            float metres = 0f;
+            float metres = 0f, transitSeconds = 0f;
             Vector3[] corners = path.corners;
-            for (int c = 1; c < corners.Length; c++) metres += Vector3.Distance(corners[c - 1], corners[c]);
-            return metres;
+            for (int c = 1; c < corners.Length; c++)
+            {
+                metres += Vector3.Distance(corners[c - 1], corners[c]);
+                transitSeconds += NavLinkGates.TransitSecondsBetween(corners[c - 1], corners[c]);
+            }
+            // A gated link (an airlock) holds a walker for its crossing: charged as the walking it would have covered in that time.
+            return metres + transitSeconds * ResidentTuning.Instance.walkSpeed;
         }
 
         private LineTable EnsureLines()

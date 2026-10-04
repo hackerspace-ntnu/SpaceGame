@@ -28,6 +28,9 @@ namespace SpaceGame.Core
                 "settlement-host" => RunSettlementHost(),
                 "settlement-client" => RunSettlementClient(),
                 "settlement-persist" => RunSettlementPersistence(),
+                "expedition-host" => RunExpeditionHost(),
+                "expedition-client" => RunExpeditionClient(),
+                "expedition-persist" => RunExpeditionPersistence(),
                 _ => RunClient(),
             });
         }

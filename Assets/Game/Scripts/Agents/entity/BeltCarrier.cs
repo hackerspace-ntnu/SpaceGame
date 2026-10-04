@@ -9,6 +9,10 @@
 // leaves its place empty and putting it away finds it free. CanStow answers whether an item has such a
 // place; ResidentHands asks before it takes a tool out of the hand.
 //
+// Putting a tool away or drawing it is instant as state and travels as a picture: the item's new instance starts where the old
+// one was and is carried across over TransitSeconds (ToolTransit), so it is seen to go from the hand to its hook and back. The
+// hand is empty (or full) from the first frame; only the picture takes its time.
+//
 // It is purely derived. Nothing here is saved or sent: the bag is EntityInventorySaveable's, which
 // slot is in the hand is EntityEquipmentSaveable's, and every machine builds its own bag from the
 // same startingItems, so every machine hangs the same things in the same places.
@@ -39,10 +43,22 @@ namespace SpaceGame.Agents
         private readonly List<BeltMount> mounts = new List<BeltMount>();
         private Dictionary<int, BeltSlot> placement = new Dictionary<int, BeltSlot>();
 
+        private readonly List<ToolTransit> transits = new List<ToolTransit>();
+
         private EntityInventoryComponent inventory;
         private EntityEquipmentController equipment;
         private int lastHandSlot = int.MinValue;
         private bool dirty = true;
+
+        // Where the held item sat in the hand when last seen, for a stow to start from after the hand's instance is gone.
+        private ToolTransit.Anchored heldPose;
+        private int heldPoseSlot = -1;
+
+        /// <summary>
+        /// Seconds a tool takes to travel between the hand and its hook when drawn or stowed; 0 = it appears where it goes. Set by
+        /// whatever owns the hand (a resident's tuning): nothing about it is saved or sent, every machine plays the same short move.
+        /// </summary>
+        public float TransitSeconds { get; set; }
 
         private void Awake()
         {
@@ -76,20 +92,48 @@ namespace SpaceGame.Agents
         private void LateUpdate()
         {
             int handSlot = equipment != null ? equipment.EquippedSlotIndex : -1;
+            int leftHand = handSlot != lastHandSlot ? lastHandSlot : -1;
             if (handSlot != lastHandSlot)
             {
                 lastHandSlot = handSlot;
                 dirty = true;
             }
 
-            if (!dirty) return;
-            dirty = false;
-            Refresh(handSlot);
+            if (dirty)
+            {
+                dirty = false;
+                Refresh(handSlot, leftHand);
+            }
+
+            Tick(Time.deltaTime);
+            RememberHeld(handSlot);
+        }
+
+        /// <summary>Advances the tools in transit. Part of the late update; public so an edit-mode check can step it.</summary>
+        public void Tick(float deltaTime)
+        {
+            for (int i = transits.Count - 1; i >= 0; i--)
+                if (!transits[i].Tick(deltaTime)) transits.RemoveAt(i);
+        }
+
+        private void RememberHeld(int handSlot)
+        {
+            GameObject held = equipment != null ? equipment.HeldObject : null;
+            Transform hand = equipment != null ? equipment.HandBone : null;
+            if (held == null || hand == null)
+            {
+                heldPoseSlot = -1;
+                return;
+            }
+
+            heldPose = ToolTransit.Anchored.Of(hand, held.transform);
+            heldPoseSlot = handSlot;
         }
 
         private void OnSlotChanged(int index, InventorySlot slot) => dirty = true;
 
-        private void Refresh(int handSlot)
+        // leftHand is the slot that was in the hand until this frame (-1: none), so a stow starts from the hand and a draw from the hook.
+        private void Refresh(int handSlot, int leftHand)
         {
             Plan();
             wanted.Clear();
@@ -105,9 +149,13 @@ namespace SpaceGame.Agents
                 if (slot == null || slot.Item != entry.Value.item || placement[entry.Key] != entry.Value.slot) gone.Add(entry.Key);
             }
 
+            ToolTransit.Anchored? drawnFrom = null;
             foreach (int index in gone)
             {
-                hungBySlotIndex[index].socket.Unequip();
+                Hung hung = hungBySlotIndex[index];
+                if (index == handSlot && hung.socket.Current != null)
+                    drawnFrom = ToolTransit.Anchored.Of(anchorBySlot[hung.slot], hung.socket.Current.transform);
+                hung.socket.Unequip();
                 hungBySlotIndex.Remove(index);
             }
 
@@ -115,7 +163,17 @@ namespace SpaceGame.Agents
             {
                 if (hungBySlotIndex.ContainsKey(index)) continue;
                 Hang(index, inventory.GetSlot(index).Item, placement[index]);
+                if (index == leftHand && index == heldPoseSlot && hungBySlotIndex.TryGetValue(index, out Hung stowed) && stowed.socket.Current != null)
+                    Travel(stowed.socket.Current.transform, heldPose);
             }
+
+            GameObject drawn = equipment != null ? equipment.HeldObject : null;
+            if (drawnFrom.HasValue && drawn != null) Travel(drawn.transform, drawnFrom.Value);
+        }
+
+        private void Travel(Transform visual, ToolTransit.Anchored from)
+        {
+            if (TransitSeconds > 0f) transits.Add(new ToolTransit(visual, from, TransitSeconds));
         }
 
         /// <summary>

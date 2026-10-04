@@ -145,14 +145,31 @@ namespace SpaceGame.Agents.Residents
         [Tooltip("How far from a sit spot a free Seat may stand and still be the one its resident takes. Seats are placed on the spot itself, " +
                  "so this only has to cover a seat nudged a little.")]
         [Min(0.1f)] public float seatReach = 1.5f;
-        [Tooltip("Height of the hip joint above the seat's sit point once the body is on it.")]
+        [Tooltip("A seat this far above the resident's feet (a top bunk) is taken only while no player can see the resident climb onto it.")]
+        [Min(0.1f)] public float elevatedSeatRise = 1.5f;
+        [Tooltip("A player this close with line of sight counts as watching a resident take an elevated seat.")]
+        [Min(1f)] public float seatWatchRadius = 60f;
+        [Tooltip("Height of the hip joint above the sit point of a Floor seat (the cross-legged loop) once the body is on it. The body is " +
+                 "only ever lifted to it.")]
         [Min(0f)] public float seatHipsAboveSurface = 0.1f;
+        [Tooltip("Height of the hip joint above the sit point of a Stool seat (the base layer's chair sit) once the body is on it: " +
+                 "the Raxy's chair sit puts the lowest of the hips 0.18 below the joint, measured in a render.")]
+        [Min(0f)] public float stoolHipsAboveSurface = 0.18f;
+        [Tooltip("How far a body may be let down onto a Stool seat, per metre of body scale. The chair sit's hips are higher than a pot " +
+                 "or a stool, but the pose a body blends out of (standing) is higher still: without a limit it would sink through the " +
+                 "floor for the length of the blend.")]
+        [Min(0f)] public float stoolMaxDrop = 0.1f;
         [Tooltip("Seconds the body takes to settle onto a seat.")]
         [Min(0.01f)] public float seatBlendSeconds = 0.2f;
 
         [Header("Carts (metres)")]
         [Tooltip("How far from a resident a free cart's handles may stand and still be the one it takes hold of at its post.")]
         [Min(0.5f)] public float cartReach = 4f;
+
+        [Header("Hands (real seconds)")]
+        [Tooltip("How long a tool takes to travel between the hand and its place on the belt when a resident draws or stows it. Only the " +
+                 "picture travels: the hand counts as empty (or full) from the first frame, so a gesture is never held back by it. 0 = instant.")]
+        [Min(0f)] public float toolTransitSeconds = 0.25f;
 
         [Header("Perception (metres / seconds)")]
         public float noticeRadius = 14f;
@@ -312,6 +329,7 @@ namespace SpaceGame.Agents.Residents
             new TripKindRow { kind = TripKind.Forage },
             new TripKindRow { kind = TripKind.Salvage },
             new TripKindRow { kind = TripKind.Water },
+            new TripKindRow { kind = TripKind.Survey },
         };
     }
 }

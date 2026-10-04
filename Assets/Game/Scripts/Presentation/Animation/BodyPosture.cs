@@ -26,7 +26,6 @@ namespace SpaceGame.Presentation
 
         private static readonly int SpeedXHash = Animator.StringToHash(HumanoidParams.SpeedX);
         private static readonly int SpeedYHash = Animator.StringToHash(HumanoidParams.SpeedY);
-        private static readonly int SeatedHash = Animator.StringToHash(HumanoidParams.Seated);
         private static readonly int GroundedHash = Animator.StringToHash(HumanoidParams.IsGrounded);
         private static readonly int GlidingHash = Animator.StringToHash(HumanoidParams.IsGliding);
 
@@ -39,7 +38,7 @@ namespace SpaceGame.Presentation
         public static BodyPosture Read(Animator animator, float movingAbove)
         {
             if (animator == null || animator.runtimeAnimatorController == null) return BodyPosture.Standing;
-            if (animator.GetBool(SeatedHash)) return BodyPosture.Seated;
+            if (animator.GetBool(HumanoidParams.SeatedHash)) return BodyPosture.Seated;
             if (!animator.GetBool(GroundedHash) || animator.GetBool(GlidingHash)) return BodyPosture.Airborne;
 
             var speed = new Vector2(animator.GetFloat(SpeedXHash), animator.GetFloat(SpeedYHash));

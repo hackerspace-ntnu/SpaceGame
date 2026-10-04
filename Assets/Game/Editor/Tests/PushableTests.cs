@@ -301,7 +301,8 @@ namespace SpaceGame.EditorTools
 
             var drover = AssetDatabase.LoadAssetAtPath<SpaceGame.Agents.Residents.ResidentArchetype>("Assets/Game/ScriptableObjects/Residents/Archetypes/Drover.asset");
             Assert.IsTrue(drover.pushesCart);
-            Assert.IsNull(drover.heldItem, "the Drover pushes a real cart, it does not hold a cart item");
+            Assert.IsFalse(drover.heldItem != null && drover.heldItem.name.StartsWith("Carry_Cart"),
+                           "the Drover pushes a real cart, it does not hold a cart item (its lasso is its tool, stowed while it pushes)");
         }
 
         [Test]

@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Agents.Expeditions;
+using SpaceGame.World;
 
 namespace SpaceGame.Agents.Residents
 {
@@ -42,6 +44,19 @@ namespace SpaceGame.Agents.Residents
         [Tooltip("Of the whole population, the share who walk the perimeter on guard (in pairs, so the count is rounded to even). " +
                  "0 = none. Needs an archetype whose duty is Patrol.")]
         [Range(0f, 0.5f)] public float patrolShare = 0.15f;
+
+        [Header("Free time")]
+        [Tooltip("Free time is spent within this many game minutes' walk of where the resident is, unless nothing there is free. " +
+                 "0 = anywhere. For a people whose buildings are joined by slow crossings (the colony's airlocks).")]
+        [Min(0f)] public float freeTimeReachMinutes;
+
+        [Tooltip("The Errand use an amble wanders to between spots, in a building that has some (room centres, tube middles). " +
+                 "A building with none, or no use here, ambles to points out in the street.")]
+        public SpotUse ambleUse;
+
+        [Header("Expeditions")]
+        [Tooltip("The bands this culture's settlements keep out in the world. Empty = they send none.")]
+        public ExpeditionProfile expeditions;
 
         /// <summary>The archetypes the profile of <paramref name="prefab"/> suits; empty when it has none.</summary>
         public IReadOnlyCollection<ResidentArchetype> SuitsOf(GameObject prefab)

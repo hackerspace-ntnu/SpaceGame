@@ -3,6 +3,7 @@
 // otherwise tune per archetype is either derived from nerve and temper (Resident.ApplyDerivedTuning)
 // or a row in the line table whose `speaker` is this asset's name.
 using UnityEngine;
+using SpaceGame.Agents.Expeditions;
 using SpaceGame.Items;
 using SpaceGame.World;
 
@@ -46,6 +47,9 @@ namespace SpaceGame.Agents.Residents
 
         [Tooltip("What it wears on its belt, in order. Items without a BeltMount are not drawn.")]
         public InventoryItem[] beltItems = System.Array.Empty<InventoryItem>();
+
+        [Tooltip("What it can be on a band the settlement sends out. None = it only fills a slot any adult may fill.")]
+        public ExpeditionRole expeditionRoles;
 
         /// <summary>Derived, never stored: a post makes it Stationed, trips an Outrider, else a Roamer.</summary>
         public Lifestyle Lifestyle =>

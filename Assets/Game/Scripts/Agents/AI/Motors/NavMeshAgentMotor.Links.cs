@@ -13,6 +13,10 @@
 // Server-authoritative like the rest of the motor: Tick only runs where the agent is simulated, and the
 // transform that comes out is what the NetworkTransform replicates. Nothing here is on the wire.
 //
+// A fourth kind is gated: a link whose owner is an INavLinkGate (an airlock) hands the crossing to
+// the gate. The agent stands at the link's start, ridden by the motor like any other link, and the gate says
+// each tick whether to wait or walk on, and when it is across.
+//
 // Nothing is saved. A jump in flight comes back through the leap's saved state; a ladder ride is not
 // saved, so an agent loaded mid-ladder is put on the nearest mesh by DeferredNavMeshWarp and plans again.
 using Unity.AI.Navigation;
@@ -59,6 +63,8 @@ namespace SpaceGame.Agents
 
         private bool ridingLink;
         private bool ridingLadder;
+        private INavLinkGate gate;
+        private Vector3 gateDestination;
         private int rideLeg;
         private int rideLegCount;
         private Vector3 rideBody;
@@ -93,6 +99,10 @@ namespace SpaceGame.Agents
             {
                 BeginLadderRide(ladder, link);
             }
+            else if (link.owner is INavLinkGate linkGate)
+            {
+                BeginGatedRide(linkGate, link);
+            }
             else if (IsPlainLink(link))
             {
                 BeginRide(link.endPos, link.startPos, 1);
@@ -110,6 +120,14 @@ namespace SpaceGame.Agents
         // a gap, and is crossed as one.
         private static bool IsPlainLink(in OffMeshLinkData link) =>
             link.owner is NavMeshLink component && component.area != NavLinkAreas.Jump;
+
+        // The gate decides everything from here: the body stays at the link's start until it says walk.
+        private void BeginGatedRide(INavLinkGate linkGate, in OffMeshLinkData link)
+        {
+            BeginRide(link.endPos, link.startPos, 0);
+            gate = linkGate;
+            gateDestination = link.endPos;
+        }
 
         private void BeginLadderRide(Ladder ladder, in OffMeshLinkData link)
         {
@@ -166,8 +184,39 @@ namespace SpaceGame.Agents
             BeginLeap(link.endPos, jumpLinkArcHeight + flat.magnitude * jumpLinkArcPerMetre, duration);
         }
 
+        private void AdvanceGatedRide(float deltaTime)
+        {
+            LinkGateOrder order = gate.Direct(this, rideBody, gateDestination);
+            if (!ridingLink) return;   // the gate teleported the body, which ended the ride
+
+            if (order.Step == LinkGateStep.Done)
+            {
+                gate = null;
+                ridingLink = false;
+                LandAt(gateDestination);
+                return;
+            }
+
+            if (order.Step == LinkGateStep.Walk)
+            {
+                rideBody = Vector3.MoveTowards(rideBody, order.Target, order.Speed * deltaTime);
+                Vector3 heading = order.Target - rideBody;
+                heading.y = 0f;
+                if (heading.sqrMagnitude > 1e-4f) rideFacing = heading.normalized;
+            }
+
+            transform.position = rideBody + Vector3.up * agent.baseOffset;
+            FacePosition(transform.position + rideFacing, deltaTime);
+        }
+
         private void AdvanceLinkRide(float deltaTime)
         {
+            if (gate != null)
+            {
+                AdvanceGatedRide(deltaTime);
+                return;
+            }
+
             Vector3 target = rideTargets[rideLeg];
             rideBody = Vector3.MoveTowards(rideBody, target, rideSpeeds[rideLeg] * deltaTime);
             transform.position = rideBody + Vector3.up * agent.baseOffset;
@@ -189,6 +238,8 @@ namespace SpaceGame.Agents
             if (!ridingLink) return;
 
             ridingLink = false;
+            gate?.Release(this);
+            gate = null;
             if (!agent) return;
 
             agent.updatePosition = defaultUpdatePosition;

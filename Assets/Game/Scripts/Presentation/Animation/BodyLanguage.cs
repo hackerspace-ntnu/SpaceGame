@@ -66,6 +66,7 @@ namespace SpaceGame.Presentation
         private readonly Dictionary<int, int> rollCount = new Dictionary<int, int>();
         private Animator animator;
         private BodyArms occupied;
+        private bool seated;
 
         private static readonly List<CharacterAction> Candidates = new List<CharacterAction>();
 
@@ -106,6 +107,14 @@ namespace SpaceGame.Presentation
             }
         }
 
+        /// <summary>
+        /// Says the body sits on a seat. A resident on a cushion sits in a Full loop of its own and its animator never raises
+        /// <c>Seated</c>, so it reads Standing, and a greeting bow or a stretch picked for a standing body would stand it up out
+        /// of the seat for a second (a resident on a stool does raise <c>Seated</c>, but is kept to the same rule). A seated
+        /// body's legs belong to the seat, like the player's belong to its input: its one-shots are arm gestures only.
+        /// </summary>
+        public void SitOn(bool sitting) => seated = sitting;
+
         /// <summary>The arms the body's held item occupies (from its animator parameters), and the ones something else has hold of.</summary>
         public BodyArms BusyArms
         {
@@ -122,7 +131,45 @@ namespace SpaceGame.Presentation
         /// </summary>
         public void OccupyArms(BodyArms arms) => occupied = arms;
 
-        private bool Writes => Actions != null && Actions.WritesAnimator;
+        /// <summary>
+        /// True while nobody can see the body (a resident indoors or offstage): it starts no gesture, fidget or loop, and
+        /// <see cref="IdleVariation"/> and <see cref="SpeechGestures"/> stand idle. Whoever hides the body sets it, and clears it
+        /// when the body is seen again; a loop held when it was set is the owner's to release.
+        /// </summary>
+        public bool Dormant { get; set; }
+
+        private bool Writes => Actions != null && Actions.WritesAnimator && !Dormant;
+
+        /// <summary>
+        /// Stops the one-shot gestures that are moving an arm the held item now occupies. A gesture is picked while the hand is
+        /// empty; a body that then draws a tool or takes up a basket must not go on stretching through it.
+        /// </summary>
+        public void DropGesturesOverHands()
+        {
+            if (!Writes) return;
+
+            BodyArms busy = BusyArms;
+            if (busy == BodyArms.None) return;
+
+            for (int i = 0; i < (int)CharacterAction.Slot.Additive; i++)
+            {
+                var slot = (CharacterAction.Slot)i;
+                if (IsGestureOver(Actions.PlayingOn(slot), busy)) Actions.Stop(slot);
+            }
+        }
+
+        /// <summary>
+        /// Whether <paramref name="action"/> is a one-shot gesture (one of its cues is the body language of an empty hand) that
+        /// moves an arm in <paramref name="busy"/>. A loop is its owner's to hold or release; an action done WITH the item is not one.
+        /// </summary>
+        public static bool IsGestureOver(CharacterAction action, BodyArms busy)
+        {
+            if (action == null || action.Loops || action.FitsHands(busy)) return false;
+
+            foreach (CharacterCue cue in action.Cues)
+                if (cue != null && cue.NeedsFreeHands) return true;
+            return false;
+        }
 
         /// <summary>
         /// Show <paramref name="moment"/> here, if this body's table has a reaction for it and the
@@ -265,11 +312,12 @@ namespace SpaceGame.Presentation
 
             BodyPosture posture = Posture;
             BodyArms busy = BusyArms;
+            bool wholeBody = fullBody && !(seated && !loops);
             for (int depth = 0; cue != null && depth <= MaxFallbacks; depth++, cue = cue.Fallback)
             {
                 CharacterAction last = null;
                 if (avoidLast) lastPicked.TryGetValue(cue, out last);
-                CharacterAction action = Choose(catalog.ActionsFor(cue), posture, fullBody, loops, last, roll,
+                CharacterAction action = Choose(catalog.ActionsFor(cue), posture, wholeBody, loops, last, roll,
                                                  cue.NeedsFreeHands ? busy : BodyArms.None);
                 if (action == null) continue;
 

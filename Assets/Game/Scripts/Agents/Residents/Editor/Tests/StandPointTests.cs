@@ -114,11 +114,29 @@ namespace SpaceGame.Agents.Residents.Tests
             try
             {
                 float hipsOfTheLoop = 0.2f, sitPoint = 0.45f;
-                float lift = SeatedBodyFit.TargetLift(sitPoint, hipsOfTheLoop, 1f, tuning);
+                float lift = SeatedBodyFit.TargetLift(sitPoint, hipsOfTheLoop, 1f, tuning.seatHipsAboveSurface, 0f);
                 Assert.AreEqual(sitPoint + tuning.seatHipsAboveSurface - hipsOfTheLoop, lift, Epsilon);
 
-                Assert.AreEqual(0f, SeatedBodyFit.TargetLift(0.02f, hipsOfTheLoop, 1f, tuning), "hips already above the sit point are never pushed down into the floor");
-                Assert.AreEqual(2f * lift, SeatedBodyFit.TargetLift(2f * sitPoint, 2f * hipsOfTheLoop, 2f, tuning), Epsilon, "a bigger body scales the fit");
+                Assert.AreEqual(0f, SeatedBodyFit.TargetLift(0.02f, hipsOfTheLoop, 1f, tuning.seatHipsAboveSurface, 0f), "hips already above the sit point are never pushed down into the floor");
+                Assert.AreEqual(2f * lift, SeatedBodyFit.TargetLift(2f * sitPoint, 2f * hipsOfTheLoop, 2f, tuning.seatHipsAboveSurface, 0f), Epsilon, "a bigger body scales the fit");
+            }
+            finally { Object.DestroyImmediate(tuning); }
+        }
+
+        [Test]
+        public void StoolSitter_IsLetDownOntoTheSeat_ButNeverThroughTheFloor()
+        {
+            ResidentTuning tuning = ScriptableObject.CreateInstance<ResidentTuning>();
+            try
+            {
+                // The Raxy's chair sit on a 0.564 m pot (scale 1.216): the hips come out 0.864 m up, 0.083 m above where they should rest.
+                float rest = 0.564f + tuning.stoolHipsAboveSurface * 1.216f;
+                float drop = SeatedBodyFit.TargetLift(0.564f, 0.864f, 1.216f, tuning.stoolHipsAboveSurface, tuning.stoolMaxDrop);
+                Assert.AreEqual(rest - 0.864f, drop, Epsilon, "the body goes down until the hips rest on the seat");
+                Assert.Less(drop, 0f);
+
+                float blendingOutOfStanding = SeatedBodyFit.TargetLift(0.564f, 1.2f, 1.216f, tuning.stoolHipsAboveSurface, tuning.stoolMaxDrop);
+                Assert.AreEqual(-tuning.stoolMaxDrop * 1.216f, blendingOutOfStanding, Epsilon, "a standing pose's hips are far above the seat: the drop is limited");
             }
             finally { Object.DestroyImmediate(tuning); }
         }

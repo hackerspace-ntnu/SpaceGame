@@ -48,6 +48,9 @@ namespace SpaceGame.EditorTools
         {
             if (settlement.HasResidents) ResidentStackBuilder.EnsureStack(settlement.CharacterPrefabs());
             settlement.Generate();
+            // A settlement placed as a prefab instance keeps only what is recorded as an override: the heart Generate just found
+            // (a private field) would be lost the first time the scene is reloaded from disk.
+            PrefabUtility.RecordPrefabInstancePropertyModifications(settlement);
             ResidentsWindow.ForgetPreview();
             if (settlement.HasResidents) ResidentValidator.Report(settlement);
             EditorSceneManager.MarkSceneDirty(settlement.gameObject.scene);

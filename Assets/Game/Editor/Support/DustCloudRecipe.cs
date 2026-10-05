@@ -19,6 +19,8 @@ namespace SpaceGame.EditorTools
     {
         public const string Shader = "SpaceGame/Effects/JetSmoke";
         public const float MinLife = 8f, MaxLife = 12f;
+        /// <summary>A puff's diameter at birth (m), before the recipe billows it about 4x.</summary>
+        public const float MinSize = 2f, MaxSize = 3.2f;
 
         /// <summary>The cap that keeps a cloud whole at a given peak emission rate (particles/s).</summary>
         public static int CapFor(float peakRate) => Mathf.CeilToInt(peakRate * MaxLife);
@@ -81,7 +83,7 @@ namespace SpaceGame.EditorTools
             ParticleSystem ps = NewSystem(parent, name, localPos, aim, cap, MinLife, MaxLife);
             ParticleSystem.MainModule main = ps.main;
             main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 7.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(2f, 3.2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(MinSize, MaxSize);
             main.startColor = new Color(tint.r, tint.g, tint.b, 0.6f);
             main.gravityModifier = -0.02f;   // the hanging cloud drifts up a little
             ParticleSystem.ShapeModule shape = ps.shape;

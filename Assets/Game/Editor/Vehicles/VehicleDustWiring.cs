@@ -2,7 +2,8 @@
 // a tracked one's ground contacts (RollingDust). Both fill DustCloudRecipe clouds -- the monowheel's
 // lingering cloud -- in one shared sand material. Called by the builder that owns each prefab, so a
 // rebuild keeps its dust: StriderCityBuilder (the houses), DesertCrawlerBuilder,
-// StriderCrabOutriderBuilder and StriderBargeBuilder.
+// StriderCrabOutriderBuilder and StriderBargeBuilder. Every Strider city vehicle also gets far dust
+// (FarDust): huge, sparse, fading in as the near dust fades out.
 //
 // The caps are where the overdraw budget lives (GDC-L1-TECH-0002): a cloud holds exactly what its
 // peak rate keeps alive for the recipe's longest life, and not a puff more.
@@ -23,6 +24,16 @@ namespace SpaceGame.EditorTools
 
         public const string FootfallCloudName = "FX_FootfallDust";
         public const string TrackCloudName = "FX_TrackDust";
+        public const string FarCloudName = "FX_FarDust";
+
+        /// <summary>Far puffs are this many times the near ones across: the recipe's 2-3.2 m become 8-12.8 m.</summary>
+        public const float FarDustSizeMultiplier = 4f;
+        /// <summary>And live this many times as long (12-18 s), so a slow march leaves a standing wall.</summary>
+        public const float FarDustLifeMultiplier = 1.5f;
+        /// <summary>At this fraction of the machine's near dust's peak rate.</summary>
+        public const float FarDustRateFraction = 0.2f;
+        /// <summary>No far dust past the Strider vehicles' cull (SettlementLodSettings.strider.cullBeyondMetres; SettlementLodPrefabTests pins the two).</summary>
+        public const float FarDustCullDistance = 1500f;
 
         /// <summary>Track dust is thrown up and back off the ground run, as the monowheel's off its paddles.</summary>
         private static readonly Quaternion TrackDustAim = Quaternion.LookRotation(new Vector3(0f, 0.8f, -0.6f));
@@ -71,6 +82,63 @@ namespace SpaceGame.EditorTools
             var dust = root.AddComponent<RollingDust>();
             dust.Configure(contacts, clouds, cruiseSpeed, peakRatePerContact);
             return dust;
+        }
+
+        /// <summary>
+        /// Far dust for the machine at <paramref name="root"/>: one huge, sparse cloud on its own child
+        /// (<see cref="FarCloudName"/>), born across the hull's footprint at its lowest point and thrown up,
+        /// fading in over the band its near dust fades out. <paramref name="nearPeakRate"/> is that near
+        /// dust's peak (puffs/s); <paramref name="cruiseSpeed"/> the speed at which the far dust is full.
+        /// Call after the near dust and after anything that measures renderer bounds.
+        /// </summary>
+        public static FarDust AddFarDust(GameObject root, float nearPeakRate, float cruiseSpeed)
+        {
+            var band = root.GetComponentInChildren<IDustLodBand>(true);
+            if (band == null)
+                throw new System.InvalidOperationException($"{root.name} has no near dust; far dust crossfades with it, so add that first.");
+
+            Bounds hull = HullBounds(root);
+            float rate = nearPeakRate * FarDustRateFraction;
+            int cap = Mathf.CeilToInt(rate * DustCloudRecipe.MaxLife * FarDustLifeMultiplier);
+            ParticleSystem cloud = DustCloudRecipe.Cloud(root.transform, FarCloudName, new Vector3(hull.center.x, hull.min.y, hull.center.z),
+                                                         Quaternion.LookRotation(Vector3.up), SandMaterial(), SandTint, cap, Vector3.zero);
+            ParticleSystem.MainModule main = cloud.main;
+            main.startSize = new ParticleSystem.MinMaxCurve(DustCloudRecipe.MinSize * FarDustSizeMultiplier,
+                                                            DustCloudRecipe.MaxSize * FarDustSizeMultiplier);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(DustCloudRecipe.MinLife * FarDustLifeMultiplier,
+                                                                DustCloudRecipe.MaxLife * FarDustLifeMultiplier);
+            ParticleSystem.ShapeModule shape = cloud.shape;
+            shape.radius = Mathf.Max(hull.extents.x, hull.extents.z);
+
+            var dust = cloud.gameObject.AddComponent<FarDust>();
+            dust.Configure(cloud, cruiseSpeed, rate, band, FarDustCullDistance);
+            return dust;
+        }
+
+        /// <summary>The bounds, in the root's own space, of every mesh renderer under it: particles are not hull.</summary>
+        private static Bounds HullBounds(GameObject root)
+        {
+            Matrix4x4 toRoot = root.transform.worldToLocalMatrix;
+            Bounds hull = default;
+            bool any = false;
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!(renderer is MeshRenderer || renderer is SkinnedMeshRenderer)) continue;
+
+                Bounds world = renderer.bounds;
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    Vector3 offset = Vector3.Scale(world.extents, new Vector3((corner & 1) == 0 ? -1f : 1f,
+                                                                              (corner & 2) == 0 ? -1f : 1f,
+                                                                              (corner & 4) == 0 ? -1f : 1f));
+                    Vector3 local = toRoot.MultiplyPoint3x4(world.center + offset);
+                    if (any) hull.Encapsulate(local);
+                    else hull = new Bounds(local, Vector3.zero);
+                    any = true;
+                }
+            }
+            if (!any) throw new System.InvalidOperationException($"{root.name} has no mesh renderer to raise far dust round.");
+            return hull;
         }
     }
 }

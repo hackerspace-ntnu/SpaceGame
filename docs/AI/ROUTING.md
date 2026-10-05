@@ -708,6 +708,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Failed to create agent because it is not close enough to the NavMesh logged once per rider when a group spawns in the air | [AgentSystem](systems/AgentSystem.md) |
 | Failed to create agent because it is not close enough to the NavMesh logged twice every time a Sky war party spawns | [SkyTribe](systems/SkyTribe.md) |
 | Failed to load LeashEnd.cs. File may be corrupted or was serialized with a newer version of Unity | [Lasso](systems/Lasso.md) |
+| far away the walking city's legs are frozen and nothing hides it | [VehicleDust](systems/VehicleDust.md) |
 | fire patches pile up in a heap when I hold the trigger on one spot | [Flamethrower](systems/Flamethrower.md) |
 | firing a gun near wildlife does nothing at all | [AgentSystem](systems/AgentSystem.md) |
 | firing a gun near wildlife or a guard provokes no reaction at all | [Combat](systems/Combat.md) |
@@ -2117,6 +2118,7 @@ Longest match wins.
 | `ProjectSettings/EditorBuildSettings.asset` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Art/Textures/Characters/Eyes` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Agents/MouthWiring.cs` | [TalkingMouth](systems/TalkingMouth.md) |
+| `Assets/Game/Editor/Tests/FarDustTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Resources/AudioCatalog.asset` | [audio](systems/audio.md) |
 | `Assets/Game/ScriptableObjects/Residents/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction` | [InteractionSystem](systems/InteractionSystem.md) |
@@ -2258,4 +2260,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1614 symptoms, 618 paths, 86 docs -->
+<!-- 1615 symptoms, 619 paths, 86 docs -->

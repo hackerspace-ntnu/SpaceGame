@@ -17,7 +17,7 @@ namespace SpaceGame.Vehicles
 {
     // After LeggedLocomotion (100), so the footfalls read are this frame's.
     [DefaultExecutionOrder(150)]
-    public sealed class FootfallDust : MonoBehaviour
+    public sealed class FootfallDust : MonoBehaviour, IDustLodBand
     {
         [Tooltip("The legs whose landings throw dust.")]
         [SerializeField] private LeggedLocomotion locomotion;
@@ -54,6 +54,8 @@ namespace SpaceGame.Vehicles
         public LeggedLocomotion Locomotion => locomotion;
         public int PuffsPerFootfall => puffsPerFootfall;
         public float SizePerFootRadius => sizePerFootRadius;
+        public float LodNear => lodNear;
+        public float LodFar => lodFar;
 
         /// <summary>Builder only: the legs to watch, the cloud to fill and how many puffs a footfall throws.</summary>
         public void Configure(LeggedLocomotion legs, ParticleSystem puffs, int puffsPerLanding)

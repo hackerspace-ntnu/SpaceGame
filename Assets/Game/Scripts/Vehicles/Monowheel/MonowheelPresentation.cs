@@ -16,7 +16,7 @@ namespace SpaceGame.Vehicles.Monowheel
     /// expensive part, so every wheel is capped and the effect fades with camera distance
     /// (GDC-L1-TECH-0002, GDC-L1-PERF-0004).</para>
     /// </summary>
-    public sealed class MonowheelPresentation : MonoBehaviour
+    public sealed class MonowheelPresentation : MonoBehaviour, IDustLodBand
     {
         [Tooltip("Measured by MonowheelPresentationBuilder. One entry per ring.")]
         [SerializeField] private MonowheelWheel[] wheels = new MonowheelWheel[0];
@@ -71,6 +71,8 @@ namespace SpaceGame.Vehicles.Monowheel
         public Vector3 HelmHinge => helmHinge;
         public Vector3 HelmAxis => helmAxis;
         public float DustAtFullSpeed => dustAtFullSpeed;
+        public float LodNear => lodNear;
+        public float LodFar => lodFar;
         public LayerMask GroundLayers => groundLayers;
 
         /// <summary>Builder only: install the measured wheels and parts. <paramref name="ski"/> is null on a variant without one.</summary>

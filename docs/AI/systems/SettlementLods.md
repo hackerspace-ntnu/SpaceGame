@@ -69,6 +69,8 @@ Nothing new is saved. The distant city is rebuilt from the group record, whose `
 
 ## Gotchas
 
+- **Not yet seen on a real client by an agent (2026-10-05).** The test player builds for macOS only and agents may not enter Play Mode; the checklist below is how a person proves it. Remove this line, and the checklist, once a person has run it.
+
 - **A stopped city keeps facing the way it walked — until a reload.** `NpcGroup.Heading` is the goal direction while the group has a goal, and the last one it had once it stops (remembered in `AdvanceToward` and on every read; runtime only, never saved). The live spawn and the silhouette both face it, so neither swings round at a stop. A group reloaded without a goal, or one that never had one, faces +Z until it next sets off — the silhouette glides round to its first goal then.
 - **Hidden by `Spawned` alone, never by distance.** The server spawns the live city on its next sim tick (`tickInterval` 1 s) from player positions refreshed every `playerRefreshInterval` 2 s, plus network latency, so hiding the silhouette when the camera crossed `spawnRadius` left 1–3 s of dust with nothing in it — the pop-in. Kept drawn until `Spawned` replicates, it overlaps the live city's identical merged meshes in the same slots for at most one publish (0.5 s), inside the dust.
 - **Seen from at most the loaded ground** (3×3 chunks of 500 m round each player): a slot with no terrain under it is not drawn, so the city appears at the edge of the loaded ground inside its dust, never over the void.
@@ -80,6 +82,22 @@ Nothing new is saved. The distant city is rebuilt from the group record, whose `
 - **Far dust stays outside every level.** `FX_FarDust` is a `ParticleSystemRenderer`, which `Bake` never puts in a level, so it keeps running while the vehicle draws its merged mesh; `SettlementLodPrefabTests` asserts no particle is in any level, and pins `FarDustCullDistance` to the `strider` cull (1500 m).
 - **Mesh LOD selection inside a LODGroup: unverified.** Rendered off-screen in a preview scene (`Camera.Render`) at 700 m, the merged renderer drew exactly the same pixels as with `forceMeshLod = 0`, with the group forced to level 1 and with it free, while `forceMeshLod = 4` drew visibly coarser (habitat 271 px differ, Sky city 2612). So the levels exist, but the automatic pick stayed at 0 there; whether that is the LODGroup, the off-screen path or the threshold at 700 m needs a check in Play Mode (`lods_<Prefab>_merged700*.png`, 2026-10-05).
 - **`GenerateMeshLods` is memory-hungry.** The Sky city's 2.2 M-vertex merge, or `BakeAll` over all 16 prefabs in one call, ran the editor out of memory on a 14 GB machine already near its limit (crash in `MeshLod::BuildClusterLodMeshFromMesh`, 2026-10-05). Bake one prefab per editor call when memory is short.
+
+## Human checklist (Play Mode, host + client; needs MPPM or `-sgprofile client` on a second instance)
+
+1. Host a world; a second instance joins as client.
+2. Read the city's position: the `NpcWorldSim` gizmo in the host's Scene view, or `strider-city` in the save JSON. On the client, `/tp` to ~600 m from it.
+3. On both machines the city is a column of vehicles marching inside large dust clouds, in the same place and order (compare screenshots). Test logs: `HOST_DISTANT_GROUPS=1` and `CLIENT_DISTANT_GROUPS=1`.
+4. Walk toward it. Between ~200 m and ~80 m the far dust fades out as footfall/track dust fades in. At 250 m (spawnRadius) the live city replaces the silhouette with no sideways jump; its legs start moving inside the dust.
+5. At ~160 m from a single house on the client it switches from the merged level to its animated LOD0 (and back walking away), identically on host and client.
+6. Kill a crab outrider and walk 300 m away: its wreck stays drawn as it lies, never standing.
+7. Save, quit to menu, load: the distant city is where it was, in the same column order (same `rosterSeed` in the save JSON before and after).
+8. Sky fleet: fly/teleport 1-3 km away; it stays visible and its engine smoke runs at every distance.
+9. **Mesh LOD inside a LODGroup.** With the Profiler or Frame Debugger, check that a merged level's MeshRenderer drops to coarser Mesh LODs as it recedes (a 700 m render was pixel-identical to `forceMeshLod=0`). If not, the merged level only saves draw calls, not triangles.
+10. **Far-dust look.** A moving city at 300 m and 700 m should hide the vehicles' frozen legs and lower bodies in tall dust. Barges are almost fully veiled; a single house's front legs may show.
+11. **Hand-over.** Walking up to the folded city, the silhouette stays until the live city spawns (up to ~0.5 s overlap of identical meshes in the same slots, inside the dust): no gap, no jump.
+12. **A stopped city** keeps facing its last march direction (silhouette and live spawn) until a reload.
+13. **Draw calls** at 300 m from the city and from the Sky fleet, before and after (Profiler), only if the machine has RAM to spare.
 
 ## Extending
 

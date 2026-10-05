@@ -80,7 +80,7 @@ namespace SpaceGame.Agents
 
             if (Network.Server && npc.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
             {
-                netObj.Despawn(destroy: true);
+                NetworkDespawn.Despawn(netObj, destroy: true);
                 return;
             }
 

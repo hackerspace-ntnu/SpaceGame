@@ -1610,6 +1610,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
 | weapons and items appear lying around the world for no reason | [AgentSystem](systems/AgentSystem.md) |
 | weapons and items appear lying around the world for no reason | [Inventory](systems/Inventory.md) |
+| weapons float in mid-air round NPCs after they despawn, on the host only | [Multiplayer](systems/Multiplayer.md) |
 | what an item was holding is gone the moment I press drop, but a slot switch keeps it | [Inventory](systems/Inventory.md) |
 | what animation should an NPC use for X | [NpcAnimationPlan](systems/NpcAnimationPlan.md) |
 | which clip should an NPC use for farming, fishing, mining, cooking, serving, singing | [AnimationCatalog](systems/AnimationCatalog.md) |
@@ -2247,4 +2248,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1608 symptoms, 613 paths, 85 docs -->
+<!-- 1609 symptoms, 613 paths, 85 docs -->

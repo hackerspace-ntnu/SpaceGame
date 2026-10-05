@@ -195,6 +195,11 @@ namespace SpaceGame.Agents
                  "heads for your last known position when it loses you.")]
         public bool bountyHunters;
 
+        [Tooltip("Drawn from beyond spawnRadius while folded: every machine draws its vehicles' merged far levels " +
+                 "in its column, in dust (DistantGroups, DistantGroupSilhouette). For a group big enough to see from " +
+                 "the edge of the loaded ground -- the Strider city.")]
+        public bool showFromAfar;
+
         [Tooltip("Set a vessel to fly the group in: it spawns aboard, is dropped off near its goal, and " +
                  "walks from there. Empty for a group that walks all the way.")]
         public NpcGroupTransport transport = new NpcGroupTransport();
@@ -210,6 +215,19 @@ namespace SpaceGame.Agents
             DriftAmplitude = 0.7f,
             DriftRate = 0.08f,
         };
+
+        /// <summary>The id as every machine hashes it: how a replicated group names its template (DistantGroupState).</summary>
+        public int IdHash => HashOf(id);
+
+        public static int HashOf(string templateId) => RosterDraw.StableHash(templateId);
+
+        /// <summary>The first of <paramref name="templates"/> whose <see cref="IdHash"/> is <paramref name="idHash"/>; null when none.</summary>
+        public static NpcGroupTemplate FindByIdHash(IEnumerable<NpcGroupTemplate> templates, int idHash)
+        {
+            foreach (NpcGroupTemplate template in templates)
+                if (template != null && template.IdHash == idHash) return template;
+            return null;
+        }
     }
 
     /// <summary>

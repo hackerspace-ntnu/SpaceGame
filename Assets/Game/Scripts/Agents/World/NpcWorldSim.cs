@@ -360,6 +360,13 @@ namespace SpaceGame.Agents
             templateId != null && templatesById.TryGetValue(templateId, out NpcGroupTemplate template) ? template : null;
 
         /// <summary>
+        /// The template whose id hashes to <paramref name="idHash"/> (<see cref="NpcGroupTemplate.IdHash"/>);
+        /// null when none. Every machine holds the templates -- they are scene data -- so a client resolves a
+        /// replicated group's template here (DistantGroupSilhouette).
+        /// </summary>
+        public NpcGroupTemplate FindTemplateByHash(int idHash) => NpcGroupTemplate.FindByIdHash(templatesById.Values, idHash);
+
+        /// <summary>
         /// Make a folded group real now rather than on the next tick, at its <see cref="NpcGroup.SpawnPoses"/> when set:
         /// a hand-off in view, where the members must appear on the tick the bodies they replace vanish. The caller
         /// checks a player is within <see cref="DespawnRadius"/>, or the next tick folds the group again. Server only.
@@ -641,22 +648,15 @@ namespace SpaceGame.Agents
                 : group.Position;
             Vector3 heading = group.Heading;
             Quaternion facing = FacingAlong(heading);
-            int followerIndex = 0;
             bool leaderTaken = false;
 
-            for (int index = 0; index < plan.Count; index++)
+            // The same places the distant silhouette draws the folded group in (GroupColumnLayout).
+            foreach (ColumnPlace place in GroupColumnLayout.Places(plan, origin, heading, template.formation))
             {
+                int index = place.PlanIndex;
                 PlannedMember planned = plan[index];
-                if (planned.Prefab == null) continue;
-
-                bool leads = planned.Leads && !leaderTaken;
-
-                Vector3 slot = leads
-                    ? origin
-                    : FormationMath.SlotPosition(followerIndex, origin, heading,
-                                                 template.formation, followerIndex * 7919, 0f);
-
-                if (!leads) followerIndex++;
+                bool leads = place.Leads;
+                Vector3 slot = place.Position;
 
                 // Crew ride a carrier already spawned earlier in the plan (templates list carriers
                 // first). Marching, they wake seated; stopped, they wake on foot at its gangway.

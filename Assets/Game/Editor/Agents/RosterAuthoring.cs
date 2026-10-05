@@ -671,6 +671,8 @@ namespace SpaceGame.EditorTools
                 t.FindPropertyRelative("tribe").objectReferenceValue = striders;
                 t.FindPropertyRelative("runtimeOnly").boolValue = false;
                 t.FindPropertyRelative("bountyHunters").boolValue = false;
+                // Seen marching from the edge of the loaded ground (DistantGroupSilhouette, SettlementLods.md).
+                t.FindPropertyRelative("showFromAfar").boolValue = true;
                 t.FindPropertyRelative("useStartPosition").boolValue = true;
                 t.FindPropertyRelative("startPosition").vector3Value = start;
                 t.FindPropertyRelative("initialStaySeconds").floatValue = StriderCityInitialStay;

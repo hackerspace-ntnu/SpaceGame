@@ -15,7 +15,8 @@ using SpaceGame.Persistence;
 namespace SpaceGame.Gameplay
 {
     /// <summary>
-    /// Handles door interaction — rotates left and right door children in opposite directions.
+    /// Handles door interaction — rotates left and right door children in opposite directions. A
+    /// single-leaf door leaves the right leaf unassigned.
     ///
     /// <para>
     /// <see cref="IPersistentEntity"/> because a door has none of the components
@@ -42,8 +43,14 @@ namespace SpaceGame.Gameplay
         [SerializeField] private SfxId closeId = SfxId.InteractDoorClose;
         [SerializeField] private EventReference closeSound;
 
-        /// <summary>How far each leaf swings. Mirrored, so the pair opens outwards.</summary>
-        private const float SwingDegrees = 90f;
+        [Header("Swing")]
+        [Tooltip("Degrees each leaf turns to open. Mirrored between the two leaves, so a pair opens outwards.")]
+        [SerializeField, Range(1f, 180f)] private float swingDegrees = 90f;
+
+        [Tooltip("The hinge axis in each leaf's own LOCAL space. Up for a leaf authored upright; a leaf imported " +
+                 "from an FBX hangs off an empty whose local axes carry the axis conversion, so its vertical is " +
+                 "whichever local axis points up in the scene. Flip its sign to swing the other way.")]
+        [SerializeField] private Vector3 swingAxis = Vector3.up;
 
         private NetLatch latch;
 
@@ -79,8 +86,8 @@ namespace SpaceGame.Gameplay
         // LOCAL rotations, where the original stored world ones, and the change is load-bearing
         // twice over. A door lives on a ship that drives away: a world-space target goes stale the
         // moment the hull turns, and the leaf fights its own parent for the rest of the swing. And
-        // the targets are now absolute — "the shut pose, times ninety degrees" rather than "wherever
-        // you are now, times ninety degrees" — which is what lets the same state be applied more
+        // the targets are now absolute — "the shut pose, times the swing" rather than "wherever
+        // you are now, times the swing" — which is what lets the same state be applied more
         // than once without the door walking further open each time. NetLatch guarantees it will not
         // be, but a fixture whose correctness depends on never being told twice is a trap.
         private Quaternion _leftShut;
@@ -156,8 +163,8 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private void ApplySwing(bool open, bool instant)
         {
-            _leftTo = open ? _leftShut * Quaternion.Euler(0f, -SwingDegrees, 0f) : _leftShut;
-            _rightTo = open ? _rightShut * Quaternion.Euler(0f, SwingDegrees, 0f) : _rightShut;
+            _leftTo = open ? _leftShut * Quaternion.AngleAxis(-swingDegrees, swingAxis) : _leftShut;
+            _rightTo = open ? _rightShut * Quaternion.AngleAxis(swingDegrees, swingAxis) : _rightShut;
 
             if (instant)
             {

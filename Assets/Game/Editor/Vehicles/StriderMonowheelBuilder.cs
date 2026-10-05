@@ -212,6 +212,8 @@ namespace SpaceGame.EditorTools
                 return false;
             }
 
+            // Before Finish: its colliders measure renderers under Body only, and the far dust hangs off the root.
+            VehicleDustWiring.AddFarDust(root, body.GetComponent<MonowheelPresentation>().DustAtFullSpeed, StriderCityBuilder.CityLeaderSpeed);
             return Finish(root, body, path, offsets.Strider);
         }
 
@@ -662,6 +664,7 @@ namespace SpaceGame.EditorTools
             root.AddComponent<SaveableEntity>();
 
             System.IO.Directory.CreateDirectory(Folder);
+            SettlementLodBaker.Bake(root, path, SettlementLodSettings.Load().strider);
             PrefabUtility.SaveAsPrefabAsset(root, path, out bool saved);
             Object.DestroyImmediate(root);
             if (!saved) Debug.LogError($"[StriderMonowheel] Could not save {path}; the AssetDatabase refused the write.");

@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 8121557838314437242}
   - component: {fileID: 8295724152449707615}
   - component: {fileID: 2378897999843124176}
+  - component: {fileID: -6367722122177189817}
   m_Layer: 0
   m_Name: Tool_Pliers
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-6367722122177189817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5785613654783555500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &2025295431061972322
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -167,6 +167,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a double tap of Space does nothing while I am standing on the ground | [Wingsuit](systems/Wingsuit.md) |
 | a double tap of Space lifts me off and then puts me straight back down | [Jetpack](systems/Jetpack.md) |
 | a drifter prefab renders nothing after its FBX gained a bone, or deforms with its old ear positions | [ArtPipeline](systems/ArtPipeline.md) |
+| a driven door or dish empty reports the same rotation whatever its custom property is set to, in a headless check | [ArtPipeline](systems/ArtPipeline.md) |
 | a dropped creature sinks metres through an intact rope | [CarriedAgent](systems/CarriedAgent.md) |
 | a dropped item cannot be shoved out of the way, and a rope tied to it drags it without turning it | [Inventory](systems/Inventory.md) |
 | a dropped item is buried up to its middle in the ground | [Inventory](systems/Inventory.md) |
@@ -617,6 +618,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | anything at all can be dropped into the bottle's socket on the back of the pack | [Backpack](systems/Backpack.md) |
 | anything at all can be dropped into the bottle's socket on the back of the pack | [Oxygen](systems/Oxygen.md) |
 | arena spawns are not filtered for reachability | [NavMeshSystem](systems/NavMeshSystem.md) |
+| assets marked in a library .blend show up under Unassigned in the Asset Browser | [ArtPipeline](systems/ArtPipeline.md) |
 | astronauts in the lobby float above the sand or stand sunk into it | [Lobby](systems/Lobby.md) |
 | back gear sits half a metre off the pack's rail until I re-equip it | [BodyEquipment](systems/BodyEquipment.md) |
 | both status lamps on the pack are lit at once and flicker against each other | [Backpack](systems/Backpack.md) |
@@ -2260,4 +2262,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1615 symptoms, 619 paths, 86 docs -->
+<!-- 1617 symptoms, 619 paths, 86 docs -->

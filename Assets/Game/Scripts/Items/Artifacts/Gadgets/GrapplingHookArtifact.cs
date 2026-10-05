@@ -80,6 +80,10 @@ namespace SpaceGame.Items
         [SerializeField] private LayerMask hookableLayers = ~0;
         [SerializeField] private float shootSpeed = 60f;   // dart travel speed, m/s
 
+        [Tooltip("How far from the hook point a peer looks for the moving part the hook went into, metres. " +
+                 "See BindAttach.")]
+        [SerializeField, Min(0.01f)] private float attachProbeRadius = 0.25f;
+
         [Tooltip("The shooter's arm as the dart leaves. Empty for none.")]
         [SerializeField] private CharacterAction fireAction;
 
@@ -409,10 +413,12 @@ namespace SpaceGame.Items
             if (!Network.Server || !_isGrappling || owner == null) return;
             if (clientId == NetworkManager.ServerClientId) return;
 
+            // The anchor as it is NOW: the part may have moved since the throw, and the joiner finds
+            // the part by looking at this point.
             NetMessaging.NetSendTo(owner, NetMsg.GrappleRope, new NetArg
             {
                 A = GrappleVerb.On,
-                P = _hookPoint,
+                P = CurrentAnchor(),
                 R = Quaternion.LookRotation(_hitNormal),
             }.With(_hookAttach != null ? _hookAttach.gameObject : null), NetTo.All);
         }
@@ -1339,12 +1345,46 @@ namespace SpaceGame.Items
             _look = owner != null ? owner.GetComponent<PlayerLook>() : null;
         }
 
+        /// <summary>
+        /// Hang the rope on what the hook went into, so it moves with it.
+        ///
+        /// <para>
+        /// The owner resolves the very collider its raycast hit. A peer resolves only what the message
+        /// can name — the NetworkObject above it — and for a part that moves INSIDE its entity (the
+        /// satellite dish turning on its tower) that root stands still, so the peer's rope would stay
+        /// pinned where the part was. The peer therefore looks for the root's own collider at the hook
+        /// point and hangs the rope on that instead.
+        /// </para>
+        /// </summary>
         private void BindAttach(GameObject attach)
         {
-            _hookAttach = attach != null ? attach.transform : null;
+            _hookAttach = attach != null ? HookedPart(attach.transform) : null;
             _attachOffset = _hookAttach != null
                 ? _hookAttach.InverseTransformPoint(_hookPoint)
                 : Vector3.zero;
+        }
+
+        private static readonly Collider[] PartProbe = new Collider[16];
+
+        private Transform HookedPart(Transform resolved)
+        {
+            if (resolved.GetComponent<Collider>() != null) return resolved;
+
+            int count = Physics.OverlapSphereNonAlloc(_hookPoint, attachProbeRadius, PartProbe, ~0,
+                                                      QueryTriggerInteraction.Ignore);
+            Transform best = resolved;
+            float bestDistance = float.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                Collider part = PartProbe[i];
+                if (part == null || !part.transform.IsChildOf(resolved)) continue;
+
+                float distance = part.bounds.SqrDistance(_hookPoint);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = part.transform;
+            }
+            return best;
         }
 
         /// <summary>

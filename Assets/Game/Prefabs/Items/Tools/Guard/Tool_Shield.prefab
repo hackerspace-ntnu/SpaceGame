@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 2839943250843280756}
   - component: {fileID: 3643583917627544701}
   - component: {fileID: 159294645258665611}
+  - component: {fileID: -5837735837286772220}
   m_Layer: 0
   m_Name: Tool_Shield
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-5837735837286772220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5812841936833808956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &1315817251748174804
 PrefabInstance:
   m_ObjectHideFlags: 0

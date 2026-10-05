@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: 4025922152821943571}
   - component: {fileID: 5171847083669376144}
   - component: {fileID: 2182149686889599035}
+  - component: {fileID: 619542614864972372}
   m_Layer: 0
   m_Name: Tool_Sling
   m_TagString: Untagged
@@ -334,6 +335,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &619542614864972372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 418086144258980681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &5465213724946490334
 GameObject:
   m_ObjectHideFlags: 0

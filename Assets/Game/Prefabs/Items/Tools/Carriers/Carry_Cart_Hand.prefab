@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 6839700643260674972}
   - component: {fileID: 4441266863291456689}
   - component: {fileID: 7937249301749568676}
+  - component: {fileID: -7473991936881699614}
   m_Layer: 0
   m_Name: Carry_Cart_Hand
   m_TagString: Untagged
@@ -318,6 +319,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-7473991936881699614
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4637606102011356463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &4505847037040445406
 PrefabInstance:
   m_ObjectHideFlags: 0

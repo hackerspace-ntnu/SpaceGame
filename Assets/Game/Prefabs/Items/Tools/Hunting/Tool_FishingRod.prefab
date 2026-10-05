@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 6947457035778982633}
   - component: {fileID: 7527309857414053435}
   - component: {fileID: 3763059780251256979}
+  - component: {fileID: 2256388665547443869}
   m_Layer: 0
   m_Name: Tool_FishingRod
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &2256388665547443869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 631109256418661776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &413763923057894293
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -204,7 +204,6 @@ namespace SpaceGame.EditorTools
             root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             StaticPropBuilder.FitCounts fits = StaticPropBuilder.ApplyFits(root, Rules);
             Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
-            StaticPropBuilder.BuildLodGroup(root, renderers, LodCullRatio);
             Vector3 size = RendererBounds(root).size;
 
             RequireDuctsOnEngines(vessel.Name, root.transform, vessel.Ducts);
@@ -213,6 +212,7 @@ namespace SpaceGame.EditorTools
             EngineSmoke smoke = SkyFleetMovers.AddSmoke(root, root.transform, vessel.Ducts, 1f, EscortSmokeFullSpeed);
             SaveablePolicy.Ensure(root, out _);
 
+            SettlementLodBaker.Bake(root, vessel.PrefabPath, SettlementLodSettings.Load().sky);
             PrefabUtility.SaveAsPrefabAsset(root, vessel.PrefabPath);
             return $"{renderers.Length} renderers, {size.x:F1} x {size.y:F1} x {size.z:F1} m, colliders {fits}, " +
                    $"{smoke.EngineCount} smoking ducts";

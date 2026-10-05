@@ -508,6 +508,13 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(LeverSaveable));
             }
 
+            // Where a player left the satellite dish pointing.
+            if (go.GetComponent<DishRig>() != null && go.GetComponent<DishRigSaveable>() == null)
+            {
+                go.AddComponent<DishRigSaveable>();
+                parts.Add(nameof(DishRigSaveable));
+            }
+
             // A cell and a bottle left in the plant are items out of somebody's hotbar. Without
             // this they are simply gone on the next load, and the machine comes back dark needing
             // a cell nobody has any more.

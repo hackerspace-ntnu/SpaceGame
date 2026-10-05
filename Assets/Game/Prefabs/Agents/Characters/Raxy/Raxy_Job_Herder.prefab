@@ -1892,6 +1892,7 @@ GameObject:
   - component: {fileID: 8119091496048357035}
   - component: {fileID: 1545206410387876212}
   - component: {fileID: 3185706394908579674}
+  - component: {fileID: 7335347969047385391}
   m_Layer: 0
   m_Name: Raxy_Job_Herder
   m_TagString: Untagged
@@ -2104,6 +2105,7 @@ MonoBehaviour:
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
+  sightRecheckInterval: 0.2
 --- !u!114 &8850766705227383606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2477,7 +2479,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &1552731644144407853
@@ -2920,13 +2922,17 @@ MonoBehaviour:
   minRadius: 0.04
   totalMass: 70
   minBoneMass: 0.6
+  maxJointMassRatio: 8
   angularDamping: 0.6
   linearDamping: 0.05
   solverIterations: 14
   sleepWhenSettled: 1
+  boneSleepThreshold: 0.05
   selfCollision: 0
   swingLimit: 45
   twistLimit: 25
+  projectionDistance: 0.05
+  projectionAngle: 10
   settleLinearSpeed: 0.35
   settleAngularSpeed: 1.2
   settleSeconds: 0.45
@@ -2949,9 +2955,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  knockdown:
+    fallSeconds: 0.1
+    minSeconds: 0.1
+    maxSeconds: 0.2
+    threshold: 0.35
+    fullSeverity: 1
+    damageWeight: 1
+    lowHealthWeight: 0.5
+    knockbackWeight: 1
+    knockbackReferenceSpeed: 20
+    settleGraceSeconds: 1.5
+    reknockImmunitySeconds: 1
+  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
-  downedSeconds: 1.2
 --- !u!114 &6238086770813450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3130,6 +3148,7 @@ MonoBehaviour:
   offstageAfterSeconds: 10
   settleDistance: 30
   doorstepDistance: 2
+  onMeshWithin: 2
   deckReach: 3
   approachStandOff: 8
   thresholdArriveRadius: 0.5
@@ -3358,6 +3377,7 @@ MonoBehaviour:
   maxSpeedMultiplier: 1.35
   leaderMovingSpeed: 0.4
   restRadius: 6
+  holdSlotAtRest: 0
   regroupDistance: 40
   navSampleDistance: 6
 --- !u!114 &3185706394908579674
@@ -3372,6 +3392,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
+--- !u!114 &7335347969047385391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &6352483063516593831
 GameObject:
   m_ObjectHideFlags: 0

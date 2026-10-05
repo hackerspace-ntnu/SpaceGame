@@ -27,6 +27,13 @@ namespace SpaceGame.Core
         private const float TossForward = 1.5f;
         private const float TossUp = 1f;
 
+        /// <summary>
+        /// How far above the drop origin the ground probe starts, in metres. Must stay inside the
+        /// dropper: below a 3 m player's head when the origin is the hand, and above the feet when
+        /// the origin is an NPC's root. See <see cref="ClearOfGround"/>.
+        /// </summary>
+        private const float GroundProbeLift = 0.5f;
+
         public void DropItem(Transform origin, InventoryItem item, ItemState state = null)
         {
             if (origin == null || item == null || item.itemPrefab == null) return;
@@ -74,7 +81,42 @@ namespace SpaceGame.Core
         {
             float reach = 0.5f * ItemWorldScale.SizeOf(item.itemPrefab);
 
-            return origin.position + origin.forward * reach;
+            return ClearOfGround(origin.position, origin.position + origin.forward * reach, reach);
+        }
+
+        /// <summary>
+        /// Lifts <paramref name="point"/> until it is at least <paramref name="reach"/> above the
+        /// ground under <paramref name="origin"/>.
+        ///
+        /// <para>
+        /// An item born with its pivot at or below a TerrainCollider or MeshCollider surface is not
+        /// pushed back out: it falls straight through and keeps falling (measured: a rifle born with
+        /// its pivot 0.15 m up lands, one born at the surface is 80 m down two seconds later). A hand
+        /// never put it there, but a body does — <c>EntityLootTable</c> drops from the dead NPC's
+        /// root, which is its feet if it dies standing and its pelvis, turned with the body, if it
+        /// dies knocked down; face down, "ahead" is into the sand. Most battlefield loot fell out of
+        /// the world, and the next load landed every record of it back on the surface at its X/Z
+        /// (<c>WorldSaveStore.LandAwaitingGround</c>) — weapons appearing from nowhere.
+        /// </para>
+        ///
+        /// <para>
+        /// The probe starts <see cref="GroundProbeLift"/> above the origin, inside the dropper's own
+        /// body, so it never meets a ceiling over the dropper's head. Ground further below the point
+        /// than the item's reach is left alone: a drop off a ledge still falls.
+        /// </para>
+        /// </summary>
+        private static Vector3 ClearOfGround(Vector3 origin, Vector3 point, float reach)
+        {
+            Vector3 probe = new Vector3(point.x, origin.y + GroundProbeLift, point.z);
+            float depth = probe.y - (point.y - reach);
+            if (depth <= 0f) return point;
+
+            if (!Physics.Raycast(probe, Vector3.down, out RaycastHit ground, depth,
+                                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                return point;
+
+            point.y = Mathf.Max(point.y, ground.point.y + reach);
+            return point;
         }
 
         /// <summary>

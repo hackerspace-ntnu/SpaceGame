@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 790853505601134990}
   - component: {fileID: 2260484335927224975}
   - component: {fileID: 5201564553630205352}
+  - component: {fileID: 5131919924600830709}
   m_Layer: 0
   m_Name: NetworkGameManager
   m_TagString: Untagged
@@ -182,3 +183,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveNetwork
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5131919924600830709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ff3f9306d0027e40a9adfe5886c9129, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistantGroups
+  ShowTopMostFoldoutHeaderGroup: 1
+  publishInterval: 0.5

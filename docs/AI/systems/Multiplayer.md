@@ -42,7 +42,7 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 - **"Entity" = the `NetworkObject` root** (`transform.root` if none), so a handler on a nested weapon and a message addressed to the player body meet in the same `NetChannel`.
 - **Two authority questions, never `IsServer` directly:** `Network.Simulates(c)` (may I decide?) and `Network.Owns(c)` (mine to drive from input?). Both true offline and for un-networked objects — refusing there would freeze chunk props and interiors.
 - **NGO replicates a spawn by `GlobalObjectIdHash`;** the server never consults the prefab list, so an unregistered prefab is a working host and blind clients.
-- Session-wide netcode (chat, sky anchor, join snapshot, spawn flow) rides the **NetworkGameManager prefab** in `persistentScene`: one `NetworkObject`, spawned on every peer before any player object.
+- Session-wide netcode (chat, sky anchor, join snapshot, spawn flow, distant groups — [SettlementLods.md](SettlementLods.md)) rides the **NetworkGameManager prefab** in `persistentScene`: one `NetworkObject`, spawned on every peer before any player object.
 
 ## Key types
 

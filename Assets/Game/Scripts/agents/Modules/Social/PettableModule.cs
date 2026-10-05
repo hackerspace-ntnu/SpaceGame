@@ -44,6 +44,10 @@ namespace SpaceGame.Agents
                  "or fleeing the prompt does not appear at all, rather than appearing and refusing.")]
         [SerializeField] private FightOrFlightModule mood;
 
+        [Tooltip("Optional. A wild creature that has to be won over first: no prompt at all until " +
+                 "it is tame. Empty for an animal anyone may pet.")]
+        [SerializeField] private CreatureTrust trust;
+
         [Tooltip("What the PLAYER who petted does: the reach. Played on every machine that hears " +
                  "of the pet; CharacterActions decides which of them actually writes the body.")]
         [SerializeField] private CharacterAction petterAction;
@@ -69,6 +73,8 @@ namespace SpaceGame.Agents
                 animatorDriver = agentRoot.GetComponentInChildren<AgentAnimatorDriver>();
             if (mood == null && agentRoot != null)
                 mood = agentRoot.GetComponentInChildren<FightOrFlightModule>();
+            if (trust == null && agentRoot != null)
+                trust = agentRoot.GetComponentInChildren<CreatureTrust>();
         }
 
         private void OnEnable()
@@ -90,7 +96,7 @@ namespace SpaceGame.Agents
 
         // ─────────── IInteractable ───────────
 
-        public bool CanInteract() => !OnCooldown && !IsUpset();
+        public bool CanInteract() => !OnCooldown && !IsUpset() && Welcomes();
 
         /// <summary>
         /// Contextual as well as plain, so a refusal hides the prompt instead of showing one that
@@ -127,7 +133,7 @@ namespace SpaceGame.Agents
         private void OnPetRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Owns(this)) return;
-            if (IsUpset()) return;
+            if (IsUpset() || !Welcomes()) return;
 
             readyAt = Time.time + cooldown;
             NetMessaging.NetSendTo(agentRoot, NetMsg.Petted, arg, NetTo.All);
@@ -162,6 +168,9 @@ namespace SpaceGame.Agents
         /// silent failure mode; a charging one is about to ram you and should not offer its cheek.
         /// </summary>
         private bool IsUpset() => mood != null && mood.CurrentMood == FightOrFlightModule.Mood.Enraged;
+
+        /// <summary>A creature that has to be won over lets nobody touch it until it has been.</summary>
+        private bool Welcomes() => trust == null || trust.IsTame;
 
         // ─────────── IInteractionReadout ───────────
 

@@ -120,6 +120,12 @@ A ring of four tall weathervanes stands round a grated wind vent at the foot of 
 
 **Worth knowing:** the ring is always scrambled by turning cranks from the solved position, never by picking random directions, because some arrangements of four coupled vanes cannot be solved at all.
 
+### The sun shrine *(SunShrine)*
+
+A half-buried sun temple whose vault door is sealed by a gold sun glyph. The glyph sits in shade, so the players crank three mirrors to bounce the real, moving sun into it: the first mirror catches the light and tilts, the other two turn. Hold the glyph lit for five seconds and the door sinks away for good. The sun keeps moving, so a working arrangement drifts off within about an in-game hour and has to be chased. A sundial outside marks the third of the day when the shrine is awake.
+
+**Worth knowing:** the shrine must be placed square to the world, because the sun always crosses the sky in the same plane and the mirrors' turning steps are laid out against it; turn the building and the puzzle can become unsolvable without any warning.
+
 ## Characters and creatures
 
 ### The astronaut you play *(PlayerCharacter)*
@@ -145,6 +151,12 @@ Every creature, villager, enemy and gun emplacement is a body plus a stack of sm
 A second neutral tribe, camped in a walking city that stands 228 metres up in the air on its own little NavMesh. Its people are the sand nomads wearing a different colour, and it goes to war the same way Sand does — except its war parties do not walk out to find you. A skiff or a freighter lifts off from the city, flies to wherever you are, looks for ground flat enough to land on and touches down, or hovers a few metres up and drops its passengers onto the nearest walkable ground if it cannot. The party then fights on foot like any other, and the empty hull flies itself home once you are out of sight.
 
 **Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
+
+### The Glintback *(Glintback)*
+
+A long-necked, magpie-coloured scavenger about seven metres long, nesting on a rock spire with a hull module in its nest. It sits on the nest and watches, then wanders its territory, and anything shiny it spots — a battery, a lantern, something a player dropped — it carries home in its beak and drops in the nest. Players can fight it, sneak up while it is out foraging, lure it away with a shiny item, or win it over by giving it gifts while it is calm, until it lowers its head and lets them pet it.
+
+**Worth knowing:** it only guards what it can see, and it only counts an item as a gift if a player is standing close and it is calm when it takes it — a lure dropped far away is a theft, not a present.
 
 ### Picking a creature up off the ground *(CarriedAgent)*
 

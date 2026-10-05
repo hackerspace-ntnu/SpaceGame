@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation]
-updated: 2026-09-28
+updated: 2026-09-30
 ---
 
 # Interaction
@@ -93,7 +93,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `SpaceshipLaunchInteract` | [Spaceship/SpaceshipLaunchInteract.cs](Assets/Game/Scripts/Spaceship/SpaceshipLaunchInteract.cs) | Launches the ship; `NetLatch` (`ILatchHost`). |
 | `InteriorEntrance` | [Core/SceneManagement/Interiors/InteriorEntrance.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorEntrance.cs) | `InteriorManager.EnterInterior`, unless lock-out is active. |
 | `CaveExitCover` | [World/…/CaveExitCover.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveExitCover.cs) | Leaves the cave (also a walk-in volume). Exits whichever body `InteriorManager.ResolveOccupant` names — a rider's press-E leaves on the **mount's** record. |
-| `WeathervaneCrank` | [Puzzles/Weathervane/WeathervaneCrank.cs](Assets/Game/Scripts/Gameplay/Puzzles/Weathervane/WeathervaneCrank.cs) | Turns its vane and the next a quarter via the ring's `VaneTurn`/`VaneState`; refuses once solved or before a client has heard the arrangement. See [WeathervanePuzzle.md](WeathervanePuzzle.md). |
+| `DialCrank` | [Puzzles/Dials/DialCrank.cs](Assets/Game/Scripts/Gameplay/Puzzles/Dials/DialCrank.cs) | Turns one dial of a `DialSet` (serialized `dial` index) via `DialTurn`/`DialState`; refuses when the set says `CanTurn` is false (solved ring, unheard arrangement). Weathervanes and sun-shrine mirrors. See [WeathervanePuzzle.md](WeathervanePuzzle.md), [SunShrine.md](SunShrine.md). |
 
 ## Flows
 
@@ -133,7 +133,8 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | Oxygen plant: cell fitted, bottle docked | [`OxygenGeneratorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) → `RestoreDock`. Baked into the fixture prefab and collected by the hull's root entity, like the station's | `oxygen` |
 | Projector powered | [`ProjectorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ProjectorSaveable.cs) → `RestorePowered` | `projector` |
 | Trader stock + decline cooldown (remaining seconds, not a deadline) | [`TraderSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TraderSaveable.cs) → `RestoreOffers` | `trader` |
-| Weathervane ring positions | [`WeathervaneRingSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/WeathervaneRingSaveable.cs) → `RestorePositions` | `weathervanes` |
+| Dial puzzle arrangement (weathervanes, sun mirrors) | [`DialSetSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs) → `DialSet.Restore` | `dials` |
+| Sun shrine vault opened | [`SunSealSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/SunSealSaveable.cs) → `RestoreOpen` | `sunSeal` |
 
 All six are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
 

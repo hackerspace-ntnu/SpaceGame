@@ -654,16 +654,16 @@ namespace SpaceGame.Core
         //   B = variant | arm << 8 (arm: 0 none, 1 left, 2 right).
         public const ushort CharacterActed = 116; // server → everyone else
 
-        // ── Weathervane ring ──
-        // A ring of vanes whose cranks each turn their own vane and the next one round. The vane
-        // positions are one small number of shared world state — two bits a vane — so the whole
-        // ring travels in A rather than one message per vane, and a machine can never hold half a
-        // turn. The same ask/announce shape as LatchSet/LatchState, on the RING's relay.
+        // ── Dial puzzles (the weathervane ring, the sun shrine's mirrors) ──
+        // A set of cranked dials whose whole arrangement is one small number of shared world state,
+        // so it travels in A rather than one message per dial, and a machine can never hold half a
+        // turn. The same ask/announce shape as LatchSet/LatchState, on the SET's relay (DialSet).
+        // Named VaneTurn/VaneState until the mirrors became the second user; the ids are unchanged.
         //
-        //   VaneTurn   A = the crank's vane index, or -1 for "what state is the ring in?".
-        //   VaneState  A = every position, packed (WeathervanePositions). B = the vane whose crank
-        //              was turned, or -1 to land instantly — a joiner's answer, or a load.
-        public const ushort VaneTurn  = 117; // player → server, on the RING's relay
-        public const ushort VaneState = 118; // server → everyone, on the RING's relay
+        //   DialTurn   A = the crank's dial index, or -1 for "what state is the set in?".
+        //   DialState  A = the whole arrangement, packed by the set. B = the dial whose crank was
+        //              turned, or -1 to land instantly — a joiner's answer, or a load.
+        public const ushort DialTurn  = 117; // player → server, on the SET's relay
+        public const ushort DialState = 118; // server → everyone, on the SET's relay
     }
 }

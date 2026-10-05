@@ -206,6 +206,12 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(EntityInventorySaveable));
             }
 
+            if (go.GetComponent<CreatureTrust>() != null && go.GetComponent<CreatureTrustSaveable>() == null)
+            {
+                go.AddComponent<CreatureTrustSaveable>();
+                parts.Add(nameof(CreatureTrustSaveable));
+            }
+
             // Hatches, ramps and canopies anywhere below this object. Asked of the whole subtree
             // because the parts are children while the saver belongs on the entity that owns them.
             if (go.GetComponentInChildren<ArticulatedPart>(true) != null &&
@@ -487,11 +493,18 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(LeverSaveable));
             }
 
-            if (go.GetComponent<SpaceGame.Gameplay.Puzzles.WeathervaneRing>() != null &&
-                go.GetComponent<WeathervaneRingSaveable>() == null)
+            if (go.GetComponent<SpaceGame.Gameplay.Puzzles.DialSet>() != null &&
+                go.GetComponent<DialSetSaveable>() == null)
             {
-                go.AddComponent<WeathervaneRingSaveable>();
-                parts.Add(nameof(WeathervaneRingSaveable));
+                go.AddComponent<DialSetSaveable>();
+                parts.Add(nameof(DialSetSaveable));
+            }
+
+            if (go.GetComponent<SpaceGame.Gameplay.Puzzles.SunSeal>() != null &&
+                go.GetComponent<SunSealSaveable>() == null)
+            {
+                go.AddComponent<SunSealSaveable>();
+                parts.Add(nameof(SunSealSaveable));
             }
 
             // A cell and a bottle left in the plant are items out of somebody's hotbar. Without

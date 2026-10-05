@@ -178,7 +178,7 @@ namespace SpaceGame.Items
 
           bool added = inventory.TryAddItem(item, out int landed);
 
-          if (added && landed >= 0) GiveBackTo(inventory, landed, charge);
+          if (added && landed >= 0) GiveBackTo(inventory, landed);
 
           // Hotbar first, then the pack. Without the overflow a four-slot hotbar means the backpack
           // never fills from the world, and the only way to put anything in it is the inspector.
@@ -219,25 +219,41 @@ namespace SpaceGame.Items
        /// source.
        /// </para>
        /// </summary>
-       private void GiveBackTo(IPlayerInventory inventory, int index, float charge)
+       private void GiveBackTo(IPlayerInventory inventory, int index)
        {
           InventorySlot slot = inventory.GetSlot(index);
           if (slot == null || slot.IsEmpty) return;
 
-          // A copy, not the bag itself: this object is despawned rather than destroyed on the spot,
-          // and a slot holding a live reference into a dying component is a bug waiting for a frame.
-          if (carried != null) slot.State = new ItemState(carried.Raw);
-
-          if (charge >= 0f)
-          {
-             slot.State ??= new ItemState();
-             SupplyCharge.Write(slot.State, charge);
-          }
+          ItemState state = ReadState();
+          if (state == null) return;
+          slot.State = state;
 
           // The bag does not replicate, so anything in it the owning client can SEE has to be
           // pushed after the fact. Today the charge is the only such key; the call is made for the
           // whole bag so the next one does not have to remember.
-          if (slot.State != null) inventory.PublishSlotCharges();
+          inventory.PublishSlotCharges();
+       }
+
+       /// <summary>
+       /// Everything this instance is carrying, as the bag a slot holds: the one remembered at the
+       /// drop, with the live charge on top. Null for an item at its authored defaults. For anything
+       /// that takes the item out of the world — a player's slot, a creature's jaws — so that
+       /// taking it and putting it back does not refill it.
+       /// </summary>
+       public ItemState ReadState()
+       {
+          // A copy, not the bag itself: this object is despawned rather than destroyed on the spot,
+          // and a slot holding a live reference into a dying component is a bug waiting for a frame.
+          ItemState state = carried != null ? new ItemState(carried.Raw) : null;
+
+          SupplyReservoir supply = SupplyReservoir.On(gameObject);
+          if (supply != null)
+          {
+             state ??= new ItemState();
+             SupplyCharge.Write(state, supply.Charge);
+          }
+
+          return state;
        }
 
        /// <summary>

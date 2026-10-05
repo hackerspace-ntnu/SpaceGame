@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
   m_Name: ItemScanner
   m_EditorClassIdentifier: 
+  <ID>k__BackingField: c48f2b7d16ae4c93a5e07f81d3b62c40
   itemName: Item Scanner
   itemPrefab: {fileID: 7460113200000000001, guid: a913f5c2e6d84b17bc350ae924f7d861, type: 3}
   icon: {fileID: 21300000, guid: 8acffd3a2242a4f42b300ecd78a2720f, type: 3}
+  iconPrefab: {fileID: 0}
   equipKind: 1
+  menacing: 0
+  glints: 1

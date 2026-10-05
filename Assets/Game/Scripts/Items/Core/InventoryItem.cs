@@ -71,6 +71,13 @@ namespace SpaceGame.Items
                  "while squared up at somebody is.")]
         public bool menacing;
 
+        [Tooltip("Does it catch the light? Tick it for bright metal and glass — a battery, a " +
+                 "lantern, a scanner — and leave it off for cloth, wood and anything too big to " +
+                 "carry off.\n\n" +
+                 "Read by HoardModule: a hoarding creature fetches loose glinting items back to its " +
+                 "nest, which is what makes one a lure, and a gift, and a thing it can steal.")]
+        public bool glints;
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

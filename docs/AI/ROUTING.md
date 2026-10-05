@@ -501,6 +501,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a vehicle at the back of the Strider column keeps riding up to the lead house | [Striders](systems/Striders.md) |
+| a vehicle walking toward the camera stands in front of its dust cloud, legs crisp | [VehicleDust](systems/VehicleDust.md) |
 | a villager warns me when I punch him instead of fighting back | [Residents](systems/Residents.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
 | a wall block's end shows a dark face where the terrace wall bends | [SettlementStreets](systems/SettlementStreets.md) |
@@ -1162,6 +1163,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the exported skin is a sibling's texture, not the one painted in Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | the eyelids are darker and more saturated than the face around them | [StylizedEyes](systems/StylizedEyes.md) |
 | the fade to black hangs and the door stays busy | [SceneTransitions](systems/SceneTransitions.md) |
+| the far dust lies along the ground as a flat orange band instead of tall clouds | [VehicleDust](systems/VehicleDust.md) |
 | the feet trail behind the body, or a planted foot slips along the ground | [Locomotion](systems/Locomotion.md) |
 | the fire lights nothing — six metres of flame in a dark room | [Flamethrower](systems/Flamethrower.md) |
 | the fire looks like a raft of orange bubbles rather than flames | [Flamethrower](systems/Flamethrower.md) |
@@ -2274,4 +2276,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1623 symptoms, 625 paths, 86 docs -->
+<!-- 1625 symptoms, 625 paths, 86 docs -->

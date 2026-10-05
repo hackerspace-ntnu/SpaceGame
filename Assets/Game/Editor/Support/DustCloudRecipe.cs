@@ -21,6 +21,8 @@ namespace SpaceGame.EditorTools
         public const float MinLife = 8f, MaxLife = 12f;
         /// <summary>A puff's diameter at birth (m), before the recipe billows it about 4x.</summary>
         public const float MinSize = 2f, MaxSize = 3.2f;
+        /// <summary>The drag that spends a puff's throw within about a second.</summary>
+        public const float Drag = 2.5f;
 
         /// <summary>The cap that keeps a cloud whole at a given peak emission rate (particles/s).</summary>
         public static int CapFor(float peakRate) => Mathf.CeilToInt(peakRate * MaxLife);
@@ -93,7 +95,7 @@ namespace SpaceGame.EditorTools
             shape.position = shapeOffset;
             ParticleSystem.LimitVelocityOverLifetimeModule drag = ps.limitVelocityOverLifetime;
             drag.enabled = true;
-            drag.drag = 2.5f;
+            drag.drag = Drag;
             drag.multiplyDragByParticleSize = false;   // the puffs grow 4x; their drag must not grow with them
             ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
             size.enabled = true;

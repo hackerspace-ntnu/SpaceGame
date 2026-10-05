@@ -34,6 +34,16 @@ namespace SpaceGame.EditorTools
         public const float FarDustRateFraction = 0.2f;
         /// <summary>No far dust past the Strider vehicles' cull (SettlementLodSettings.strider.cullBeyondMetres; SettlementLodPrefabTests pins the two).</summary>
         public const float FarDustCullDistance = 1500f;
+        /// <summary>Far puffs are born from the hull's lowest point up to this fraction of its height, so the cloud stands up the legs rather than lying on the sand.</summary>
+        public const float FarDustBirthHeightFraction = 0.5f;
+        /// <summary>And across this many times the hull's footprint, so from any side some dust stands between the camera and the legs.</summary>
+        public const float FarDustFootprintSpread = 2f;
+        /// <summary>The birth box leads the hull by this fraction of its length, so a marching vehicle walks into its puffs as they swell: seen head-on, a trail alone lies behind its legs.</summary>
+        public const float FarDustLead = 0.5f;
+        /// <summary>A far puff's alpha at birth (the recipe's is 0.6): few puffs, so each must veil.</summary>
+        public const float FarDustOpacity = 1f;
+        /// <summary>Once drag has spent its throw a far puff climbs at this speed (m/s), so the trail behind a marching vehicle stands up into a wall.</summary>
+        public const float FarDustRiseSpeed = 0.8f;
 
         /// <summary>Track dust is thrown up and back off the ground run, as the monowheel's off its paddles.</summary>
         private static readonly Quaternion TrackDustAim = Quaternion.LookRotation(new Vector3(0f, 0.8f, -0.6f));
@@ -84,10 +94,13 @@ namespace SpaceGame.EditorTools
             return dust;
         }
 
+        /// <summary>The gravity modifier whose pull, against the recipe's drag, settles a far puff at <see cref="FarDustRiseSpeed"/>.</summary>
+        public static float FarDustRiseGravity() => FarDustRiseSpeed * DustCloudRecipe.Drag / Physics.gravity.y;
+
         /// <summary>
         /// Far dust for the machine at <paramref name="root"/>: one huge, sparse cloud on its own child
-        /// (<see cref="FarCloudName"/>), born across the hull's footprint at its lowest point and thrown up,
-        /// fading in over the band its near dust fades out. <paramref name="nearPeakRate"/> is that near
+        /// (<see cref="FarCloudName"/>), born round and ahead of the lower part of the hull, thrown up and
+        /// climbing, fading in over the band its near dust fades out. <paramref name="nearPeakRate"/> is that near
         /// dust's peak (puffs/s); <paramref name="cruiseSpeed"/> the speed at which the far dust is full.
         /// Call after the near dust and after anything that measures renderer bounds.
         /// </summary>
@@ -101,14 +114,20 @@ namespace SpaceGame.EditorTools
             float rate = nearPeakRate * FarDustRateFraction;
             int cap = Mathf.CeilToInt(rate * DustCloudRecipe.MaxLife * FarDustLifeMultiplier);
             ParticleSystem cloud = DustCloudRecipe.Cloud(root.transform, FarCloudName, new Vector3(hull.center.x, hull.min.y, hull.center.z),
-                                                         Quaternion.LookRotation(Vector3.up), SandMaterial(), SandTint, cap, Vector3.zero);
+                                                         Quaternion.LookRotation(Vector3.up, Vector3.forward), SandMaterial(), SandTint, cap, Vector3.zero);
             ParticleSystem.MainModule main = cloud.main;
             main.startSize = new ParticleSystem.MinMaxCurve(DustCloudRecipe.MinSize * FarDustSizeMultiplier,
                                                             DustCloudRecipe.MaxSize * FarDustSizeMultiplier);
             main.startLifetime = new ParticleSystem.MinMaxCurve(DustCloudRecipe.MinLife * FarDustLifeMultiplier,
                                                                 DustCloudRecipe.MaxLife * FarDustLifeMultiplier);
+            main.gravityModifier = FarDustRiseGravity();
+            main.startColor = new Color(SandTint.r, SandTint.g, SandTint.b, FarDustOpacity);
+            // The cloud's own axes: z is up (its throw), y is the root's forward, so the box's base is the footprint.
+            float birthHeight = hull.size.y * FarDustBirthHeightFraction;
             ParticleSystem.ShapeModule shape = cloud.shape;
-            shape.radius = Mathf.Max(hull.extents.x, hull.extents.z);
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(hull.size.x * FarDustFootprintSpread, hull.size.z * FarDustFootprintSpread, birthHeight);
+            shape.position = new Vector3(0f, hull.size.z * FarDustLead, birthHeight * 0.5f);
 
             var dust = cloud.gameObject.AddComponent<FarDust>();
             dust.Configure(cloud, cruiseSpeed, rate, band, FarDustCullDistance);

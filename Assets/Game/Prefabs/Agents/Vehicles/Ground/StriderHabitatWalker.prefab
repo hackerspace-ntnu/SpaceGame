@@ -5227,7 +5227,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6743754642618346587}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0.7071068, w: 0}
   m_LocalPosition: {x: 0, y: -0.15000439, z: 0.8116293}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -5424,7 +5424,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 0.6}
+      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 1}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -5812,7 +5812,7 @@ ParticleSystem:
     gravityModifier:
       serializedVersion: 2
       minMaxState: 0
-      scalar: -0.02
+      scalar: -0.11111111
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -5865,15 +5865,15 @@ ParticleSystem:
   ShapeModule:
     serializedVersion: 6
     enabled: 1
-    type: 4
+    type: 5
     angle: 30
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
     donutRadius: 0.2
-    m_Position: {x: 0, y: 0, z: 0}
+    m_Position: {x: 0, y: 13.780528, z: 7.754425}
     m_Rotation: {x: 0, y: 0, z: 0}
-    m_Scale: {x: 1, y: 1, z: 1}
+    m_Scale: {x: 62.97932, y: 55.122112, z: 15.50885}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -5952,7 +5952,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 15.74483
+      value: 0.6
       mode: 0
       spread: 0
       speed:
@@ -10144,28 +10144,12 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -3762112629989738622, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
-      propertyPath: authored
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -3762112629989738622, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       propertyPath: prefabId
       value: ade2c352218d0654aa42348edd37b947
-      objectReference: {fileID: 0}
-    - target: {fileID: -3762112629989738622, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
-      propertyPath: instanceId
-      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 489823318830370799, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3400086020
-      objectReference: {fileID: 0}
-    - target: {fileID: 489823318830370799, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 489823318830370799, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 1198895910
       objectReference: {fileID: 0}
     - target: {fileID: 2337666143241054709, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       propertyPath: m_LocalPosition.x
@@ -10275,10 +10259,10 @@ PrefabInstance:
       addedObject: {fileID: 6222169517509019527}
     - targetCorrespondingSourceObject: {fileID: 3114823854941761195, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -5461681940743481238}
+      addedObject: {fileID: 8080259823197251101}
     - targetCorrespondingSourceObject: {fileID: 3114823854941761195, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -872553635745774582}
+      addedObject: {fileID: -5806977502177361014}
   m_SourcePrefab: {fileID: 100100000, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
 --- !u!23 &7732208522974485 stripped
 MeshRenderer:
@@ -13568,7 +13552,7 @@ MonoBehaviour:
   group: {fileID: 6621765080951588935}
   mergedFilter: {fileID: 2263177176891670691}
   mergedRenderer: {fileID: 8147600153793317407}
---- !u!114 &-5461681940743481238
+--- !u!114 &8080259823197251101
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -13580,7 +13564,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba2f0d7b595cb434f9f10161a0e8b395, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.NpcTaskSaveable
---- !u!114 &-872553635745774582
+--- !u!114 &-5806977502177361014
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

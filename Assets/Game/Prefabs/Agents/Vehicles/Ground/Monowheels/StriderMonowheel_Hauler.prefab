@@ -1118,7 +1118,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8399596945006094300}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0.7071068, w: 0}
   m_LocalPosition: {x: 0.013166785, y: -0.647434, z: -0.40810156}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1315,7 +1315,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 0.6}
+      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 1}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -1703,7 +1703,7 @@ ParticleSystem:
     gravityModifier:
       serializedVersion: 2
       minMaxState: 0
-      scalar: -0.02
+      scalar: -0.11111111
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -1756,15 +1756,15 @@ ParticleSystem:
   ShapeModule:
     serializedVersion: 6
     enabled: 1
-    type: 4
+    type: 5
     angle: 30
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
     donutRadius: 0.2
-    m_Position: {x: 0, y: 0, z: 0}
+    m_Position: {x: 0, y: 4.170636, z: 1.1565969}
     m_Rotation: {x: 0, y: 0, z: 0}
-    m_Scale: {x: 1, y: 1, z: 1}
+    m_Scale: {x: 3.8826008, y: 16.682545, z: 2.3131938}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -1843,7 +1843,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 4.170636
+      value: 0.6
       mode: 0
       spread: 0
       speed:
@@ -5996,17 +5996,17 @@ GameObject:
   - component: {fileID: 7087786213697271740}
   - component: {fileID: 5017378667765923917}
   - component: {fileID: 6721571012615687940}
-  - component: {fileID: 4571510490113366668}
-  - component: {fileID: 3557888001735665595}
-  - component: {fileID: -7681597843059824304}
-  - component: {fileID: 5416359765550452395}
-  - component: {fileID: -757508177396618486}
-  - component: {fileID: 5863593565723094301}
-  - component: {fileID: 7002609895396343604}
-  - component: {fileID: 545789023681310978}
-  - component: {fileID: 8479443640193847129}
-  - component: {fileID: 1733341672592719907}
-  - component: {fileID: 5062086464456838936}
+  - component: {fileID: 1750417768843045917}
+  - component: {fileID: 4746211394071525457}
+  - component: {fileID: -571226966589809666}
+  - component: {fileID: 5650102589590341155}
+  - component: {fileID: -1589884920206227944}
+  - component: {fileID: 533399278634273531}
+  - component: {fileID: -4044103982878522888}
+  - component: {fileID: -6668175818062178876}
+  - component: {fileID: -3820837066499846255}
+  - component: {fileID: 4817164349729652636}
+  - component: {fileID: -2283039891084057237}
   m_Layer: 0
   m_Name: StriderMonowheel_Hauler
   m_TagString: Untagged
@@ -6742,7 +6742,7 @@ MonoBehaviour:
   group: {fileID: 5017378667765923917}
   mergedFilter: {fileID: 3275836404484070054}
   mergedRenderer: {fileID: 7224050685811565030}
---- !u!114 &4571510490113366668
+--- !u!114 &1750417768843045917
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6754,7 +6754,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
---- !u!114 &3557888001735665595
+--- !u!114 &4746211394071525457
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6766,7 +6766,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
---- !u!114 &-7681597843059824304
+--- !u!114 &-571226966589809666
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6778,7 +6778,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
---- !u!114 &5416359765550452395
+--- !u!114 &5650102589590341155
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6790,7 +6790,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29154b1ccc6444e649bf651e558f5b84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MountSaveable
---- !u!114 &-757508177396618486
+--- !u!114 &-1589884920206227944
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6802,7 +6802,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dba9c324820a2d3438abb638878e91eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CrewSaveable
---- !u!114 &5863593565723094301
+--- !u!114 &533399278634273531
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6814,7 +6814,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85fbbb8ee0af2284a8714c454c38c09d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AbandonedVehicleSaveable
---- !u!114 &7002609895396343604
+--- !u!114 &-4044103982878522888
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6826,7 +6826,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
---- !u!114 &545789023681310978
+--- !u!114 &-6668175818062178876
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6839,7 +6839,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
   drawGizmos: 1
---- !u!114 &8479443640193847129
+--- !u!114 &-3820837066499846255
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6851,7 +6851,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
---- !u!114 &1733341672592719907
+--- !u!114 &4817164349729652636
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6863,7 +6863,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
---- !u!114 &5062086464456838936
+--- !u!114 &-2283039891084057237
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

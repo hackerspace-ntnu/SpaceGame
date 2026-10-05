@@ -110,9 +110,39 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(Mathf.CeilToInt(far.RateAtFullSpeed * DustCloudRecipe.MaxLife * VehicleDustWiring.FarDustLifeMultiplier),
                             main.maxParticles);
             Assert.AreEqual(ParticleSystemSimulationSpace.World, main.simulationSpace);
-            Assert.AreEqual(5f, far.Cloud.shape.radius, 1e-3f, "born across the hull's widest half-extent");
+            ParticleSystem.ShapeModule shape = far.Cloud.shape;
+            Assert.AreEqual(ParticleSystemShapeType.Box, shape.shapeType);
+            Vector3 birthMin = far.transform.TransformPoint(shape.position - shape.scale * 0.5f);
+            Vector3 birthMax = far.transform.TransformPoint(shape.position + shape.scale * 0.5f);
+            Bounds birth = new Bounds(birthMin, Vector3.zero);
+            birth.Encapsulate(birthMax);
+            float spread = VehicleDustWiring.FarDustFootprintSpread;
+            Assert.AreEqual(0f, Vector3.Distance(new Vector3(10f * spread, 4f * VehicleDustWiring.FarDustBirthHeightFraction, 6f * spread), birth.size), 1e-3f,
+                            "born round the hull's footprint and up its lower part, not on the sand alone");
+            Assert.AreEqual(0f, birth.center.x, 1e-3f, "centred across the hull");
+            Assert.AreEqual(6f * VehicleDustWiring.FarDustLead, birth.center.z, 1e-3f,
+                            "leading it: a trail alone lies behind the legs of a vehicle seen head-on");
+            Assert.AreEqual(VehicleDustWiring.FarDustOpacity, main.startColor.color.a, 1e-5f);
+            Assert.AreEqual(-2f, birth.min.y, 1e-3f, "from the hull's lowest point");
             Assert.AreEqual(VehicleDustWiring.SandMaterialPath,
                             UnityEditor.AssetDatabase.GetAssetPath(far.Cloud.GetComponent<ParticleSystemRenderer>().sharedMaterial));
+        }
+
+        [Test]
+        public void AFarPuff_ClimbsAtTheRiseSpeed_OnceItsThrowIsSpent()
+        {
+            subject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var contact = new GameObject("Contact");
+            contact.transform.SetParent(subject.transform, false);
+            VehicleDustWiring.AddRollingDust(subject, new[] { contact.transform }, 4f, 3f);
+            FarDust far = VehicleDustWiring.AddFarDust(subject, nearPeakRate: 6f, cruiseSpeed: 2.7f);
+
+            far.Cloud.Emit(1);
+            far.Cloud.Simulate(6f, true, false, false);
+            var puffs = new ParticleSystem.Particle[1];
+            Assert.AreEqual(1, far.Cloud.GetParticles(puffs));
+            Assert.AreEqual(VehicleDustWiring.FarDustRiseSpeed, puffs[0].totalVelocity.y, 0.15f * VehicleDustWiring.FarDustRiseSpeed,
+                            "a far cloud stands up into a column; one that hangs where it was thrown lies on the sand as a band");
         }
 
         [Test]

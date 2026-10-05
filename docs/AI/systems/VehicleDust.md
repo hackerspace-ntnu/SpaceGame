@@ -16,21 +16,23 @@ symptoms:
   - "the crab outrider's rider sits metres above its shell after a rebuild"
   - "a legged machine's dust thins out or stops at top speed"
   - "far away the walking city's legs are frozen and nothing hides it"
+  - "the far dust lies along the ground as a flat orange band instead of tall clouds"
+  - "a vehicle walking toward the camera stands in front of its dust cloud, legs crisp"
 reads_with: [Striders, Monowheel, Locomotion, Vehicles, SettlementLods]
 updated: 2026-10-05
 ---
 
 # Vehicle dust
 
-Every machine in the Strider city throws the monowheel's lingering sand cloud ([Monowheel.md](Monowheel.md)): the legged ones (walking houses, desert crawlers, crab outriders) from **every foot that lands**, the dune barges from **where their tracks meet the sand**. Two small runtime components drive [`DustCloudRecipe`](Assets/Game/Editor/Support/DustCloudRecipe.cs) clouds from what each machine is already seen to do; one editor helper wires them into the builders that own the prefabs.
+Every machine in the Strider city throws the monowheel's lingering sand cloud ([Monowheel.md](Monowheel.md)): the legged ones (walking houses, desert crawlers, crab outriders) from **every foot that lands**, the dune barges from **where their tracks meet the sand**, and from far away every one of them, the monowheels included, marches inside **one huge, sparse far cloud** that hides its frozen far level. Three small runtime components drive [`DustCloudRecipe`](Assets/Game/Editor/Support/DustCloudRecipe.cs) clouds from what each machine is already seen to do; one editor helper wires them into the builders that own the prefabs.
 
 ## Model
 
-- **One look.** Every cloud is `DustCloudRecipe.Cloud` (8-12 s life, drag 2.5, billow 4.2x, churn) in one shared `SandDust.mat`: the monowheel dust's tint (0.78, 0.66, 0.47) and `_SoftFade` 1.2 m, through `VehicleDustWiring.SandMaterial()`. The recipe itself is untouched, so the monowheels rebuild unchanged.
+- **One look.** Every cloud is `DustCloudRecipe.Cloud` (`MinLife`–`MaxLife` 8–12 s, `MinSize`–`MaxSize` 2–3.2 m at birth, `Drag` 2.5, billow 4.2×, churn) in one shared `SandDust.mat`: the monowheel dust's tint (0.78, 0.66, 0.47) and `_SoftFade` 1.2 m, through `VehicleDustWiring.SandMaterial()`. The near clouds use the recipe as is, so the monowheels rebuild unchanged; only the far cloud overrides it.
 - **Footfall dust** (`FootfallDust`, one cloud per machine): each `Footfall` ([Locomotion.md](Locomotion.md)) throws a ring of `puffsPerFootfall` puffs born at the sole's rim, thrown outward and up (`upwardTilt` 0.8) at 3 m/s per metre of `FootprintRadius`, each born 0.9 footprint radii across (±20%). So the house's 1.8-2.6 m feet throw ~4 m puffs, the crab's 0.5-0.7 m feet ~1 m ones. Emitted with explicit position, velocity and size, so the cloud's own shape and start speed are unused.
 - **Rolling dust** (`RollingDust`, one cloud per contact): each contact's rate is `rateAtFullSpeed` × its **own** measured ground speed over `fullSpeed` (the hull's cruise) × grounded. Per contact rather than per hull, so a barge pivoting on the spot dusts at its track ends and a standing one does not.
-- **LOD** on both: full to 80 m from the camera, none past 200 m (`lodNear`/`lodFar`). NaN distance (no camera, a test) = full.
-- **Far dust** (`FarDust`, one cloud per vehicle, child `FX_FarDust`): the recipe's cloud with puffs 4× (8–12.8 m) and life 1.5× (12–18 s), born across the hull's footprint and thrown up, at `FarDustRateFraction` 0.2 of the near dust's peak × the vehicle's own measured speed over `fullSpeed` (the city's 2.7 m/s march). Fades **in** over the near dust's own band (`IDustLodBand`: 80–200 m legged/tracked, 60–150 m monowheels) — the two always sum to 1 — and is off past `FarDustCullDistance` 1500 m (the Strider LOD cull, [SettlementLods.md](SettlementLods.md)) and with no camera.
+- **Near-dust LOD** (footfall, rolling, and the monowheel's own dust): full to `lodNear`, none past `lodFar` (80–200 m; the monowheels 60–150 m). NaN distance (no camera, a test) = full.
+- **Far dust** (`FarDust`, one cloud per vehicle, child `FX_FarDust`): the recipe's cloud with puffs 4× (8–12.8 m, billowing to ~50 m) and life 1.5× (12–18 s), at alpha `FarDustOpacity` 1 (the recipe's 0.6: few puffs, so each must veil). Born in a box `FarDustFootprintSpread` 2× the hull's footprint, from its lowest point up `FarDustBirthHeightFraction` 0.5 of its height, **leading** the hull by `FarDustLead` 0.5 of its length, thrown up, then climbing at `FarDustRiseSpeed` 0.8 m/s (`gravityModifier` = `FarDustRiseGravity()`, against the recipe's drag). So a marching vehicle walks into its puffs as they swell and leaves a rising wall behind: at 300–700 m its legs and lower body are veiled from every side. The rate is `FarDustRateFraction` 0.2 of the near dust's peak × the vehicle's own measured speed over `fullSpeed` (the city's 2.7 m/s march). Fades **in** over the near dust's own band (`IDustLodBand`: 80–200 m legged/tracked, 60–150 m monowheels) — the two always sum to 1 — and is off past `FarDustCullDistance` 1500 m (the Strider LOD cull, [SettlementLods.md](SettlementLods.md)) and with no camera.
 
 **Budget** (cap = peak rate × the recipe's 12 s longest life, `DustCloudRecipe.CapFor`):
 
@@ -53,7 +55,7 @@ Far dust adds ⌈0.2 × peak × 18 s⌉ per vehicle (house 65, crawler 90, crab 
 | `FootfallDust` | [FootfallDust.cs](Assets/Game/Scripts/Vehicles/Dust/FootfallDust.cs) | Order 150, after the legs. `Present(cameraDistance)` reads `LeggedLocomotion.Footfalls` once per `StepCount`, `Emit`s a ring per foot, returns the puffs thrown; plays a stopped cloud first (`Emit` adds nothing to one that is not playing) |
 | `RollingDust` | [RollingDust.cs](Assets/Game/Scripts/Vehicles/Dust/RollingDust.cs) | `Present(dt, cameraDistance)` sets each contact cloud's `rateOverTime`: a [`GroundSpeedGauge`](Assets/Game/Scripts/Vehicles/Tracks/GroundSpeedGauge.cs) per contact (`MeasureAlongStep`; the same gauge `TrackBelts` reads the barges' side speeds with, [TrackBelts.md](TrackBelts.md)), `MonowheelGround.TryHit` ±0.6 m about it, LOD. `ResetBaseline()` after a snap |
 | `VehicleDustWiring` | [VehicleDustWiring.cs](Assets/Game/Editor/Vehicles/VehicleDustWiring.cs) | `AddFootfallDust(root, puffs, peakFootfallsPerSecond)` (throws without a `LeggedLocomotion`), `AddRollingDust(root, contacts, cruiseSpeed, ratePerContact)`, `SandMaterial()`, `FootfallCap`, `AddFarDust(root, nearPeakRate, cruiseSpeed)` (throws without near dust) |
-| `FarDust` / `IDustLodBand` | [FarDust.cs](Assets/Game/Scripts/Vehicles/Dust/FarDust.cs) | `Present(dt, cameraDistance)` sets the rate from `GroundSpeedGauge` on its own transform × `Fade(d, near, far, cull)`; on its own GameObject so a copy works alone (the distant silhouette instantiates it) |
+| `FarDust` / `IDustLodBand` | [FarDust.cs](Assets/Game/Scripts/Vehicles/Dust/FarDust.cs) | `Present(dt, cameraDistance)` sets the rate from `GroundSpeedGauge` on its own transform × `Fade(d, near, far, cull)`; on its own GameObject so a copy works alone (the distant silhouette instantiates it). `IDustLodBand` is the near band (`LodNear`/`LodFar`) on `FootfallDust`, `RollingDust` and `MonowheelPresentation` |
 | per-machine numbers | `StriderCityBuilder`, `DesertCrawlerBuilder`, `StriderCrabOutriderBuilder` | `PuffsPerFootfall`, `PeakFootfallsPerSecond`; `StriderBargeBuilder.TrackDustPerContact` |
 
 ## Flows
@@ -61,10 +63,11 @@ Far dust adds ⌈0.2 × peak × 18 s⌉ per vehicle (house 65, crawler 90, crab 
 - **Build:** `StriderCityBuilder.BuildHabitat` (into the variant, not the RigWalker), `DesertCrawlerBuilder.Build`, `StriderCrabOutriderBuilder.Build` (after `AttachRider`) and `StriderBargeBuilder` (one cloud under each `TrackContact_*`, `TopSpeed` from the barge's `TrackedHullMotor`) call `VehicleDustWiring`; each then calls `AddFarDust` right after its near dust (`StriderMonowheelBuilder.BuildStrider` before `Finish`, from the presentation's `DustAtFullSpeed`; the player's monowheel gets none: it never marches with the city), `fullSpeed` = `StriderCityBuilder.CityLeaderSpeed`. The player's `RigWalker` and the wild `CrabWalker6` get none.
 - **Each frame, footfall:** locomotion `Step` (100) lands feet → `FootfallDust.LateUpdate` (150) sees a new `StepCount` → `Emit` per foot, scaled by LOD.
 - **Each frame, rolling:** `RollingDust.Update` → per contact: step since last frame → smoothed speed (a step implying over 50 m/s is a snap and keeps the old speed) → grounded? → rate.
+- **Each frame, far:** `FarDust.Update` → `Camera.main` distance → its own transform's smoothed speed (same snap rule) → rate = peak × speed / `fullSpeed` × `Fade` (0 inside `FadeNear`, 1 past `FadeFar`, 0 past the cull or with no camera). `ResetBaseline()` on enable and after a snap.
 
 ## Multiplayer
 
-Presented on every machine from what that machine already sees: the legs simulate everywhere, owning or following the body, so `Footfalls` fills on clients too; `RollingDust` reads the replicated hull transform. No message, no networked state, nothing spawned, nothing to register.
+Presented on every machine from what that machine already sees: the legs simulate everywhere, owning or following the body, so `Footfalls` fills on clients too; `RollingDust` and `FarDust` read the replicated hull transform, and the distant silhouette's copy of `FX_FarDust` reads the silhouette it rides on ([SettlementLods.md](SettlementLods.md)). No message, no networked state, nothing spawned, nothing to register.
 
 ## Persistence
 
@@ -76,7 +79,9 @@ N/A: no state worth persisting. Particles, speeds and the last `StepCount` are r
 - **A footfall cap is a measured rate.** Past `PeakFootfallsPerSecond` the cloud is full and new feet throw nothing. Change a machine's legs or `stepDuration` (the outrider's 0.22 s steps double the crab's rate) and `StriderDustPrefabTests` re-walks it flat out and turning, and fails until the constant is raised.
 - **`Emit` on a cloud that is not playing adds nothing**, silently: in edit mode, in a preview scene, or after something stopped it. `FootfallDust` plays it first.
 - **The crossfade band is the vehicle's, not a constant.** The monowheels' near dust fades over 60–150 m, the others over 80–200 m; `AddFarDust` reads the band from the machine's own near emitter, so call it after that emitter exists.
-- **Tunables are serialized on the prefabs.** Retuning a `FootfallDust`/`RollingDust` default changes nothing until the builders run again (INVARIANTS: serialized fields keep their old value).
+- **A cloud behind a mesh cannot veil it.** Puffs are depth-tested billboards: one centred behind a leg is drawn behind it. Born round the hull alone, a vehicle walking toward the camera stood at the young, small end of its own trail with its legs crisp. Hence the far cloud's 2× footprint and its lead ahead of the hull; check any retune with a render from the front quarter, not just the side.
+- **Far puffs stay up only because they rise.** The recipe's drag spends a throw in about a second, so with the recipe's -0.02 gravity the far puffs (half underground, centred ~3 m up) read as a flat band along the column. `FarDustRiseGravity()` derives the gravity from `Physics.gravity` (−18 in this project, not −9.81) and `DustCloudRecipe.Drag`; `FarDustTests` measures the climb.
+- **Tunables are serialized on the prefabs.** Retuning a `FootfallDust`/`RollingDust`/`FarDust` default or a `VehicleDustWiring.FarDust*` constant changes nothing until the builders run again (INVARIANTS: serialized fields keep their old value).
 
 ## Extending
 

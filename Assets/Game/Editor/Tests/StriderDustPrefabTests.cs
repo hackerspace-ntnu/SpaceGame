@@ -96,6 +96,8 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(StriderCityBuilder.CityLeaderSpeed, far.FullSpeed, 1e-4f, "full while marching with the city");
             Assert.AreEqual(VehicleDustWiring.FarDustCullDistance, far.CullDistance);
             Assert.AreEqual(DustCloudRecipe.MinSize * VehicleDustWiring.FarDustSizeMultiplier, far.Cloud.main.startSize.constantMin, 1e-4f);
+            Assert.AreEqual(ParticleSystemShapeType.Box, far.Cloud.shape.shapeType, "born up the hull, not on the sand: rebuild it");
+            Assert.AreEqual(VehicleDustWiring.FarDustRiseGravity(), far.Cloud.main.gravityModifier.constant, 1e-5f, "rises: rebuild it");
             AssertSharedSand(far.Cloud);
         }
 

@@ -163,57 +163,52 @@ namespace SpaceGame.EditorTools
         // ── The start ────────────────────────────────────────────────────────
 
         [Test]
-        public void StartCandidates_StayInTheBand_NearestTheStartDistanceFirst()
+        public void StartCandidates_StayInReach_NearestTheAnchorFirst()
         {
-            Vector2 spawn = new(1000f, 2000f);
-            List<Vector2> candidates = StriderCityStartSite.Candidates(spawn);
+            Vector2 anchor = StriderCityStartSite.CityStartAnchor;
+            List<Vector2> candidates = StriderCityStartSite.Candidates(anchor);
 
-            Assert.AreEqual(StriderCityStartSite.CityStartDistance, Vector2.Distance(candidates[0], spawn), 0.01f);
+            Assert.AreEqual(anchor, candidates[0], "the user's own spot is tried first");
             float previous = 0f;
             foreach (Vector2 c in candidates)
             {
-                float distance = Vector2.Distance(c, spawn);
-                Assert.That(distance,
-                            Is.InRange(StriderCityStartSite.CityStartDistance - StriderCityStartSite.CityStartBand - 0.01f,
-                                       StriderCityStartSite.CityStartDistance + StriderCityStartSite.CityStartBand + 0.01f));
-                float offBand = Mathf.Abs(distance - StriderCityStartSite.CityStartDistance);
-                Assert.GreaterOrEqual(offBand, previous - 0.01f, "nearest the start distance first");
-                previous = offBand;
+                float distance = Vector2.Distance(c, anchor);
+                Assert.LessOrEqual(distance, StriderCityStartSite.CityStartReach + 0.01f);
+                Assert.GreaterOrEqual(distance, previous - 0.01f, "nearest the anchor first");
+                previous = distance;
             }
             Assert.AreEqual(candidates.Count, candidates.Distinct().Count());
         }
 
         [Test]
-        public void StartCandidates_LeaveNoGapInTheBand()
+        public void StartCandidates_LeaveNoGapWithinReach()
         {
-            // A fan of bearings stepped past the one level pan beside the spawn (2026-10-04): every
-            // point of the band must have a candidate within half a grid cell's diagonal.
-            Vector2 spawn = new(1000f, 2000f);
-            List<Vector2> candidates = StriderCityStartSite.Candidates(spawn);
-            float reach = StriderCityStartSite.CityStartBandStep * Mathf.Sqrt(2f) / 2f + 0.01f;
+            // A fan of bearings once stepped past the one level pan beside the spawn (2026-10-04): every
+            // point within reach must have a candidate within half a grid cell's diagonal.
+            Vector2 anchor = StriderCityStartSite.CityStartAnchor;
+            List<Vector2> candidates = StriderCityStartSite.Candidates(anchor);
+            float halfCell = StriderCityStartSite.CityStartStep * Mathf.Sqrt(2f) / 2f + 0.01f;
 
             for (int bearing = 0; bearing < 360; bearing += 7)
-                for (float distance = StriderCityStartSite.CityStartDistance - StriderCityStartSite.CityStartBand + reach;
-                     distance <= StriderCityStartSite.CityStartDistance + StriderCityStartSite.CityStartBand - reach;
-                     distance += 37f)
+                for (float distance = 0f; distance <= StriderCityStartSite.CityStartReach - halfCell; distance += 37f)
                 {
                     Vector3 turned = Quaternion.Euler(0f, bearing, 0f) * Vector3.forward * distance;
-                    Vector2 point = spawn + new Vector2(turned.x, turned.z);
-                    Assert.LessOrEqual(candidates.Min(c => Vector2.Distance(c, point)), reach, $"gap at {point}");
+                    Vector2 point = anchor + new Vector2(turned.x, turned.z);
+                    Assert.LessOrEqual(candidates.Min(c => Vector2.Distance(c, point)), halfCell, $"gap at {point}");
                 }
         }
 
         [Test]
-        public void TheStart_IsTheFlattestAcceptableCandidate()
+        public void TheStart_IsTheNearestAcceptableLevelCandidate()
         {
             var candidates = new List<Vector2> { new(0f, 0f), new(1000f, 0f), new(2000f, 0f), new(3000f, 0f) };
-            // Flattest at x = 2000, but that one is refused (the Clanker town's ring, say).
-            bool Bowl(Vector2 at, out float y) { y = Mathf.Abs(at.x - 2000f) * 0.001f; return true; }
-            bool NotTheTown(Vector2 at) => at.x != 2000f;
+            // Steep up to x = 500, level beyond; x = 1000 is refused (off the NavMesh, say).
+            bool Ramp(Vector2 at, out float y) { y = at.x < 500f ? at.x * 0.25f : 0f; return true; }
+            bool NotOffTheMesh(Vector2 at) => at.x != 1000f;
 
-            Assert.IsTrue(StriderCityStartSite.TryPickFlattest(candidates, NotTheTown, Bowl, Rule,
-                                                               out Vector2 site, out float spread));
-            Assert.AreEqual(new Vector2(1000f, 0f), site, "tied with x = 3000; the earlier one is preferred");
+            Assert.IsTrue(StriderCityStartSite.TryPickNearest(candidates, NotOffTheMesh, Ramp, Rule,
+                                                              out Vector2 site, out float spread));
+            Assert.AreEqual(new Vector2(2000f, 0f), site, "the first acceptable level one, not the flattest");
             Assert.LessOrEqual(spread, Rule.MaxSpread);
         }
 
@@ -222,8 +217,8 @@ namespace SpaceGame.EditorTools
         {
             var candidates = new List<Vector2> { new(0f, 0f), new(1000f, 0f) };
 
-            Assert.IsFalse(StriderCityStartSite.TryPickFlattest(candidates, _ => true, Steep, Rule, out _, out _));
-            Assert.IsFalse(StriderCityStartSite.TryPickFlattest(candidates, _ => false, Flat, Rule, out _, out _));
+            Assert.IsFalse(StriderCityStartSite.TryPickNearest(candidates, _ => true, Steep, Rule, out _, out _));
+            Assert.IsFalse(StriderCityStartSite.TryPickNearest(candidates, _ => false, Flat, Rule, out _, out _));
         }
     }
 }

@@ -1477,6 +1477,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the Strider city has already walked off by the time I reach its start | [Striders](systems/Striders.md) |
 | the Strider city has too many walking houses | [Striders](systems/Striders.md) |
 | the Strider city marches sorted by vehicle type: walkers first, then crabs, then barges | [Striders](systems/Striders.md) |
+| the Strider city never spawns where I expect it after main moved the spawn point | [Striders](systems/Striders.md) |
 | the Strider city rides in matching pairs, like a parade | [Striders](systems/Striders.md) |
 | the Strider city starts on a hillside, or inside the Clanker town's alarm ring | [Striders](systems/Striders.md) |
 | the Strider crew sit inside the walls of their walking house | [Vehicles](systems/Vehicles.md) |
@@ -2249,4 +2250,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1610 symptoms, 613 paths, 85 docs -->
+<!-- 1611 symptoms, 613 paths, 85 docs -->

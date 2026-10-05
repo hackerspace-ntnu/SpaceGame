@@ -620,8 +620,8 @@ namespace SpaceGame.EditorTools
             if (striders == null || habitat == null || crawler == null || crab == null || elder == null
                 || scouts.Any(s => s == null) || barges.Any(b => b == null)) return;
 
-            // Near the player's spawn rather than at a Ruin: see StriderCityStartSite.
-            if (!StriderCityStartSite.TryChoose(out Vector3 start, out _)) return;
+            // Where the user asked for it rather than at a Ruin: see StriderCityStartSite.
+            if (!StriderCityStartSite.TryChoose(out Vector3 start)) return;
 
             // Every vehicle behind the lead house and how many of it: a card each in the column's deck.
             List<(GameObject prefab, int count)> followers = new List<(GameObject, int)>

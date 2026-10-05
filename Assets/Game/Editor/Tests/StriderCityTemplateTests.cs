@@ -87,11 +87,9 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(StriderCityBuilder.CityLeaderSpeed, city.travelSpeed, 0.01f, "folded and live speeds agree");
 
             Assert.IsTrue(city.useStartPosition, "the city starts where a new player can find it, not at a Ruin");
-            Assert.IsTrue(ClankerSettlementBuilder.TryFindSpawnPoint(out Vector3 spawn));
-            float fromSpawn = Vector2.Distance(new Vector2(city.startPosition.x, city.startPosition.z), new Vector2(spawn.x, spawn.z));
-            Assert.That(fromSpawn, Is.InRange(StriderCityStartSite.CityStartDistance - StriderCityStartSite.CityStartBand - 1f,
-                                              StriderCityStartSite.CityStartDistance + StriderCityStartSite.CityStartBand + 1f),
-                        "a short walk from the spawn point (re-run Wire Strider City)");
+            float fromAnchor = Vector2.Distance(new Vector2(city.startPosition.x, city.startPosition.z), StriderCityStartSite.CityStartAnchor);
+            Assert.LessOrEqual(fromAnchor, StriderCityStartSite.CityStartReach + 1f,
+                               "where the user stood when they asked for it (re-run Wire Strider City)");
             Assert.AreEqual(RosterAuthoring.StriderCityInitialStay, city.initialStaySeconds, 0.01f,
                             "parked at its start long enough for a new player to walk over (re-run Wire Strider City)");
         }

@@ -6,10 +6,13 @@
 // returning a list -- is what lets that be pinned by an EditMode test instead of by playtesting
 // with two dozen people.
 //
-// Only the lobby rule exists so far. In a lobby there are no player bodies to measure between, and
-// everyone is there to organise, so everyone hears everyone. The in-world rules -- audible radius,
-// nearest-N cap, squad channel -- land here beside it.
+// The host runs this for every frame it relays, so it is also the anti-cheat half of proximity
+// (GDC-L1-MP-0004): a voice beyond range is never sent, and a modified client cannot turn up what
+// it was never given. Each listener still fades what it does receive, but that is presentation.
+//
+// Still to land beside it: the nearest-N cap on simultaneous speakers, and the squad channel.
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SpaceGame.Voice
 {
@@ -17,23 +20,42 @@ namespace SpaceGame.Voice
     public static class VoiceRouter
     {
         /// <summary>
-        /// Everyone connected except the speaker themselves, written into
-        /// <paramref name="listeners"/> (cleared first, so it can be reused every frame).
+        /// Everyone connected who is within <paramref name="range"/> metres of the speaker, written
+        /// into <paramref name="listeners"/> (cleared first, so it can be reused every frame).
         /// <para>
-        /// The speaker is excluded because hearing your own voice come back a network round trip
+        /// The speaker is always excluded: hearing your own voice come back a network round trip
         /// later is the single most disorienting thing a voice system can do.
         /// </para>
+        /// <para>
+        /// Anyone missing from <paramref name="bodies"/> is treated as everywhere at once — heard by
+        /// all and hearing all. That is the lobby, where nobody has a body to measure between and
+        /// everyone is there to organise, and it is also a player between bodies (loading in, dead,
+        /// spectating), who would otherwise drop out of every conversation without warning.
+        /// </para>
         /// </summary>
-        public static void Everyone(IReadOnlyList<ulong> connected, ulong speaker,
-                                    List<ulong> listeners)
+        public static void Proximity(IReadOnlyList<ulong> connected, ulong speaker,
+                                     IReadOnlyDictionary<ulong, Vector3> bodies, float range,
+                                     List<ulong> listeners)
         {
             listeners.Clear();
             if (connected == null) return;
 
+            Vector3 mouth = default;
+            bool placed = bodies != null && bodies.TryGetValue(speaker, out mouth);
+            float reach = range * range;
+
             for (int i = 0; i < connected.Count; i++)
             {
-                if (connected[i] == speaker) continue;
-                listeners.Add(connected[i]);
+                ulong listener = connected[i];
+                if (listener == speaker) continue;
+
+                if (placed && bodies.TryGetValue(listener, out Vector3 ear) &&
+                    (ear - mouth).sqrMagnitude > reach)
+                {
+                    continue;
+                }
+
+                listeners.Add(listener);
             }
         }
     }

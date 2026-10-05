@@ -1,4 +1,4 @@
-﻿# Third-party notices
+# Third-party notices
 
 Assets in this repository that were not made here, with the licence each one carries. Keep
 this file current: a licence with an attribution clause is a promise the shipped game has to

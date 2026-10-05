@@ -16,7 +16,7 @@ symptoms:
   - "my asmdef cannot see PlayerController / GameServices / NetMessaging"
   - "a gameplay hotkey still fires while a menu or the chat box is open"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-09-07
+updated: 2026-09-30
 ---
 
 # Core Services
@@ -49,6 +49,7 @@ The glue layer: boot order, the static service/registry locators, player input, 
 | `GameSettings` | [GameSettings.cs](Assets/Game/Scripts/Core/Settings/GameSettings.cs) | All player options, PlayerPrefs, `Changed` event |
 | `PlayerInputManager` | [PlayerInputManager.cs](Assets/Game/Scripts/Core/Input/PlayerInputManager.cs) | Single source of player input; owns `InputControls` |
 | `InputManager` | [InputManager.cs](Assets/Game/Scripts/Core/Input/InputManager.cs) | Legacy stub reading `InputSystem.actions.FindAction("Attack")` — an action that does not exist in this asset |
+| `TextEntry` | [TextEntry.cs](Assets/Game/Scripts/Core/Input/TextEntry.cs) | `IsTyping`: a `TMP_InputField` has focus. The one check every key that acts must stand down for — chat, pause, inventories and the voice keys share it rather than each carrying a copy |
 | `SceneReference` | [SceneReference.cs](Assets/Game/Scripts/Core/SceneManagement/Core/SceneReference.cs) | ScriptableObject wrapping a scene *name* (editor-only `SceneAsset` field) |
 | `Game` / `GameMode` | [Game.cs](Assets/Game/Scripts/Gameplay/Game/State/Game.cs) | `Singleplayer` \| `Multiplayer`; drives service reload |
 | Root scripts | [BillboardAlongAxis.cs](Assets/Game/Scripts/BillboardAlongAxis.cs), [RocketBoosterController.cs](Assets/Game/Scripts/RocketBoosterController.cs), [RocketBoosterShaderController.cs](Assets/Game/Scripts/RocketBoosterShaderController.cs), [VolumetricExplosionController.cs](Assets/Game/Scripts/VolumetricExplosionController.cs) | Global-namespace VFX/billboard leftovers; not part of core |

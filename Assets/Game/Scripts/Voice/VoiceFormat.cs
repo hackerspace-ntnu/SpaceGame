@@ -46,5 +46,27 @@ namespace SpaceGame.Voice
         /// of native libopus, so this buys headroom on weaker machines; 5 is transparent for speech.
         /// </summary>
         public const int EncoderComplexity = 5;
+
+        /// <summary>Bytes a netcode client id takes on the wire.</summary>
+        public const int ClientIdBytes = sizeof(ulong);
+
+        /// <summary>
+        /// Packs a client id least-significant byte first. By hand rather than through
+        /// FastBufferWriter.WriteValueSafe so the layout is explicit and identical at both ends
+        /// whatever the machine's own endianness — and so <see cref="VoiceRoster"/>, which is a
+        /// plain byte array rather than a netcode buffer, packs ids exactly the same way.
+        /// </summary>
+        public static void WriteClientId(byte[] into, int offset, ulong id)
+        {
+            for (int i = 0; i < ClientIdBytes; i++) into[offset + i] = (byte)(id >> (i * 8));
+        }
+
+        /// <inheritdoc cref="WriteClientId"/>
+        public static ulong ReadClientId(byte[] from, int offset)
+        {
+            ulong id = 0;
+            for (int i = 0; i < ClientIdBytes; i++) id |= (ulong)from[offset + i] << (i * 8);
+            return id;
+        }
     }
 }

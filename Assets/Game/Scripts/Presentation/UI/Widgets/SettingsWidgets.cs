@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -397,7 +397,9 @@ namespace SpaceGame.Presentation
         /// Standard uGUI Slider assembled by hand. The fill's anchors are overwritten by the
         /// Slider every frame it changes, so its offsets — not its anchors — are what position it.
         /// </summary>
-        private static UnityEngine.UI.Slider BuildSlider(RectTransform rect, float min, float max)
+        // Internal rather than private so the per-person voice rows in PlayerListView build the same
+        // slider instead of a second copy of it.
+        internal static UnityEngine.UI.Slider BuildSlider(RectTransform rect, float min, float max)
         {
             UIBuilder.HitArea(rect);
 

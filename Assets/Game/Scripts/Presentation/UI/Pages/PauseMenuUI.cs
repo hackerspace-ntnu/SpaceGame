@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -80,6 +80,17 @@ namespace SpaceGame.Presentation
         private SettingsWidgets.Row micTestRow;
         private SettingsWidgets.Row micMeterRow;
 
+        // Key rebinding: the row waiting for a key, and the rows whose state the voice keys can
+        // change behind the page's back while it is open.
+        private SettingsWidgets.Row capturingRow;
+        private SettingsWidgets.Row selfMuteRow;
+        private SettingsWidgets.Row muteKeyRow;
+        private SettingsWidgets.Row talkModeRow;
+        private SettingsWidgets.Row talkKeyRow;
+        private bool voiceRowsSynced;
+        private bool shownSelfMuted;
+        private bool shownPushToTalk;
+
         private float confirmExpiry;
 
         private struct TabWidgets
@@ -127,6 +138,7 @@ namespace SpaceGame.Presentation
             if (instance == this) instance = null;
 
             StopMicrophoneTest();
+            KeyCapture.Cancel();
 
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
 
@@ -147,7 +159,7 @@ namespace SpaceGame.Presentation
         {
             // A name being typed owns the keyboard: M is a letter first and a shortcut second, and
             // Escape is the field's own "undo my edit".
-            if (IsTypingInField()) return;
+            if (TextEntry.IsTyping) return;
 
             // The artifact browser opens on top of this menu, so the pause key has to peel the top
             // screen off first. Without this it would close the menu underneath and leave the
@@ -160,17 +172,6 @@ namespace SpaceGame.Presentation
 
             if (open) Close();
             else Open();
-        }
-
-        private static bool IsTypingInField()
-        {
-            GameObject selected = EventSystem.current != null
-                ? EventSystem.current.currentSelectedGameObject
-                : null;
-
-            return selected != null
-                   && selected.TryGetComponent(out TMP_InputField field)
-                   && field.isFocused;
         }
 
         // ----------------------------------------------------------------- open/close
@@ -211,6 +212,7 @@ namespace SpaceGame.Presentation
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
 
             StopMicrophoneTest();
+            KeyCapture.Cancel();
 
             GameSettings.Save();
             GameplayMenuScope.Exit(this);
@@ -233,6 +235,7 @@ namespace SpaceGame.Presentation
             }
 
             StopMicrophoneTest();
+            KeyCapture.Cancel();
             GameplayMenuScope.Abandon();
         }
 
@@ -261,6 +264,8 @@ namespace SpaceGame.Presentation
             // A level meter is a live signal, so it repaints per frame — but only while there is
             // actually a test running to read a level from.
             if (open && micTest != null) micMeterRow?.Refresh();
+
+            if (open) SyncVoiceRows();
         }
 
         // --------------------------------------------------------------------- build
@@ -605,8 +610,32 @@ namespace SpaceGame.Presentation
             Track(SettingsWidgets.Slider(page, "Voice volume", 0f, 1f,
                 () => GameSettings.VoiceVolume, v => GameSettings.VoiceVolume = v, Percent, 0.01f));
 
-            Track(SettingsWidgets.Toggle(page, "Push to talk",
-                () => GameSettings.VoicePushToTalk, v => GameSettings.VoicePushToTalk = v));
+            selfMuteRow = SettingsWidgets.Toggle(page, "Mute microphone",
+                () => GameSettings.VoiceSelfMuted, v => GameSettings.VoiceSelfMuted = v);
+            Track(selfMuteRow);
+
+            muteKeyRow = SettingsWidgets.Action(page, "Mute key", string.Empty,
+                () => BeginRebind(muteKeyRow, allowClear: true, path => GameSettings.VoiceMuteBinding = path),
+                null, () => DescribeBinding(muteKeyRow, GameSettings.VoiceMuteBinding));
+            Track(muteKeyRow);
+
+            // Names both choices, which a switch labelled "Push to talk" would not: its off state
+            // reads as "not push to talk", when what it means is "open mic".
+            Track(SettingsWidgets.Cycler(page, "Mic mode", DescribeMicMode,
+                () => GameSettings.VoicePushToTalk = !GameSettings.VoicePushToTalk,
+                () => GameSettings.VoicePushToTalk = !GameSettings.VoicePushToTalk));
+
+            // Shown only while push-to-talk is on (SyncVoiceRows): a mode and a key for a feature
+            // that is switched off are two rows of noise (GDC-L1-UX-0002).
+            talkModeRow = SettingsWidgets.Cycler(page, "Push-to-talk mode", DescribeTalkMode,
+                () => GameSettings.VoicePushToTalkToggle = !GameSettings.VoicePushToTalkToggle,
+                () => GameSettings.VoicePushToTalkToggle = !GameSettings.VoicePushToTalkToggle);
+            Track(talkModeRow);
+
+            talkKeyRow = SettingsWidgets.Action(page, "Push-to-talk key", string.Empty,
+                () => BeginRebind(talkKeyRow, allowClear: true, path => GameSettings.VoicePushToTalkBinding = path),
+                null, () => DescribeBinding(talkKeyRow, GameSettings.VoicePushToTalkBinding));
+            Track(talkKeyRow);
 
             Track(SettingsWidgets.Slider(page, "Mic threshold",
                 GameSettings.MinVoiceGateThreshold, GameSettings.MaxVoiceGateThreshold,
@@ -626,6 +655,8 @@ namespace SpaceGame.Presentation
                 "The test plays your microphone back through the voice codec — what everyone else hears.");
             SettingsWidgets.Caption(page,
                 "Set the threshold so the bar lights when you speak, but not when you type.");
+            SettingsWidgets.Caption(page,
+                "To change a key, click it and press the new one. Esc cancels; Backspace unbinds it.");
         }
 
         // ---------------------------------------------------------------- microphone
@@ -659,6 +690,71 @@ namespace SpaceGame.Presentation
             // Deliberately not `micTest?.Restart()`: ?. tests for a real null, while a destroyed
             // GameObject is only null to Unity's overloaded ==, so ?. would call into it.
             if (micTest != null) micTest.Restart();
+        }
+
+        // ------------------------------------------------------------------- voice keys
+
+        private static string DescribeMicMode() =>
+            GameSettings.VoicePushToTalk ? "Push to talk" : "Open mic";
+
+        private static string DescribeTalkMode() =>
+            GameSettings.VoicePushToTalkToggle ? "Toggle" : "Hold";
+
+        /// <summary>
+        /// The key a row is bound to, or the prompt while that row is waiting for one. The null
+        /// check matters: this first runs while the row is still being built, before its field is
+        /// assigned, and null == null would read as "this row is capturing".
+        /// </summary>
+        private string DescribeBinding(SettingsWidgets.Row row, string path) =>
+            capturingRow != null && capturingRow == row ? "PRESS A KEY" : KeyCapture.Describe(path);
+
+        private void BeginRebind(SettingsWidgets.Row row, bool allowClear, System.Action<string> apply)
+        {
+            if (row == null) return;
+
+            KeyCapture.Begin(allowClear, apply, () =>
+            {
+                capturingRow = null;
+                VoiceKeys.Suspended = false;
+
+                // The page can be going away underneath the capture; Unity's == on the rect.
+                if (row.Rect != null) row.Refresh();
+            });
+
+            capturingRow = row;
+            VoiceKeys.Suspended = true;
+            row.Refresh();
+        }
+
+        /// <summary>
+        /// Keeps the rows the voice keys can change behind the page's back in step with them: the
+        /// mute key flips self-mute while this page is open, and the push-to-talk rows only exist
+        /// while push-to-talk is on. Checked every frame, acted on only on a change.
+        /// </summary>
+        private void SyncVoiceRows()
+        {
+            bool muted = GameSettings.VoiceSelfMuted;
+            if (!voiceRowsSynced || muted != shownSelfMuted)
+            {
+                shownSelfMuted = muted;
+                selfMuteRow?.Refresh();
+            }
+
+            bool pushToTalk = GameSettings.VoicePushToTalk;
+            if (!voiceRowsSynced || pushToTalk != shownPushToTalk)
+            {
+                shownPushToTalk = pushToTalk;
+                SetRowVisible(talkModeRow, pushToTalk);
+                SetRowVisible(talkKeyRow, pushToTalk);
+            }
+
+            voiceRowsSynced = true;
+        }
+
+        private static void SetRowVisible(SettingsWidgets.Row row, bool visible)
+        {
+            if (row?.Rect != null && row.Rect.gameObject.activeSelf != visible)
+                row.Rect.gameObject.SetActive(visible);
         }
 
         private string DescribeMicrophoneTest()
@@ -905,7 +1001,11 @@ namespace SpaceGame.Presentation
         {
             // The test lives on the Audio page; walking away from it should not leave the
             // microphone open behind a page nobody is looking at.
-            if (tab != Tab.Audio) StopMicrophoneTest();
+            if (tab != Tab.Audio)
+            {
+                StopMicrophoneTest();
+                KeyCapture.Cancel();
+            }
 
             activeTab = tab;
 

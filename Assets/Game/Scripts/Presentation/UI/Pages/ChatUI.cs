@@ -160,21 +160,10 @@ namespace SpaceGame.Presentation
         {
             // T is a letter first and a shortcut second: while the box (or a settings field) has
             // the keyboard, it must type rather than toggle.
-            if (open || IsTypingInField()) return;
+            if (open || TextEntry.IsTyping) return;
             if (PauseMenuUI.IsOpen || DevInventoryUI.IsOpen) return;
 
             Open();
-        }
-
-        private static bool IsTypingInField()
-        {
-            GameObject selected = EventSystem.current != null
-                ? EventSystem.current.currentSelectedGameObject
-                : null;
-
-            return selected != null
-                   && selected.TryGetComponent(out TMP_InputField typing)
-                   && typing.isFocused;
         }
 
         // ------------------------------------------------------------------ open/close

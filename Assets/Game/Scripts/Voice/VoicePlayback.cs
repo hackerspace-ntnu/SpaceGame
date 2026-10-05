@@ -1,4 +1,4 @@
-﻿// Decoded voice into FMOD, through a looping buffer written just ahead of the play head.
+// Decoded voice into FMOD, through a looping buffer written just ahead of the play head.
 //
 // Playback is FMOD's Core API rather than a Studio event because no FMOD Studio project ships with
 // this repo -- there is no .fspro, so no new event (and no programmer instrument) can be authored.
@@ -9,6 +9,11 @@
 // is an audible gap, too far and the conversation lags. This keeps a fixed target and resyncs when
 // it drifts outside the tolerated band, which is enough for a local round trip. Once voice arrives
 // over the network this grows into a real jitter buffer that adapts its depth to observed timing.
+//
+// A voice starts flat (2D) and is made spatial by its owner once it has somewhere to be. Spatial
+// voices are FMOD Core 3D channels, which are placed relative to FMOD's listener -- and the
+// StudioListener on the camera already drives that one, since the Studio system owns the Core
+// system underneath it. SfxFile's 3D one-shots rely on exactly the same thing.
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -52,7 +57,22 @@ namespace SpaceGame.Voice
         private short[] quiet;
         private float idleSeconds;
 
+        // What was last pushed to FMOD for placement, so nothing is re-sent unless it changed.
+        private bool spatial;
+        private float appliedNear = -1f;
+        private float appliedFar = -1f;
+
+        /// <summary>The channel modes this uses. LOOP_NORMAL rides along on every change: the ring
+        /// only works while it loops, and setMode is handed the whole mode each time.</summary>
+        private const FMOD.MODE FlatMode = FMOD.MODE.LOOP_NORMAL | FMOD.MODE._2D;
+        private const FMOD.MODE SpatialMode = FMOD.MODE.LOOP_NORMAL | FMOD.MODE._3D |
+                                              FMOD.MODE._3D_WORLDRELATIVE |
+                                              FMOD.MODE._3D_LINEARSQUAREROLLOFF;
+
         public bool IsRunning => sound.hasHandle();
+
+        /// <summary>Whether this voice is currently placed in the world rather than played flat.</summary>
+        public bool IsSpatial => spatial;
 
         /// <summary>Opens the buffer and starts the channel. False with a reason on failure.</summary>
         public bool TryStart(out string error)
@@ -75,8 +95,11 @@ namespace SpaceGame.Voice
                     length = (uint)(ringSamples * sizeof(short) * VoiceFormat.Channels),
                 };
 
+                // Created 3D-capable, then played flat: the channel can be moved between the two at
+                // any time, and flat is the right default for anything that never says otherwise
+                // (the microphone test, a voice in the lobby).
                 FMOD.RESULT result = core.createSound(IntPtr.Zero,
-                    FMOD.MODE.OPENUSER | FMOD.MODE.LOOP_NORMAL | FMOD.MODE._2D, ref exinfo, out sound);
+                    FMOD.MODE.OPENUSER | FMOD.MODE.LOOP_NORMAL | FMOD.MODE._3D, ref exinfo, out sound);
 
                 if (result != FMOD.RESULT.OK)
                 {
@@ -99,10 +122,17 @@ namespace SpaceGame.Voice
                     return false;
                 }
 
+                result = channel.setMode(FlatMode);
+                if (result != FMOD.RESULT.OK)
+                    Debug.LogWarning($"[Voice] Could not start a voice flat ({result}); it may play positioned at the origin.");
+
                 quiet = new short[VoiceFormat.FrameSamples * TrailingSilenceFrames];
                 writeCursor = 0;
                 idleSeconds = 0f;
                 primed = false;
+                spatial = false;
+                appliedNear = -1f;
+                appliedFar = -1f;
                 error = null;
                 return true;
             }
@@ -166,11 +196,78 @@ namespace SpaceGame.Voice
             idleSeconds = 0f;
         }
 
-        /// <summary>Linear gain, 0-1. This voice only — the FMOD buses still apply on top.</summary>
+        /// <summary>
+        /// The loudest a voice may be driven: twice its own level, so a quiet microphone can be
+        /// brought up to meet the others. FMOD treats channel volume as a linear multiplier and
+        /// amplifies above 1, and it mixes in floating point, so the boost cannot clip inside the
+        /// mixer — only at the output, and only if the speaker was already loud, which is the
+        /// opposite of why anyone would turn them up.
+        /// </summary>
+        public const float MaxVolume = 2f;
+
+        /// <summary>Linear gain, 0 to <see cref="MaxVolume"/>. This voice only — the buses still apply.</summary>
         public void SetVolume(float volume)
         {
             if (channel.hasHandle())
-                channel.setVolume(Mathf.Clamp01(volume));
+                channel.setVolume(Mathf.Clamp(volume, 0f, MaxVolume));
+        }
+
+        /// <summary>
+        /// Places this voice in the world, fading from full volume at <paramref name="nearDistance"/>
+        /// to silence at <paramref name="farDistance"/> — or, with <paramref name="enabled"/> false,
+        /// plays it flat at full volume wherever the listener is. Cheap to call every frame: FMOD is
+        /// only told about what changed.
+        /// <para>
+        /// The fade is FMOD's linear-squared rolloff. Its inverse rolloff, the physically honest
+        /// one, never actually reaches zero — a voice would stay faintly audible to the far edge of
+        /// the map, which is precisely what proximity chat is for not doing. Linear-squared reaches
+        /// silence at the far distance and still reads as natural, falling quickly close in and
+        /// trailing off gently.
+        /// </para>
+        /// </summary>
+        public void SetSpatial(bool enabled, float nearDistance, float farDistance)
+        {
+            if (!channel.hasHandle()) return;
+
+            if (enabled != spatial)
+            {
+                FMOD.RESULT result = channel.setMode(enabled ? SpatialMode : FlatMode);
+                if (result != FMOD.RESULT.OK)
+                {
+                    Debug.LogWarning($"[Voice] Could not switch a voice {(enabled ? "into" : "out of")} 3D ({result}).");
+                    return;
+                }
+
+                spatial = enabled;
+
+                // Doppler off: players move slowly, network positions arrive in steps, and a voice
+                // that bends in pitch every time a position update lands sounds broken, not real.
+                if (enabled) channel.set3DDopplerLevel(0f);
+            }
+
+            if (!enabled) return;
+
+            if (Mathf.Approximately(nearDistance, appliedNear) &&
+                Mathf.Approximately(farDistance, appliedFar))
+            {
+                return;
+            }
+
+            if (channel.set3DMinMaxDistance(nearDistance, farDistance) == FMOD.RESULT.OK)
+            {
+                appliedNear = nearDistance;
+                appliedFar = farDistance;
+            }
+        }
+
+        /// <summary>Where a spatial voice comes from, in world space. Ignored while it plays flat.</summary>
+        public void SetPosition(Vector3 position)
+        {
+            if (!spatial || !channel.hasHandle()) return;
+
+            FMOD.VECTOR at = FMODUnity.RuntimeUtils.ToFMODVector(position);
+            FMOD.VECTOR still = default;
+            channel.set3DAttributes(ref at, ref still);
         }
 
         public void Stop()
@@ -190,6 +287,9 @@ namespace SpaceGame.Voice
             quiet = null;
             idleSeconds = 0f;
             primed = false;
+            spatial = false;
+            appliedNear = -1f;
+            appliedFar = -1f;
         }
 
         public void Dispose() => Stop();

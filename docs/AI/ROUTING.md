@@ -1483,6 +1483,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the Strider city drops the frame rate and nobody knows which system | [Diagnostics](systems/Diagnostics.md) |
 | the Strider city has already walked off by the time I reach its start | [Striders](systems/Striders.md) |
 | the Strider city has too many walking houses | [Striders](systems/Striders.md) |
+| the Strider city is invisible until I am right next to it | [SettlementLods](systems/SettlementLods.md) |
 | the Strider city marches sorted by vehicle type: walkers first, then crabs, then barges | [Striders](systems/Striders.md) |
 | the Strider city never spawns where I expect it after main moved the spawn point | [Striders](systems/Striders.md) |
 | the Strider city rides in matching pairs, like a parade | [Striders](systems/Striders.md) |
@@ -1531,6 +1532,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the walker stands frozen and never takes a step, with no error in the console | [Locomotion](systems/Locomotion.md) |
 | the walker stops dead at the rim of a portal it should be able to cross | [Locomotion](systems/Locomotion.md) |
 | the walking city leaves while its crew are still ashore | [Striders](systems/Striders.md) |
+| the walking city pops in or jumps sideways when I walk up to it | [SettlementLods](systems/SettlementLods.md) |
+| the walking city swings round to face north when it stops | [SettlementLods](systems/SettlementLods.md) |
 | the walking city turns round every few minutes and never reaches a stop | [Striders](systems/Striders.md) |
 | the walking houses or the sky fleet cost hundreds of draw calls even far away | [SettlementLods](systems/SettlementLods.md) |
 | the walking houses stop 17 m apart with their decks through each other | [Striders](systems/Striders.md) |
@@ -1810,6 +1813,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/Agents/World/DistantGroupSilhouette.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelChassis.cs` | [Monowheel](systems/Monowheel.md) |
@@ -1846,6 +1850,7 @@ Longest match wins.
 | `Assets/Game/Editor/AssetPipeline/LibraryClipImporter.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/DistantGroupSilhouetteTests.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Tests/MonowheelGroundContactTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/StriderCityLevelGroundTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderMonowheelPrefabTests.cs` | [Striders](systems/Striders.md) |
@@ -1876,6 +1881,7 @@ Longest match wins.
 | `Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Furniture` | [Seats](systems/Seats.md) |
+| `Assets/Game/Scripts/Agents/World/DistantGroupState.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Body/Focus/InspectStance.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1956,6 +1962,7 @@ Longest match wins.
 | `Assets/Game/Editor/World/WorldSiteCatalogBaker.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
+| `Assets/Game/Scripts/Agents/World/DistantGroups.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
 | `Assets/Game/Scripts/Items/Equipped/DisplayCopy.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/ForearmSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -2020,6 +2027,7 @@ Longest match wins.
 | `Assets/Game/Editor/Support/SerializedFields.cs` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Editor/Tests/BoosterWiringTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/BurningStatusTests.cs` | [Flamethrower](systems/Flamethrower.md) |
+| `Assets/Game/Editor/Tests/DistantGroupsTests.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Tests/MonowheelLeanTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/OutpostPrefabTests.cs` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Editor/Tests/SkyFleetDriftTests.cs` | [SkyTribe](systems/SkyTribe.md) |
@@ -2266,4 +2274,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1620 symptoms, 620 paths, 86 docs -->
+<!-- 1623 symptoms, 625 paths, 86 docs -->

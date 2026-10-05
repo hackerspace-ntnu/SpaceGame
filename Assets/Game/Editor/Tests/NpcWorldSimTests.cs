@@ -96,6 +96,29 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void AGroupThatStops_KeepsFacingTheWayItWalked()
+        {
+            // The live spawn and the distant silhouette both face Heading: a city that reaches its stop
+            // must not swing round to face north.
+            var group = new NpcGroup
+            {
+                Position = Vector3.zero,
+                GoalPosition = new Vector3(40f, 0f, 0f),
+                ArriveRadius = 2f,
+                HasGoal = true,
+            };
+
+            while (!group.AdvanceToward(10f, 1f)) { }
+            group.HasGoal = false;
+
+            Assert.Less(Vector3.Distance(Vector3.right, group.Heading), 1e-4f, $"heading {group.Heading}");
+        }
+
+        [Test]
+        public void AGroupThatNeverHadAGoal_FacesPlusZ() =>
+            Assert.AreEqual(Vector3.forward, new NpcGroup { Position = new Vector3(5f, 0f, 5f) }.Heading);
+
+        [Test]
         public void ARecordSurvivesTheRoundTripThroughASave()
         {
             var group = new NpcGroup

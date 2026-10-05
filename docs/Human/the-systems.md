@@ -471,7 +471,7 @@ Everything in the Strider city kicks up the same sand clouds the monowheels do. 
 
 ### Settlements seen from afar *(SettlementLods)*
 
-The walking city's machines and the sky fleet each carry a second, cheap version of themselves that the game draws once they are far away: every piece of the machine fused into one mesh per kind of paint, which then simplifies itself further as it recedes. Nobody models these by hand; a tool makes them every time a machine is rebuilt. Far away the moving parts freeze in place.
+The walking city's machines and the sky fleet each carry a second, cheap version of themselves that the game draws once they are far away: every piece of the machine fused into one mesh per kind of paint, which then simplifies itself further as it recedes. Nobody models these by hand; a tool makes them every time a machine is rebuilt. Far away the moving parts freeze in place. The walking city can also be seen marching in its dust from the edge of the loaded ground, long before it is close enough to come to life; when you reach it, the real city takes over in the same places.
 
 **Worth knowing:** Smoke and dust are never part of the cheap version, so they keep running at every distance.
 

@@ -366,7 +366,33 @@ namespace SpaceGame.Agents
         /// </summary>
         [NonSerialized] public readonly List<GameObject> Fighters = new();
 
-        public Vector3 Heading => HasGoal ? Flat(GoalPosition - Position).normalized : Vector3.forward;
+        /// <summary>
+        /// The last direction toward a goal, remembered so a group that stops keeps facing the way it
+        /// walked. Runtime only, never saved: a group reloaded without a goal faces +Z.
+        /// </summary>
+        [NonSerialized] private Vector3 lastHeading = Vector3.forward;
+
+        /// <summary>
+        /// Which way the group faces: toward its goal while it has one, else the way it last walked (+Z
+        /// if it never has). The live spawn and the distant silhouette both face this, so neither swings
+        /// round when the group stops.
+        /// </summary>
+        public Vector3 Heading
+        {
+            get
+            {
+                RememberHeading();
+                return lastHeading;
+            }
+        }
+
+        private void RememberHeading()
+        {
+            if (!HasGoal) return;
+            Vector3 toGoal = GoalPosition - Position;
+            toGoal.y = 0f;
+            if (toGoal.sqrMagnitude > 1e-6f) lastHeading = toGoal.normalized;
+        }
 
         public float FlatDistanceTo(Vector3 point) => Flat(point - Position).magnitude;
 
@@ -387,6 +413,8 @@ namespace SpaceGame.Agents
         public bool AdvanceToward(float speed, float delta)
         {
             if (!HasGoal) return false;
+            // Before the step: an arriving step lands on the goal, where there is no direction left.
+            RememberHeading();
 
             Vector3 toGoal = GoalPosition - Position;
             toGoal.y = 0f;

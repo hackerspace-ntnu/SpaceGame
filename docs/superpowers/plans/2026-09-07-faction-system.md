@@ -371,6 +371,25 @@ infinite sink and the fastest way to flatten an economy.
 - [ ] `python3 tools/docs_check.py --index` clean.
 - [ ] Record in `DEFECTS.md` anything found and deliberately left (e.g. the prefab folder casing).
 
+## Deferred at the `Feat/create-factions` merge (2026-10-05)
+
+Left open on purpose by the user ("just leave them be"); pick them up on a later branch.
+
+### Driverless Strider monowheels
+
+- [ ] Playtest report: "when i kill people that ride the monowheels, sometimes the monowheels keep driving driverless. when this happens i cant mount them". Not reproduced; cause unknown.
+- Ruled out by reading the code (2026-10-05): a rider hit or killed calls `NpcPassenger.Dismount` (`OnDamage`/`OnDeath`, every Strider prefab has a root `HealthComponent`), which clears `Rider` on the server (`Network.Simulates` is always true there); `MonowheelDriverGate` then parks `FormationModule` + `GoalTravelModule`; with no module claiming the frame `AgentController` sends `MoveIntent.Idle`, which clears `MotorOrders` so `MonowheelMotor` brakes; `AbandonedVehicle` releases the wheel through `NpcWorldSim.ReleaseDefeated` (seen working in the Editor.log: `'StriderMonowheel_Hauler(Clone)' left 'strider-city': left behind defeated`). Mounting is refused only while `MountModule.IsMounted` or inside `mountCooldown`, so "can't mount" may simply be the wheel outrunning the player.
+- Leading hypothesis to test first: something throws inside `NpcPassenger.Dismount` after `NpcSeating.Detach` but before `Rider = null` — the rider falls off, the wheel still `HasRider` (gate never parks), and the player's mount calls `Dismount` again through `VacateSeat` and fails the same way. No such exception was found in the logs on hand.
+- Next step: when it happens, leave Play Mode running and read, for every `MonowheelMotor` in the scene: `Speed`, `CurrentDestination`, `NpcPassenger.Rider` (name, active, parent, health), `MonowheelDriverGate.IsParked`, `MountModule.IsMounted`/`IsAvailableForMount`, `AbandonedVehicle.Current`, `GroupMembership.Group`, and which `IBehaviourModule`s are enabled. Search that session's Editor.log for exceptions from `NpcPassenger`/`NpcSeating`/`MountModule`. Note whether it was a single or a double, whether the driver died to one shot, and whether the wheel kept following the war party.
+
+### Strider elder re-rig
+
+- [ ] The shipped `StriderElder` sways its chest about a point in its left arm and its foot pins hang 1.8 cm under the soles, so it floats ~3 cm above the deck. The rig script is fixed (d5272980) but was never re-run: Blender could not start with < 2.5 GB free RAM (paging file full). Re-run steps are in `docs/AI/systems/Striders.md` Gotchas; reboot first, then rebuild the elder and re-run `Wire Strider City`.
+
+### Multiplayer gaps from the pre-merge audit
+
+- [ ] Recorded in `docs/AI/DEFECTS.md` (2026-10-05): 109 prefabs on Netcode's default `NetworkTransform` settings (bandwidth), late joiners see knocked-down/netted bodies standing (`NetMsg.Knockdown` is not replayed), a mount killed under a client rider stays owned by that client. A client run should also check whether seated crew wobble against a moving house.
+
 ## Verification matrix (every phase, before its PR)
 
 | Check | How |

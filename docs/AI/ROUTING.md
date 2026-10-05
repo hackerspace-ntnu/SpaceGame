@@ -174,6 +174,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a dropped item is far smaller than the same item was on the ship's gear wall | [Inventory](systems/Inventory.md) |
 | a dropped rifle rolls across the sand like a marble, or spins on the deck and never settles | [Inventory](systems/Inventory.md) |
 | a dropped tank is full again when I pick it up | [SupplyCharge](systems/SupplyCharge.md) |
+| a dune barge's merged level still has hundreds of submeshes | [SettlementLods](systems/SettlementLods.md) |
 | a duplicated garment has vertex GROUPS with the right bone names but does nothing when posed | [CharacterClothes](systems/CharacterClothes.md) |
 | a failed join throws a bare NullReferenceException instead of a readable service error | [Lobby](systems/Lobby.md) |
 | a farmer or miner swings the tool short of the bed or the ore, or from a metre too far back | [Residents](systems/Residents.md) |
@@ -261,6 +262,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a menu list is far shorter on an ultrawide monitor than on a 16:9 one | [UI](systems/UI.md) |
 | a menu swallows my movement keys, or a hotkey does nothing while a panel is open | [UI](systems/UI.md) |
 | a merged far level shows parts of a machine inside out | [SettlementLods](systems/SettlementLods.md) |
+| a merged level draws its parts in the wrong materials, or has one more material than submeshes | [SettlementLods](systems/SettlementLods.md) |
 | a mesa or cliff bakes at the wrong ground height, or off-screen entirely | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a mesh built under a pack surface lands tens of metres away | [Backpack](systems/Backpack.md) |
 | a mesh renders inside-out in Unity and looks correct in Blender | [ArtPipeline](systems/ArtPipeline.md) |
@@ -1611,6 +1613,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | typecheck.py prints 'No errors.' but the Editor still shows compile errors | [Testing](systems/Testing.md) |
 | typecheck.py says a type I just added to an asmdef does not exist | [Testing](systems/Testing.md) |
 | UnassignedReferenceException: The variable animator of AgentAnimatorDriver has not been assigned, thrown from AggressionTelegraphModule.OnEnable as nomads spawn | [AgentSystem](systems/AgentSystem.md) |
+| Unity crashes with 'Could not allocate memory: System out of memory!' in MeshLodUtility.GenerateMeshLods while baking | [SettlementLods](systems/SettlementLods.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a ladder does nothing | [Ladders](systems/Ladders.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
@@ -1882,6 +1885,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Editor/Tests/DesertCrawlerWorkerTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/MonowheelDriverGateTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/SettlementLodPrefabTests.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Tests/StriderCityTemplateTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderCrabOutriderTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Environment/Structures/SkyFleet/` | [SkyTribe](systems/SkyTribe.md) |
@@ -2262,4 +2266,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1617 symptoms, 619 paths, 86 docs -->
+<!-- 1620 symptoms, 620 paths, 86 docs -->

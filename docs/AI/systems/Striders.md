@@ -166,7 +166,7 @@ The third tribe on the faction stack, whose home is not a place but a **walking 
 5. `Build Strider Nomad NPCs` again — bakes `roster.handItems` into `NpcRandomLoadout`
 6. `Build Strider Crab Outrider` again — its rider is the rebuilt nomad
 7. `Tools/Vehicles/Build Desert Crawler Prefab`
-8. `Tools/SpaceGame/Vehicles/Build Strider Habitat Walker`, then `Tools/SpaceGame/Vehicles/Build Strider Barges` (needs the dune barges, `Tools/Vehicles/Build Dune Barge Prefabs`)
+8. `Tools/SpaceGame/Vehicles/Build Strider Habitat Walker`, then `Tools/SpaceGame/Vehicles/Build Strider Barges` (needs the dune barges, `Tools/Vehicles/Build Dune Barge Prefabs`). Every city vehicle builder (steps 3, 6, 7, 8, 11) adds its near dust, then far dust ([VehicleDust.md](VehicleDust.md)) and the bake ([SettlementLods.md](SettlementLods.md)) right before saving
 9. `Tools/SpaceGame/Agents/Wire War Party Templates` (adds/updates `strider-war-party`)
 10. `Tools/SpaceGame/Agents/Wire Strider City` (needs the faction, the habitat, the barges, the crawler, the crab and all five monowheels; touches no other template). Re-run it after rebuilding any city vehicle: each card's footprint and `slotTolerance` are measured from its prefab. After a change to the column re-run step 11 and `Build Strider Barges`: both derive `regroupDistance` from it
 11. `Tools/SpaceGame/Vehicles/Build Strider Monowheels` (needs the Strider nomads and the parallel session's `Monowheel_<V>` art prefabs — `Tools/Vehicles/Build Monowheel Presentation`). **Re-run it after every presentation rebuild**: the seat markers are added children of the nested art, and the colliders are measured from it

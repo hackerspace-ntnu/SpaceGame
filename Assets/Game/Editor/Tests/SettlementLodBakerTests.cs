@@ -76,6 +76,31 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(Parts().Sum(r => r.GetComponent<MeshFilter>().sharedMesh.vertexCount), lod.Mesh.vertexCount);
         }
 
+        /// An exported part can be an empty mesh (the crawler's `Circle`, the monowheels' bare tubes): a
+        /// material only it uses must not get a slot, or every later material slides onto the wrong submesh.
+        [Test]
+        public void AnEmptyPartsMaterial_GetsNoSlot_AndTheRestKeepTheirSubmeshes()
+        {
+            var green = new Material(red) { name = "green" };
+            var empty = new Mesh { name = "Empty" };
+            try
+            {
+                MeshRenderer hollow = Part(PrimitiveType.Cube, green, Vector3.zero, Vector3.one);
+                hollow.transform.SetAsFirstSibling();
+                hollow.GetComponent<MeshFilter>().sharedMesh = empty;
+
+                MergedLod lod = SettlementLodBaker.Bake(root, PrefabPath, Profile);
+
+                CollectionAssert.AreEqual(new[] { red, blue }, lod.Materials);
+                Assert.AreEqual(lod.Materials.Length, lod.Mesh.subMeshCount);
+            }
+            finally
+            {
+                Object.DestroyImmediate(empty);
+                Object.DestroyImmediate(green);
+            }
+        }
+
         [Test]
         public void LodZero_IsTheOriginalRenderers_AndNoParticleIsInAnyLevel()
         {

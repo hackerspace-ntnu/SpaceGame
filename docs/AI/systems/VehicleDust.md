@@ -58,7 +58,7 @@ Far dust adds ⌈0.2 × peak × 18 s⌉ per vehicle (house 65, crawler 90, crab 
 
 ## Flows
 
-- **Build:** `StriderCityBuilder.BuildHabitat` (into the variant, not the RigWalker), `DesertCrawlerBuilder.Build`, `StriderCrabOutriderBuilder.Build` (after `AttachRider`) and `StriderBargeBuilder` (one cloud under each `TrackContact_*`, `TopSpeed` from the barge's `TrackedHullMotor`) call `VehicleDustWiring`. The player's `RigWalker` and the wild `CrabWalker6` get none.
+- **Build:** `StriderCityBuilder.BuildHabitat` (into the variant, not the RigWalker), `DesertCrawlerBuilder.Build`, `StriderCrabOutriderBuilder.Build` (after `AttachRider`) and `StriderBargeBuilder` (one cloud under each `TrackContact_*`, `TopSpeed` from the barge's `TrackedHullMotor`) call `VehicleDustWiring`; each then calls `AddFarDust` right after its near dust (`StriderMonowheelBuilder.BuildStrider` before `Finish`, from the presentation's `DustAtFullSpeed`; the player's monowheel gets none: it never marches with the city), `fullSpeed` = `StriderCityBuilder.CityLeaderSpeed`. The player's `RigWalker` and the wild `CrabWalker6` get none.
 - **Each frame, footfall:** locomotion `Step` (100) lands feet → `FootfallDust.LateUpdate` (150) sees a new `StepCount` → `Emit` per foot, scaled by LOD.
 - **Each frame, rolling:** `RollingDust.Update` → per contact: step since last frame → smoothed speed (a step implying over 50 m/s is a snap and keeps the old speed) → grounded? → rate.
 

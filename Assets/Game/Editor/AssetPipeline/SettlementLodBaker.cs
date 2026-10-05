@@ -143,7 +143,8 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// Every enabled, active mesh renderer under <paramref name="root"/> in the root's own space, one
         /// submesh per distinct material in first-seen order. A submesh with no material slot is not drawn
-        /// by Unity and is left out here too.
+        /// by Unity and is left out here too, as is an empty one: CombineMeshes drops an empty part, and
+        /// its material would then shift every later one onto the wrong submesh.
         /// </summary>
         private static Mesh Merge(Transform root, IEnumerable<Renderer> renderers, out Material[] materials)
         {
@@ -162,7 +163,7 @@ namespace SpaceGame.EditorTools
                     for (int s = 0; s < source.subMeshCount; s++)
                     {
                         Material material = s < slots.Length ? slots[s] : null;
-                        if (material == null) continue;
+                        if (material == null || source.GetSubMesh(s).indexCount == 0) continue;
 
                         if (!byMaterial.TryGetValue(material, out List<CombineInstance> parts))
                         {

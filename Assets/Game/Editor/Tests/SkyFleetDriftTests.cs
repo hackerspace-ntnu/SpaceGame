@@ -318,6 +318,29 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void Deck_AWatchingMachineParksTheResidentNetcodeParentedIn()
+        {
+            SettlementDeck deck = Deck(out _, out _, out _, out EntityFaction resident);
+            try
+            {
+                var conform = resident.gameObject.AddComponent<AgentGroundConform>();
+
+                // A client is handed only the parenting; Park (and its Suppress) never runs there.
+                resident.transform.SetParent(deck.transform, worldPositionStays: true);
+                deck.RefreshPresented();
+                Assert.IsFalse(conform.enabled, "the client's copy probes the ground and leans into the deck");
+
+                resident.transform.SetParent(null, worldPositionStays: true);
+                deck.RefreshPresented();
+                Assert.IsTrue(conform.enabled, "and stands on the ground again once netcode takes it off");
+            }
+            finally
+            {
+                EntityTargetRegistry.Unregister(resident);
+            }
+        }
+
+        [Test]
         public void Deck_LeavesAloneSomeoneOffTheDeck()
         {
             SettlementDeck deck = Deck(out DriftRouteModule route, out _, out _, out EntityFaction resident);

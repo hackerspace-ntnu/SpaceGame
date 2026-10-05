@@ -21,6 +21,10 @@
 //
 // Server only (Network.Decides): parking moves other entities, and their parenting replicates. On a
 // client the NavMesh is never walked by anything this machine simulates.
+//
+// Every machine: the presentation half. A watching machine is handed only the parenting, never the
+// Suppress, so RefreshPresented parks the ground conform of whoever is visibly parented under the
+// hull and gives it back when netcode takes them off — what VesselSeats does for a house's crew.
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -55,6 +59,8 @@ namespace SpaceGame.Vehicles
 
         private readonly Dictionary<GameObject, NpcSeating> parked = new();
         private readonly List<EntityFaction> people = new(32);
+        private readonly List<Transform> visible = new();
+        private readonly List<Transform> presented = new();
         private NetworkObject hull;
         private bool underWay;
         private float nextScan;
@@ -214,6 +220,34 @@ namespace SpaceGame.Vehicles
             }
 
             parked.Clear();
+        }
+
+        private void OnTransformChildrenChanged() => RefreshPresented();
+
+        /// <summary>
+        /// Every machine: stop whoever is parented under the hull conforming to the ground, and give it
+        /// back to whoever left. Public so a test (which runs no transform-children messages) can ask.
+        /// </summary>
+        public void RefreshPresented()
+        {
+            NpcSeating.CollectSeatedNpcs(transform, visible);
+
+            for (int i = presented.Count - 1; i >= 0; i--)
+            {
+                Transform npc = presented[i];
+                if (npc != null && visible.Contains(npc)) continue;
+
+                presented.RemoveAt(i);
+                if (npc != null) NpcSeating.ParkPresentation(npc.gameObject, parked: false);
+            }
+
+            foreach (Transform npc in visible)
+            {
+                if (presented.Contains(npc)) continue;
+
+                presented.Add(npc);
+                NpcSeating.ParkPresentation(npc.gameObject, parked: true);
+            }
         }
 
         // The hull going away mid-voyage (a world unloading) must not leave anyone parked for good.

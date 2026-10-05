@@ -22,6 +22,7 @@ paths:
   - Assets/Game/Editor/Tests/TrackedHullDriveTests.cs
   - Assets/Game/Editor/Tests/TiltingSeatsTests.cs
 symptoms:
+  - "a client quit while riding and the creature or ship they were on vanished for everyone"
   - "I right-click the vehicle and nothing happens, or every hull collider mounts me"
   - "the rider floats above the saddle on every machine but the host's"
   - "one press seated the player in all four ship chairs at once"
@@ -138,7 +139,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 - **Mounting is server-decided, presentation is local.** Every peer replays `TryMount`/`Dismount` so the rider is visibly seated; `RiderIsLocal` gates cameras, audio listener, input actions, visor flag and the rider's component restore.
 - **Two channels**: the event (`NetMsg.Mount`/`Mounted`/`Dismount`/`Dismounted`) for everyone present, and the state (`seatedRider` `NetworkVariable`, server-write, polled each frame) for late joiners. `ReconcileSeat` **only seats** — emptying is the event's job, or a peer would throw a rider off in the window before the variable arrives.
 - **Every message carries `NetArg.A = MountIndex`** (positional over the entity's `MountNetworkSync`es). Unaddressed, one press mounted a player in all four PlayerShip chairs. Same trick: `VehicleStation.StationIndex`, `ArticulatedPartInteraction`.
-- **Ownership**: mount `NetworkObject` → rider's client on seating, → server on dismount. Without it the rider steers a body they don't own and the server's `NetworkTransform` overwrites it every tick.
+- **Ownership**: mount `NetworkObject` → rider's client on seating, → server on a *requested* dismount (`OnDismountRequested`). Without it the rider steers a body they don't own and the server's `NetworkTransform` overwrites it every tick. Every mount with a steering seat therefore needs **`DontDestroyWithOwner`** on its root `NetworkObject` — Netcode despawns and destroys whatever a disconnecting client owns, so without it a player quitting in the saddle deleted the Appa, RobotHorse, Sandloper, ClankerOutrider or PlayerShip for everybody (`NetworkPrefabRegistrationTests.EveryRiderDrivenMount_SurvivesItsRiderDisconnecting`). A dismount the server forces (the mount dies or is wrecked under a client rider, `MountModule.OnDisable`) does **not** hand ownership back: the corpse or wreck stays owned, and physics-simulated, by that client until they leave.
 - `VehicleStation` and `ArticulatedPartInteraction` are plain `MonoBehaviour`s on purpose (a `NetworkBehaviour` with no `NetworkObject` above it is a Netcode error); with no relay every send falls through to a local dispatch.
 - **Sky transports are server-flown**: `VesselPilot.Update` returns unless `Network.Simulates`; clients interpolate the server-authoritative `NetworkTransform`, and passengers ride along through the parenting `NpcSeating.Attach` replicates. `VesselSeats` poses and unhooks on every machine from what is parented under it.
 - `NpcPassenger` seats only on the authority; netcode replicates the spawn *and* the parenting, and `NetAuthority` switches the watching copies' brains off. Nothing to send — including for a rider shooting from the saddle, which goes out on the existing `NetMsg.ItemUsed` channel `EntityEquipmentController` already owns, so `RidesAsPassenger` never has to leave the authority.

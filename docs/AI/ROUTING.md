@@ -77,6 +77,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client fails to join with 'Scene Hash N does not exist in the HashToBuildIndex table | [Scenes](systems/Scenes.md) |
 | a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData | [Multiplayer](systems/Multiplayer.md) |
 | a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes | [WorldStreaming](systems/WorldStreaming.md) |
+| a client quit while riding and the creature or ship they were on vanished for everyone | [Vehicles](systems/Vehicles.md) |
 | a client sees no damage numbers at all, or its own shots do nothing | [Combat](systems/Combat.md) |
 | a client sees the objective but never hears the lander's briefing | [Objectives](systems/Objectives.md) |
 | a client sits on the loading screen forever and the console repeats still waiting on terrain streaming | [UI](systems/UI.md) |
@@ -1807,4 +1808,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1312 symptoms, 469 paths, 67 docs -->
+<!-- 1313 symptoms, 469 paths, 67 docs -->

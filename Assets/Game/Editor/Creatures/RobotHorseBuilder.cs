@@ -545,7 +545,9 @@ namespace SpaceGame.EditorTools
             SetBool(tracked, "keepChunksLoaded", false);
             root.AddComponent<SpaceGame.World.Safety.UnderTerrainGuard>();
 
-            root.AddComponent<Unity.Netcode.NetworkObject>();
+            // DontDestroyWithOwner: mounting hands the horse to its rider's client, and Netcode
+            // destroys whatever a disconnecting client owns unless this is ticked.
+            root.AddComponent<Unity.Netcode.NetworkObject>().DontDestroyWithOwner = true;
             root.AddComponent<ClientNetworkTransform>();
             root.AddComponent<NetRelay>();
             root.AddComponent<NetAuthority>();

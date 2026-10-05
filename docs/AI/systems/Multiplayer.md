@@ -22,7 +22,7 @@ symptoms:
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
   - "a builder-made NPC stops moving on clients when it walks into another chunk scene; its prefab has SceneMigrationSynchronization: 0"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # Multiplayer / Netcode core
@@ -98,7 +98,7 @@ Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/
 | Remote copies | `NetAuthority` suppresses drivers, so anything a suppressed driver would have drawn must be broadcast explicitly |
 | Late joiners | `NetworkVariable.OnValueChanged` never replays — read the value in `OnNetworkSpawn`; event-only state goes in `SessionSnapshot` |
 | Config | `TickRate 30`, `ConnectionApproval 0` (**off**, deliberately), `EnableSceneManagement 1`, `PlayerPrefab: {fileID: 0}` (**null** — `SpawnManager` spawns the real one), one list `DefaultNetworkPrefabs.asset` guid `c9ad996e…`, UTP port `7782`, `LoadSceneTimeOut 120` |
-| Transform settings | Every `NetworkTransform`/`ClientNetworkTransform` in the project (players, 16 agents and vehicles, `SyncedPlayer`, `CowBotRocket`) ships `UseUnreliableDeltas 1`, `UseHalfFloatPrecision 1`, `UseQuaternionSynchronization 1` + `Compression 1`, `PositionThreshold 0.02`, `RotAngleThreshold 0.5`. NGO's defaults (reliable, full float, three Euler floats, 1 mm) had six interpolating Rigidbodies never going idle on the reliable channel. A new networked prefab must match; `AgentBullet` is the one deliberate exception |
+| Transform settings | The target for every `NetworkTransform`/`ClientNetworkTransform`: `UseUnreliableDeltas 1`, `UseHalfFloatPrecision 1`, `UseQuaternionSynchronization 1` + `Compression 1`, `PositionThreshold 0.02`, `RotAngleThreshold 0.5`. NGO's defaults (reliable, full float, three Euler floats, 1 mm) had six interpolating Rigidbodies never going idle on the reliable channel. Only 15 prefabs ship it (players, `SyncedPlayer`, `CowBotRocket`, the DesertCrawler and dune barges, …); `AgentBullet` is the one deliberate exception. **Most agents do not** — see [DEFECTS.md](../DEFECTS.md) |
 
 ## Persistence
 

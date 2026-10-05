@@ -53,6 +53,7 @@ GameObject:
   - component: {fileID: 7104839140843385021}
   - component: {fileID: 7185814470808203596}
   - component: {fileID: -1799641723122230666}
+  - component: {fileID: -1081142146864685282}
   m_Layer: 0
   m_Name: LightningSpell
   m_TagString: Untagged
@@ -115,7 +116,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningSpell
   maxUses: 3
-  useAction: {fileID: 11400000, guid: 21790da22e8547fa88ddc26bf47d7c01, type: 2}
   useSoundId: 0
   useSound:
     Guid:
@@ -124,6 +124,7 @@ MonoBehaviour:
       Data3: -1836278379
       Data4: 1511765510
     Path: event:/SFX/MetalPickup
+  useAction: {fileID: 11400000, guid: 21790da22e8547fa88ddc26bf47d7c01, type: 2}
   lightningVFXPrefab: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
   spawnHeightOffset: 10
   raycastDistance: 500
@@ -243,6 +244,7 @@ MonoBehaviour:
   holdSize: 0.5
   packSize: 0
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2153891816125389048
 MonoBehaviour:
@@ -358,6 +360,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-1081142146864685282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7289613265384824265}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &5541954888358836498
 PrefabInstance:
   m_ObjectHideFlags: 0

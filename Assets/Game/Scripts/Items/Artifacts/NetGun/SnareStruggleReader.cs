@@ -135,7 +135,7 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// The obvious source is <c>PlayerController.Input</c>, and it is switched off: going limp
-        /// runs <c>PlayerRagdoll.Suspend</c>, which disables the <c>PlayerInputManager</c> outright
+        /// runs <c>PlayerRagdoll.SuspendLayers</c>, which disables the <c>PlayerInputManager</c> outright
         /// — killed at the source, because jump and dash arrive as events a merely-disabled
         /// PlayerMovement is still subscribed to — and that component zeroes <c>MoveInput</c> on
         /// its way down. So the one thing that could report a struggle is disabled by the very act

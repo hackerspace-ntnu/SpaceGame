@@ -44,8 +44,8 @@ An NPC riding a mount is a different model entirely and shares almost no code wi
 ## The vehicle roster
 
 - **Ostrich** — a rideable creature, and the simplest complete example of the mount stack. Legged, direct-interaction, with a built saddle pose.
-- **RigWalker** — a piloted six-legged walker with a cockpit and a walkable platform. You board it at the cockpit control, not by touching a leg.
-- **DesertCrawler** — the same legs with no seat at all: an AI-driven walking station carrying a dig, claw and collector rig. You ride along and work it.
+- **RigWalker** — a piloted six-legged walker with a cockpit and a walkable platform. You board it at the cockpit control, not by touching a leg. The Striders' walking houses are a copy of it with the cockpit control taken out: you can ride their decks, never steer them.
+- **DesertCrawler** — the same legs with no seat at all: an AI-driven walking station carrying a dig, claw and collector rig. It belongs to the Striders: it follows their walking city and digs wherever the city stops. You can still ride along on it.
 - **DuneFoil** — the sand sailer, and the flagship for stations. No mount anywhere on it. A boarding ramp, a helm, four rigging stations, and a mooring that holds it steady while nobody is aboard.
 - **DuneOrnithopter** — the flapping-wing aircraft. Its own section below.
 - **PlayerShip** — the lander. Its own section below.

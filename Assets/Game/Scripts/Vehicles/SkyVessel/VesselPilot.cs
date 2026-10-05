@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.World;
@@ -451,7 +452,7 @@ namespace SpaceGame.Vehicles
             wreckTimer += dt;
             if (wreckTimer >= wreckDespawnDelay)
             {
-                Despawn();
+                NpcSpawn.Remove(gameObject);
                 return;
             }
 
@@ -468,14 +469,6 @@ namespace SpaceGame.Vehicles
                 wreckGrounded = true;
             }
             Place(next, transform.rotation);
-        }
-
-        private void Despawn()
-        {
-            if (NetworkObject != null && NetworkObject.IsSpawned)
-                NetworkObject.Despawn(destroy: true);
-            else
-                Destroy(gameObject);
         }
 
         private void OnValidate()

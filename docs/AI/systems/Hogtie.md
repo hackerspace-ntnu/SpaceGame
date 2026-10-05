@@ -22,7 +22,7 @@ symptoms:
   - "a player loaded from a save cannot move and nothing in the log says why"
   - "a hogtied player cuts their own ropes off by clicking their own body"
 reads_with: [LeashSystem, Artifacts, Combat, Multiplayer, BodyEquipment, PlayerCharacter]
-updated: 2026-09-09
+updated: 2026-09-24
 ---
 
 # Hogtie
@@ -49,7 +49,7 @@ The leash's fifth verb: rope round somebody who is **already on the ground**, so
 | `Hogtie` | [Hogtie.cs](Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs) | One tied body, `AddComponent`ed on demand and never authored. `CanTie`/`BodyOf`/`Ensure`, `Bind`/`Untie`/`Step`, `IsBound`/`HoldFraction`/`StruggleLevel`. Owns the pool, both meters and the two messages |
 | `HogtieSettings` | [HogtieSettings.cs](Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs) | `[Serializable]` tuning on the leash prefab: `HoldSeconds` 120, `StruggleMultiplier` 1.96, plus the meter's cap/decay/deadzone/angle |
 | `SnareStruggleReader` | [SnareStruggleReader.cs](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareStruggleReader.cs) | The captive's own `InputControls`, the menu gate (`MayRead`) and the reversal memory (`Counts`). Shared with [`SnaredBody`](Assets/Game/Scripts/Items/Artifacts/NetGun/SnaredBody.cs) |
-| `PlayerRagdoll` / `AgentRagdoll` | [Ragdoll/](Assets/Game/Scripts/Gameplay/Ragdoll) | `HoldDown(object)` / `ReleaseHold(object)` and `IsHeldOrDown`. A `HashSet<object>` of claims; death clears all of them |
+| `PlayerRagdoll` / `AgentRagdoll` | [Ragdoll/](Assets/Game/Scripts/Gameplay/Ragdoll) | `HoldDown(object)` / `ReleaseHold(object)` and `IsHeldOrDown`, inherited from `RagdollController`. A `HashSet<object>` of claims; death clears all of them |
 
 ## Flows
 
@@ -83,7 +83,7 @@ Nothing leaks in by another door either: `RigidbodySaveable` writes motion and e
 - **`Use()` cannot re-derive whether the tie took.** It reads a flag set by the `Present` one call earlier on the same machine. Asking the target whether it is tied would spend a rope for somebody else's tie that landed between the aim and the press.
 - **A respawn unties too, and it is not redundant.** Death already unties through `Hogtie`'s own `OnDeath` hook, so the respawn call in [`RespawnRelease.Everything`](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) is a null check on the ordinary path. It is there for the tie that outlives a death that never happened — a body revived by anything other than dying first — and `Untie` is idempotent by its first line, so the two cannot fight.
 - **A tied body that dies is untied at once.** The ragdoll adapters already drop every claim on death — that is what stops a permanently un-evictable `RagdollBudget` slot — but nothing there knows about the ropes, so without `Hogtie`'s own `OnDeath` hook the pool drains a corpse for two minutes and the rope never comes back.
-- **A knockdown timer cannot expire out from under a tie.** `PlayerRagdoll.Update`'s `if (IsHeld) return;` sits *above* the `downUntil` check, and `ReleaseHold` clears `downUntil`, so a body tied while knocked flat stays down and recovers on the next settled frame after the ropes come off.
+- **A knockdown timer cannot expire out from under a tie.** `RagdollController.TickStandUp` returns on `IsHeld` *before* the down-time check, and `ReleaseHold` restarts the stand-up clock at that moment, so a body tied while knocked flat stays down and recovers once it is at rest (or `settleGraceSeconds` later) after the ropes come off.
 - **`OnDisable` releases locally and says nothing.** A broadcast has no relay left to leave from and a rope spawned at a departing object lands in a chunk nobody is loading — so a body destroyed while tied loses its rope. The same trade `SnareReceiver.OnDisable` documents.
 - **A tie on a worn leash is free** — see the last Model bullet. One gauntlet ties an unlimited number of people at no cost. A stated balance hole, not an oversight; it closes the moment the body can empty a slot, or the leash moves to `equipKind: 0`.
 - **A tie has no rope visual yet**, so a tied body and a netted one read the same on screen, and the untie gesture clicks the *body* rather than a rope.

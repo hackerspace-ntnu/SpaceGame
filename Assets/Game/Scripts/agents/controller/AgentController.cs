@@ -3,6 +3,7 @@
 // evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins —
 // then lets a facing module turn the body only if it outranks that winner.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay.Status;
@@ -160,10 +161,22 @@ namespace SpaceGame.Agents
         // the cached lookup cannot see for itself.
         private void OnTransformParentChanged() => authority?.Invalidate();
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string UpdateMarkerName = "SpaceGame.Agent.Update";
+        private static readonly ProfilerMarker UpdateMarker = new(UpdateMarkerName);
+        private const string ModulesMarkerName = "SpaceGame.Agent.Modules";
+        private static readonly ProfilerMarker ModulesMarker = new(ModulesMarkerName);
+        private const string FacingMarkerName = "SpaceGame.Agent.Facing";
+        private static readonly ProfilerMarker FacingMarker = new(FacingMarkerName);
+
         private void Update()
         {
-            float deltaTime = Time.deltaTime;
+            using (UpdateMarker.Auto())
+                Simulate(Time.deltaTime);
+        }
 
+        private void Simulate(float deltaTime)
+        {
             // Before anything decides or moves. Every module below this line writes shared state —
             // a target, a path, a bite — and running them on a machine that does not own the entity
             // is not a smaller version of the same behaviour, it is a second one: two brains
@@ -198,7 +211,10 @@ namespace SpaceGame.Agents
             if (RidesAsPassenger)
             {
                 if (status == null || !status.Suppressed)
+                {
+                    using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
                     TickSideEffectModules(BuildPresentationContext(), deltaTime);
+                }
 
                 return;
             }
@@ -333,6 +349,7 @@ namespace SpaceGame.Agents
 
             AgentContext context = BuildPresentationContext();
 
+            using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
             foreach (IBehaviourModule module in presentationModules)
             {
                 if (module.IsActive)
@@ -442,6 +459,7 @@ namespace SpaceGame.Agents
         // winner: the movement module whose intent this is, or null when nothing claimed the frame.
         private MoveIntent EvaluateModules(in AgentContext context, float deltaTime, out IBehaviourModule winner)
         {
+            using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
             TickSideEffectModules(in context, deltaTime);
             winner = null;
 
@@ -487,6 +505,7 @@ namespace SpaceGame.Agents
             if (facingModules == null)
                 return;
 
+            using ProfilerMarker.AutoScope sample = FacingMarker.Auto();
             int? winnerPriority = winner?.Priority;
 
             foreach (IFacingModule module in facingModules)
@@ -498,27 +517,33 @@ namespace SpaceGame.Agents
                 if (!FacingApplies(module.FacingPriority, winnerPriority, ReferenceEquals(module, winner)))
                     continue;
 
-                if (module is not Component owner || !Fault.TryEnter(owner, FacingSite)) continue;
-
-                bool wants;
-                Vector3 facePosition;
-
-                // Same allocation-free barrier as RunModule.
-                try
-                {
-                    wants = module.TryGetFacing(in context, out facePosition);
-                }
-                catch (System.Exception e)
-                {
-                    Fault.Report(owner, FacingSite, e);
-                    continue;
-                }
-
-                if (!wants) continue;
+                if (!RunFacing(module, in context, out Vector3 facePosition)) continue;
 
                 intent.FacePosition = facePosition;
                 intent.OverrideFacing = true;
                 return;
+            }
+        }
+
+        /// <summary>
+        /// Asks one facing module behind the fault barrier. A throw reads as "wants nothing", the
+        /// facing twin of <see cref="RunModule"/>'s null. Public and static for the same reason.
+        /// </summary>
+        public static bool RunFacing(IFacingModule module, in AgentContext context, out Vector3 facePosition)
+        {
+            facePosition = Vector3.zero;
+            if (module is not Component owner || !Fault.TryEnter(owner, FacingSite)) return false;
+
+            // Same allocation-free barrier as RunModule.
+            try
+            {
+                return module.TryGetFacing(in context, out facePosition);
+            }
+            catch (System.Exception e)
+            {
+                Fault.Report(owner, FacingSite, e);
+                facePosition = Vector3.zero;
+                return false;
             }
         }
 

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Ragdoll;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Characters
@@ -608,9 +609,18 @@ namespace SpaceGame.Characters
     
         private void ApplyFallDamage(int damage)
         {
+            // A landing too soft to round to any damage is not a fall worth falling over for.
+            if (damage <= 0) return;
+
             var health = GetComponent<HealthComponent>();
             if (health)
             {
+                // The landing knocks the player flat for exactly the fall's time, and the damage
+                // that follows is not priced as a hit on top. The request goes FIRST: both travel on
+                // this body's relay in order, so the damage lands on a body already down, and a hit
+                // on a downed body does not knock it — see RagdollController.KnockHere.
+                RagdollController.RequestFallKnockdown(this);
+
                 // Only the owner measures its own fall, but the server owns the health that
                 // results — otherwise a client's landing hurts nobody but their own screen.
                 NetDamage.Apply(health.gameObject, damage);

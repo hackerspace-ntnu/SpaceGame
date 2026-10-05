@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 6778362193960137132}
   - component: {fileID: 190333700869394911}
   - component: {fileID: 1570528222786129491}
+  - component: {fileID: 7632536937079510160}
   m_Layer: 0
   m_Name: GrapplingHook
   m_TagString: Untagged
@@ -70,11 +71,13 @@ MonoBehaviour:
       Data3: -1562606685
       Data4: 1967096403
     Path: event:/SFX/Wham
+  useAction: {fileID: 0}
   maxRange: 50
   hookableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
   shootSpeed: 60
+  fireAction: {fileID: 0}
   winchAcceleration: 55
   maxWinchSpeed: 26
   winchGravityRelief: 0.7
@@ -404,6 +407,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.399, y: 0.80610555, z: 0.598163}
   m_Center: {x: 0.009500012, y: 0.21146944, z: -0.06091851}
+--- !u!114 &7632536937079510160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5175360877773462781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &8214767275010277916
 GameObject:
   m_ObjectHideFlags: 0

@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 3063774380416169674}
   - component: {fileID: 7114943401856754878}
   - component: {fileID: 1740842996916694202}
+  - component: {fileID: 4490038197495304441}
   m_Layer: 0
   m_Name: Wingsuit
   m_TagString: Untagged
@@ -87,6 +88,7 @@ MonoBehaviour:
   localPosition: {x: 0, y: 0, z: 0}
   localEuler: {x: 0, y: 0, z: 0}
   size: 2.6
+  inspectSize: 0
   anchorToBone: 1
   holdsArmsOut: 1
 --- !u!114 &7900459948213814292
@@ -122,6 +124,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   wings: {fileID: 2312274227976790351}
 --- !u!114 &3153942630394274708
 MonoBehaviour:
@@ -143,6 +146,7 @@ MonoBehaviour:
   holdSize: 0.85
   packSize: 0
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2887498201031449010
 MonoBehaviour:
@@ -360,6 +364,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &4490038197495304441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7808088182206549882}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &4733516924947799383
 PrefabInstance:
   m_ObjectHideFlags: 0

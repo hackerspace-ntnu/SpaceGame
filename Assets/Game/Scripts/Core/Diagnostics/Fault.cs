@@ -24,6 +24,7 @@
 // N independent plug-ins and the others are entitled to run.
 using System;
 using System.Collections;
+using Unity.Profiling;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -38,6 +39,11 @@ namespace SpaceGame.Diagnostics
         public const float WindowSeconds = 10f;
 
         private static FaultBudget budget = new(MaxFaultsPerWindow, WindowSeconds);
+
+        // Profiler marker (Diagnostics.md → Profiling): one sample per guarded body, so a capture
+        // counts the barrier calls and shows the bodies nested under it.
+        private const string RunMarkerName = "SpaceGame.Fault.Run";
+        private static readonly ProfilerMarker RunMarker = new(RunMarkerName);
 
         // Instance ids of owners with at least one quarantined site. The budget is keyed by a
         // string, and building that string on every entry is an allocation per call — on the agent
@@ -74,13 +80,34 @@ namespace SpaceGame.Diagnostics
         /// carry on with the next thing rather than to retry.
         /// </para>
         /// </summary>
-        public static bool Run(Component owner, string site, Action body)
+        public static bool Run(Component owner, string site, Action body) =>
+            body != null && Run(owner, site, ref body, InvokeAction);
+
+        /// <summary>A body that takes its inputs and hands its outputs back through one struct.</summary>
+        public delegate void RefAction<TState>(ref TState state);
+
+        private static readonly RefAction<Action> InvokeAction = (ref Action action) => action();
+
+        /// <summary>
+        /// <see cref="Run(Component, string, Action)"/> without the per-call garbage, for barriers
+        /// that run every frame per plug-in (the agent module tick).
+        ///
+        /// <para>
+        /// A lambda that captures its inputs allocates a closure on every call. Here the inputs and
+        /// the result travel in <paramref name="state"/>, so <paramref name="body"/> can be a
+        /// static, capture-free delegate cached once. The key string is built only once something
+        /// somewhere is quarantined, or when the body throws. Same contract and return value as
+        /// the <c>Action</c> overload, which is this with the action as its state.
+        /// </para>
+        /// </summary>
+        public static bool Run<TState>(Component owner, string site, ref TState state, RefAction<TState> body)
         {
             if (body == null || !TryEnter(owner, site)) return false;
 
+            using ProfilerMarker.AutoScope sample = RunMarker.Auto();
             try
             {
-                body();
+                body(ref state);
                 return true;
             }
             catch (Exception e)

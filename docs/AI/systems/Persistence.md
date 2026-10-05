@@ -26,10 +26,11 @@ symptoms:
   - "a save file's item records sit at y = -30000 and get deeper on every load"
   - "'Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released"
   - "after a quickload the old caravan is still standing beside the new one"
+  - "a prefab builder's wiring passes add SaveableEntity, savers and AgentRagdoll to a prefab the design says is never saved"
   - "pressing F5 warns that this is a disposable session and is never saved"
   - "an old save's provocation/resident record is ignored after the creature moved to a new saver"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe, Pushables, Expeditions]
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # Persistence / Save-Load
@@ -40,7 +41,6 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 **Related:** [.claude/skills/spacegame-persistence/SKILL.md](.claude/skills/spacegame-persistence/SKILL.md) (recipes) + [reference.md](.claude/skills/spacegame-persistence/reference.md) (record shapes) · [EntitySystem.md](EntitySystem.md) · [InteriorScenes.md](InteriorScenes.md) · [MountSystem.md](MountSystem.md) · [Lobby.md](Lobby.md)
 
 ## Model
-
 - **Identity, never scene.** `WorldRecord.Entities` is a flat `instanceId -> EntityRecord` map. `EntityRecord.Scene` is *routing only* (which scene load re-spawns a runtime object), re-stamped on every capture, because `WorldStreamer` migrates entities between chunks.
 - **Three populations.** World objects → [WorldSaveStore](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSaveStore.cs) keyed by instance id; players → [PlayerSaveService](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveService.cs) keyed by profile GUID (`SaveScope.External`, world store steps over them); session-wide → global savers on [SaveManager](Assets/Game/Scripts/Core/Persistence/Runtime/SaveManager.cs).
 - **The store's invariant:** an object's state is EITHER live in a loaded scene OR in the record — never neither, never both drifting. Maintained by hooking `WorldStreamer` / `InteriorManager` load+unload.
@@ -50,7 +50,6 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 - Authored (in a scene file) = record is a **delta**, restored in place, removed only by a tombstone. Runtime = record is a **recipe**, re-instantiated from `prefabId`.
 
 ## Key types
-
 | Type | File | Role |
 |---|---|---|
 | `SaveManager` | [Runtime/SaveManager.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveManager.cs) | Front door. Owns both stores, autosave timer, quit save, global savers, deferred passes, streaming subscriptions |
@@ -65,7 +64,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | `WorldSession` | [Runtime/WorldSession.cs](Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs) | Static: which world, its config GUID, `IsNew`, the staged document (`Consume()` once) |
 | `PlayerSaveSync` / `PlayerSaveBinder` / `PlayerProfile` | [Runtime/](Assets/Game/Scripts/Core/Persistence/Runtime/) | Owner claims its profile over RPC / offline binding / per-instance GUID in PlayerPrefs |
 | `SaveHotkeys` | [Runtime/SaveHotkeys.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveHotkeys.cs) | F5 quicksave, F9 quickload (reloads the scene through Netcode's SceneManager so clients follow) |
-| `ISaveable` / `IDeferredSaveable` | [Format/ISaveable.cs](Assets/Game/Scripts/Core/Persistence/Format/ISaveable.cs) | `SaveKey`/`CaptureState`/`RestoreState`; deferred adds `OnLoadComplete` + `LoadOrder` (`Early -100` / `Default 0` / `Late 100`) |
+| `ISaveable` / `IDeferredSaveable` / `ISavedPose` | [Format/ISaveable.cs](Assets/Game/Scripts/Core/Persistence/Format/ISaveable.cs) | `SaveKey`/`CaptureState`/`RestoreState`; deferred adds `OnLoadComplete` + `LoadOrder` (`Early -100` / `Default 0` / `Late 100`). `ISavedPose` lets an object answer the position and rotation a pose capture records; every capture (`TransformSaveable`, `PlayerSaveService`, `WorldSaveStore`) reads it through `SavedPose.PositionOf`/`RotationOf` — `RagdollRig` answers yaw-only while a living body is knocked down, and for a corpse the root that puts its pelvis back where it lay once the load rebuilds the model in its standing pose (see [Combat](Combat.md) Persistence) |
 | `IPersistentEntity` | [Format/IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) | Empty marker = "I am mutable world" — the declared opt-in for kinematic rigs and rootless vehicles |
 | `SaveRef` / `ISaveRefBinder` | [Format/SaveRef.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveRef.cs) | `{kind:player|entity, id}`; live half is [SaveRefBinder.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveRefBinder.cs) installed on `SaveRefBinding.Active` |
 | `SaveDocument`/`SaveHeader`/`PlayerRecord`/`WorldRecord`/`EntityRecord`/`SceneKey` | [Format/SaveDocument.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveDocument.cs) | The file shape |
@@ -74,20 +73,18 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | `SaveMigrator` + `Migrations/V1GlobalEntities` | [Format/SaveMigrator.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveMigrator.cs) | Version ladder; v1 (per-scene records) → v2 (flat) |
 
 ### Adapters (59) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
-
 | Category | Savers (key) |
 |---|---|
 | Pose & motion | `Transform`(transform) `Rigidbody`(rigidbody, velocity only) `MotorState`(motor) `LeggedGait`(gait) `ArticulatedParts`(parts, keyed by hierarchy path) |
-| Vitals & kit | `Health`(health, 0 HP *is* dead) `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` (a slot an `ILentSlots` sibling reports as lent is written empty, positions kept — a band's kit weapon lent to a resident is never saved) |
+| Vitals & kit | `Health`(health, 0 HP *is* dead) `EntityFaction` `EntityEquipment`ᴰ `EntityInventory` (a slot an `ILentSlots` sibling reports as lent is written empty, positions kept — a band's kit weapon lent to a resident is never saved) `Remains`(remains — seconds a dead body or its dropped loot has left; on everything with health and every pickup, written only while counting) |
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
-| Agent routine | `Patrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier` and `wipedOut`; the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again; `owner` appended 2026-10-03, older saves read null — a `runtimeOnly` record is restored only when a director claimed its owner or it still hunts a quarry) `Expedition`(expeditions — beside `NpcWorld` on the sim's entity: every settlement's rotation and every band record, [Expeditions.md](Expeditions.md)) |
+| Agent routine | `Patrol` `Wander` `NpcTask` `AgentGoal` `AgentPacing` `Formation` `NpcWorld`(one record per caravan or war-party group — position/goal/task, plus a war party's `rosterSeed`, `quarryProfileId`, `tier`, and any group's `wipedOut` (war parties only until 2026-10-05; every group since); the last four appended 2026-09-16, older saves read 0/null/0/false — a valid seed, not a war party, tier 0, alive — and `delivered`, appended 2026-09-17, older saves read false: a party with a transport flies in again; `owner` appended 2026-10-03, older saves read null — a `runtimeOnly` record is restored only when a director claimed its owner or it still hunts a quarry) `Expedition`(expeditions — beside `NpcWorld` on the sim's entity: every settlement's rotation and every band record, [Expeditions.md](Expeditions.md)) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret` |
 | World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `WallInventory`(wallInventory, a gear wall or board's placements — a wall authored WITH starting gear writes an empty `placements` list once emptied, because building it lays that gear on again and only a record clears it; see [ColonyInterior.md](ColonyInterior.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` `FactionGoodwill`(factionGoodwill — one `Standing{value,band,warTier}` per tracked faction; `warTier` appended 2026-09-16 so a tribe's war escalation survives a quit mid-cooldown, older saves read 0) |
 | Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `Leash`(leashes)ᴰ `PushableLedger`(pushables — where each moved cart was left, by its hierarchy-derived id; lives in `World/Pushables`, not `Adapters/`; [Pushables.md](Pushables.md)) |
 
 ## Flows
-
 **Load** (`SaveManager.Awake`, line ~133):
 1. `WorldSession.Consume()` → `new WorldSaveStore(doc.World)` + `new PlayerSaveService(doc.Players)`; install `SaveRefBinding.Active`.
 2. `RestoreGlobals` stages every global payload; a saver registering later is served (once) in `RegisterGlobalSaver`.
@@ -106,16 +103,14 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 **Deferred pass** runs: once per world load, again on **every** `PlayerBound`, and again per scene hydrated after the first pass (`HandleSceneHydrated`). `OnLoadComplete` must be idempotent.
 
 ## Multiplayer
-
 - **Server-only.** Every hydrate/dehydrate/save handler early-returns on `Network.IsNetworked && !Network.Server`. Singleplayer is a host of one, so the host path is the only path that ever writes.
 - Clients get world state through normal replication; a client F5 is refused with an explanation, and a client F9 is refused because reloading the scene would drop it out of the session.
 - Restored objects go through `SaveNetworking.SpawnIfNetworked`, which checks `NetworkConfig.Prefabs.NetworkPrefabOverrideLinks` for `PrefabIdHash` **itself** — NGO does not throw for an unregistered server-side dynamic spawn, the *client* silently fails to construct it.
-- **`SpawnIfNetworked` runs before `Restore`, not after.** A saver that puts a child back — `EntityEquipmentSaveable` (the NPC's weapon), `MountSaveable` (the rider) — attaches an object whose prefab carries a NetworkObject, and NGO refuses to spawn a root that already has one nested under it. Both restore sites (`WorldSaveStore.SpawnEntities`, `Captivity.Rebuild`) spawn first for this reason.
+- **`SpawnIfNetworked` runs before `Restore`, not after.** A saver that puts a child back — `EntityEquipmentSaveable` (the NPC's weapon), `MountSaveable` (the rider) — attaches an object whose prefab carries a NetworkObject, and NGO refuses to spawn a root that already has one nested under it. Both restore sites (`WorldSaveStore.SpawnEntities`, `Captivity.Rebuild`) spawn first for this reason. The flip side: anything an entity spawns in `OnNetworkSpawn` already exists when its savers restore — `CrewSaveable` (a player-taken war-party monowheel) therefore despawns the gunners a double just seated rather than trying to stop them ([Striders.md](Striders.md) Persistence).
 - Player pose is owner-authoritative, so placement goes through `PlayerSaveService.Bind` (skipped for the host, already placed), never a server teleport.
 - `SaveablePrefabRegistry` folds in the NetworkManager prefab list lazily on the first cache miss — scanning at load time races NetworkManager's `Awake`.
 
 ## Persistence — on-disk format
-
 `~/Library/Application Support/Hackerspace NTNU/SpaceGame/Saves/<sanitized world>.json` (`Application.persistentDataPath/Saves`), plus `.bak`, transiently `.tmp`.
 
 ```
@@ -130,9 +125,9 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 `SaveSerializer.Serializer` is the only serializer: `IgnoreSerializableAttribute` (public **fields**), `MissingMemberHandling.Ignore`, `ObjectCreationHandling.Replace`, `TypeNameHandling.None`, `NullValueHandling.Ignore`, plus the Unity struct converters (zero quaternion reads back as `identity`). `slotLabel` tells you which trigger wrote the file (world name = `SaveOnExit`; `Autosave` = timer or quit; `Quicksave` = F5).
 
 ## Gotchas
-
 | Trap | Silent symptom | Correct move |
 |---|---|---|
+| Leaving a component-qualified object that **its owner rebuilds** to the component rule | `NeedsSaving` says yes for `HealthComponent`/`EntityFaction`-bearing roots, and `SaveableWiring.TryWirePrefabs` (which every prefab builder chains at its end) bakes an entity and savers into the prefab file — the sky transports kept coming back wired after every `Build … Prefab` run, and `RagdollWiring` added `AgentRagdoll` to them for the same `HealthComponent`. Runtime `NpcSpawn.Create` disowned them, so nothing broke visibly | Exclude by the component that means "owned and rebuilt elsewhere": `NeedsSaving` returns false for `VesselPilot` (as it does for the player's binders), and `RagdollWiring.IsBody` refuses it. Guarded by `EntityPersistenceTests.NeedsSaving_IsFalseForAFlownVesselItsOwnerRebuilds` and `SkyTransportPrefabTests.TheVesselCarriesNoSaversAndNoRagdoll`. Neither pass removes savers it no longer wants — revert a prefab wired under the old rule by hand |
 | Adding a new save trigger without routing it through `SaveManager.Save` | It writes for every world, including a disposable one — the whole point of `WorldSession.Disposable` is that every trigger (entry write, autosave timer, F5, pause-menu exit, quit) funnels through that one method, which refuses at the top when the flag is set | Call `SaveManager.Save`/`.QuickSave()`, never `SaveFileStore.Write` or `BuildDocument` directly |
 | Letting a runtime-spawned world object stay in the **persistent scene** | Its record is filed under `persistent`, which is hydrated in `SaveManager.Start` **before any chunk exists**. A body with gravity is rebuilt over nothing, falls, and is captured lower by the next save — so every load resumes the fall. Dropped items reached y = -30000 this way, four generations deep, with nothing logged | A thing that lies in the world belongs to the chunk it lies in: `SceneTracked` with `Migrate` and `keepChunksLoaded: false`, which `SaveablePolicy.EnsureSpawned` now gives every pickup. `WorldSaveStore.HasGroundToLandOn` is the failsafe under it, and lands the records already written that way |
 | Writing a migration when deleting a saver (or a field of one) | Wasted work — old files already load cleanly, and none was written when `HealthReactionSaveable`, `HerdMemberSaveable`, `HerdStateSaveable` and `BasePatrolSaveable` went (2026-10-02): `SaveableEntity` leaves a key with no saver untouched and `SaveSerializer` ignores unknown members | Delete the saver, its `SaveablePolicy` row and the component on every prefab/scene object; old keys stay in old files, harmlessly |
@@ -167,11 +162,10 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | Playing a world scene opened directly in the editor | `Save ignored: no world is active` — no `WorldSession`, so nothing saves | Enter via the main menu |
 | Saver on a child under a nested `SaveableEntity` | State lands in the child's record | Collection stops at any nested `SaveableEntity` |
 | A saver caching its component in `Awake` | EditMode round-trip tests cannot exercise it | Lazy `GetComponent` property |
-| Restoring 0 HP unguarded | Loot re-dropped, death reaction replayed each load | Check `HealthComponent.IsRestoring` |
+| Restoring 0 HP unguarded | Loot re-dropped, death reaction replayed each load | Check `HealthComponent.IsRestoring`. It is also true on a client applying the server's value, so a reaction that must tell an OLD death (a save) from a fresh one asks `IsLoading` — set only by `HealthSaveable`'s `LoadHealth`; the ragdoll does, so a replicated death still falls |
 
 ## Extending
-
-1. **Opt in.** `SaveablePolicy.NeedsSaving` already says yes for `IPersistentEntity`, `HealthComponent`, `PickupableItem`, `NavMeshAgent`, non-kinematic `Rigidbody` (and no for the `Transient` blacklist and anything with `PlayerSaveBinder`/`PlayerSaveSync`). A new vehicle/locomotion root matching none of those implements `SpaceGame.Persistence.IPersistentEntity`.
+1. **Opt in.** `SaveablePolicy.NeedsSaving` already says yes for `IPersistentEntity`, `HealthComponent`, `PickupableItem`, `NavMeshAgent`, non-kinematic `Rigidbody` (and no for the `Transient` blacklist, anything with `PlayerSaveBinder`/`PlayerSaveSync`, and anything with `VesselPilot` — a group record rebuilds those hulls). A new vehicle/locomotion root matching none of those implements `SpaceGame.Persistence.IPersistentEntity`.
 2. **Write the saver** in `Adapters/`, namespace `SpaceGame.Core.Persistence` (not the feature asmdef — that drags in Newtonsoft): `const string Key`, a plain public-field `State` struct, `CaptureState()` returning null at defaults, `RestoreState` via `SaveSerializer.Serializer`, lazy component lookup.
 3. **Auto-attach it**: add a clause to `SaveablePolicy.Ensure` (or the `EnsureAgent*` / `EnsureWorldInteractables` helpers) keyed off the component that implies it.
 4. **Cross-object state**: hold a `SaveRef`, add `IDeferredSaveable`, resolve in `OnLoadComplete`, consume on success only; use `LoadOrder = Early` if others read your result.

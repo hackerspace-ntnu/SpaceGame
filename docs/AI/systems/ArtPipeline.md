@@ -13,6 +13,7 @@ paths:
   - Assets/Game/Prefabs/Environment/Structures/AstronautSettlement
   - Assets/Game/Prefabs/Environment/Structures/NomadSettlement
 symptoms:
+  - "Missing Prefab Asset: 'EntranceModel (Missing Prefab with guid: …)' although the .blend with that guid is right there in Assets"
   - "a pouch, ring or band on a nomad renders inside out in Unity but looks fine in Blender"
   - "the imported mesh arrives untextured, or a handful of faces wear a neighbouring part's colour"
   - "the model comes out 100x too big when parented to a socket"
@@ -33,6 +34,21 @@ symptoms:
   - "a .blend in the library will not open: 'not a blend file'"
   - "an FBX take is named Scene and runs 250 frames"
   - "AnimationEvent 'X' has no receiver! Are you missing a component?, once per step"
+  - "headless Blender dies rendering a preview with EXCEPTION_ACCESS_VIOLATION in nvoglv64.dll"
+  - "a background Cycles render of a small file fails with Error: out of memory"
+  - "a clash checker reports hundreds of overlaps against the hull, decks or cage"
+  - "a clash checker says an object is inside a shape that is nowhere near it"
+  - "a clash check comes back clean and the part is visibly buried in the model"
+  - "straps or bands stand off the top of a squashed gas bag or barrel they should be clamping"
+  - "mirroring a part to the other side of a vehicle flips it end for end instead"
+  - "one prop type turns out to be a quarter of a model's whole triangle count"
+  - "a scaled ladder reaches the right height but its rungs are metres apart"
+  - "support beams under a model that are not connected to anything"
+  - "editing palette.blend does not change a model that uses those materials"
+  - "a model ships local materials although every generator links from the palette"
+  - "ReferenceError: StructRNA of type Material has been removed"
+  - "a fitted collider comes out as a slab the size of the whole model"
+  - "the player falls through a stretch of deck that is visibly plated"
   - "a PNG named after a Blender image appeared beside the .blend after an export"
   - "every bone of a re-exported character imports at scale 100"
   - "flapping an ear bends the back of the skull with it"
@@ -45,6 +61,7 @@ symptoms:
   - "a resculpted character's whole left side follows the right side's bones"
   - "a settlement of one species reads exactly as tall as the humans standing in it, or bigger, after a resculpt"
   - "a nomad sail tent towers over the settlement at 6-12 m and the LODGroup's own m_Size looks unremarkable"
+  - "a part of a model lands metres away from the body after its stacked duplicates were deleted"
   - "a settlement decoration prefab has no collider and the player walks through it, or an agent paths straight through a wall or fence"
   - "every decoration in a settlement lies on its side"
   - "a resident's spot hangs in the air"
@@ -80,22 +97,28 @@ How a 3D asset gets from a `.blend` in the Unity-invisible source library to an 
 > `*Builder.cs` editor passes that assembled prefabs from the FBX. **The `.blend` files and the
 > exported FBX are the assets now.** A model is changed by opening its `.blend` in Blender and
 > re-exporting; a prefab is changed by editing the prefab.
+>
+> **Kept when the faction branch merged (2026-10-04):** `_buildlib.py`, `LIBRARY.md`,
+> `library_index.json` and the scripts that generated the Strider and dune-barge parts and
+> vehicles (`components/**/*.py`, `models/vehicles/{dune_barge,desert_monowheel,monowheel_luggage}*.py`),
+> together with the agent-pipeline builders ([EditorTooling](EditorTooling.md)). They record how
+> those `.blend`s were made; they are **not** a rebuild path — the `.blend` is still the source of
+> truth, and `_buildlib.start()` refuses to overwrite an existing one.
 
 ## Model
-
 - **The `.blend` is the source of truth.** [`Assets/Game/Art/Models/_Source~/`](Assets/Game/Art/Models/_Source~) holds `components/<cat>/x.blend` (reusable parts, variations as `Coll_*` collections) and `models/<cat>/y.blend` (assembled deliverables). Many carry hand edits that exist nowhere else.
 - **Materials** are *linked* from [`palette.blend`](Assets/Game/Art/Models/_Source~/palette.blend); models do not define local materials. See [Materials](#materials) for the one case where that silently stops being true.
-- **Export** goes through [`_exportlib.py`](Assets/Game/Art/Models/_Source~/_exportlib.py) — the only build script kept. `export()` localises linked palette materials, optionally drops armatures, and writes to `unity_path(...)` = `Assets/Game/Art/Models/<Category>/name.fbx`. `export_collections()` writes one FBX per `Coll_*` for a contact-sheet `.blend` (the eighteen shade sails), each moved onto the world origin by the collection's `instance_offset`. Exports never write back to the `.blend`.
+- **Export** goes through [`_exportlib.py`](Assets/Game/Art/Models/_Source~/_exportlib.py) — the one export path for every model. `export()` localises linked palette materials, optionally drops armatures, and writes to `unity_path(...)` = `Assets/Game/Art/Models/<Category>/name.fbx`. `export_collections()` writes one FBX per `Coll_*` for a contact-sheet `.blend` (the eighteen shade sails), each moved onto the world origin by the collection's `instance_offset`. Exports never write back to the `.blend`.
+- **The library is indexed and browsable.** [`_index_library.py`](Assets/Game/Art/Models/_Source~/_index_library.py) opens every `.blend` headless and writes `LIBRARY.md` + `library_index.json` (collections, objects, dimensions, polys, materials) — read them before modelling anything, to reuse instead of rebuild. [`_assets.py`](Assets/Game/Art/Models/_Source~/_assets.py) marks every `components/` `Coll_<Family>_<Variant>` as a Blender asset in catalogue `<Category>/<Family>` and writes `blender_assets.cats.txt`. It also marks the finished characters it lists in `CHARACTERS` (catalogue `Characters/Drifters`): each file gets a `Char_<Name>` collection that *links* body, rig and eye spheres — nothing moved, not linked into the scene — because every character file names its own collection `Coll_HumanSculptBase`, and `models/characters/sculpt_base/` is byte-identical copies of `drifters/` that would list each character twice. A file in `CHARACTER_FILES` holds several finished characters, each already in its own `Char_<Name>` collection (body and rig), and every one is marked in that file's catalogue: `models/vehicles/strider_characters.blend` → `Characters/Striders`. With `_Source~` registered as an asset library in Blender's preferences, parts drag straight out of the Asset Browser. Both are read-only on geometry, default to Blender 5, and are re-run after any `.blend` is added or changed.
 - **Walkable interiors** additionally get a baked convex decomposition from [`_collisionlib.py`](Assets/Game/Art/Models/_Source~/_collisionlib.py) — Unity refuses a concave MeshCollider on a Rigidbody. Kept for the same reason as `_exportlib`: it is part of getting a model *in*, not of building one.
 - **Import** into Unity is automatic. [`MeshReadablePostprocessor`](Assets/Game/Editor/AssetPipeline/MeshReadablePostprocessor.cs) forces Read/Write on every mesh (runtime NavMesh baking); [`RootMotionCurveStripper`](Assets/Game/Editor/AssetPipeline/RootMotionCurveStripper.cs) deletes root-bound curves from imported clips.
 - **Prefabs are authored assets.** They are edited in the Unity Inspector and committed. Nothing regenerates them.
 - **Anything worn is modelled at the wearer's true size**, measured off the skinned character rather than guessed. An earlier gauntlet built to a remembered forearm radius vanished inside the suit sleeve.
 
 ## Layout
-
 | Directory | Contains | Visible to Unity? |
 |---|---|---|
-| [`Assets/Game/Art/Models/_Source~/`](Assets/Game/Art/Models/_Source~) | `.blend` masters, `palette.blend`, `_exportlib.py`, `_collisionlib.py` | **No** — trailing `~`; no `.meta` files, no Blender install needed to open the project |
+| [`Assets/Game/Art/Models/_Source~/`](Assets/Game/Art/Models/_Source~) | `.blend` masters, `palette.blend`, `_exportlib.py`, `_collisionlib.py`, `_index_library.py` → `LIBRARY.md`/`library_index.json`, `_assets.py` → `blender_assets.cats.txt` | **No** — trailing `~`; no `.meta` files, no Blender install needed to open the project |
 | [`_Source~/components/{structural,props,mechanical,organic,apparel,nomad_settlement}/`](Assets/Game/Art/Models/_Source~/components) | reusable component `.blend`s, variations as `Coll_*` collections | No |
 | [`_Source~/models/{buildings,characters,creatures,gear,props,vehicles}/`](Assets/Game/Art/Models/_Source~/models) | assembled model `.blend`s | No |
 | [`Assets/Game/Art/Models/_backups~/`](Assets/Game/Art/Models/_backups~) | pre-surgery snapshots (`vrescal_before_legs.blend`, …) | No |
@@ -106,18 +129,15 @@ How a 3D asset gets from a `.blend` in the Unity-invisible source library to an 
 | [`Assets/ThirdParty/`](Assets/ThirdParty) | bought/free packs and **borrowed art with a licence to keep** (`RedPlanetRampage/`: the Clanker body + clips, BSD-4-Clause, terms in `THIRD_PARTY_NOTICES.md` at the repo root) | Yes |
 
 ## Model library
-
 FBX live under `Assets/Game/Art/Models/`, split by category: `Environment`, `Vehicles`, `Items`, `Creatures`, `Weapons`, `Props`, `Characters`. Older/imported assets are `camelCase` or `PascalCase`; assets exported from this library are `snake_case`.
 
 ## Materials
-
 - **One shared palette** in `palette.blend`: materials named `Mat_<Category>_<Descriptor>` — `Mat_Metal_Steel_Worn`, `Mat_Emissive_Portal_Blue` — across Emissive, Fabric, Foliage, Glass, Hide, Metal, Neutral, Paint, Plastic and Wood.
 - **How a mesh gets its material:** face material indices are stamped in Blender from linked palette slots → `_exportlib` calls `make_local()` (a *linked* material does not survive into the FBX; without this the meshes arrive untextured) → Unity imports them as **sub-assets of the FBX** (`materialLocation: 1`, `materialName: 0`, `materialSearch: 1` on every model FBX meta), regenerated on every reimport. `raxy.fbx` is the exception. Its clothes and mouth materials are remapped on its import settings to `Materials/Characters/Raxy/Raxy_*.mat` ([CharacterClothes.md](CharacterClothes.md)); only its `raxy_body`/`raxy_eyes` stay embedded, for the drifter builder to replace.
 - Because they are sub-assets, per-material flags cannot be edited in place. [`DoubleSidedMaterials.Apply()`](Assets/Game/Editor/Support/DoubleSidedMaterials.cs) copies each to `Assets/Game/Art/Materials/Vehicles/<name> (DoubleSided).mat` and rewires the renderers. Vehicle hulls are modelled as surfaces, so back-face culling makes cabins see-through.
 - Hand-authored `.mat` assets (terrain, portal, surfaces, VFX) live in the domain folders under [`Materials/`](Assets/Game/Art/Materials) and are unrelated to the palette.
 
 ## Rigs & animation
-
 | | Setting |
 |---|---|
 | Humanoid | the astronauts, the nomads and the drifters (`animationType: 3`). `sky_soldier.fbx` is NOT among them |
@@ -130,23 +150,19 @@ FBX live under `Assets/Game/Art/Models/`, split by category: `Environment`, `Veh
 - Rigid-part rigs (meshes parented to bones, not skinned) are the ones the root-motion stripper exists for; skinned rigs never get a root curve.
 
 ## Flows
-
 1. Open the model's `.blend` in Blender and edit it there. **It is the only copy of the geometry.**
 2. Re-export with `_exportlib.export(SRC, unity_path("Category", "model.fbx"), keep_armature=…)`.
 3. Let Unity import; check the material, rig and scale gotchas below.
 4. Update the prefab by hand in the Inspector if the mesh, bone names or submesh order changed. On a drifter, run *Sync Drifter Rigs From FBX* instead — see Gotchas.
-
 ## Multiplayer
-
 N/A — art assets carry no authority split. The one crossing point: a runtime-spawned prefab must be registered in the network prefab list (see [Multiplayer.md](Multiplayer.md)).
-
 ## Persistence
-
 N/A for the art assets themselves. A spawnable prefab must carry a prefab id, or the entity vanishes on load — see [Persistence.md](Persistence.md).
 
 ## Gotchas
-
-- **The `.blend` is the only copy.** There are no generators any more, so a `.blend` that is damaged or overwritten cannot be rebuilt from a script. Snapshot into [`_backups~/`](Assets/Game/Art/Models/_backups~) before surgery. Notably hand-built and irreplaceable: `models/vehicles/ship_lander_blockout.blend` (the user's interior), `models/vehicles/sky_city.blend`, the `nomad.blend` family, `models/creatures/vrescal.blend`, `models/creatures/appa.blend`.
+- **Unity caches a FAILED `.blend` import and never retries it.** A `.blend` inside `Assets/` (not the `_Source~` library) is imported by running the Blender Windows associates with `.blend` in the background; if that Blender was missing or failed when the Library was built, the asset is cached as a bare `DefaultAsset` with no model, and every prefab instance of it reports *Missing Prefab with guid* — even after Blender is installed. Seen 2026-09-23: 15 of 15 in-`Assets` `.blend`s (incl. `ruin_entrance2.blend` behind `EntranceModel` in `Chunk_7_5`, and `walker_station.blend` behind `RigWalker`). Fix: force-reimport them (`AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate)`, or Reimport in the Project window) — no tracked file changes. Check with `AssetDatabase.GetMainAssetTypeAtPath(path) == typeof(GameObject)`.
+- **The `.blend` is the only copy.** Almost no generators remain (see Scope), so a `.blend` that is damaged or overwritten cannot be rebuilt from a script. Snapshot into [`_backups~/`](Assets/Game/Art/Models/_backups~) before surgery. Notably hand-built and irreplaceable: `models/vehicles/ship_lander_blockout.blend` (the user's interior), `models/vehicles/sky_city.blend`, the `nomad.blend` family, `models/creatures/vrescal.blend`, `models/creatures/appa.blend`.
+- **Never re-run a generator over an existing `.blend`.** The `.blend` is the source of truth and carries hand edits that exist nowhere else; `_buildlib.start()` hard-fails on this, but a script that bypasses it will destroy the file. Compare object *scales*, not names, to detect a hand-edited file. Notably hand-built: `models/vehicles/ship_lander_blockout.blend` (the user's interior), `models/vehicles/sky_city.blend` (generated, then hand-edited by the user from 2026-09-16 - **deleting it to regenerate, as its early iterations did, would now destroy that work**), the `nomad.blend` family (which is why `nomad_before_*.blend` snapshots exist), `models/creatures/vrescal.blend`.
 - **The export convention, scale and axes, is fixed for the whole library.** Axis conversion is `-Z` forward / `Y` up: Blender's −Y forward lands on Unity's +Z, and changing it silently rotates new assets relative to every existing one. Scale is `FBX_SCALE_NONE`, 1 Blender unit = 1 m, with `globalScale: 1` / `useFileScale: 1` on every model FBX meta — which still means **Blender FBX import at `lossyScale = 100`** on every transform (FBX centimetre convention): mesh data 100× small under transforms 100× large. It cancels for the model, but anything sized *against* a socket must divide by `socket.lossyScale` or it comes out 100× too big. **The one deliberate exception is a skinned humanoid character**, exported with `_exportlib.export(keep_armature=True, scale_all=True)` (`FBX_SCALE_ALL`): with `FBX_SCALE_NONE` every BONE gets a scale of 100 in Unity, which anything parented to a hand then inherits. The drifters ship this way; Raxy adds `triangulate=True` (below). Not every skinned rig does — Appa and the other creatures ship `FBX_SCALE_NONE` and size their bone-parented colliders against that 100 — so **read an existing FBX's header before re-exporting it**: `UnitScaleFactor` 100 means scale-all, 1 means none.
 - **An `_exportlib` FBX is already axis-converted.** Anything that applies a further −90° X rotation on import doubles it.
 - **`_exportlib.export(fix_inverted=True)` is not safe on a contact-sheet `.blend`.** `models/buildings/nomad_settlement.blend` once held forty finished buildings in one file sharing a single mesh datablock between as many as 75 objects. With `fix_inverted` on, three of the forty shipped their mirrored kit parts up to **137 m** from the model: the `.blend` measures correct vertex by vertex, and only the FBX is wrong, so nothing in Blender reports it. With it off, all forty match the source bounds to under 10 mm. Repair inverted winding on the Unity side instead, per renderer, by the sign of `Transform.localToWorldMatrix.determinant`.
@@ -193,7 +209,8 @@ N/A for the art assets themselves. A spawnable prefab must carry a prefab id, or
 - **`components/nomad_settlement/tents.blend` ships single-sided canopies.** Back-face culled, a sail is invisible from underneath, which is the side a player stands on. Fixed in Unity by rendering the cloth double-sided — each of the 18 `Tents/NomadSail_*.prefab`s already overrides its one Canopy renderer's material to the matching `Mat_Fabric_{Sail_White,Sail_Orange,Sail_Red,Tarp_Azure} (DoubleSided)` asset in `Materials/Settlement/`.
 - **A `NomadSail_*` tent prefab's true height is `raw Blender height_z (Z-up) × its per-child scale override, if any`, not the LODGroup's stored `m_Size`.** Under the kit's `FBX_SCALE_NONE` export, a child transform imports at default `100 × its Blender object.scale` per axis with the mesh data shrunk to match — it cancels, so a child with **no** override renders at exactly its raw Blender size. Eight of the eighteen (`HexLow, Kite, Penta, QuadLarge, QuadSmall, Ribbon, Tri, TriTall`) have every mesh child overridden to a uniform `250` (`= 100 × 2.5`, i.e. **already** real-world-scaled ×2.5 on top of the raw geometry) — that ×2.5 alone put them at 6–12 m tall. The other ten (`Wall*`) ship with no child overrides at all, i.e. render at raw Blender size, and nine of those already land in 3–5 m; `LODGroup.m_Size` is a stale bake from whenever bounds were last recalculated and does **not** track either state — do not use it to judge current size. **Fixed 2026-09-27** by adding a single new `m_LocalScale.{x,y,z}` override on the prefab's root transform (fileID `-8679921383154817045`, shared by every `NomadSail_*` instance) rather than touching any child value — Unity composes parent scale into every descendant automatically, so this rescales the whole assembly (and the child overrides' relative proportions) without needing to know what they mean. The eight ×2.5 tents were brought to 4 m; `WallSpur` (2.6 m raw, the one `Wall*` under 3 m) was brought to 3.3 m; the other nine `Wall*` tents were left alone, already in range. **A future re-export or scale change on any tent must add/edit that same root override, never the per-child ones** — the per-child `250`s are load-bearing proportions from a prior artist pass, not the thing to retune.
 - **A correctly-sized `NomadSail_*` prefab can still render enormous once placed in a settlement** — that is a [`Settlement`](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/Settlement.cs) placement bug, not an asset one; see [TerrainGeneration.md](TerrainGeneration.md)'s Gotchas (`config.buildings`/`decorations`/`characters` scale, and wrapper-prefab-vs-raw-model references).
-- **A borrowed rig's loose `.anim` clips bind by transform path, so the Animator must sit on the FBX instance root.** The Clanker's nine clips (`Assets/ThirdParty/RedPlanetRampage/Animation/rig.001_*.anim`) address `rig.001/root/DEF-…`; put the Animator on the prefab root above the model and every curve binds to nothing, silently. **A borrowed clip also carries the donor game's AnimationEvents** — six of those called `PlayWalkSound`, a method that exists nowhere here, so every Clanker logged `has no receiver!` on every stride. The events were stripped (`m_Events: []`). Grep a newly vendored clip for `functionName:` before wiring it into a controller.
+- **A borrowed rig's loose `.anim` clips bind by transform path, so the Animator must sit on the FBX instance root.** The Clanker's nine clips (`Assets/ThirdParty/RedPlanetRampage/Animation/rig.001_*.anim`) address `rig.001/root/DEF-…`; put the Animator on the prefab root above the model and every curve binds to nothing, silently. The body is also 9.65 m tall in the file, so [`ClankerBuilder`](Assets/Game/Editor/Agents/ClankerBuilder.cs) scales the model *child* to 3.2 m and keeps the collider and `NavMeshAgent` on the unscaled root; the walk clip's stride speed is measured off the clip at that scale rather than written down. RPR's materials use its own dither shader graph and are not imported — the body wears three palette copies made under `Materials/Characters/Clanker_*.mat`. **A borrowed clip also carries the donor game's AnimationEvents.** Six of those clips called `PlayWalkSound`, a method that exists nowhere in this project, so every Clanker logged `'Body' AnimationEvent 'PlayWalkSound' ... has no receiver!` on every stride — once per event per instance, enough to bury the console. The events were stripped (`m_Events: []`); agents here pace footsteps from the walk cycle, not from clip events (`EntityAudioModule` was deleted 2026-10-02). Grep a newly vendored clip for `functionName:` before wiring it into a controller.
+- **The Striders are rigged in a working copy, by script, from a segmented kit.** `models/vehicles/strider_characters.blend` was copied once from the user's `strider1.blend` (never written); `strider_characters_rig.py "<collection>" <Name>` rigs one humanoid per run and `strider_elder_rig.py` the cyborg, each refusing a character whose `Char_<Name>` exists; `strider_characters_export.py <Name>` writes `Characters/Striders/strider_<name>.fbx` (humanoids `scale_all`, the elder `FBX_SCALE_NONE` like the crab; all `triangulate`). The four humanoids share the "Body Male - Primitive (Realistic)" kit — one object per body segment in an object-parent chain whose **origins are the joints** — so the 19-bone Mecanim skeleton is read off those origins and each segment is 100 % its bone; it is not the sculpt base, so no weight transfer from `Human_Rig`. Other parts vote by their vertices' nearest segment: ≥ 0.8 for one bone (or ≥ 0.45 for a head, shoulder or arm bone — helmets, masks, pads) is rigid; anything else is a garment with soft weights over the trunk and legs only, so arms swing through a poncho instead of tearing it (a poncho votes ~0.2 for whichever arm it hangs nearest). Everything is merged into one skinned mesh per character (one renderer). The elder is a rigid-part rig: per leg `Coxa_/Hip_/Knee_/Ankle_/Foot_<FL|FR|RL|RR>` at the walker-leg parts' own origins with a `<Joint>Pin_<id>` cylinder on every hinge, torso `Root/Pelvis/Chest/Neck/Head`, parts joined per bone (36 renderers, 124 k triangles). **Deleting a stacked duplicate orphans its children, which keep their LOCAL transform and jump** — the cyborg's forearms landed 6 m away — so the dedupe restores every survivor's world matrix. **Materials outside the palette** (Blender's default `Material.NNN`, used on the masks and straps) take the palette material nearest their base colour, and the run prints each mapping.
 - **The whole library is written by Blender 5** (`BLENDER17` file header) and none of it opens in Blender 4.2 — `palette.blend`, `components/props/supply_crate.blend` and `models/creatures/dune_rat.blend` all report *"not a blend file"* there. A portable 5.2.1 lives at `%LOCALAPPDATA%/Programs/Blender5/blender-5.2.1-windows-x64/blender.exe`.
 - **The four sand nomads are authored OUTSIDE the repo**, in `~/Documents/Blender/sand_nogs.blend`, by the user's choice. **Never bake a pose into these meshes** — a retired step posed each body onto the reference skeleton and wrote the deformed vertices back, moving every carefully placed face on all four characters. Also: **a mirrored object (negative scale) renders correctly in Blender and inside out in Unity**; `Recalculate Outside` reports nothing, because in mesh space the normals are fine.
 - **`_Source~` and `_backups~` are invisible to Unity.** No `.meta`, no GUIDs, nothing there can be referenced from a scene or prefab. Conversely, an export written to the pre-restructure `Assets/Models/` path is an orphan nothing imports — always go through `_exportlib.unity_path()`.
@@ -210,8 +227,8 @@ N/A for the art assets themselves. A spawnable prefab must carry a prefab id, or
 - **`NomadAnimalKeep`'s two rectangular fences are its pens, and its baked `Collision` shell is the fence.** The north pen (`Decor/Fence_Gate__01`, gate at x -3.37, z 6.45) and the south pen (`Decor/Fence_Gate__02`, gate at x -0.72, z 2.38) face each other across a 4 m aisle; for a dune rat (NavMesh radius 0.42, 1.26 m tall) the open floor inside is x -11.1 to 4.7, z 7.0 to 12.7 (80 m2) and x -8.8 to 7.1, z -3.9 to 1.8 (75 m2), in prefab space. The chain-link and rails are triangles of the shell, so there is no per-fence collider to maintain; `NomadBuildPrefabTests.TheKeepPensHoldAnimalsUntilTheirGatesOpen` flood-fills a 0.2 m body from inside each pen on a 0.1 m grid: both are sealed with the gates shut and both leak with the gates swung 90 degrees. A third gate (`Fence_Gate__03`, x 17.4, z -3.3) belongs to the lean-to cage on the east side. The shell over-reaches its model by about 10% as rim slivers 2 to 4 m wide (170 m2 of 2200 on the keep, 0 to 180 m2 on the other builds, measured by ray against the model mesh) and misses a few fence posts (under 16 m2); fixing that means re-baking the shell, not a prefab edit.
 
 ## Extending
-
 1. Adding a variant of an existing thing → a new `Coll_*` collection in that component's existing `.blend`, not a new file.
 2. Needing a colour → add it to `palette.blend` and link it; do not define a material locally in a model.
 3. New category → a folder under `components/` or `models/` only when nothing existing is a plausible home; the Unity-side sibling under `Assets/Game/Art/Models/` must match.
 4. Changing shared export behaviour → edit [`_exportlib.py`](Assets/Game/Art/Models/_Source~/_exportlib.py), never fork the flags into a per-model script.
+5. After adding or changing any `.blend` → `python _index_library.py` then `python _assets.py` in `_Source~`, so the index and the Asset Browser see it. A reusable part belongs in `components/`, never only inside a model.

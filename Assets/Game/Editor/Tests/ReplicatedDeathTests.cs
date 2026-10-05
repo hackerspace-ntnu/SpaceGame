@@ -1,16 +1,14 @@
-// Why an NPC killed on the host stays on a client's screen until its despawn timer runs out.
+// Why an NPC killed on the host stays on a client's screen, and dies there the way it did on the host.
 //
 // The bug these pin: a client learns of every death through the health NetworkVariable, which
 // NetworkedHealthComponent applies with HealthComponent.RestoreHealth — the same call a save load
-// makes. HealthReactionModule read every restored death as a load and switched the body off the
-// same frame, so on every client a corpse vanished the instant it died while the host watched it
-// fall for despawnDelay seconds. RestoreHealth now says which kind of restore it is
-// (IsReplicating), and the death listeners that care tell the two apart.
+// makes. Read as a load, a death on a client was not shown at all. RestoreHealth now says which
+// kind of restore it is (IsReplicating), and the death listeners that care tell the two apart.
+// The corpse itself is never taken away by the death: it lies there for the server's Remains
+// countdown (RemainsTests), and a client's copy goes when the server's network despawn reaches it.
 //
 // Lifecycle methods are called by hand: edit mode does not deliver Awake/OnEnable to a plain
-// MonoBehaviour added with AddComponent. Time does not advance in edit mode, so "stays for
-// despawnDelay" is checked as "still there after the death and not yet despawned"; the timer
-// itself is the host's unchanged Invoke.
+// MonoBehaviour added with AddComponent.
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
@@ -24,7 +22,7 @@ namespace SpaceGame.Tests
 {
     public class ReplicatedDeathTests
     {
-        private const float DespawnDelay = 5f;
+        private const float CorpseLifetime = 5f;
 
         private readonly List<GameObject> spawned = new List<GameObject>();
 
@@ -71,31 +69,27 @@ namespace SpaceGame.Tests
         // ─────────── HealthReactionModule: the corpse ───────────
 
         [Test]
-        public void AReplicatedDeath_KeepsTheCorpseForTheDespawnDelay()
+        public void AReplicatedDeath_KeepsTheCorpse()
         {
             (GameObject npc, HealthComponent health, AgentController brain, _) = NewNpc();
-            int despawned = 0;
-            npc.GetComponent<HealthReactionModule>().Despawning += () => despawned++;
 
             health.RestoreHealth(0, replicated: true);
 
             Assert.IsTrue(npc.activeSelf,
-                "The client switched the corpse off the frame it died; the host keeps it for " +
-                "despawnDelay. NGO does not replicate SetActive, so each machine must run its own timer.");
-            Assert.AreEqual(0, despawned, "Despawning fired at once instead of after the timer.");
+                "A client must not switch the corpse off the frame it died; it goes when the " +
+                "server's network despawn reaches it.");
             Assert.IsFalse(brain.enabled, "The dead STATE still applies: a corpse does not think.");
         }
 
         [Test]
-        public void ASavedDeath_TakesTheCorpseAwayAtOnce()
+        public void ASavedDeath_LeavesTheCorpseLying()
         {
             (GameObject npc, HealthComponent health, AgentController brain, _) = NewNpc();
 
             health.RestoreHealth(0);
 
-            Assert.IsFalse(npc.activeSelf,
-                "A corpse loaded from a save has been dead for as long as the player was away; " +
-                "waiting out the timer leaves it briefly standing.");
+            Assert.IsTrue(npc.activeSelf,
+                "A corpse loaded from a save lies where it fell for the rest of its Remains countdown.");
             Assert.IsFalse(brain.enabled);
         }
 
@@ -123,7 +117,7 @@ namespace SpaceGame.Tests
 
             Assert.AreEqual(1, events.Count,
                 "Control: the counter is wired, so the zeros above are a refusal and not a dead probe.");
-            Assert.IsTrue(npc.activeSelf, "A kill keeps the corpse for the despawn delay.");
+            Assert.IsTrue(npc.activeSelf, "A kill leaves the corpse lying for its Remains countdown.");
         }
 
         // ─────────── HidePartsOnDeath: the dropped staff ───────────
@@ -160,7 +154,7 @@ namespace SpaceGame.Tests
             var brain = npc.AddComponent<AgentController>();
             var reaction = npc.AddComponent<HealthReactionModule>();
 
-            Set(reaction, "despawnDelay", DespawnDelay);
+            Set(reaction, "corpseLifetime", CorpseLifetime);
             // Silent, so the test does not depend on the audio catalog having an event assigned.
             Set(reaction, "deathId", SfxId.None);
             Set(reaction, "hurtId", SfxId.None);

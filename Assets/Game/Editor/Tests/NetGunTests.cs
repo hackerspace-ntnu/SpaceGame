@@ -98,15 +98,11 @@ namespace SpaceGame.EditorTools
         private const int FlightStepCeiling = 600;
 
         /// <summary>
-        /// The two adapters that implement the hold. Both are read as text below: the guards that
-        /// make a hold indefinite have no runtime state to assert against, and the components need
-        /// an Awake that AddComponent does not raise in EditMode.
+        /// The one base both ragdoll adapters inherit the hold from. Read as text below: the guards
+        /// that make a hold indefinite have no runtime state to assert against.
         /// </summary>
-        private const string PlayerRagdollSource =
-            "Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs";
-
-        private const string AgentRagdollSource =
-            "Assets/Game/Scripts/Gameplay/Ragdoll/AgentRagdoll.cs";
+        private const string RagdollControllerSource =
+            "Assets/Game/Scripts/Gameplay/Ragdoll/RagdollController.cs";
 
         private readonly System.Collections.Generic.List<GameObject> spawned =
             new System.Collections.Generic.List<GameObject>();
@@ -194,14 +190,19 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A body <c>RagdollRig</c> can really build a skeleton out of, without a skinned mesh.
+        /// A five-bone hard-surface body: a chain of empty bones, each carrying one collider-less cube.
         ///
+        /// <para>
+        /// The bones have to be EMPTY. RagdollRig puts bodies on the rig — nodes that draw nothing and
+        /// lead to geometry — and never on the root, so cubes parented straight under the root are
+        /// meshes with no skeleton and the body silently refuses to go limp. That is how this fixture
+        /// used to be built, and every hold test measured a body that never went down.
+        /// </para>
         /// <para>
         /// Rigid mesh parts are a first-class path through <c>RagdollRig.Build</c> rather than a
         /// trick played on it: the golem, the six-legged crab and the humanoid robot have no
-        /// SkinnedMeshRenderer between them, and the part measure is the answer written for exactly
-        /// those. Five equal cubes clear both the weight floor and the four-bone minimum, so
-        /// <c>GoLimp</c> keeps bones and <c>IsLimp</c> goes true — which is the difference between
+        /// SkinnedMeshRenderer between them. Five bones clear both the weight floor and the four-bone
+        /// minimum, so <c>GoLimp</c> keeps bones and <c>IsLimp</c> goes true — the difference between
         /// a test of a hold that took and a test of a hold that could never have taken.
         /// </para>
         /// <para>
@@ -212,18 +213,53 @@ namespace SpaceGame.EditorTools
         private GameObject NewRagdollBody(string name)
         {
             GameObject root = NewObject(name);
+            Transform parent = root.transform;
 
             for (int i = 0; i < 5; i++)
             {
+                var bone = new GameObject($"Bone{i}").transform;
+                bone.SetParent(parent, false);
+                bone.localPosition = new Vector3(0f, 0.5f, 0f);
+
                 GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 part.name = $"Part{i}";
-                part.transform.SetParent(root.transform);
-                part.transform.localPosition = new Vector3(0f, i * 0.5f, 0f);
-
+                part.transform.SetParent(bone, false);
                 Object.DestroyImmediate(part.GetComponent<Collider>());
+
+                parent = bone;
             }
 
             return root;
+        }
+
+        /// <summary>
+        /// Moves a ragdoll's whole simulated skeleton by <paramref name="offset"/>.
+        ///
+        /// <para>
+        /// Only the bones with no simulated bone above them are moved. The rig keeps the model's
+        /// hierarchy — a chain stays a chain — so adding the offset to every bone would carry each
+        /// child once for itself and once more for every ancestor, and the skeleton would be
+        /// stretched along the offset instead of moved by it.
+        /// </para>
+        /// </summary>
+        private static void MoveSkeleton(GameObject body, Vector3 offset)
+        {
+            var bones = new System.Collections.Generic.HashSet<Transform>(
+                body.GetComponent<RagdollRig>().BoneTransforms());
+
+            foreach (Transform bone in bones)
+                if (!HasAncestorIn(bone, bones)) bone.position += offset;
+
+            Physics.SyncTransforms();
+        }
+
+        private static bool HasAncestorIn(Transform node,
+                                          System.Collections.Generic.HashSet<Transform> set)
+        {
+            for (Transform parent = node.parent; parent != null; parent = parent.parent)
+                if (set.Contains(parent)) return true;
+
+            return false;
         }
 
         /// <summary>
@@ -1349,7 +1385,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ANetLetsGoOfACaptiveWhoDies()
         {
-            // A corpse is not a captive. PlayerRagdoll.OnDeath drops the hold's own claim, but it
+            // A corpse is not a captive. RagdollController.OnDeath drops the hold's own claim, but it
             // knows nothing about the net — so without a death subscription here the binding
             // outlives the player: Update goes on reading a dead player's keys (there is no menu
             // open over a corpse, so the menu gate does not stop it) and the struggle keeps being
@@ -3250,11 +3286,17 @@ namespace SpaceGame.EditorTools
             // means these three tests only ever exercise OldestEvictable's "prefer a settled body"
             // branch, never its fallback. Nothing below says anything about how an exempt rig
             // interacts with a body that is still falling.
+            //
+            // All three are corpses, because only a corpse is evictable at all: the held one too, so
+            // that it is the exemption keeping it live and not merely its being alive.
             var held = NewObject("Held").AddComponent<RagdollRig>();
+            held.IsCorpse = true;
             held.BudgetExempt = true;
 
             var ordinary = NewObject("Ordinary").AddComponent<RagdollRig>();
+            ordinary.IsCorpse = true;
             var filler = NewObject("Filler").AddComponent<RagdollRig>();
+            filler.IsCorpse = true;
 
             try
             {
@@ -3286,8 +3328,11 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Budget_StillEvictsOrdinaryBodies()
         {
+            // Corpses: the budget only ever evicts the dead, so an "ordinary body" here is one.
             var first = NewObject("First").AddComponent<RagdollRig>();
+            first.IsCorpse = true;
             var second = NewObject("Second").AddComponent<RagdollRig>();
+            second.IsCorpse = true;
 
             try
             {
@@ -3317,8 +3362,12 @@ namespace SpaceGame.EditorTools
             // spin, and a spinning Register never reaches an Assert to fail. What is pinned here is
             // the state on the way out. If this test ever stops reporting at all, that is the
             // result.
+            // Corpses, so that the exemption is the only thing refusing them — a living rig is
+            // refused anyway and would pass this without testing the exemption at all.
             var a = NewObject("HeldA").AddComponent<RagdollRig>();
             var b = NewObject("HeldB").AddComponent<RagdollRig>();
+            a.IsCorpse = true;
+            b.IsCorpse = true;
             a.BudgetExempt = true;
             b.BudgetExempt = true;
 
@@ -3338,7 +3387,7 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The source of one ragdoll adapter, failed by name when the file has moved.
+        /// The source of the ragdoll controller, failed by name when the file has moved.
         ///
         /// EditMode tests run with the project root as their working directory — the assumption
         /// LeashConstraintTests already makes with a bare "Assets/..." path.
@@ -3357,37 +3406,37 @@ namespace SpaceGame.EditorTools
             return at;
         }
 
-        [TestCase(PlayerRagdollSource)]
-        [TestCase(AgentRagdollSource)]
-        public void Hold_IsNotEndedByTheSettleCeiling(string path)
+        [Test]
+        public void Hold_IsNotEndedByTheSettleCeiling()
         {
-            // RagdollRig.maxLimpSeconds is 4, and IsSettled goes true there whether the body agrees
-            // or not. That is correct for a knockdown and must NOT end a hold: a captive is up when
-            // the pool runs out, which can be thirty seconds or two minutes later. Settling means
-            // the bodies sleep, which is the look we want — it does not mean standing up.
+            // KnockdownTuning.settleGraceSeconds stands a knocked-down body up whether it has come
+            // to rest or not. That is correct for a knockdown and must NOT end a hold: a captive is
+            // up when the pool runs out, which can be thirty seconds or two minutes later. Settling
+            // means the bodies sleep, which is the look we want — it does not mean standing up.
             //
             // Pinned by reading the source, because the distinction lives in a control-flow guard
             // with no runtime state to assert on — the same technique LeashConstraintTests uses to
             // pin the absence of a SetTethered call.
             //
-            // Both adapters, because they are two independent copies of the same guard: with only
-            // the player's pinned, deleting the creature's leaves the suite green while every
-            // netted animal stands back up on the next budget eviction.
+            // One file, because both adapters inherit the guard from RagdollController; before
+            // that they were two independent copies and each had to be pinned.
             //
-            // Every index is measured from the start of Update rather than from the start of the
-            // file. A bare IndexOf over the whole source is satisfied by a guard sitting in
+            // Every index is measured from the start of TickStandUp rather than from the start of
+            // the file. A bare IndexOf over the whole source is satisfied by a guard sitting in
             // HoldDown, in ReleaseHold or in a comment, none of which keeps anybody down.
+            const string path = RagdollControllerSource;
             string source = RagdollSource(path);
 
-            int update = source.IndexOf("private void Update()", System.StringComparison.Ordinal);
-            Assert.Greater(update, -1, path + " lost its Update.");
+            int update = source.IndexOf("private void TickStandUp(float now)",
+                                        System.StringComparison.Ordinal);
+            Assert.Greater(update, -1, path + " lost its TickStandUp.");
 
-            int guard = IndexAfter(source, "if (IsHeld) return;", update,
-                                   path + ".Update lost its held guard.");
+            int guard = IndexAfter(source, "IsHeld) return;", update,
+                                   path + ".TickStandUp lost its held guard.");
             int budgetRescue = IndexAfter(source, "if (!rig.IsLimp)", update,
-                                          path + ".Update lost its budget-eviction rescue.");
-            int recovery = IndexAfter(source, "if (Time.time < downUntil", update,
-                                      path + ".Update lost its settle-and-timer recovery.");
+                                          path + ".TickStandUp lost its budget-eviction rescue.");
+            int recovery = IndexAfter(source, "KnockdownPolicy.ShouldStandUp(", update,
+                                      path + ".TickStandUp lost its settle-and-timer recovery.");
 
             Assert.Less(guard, budgetRescue,
                         path + ": the held guard has to come before the `!rig.IsLimp` rescue as " +
@@ -3398,12 +3447,11 @@ namespace SpaceGame.EditorTools
 
             Assert.Less(guard, recovery,
                         path + ": the held guard has to come BEFORE the settle-and-timer " +
-                        "recovery, or a held captive stands up four seconds into a two-minute tie.");
+                        "recovery, or a held captive stands up a few seconds into a two-minute tie.");
         }
 
-        [TestCase(PlayerRagdollSource)]
-        [TestCase(AgentRagdollSource)]
-        public void Hold_ClaimsTheBudgetExemptionAndGivesItBack(string path)
+        [Test]
+        public void Hold_ClaimsTheBudgetExemptionAndGivesItBack()
         {
             // The exemption is the whole reason a firefight across the valley cannot free a
             // captive, and nothing else in this file can see it: the components need Awake to
@@ -3416,6 +3464,7 @@ namespace SpaceGame.EditorTools
             // captive, and OnRevive, so a body that somehow kept the claim is not barred from ever
             // being netted again. Death and revive empty the whole holder set rather than giving
             // one claim back, because they end every hold at once.
+            const string path = RagdollControllerSource;
             string source = RagdollSource(path);
 
             int holdDown = source.IndexOf("public bool HoldDown(object holder)",
@@ -3448,15 +3497,15 @@ namespace SpaceGame.EditorTools
 
             int givenBack = IndexAfter(source, "rig.BudgetExempt = false;", releaseHold,
                                        path + ".ReleaseHold never gives the exemption back.");
-            int releaseEnd = IndexAfter(source, "downUntil = 0f;", releaseHold,
-                                        path + ".ReleaseHold stopped clearing downUntil.");
+            int releaseEnd = IndexAfter(source, "standAt = Mathf.Max(standAt, Time.time);", releaseHold,
+                                        path + ".ReleaseHold stopped restarting the stand-up clock.");
             Assert.Less(givenBack, releaseEnd, path + ": the release has to be inside ReleaseHold.");
 
-            AssertClearsTheClaim(source, path, "OnDeath", "Suspend();",
+            AssertClearsTheClaim(source, path, "OnDeath", "Suspend(standing: false);",
                                  "a captive who dies still netted keeps an un-evictable place in " +
                                  "RagdollBudget for the rest of the session.");
 
-            AssertClearsTheClaim(source, path, "OnRevive", "if (rig.IsLimp) Restore();",
+            AssertClearsTheClaim(source, path, "OnRevive", "Restore();",
                                  "Restore calls rig.Recover, which unregisters from the budget " +
                                  "while leaving the claim set standing — and HoldDown answers a " +
                                  "stale claim rather than taking a fresh one, so that body would " +
@@ -3469,7 +3518,9 @@ namespace SpaceGame.EditorTools
         ///
         /// The bound matters: asserting the two lines merely EXIST anywhere in the file passes on
         /// an implementation that clears them somewhere else entirely, which is most of the ways
-        /// this can be got wrong.
+        /// this can be got wrong. The end statement is itself bounded by the method's closing
+        /// brace, so a bare anchor such as OnRevive's <c>Restore();</c> cannot be satisfied by the
+        /// same call in whatever method follows.
         /// </summary>
         private static void AssertClearsTheClaim(string source, string path, string method,
                                                  string endsBefore, string cost)
@@ -3477,9 +3528,15 @@ namespace SpaceGame.EditorTools
             int start = source.IndexOf("private void " + method + "()", System.StringComparison.Ordinal);
             Assert.Greater(start, -1, path + " lost " + method + ".");
 
-            int end = IndexAfter(source, endsBefore, start,
-                                 path + "." + method + " no longer contains `" + endsBefore + "`, " +
-                                 "which this test uses to bound it. Re-read the method.");
+            int methodEnd = IndexAfter(source, "\n        }", start,
+                                       path + "." + method + " has no closing brace at member " +
+                                       "indentation, which this test uses to find its end.");
+
+            int end = source.IndexOf(endsBefore, start, methodEnd - start,
+                                     System.StringComparison.Ordinal);
+            Assert.Greater(end, -1,
+                           path + "." + method + " no longer contains `" + endsBefore + "`, " +
+                           "which this test uses to bound it. Re-read the method.");
 
             int flag = IndexAfter(source, "holders.Clear();", start,
                                   path + "." + method + " does not empty the claim set. Cost: " + cost);
@@ -3492,9 +3549,11 @@ namespace SpaceGame.EditorTools
                         path + ": the exemption clear has to be inside " + method + ".");
         }
 
-        // Every combination of the three facts the eviction scan has about one candidate. Exhaustive
-        // rather than sampled, because the mistake this exists to catch is a plausible-looking
-        // conjunction — `settled && !exempt` reads like a correct guard and evicts a captive
+        // Every combination of the three facts the eviction scan has about one corpse — corpse is
+        // pinned true here, because a living body is skipped outright (RagdollRigTests covers that
+        // rule) and would make every row below read Skip. Exhaustive rather than sampled, because
+        // the mistake this exists to catch is a plausible-looking conjunction — `settled &&
+        // !exempt` reads like a correct guard and evicts a captive
         // whenever nothing in the budget has come to rest yet, which is a fresh blast: the one case
         // the budget exists for. The Budget_* tests below cannot see it, because every rig a
         // scene-free test can build is unbuilt and an unbuilt rig reports IsSettled true.
@@ -3509,7 +3568,7 @@ namespace SpaceGame.EditorTools
         public void Budget_JudgesACandidateOnAllThreeFacts(bool excluded, bool exempt, bool settled,
                                                            RagdollBudget.Verdict expected)
         {
-            Assert.AreEqual(expected, RagdollBudget.Judge(excluded, exempt, settled),
+            Assert.AreEqual(expected, RagdollBudget.Judge(excluded, exempt, corpse: true, settled),
                             "excluded=" + excluded + " exempt=" + exempt + " settled=" + settled +
                             ". An exempt body is not a worse candidate than a moving one, it is " +
                             "not a candidate — so exemption has to outrank settling rather than " +
@@ -4097,16 +4156,9 @@ namespace SpaceGame.EditorTools
             // The BONES, not the root: SnareBinding stores each node in its own bone's local space,
             // so moving anything else would leave the binding resolving to exactly where it was and
             // this test would pass just as happily against a net bound to nothing.
-            //
-            // Adding rather than assigning is safe because these bones are flat siblings —
-            // RagdollRig.MeasureRigidParts skips the root and nothing in the build reparents
-            // anything, so no bone here is inside another and none is moved twice.
             const float Hauled = 7f;
 
-            foreach (Transform bone in victim.GetComponent<RagdollRig>().BoneTransforms())
-                bone.position += Vector3.right * Hauled;
-
-            Physics.SyncTransforms();
+            MoveSkeleton(victim, Vector3.right * Hauled);
             net.Advance(Substep);
 
             Assert.That(net.Footprint.center.x - before.center.x, Is.EqualTo(Hauled).Within(0.05f),
@@ -4271,10 +4323,7 @@ namespace SpaceGame.EditorTools
             Bounds before = net.Footprint;
             const float Freed = 5f;
 
-            foreach (Transform bone in victim.GetComponent<RagdollRig>().BoneTransforms())
-                bone.position += Vector3.right * Freed;
-
-            Physics.SyncTransforms();
+            MoveSkeleton(victim, Vector3.right * Freed);
             net.Advance(Substep);
 
             Assert.That(net.Footprint.center.x - before.center.x, Is.EqualTo(Freed).Within(0.05f),

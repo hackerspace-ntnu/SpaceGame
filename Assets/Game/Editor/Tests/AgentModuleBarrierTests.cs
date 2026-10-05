@@ -40,6 +40,20 @@ namespace SpaceGame.Tests
             }
         }
 
+        private sealed class FacingModule : MonoBehaviour, IFacingModule
+        {
+            public bool Throws;
+            public int FacingPriority => 0;
+            public bool IsActive => enabled;
+
+            public bool TryGetFacing(in AgentContext context, out Vector3 facePosition)
+            {
+                if (Throws) throw new InvalidOperationException("facing is broken");
+                facePosition = Vector3.forward;
+                return true;
+            }
+        }
+
         private GameObject agent;
 
         [SetUp]
@@ -148,6 +162,35 @@ namespace SpaceGame.Tests
             };
 
             Assert.That(WarmedUp(calls), Is.AllocatingGCMemory());
+        }
+
+        [Test]
+        public void ReadingAFacingModuleAllocatesNothing()
+        {
+            var module = agent.AddComponent<FacingModule>();
+            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
+            TestDelegate reads = () => { for (int i = 0; i < 1000; i++) AgentController.RunFacing(module, in context, out _); };
+            reads();   // warm up: JIT
+            Assert.That(reads, Is.Not.AllocatingGCMemory());
+
+            Assert.IsTrue(AgentController.RunFacing(module, in context, out Vector3 face));
+            Assert.AreEqual(Vector3.forward, face);
+        }
+
+        [Test]
+        public void AThrowingFacingModuleWantsNothingAndIsSwitchedOffLikeAModule()
+        {
+            var module = agent.AddComponent<FacingModule>();
+            module.Throws = true;
+            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
+
+            for (int i = 0; i < Fault.MaxFaultsPerWindow; i++)
+            {
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("\\[Fault\\].*AgentModule\\.Facing"));
+                Assert.IsFalse(AgentController.RunFacing(module, in context, out _), "a throw reads as no facing");
+            }
+
+            Assert.IsFalse(module.enabled);
         }
     }
 }

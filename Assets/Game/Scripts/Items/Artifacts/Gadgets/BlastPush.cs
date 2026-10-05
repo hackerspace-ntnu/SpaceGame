@@ -158,20 +158,17 @@ namespace SpaceGame.Items
         /// fall, or throw it as a leap.
         ///
         /// Ragdoll wins where the weapon offers it, and the leap is the fallback rather than the
-        /// other way round — but only for a creature that answers <c>CanBeKnockedDown</c>, which
-        /// is what keeps a ridden mount from going limp underneath its rider.
+        /// other way round — but only for a creature that answers <c>RagdollController.CanKnock</c>,
+        /// which is what keeps a ridden mount from going limp underneath its rider. Asked through
+        /// that and not a search of its own, so the body asked is the body <c>Knock</c> then finds.
         /// </summary>
         private static void PushAgent(GameObject root, Vector3 velocity, float referenceSpeed,
                                       in Leap leap, Action<GameObject, Vector3> knock)
         {
-            if (knock != null)
+            if (knock != null && RagdollController.CanKnock(root))
             {
-                var ragdoll = root.GetComponentInChildren<AgentRagdoll>();
-                if (ragdoll != null && ragdoll.CanBeKnockedDown)
-                {
-                    knock(root, velocity);
-                    return;
-                }
+                knock(root, velocity);
+                return;
             }
 
             if (root.GetComponentInChildren<IMountLeapMotor>() == null) return;

@@ -63,6 +63,17 @@ namespace SpaceGame.Vehicles
 
         public GameObject OccupantAt(int seat) => IsSeat(seat) ? occupants[seat] : null;
 
+        /// <summary>Where an NPC in <paramref name="seat"/> sits, in world space — so one spawned for it is born there.</summary>
+        public (Vector3 position, Quaternion rotation) SeatPose(int seat)
+        {
+            EnsureSeatArrays();
+            if (!IsSeat(seat) || seats[seat] == null)
+                throw new ArgumentOutOfRangeException(nameof(seat), seat,
+                    $"'{name}' has no seat marker {seat} (it has {seats.Length} seats).");
+
+            return NpcSeating.SeatPoseIn(null, seats[seat], seatOffset, Vector3.zero);
+        }
+
         private void Awake()
         {
             EnsureSeatArrays();
@@ -229,6 +240,7 @@ namespace SpaceGame.Vehicles
                 var collisions = new RiderCollisionIgnore();
                 collisions.Apply(npc, transform);
                 presented.Add(npc, collisions);
+                NpcSeating.ParkPresentation(npc.gameObject, parked: true);
                 if (chairPose != null) chairPose.PoseRider(npc);
             }
         }
@@ -242,7 +254,9 @@ namespace SpaceGame.Vehicles
             if (gameObject.activeInHierarchy) collisions.Restore();
             else collisions.Forget();
 
-            if (npc != null && chairPose != null) chairPose.ReleaseRider(npc);
+            if (npc == null) return;
+            NpcSeating.ParkPresentation(npc.gameObject, parked: false);
+            if (chairPose != null) chairPose.ReleaseRider(npc);
         }
 
         private void ReleasePresented()

@@ -114,6 +114,11 @@ index)` when `prefab` is null. Seeded by `RosterDraw.StableHash(template.id)`, s
 re-spawns with the same faces and guns after every fold (`GroupMembership.MemberIndex` feeds
 `NpcRandomLoadout`'s own seeded roll).
 
+**A herding caravan** (the Sand `sand-appa-herders`, `AppaHerdAuthoring`): the leader and the herders are fixed
+mount prefabs carrying an `NpcPassenger` rider and a `HerdingModule`, the livestock a riderless prefab that
+serializes the tribe's faction, all sharing the group's `FormationModule` band. List the herders **after** the
+livestock so their unused column slots are the tail's.
+
 ## 7. Tests
 
 [RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs) covers the Sand Tribe
@@ -187,6 +192,13 @@ placed them are deleted. Three `SettlementPopulation` options decide whether it 
 Verify in play: count the tribe's agents inside `countRadius`, check each with
 `NavMeshReach.CanWalk` from the anchor, save, reload the same world, and count again — the number
 must not grow.
+
+**A home that moves** (the Striders' walking city) is not a settlement but a seeded caravan template
+whose carriers hold the people: carrier prefabs with `VesselSeats` + `CrewShift` + a gangway marker,
+member specs with `crew: true` listed **after** the carriers, a carrier flagged `isLeader` with the
+task list (it holds the column's departure gate until its crew is back aboard), and
+`FormationModule.holdSlotAtRest` on anything too big to share a rest ring. Full recipe, build order
+and traps: [Striders.md](../../../docs/AI/systems/Striders.md).
 
 ## Related
 

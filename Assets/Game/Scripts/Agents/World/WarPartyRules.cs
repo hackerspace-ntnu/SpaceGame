@@ -137,11 +137,13 @@ namespace SpaceGame.Agents
             wipedOut || (fightersSpawned > 0 && fightersDead >= fightersSpawned);
 
         /// <summary>
-        /// Nothing of a spawned party is left in the field: no spawned member, and no fighter standing —
-        /// a rider who dismounted is in neither list the mounts are, and still fights.
+        /// Nothing of a spawned group is left in the field: no spawned member standing, and no fighter
+        /// standing — a rider who dismounted is in neither list the mounts are, and still fights.
+        /// Counts of the standing (<see cref="GroupMembership.CountStanding"/>), not of objects: a
+        /// corpse lies in the group's lists for minutes after it falls.
         /// </summary>
-        public static bool IsWipedOut(int liveMembers, int standingFighters) =>
-            liveMembers <= 0 && standingFighters <= 0;
+        public static bool IsWipedOut(int standingMembers, int standingFighters) =>
+            standingMembers <= 0 && standingFighters <= 0;
 
         public static bool IsCaughtBy(string killerGroupId, string partyGroupId) =>
             !string.IsNullOrEmpty(partyGroupId) && killerGroupId == partyGroupId;

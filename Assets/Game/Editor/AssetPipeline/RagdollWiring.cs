@@ -5,6 +5,7 @@ using SpaceGame.Characters;
 using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Ragdoll;
 using SpaceGame.Locomotion;
+using SpaceGame.Vehicles;
 using UnityEditor;
 using UnityEngine;
 
@@ -85,7 +86,7 @@ namespace SpaceGame.EditorTools
                 return true;
             }
 
-            bool qualifies = !IsVehicle(path) && HasDrivenSkeleton(root);
+            bool qualifies = IsBody(root, path);
             bool wired = root.GetComponent<AgentRagdoll>() != null;
 
             // Removal, not just addition. Without it this tool can only ever be wrong in one
@@ -110,6 +111,21 @@ namespace SpaceGame.EditorTools
             what = "added AgentRagdoll";
             return true;
         }
+
+        /// <summary>
+        /// Whether the prefab at <paramref name="path"/> is a body this pass gives an
+        /// <see cref="AgentRagdoll"/> — and, by the removal branch in <see cref="Wire"/>, takes one
+        /// away from when it is not.
+        ///
+        /// <para>
+        /// A <see cref="VesselPilot"/> is the one component that DOES say "machine": the sky
+        /// transports carry a HealthComponent so they can be shot down, which alone passes
+        /// <see cref="HasDrivenSkeleton"/>, and they live under <c>Prefabs/Vehicles</c> rather than
+        /// the folder <see cref="IsVehicle"/> reads. A hull falls as a wreck, never limp.
+        /// </para>
+        /// </summary>
+        internal static bool IsBody(GameObject root, string path) =>
+            !IsVehicle(path) && root.GetComponent<VesselPilot>() == null && HasDrivenSkeleton(root);
 
         /// <summary>
         /// Is this prefab a vehicle rather than a creature?

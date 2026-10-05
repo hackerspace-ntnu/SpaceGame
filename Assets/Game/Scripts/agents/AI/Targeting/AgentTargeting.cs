@@ -13,6 +13,7 @@
 // Runs ahead of AgentController (execution order 0) so the decision is already current when
 // modules tick. Optional: agents without it fall back to their own per-module resolution.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Gameplay;
 using SpaceGame.World.Weather;
@@ -190,6 +191,12 @@ namespace SpaceGame.Agents
         // inside a single synchronous call, so no other agent can observe it mid-use.
         private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ReevaluateMarkerName = "SpaceGame.Targeting.Reevaluate";
+        private static readonly ProfilerMarker ReevaluateMarker = new(ReevaluateMarkerName);
+        private const string RefreshMarkerName = "SpaceGame.Targeting.Refresh";
+        private static readonly ProfilerMarker RefreshMarker = new(RefreshMarkerName);
+
         private AgentAuthority authority;
 
         // Read for AgentController.Offstage: an agent that is not in the scene's action acquires no one.
@@ -265,7 +272,12 @@ namespace SpaceGame.Agents
             HasLastKnownPosition = false;
             TimeSinceSeen = 0f;
             LastAttacker = null;
-            reevaluateTimer = 0f;
+
+            // Random phases, so a crowd enabled on one frame (a city unfolding) does not re-score and
+            // re-sample the weather on one frame every interval: the AgentController
+            // speedVariationPhase precedent. Not saved, for the reason that one is not.
+            EnsureSettings();
+            PhaseTimers();
             if (health != null)
                 health.OnDamage += HandleDamaged;
         }
@@ -296,7 +308,13 @@ namespace SpaceGame.Agents
             profile = newProfile;
             settings = newProfile;
             RecomputeEffectiveRanges();
-            reevaluateTimer = 0f;
+            PhaseTimers();
+        }
+
+        private void PhaseTimers()
+        {
+            reevaluateTimer = Random.Range(0f, settings.reevaluateInterval);
+            stormSampleTimer = Random.Range(0f, StormSampleInterval);
         }
 
         // Forced acquisition from outside the scoring loop — ally alerts and heard noises.
@@ -524,6 +542,8 @@ namespace SpaceGame.Agents
         // the held target's state is.
         private void RefreshTargetState(float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = RefreshMarker.Auto();
+
             if (!HasTarget)
             {
                 if (HasLastKnownPosition)
@@ -543,9 +563,11 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // Cached: the held target's sight line is re-cast on PerceptionModule's interval, not
+            // every frame (CanSeeCached).
             CanSeeTarget = perception == null
                            || DistanceToTarget <= settings.proximityAcquireRange
-                           || perception.IsVisible(Target);
+                           || perception.CanSeeCached(Target);
 
             if (CanSeeTarget)
             {
@@ -568,6 +590,8 @@ namespace SpaceGame.Agents
         // stays in metres and the numbers on the profile mean something readable.
         private void Reevaluate()
         {
+            using ProfilerMarker.AutoScope sample = ReevaluateMarker.Auto();
+
             if (selfFaction == null)
                 return;
 
@@ -631,6 +655,8 @@ namespace SpaceGame.Agents
             if (distance <= settings.proximityAcquireRange)
                 return true;
 
+            // IsVisible, not CanSeeCached: the cache holds one slot, for the held target, so scoring a
+            // crowd through it would re-cast every call and evict the held target's answer.
             return perception.IsVisible(candidate);
         }
 

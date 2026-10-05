@@ -394,8 +394,8 @@ namespace SpaceGame.Core.Persistence
             record.PrefabId = entity.PrefabId;
             record.Scene = sceneKey;
             record.Authored = entity.IsAuthored;
-            record.Position = entity.transform.position;
-            record.Rotation = entity.transform.rotation;
+            record.Position = SavedPose.PositionOf(entity.transform);
+            record.Rotation = SavedPose.RotationOf(entity.transform);
             record.Scale = entity.transform.localScale;
             record.HasScale = true;
 

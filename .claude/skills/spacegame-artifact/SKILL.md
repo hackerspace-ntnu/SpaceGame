@@ -166,8 +166,8 @@ something you have drawn, so the wrist blade and the flame gauntlet read no diff
 torch. Same for anything worn on the back.
 
 There is no way to derive this, which is why it is authored: **"weapon" is not a C# class here.**
-Only two of the seven guns an NPC can roll (`BasicGun`, `BallLightningWeapon`) are `Weapon`
-subclasses — the rest are ordinary `UsableItem` artifacts — so `held is Weapon` calls a bazooka
+Only one of the seven guns an NPC can roll (`BallLightningWeapon`) is a `Weapon`
+subclass — the rest are ordinary `UsableItem` artifacts — so `held is Weapon` calls a bazooka
 harmless. Add the item to the list in
 [`MenacingItemTests`](Assets/Game/Editor/Tests/MenacingItemTests.cs) with a one-line reason, or the
 test fails; that list is the review surface an authored flag needs so it does not drift one prefab

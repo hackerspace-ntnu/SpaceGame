@@ -9791,6 +9791,7 @@ GameObject:
   - component: {fileID: 1477178343878916476}
   - component: {fileID: 7030331120676072119}
   - component: {fileID: 4711262539490318575}
+  - component: {fileID: -3393289143840978161}
   m_Layer: 0
   m_Name: InflatorNozzle
   m_TagString: Untagged
@@ -10100,6 +10101,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   range: 5
   hitMask:
     serializedVersion: 2
@@ -10151,6 +10153,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-3393289143840978161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5659759156958558569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &6156212070518774764
 GameObject:
   m_ObjectHideFlags: 0

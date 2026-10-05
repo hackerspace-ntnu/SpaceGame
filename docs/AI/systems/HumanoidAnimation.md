@@ -13,6 +13,7 @@ paths:
   - Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs
   - Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs
 symptoms:
+  - "HumanoidWiringAssetTests says a StriderNomad has hurtAnimTrigger Hurt, which Humanoid has no Trigger called"
   - "[CharacterActions] 'X' has no state for action 'Y' — it was added after the controller was built"
   - "an action plays on the owner's screen and never on anyone else's"
   - "a gesture restarts halfway through on a remote player's body"
@@ -69,7 +70,6 @@ asks for a **cue** ("greet"), and data decides which of the tagged actions plays
 **Related:** [PlayerCharacter.md](PlayerCharacter.md), [AgentSystem.md](AgentSystem.md), [Multiplayer.md](Multiplayer.md), [InteractionSystem.md](InteractionSystem.md), [TalkingMouth.md](TalkingMouth.md).
 
 ## Model
-
 - **The controller is output, never edited.** [`HumanoidControllerBuilder`](Assets/Game/Editor/Animation/HumanoidControllerBuilder.cs) writes [`Humanoid.controller`](Assets/Game/Art/Animations/Humanoid/Humanoid.controller) from the [profile](Assets/Game/ScriptableObjects/Animation/HumanoidAnimationProfile.asset) (locomotion set, hold poses, raises, glide, blend times) plus every [`CharacterAction`](Assets/Game/Scripts/Presentation/Animation/CharacterAction.cs) under `ScriptableObjects/Animation/Actions/` (451 today, 18 of them enter-loop-exit). Same GUID as the old `AstronautArmature.controller`, so every prefab and scene kept its reference.
 - **Layers, bottom to top** ([`HumanoidLayers.Order`](Assets/Game/Scripts/Presentation/Animation/HumanoidLayers.cs)): `Base Layer` (Move/Crouch/Air/Land/Sit) · `Upper Body` (aimed hold poses, raises — PlayerAimRig/HoldAnimator own its weight) · `Hold Arms` (the arms of the unaimed holds `Carry` and `Ready`: arms and fingers only, weight 1 always, its state follows `HoldStyle`, nothing writes it) · `Worn Left` · `Action Full` · `Action Upper` · `Action Left Arm` · `Action Right Arm` · `Action Additive` (blend mode Additive, upper-body mask: the gun recoil kicks on top of whatever pose is below, at any aim pitch) · `Glide`.
 - **An action** = a slot (which action layer), a playback (OneShot / Loop / EnterLoopExit), variants (a clip, or a Down/Level/Up blend on `AimPitch`), fades, a speed range, phase marks (Contact, Release), **cues** it can express and optional **postures** it fits (none ticked = by slot: Full only standing still, the rest anywhere). One state per variant; **no triggers, no Any State transitions** — [`CharacterActions`](Assets/Game/Scripts/Presentation/Animation/CharacterActions.cs) crossfades straight to the state by name hash.
@@ -79,7 +79,6 @@ asks for a **cue** ("greet"), and data decides which of the tagged actions plays
 - **Clips:** Mixamo locomotion and the Blender gestures in `Art/Animations/Player`, Kevin Iglesias Human Animations (work, fishing, farming, combat; male and female), Quaternius UAL1 (42 clips, CC0), 288 cuts from 253 CMU mocap takes (251 actions under `Actions/CMU/<Category>/`, credit in `THIRD_PARTY_NOTICES.md` at the repo root), and — added 2026-10-03, see [AnimationCatalog.md](AnimationCatalog.md) — 37 Mixamo singles, the Mocap Central sample pack, Motion Cast FREE01, the EEJANAI cooking set and the ExplosiveLLC crafter carry set. Every library clip is played by some action; Audit lists any that is not (`Masked Poses` are out of its scope on purpose).
 
 ## Key types
-
 | Type | File | Role |
 |---|---|---|
 | `CharacterAction` | [CharacterAction.cs](Assets/Game/Scripts/Presentation/Animation/CharacterAction.cs) | The action asset; `Cues`, `Postures`/`Fits`, `SecondsTo(mark)` for authority timers |
@@ -95,7 +94,7 @@ asks for a **cue** ("greet"), and data decides which of the tagged actions plays
 | `HurtReaction` | [HurtReaction.cs](Assets/Game/Scripts/Presentation/Animation/HurtReaction.cs) | Server: `HealthComponent.OnDamage` → `ReactEverywhere(Hurt)` |
 | `IInteractionMoment` | [IInteractionMoment.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs) | What an interactable's press shows on the presser; default `Interacted` |
 | `HumanoidControllerBuilder` | [HumanoidControllerBuilder.cs](Assets/Game/Editor/Animation/HumanoidControllerBuilder.cs) | Rebuild / Audit (also lists unanswered cues); `CollectActions`, `CollectCues` |
-| `CharacterActionWiring` | [CharacterActionWiring.cs](Assets/Game/Editor/Animation/CharacterActionWiring.cs) | Adds CharacterActions, BodyLanguage (full body off on the player), IdleVariation, HurtReaction, and SpeechGestures on NPCs |
+| `CharacterActionWiring` | [CharacterActionWiring.cs](Assets/Game/Editor/Animation/CharacterActionWiring.cs) | Adds CharacterActions, BodyLanguage (full body off on the player), IdleVariation, HurtReaction, and SpeechGestures and MeleeDefense on NPCs. `NpcComponents` is that NPC list in order, the one source tests compare against |
 | `AnimationLibraryWindow` | [AnimationLibraryWindow.cs](Assets/Game/Editor/Animation/AnimationLibraryWindow.cs) | Browse actions/cues/moments, filter by cue/slot/playback, play any of them on the selected body in play mode |
 | `EmoteCatalog` | [EmoteCatalog.cs](Assets/Game/Scripts/Characters/Player/EmoteCatalog.cs) | The player's emotes (chat words + the emote wheel, hold V), 46 today; each references an action that must be in this catalog (`EmoteCatalogAssetTests`) — see [PlayerCharacter.md](PlayerCharacter.md) |
 | `CharacterActionAuthoring` | [CharacterActionAuthoring.cs](Assets/Game/Editor/Animation/CharacterActionAuthoring.cs) | One action per selected clip, skipping clips an action already plays |
@@ -103,7 +102,6 @@ asks for a **cue** ("greet"), and data decides which of the tagged actions plays
 Menus: `Tools/SpaceGame/Animation/` **Generate Recoil Clips**, **Rebuild Humanoid Controller**, **Audit Humanoid Controller** (writes nothing but a scratch copy), **Wire Humanoid Prefabs**, **Create Actions From Selected Clips**, **Animation Library**. In game: **`/act <action or cue>`** plays any action by name or any cue on your body (`/act` alone lists the cues).
 
 ## Flows
-
 1. **Rebuild:** content check (refuses null or non-humanoid clips, duplicate names, half-aimed variants, loops on one-shot clips, empty cue slots) → catalog → masks → scratch controller → `AnimatorDescription` compare → if different, the scratch FILE is copied over the live one (`.meta` and GUID kept) → override controllers per locomotion variant → rebake the player's NetworkAnimator → `Verify()` from disk. Unchanged content writes nothing.
 2. **Play:** `Play(action, arm?, variant?)` → writer check → `HasState` (error naming Rebuild if missing) → slot mirror/speed params → weight 1 → `CrossFadeInFixedTime`. A running Loop asked again is a no-op, so gameplay may re-assert every frame. A Full action stops the other slots. One-shots exit to `Empty` by themselves; `Update` drops the weight to 0 once the layer rests there.
 3. **A moment:** `BodyLanguage.React(component, moment)` → the body's row (own table, else default) → cooldown → seeded chance roll → cue resolved to a fitting one-shot (following fallbacks) → `Play` with a picked arm and variant. Raised today by: `HurtReaction` (Hurt, server), `SpeechGestures` (ConversationStarted, QuestionAsked, Exclaimed, SpeechBeat), `IdleVariation` (IdleFidget), `Interactor` (Interacted / PickedUp / whatever `IInteractionMoment` says; mounts, seats, terminals, dialog and petting say None), `ChatterModule.PresentWarCry` (WarCry), `NpcTaskModule` dwell end (TaskFinished, server).
@@ -115,7 +113,6 @@ Menus: `Tools/SpaceGame/Animation/` **Generate Recoil Clips**, **Rebuild Humanoi
 9. **CMU import:** curated takes live in `Assets/ThirdParty/CMU/Takes/` (TimeMode patched, see Gotchas) with [cuts.json](Assets/ThirdParty/CMU/cuts.json) naming each clip's take, start/end seconds and loop flag → `CmuClipImporter` cuts them, Humanoid, root motion baked in place → one action per clip group. The 2,548-take pack stays Unity-invisible at `Art/Animations/_Packed~/`.
 
 ## Multiplayer
-
 - **One writer per body.** The player's `ClientNetworkAnimator` replays layer **states and weights** on watchers and late joiners (`NetworkAnimator.CheckForStateChange`), so only its owner plays actions; NPCs have no NetworkAnimator, so every machine plays from the replicated event (`AgentActed`, `Present`, band changes, `NetMsg.CharacterActed`). Callers never check — `CharacterActions` does.
 - **Moments follow the same rule.** Raise one where it happens: seen on every machine (chatter, war cry, the shared-clock fidget) or only by the owner (the player's interact) → `React`; decided by the server alone (damage, a task ending) → `ReactEverywhere`, which picks there and sends the action through `PlayEverywhere`. A local roll is seeded from the body's seed and how many times it has had that moment (or an explicit salt — the fidget's clock bucket), so machines that saw the same moments pick the same thing; a late joiner may differ, cosmetically.
 - **Dialog gestures are local to the talker**, like the text and the jaw ([TalkingMouth.md](TalkingMouth.md)): only the player who pressed interact sees the NPC gesture. Chatter plays on every nearby machine; beat timing is per machine.
@@ -124,7 +121,6 @@ Menus: `Tools/SpaceGame/Animation/` **Generate Recoil Clips**, **Rebuild Humanoi
 - **`/act` runs on the server** and reaches the owner through `NetMsg.Emote` with `B = 1` (A = action catalog index), like a typed emote.
 
 ## Persistence
-
 None. Everything is seconds long or re-asserted by gameplay state that already saves (seated, band, task). A melee blow in flight is dropped by a save, in the victim's favour. Cooldowns and pick memory start fresh.
 
 ## Gotchas
@@ -138,6 +134,8 @@ None. Everything is seconds long or re-asserted by gameplay state that already s
   evaluated yet, so the cleanup pass wiped the weight back to 0 before a single frame of the action
   rendered. The pick, the timers and the damage were all correct; the fight just looked like nobody
   was swinging. `LateUpdate` sees this frame's evaluated state, not last frame's.
+- **Every builder that writes a humanoid NPC calls `CharacterActionWiring.Ensure` itself:** `SculptCharacterBuilder` (drifters), `ClankerStack.Apply` (Clankers) and `NomadPrefabBuilder.BuildPrefab` (all nomads: Sand, Sky, Strider, the sky soldier). The Wire Humanoid Prefabs menu only reaches prefabs that exist when it runs, and a rebuild writes the prefab wholesale, so a builder that skips `Ensure` ships nomads with `Hurt`/`Death` trigger names the controller does not have and no `CharacterActions` (the Strider nomads did, until 2026-10-04). `NomadWiringTests` reads every nomad off disk.
+- **A humanoid Clanker body carries the Clanker stack PLUS the action wiring.** `ClankerStack.Apply` calls `CharacterActionWiring.Ensure`, so the Same Gev Dudios bodies (PatrolRobot 1-3, on `Humanoid.controller`) get the six `NpcComponents` and the RPR `Clanker.prefab` (its own controller) gets none. `ClankerPrefabTests.CarriesExactlyTheClankersComponents` expects exactly that, and `TheHumanoidWiringAddsExactlyItsNpcComponents` pins `NpcComponents` to what `Ensure` really adds; a component added to one but not the other fails there rather than as a 59-vs-65 count.
 - **Never hand-edit the controller** — run Audit first to see what a rebuild would erase.
 - **`CharacterActions` has no `Awake`, on purpose.** Other modules call it from their own `OnEnable` during `Instantiate`, and Unity raises Awake/OnEnable per component in list order; the wiring adds it LAST, so `AggressionTelegraphModule.OnEnable` reached it first and threw a NullReferenceException on every nomad spawn. Its tracks are built by a field initializer and everything else resolves on first use — keep it that way.
 - **Authority is `IsServerAuthoritative() ? IsServer : IsOwner`, never `HasAuthority`** (that means IsServer in client-server mode and hands the host every client's body).
@@ -190,7 +188,6 @@ None. Everything is seconds long or re-asserted by gameplay state that already s
 - **A resident on a stool reads `Seated`, one on a cushion reads `Standing` (2026-10-04).** `ResidentPresence` raises the `Seated` bool only for a `Stool` seat ([Seats.md](Seats.md)), so the base layer's chair sit plays and `Posture` is `Seated`: the `talking` hold then picks `Talk Seated` and the other `Seated` Full loops, and `IdleVariation` raises no fidget (it wants `Standing`). The cushion keeps the Full `sitground` loop over the standing locomotion, so the Standing-only rule and `SitOn` in the entry above still hold for it.
 
 ## Extending
-
 - **An animation:** select clips → *Create Actions From Selected Clips* (or create a `CharacterAction` by hand) → set slot/playback/marks → **tag its cues** → *Rebuild*. Tagged, it already plays wherever gameplay asks for those cues; to play it by name, reference the asset and call `CharacterActions.Play`. Check it in the Animation Library or with `/act <name>`.
 - **A word:** create a `CharacterCue` in `Cues/` with a meaning (and a fallback if a broader word should stand in) → tag actions. Audit lists words nothing answers yet.
 - **A trigger ("when X happens, the body does Y"):** if X is already a moment, edit its row in the reaction table (or a per-body table on that prefab's `BodyLanguage`). If not, append a `CharacterMoment`, raise it at X with `BodyLanguage.React(this, moment)` (or `ReactEverywhere` from the server), and add its row — `BodyLanguageAssetTests` fails until the row can play something.

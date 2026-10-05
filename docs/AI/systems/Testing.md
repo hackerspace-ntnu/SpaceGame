@@ -22,6 +22,10 @@ symptoms:
   - "runtime objects from a test turn up saved inside persistentScene"
   - "a renamed or newly added test never runs and the old one keeps failing with identical text"
   - "someone else's compile error makes my own unrelated test change invisible"
+  - "a queued headless run leaves Unity on the modal Scene(s) Have Been Modified dialog over an Untitled scene and every MCP call stops answering"
+  - "Temp/headless_tests.txt says ABORTED=dirty-scene and no test ran"
+  - "RunEditModeDeferred was queued but the run does not start while another session's run is going"
+  - "the Scene(s) Have Been Modified dialog appears in the middle of a full test run, during Netcode BuildTests.BasicBuildTest"
   - "the editor adds objects to my scene while I am doing nothing and no agent is running"
   - "headless_tests.txt says CANCELLED, or my queued test run was discarded as too old"
   - "an autotest moves its player and it is back where it was the next frame; stand-ins never spawn beside the observer"
@@ -37,7 +41,6 @@ updated: 2026-10-04
 **Related:** [Multiplayer.md](Multiplayer.md) · [Persistence.md](Persistence.md) · [spacegame-multiplayer](.claude/skills/spacegame-multiplayer/SKILL.md) · [spacegame-persistence](.claude/skills/spacegame-persistence/SKILL.md)
 
 ## Model
-
 - **Everything is EditMode. There are zero `[UnityTest]`s and zero play-mode assemblies.** No coroutines, no frames, no physics stepping. Tests that need time march a system manually in a `for` loop.
 - Two different assemblies host tests, and they see different things:
   - [`Assets/Game/Tests/EditMode/`](Assets/Game/Tests/EditMode) has [`SpaceGame.Tests.EditMode.asmdef`](Assets/Game/Tests/EditMode/SpaceGame.Tests.EditMode.asmdef) — `autoReferenced: false`, `UNITY_INCLUDE_TESTS`, Editor-only. It references only the 15 modular `SpaceGame.*` asmdefs. **An asmdef cannot reference `Assembly-CSharp`**, so nothing here can touch a type that lives outside a module.
@@ -47,7 +50,6 @@ updated: 2026-10-04
 - Shared fixtures are thin — three helpers, no base classes: [`PersistenceProbe`](Assets/Game/Editor/Tests/PersistenceProbe.cs) (`.For(prefabPath).Mutate(…).AssertSurvivesRoundTrip()` / `.AssertWiredCorrectly()`, oracle derived from the real `SaveablePolicy.Ensure`), [`WalkerTestRig`](Assets/Game/Tests/EditMode/WalkerTestRig.cs) (real limb proportions), [`MultiplayerTestPlayerBuilder`](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) (3-scene player build). 57 `[SetUp]` / 90 `[TearDown]`, no `[Category]`, no `[Explicit]`.
 
 ## Suites
-
 | Area | Path | ~Tests | Notes |
 | --- | --- | --- | --- |
 | Locomotion & walkers | `Tests/EditMode` (+ 3 in `Editor/Tests`) | 300 / 26 files | Densest suite. Pure math: IK chains, gait, hip budget, support planes. `WalkerTestRig` shared. |
@@ -64,7 +66,6 @@ updated: 2026-10-04
 | Portals | `Editor/Tests` | 25 / 2 files | Lifecycle + traversal. |
 
 ## Coverage gaps
-
 Blunt: these have **zero** tests. Grep of every test file finds no mention.
 
 - **`World/ProceduralGeneration` (68 files) — nothing.** Terrain gen, settlements, facades, bridges. The single largest untested subsystem. (`Terrain` hits in tests are `UnderTerrainRuleTests`, a safety rule, not generation.)
@@ -76,16 +77,15 @@ Blunt: these have **zero** tests. Grep of every test file finds no mention.
 - **Play-mode / runtime behaviour** — no play-mode suite exists at all. Anything requiring `Awake`, physics, NavMesh or a frame loop is verified by hand or by the batch-mode autotest.
 
 ## Running tests
-
 The Test Runner API is async and needs a live Editor. There is **no verified `unity -batchmode -runTests` path in this repo** — do not invent one.
 
 | Goal | Command |
 | --- | --- |
-| All EditMode tests, from the Editor | menu `Tools ▸ Tests ▸ Run EditMode Tests (headless)` |
+| All of this project's EditMode tests (assemblies under `Assets/`; package tests excluded), from the Editor | menu `Tools ▸ Tests ▸ Run EditMode Tests (headless)`, or `RunEditModeDeferred(null)` |
 | One fixture, driven externally (MCP / script) | `SpaceGame.EditorTools.HeadlessTestRunner.RunEditModeDeferred("PrefabPersistenceTests")` |
-| Read the verdict | `cat Temp/headless_tests.txt` — `PASSED=… FAILED=… SKIPPED=… INCONCLUSIVE=…`, then one line per failure, then `DONE` |
+| Read the verdict | `cat Temp/headless_tests.txt` — `PASSED=… FAILED=… SKIPPED=… INCONCLUSIVE=…`, then one line per failure, then `DONE`; or `ABORTED=dirty-scene <path>` + `DONE` when a saved scene had unsaved changes and nothing ran |
 
-[`HeadlessTestRunner`](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) deletes `Temp/headless_tests.txt` before starting, so **absence of the file means "still running", presence of `DONE` means finished**. Poll for it; never assume. `RunEditModeDeferred` survives the domain reload a code edit triggers (`SessionState`) and pumps on `EditorApplication.update` rather than `delayCall`, so it still fires when the Unity window is unfocused. It refuses to start in play mode and discards a pending request if play mode begins. **Every request expires `HeadlessTestRunner.MaxRequestAge` (10 min) after it was made:** a pending request older than that is discarded with a warning instead of started, and a run still going that long after it started is cancelled through `TestRunnerApi.CancelTestRun` — the result file then reads `CANCELLED: …` followed by `DONE`. Re-request rather than waiting past the limit.
+[`HeadlessTestRunner`](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) deletes `Temp/headless_tests.txt` before starting, so **absence of the file means "still running", presence of `DONE` means finished**. Poll for it; never assume. `RunEditModeDeferred` survives the domain reload a code edit triggers (`SessionState`) and pumps on `EditorApplication.update` rather than `delayCall`, so it still fires when the Unity window is unfocused. It refuses to start in play mode and discards a pending request if play mode begins. A deferred request also **waits while any other Test Framework run is in flight** (another session's, the Test Runner window's). Before starting it settles the scene question itself so the framework never prompts: a dirty **untitled** scene is discarded by reopening `Bootstrap.unity` (`OpenSceneMode.Single`); a dirty **saved** scene makes it write `ABORTED=dirty-scene <path>` + `DONE` to the result file, `LogError`, and not run. After the run it reopens Bootstrap again if a dirty untitled scratch is left active. **Every request expires `HeadlessTestRunner.MaxRequestAge` (10 min) after it was made:** a pending request older than that is discarded with a warning instead of started, and a run still going that long after it started is cancelled through `TestRunnerApi.CancelTestRun` — the result file then reads `CANCELLED: …` followed by `DONE`. Re-request rather than waiting past the limit.
 
 Two-process client verification (the only real proof of client-side netcode):
 
@@ -121,7 +121,6 @@ Assert across **both** logs: `HOST_CLIENTS=2`, `CLIENT_SPAWNED > 0`, `CLIENT_PLA
 Adjacent validation menus that are cheaper than a test run: `Tools ▸ Save System ▸ Validate Save Wiring`, `Tools ▸ SpaceGame ▸ Multiplayer ▸ Sync Network Prefabs`, `Tools ▸ SpaceGame ▸ Items ▸ Audit Held Item Poses` / `Audit Item Scale Ladder`, `Tools ▸ SpaceGame ▸ Ragdoll ▸ Audit Skeletons`.
 
 ## Headless verification
-
 `python3 tools/typecheck.py` — **verified working on this machine**: prints `Unity 6000.3.11f1` then
 `Assembly-CSharp: <n> sources | rsp <dag>` and `Assembly-CSharp: no errors.`, exit 0.
 
@@ -148,10 +147,10 @@ Limits you must know before trusting a green result:
 - It deliberately skips `Library/VP` MPPM clone caches, because a clone can hold a stale domain.
 
 ## Gotchas
-
 - **`AddComponent` outside play mode raises no `Awake`, `Start` or `OnEnable`.** A component that initialises in `Awake` is a bag of nulls in a test. Initialise explicitly, or test the pure class behind the MonoBehaviour.
 - **A failing run and a run that never started look identical.** Always delete `Temp/headless_tests.txt` first (the runner does) and wait for `DONE`.
-- **Queue a headless run only from a CLEAN scene.** A `Unity_RunCommand` that instantiates a prefab and destroys it again (the ship placement probes do) leaves the open scene dirty, and the test framework's first step, `SaveCurrentModifiedScenesIfUserWantsTo`, then asks with a MODAL dialog — which blocks the editor loop, every bridge call after it (a `ReadConsole` sat for 30 minutes on 2026-09-05), and the run itself, until someone at the keyboard answers. Nothing is logged. Save or revert the scene in the same command before `RunEditModeDeferred`, or run the probes on a `PrefabUtility.LoadPrefabContents` copy that never touches the scene.
+- **`Scene(s) Have Been Modified` is a MODAL dialog, and a headless run used to raise it.** The Test Framework's first task, `SaveModifiedSceneTask`, calls `EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo` whenever any loaded scene is dirty. Modal = the editor loop, the run and every MCP session sharing the editor stop until someone clicks; nothing is logged (a `ReadConsole` sat 30 minutes on 2026-09-05; four agent tasks blocked on 2026-09-24). Two ways to meet it: a probe/builder left the open scene dirty, or **a second run started while another was in flight** — an EditMode run lives inside an untitled scratch scene (`CreateBootstrapSceneTask`) its tests dirty, and `TestRunnerApi.Execute` happily starts a second job beside it (Editor.log 2026-09-24: `Executing IPrebuildSetup` at line 613640 while the run begun at 604737 was still logging test output, which then continued after the second run's `IPostBuildCleanup`). [`HeadlessTestRunner`](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) now closes both: a deferred request waits for `TestRunnerApi.IsRunActive()` (internal — read by reflection; it logs an error if a package upgrade removes it) to go false, then **discards a dirty untitled scene silently** (reopening Bootstrap — untitled scratch never holds work) and **refuses to run over a dirty saved scene**, writing `ABORTED=dirty-scene <path>` then `DONE` so a poller sees why nothing ran. Save or revert that scene and re-queue. It does not guard runs started some other way (the Test Runner window, MCP `run_tests`) — those still prompt over a dirty scene. The post-run cleanup waits for the framework's own `RestoreSceneSetupTask`; `RunFinished` fires *before* it, while the scratch scene is still active.
+- **Package tests can raise `Scene(s) Have Been Modified` mid-run, where no pre-run check reaches.** `com.unity.netcode.gameobjects` is an *embedded* package (`Packages/`), so the Test Framework includes its tests — among them `Unity.Netcode.EditorTests.BuildTests.BasicBuildTest`, a real `BuildPipeline.BuildPlayer` (to `Builds/BuildTests`) executed while the run's dirty untitled scratch scene is active. On 2026-09-24 at 19:58:52 the editor froze right after that build's `IPreprocessBuildWithReport` callbacks (last log line `ProjectUnlinkBuildWarning.cs Line: 29`, stack through `BuildTests.cs:27`) with the dialog up over `Untitled*`. So a `HeadlessTestRunner` run **with no group filter is narrowed to the assemblies compiled from `Assets/`** (`IsProjectAssembly`, via `CompilationPipeline.GetAssemblies`): the full suite then runs ~3280 tests in about two minutes with no player build. An explicit group filter still reaches package tests — do not name a package fixture from an agent in a shared editor. The Test Runner window's *Run All* is not narrowed.
 - **An interrupted run leaves you sitting IN the tests' scratch scene, and the next Play runs that.** The Test Runner opens an untitled scene for the run and puts the old scene setup back afterwards through `RestoreSceneSetupTask`. That task calls `EditorSceneManager.NewScene`, which throws `InvalidOperationException: This cannot be used during play mode` if anything has entered play mode meanwhile — so the restore never happens and the scratch scene stays open, dirty and unnamed. Pressing Play then runs a scene whose only camera is Unity's default `Main Camera` at (0, 1, −10): **the game appears to boot into empty skybox through a camera nobody can find**, because it is not your game at all. The give-away in the Hierarchy is `Main Camera` + `Directional Light` beside leftover test objects (`player`/`eye`, `Portal Primary (Player)`, `LobbyPreviewAnchor (temporary)`), and in the console `TestRunner: Unexpected assembly reload happened while running tests`. Recover by reopening the real entry scene — `EditorSceneManager.OpenScene("Assets/Game/Scenes/Core/Bootstrap.unity", OpenSceneMode.Single)`, which discards the scratch scene without a modal prompt. **Never save while that scene is open**: this is how five `Portal Primary (Player)` objects and, before them, four `*_MountThirdPersonCamera` objects came to be committed inside `persistentScene.unity` — the tests all tear down correctly, the run just never reached their `[TearDown]`.
 - **An unattended test run writes into YOUR scene.** EditMode tests build their fixtures (`player`, `eye`, `mount`, `Rider`, the netcode package's `GetBehaviourIndexOne` with two missing-script components) in the open scene setup, and the Test Runner resumes a run on its own after a domain reload. So a run an agent queued and then cut short with a script edit could come back much later, with nobody watching, and whatever it left behind got saved with the scene — `Bootstrap.unity` held a `GetBehaviourIndexOne` object and `player`/`eye` pairs for several commits. That is why requests and runs now expire after `MaxRequestAge`; do not raise it to cover a slow suite — run a narrower fixture instead.
 - **A missing type is a compile error, not a red test.** The whole EditMode suite refuses to run — the Test Runner reports nothing at all. In TDD here, "compile error naming the type" *is* the failing state.
@@ -170,7 +169,6 @@ Limits you must know before trusting a green result:
 - The commit-block hook fires on `$(…)`, backticks and `$((`, including inside heredocs — write throwaway analysis in a Python file rather than retrying an inline shell one-liner.
 
 ## Extending
-
 1. Decide the assembly. Type lives inside a `SpaceGame.*` asmdef → `Assets/Game/Tests/EditMode/` (and add that asmdef to the `references` list in [`SpaceGame.Tests.EditMode.asmdef`](Assets/Game/Tests/EditMode/SpaceGame.Tests.EditMode.asmdef)). Otherwise → `Assets/Game/Editor/Tests/`. Backpack/inventory work by convention goes in `Assets/Game/Tests/Editor/`.
 2. Name the file `<Thing>Tests.cs`, namespace `SpaceGame.Tests`, plain `public class` (no base class, no `[TestFixture]` needed). Write the fixture *first* and confirm it fails — for a new type that means a compile error naming it.
 3. Prefer testing a pure class. If the logic only exists inside a MonoBehaviour, extract the arithmetic into a plain class (as `Locomotion/Policy` did) instead of fighting `Awake`.

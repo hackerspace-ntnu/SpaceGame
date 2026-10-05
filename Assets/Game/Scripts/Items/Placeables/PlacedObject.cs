@@ -92,7 +92,7 @@ namespace SpaceGame.Items
             if (inventory == null || !inventory.TryAddItem(returnItem)) return;
 
             NetworkObject netObj = GetComponent<NetworkObject>();
-            if (netObj != null && netObj.IsSpawned) netObj.Despawn();
+            if (netObj != null && netObj.IsSpawned) NetworkDespawn.Despawn(netObj);
             else Destroy(gameObject);
         }
 

@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
@@ -219,11 +220,24 @@ namespace SpaceGame.Agents
                     Id = template.id,
                     TemplateId = template.id,
                     Position = ResolveStart(template),
-                    RosterSeed = RosterDraw.StableHash(template.id),
+                    RosterSeed = NewWorldSeed(),
+                    DwellRemaining = template.initialStaySeconds,
                 };
 
                 groups.Add(group);
             }
+        }
+
+        /// <summary>
+        /// A seeded group's roster seed: the new world's own, so the Strider city deals its own column and
+        /// elders and a caravan its own faces in every world. Saved in the group's record, so the world
+        /// keeps it. Never 0, which a record reads as "no seed saved".
+        /// </summary>
+        private static int NewWorldSeed()
+        {
+            int seed;
+            do seed = Guid.NewGuid().GetHashCode(); while (seed == 0);
+            return seed;
         }
 
         private Vector3 ResolveStart(NpcGroupTemplate template)
@@ -383,7 +397,8 @@ namespace SpaceGame.Agents
             // First: a wiped-out or released party's vessel still has to leave before it can be removed.
             TickTransport(group, template, delta);
 
-            // Wiped out: waits for the director to resolve it rather than re-spawning at full strength.
+            // Wiped out: gone for good. A war party waits for the director to resolve it; any other group is
+            // simply never spawned again in this world.
             if (group.WipedOut) return;
 
             if (group.Spawned)
@@ -407,15 +422,23 @@ namespace SpaceGame.Agents
 
             // Live alone is not the party: a rider who dismounted is in no mount's saddle and still
             // fights. Folding here would re-spawn fresh riders beside them, or call the party beaten.
-            if (WarPartyRules.IsWipedOut(group.Live.Count, GroupMembership.CountStanding(group.Fighters)))
+            // Standing, not present: a body lies where it fell for minutes (HealthReactionModule
+            // corpseLifetime), and a member with no health -- a walking city's house -- never falls.
+            //
+            // Any group, not only a war party: one that folded back into a record re-spawned at full
+            // strength, with fresh guns, the next tick a player was in range -- on the spot where it
+            // had just been killed. Wiped out is for good in this world; the record saves it.
+            if (WarPartyRules.IsWipedOut(GroupMembership.CountStanding(group.Live),
+                                         GroupMembership.CountStanding(group.Fighters)))
             {
                 group.Spawned = false;
-                if (group.IsWarParty) group.WipedOut = true;
+                group.WipedOut = true;
                 Log($"{template.displayName} was wiped out");
                 return;
             }
 
             group.Position = CurrentPosition(group);
+            HandGoalToSteeringLeader(group);
 
             if (group.IsWarParty) RefreshQuarryLead(group, delta);
             else if (template.bountyHunters) RefreshLead(group, delta);
@@ -451,6 +474,10 @@ namespace SpaceGame.Agents
                 group.DwellRemaining -= delta;
                 return;
             }
+
+            // Past its stop, a folded city has called its crew back aboard, exactly as the live
+            // CrewShift does before the march; left set, it would unfold mid-march with them on foot.
+            group.CrewAshore = false;
 
             if (!group.HasGoal)
             {
@@ -567,8 +594,13 @@ namespace SpaceGame.Agents
 
         // ── Spawning ─────────────────────────────────────────────────────────────
 
+        // Profiler marker (Diagnostics.md → Profiling).
+        private const string SpawnMarkerName = "SpaceGame.NpcWorldSim.Spawn";
+        private static readonly ProfilerMarker SpawnMarker = new(SpawnMarkerName);
+
         private void Spawn(NpcGroup group, NpcGroupTemplate template)
         {
+            using ProfilerMarker.AutoScope sample = SpawnMarker.Auto();
             // One-shot: the owner's exact poses are for this spawn only, used or not.
             List<Pose> poses = group.SpawnPoses;
             group.SpawnPoses = null;
@@ -579,6 +611,11 @@ namespace SpaceGame.Agents
                 WarnNobodyToSpawn(group, template, "its plan is empty");
                 return;
             }
+
+            if (plan.Count > GroupMembership.GunnerIndexStride)
+                Debug.LogError($"[NpcWorldSim] '{group.Id}' plans {plan.Count} members, more than " +
+                               $"GroupMembership.GunnerIndexStride ({GroupMembership.GunnerIndexStride}): a gunner " +
+                               "can share another member's rider's loadout roll. Raise the stride.", this);
 
             group.Live.Clear();
             group.Fighters.Clear();
@@ -621,10 +658,18 @@ namespace SpaceGame.Agents
 
                 if (!leads) followerIndex++;
 
+                // Crew ride a carrier already spawned earlier in the plan (templates list carriers
+                // first). Marching, they wake seated; stopped, they wake on foot at its gangway.
+                CrewShift carrier = planned.Crew ? CrewShift.FirstWithRoom(group.Live, planned.Prefab) : null;
+                bool crewAboard = carrier != null && !group.CrewAshore;
+                if (carrier != null) slot = crewAboard ? carrier.transform.position : carrier.GangwayPoint;
+
                 Pose pose = poses != null && index < poses.Count ? poses[index] : new Pose(slot, facing);
 
-                // Known before the spawn, so a rider is made with its NavMeshAgent already off.
-                bool seated = riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats;
+                // Known before the spawn, so a rider is made with its NavMeshAgent already off. Crew
+                // never take a vessel seat (Rides), even one left over when their carriers are full.
+                bool seated = crewAboard ||
+                              (riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats);
 
                 // Stamped before the network spawn, so the loadout roll in OnNetworkSpawn is seeded, and
                 // so is whatever the group's owner stamps after it.
@@ -638,7 +683,13 @@ namespace SpaceGame.Agents
 
                 leaderTaken |= leads;
                 group.Live.Add(member);
-                if (seated) riders.Add(member);
+                if (seated && !planned.Crew) riders.Add(member);
+
+                // Both are network-spawned by now (NpcSpawn.Create), so the seating replicates.
+                if (carrier != null) carrier.Take(member, crewAboard);
+                else if (planned.Crew)
+                    Debug.LogWarning($"[NpcWorldSim] '{template.id}' has more crew than crew posts; " +
+                                     $"'{member.name}' walks.", this);
 
                 Configure(member, group, template, leads);
             }
@@ -794,9 +845,15 @@ namespace SpaceGame.Agents
                 if (group.HasGoal && member.TryGetComponent(out AgentGoal goal))
                     SetGoal(goal, group);
 
-                // After the goal, so a travelling leader's first tick already sees it.
+                // After the goal, so a travelling leader's first tick already sees it. A group spawned
+                // partway through a stop finishes it rather than setting off at once.
                 tasks.ResumeTask(template.tasks, group.TaskIndex, group.HasGoal, group.DwellRemaining,
                                  group.LastSiteId);
+
+                // The leader owns the stay from here; Despawn and CaptureRecords write back what is
+                // left (ReadTaskBack, ReadBackCrew), so the record must not keep a copy to replay on
+                // the next fold or spawn.
+                if (!group.HasGoal) group.DwellRemaining = 0f;
             }
 
             // See SceneTracked.SetKeepChunksLoaded. A spawned member is by definition within
@@ -829,14 +886,69 @@ namespace SpaceGame.Agents
             group.ArriveRadius = arriveRadius;
             group.HasGoal = true;
 
-            foreach (GameObject member in group.Live)
-            {
-                if (member == null) continue;
-                if (!member.TryGetComponent(out FormationModule formation) || !formation.IsLeader) continue;
+            GameObject leader = SteeringLeader(group);
+            if (leader != null && leader.TryGetComponent(out AgentGoal goal)) SetGoal(goal, group);
+        }
 
-                if (member.TryGetComponent(out AgentGoal goal)) SetGoal(goal, group);
-                return;
-            }
+        /// <summary>
+        /// A column whose flagged leader was parked or lost goes on behind whoever
+        /// <see cref="FormationModule.LeaderOf"/> handed the lead to -- a convoy whose lead driver was
+        /// knocked off its wheel follows the next wheel. That member was spawned a follower, with no
+        /// goal of its own, so it is given the group's until it has one. Only ever for a handed-on lead:
+        /// a flagged leader routes itself (a caravan's task list clears its goal at every stop).
+        /// </summary>
+        private void HandGoalToSteeringLeader(NpcGroup group)
+        {
+            if (!group.HasGoal) return;
+
+            GameObject steering = SteeringLeader(group);
+            if (steering == null || steering == LiveLeader(group)) return;
+
+            if (steering.TryGetComponent(out AgentGoal goal) && !goal.HasGoal) SetGoal(goal, group);
+        }
+
+        /// <summary>
+        /// A player took <paramref name="member"/> for themselves -- mounted a war party's monowheel
+        /// and rode off on it. It stops being the group's and becomes an ordinary saved player vehicle:
+        /// out of Live and Fighters (the centroid, the fold and the wiped-out count no longer see it),
+        /// out of the column, its self-crewing seats stood down (a double's gunners get down and fight
+        /// on as the group's), its goal dropped, no chunks pinned, and its record handed back to the
+        /// world store (NpcSpawn disowned it) with the savers a runtime vehicle gets.
+        /// Server only; called from <see cref="GroupMembership"/> when the server seats a player.
+        /// </summary>
+        public void ReleaseToPlayer(GameObject member) => ReleaseToWorld(member, "taken by a player");
+
+        /// <summary>
+        /// The group lost <paramref name="member"/> -- a vehicle whose driver is gone or which was
+        /// destroyed. It is released exactly as <see cref="ReleaseToPlayer"/> releases one, so it stays
+        /// where it stopped when the group folds or disbands, and is saved by the world store;
+        /// <see cref="AbandonedVehicle"/> takes it away once its lifetime is up. Server only.
+        /// </summary>
+        public void ReleaseDefeated(GameObject member) => ReleaseToWorld(member, "left behind defeated");
+
+        private void ReleaseToWorld(GameObject member, string how)
+        {
+            if (member == null || !member.TryGetComponent(out GroupMembership membership)) return;
+
+            NpcGroup group = membership.Group;
+            if (group == null) return;
+
+            group.Live.Remove(member);
+            // A fighter that can no longer die for the party must not stay counted as one it can lose.
+            if (group.Fighters.Remove(member)) group.FightersSpawned--;
+            membership.Leave();
+
+            if (member.TryGetComponent(out FormationModule formation)) formation.LeaveFormation();
+            if (member.TryGetComponent(out AgentGoal goal)) goal.Clear();
+            foreach (ICrewedSeats seats in member.GetComponents<ICrewedSeats>()) seats.StandDown(restoring: false);
+
+            // Configure unpinned it for the group; a player vehicle left parked pins nothing either.
+            if (member.TryGetComponent(out SceneTracked tracked)) tracked.SetKeepChunksLoaded(false);
+
+            SaveablePolicy.EnsureSpawned(member);
+            if (member.TryGetComponent(out SaveableEntity saveable)) saveable.ReclaimForWorld();
+
+            Log($"'{member.name}' left '{group.Id}': {how}");
         }
 
         // ── Despawning ───────────────────────────────────────────────────────────
@@ -846,24 +958,22 @@ namespace SpaceGame.Agents
             group.Position = CurrentPosition(group);
 
             // Read the leader's live goal back into the record, so a caravan that chose a new
-            // destination while it was real does not forget it the moment it folds away.
-            foreach (GameObject member in group.Live)
+            // destination while it was real does not forget it the moment it folds away. The goal
+            // from whoever is routing the column now; the task index from the flagged leader, the
+            // only member given the task list.
+            GameObject steering = SteeringLeader(group);
+            if (steering != null && steering.TryGetComponent(out AgentGoal goal) && goal.HasGoal)
             {
-                if (member == null) continue;
-                if (!member.TryGetComponent(out FormationModule formation) || !formation.IsLeader) continue;
-
-                if (member.TryGetComponent(out AgentGoal goal) && goal.HasGoal)
-                {
-                    group.GoalPosition = goal.Position;
-                    group.ArriveRadius = goal.ArriveRadius;
-                    group.HasGoal = true;
-                }
-
-                if (member.TryGetComponent(out NpcTaskModule tasks))
-                    ReadTaskBack(group, tasks);
-
-                break;
+                group.GoalPosition = goal.Position;
+                group.ArriveRadius = goal.ArriveRadius;
+                group.HasGoal = true;
             }
+
+            GameObject leader = LiveLeader(group);
+            if (leader != null && leader.TryGetComponent(out NpcTaskModule tasks))
+                ReadTaskBack(group, tasks);
+
+            ReadBackCrew(group);
 
             // Still aboard: the vessel folds with its riders, and the record flies on from where it was.
             // Dropped off: the empty vessel is TickTransport's, unless it is already out of sight too.
@@ -875,6 +985,60 @@ namespace SpaceGame.Agents
             DespawnMembers(group);
             group.Spawned = false;
             Log($"{template.displayName} folded back to a record");
+        }
+
+        /// <summary>
+        /// Whether any of the group's carriers still has crew off it, and how long the leader's stop
+        /// has left — read before the group folds or saves, so it comes back on foot where it left
+        /// them rather than seated mid-stop. Folded, <c>TickVirtual</c> keeps the crew ashore until
+        /// that stay runs out; the record's own <c>DwellRemaining</c> is handed to the leader at
+        /// spawn (<see cref="Configure"/>), so without the live one it is spent and the crew are
+        /// called aboard on the first folded tick.
+        /// </summary>
+        private static void ReadBackCrew(NpcGroup group)
+        {
+            group.CrewAshore = CrewShift.AnyAshore(group.Live);
+
+            GameObject leader = LiveLeader(group);
+            if (leader == null || !leader.TryGetComponent(out NpcTaskModule tasks) || !tasks.AtStop) return;
+
+            // Arrived and staying, exactly as a virtual arrival leaves the record.
+            group.DwellRemaining = tasks.PhaseTimer;
+            group.HasGoal = false;
+        }
+
+        /// <summary>The spawned member flagged to lead (<see cref="FormationModule.IsLeader"/>), holder of the task list, or null.</summary>
+        private static GameObject LiveLeader(NpcGroup group)
+        {
+            foreach (GameObject member in group.Live)
+                if (member != null && member.TryGetComponent(out FormationModule formation) && formation.IsLeader)
+                    return member;
+            return null;
+        }
+
+        /// <summary>
+        /// The member the column follows right now (<see cref="FormationModule.LeadsFormation"/>): the
+        /// flagged leader, or the one the lead passed to while it is parked or gone. Falls back to the
+        /// flagged leader when nobody leads (every member parked).
+        /// </summary>
+        private static GameObject SteeringLeader(NpcGroup group)
+        {
+            foreach (GameObject member in group.Live)
+                if (member != null && member.TryGetComponent(out FormationModule formation) && formation.LeadsFormation)
+                    return member;
+            return LiveLeader(group);
+        }
+
+        /// <summary>
+        /// Members in reverse spawn order. Crew are spawned after the carriers they sit on and are
+        /// parented under the carrier's NetworkObject, so they must go first or netcode lifts them to
+        /// the scene root with nothing left to release them.
+        /// </summary>
+        private static List<GameObject> DespawnOrder(NpcGroup group)
+        {
+            var order = new List<GameObject>(group.Live);
+            order.Reverse();
+            return order;
         }
 
         /// <summary>
@@ -964,7 +1128,7 @@ namespace SpaceGame.Agents
         /// </summary>
         private static void DespawnTransport(NpcGroup group)
         {
-            DestroyMember(group.Transport);
+            NpcSpawn.Remove(group.Transport);
             ForgetTransport(group);
         }
 
@@ -991,10 +1155,10 @@ namespace SpaceGame.Agents
         {
             foreach (GameObject fighter in group.Fighters)
                 if (fighter != null && !group.Live.Contains(fighter) && !IsSeatedInGroup(group, fighter))
-                    DestroyMember(fighter);
+                    NpcSpawn.Remove(fighter);
 
-            foreach (GameObject member in group.Live)
-                DestroyMember(member);
+            foreach (GameObject member in DespawnOrder(group))
+                NpcSpawn.Remove(member);
 
             group.Live.Clear();
             group.Fighters.Clear();
@@ -1007,19 +1171,6 @@ namespace SpaceGame.Agents
                     return true;
 
             return false;
-        }
-
-        private static void DestroyMember(GameObject member)
-        {
-            if (member == null) return;
-
-            if (member.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
-            {
-                netObj.Despawn(destroy: true);
-                return;
-            }
-
-            Destroy(member);
         }
 
         private static void PruneDead(NpcGroup group)
@@ -1204,7 +1355,11 @@ namespace SpaceGame.Agents
                 // A spawned group's record is stale — its members have walked since. Refresh the
                 // position from them so a save taken while you are standing next to a caravan puts
                 // it back where you last saw it, not where it was when it spawned.
-                if (groups[i].Spawned) groups[i].Position = CurrentPosition(groups[i]);
+                if (groups[i].Spawned)
+                {
+                    groups[i].Position = CurrentPosition(groups[i]);
+                    ReadBackCrew(groups[i]);
+                }
 
                 records[i] = groups[i].ToRecord();
             }
@@ -1264,13 +1419,12 @@ namespace SpaceGame.Agents
                 if (templatesById[record.templateId].runtimeOnly && !KeepsRuntimeRecord(in record, claimedOwners))
                     continue;
 
-                // Seeded as CreateGroup seeds it, so a record from before rosterSeed existed still draws
-                // the same people (ApplyRecord keeps this when the record's seed reads 0).
+                // ApplyRecord seeds it from the record, or from its id as CreateGroup does when an
+                // older record has no seed.
                 var restored = new NpcGroup
                 {
                     Id = record.id,
                     TemplateId = record.templateId,
-                    RosterSeed = RosterDraw.StableHash(record.id),
                 };
                 restored.ApplyRecord(in record);
                 groups.Add(restored);

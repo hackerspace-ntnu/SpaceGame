@@ -305,7 +305,13 @@ namespace SpaceGame.Core
         public const ushort PortalsShut = 81; // server → everyone else, on the SHOOTER's relay
 
         // Server → everyone, on the VICTIM's relay: this body has been knocked down. Every machine
-        // presents it going limp, with P as the impulse handed to the hips (m/s, world space).
+        // presents it going limp, with P as the velocity handed to every bone (m/s, world space).
+        //
+        //   A  down-time in ms, priced by KnockdownPolicy on the deciding machine.
+        //   B  the RagdollCause.
+        //
+        // Send through RagdollController.Knock, never directly: that is where the victim's
+        // KnockdownTuning prices the event and where hit immunity is checked.
         //
         // Broadcast for the same reason Flung (79) is: bone transforms are not replicated, so a
         // ragdoll is not something one machine can do on another's behalf — every machine has to
@@ -315,7 +321,7 @@ namespace SpaceGame.Core
         //
         // A message of its own rather than a flag on Flung, because Flung is shared three ways and
         // one of them is self-inflicted: GravelBlasterArtifact flings the HOLDER as self-propulsion
-        // (GravelBlasterArtifact.Backfire). A ragdoll hung off Flung would knock players down every
+        // (GravelBlasterArtifact.MisfireUse, its backfire). A ragdoll hung off Flung would knock players down every
         // time they fired their own gravel blaster.
         public const ushort Knockdown = 82; // server → everyone, on the VICTIM's relay
 
@@ -708,5 +714,21 @@ namespace SpaceGame.Core
         //                  (land in it, do not animate into it).
         public const ushort AirlockOperate = 124; // clicker → server
         public const ushort AirlockState   = 125; // server → everyone
+
+        // ── Knockdown requests ──
+        // Owner → server, on the VICTIM's relay: "my own landing was hard enough to knock me down".
+        // A = RagdollCause. The server checks Network.MayActFor and prices it through
+        // RagdollController.Knock, which broadcasts Knockdown (82). A client cannot broadcast, and a
+        // fall is only ever measured by the machine that owns the body — hence the round trip.
+        public const ushort KnockdownRequest = 126; // owner → server, on the VICTIM's relay
+
+        // Owner → server, on the PLAYER's relay: "I pressed Jump while knocked down — let me up".
+        // The server checks Network.MayActFor and answers with GotUp (128). Players only; handled
+        // by PlayerRagdoll.
+        public const ushort GetUpRequest = 127; // owner → server, on the PLAYER's relay
+
+        // Server → everyone, on the PLAYER's relay: stand this knocked-down player up now. Every
+        // machine runs its own copy of the ragdoll, so every machine has to be told.
+        public const ushort GotUp = 128; // server → everyone, on the PLAYER's relay
     }
 }

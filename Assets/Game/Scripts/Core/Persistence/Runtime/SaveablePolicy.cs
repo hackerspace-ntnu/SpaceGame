@@ -75,6 +75,13 @@ namespace SpaceGame.Core.Persistence
             if (go.GetComponent<PlayerSaveBinder>() != null || go.GetComponent<PlayerSaveSync>() != null)
                 return false;
 
+            // A piloted transport belongs to the war party that launched it, and that party's group
+            // record rebuilds hull and passengers alike. Its HealthComponent and EntityFaction each
+            // qualify on their own, so without this every prefab builder ending in the project-wide
+            // wiring pass gave both sky transports an entity and savers the design never meant them
+            // to have.
+            if (go.GetComponent<VesselPilot>() != null) return false;
+
             foreach (Component c in go.GetComponents<Component>())
             {
                 if (c == null) continue;
@@ -188,6 +195,32 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<MountSaveable>();
                 parts.Add(nameof(MountSaveable));
+            }
+
+            // Whether seats that crew themselves on spawn were stood down — a group's vehicle a
+            // player took. Without it the load re-crews the player's vehicle with strangers.
+            if (go.GetComponent<ICrewedSeats>() != null && go.GetComponent<CrewSaveable>() == null)
+            {
+                go.AddComponent<CrewSaveable>();
+                parts.Add(nameof(CrewSaveable));
+            }
+
+            // How long a vehicle its group lost has left in the world. Without it a load either
+            // never takes the abandoned vehicle away or restarts its countdown from full.
+            if (go.GetComponent<AbandonedVehicle>() != null && go.GetComponent<AbandonedVehicleSaveable>() == null)
+            {
+                go.AddComponent<AbandonedVehicleSaveable>();
+                parts.Add(nameof(AbandonedVehicleSaveable));
+            }
+
+            // How long a dead body, or the loot it shed, has left lying there. On everything that CAN
+            // become remains rather than on what already is: the Remains itself is added at runtime,
+            // so a freshly loaded item has none until this saver puts one back.
+            if ((go.GetComponent<HealthComponent>() != null || IsPickup(go) || go.GetComponent<Remains>() != null) &&
+                go.GetComponent<RemainsSaveable>() == null)
+            {
+                go.AddComponent<RemainsSaveable>();
+                parts.Add(nameof(RemainsSaveable));
             }
 
             // Who this was fighting, and what it remembers. AgentTargeting rather than
@@ -370,6 +403,14 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<FormationSaveable>();
                 parts.Add(nameof(FormationSaveable));
+            }
+
+            // Where a drifting hull is on its loop. The pose alone restores the Sky City mid-voyage
+            // believing it is moored at its first waypoint.
+            if (go.GetComponent<DriftRouteModule>() != null && go.GetComponent<DriftRouteSaveable>() == null)
+            {
+                go.AddComponent<DriftRouteSaveable>();
+                parts.Add(nameof(DriftRouteSaveable));
             }
 
             // The phase offset that stops a crowd marching in step for a moment after every load.

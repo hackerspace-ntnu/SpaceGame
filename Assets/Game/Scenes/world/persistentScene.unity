@@ -328,11 +328,39 @@ MonoBehaviour:
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 4
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: running goods between the trade posts
       targetSite: 5
@@ -348,6 +376,14 @@ MonoBehaviour:
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: watering the birds
       targetSite: 4
       searchRadius: 1200
@@ -362,6 +398,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: picking over an old wreck
       targetSite: 2
       searchRadius: 1600
@@ -376,10 +420,19 @@ MonoBehaviour:
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 3.2
     startNearSite: 1
     useStartPosition: 1
     startPosition: {x: 3650, y: 100, z: 1620}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -403,19 +456,75 @@ MonoBehaviour:
     - prefab: {fileID: 154119959528579656, guid: c3ae6b451d3393043b8ad3f1c9f152b0, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: running goods between the trade posts
       targetSite: 5
@@ -431,6 +540,14 @@ MonoBehaviour:
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: filling the water skins
       targetSite: 4
       searchRadius: 1200
@@ -445,6 +562,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: picking over an old wreck
       targetSite: 2
       searchRadius: 1600
@@ -459,10 +584,19 @@ MonoBehaviour:
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 2.6
     startNearSite: 1
     useStartPosition: 1
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -478,6 +612,350 @@ MonoBehaviour:
       LongitudinalJitter: 1.3
       DriftAmplitude: 0.8
       DriftRate: 0.07
+  - id: strider-city
+    displayName: Strider City
+    tribe: {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 3920125714913502079, guid: ade2c352218d0654aa42348edd37b947, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: StriderHabitatWalker
+        withinFirstSlots: 12
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -15.74483
+          y: -12.968899
+          width: 31.489658
+          height: 27.561054
+        slotTolerance: 8
+    - prefab: {fileID: 3920125714913502079, guid: ade2c352218d0654aa42348edd37b947, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: StriderHabitatWalker
+        withinFirstSlots: 12
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -15.74483
+          y: -12.968899
+          width: 31.489658
+          height: 27.561054
+        slotTolerance: 8
+    - prefab: {fileID: 7855985018472554799, guid: 0fcc8e79bec6440beb2c49c1343c14a4, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: DesertCrawler
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -10.767538
+          y: -14.344118
+          width: 21.535074
+          height: 25.08656
+        slotTolerance: 8
+    - prefab: {fileID: 8245780198159841428, guid: 81b4e2cd12bc1944b9da1bd214bb35de, type: 3}
+      role: 2
+      isLeader: 0
+      crew: 0
+      count: 2
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: StriderCrabOutrider
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -5.181661
+          y: -4.028392
+          width: 10.363324
+          height: 9.249971
+        slotTolerance: 1.6
+    - prefab: {fileID: 6255694193989187041, guid: afebd3f8d7d7a724f9539e017fdfae07, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: barge
+        withinFirstSlots: 12
+        keepsClear: 1
+        footprint:
+          serializedVersion: 2
+          x: -7.653511
+          y: -22.149202
+          width: 15.244849
+          height: 33.66879
+        slotTolerance: 4
+    - prefab: {fileID: 5805050892606582730, guid: ac4ed41981380a04aa323bba4bdca998, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: barge
+        withinFirstSlots: 12
+        keepsClear: 1
+        footprint:
+          serializedVersion: 2
+          x: -7.653511
+          y: -19.934969
+          width: 15.244849
+          height: 31.454556
+        slotTolerance: 4
+    - prefab: {fileID: 8683533901673170491, guid: 30695acfc17cf384eac28a394d94684a, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: barge
+        withinFirstSlots: 12
+        keepsClear: 1
+        footprint:
+          serializedVersion: 2
+          x: -7.653511
+          y: -19.934969
+          width: 15.244849
+          height: 24.395306
+        slotTolerance: 4
+    - prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -0.85449743
+          y: -4.5787377
+          width: 1.7626433
+          height: 8.341272
+        slotTolerance: 4
+    - prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -0.9574834
+          y: -4.5787377
+          width: 1.9413004
+          height: 8.341272
+        slotTolerance: 4
+    - prefab: {fileID: 8997635125253337859, guid: 57171156033888b4ebe929745c331d22, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -0.85449743
+          y: -4.5787377
+          width: 1.7626433
+          height: 8.341272
+        slotTolerance: 4
+    - prefab: {fileID: 5705080575746212662, guid: c575f358b1b813c4e8bda3b1d53ae74c, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -2.0010738
+          y: -5.184476
+          width: 4.08443
+          height: 8.94701
+        slotTolerance: 4
+    - prefab: {fileID: 6812825112896388665, guid: 17934fd3b87156a4189e627e1beded79, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -2.8517265
+          y: -5.184476
+          width: 5.703452
+          height: 7.298716
+        slotTolerance: 4
+    - prefab: {fileID: 0}
+      role: 1
+      isLeader: 0
+      crew: 1
+      count: 12
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 0}
+      role: 0
+      isLeader: 0
+      crew: 1
+      count: 12
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 4513809822329001233, guid: 0aa53d1dbe38a48488e095df5ccfd9d6, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 1
+      count: 1
+      countWeights:
+      - count: 1
+        weight: 0.75
+      - count: 2
+        weight: 0.25
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    tasks:
+    - label: picking over a ruin
+      targetSite: 2
+      searchRadius: 2500
+      searchFromHome: 0
+      dwellSeconds: {x: 90, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Old metal. Good metal.
+      - Set the legs down, we're working.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 25
+      travelSpeedMultiplier: 0.45
+      levelGround:
+        footprintRadius: 218.47107
+        maxSlopeDegrees: 3
+        searchRadius: 200
+        searchStep: 100
+        attempts: 8
+        sampleReach: 30
+        sampleTolerance: 10
+    - label: working a scrap field
+      targetSite: 3
+      searchRadius: 2500
+      searchFromHome: 0
+      dwellSeconds: {x: 90, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Crawlers out! Everything that isn't sand.
+      - Load the houses.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 25
+      travelSpeedMultiplier: 0.45
+      levelGround:
+        footprintRadius: 218.47107
+        maxSlopeDegrees: 3
+        searchRadius: 200
+        searchStep: 100
+        attempts: 8
+        sampleReach: 30
+        sampleTolerance: 10
+    travelSpeed: 2.6999998
+    startNearSite: 2
+    useStartPosition: 1
+    startPosition: {x: 3368, y: 106.471565, z: 1199}
+    initialStaySeconds: 600
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 35
+      LaneSpacing: 30
+      LateralJitter: 2
+      LongitudinalJitter: 3
+      DriftAmplitude: 1
+      DriftRate: 0.05
   - id: drifters
     displayName: Drifters
     tribe: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}
@@ -486,43 +964,183 @@ MonoBehaviour:
     - prefab: {fileID: 6110677241095528271, guid: afd49cf9481cd4e91af3a828a0866f1a, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 9084312159628000530, guid: b1bf8bd749c4741f8b9f1bc99307887f, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6641747005437992729, guid: e423cfdf945624ad892c33b00e2d8450, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 4375941295063180595, guid: 9f38a891192e44383a04c1cf85df3b3a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6320590716706008551, guid: 600a297774679412697efb8407ef232b, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6041516499664464153, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 7597401561177595076, guid: d7b830fd7553b4d07a97cadffa0ba701, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6643838780466197570, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3329947332983915974, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 9073734896679703001, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: running goods between the trade posts
       targetSite: 5
@@ -538,6 +1156,14 @@ MonoBehaviour:
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: filling the water skins
       targetSite: 4
       searchRadius: 1200
@@ -552,6 +1178,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: picking over an old wreck
       targetSite: 2
       searchRadius: 1600
@@ -566,10 +1200,19 @@ MonoBehaviour:
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 2.4
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -595,6 +1238,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 0}
@@ -610,6 +1254,32 @@ MonoBehaviour:
       LongitudinalJitter: 1.3
       DriftAmplitude: 0.8
       DriftRate: 0.07
+  - id: strider-war-party
+    displayName: Strider War Party
+    tribe: {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
+    runtimeOnly: 1
+    members: []
+    tasks: []
+    travelSpeed: 14
+    startNearSite: 1
+    useStartPosition: 0
+    startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
+    bountyHunters: 1
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 18
+      LaneSpacing: 14
+      LateralJitter: 1.5
+      LongitudinalJitter: 2
+      DriftAmplitude: 1
+      DriftRate: 0.1
   - id: sky-war-party
     displayName: Sky War Party
     tribe: {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
@@ -620,6 +1290,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 3975991240799448283, guid: 94f134b4aed0e0247ac1302ad4cd3e11, type: 3}
@@ -643,16 +1314,45 @@ MonoBehaviour:
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
       role: 0
       isLeader: 0
+      crew: 0
       count: 3
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks: []
     travelSpeed: 4.4
     startNearSite: 7
     useStartPosition: 1
     startPosition: {x: 3480, y: 100, z: 1740}
+    initialStaySeconds: 0
     bountyHunters: 1
     transport:
       smallVessel: {fileID: 0}
@@ -668,15 +1368,47 @@ MonoBehaviour:
       LongitudinalJitter: 0.6
       DriftAmplitude: 0.35
       DriftRate: 0.1
-  - id: wild-appa
-    displayName: Appa
+  - id: appa-herd-dunes
+    displayName: Appa Herd (dunes)
     tribe: {fileID: 0}
     runtimeOnly: 0
     members:
     - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
       role: 0
       isLeader: 1
+      crew: 0
       count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 4
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: grazing the open ground
       targetSite: 6
@@ -686,10 +1418,18 @@ MonoBehaviour:
       yields: {fileID: 0}
       yieldChance: 1
       chatter: []
-      dwellFlag: 
+      dwellFlag: IsGrazing
       weight: 2
       arriveRadius: 25
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: drinking
       targetSite: 4
       searchRadius: 1500
@@ -702,6 +1442,14 @@ MonoBehaviour:
       weight: 1
       arriveRadius: 18
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     - label: drifting across country
       targetSite: 7
       searchRadius: 2200
@@ -714,10 +1462,19 @@ MonoBehaviour:
       weight: 0.6
       arriveRadius: 30
       travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
     travelSpeed: 1.4
     startNearSite: 6
-    useStartPosition: 0
-    startPosition: {x: 3480, y: 100, z: 1740}
+    useStartPosition: 1
+    startPosition: {x: 3150, y: 113.7, z: 1350}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -726,13 +1483,381 @@ MonoBehaviour:
       homeSiteName: Sky City
       dockSpacing: 45
     formation:
-      Lanes: 2
-      RowSpacing: 3
-      LaneSpacing: 2.2
-      LateralJitter: 0.5
-      LongitudinalJitter: 0.6
-      DriftAmplitude: 0.35
-      DriftRate: 0.1
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
+  - id: appa-herd-plateau
+    displayName: Appa Herd (plateau)
+    tribe: {fileID: 0}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 5
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    tasks:
+    - label: grazing the open ground
+      targetSite: 6
+      searchRadius: 1800
+      searchFromHome: 0
+      dwellSeconds: {x: 120, y: 300}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: IsGrazing
+      weight: 2
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drinking
+      targetSite: 4
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 150}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 18
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drifting across country
+      targetSite: 7
+      searchRadius: 2200
+      searchFromHome: 0
+      dwellSeconds: {x: 40, y: 120}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 0.6
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 1
+    startPosition: {x: 2200, y: 170.3, z: 1500}
+    initialStaySeconds: 0
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
+  - id: appa-herd-south
+    displayName: Appa Herd (south)
+    tribe: {fileID: 0}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 4
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    tasks:
+    - label: grazing the open ground
+      targetSite: 6
+      searchRadius: 1800
+      searchFromHome: 0
+      dwellSeconds: {x: 120, y: 300}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: IsGrazing
+      weight: 2
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drinking
+      targetSite: 4
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 150}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 18
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: drifting across country
+      targetSite: 7
+      searchRadius: 2200
+      searchFromHome: 0
+      dwellSeconds: {x: 40, y: 120}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 0.6
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 1
+    startPosition: {x: 2800, y: 104.9, z: -300}
+    initialStaySeconds: 0
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
+  - id: sand-appa-herders
+    displayName: Sand Appa Herders
+    tribe: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 2370927830721863249, guid: 3376a5ba2f4d5ff4ca4c2e1a08b34d55, type: 3}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 3306571613298777548, guid: 8dac043065b0ca04c9f7e80c0069a1ae, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 6
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 2370927830721863249, guid: 3376a5ba2f4d5ff4ca4c2e1a08b34d55, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 2
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    tasks:
+    - label: driving the herd to new grazing
+      targetSite: 6
+      searchRadius: 1600
+      searchFromHome: 0
+      dwellSeconds: {x: 150, y: 320}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Keep them moving. The grass is thin here.
+      - Watch the young one, it wanders.
+      dwellFlag: IsGrazing
+      weight: 2
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: watering the herd
+      targetSite: 4
+      searchRadius: 1400
+      searchFromHome: 0
+      dwellSeconds: {x: 80, y: 160}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - They smell water before we do.
+      - Let them drink. Long walk after.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 1
+    startPosition: {x: 3400, y: 104.7, z: 900}
+    initialStaySeconds: 0
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 3
+      RowSpacing: 9
+      LaneSpacing: 8
+      LateralJitter: 3
+      LongitudinalJitter: 3
+      DriftAmplitude: 1.5
+      DriftRate: 0.05
   - id: settlement-expedition
     displayName: Settlement Expedition
     tribe: {fileID: 0}
@@ -743,6 +1868,7 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 0
     startPosition: {x: 0, y: 0, z: 0}
+    initialStaySeconds: 0
     bountyHunters: 0
     transport:
       smallVessel: {fileID: 0}
@@ -799,6 +1925,7 @@ MonoBehaviour:
   tribes:
   - {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
   - {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+  - {fileID: 11400000, guid: fdbb27c999c5f3b4091744eec41e15c2, type: 2}
   crewFaction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   relationships: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
   thresholds:
@@ -1252,6 +2379,216 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+--- !u!1001 &462803294
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3258
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 298
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1512
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 723479329816988532, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort3_SkySkiff
+      objectReference: {fileID: 0}
+    - target: {fileID: 1465188106615122595, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1465188106615122595, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1459488699
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2276445656
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.x
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.y
+      value: 18
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.z
+      value: 92
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.x
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.z
+      value: 2
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+--- !u!1001 &474675143
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3293
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 292
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1280
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 723479329816988532, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort1_SkySkiff
+      objectReference: {fileID: 0}
+    - target: {fileID: 1465188106615122595, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1465188106615122595, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3376029936
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2276445656
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.x
+      value: -120
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.y
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.z
+      value: 57
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.x
+      value: 2.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.y
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.z
+      value: 1.7
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
 --- !u!1 &508336265
 GameObject:
   m_ObjectHideFlags: 0
@@ -2057,6 +3394,111 @@ Light:
   m_CorrespondingSourceObject: {fileID: 6213383745215315225, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
   m_PrefabInstance: {fileID: 1680016979}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &951717478
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3032623216803750170, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1894232827
+      objectReference: {fileID: 0}
+    - target: {fileID: 3032623216803750170, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3032623216803750170, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2088038566
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: station.x
+      value: -25
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: station.y
+      value: 72
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: station.z
+      value: 165
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: wanderPhase.x
+      value: 3.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: wanderPhase.y
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: wanderPhase.z
+      value: 2.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5659658429446244267, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5659658429446244267, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3185
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 352
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1375
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6808168672840351895, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort5_SkyFreighter
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
 --- !u!1 &1015801412
 GameObject:
   m_ObjectHideFlags: 0
@@ -2608,6 +4050,245 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1461902930}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1290090988
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 383924178458961974, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 383924178458961974, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-2
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: station.x
+      value: -117
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: station.y
+      value: -21
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: station.z
+      value: -60
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: wanderPhase.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: wanderPhase.y
+      value: 2.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: wanderPhase.z
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3410
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 259
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1283
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2166381245315854334, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort2_SkyTug
+      objectReference: {fileID: 0}
+    - target: {fileID: 7441391802021745089, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 119954119
+      objectReference: {fileID: 0}
+    - target: {fileID: 7441391802021745089, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7441391802021745089, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2010624287
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+--- !u!1001 &1393592040
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 765982938715578520, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_Name
+      value: SkyCityFleet
+      objectReference: {fileID: 0}
+    - target: {fileID: 2090661265713884377, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 173745307
+      objectReference: {fileID: 0}
+    - target: {fileID: 2090661265713884377, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2090661265713884377, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1268422598
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[0].x
+      value: 3350
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[0].y
+      value: 280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[0].z
+      value: 1400
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[1].x
+      value: 2550
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[1].y
+      value: 280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[1].z
+      value: 1400
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[2].x
+      value: 2550
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[2].y
+      value: 280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[2].z
+      value: 550
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[3].x
+      value: 3100
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[3].y
+      value: 280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3238984927745301974, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: route.Array.data[3].z
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3350
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 280
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1400
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8521703497193541095, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8521703497193541095, guid: adec8f29c01881849bae72863c3be026, type: 3}
+      propertyPath: instanceId
+      value: sky-city-flagship
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: adec8f29c01881849bae72863c3be026, type: 3}
+--- !u!4 &1393592041 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4316234872334525318, guid: adec8f29c01881849bae72863c3be026, type: 3}
+  m_PrefabInstance: {fileID: 1393592040}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1461902929
 GameObject:
   m_ObjectHideFlags: 0
@@ -2675,6 +4356,111 @@ Transform:
   - {fileID: 175359317}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1576368836
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3520
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 320
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1420
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 90494422221066702, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 723479329816988532, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort6_SkySkiff
+      objectReference: {fileID: 0}
+    - target: {fileID: 1465188106615122595, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1465188106615122595, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 508426079
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929830333226397740, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2276445656
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.x
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.y
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: station.z
+      value: -170
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.x
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.y
+      value: 2.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8690897419980263841, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
+      propertyPath: wanderPhase.z
+      value: 3.3
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 23b5130dad07d0b409af023daa30a2b2, type: 3}
 --- !u!1001 &1605608358
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2818,6 +4604,107 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
+--- !u!1001 &1680972083
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3032623216803750170, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1432986986
+      objectReference: {fileID: 0}
+    - target: {fileID: 3032623216803750170, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3032623216803750170, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2088038566
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: station.x
+      value: 117
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: station.y
+      value: 39
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: station.z
+      value: -12
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: wanderPhase.y
+      value: 1.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4468992246033840963, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: wanderPhase.z
+      value: 2.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5659658429446244267, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5659658429446244267, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3362
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 319
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1517
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6138593186150865453, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6808168672840351895, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort0_SkyFreighter
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fa5ece3c9b7dccb48839a81312e86dbe, type: 3}
 --- !u!1 &1741768406
 GameObject:
   m_ObjectHideFlags: 0
@@ -3080,6 +4967,13 @@ MonoBehaviour:
   maxTrustedCorrection: 30
   releaseDelay: 1.6
   strandedSeatTimeout: 180
+  starterVehicle:
+    prefab: {fileID: 8457748342752500984, guid: faa6c05044fd22a488c1466f131e5bfb, type: 3}
+    hullOffset: {x: -22, y: 0}
+    yawFromHull: 0
+    probeAbove: 40
+    probeReach: 120
+    dropHeight: 0.5
 --- !u!4 &1845903061
 Transform:
   m_ObjectHideFlags: 0
@@ -3281,6 +5175,111 @@ MonoBehaviour:
   standingHeight: 3
   standingRadius: 0.45
   probeHeight: 50
+--- !u!1001 &1938107166
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 383924178458961974, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 383924178458961974, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: instanceId
+      value: sky-escort-4
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: flagship
+      value: 
+      objectReference: {fileID: 1393592041}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: station.x
+      value: 110
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: station.y
+      value: -18
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: station.z
+      value: -110
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: wanderPhase.x
+      value: 2.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: wanderPhase.y
+      value: 1.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 592058292830650613, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: wanderPhase.z
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3460
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 262
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1510
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1538921481829807428, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2166381245315854334, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: m_Name
+      value: SkyEscort4_SkyTug
+      objectReference: {fileID: 0}
+    - target: {fileID: 7441391802021745089, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2422295909
+      objectReference: {fileID: 0}
+    - target: {fileID: 7441391802021745089, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7441391802021745089, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2010624287
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b66e310bdaae1da4491ef8fbf7cda341, type: 3}
 --- !u!4 &2143684991 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
@@ -3400,3 +5399,11 @@ SceneRoots:
   - {fileID: 1845903061}
   - {fileID: 1900100002}
   - {fileID: 1160628485}
+  - {fileID: 1393592040}
+  - {fileID: 1680972083}
+  - {fileID: 474675143}
+  - {fileID: 1290090988}
+  - {fileID: 462803294}
+  - {fileID: 1938107166}
+  - {fileID: 951717478}
+  - {fileID: 1576368836}

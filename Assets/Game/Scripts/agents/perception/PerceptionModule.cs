@@ -1,14 +1,17 @@
 // Line-of-sight and field-of-view gate for entity targeting.
-// Other modules call IsVisible(target) before acting. Fully optional — remove it and modules
-// revert to radius-only detection. Stateless apart from whether the agent is moving: what the
-// agent remembers about a target lives in AgentTargeting.
+// Other modules call IsVisible(target) — or CanSeeCached(target) for the one target they track every
+// frame — before acting. Fully optional — remove it and modules revert to radius-only detection.
+// Stateless apart from whether the agent is moving and that cached sight answer: what the agent
+// remembers about a target lives in AgentTargeting.
 //
 // Authoritative perception API — other modules should route here instead of re-implementing
 // FOV/LoS. Public entry points:
 //   IsVisible(target)                  — full FOV + LoS from the eye
+//   CanSeeCached(target)               — IsVisible for the tracked target, re-cast on an interval
 //   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV
 //   HasLineOfSightFrom(origin, target) — LoS to the body only, from an arbitrary origin (e.g. a weapon muzzle)
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -43,10 +46,31 @@ namespace SpaceGame.Agents
                  "top grazes a ceiling or an overhang the head itself would be under.")]
         [SerializeField] private float headInset = 0.15f;
 
-        public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
+        [Tooltip("Seconds between line-of-sight re-checks of the target the agent is tracking " +
+                 "(CanSeeCached). A new target is checked at once. Each check is up to two rays, " +
+                 "every agent pays it, and a target does not dodge behind cover in a fifth of a second.")]
+        [SerializeField, Min(0f)] private float sightRecheckInterval = 0.2f;
 
-        // Read for AgentController.Offstage: an agent out of the scene's action does not move.
+        public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
+        public float SightRecheckInterval => sightRecheckInterval;
+
+        // Read for AgentController.Offstage (an agent out of the scene's action does not move) and
+        // RidesAsPassenger (seated cargo sees out through its carrier). Resolved on first use rather
+        // than in Awake, which EditMode tests never run.
         private AgentController controller;
+        private bool controllerResolved;
+
+        // CanSeeCached's answer and whom it was cast at.
+        private Transform sightCachedTarget;
+        private bool sightCachedVisible;
+        private float sightRecheckTimer;
+
+        // Instance, not shared: grown in place and kept, like WalkerGround's. A full buffer is
+        // grown and re-cast (see IsUnobstructed); the cap is the most colliders one sight line is
+        // ever expected to cross.
+        private RaycastHit[] sightHits = new RaycastHit[InitialSightHits];
+        private const int InitialSightHits = 16;
+        private const int MaxSightHits = 512;
         private Vector3 prevPosition;
         private bool isMoving;
 
@@ -68,9 +92,12 @@ namespace SpaceGame.Agents
         // Shared rather than one list per agent: HeadPointOf fills and consumes it in one call.
         private static readonly List<Collider> colliderBuffer = new List<Collider>(8);
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string LineOfSightMarkerName = "SpaceGame.Perception.LineOfSight";
+        private static readonly ProfilerMarker LineOfSightMarker = new(LineOfSightMarkerName);
+
         private void Awake()
         {
-            controller = GetComponentInParent<AgentController>();
             prevPosition = transform.position;
 
             if (occlusionLayers == 0)
@@ -83,10 +110,21 @@ namespace SpaceGame.Agents
             }
         }
 
+        private void OnEnable()
+        {
+            // A random phase, so a crowd enabled on the same frame does not re-cast in step (the
+            // AgentController.speedVariationPhase precedent).
+            sightRecheckTimer = Random.Range(0f, sightRecheckInterval);
+            sightCachedTarget = null;
+        }
+
         private void Update()
         {
+            TickSightRecheck(Time.deltaTime);
+
             // Offstage: a body being placed is not "moving".
-            if (controller != null && controller.Offstage)
+            AgentController agent = Controller;
+            if (agent != null && agent.Offstage)
             {
                 isMoving = false;
                 prevPosition = transform.position;
@@ -96,6 +134,30 @@ namespace SpaceGame.Agents
             isMoving = (transform.position - prevPosition).sqrMagnitude > 0.0001f;
             prevPosition = transform.position;
         }
+
+        /// <summary>
+        /// <see cref="IsVisible"/> for the target the agent is tracking every frame. Re-cast only
+        /// every <see cref="sightRecheckInterval"/> or when the target changes, and between casts
+        /// the last answer stands. Only call this for the one target the agent is committed to:
+        /// one cache slot, so alternating targets re-casts every call.
+        /// </summary>
+        public bool CanSeeCached(Transform target)
+        {
+            if (!target)
+                return false;
+
+            if (target != sightCachedTarget || sightRecheckTimer <= 0f)
+            {
+                sightCachedTarget = target;
+                sightCachedVisible = IsVisible(target);
+                sightRecheckTimer = sightRecheckInterval;
+            }
+
+            return sightCachedVisible;
+        }
+
+        /// <summary>Advance the re-check clock. Update calls it; public so a test can step it.</summary>
+        public void TickSightRecheck(float deltaTime) => sightRecheckTimer -= deltaTime;
 
         // Full perception check: FOV + LoS from the eye.
         public bool IsVisible(Transform target)
@@ -168,6 +230,13 @@ namespace SpaceGame.Agents
             return head;
         }
 
+        /// <summary>
+        /// LoS from <paramref name="origin"/> to an explicit <paramref name="point"/> on
+        /// <paramref name="target"/> (a led aim point), under the same self / carrier / target rules.
+        /// </summary>
+        public bool HasLineOfSightFrom(Vector3 origin, Vector3 point, Transform target)
+            => IsUnobstructed(origin, point, target);
+
         // LoS to the target's body from an arbitrary origin (e.g. a weapon muzzle). Ignores hits on
         // self and the target itself.
         public bool HasLineOfSightFrom(Vector3 origin, Transform target)
@@ -180,6 +249,8 @@ namespace SpaceGame.Agents
 
         private bool IsUnobstructed(Vector3 origin, Vector3 point, Transform target)
         {
+            using ProfilerMarker.AutoScope sample = LineOfSightMarker.Auto();
+
             Vector3 toTarget = point - origin;
             float distance = toTarget.magnitude;
             if (distance < 1e-4f)
@@ -199,23 +270,64 @@ namespace SpaceGame.Agents
             // Triggers are ignored: the project queries them by default (queriesHitTriggers), and a
             // trigger is never a wall. A ship's breathable-air volume hid a player 370 m away from
             // twelve of fifteen NPCs; interaction zones and streaming volumes would do the same.
-            RaycastHit[] hits = Physics.RaycastAll(origin, dir, distance, occlusionLayers,
-                                                   QueryTriggerInteraction.Ignore);
+            //
+            // Non-allocating, and a full buffer is grown and re-cast: RaycastNonAlloc drops whatever
+            // did not fit, unsorted, and the dropped hit could be the wall (WalkerGround.Ray).
+            int count = Physics.RaycastNonAlloc(origin, dir, sightHits, distance, occlusionLayers,
+                                                QueryTriggerInteraction.Ignore);
+            while (count >= sightHits.Length && sightHits.Length < MaxSightHits)
+            {
+                sightHits = new RaycastHit[sightHits.Length * 2];
+                count = Physics.RaycastNonAlloc(origin, dir, sightHits, distance, occlusionLayers,
+                                                QueryTriggerInteraction.Ignore);
+            }
+
+            // Seated cargo looks out through its carrier: crew sit inside their house's walls and
+            // see and shoot out of it (the user's call, 2026-10-04). NpcSeating parents the NPC under
+            // the carrier, so the carrier is the root above it. Gated on the cargo flag, never on
+            // the parent alone: an NPC parented under a scene container must not see through the
+            // whole container.
+            Transform carrier = IsSeatedCargo() && transform.parent != null ? transform.parent.root : null;
+
+            // The COLLIDER's transform, not hit.transform: that is the Rigidbody's, and a wall on a
+            // child of a kinematic root would read as the root (INVARIANTS: a query does not know
+            // what the solver was told).
             Transform blocker = null;
             float blockerDistance = float.PositiveInfinity;
-            for (int i = 0; i < hits.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                Transform t = hits[i].transform;
-                if (t == transform || t.IsChildOf(transform))
+                Transform t = sightHits[i].collider.transform;
+                if (t.IsChildOf(transform))
                     continue;
-                if (hits[i].distance >= blockerDistance)
+                if (carrier != null && t.IsChildOf(carrier))
                     continue;
-                blockerDistance = hits[i].distance;
+                if (sightHits[i].distance >= blockerDistance)
+                    continue;
+                blockerDistance = sightHits[i].distance;
                 blocker = t;
             }
 
             // Nothing in the way, or the nearest thing in the way IS the target.
             return blocker == null || blocker == target || blocker.IsChildOf(target);
+        }
+
+        private AgentController Controller
+        {
+            get
+            {
+                if (!controllerResolved)
+                {
+                    controller = GetComponentInParent<AgentController>();
+                    controllerResolved = true;
+                }
+                return controller;
+            }
+        }
+
+        private bool IsSeatedCargo()
+        {
+            AgentController agent = Controller;
+            return agent != null && agent.RidesAsPassenger;
         }
 
         private Vector3 GetForward() => transform.forward;

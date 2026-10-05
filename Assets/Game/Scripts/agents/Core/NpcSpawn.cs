@@ -70,6 +70,24 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// Take anything made by <see cref="Create"/> (an NPC, a mount, a transport hull) back out of
+        /// the world: despawned for every peer when it is spawned, destroyed otherwise. A spawned
+        /// object that is merely destroyed stays standing on every client.
+        /// </summary>
+        public static void Remove(GameObject npc)
+        {
+            if (npc == null) return;
+
+            if (Network.Server && npc.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
+            {
+                NetworkDespawn.Despawn(netObj, destroy: true);
+                return;
+            }
+
+            UnityEngine.Object.Destroy(npc);
+        }
+
+        /// <summary>
         /// Instantiate an NPC whose NavMeshAgent is already off when it wakes.
         ///
         /// <para>

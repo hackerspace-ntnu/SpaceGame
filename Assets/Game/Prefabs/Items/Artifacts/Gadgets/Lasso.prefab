@@ -165,6 +165,7 @@ GameObject:
   - component: {fileID: 2108435516405805946}
   - component: {fileID: 7541400731118616190}
   - component: {fileID: 1774652831079298802}
+  - component: {fileID: -5722792987047668216}
   m_Layer: 0
   m_Name: Lasso
   m_TagString: Untagged
@@ -288,6 +289,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   hookableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -366,7 +368,7 @@ MonoBehaviour:
     weakColor: {r: 0.85, g: 0.78, b: 0.6, a: 0.35}
     strongColor: {r: 1, g: 0.86, b: 0.42, a: 0.85}
     blockedColor: {r: 0.9, g: 0.35, b: 0.3, a: 0.7}
-    material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30b01, type: 2}
+    material: {fileID: 0}
   tautFovKick: 6
   minArcHeight: 1
   maxArcHeight: 4
@@ -464,6 +466,7 @@ MonoBehaviour:
   holdSize: 0.6
   packSize: 0.36
   sizeReference: {fileID: 6686484516145681275}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &581091475039784607
 MonoBehaviour:
@@ -567,6 +570,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2671939, y: 0.23133531, z: 0.117806114}
   m_Center: {x: -0.009973049, y: -0.000051178038, z: -0.005992789}
+--- !u!114 &-5722792987047668216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6774419219061973401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &7106407005302916264
 GameObject:
   m_ObjectHideFlags: 0

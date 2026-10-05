@@ -110,6 +110,11 @@ namespace SpaceGame.Audio
                 return;
             }
 
+            // FMOD's RuntimeManager exists only in Play Mode and LOGS AN ERROR when reached outside
+            // it, which fails every EditMode test whose action makes a sound. Edit mode has no
+            // listener anyway. After the missing-event warning, so that still reports in tests.
+            if (!Application.isPlaying) return;
+
             float cooldown = entry?.cooldown ?? 0f;
             if (cooldown > 0f && IsOnCooldown(id, sourceKey, cooldown)) return;
 

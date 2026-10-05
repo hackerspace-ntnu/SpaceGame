@@ -23,6 +23,10 @@ Shader "SpaceGame/Effects/JetSmoke"
         // is what makes it read as smoke rather than as a sphere.
         _NoiseScale ("Noise Scale", Range(1, 20)) = 5
         _NoiseBite  ("Noise Bite",  Range(0, 1))  = 0.35
+        // Metres over which a puff fades out where it meets the scene behind it, so a big puff
+        // born on the sand does not cut a hard line into it. Zero is off: the jetpack's small
+        // puffs never touch anything, and off they cost no depth read.
+        _SoftFade   ("Soft Fade (m)", Range(0, 4)) = 0
     }
 
     SubShader
@@ -51,6 +55,7 @@ Shader "SpaceGame/Effects/JetSmoke"
             #pragma target 3.0
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Color;
@@ -58,6 +63,7 @@ Shader "SpaceGame/Effects/JetSmoke"
                 float _Density;
                 float _NoiseScale;
                 float _NoiseBite;
+                float _SoftFade;
             CBUFFER_END
 
             struct Attributes
@@ -72,6 +78,8 @@ Shader "SpaceGame/Effects/JetSmoke"
                 float4 positionCS : SV_POSITION;
                 float2 uv         : TEXCOORD0;
                 float4 color      : COLOR;
+                float4 screenPos  : TEXCOORD1;
+                float  eyeDepth   : TEXCOORD2;
             };
 
             float Hash(float2 p)
@@ -96,8 +104,11 @@ Shader "SpaceGame/Effects/JetSmoke"
             Varyings Vert(Attributes IN)
             {
                 Varyings OUT;
-                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
+                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                OUT.positionCS = TransformWorldToHClip(positionWS);
                 OUT.uv = IN.uv;
+                OUT.screenPos = ComputeScreenPos(OUT.positionCS);
+                OUT.eyeDepth = -TransformWorldToView(positionWS).z;
 
                 // The particle system's own colour and alpha ride the vertex stream, which is how
                 // the fade-in and fade-out curves reach the pixel without this shader knowing what
@@ -121,6 +132,14 @@ Shader "SpaceGame/Effects/JetSmoke"
                 disc *= 1.0 - _NoiseBite * (1.0 - n);
 
                 float alpha = saturate(disc * _Density) * IN.color.a;
+
+                // Soft particles: fade as the scene behind closes in on the puff. URP's camera depth
+                // texture is on in both pipeline assets (m_RequireDepthTexture).
+                if (_SoftFade > 0.0)
+                {
+                    float sceneEye = LinearEyeDepth(SampleSceneDepth(IN.screenPos.xy / IN.screenPos.w), _ZBufferParams);
+                    alpha *= saturate((sceneEye - IN.eyeDepth) / _SoftFade);
+                }
                 if (alpha <= 0.003) return 0;
 
                 return half4(_Color.rgb * IN.color.rgb, alpha);

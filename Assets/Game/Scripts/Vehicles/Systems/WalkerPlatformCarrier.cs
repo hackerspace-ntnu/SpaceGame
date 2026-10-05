@@ -28,6 +28,7 @@
 // replicates here. See CarryRiders for what that costs and CollectRiders for the census that must
 // NOT follow the same rule.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Vehicles.Crawler;
@@ -62,6 +63,10 @@ namespace SpaceGame.Vehicles
         private bool primed;
 
         public int RiderCount => riders.Count;
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string FixedMarkerName = "SpaceGame.WalkerCarrier.Fixed";
+        private static readonly ProfilerMarker FixedMarker = new(FixedMarkerName);
 
         /// <summary>
         /// Stop carrying this rider; something else is placing them each frame.
@@ -223,7 +228,11 @@ namespace SpaceGame.Vehicles
         // Reading the platform's pose a frame late costs nothing, because the carry is a delta.
         // Whatever the craft moved since the previous physics step is what gets applied at this one,
         // so nothing is dropped and nothing accumulates.
-        private void FixedUpdate() => CarryRiders();
+        private void FixedUpdate()
+        {
+            using ProfilerMarker.AutoScope sample = FixedMarker.Auto();
+            CarryRiders();
+        }
 
         /// <summary>
         /// Take everyone aboard through the jump with the deck.

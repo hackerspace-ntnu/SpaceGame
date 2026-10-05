@@ -9971,6 +9971,7 @@ GameObject:
   - component: {fileID: 607614334990591209}
   - component: {fileID: 2233656274746881895}
   - component: {fileID: 2783786664115998143}
+  - component: {fileID: -3524761990143993549}
   m_Layer: 0
   m_Name: LaserStaff
   m_TagString: Untagged
@@ -10257,6 +10258,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   range: 120
   hitMask:
     serializedVersion: 2
@@ -10303,6 +10305,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-3524761990143993549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3687192415451933108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &4224026822538528870
 GameObject:
   m_ObjectHideFlags: 0

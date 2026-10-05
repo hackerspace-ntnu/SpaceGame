@@ -107,6 +107,7 @@ instance method `.WithFacing(Vector3)`.
 | Module | Default priority | What it does | Requires |
 |---|---|---|---|
 | `FormationModule` | Social 15 | Keeps a group in a column behind an unmanaged leader | leader reference / group id |
+| `HerdingModule` | Social+1 16 | A herder: holds a drag/flank station behind its band's livestock and rides round strays; passes on the band leader | a `FormationModule` on the same object, band members without the module as livestock |
 
 ### Facing (second channel)
 
@@ -128,7 +129,7 @@ not `IFacingModule`. The true `IFacingModule` implementors are `NpcItemUseModule
 |---|---|---|
 | `AlertReceiverModule` | Reactive-1 = 19 | `AgentTargeting.ForceTarget` from an ally's `AlertBroadcaster` |
 | `NoiseReceiverModule` | Reactive-2 = 18 | Hears `NoiseEmitter` events; investigate or aggro per `NoiseType` |
-| `PerceptionModule` | n/a | FOV + LoS, stateless — `IsVisible` is the one sight query; target memory lives in `AgentTargeting`. `occlusionLayers = Nothing` falls back to Default/Ground/Interior with a warning |
+| `PerceptionModule` | n/a | FOV + LoS. `CanSeeCached` only caches the sight answer (re-cast on `sightRecheckInterval`; memory lives in `AgentTargeting`); `IsVisible` is the stateless sight query. Seated cargo (`RidesAsPassenger`) sees through its carrier. `occlusionLayers = Nothing` falls back to Default/Ground/Interior with a warning |
 
 ### Personality / tasks
 

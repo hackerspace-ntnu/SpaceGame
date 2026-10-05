@@ -172,6 +172,33 @@ namespace SpaceGame.Tests
                 "taking the transform back resumed a path integrated before the wire took over");
         }
 
+        [Test]
+        public void ResumingFromACarry_StandsTheMachineWhereItWasPut()
+        {
+            TestMachine m = BuildQuadruped();
+            m.Initialise();
+            m.SnapToGround();
+            float standingHeight = m.transform.position.y;
+
+            // Carried on a seat with the locomotion switched off, then set down somewhere else at
+            // ground level -- what VesselSeats.Unseat does with a standing elder at the gangway.
+            m.enabled = false;
+            Vector3 setDown = new Vector3(40f, 0f, -25f);
+            m.transform.position = setDown;
+            Physics.SyncTransforms();
+            m.enabled = true;
+            m.ResumeFromCarry();
+
+            m.SetTwist(0f, 0f);
+            m.Step(1f / 60f);
+            Physics.SyncTransforms();
+
+            Vector3 now = m.transform.position;
+            Assert.AreEqual(setDown.x, now.x, 0.05f, "it walked back to where it was picked up");
+            Assert.AreEqual(setDown.z, now.z, 0.05f, "it walked back to where it was picked up");
+            Assert.AreEqual(standingHeight, now.y, 0.1f, "set down at ground level, it must stand up on its legs");
+        }
+
         // ─────────── rig ───────────
 
         /// Four splayed legs, the same shape SyntheticMachineTests builds. Deliberately not the

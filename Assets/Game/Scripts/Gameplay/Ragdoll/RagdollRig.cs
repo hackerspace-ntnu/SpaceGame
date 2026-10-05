@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SpaceGame.Persistence;
 using SpaceGame.Teleporting;
 using SpaceGame.World.Safety;
 using UnityEngine;
@@ -27,20 +28,23 @@ namespace SpaceGame.Gameplay.Ragdoll
     ///
     /// <para>
     /// The skeleton is built on the FIRST limp rather than at spawn, because most bodies never fall
-    /// over. Once built it is kept and switched kinematic rather than destroyed: rebuilding costs a
-    /// mesh walk, and destroying a <c>Rigidbody</c> that a live <c>CharacterJoint</c> still
-    /// references is an ordering problem there is no reason to have. <see cref="Freeze"/> is the
-    /// one path that really tears it down.
+    /// over. Once built its bodies and colliders are kept and switched kinematic rather than
+    /// destroyed: rebuilding them costs a mesh walk, and destroying a <c>Rigidbody</c> that a live
+    /// <c>CharacterJoint</c> still references is an ordering problem there is no reason to have.
+    /// The joints alone are rebuilt on every knockdown, because a joint measures its limits from
+    /// the pose it was made in; see <see cref="RebuildJoints"/>. <see cref="Freeze"/> is the one
+    /// path that really tears the skeleton down.
     /// </para>
     ///
     /// <para>
     /// This component knows nothing about death, damage or the netcode. What it knows is bones.
-    /// Deciding WHEN a body goes limp, and what else has to stop driving it while it is, belongs to
-    /// <see cref="AgentRagdoll"/> and <see cref="PlayerRagdoll"/>.
+    /// Deciding WHEN a body goes limp and for how long belongs to <see cref="RagdollController"/>;
+    /// what else has to stop driving it while it is, to its subclasses <see cref="AgentRagdoll"/>
+    /// and <see cref="PlayerRagdoll"/>.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public class RagdollRig : MonoBehaviour
+    public class RagdollRig : MonoBehaviour, ISavedPose
     {
         [Header("Which bones get a body")]
         [Tooltip("Share of the mesh a bone must carry to be simulated, 0..1. The floor that " +
@@ -79,6 +83,10 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "more than about ten to one apart is the classic ragdoll explosion.")]
         [SerializeField] private float minBoneMass = 0.6f;
 
+        [Tooltip("Heaviest a body may be relative to a body jointed to it. Light children are raised " +
+                 "to meet it. Around ten to one is where PhysX joint chains start to explode.")]
+        [SerializeField, Range(2f, 12f)] private float maxJointMassRatio = 8f;
+
         [Header("Settling down")]
         [Tooltip("Rotational drag on every bone.\n\n" +
                  "The single most important number for whether a body comes to rest. With no " +
@@ -105,6 +113,11 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "outright, and anything that hits the body afterwards wakes it again by itself.")]
         [SerializeField] private bool sleepWhenSettled = true;
 
+        [Tooltip("Energy per kg under which PhysX puts a bone to sleep. Unity's default suits loose " +
+                 "props; a jointed chain keeps trading tiny corrections above it and never sleeps, " +
+                 "which is the shiver of a body lying on flat ground.")]
+        [SerializeField] private float boneSleepThreshold = 0.05f;
+
         [Header("Joints")]
         [Tooltip("Let the body's own bones collide with each other.\n\n" +
                  "OFF, and not as a shortcut. Colliders here are ESTIMATED from bone lengths and " +
@@ -125,6 +138,13 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "— a body that can twist as freely as it bends reads as boneless.")]
         [SerializeField, Range(0f, 177f)] private float twistLimit = 25f;
 
+        [Tooltip("How far a joint may come apart before PhysX snaps it back, metres. The last line " +
+                 "against a stretched mesh when a blast is stronger than the solver can resolve.")]
+        [SerializeField] private float projectionDistance = 0.05f;
+
+        [Tooltip("How far past its limit a joint may bend before PhysX snaps it back, degrees.")]
+        [SerializeField, Range(1f, 45f)] private float projectionAngle = 10f;
+
         [Header("Settling")]
         [Tooltip("Linear speed under which the body counts as slow, m/s.")]
         [SerializeField] private float settleLinearSpeed = 0.35f;
@@ -134,10 +154,11 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "passes through zero at the top of every bounce, so without this it stands up mid-air.")]
         [SerializeField] private float settleSeconds = 0.45f;
 
-        [Tooltip("Longest a knockdown may hold a body, seconds — settled or not.\n\n" +
-                 "This is the GDC-L1-FEEL-0002 ceiling and it is not a tuning nicety: a body " +
-                 "wedged against a rock never settles, and without a ceiling a knocked-down PLAYER " +
-                 "never gets control back. Death ignores it, because a corpse has nowhere to be.")]
+        [Tooltip("Longest a CORPSE keeps simulating before it is called settled and put to sleep, " +
+                 "seconds — settled or not, counted from the last time it was thrown. Bounds how " +
+                 "long a body wedged against a rock grinds there. Living bodies are never timed " +
+                 "out: knockdown timing belongs to KnockdownTuning on the body's RagdollController, " +
+                 "and a held body sleeps only once it has actually come to rest.")]
         [SerializeField] private float maxLimpSeconds = 4f;
 
         [Header("Recovery")]
@@ -196,7 +217,15 @@ namespace SpaceGame.Gameplay.Ragdoll
             public Rigidbody Body;
             public OwnedCollider[] Colliders;
 
-            /// <summary>Where this bone was pointing when the body went still — the blend's start.</summary>
+            /// <summary>The body this bone is jointed to. Null for the root bone.</summary>
+            public Rigidbody Parent;
+
+            /// <summary>The bone's local pose the moment the body went limp — what recovery returns to.</summary>
+            public Vector3 RestPosition;
+            public Quaternion RestRotation;
+
+            /// <summary>Where the bone lay when the body got up — the blend's start.</summary>
+            public Vector3 RecoverFromPosition;
             public Quaternion RecoverFrom;
         }
 
@@ -211,6 +240,27 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         /// <summary>Hip height above the root in the standing pose — see <see cref="FollowHips"/>.</summary>
         private float standingHipHeight;
+
+        /// <summary>
+        /// The root's rotation expressed in the hips' frame, taken the moment the body went limp.
+        /// While limp the root is kept at <c>hips × hipsToRoot</c>, so the replicated root carries
+        /// the body's orientation to every watcher and they can reconstruct the pelvis from it.
+        /// </summary>
+        private Quaternion hipsToRoot = Quaternion.identity;
+
+        /// <summary>
+        /// Where the hips sat relative to the root in the pose the body stood in before it went
+        /// limp — in the root's frame, unscaled. It is also where a load will put them: the model
+        /// is rebuilt on the saved root in that standing pose. See <see cref="PositionToSave"/>.
+        /// </summary>
+        private Vector3 hipsOffset;
+
+        /// <summary>
+        /// The hips' pose in the root's frame, unscaled, taken as <see cref="Freeze"/> tears the
+        /// skeleton down — the one record a frozen corpse keeps of where its pelvis lies, so a
+        /// save of it can still be placed. See <see cref="CorpseHips"/>.
+        /// </summary>
+        private Pose frozenHips = Pose.identity;
 
         public bool IsLimp { get; private set; }
 
@@ -240,9 +290,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <para>
         /// A corpse and a captive are both limp and <see cref="RagdollBudget"/> cannot otherwise
         /// tell them apart — so a firefight across the valley filling the budget would freeze a
-        /// netted player, and <c>PlayerRagdoll.Update</c> restores control on <c>!IsLimp</c>, which
-        /// stands them straight back up. The net is still drawn around them and still holding, and
-        /// nothing is logged. Set for the duration of the hold and cleared on release.
+        /// netted player, and <c>RagdollController.TickStandUp</c> restores control on
+        /// <c>!IsLimp</c>, which stands them straight back up. The net is still drawn around them
+        /// and still holding, and nothing is logged. Set for the duration of the hold and cleared
+        /// on release.
         /// </para>
         ///
         /// <para>
@@ -253,13 +304,35 @@ namespace SpaceGame.Gameplay.Ragdoll
         ///
         /// <para>
         /// Two routes clear it, not one. The release is the ordinary one; DEATH is the other, and
-        /// both <c>PlayerRagdoll.OnDeath</c> and <c>AgentRagdoll.OnDeath</c> drop the claim on the
-        /// spot. A corpse is exactly the thing the budget exists to reclaim, and it can no longer
+        /// <c>RagdollController.OnDeath</c> drops the claim on the spot. A corpse is exactly the
+        /// thing the budget exists to reclaim, and it can no longer
         /// struggle out — so a captive who dies still netted must not take an un-evictable place in
         /// the budget with them and keep it for the rest of the session.
         /// </para>
         /// </summary>
         public bool BudgetExempt { get; set; }
+
+        /// <summary>
+        /// Is this body dead? Set by the adapter on death and cleared on revive.
+        ///
+        /// <para>
+        /// Only corpses may be evicted by <see cref="RagdollBudget"/>. A living body is limp for a
+        /// few seconds and then stands up; freezing one in between left it frozen in its ragdoll
+        /// pose while its brain came back on.
+        /// </para>
+        /// </summary>
+        public bool IsCorpse { get; set; }
+
+        /// <summary>
+        /// Stand up facing the way the root faced before the knockdown, instead of the way the body
+        /// came to lie. Set by the player's adapter: a player's view hangs off this root, so facing
+        /// the ragdoll's landing turned their camera for them. A creature has no view to keep and
+        /// faces where it fell.
+        /// </summary>
+        public bool KeepsFacingOnRecover { get; set; }
+
+        /// <summary>Did <see cref="Freeze"/> take this body off physics while it was limp?</summary>
+        private bool frozen;
 
         /// <summary>The bone the body hangs from. Null until the rig has been built.</summary>
         public Transform Hips { get; private set; }
@@ -299,16 +372,32 @@ namespace SpaceGame.Gameplay.Ragdoll
         public Quaternion PreLimpRotation { get; private set; }
 
         /// <summary>
-        /// Is the body at rest, or has it been limp long enough that the answer stops mattering?
+        /// Is the body at rest — or, for a corpse, has it been limp long enough that the answer
+        /// stops mattering?
         ///
-        /// The timeout half is the ceiling described on <see cref="maxLimpSeconds"/>: a knockdown
-        /// that never settles must still end.
+        /// <para>
+        /// The timeout half is the ceiling described on <see cref="maxLimpSeconds"/>: a corpse that
+        /// never settles must still be put to sleep, and still be evictable. It is a CORPSE's
+        /// ceiling only. A living body has its own (<c>KnockdownTuning.settleGraceSeconds</c>), and
+        /// can be limp far longer than four seconds for good reason — a net, a tie — during which
+        /// the timeout slept it and, worse, stopped <see cref="FixedUpdate"/> dragging the root
+        /// after it: a captive hauled on a tether left their root, their save record and every
+        /// watcher's copy of them behind.
+        /// </para>
         /// </summary>
         public bool IsSettled =>
             !IsLimp
-            || limpSeconds >= maxLimpSeconds
+            || (IsCorpse && limpSeconds >= maxLimpSeconds)
             || RagdollSkeleton.IsSettled(FastestLinearSpeed, FastestAngularSpeed, slowSeconds,
                                          settleLinearSpeed, settleAngularSpeed, settleSeconds);
+
+        /// <summary>
+        /// Has the body actually stopped moving — the velocity half of <see cref="IsSettled"/> with no
+        /// timeout. The controller supplies its own ceiling (KnockdownTuning.settleGraceSeconds).
+        /// </summary>
+        public bool IsAtRest =>
+            !IsLimp || RagdollSkeleton.IsSettled(FastestLinearSpeed, FastestAngularSpeed, slowSeconds,
+                                                 settleLinearSpeed, settleAngularSpeed, settleSeconds);
 
         /// <summary>
         /// The fastest bone, not the hips.
@@ -380,8 +469,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// Hand the body to physics.
         /// </summary>
         /// <param name="impulse">
-        /// Velocity handed to the hips, m/s world space. The rest of the body follows through the
-        /// joints, which is what makes a blast read as a body thrown rather than a body switched off.
+        /// Velocity handed to every bone, m/s world space — the whole body thrown at one speed, which
+        /// is what makes a blast read as a body thrown rather than a body switched off. Handing it
+        /// to the hips alone left the limbs at rest and tore the joints apart.
         ///
         /// <para>
         /// The motion the body was ALREADY carrying belongs in here too, and it is the caller's to
@@ -392,14 +482,17 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </para>
         /// </param>
         /// <param name="settled">
-        /// True for a body that is ALREADY down — a corpse arriving from a save. Skips the impulse
-        /// and starts the settle timer expired, so it lies where it is instead of being thrown
-        /// again and instead of standing up while the timer runs. See AgentRagdoll's restore path.
+        /// True for a body that is ALREADY down — a corpse arriving from a save. The impulse is
+        /// ignored, so it is not thrown again; it still settles under gravity like any other body.
+        /// It has to: the load rebuilt it in its standing pose laid along the saved tilt, and a
+        /// body put straight to sleep in that pose lies there as a rigid plank. See
+        /// <c>RagdollController.OnDeath</c> and <see cref="PositionToSave"/>.
         /// </param>
         public void GoLimp(Vector3 impulse, bool settled = false, bool drives = true)
         {
             Drives = drives;
             if (!built) Build();
+            frozen = false;
             DropLostBones();
             if (bones.Count == 0) return;
 
@@ -407,9 +500,16 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 PreLimpPosition = transform.position;
                 PreLimpRotation = transform.rotation;
+                if (Hips != null) hipsToRoot = Quaternion.Inverse(Hips.rotation) * transform.rotation;
                 IsLimp = true;
-                limpSeconds = 0f;
+
+                // A body knocked down again while it is still getting up holds a half-blended pose,
+                // not a standing one. Its rest pose is still the one taken before the first knockdown.
+                bool midRecovery = blendRemaining > 0f;
                 blendRemaining = 0f;
+
+                if (!midRecovery && Hips != null)
+                    hipsOffset = Quaternion.Inverse(transform.rotation) * (Hips.position - transform.position);
 
                 // Before the bodies wake, or the animator spends this frame fighting them for the
                 // same transforms.
@@ -420,6 +520,18 @@ namespace SpaceGame.Gameplay.Ragdoll
                     terrainGuardWasEnabled = terrainGuard.enabled;
                     terrainGuard.enabled = false;
                 }
+
+                foreach (Bone bone in bones)
+                {
+                    if (!midRecovery)
+                    {
+                        bone.RestPosition = bone.Transform.localPosition;
+                        bone.RestRotation = bone.Transform.localRotation;
+                    }
+                    bone.Body.interpolation = RigidbodyInterpolation.Interpolate;
+                }
+
+                RebuildJoints();
 
                 foreach (Bone bone in bones)
                 {
@@ -437,23 +549,35 @@ namespace SpaceGame.Gameplay.Ragdoll
                     bone.Body.isKinematic = pinned;
                     if (pinned) continue;
 
-                    bone.Body.linearVelocity = Vector3.zero;
+                    // The whole body starts at the same speed. Giving it all to the hips left every
+                    // limb at rest for the solver to accelerate in one step, which it cannot do
+                    // without pulling the joints apart — the stretched mesh after every blast.
+                    //
+                    // Not applied on a watching machine, and that is not an omission. The impulse's
+                    // whole effect there arrives already baked into the replicated root — applying
+                    // it locally as well would carry the body the distance twice and land it at
+                    // double the range.
+                    bone.Body.linearVelocity = settled || !Drives ? Vector3.zero : impulse;
                     bone.Body.angularVelocity = Vector3.zero;
                 }
 
                 ApplySelfCollision();
                 RagdollBudget.Register(this, maxConcurrentRagdolls);
             }
+            else if (Drives && !settled)
+            {
+                // A second knockdown on a body already down adds to the motion it has, and to every
+                // bone for the same reason the first one sets every bone.
+                foreach (Bone bone in bones)
+                    if (!bone.Body.isKinematic) bone.Body.AddForce(impulse, ForceMode.VelocityChange);
+            }
 
-            slowSeconds = settled ? settleSeconds : 0f;
-
-            if (settled) limpSeconds = maxLimpSeconds;
-            else if (Drives && impulse != Vector3.zero)
-                bones[0].Body.AddForce(impulse, ForceMode.VelocityChange);
-
-            // Not applied on a watching machine, and that is not an omission. The impulse's whole
-            // effect there arrives already baked into the replicated root — applying it locally as
-            // well would carry the body the distance twice and land it at double the range.
+            // Every call, not only the first: a body thrown again — a knockdown landing on one
+            // already down, a death arriving on a body already knocked flat — is moving again, and
+            // a ceiling still counting from the first throw put a corpse killed near the end of a
+            // knockdown to sleep in mid-air.
+            slowSeconds = 0f;
+            limpSeconds = 0f;
         }
 
         /// <summary>
@@ -520,6 +644,79 @@ namespace SpaceGame.Gameplay.Ragdoll
         }
 
         /// <summary>
+        /// Throw away the joints and wire fresh ones from the pose the body is in right now.
+        ///
+        /// <para>
+        /// A joint measures its limits from the pose it was created in. Built once, on the first
+        /// knockdown, every later knockdown was judged against whatever the creature happened to be
+        /// doing that first time — and a body already past a limit from there was snapped back on
+        /// the first physics step. Rebuilding costs a couple of dozen component adds per knockdown.
+        /// </para>
+        ///
+        /// <para>
+        /// The old joints are RETIRED, not destroyed on the spot. A knockdown very often starts
+        /// inside a physics callback — a projectile's or a landing's OnCollisionEnter deals the
+        /// damage that prices the hit — and Unity refuses DestroyImmediate there. The refusal is
+        /// only a console error: the old joints stayed, the new set went on top of them, and every
+        /// knockdown stacked another set whose limits were measured from a different pose. Joints
+        /// fighting joints is what a ragdoll shaking uncontrollably was, and it got worse with
+        /// every knockdown. A retired joint has its limits thrown wide open for the one step it
+        /// outlives the rebuild — it shares the new joint's anchor, so with no limits of its own
+        /// it holds nothing the new one does not — and is destroyed at the end of the frame.
+        /// </para>
+        /// </summary>
+        private void RebuildJoints()
+        {
+            // The joint takes its rest frame from the body's physics pose, and the animator has
+            // moved the transforms since physics last read them.
+            Physics.SyncTransforms();
+
+            foreach (Joint joint in joints)
+                if (joint != null) Retire(joint);
+            joints.Clear();
+
+            Transform[] simulated = BoneTransforms();
+            foreach (Bone bone in bones)
+            {
+                if (bone == bones[0]) continue;
+
+                // A parent destroyed with worn gear leaves the branch hanging off the root bone —
+                // the same fallback Build uses for a branch with no simulated ancestor.
+                Rigidbody parent = bone.Parent != null ? bone.Parent : bones[0].Body;
+                joints.Add(BuildJoint(bone, parent, simulated));
+            }
+        }
+
+        /// <summary>
+        /// Take a joint out of the body without DestroyImmediate — see <see cref="RebuildJoints"/>.
+        /// Outside play mode (EditMode tests) there is no frame end to defer to and no physics
+        /// callback to be inside, so it goes at once.
+        /// </summary>
+        private static void Retire(Joint joint)
+        {
+            if (!Application.isPlaying)
+            {
+                DestroyImmediate(joint);
+                return;
+            }
+
+            if (joint is CharacterJoint character)
+            {
+                var open = new SoftJointLimit { limit = MaxJointLimit };
+                character.swing1Limit = open;
+                character.swing2Limit = open;
+                character.lowTwistLimit = new SoftJointLimit { limit = -MaxJointLimit };
+                character.highTwistLimit = open;
+                character.enableProjection = false;
+            }
+
+            Destroy(joint);
+        }
+
+        /// <summary>The widest limit a CharacterJoint accepts, degrees.</summary>
+        private const float MaxJointLimit = 177f;
+
+        /// <summary>
         /// Forget bones whose transform has been destroyed since the skeleton was built.
         ///
         /// <para>
@@ -570,6 +767,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         public TeleportMove Recover()
         {
+            if (frozen) return Thaw();
             if (!IsLimp) return new TeleportMove(transform.position, transform.rotation,
                                                  transform.position, transform.rotation);
 
@@ -578,13 +776,14 @@ namespace SpaceGame.Gameplay.Ragdoll
             Vector3 from = PreLimpPosition;
             Quaternion fromRotation = PreLimpRotation;
 
-            // Snapshot before the bodies are switched off, or the blend starts from whatever the
-            // animator writes on its first frame back — which is the standing pose, i.e. no blend
-            // at all and a corpse that snaps upright.
             foreach (Bone bone in bones)
             {
-                bone.RecoverFrom = bone.Transform.localRotation;
                 bone.Body.isKinematic = true;
+
+                // Off while the animator owns the bone. An interpolated kinematic body writes its
+                // own lagged pose over the animator's every frame — a smeared, trailing skeleton on
+                // anything that has ever been knocked down.
+                bone.Body.interpolation = RigidbodyInterpolation.None;
 
                 // Each collider back to what it was, rather than the body's detectCollisions off
                 // wholesale. A bone that inherited an authored proxy is holding the creature's own
@@ -596,7 +795,21 @@ namespace SpaceGame.Gameplay.Ragdoll
                     if (owned.Collider != null) owned.Collider.enabled = owned.WasEnabled;
             }
 
+            // The colliders go back above, before the root moves: the ground probe must not land
+            // on the body's own bones.
             PlaceRootUnderHips();
+
+            // The blend's start, taken only now that the root is standing. While limp the root is
+            // kept at hips × hipsToRoot, so the hips' LOCAL pose reads as the rest pose however the
+            // body lies — the tilt is all in the root. Standing the root up moves that tilt into
+            // the bones, and a snapshot taken before it would start the blend from "rest": the
+            // lying body snapping vertical on the first frame. And before the animator is
+            // switched back on, or the blend starts from its standing pose — no blend at all.
+            foreach (Bone bone in bones)
+            {
+                bone.RecoverFrom = bone.Transform.localRotation;
+                bone.RecoverFromPosition = bone.Transform.localPosition;
+            }
 
             IsLimp = false;
             RagdollBudget.Unregister(this);
@@ -606,6 +819,20 @@ namespace SpaceGame.Gameplay.Ragdoll
             blendRemaining = recoverBlendSeconds;
 
             return new TeleportMove(from, fromRotation, transform.position, transform.rotation);
+        }
+
+        /// <summary>
+        /// Give a frozen body back to its animation. The bones stay where they were frozen and the
+        /// root does not move: there is no body left to measure, and a corpse revived out of the
+        /// budget is the only way here.
+        /// </summary>
+        private TeleportMove Thaw()
+        {
+            frozen = false;
+            if (animator != null) animator.enabled = true;
+
+            return new TeleportMove(transform.position, transform.rotation,
+                                    transform.position, transform.rotation);
         }
 
         /// <summary>
@@ -620,7 +847,15 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             if (!built) return;
 
+            // Before Hips is let go below: the last word on where this corpse lies, for its save. A
+            // rig that never found a pelvis records the root itself, which saves the live pose.
+            Quaternion toRoot = Quaternion.Inverse(transform.rotation);
+            frozenHips = Hips != null
+                ? new Pose(toRoot * (Hips.position - transform.position), toRoot * Hips.rotation)
+                : Pose.identity;
+
             IsLimp = false;
+            frozen = true;
             blendRemaining = 0f;
 
             // The guard comes back here too. A frozen body is no longer being driven by physics, so
@@ -659,45 +894,88 @@ namespace SpaceGame.Gameplay.Ragdoll
         // ── Per-frame ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// A watcher's half of the split described on <see cref="Drives"/>: hold the body at the
-        /// root the wire is writing, and let physics do everything else.
+        /// The one place a limp body's root and pelvis are written each physics step: the driver
+        /// drags the root after the body (<see cref="FollowHips"/>), a watcher pins the body to the
+        /// root the wire is writing (<see cref="PinHipsToRoot"/>).
+        ///
+        /// <para>
+        /// In FixedUpdate because both are physics writes, and the correction has to land in the
+        /// same step the solver reads it.
+        /// </para>
+        ///
+        /// <para>
+        /// Neither runs once the body has settled. Writing a transform or driving the pelvis wakes
+        /// the Rigidbodies involved, so a follow or pin that kept running would put the body
+        /// straight back to sleep and wake it again every step — which is not sleeping at all, just
+        /// a more elaborate way of never settling, and on a watcher the one machine whose copy of a
+        /// corpse never stops shivering. A settled body is not moving, and neither is its root, so
+        /// there is nothing left to keep up with.
+        /// </para>
+        /// </summary>
+        private void FixedUpdate()
+        {
+            if (!IsLimp || (sleepWhenSettled && IsSettled)) return;
+
+            if (Drives) FollowHips();
+            else PinHipsToRoot();
+        }
+
+        /// <summary>
+        /// A watcher's half of the split described on <see cref="Drives"/>: hold the pelvis at the
+        /// root the wire is writing — position AND orientation — and let physics do everything else.
         ///
         /// <para>
         /// The hips are kinematic here and everything below them is not, so this drags one bone and
-        /// the body flails from it. That is the division wanted: position comes from the machine
-        /// that owns the truth, and the tumble — the part a watcher can derive perfectly well on
-        /// its own, and the part that makes a corpse read as a corpse — stays local and free.
-        ///
-        /// <para>
-        /// MovePosition rather than a direct assignment, because a kinematic body moved by
-        /// assignment teleports without telling the solver it moved: the limbs hanging off it get
-        /// no sweep between the two positions and are left behind, snapping after the pelvis a step
-        /// later. MovePosition is the interpolated move the joints can follow.
-        /// </para>
+        /// the body flails from it. That is the division wanted: where the body is and which way it
+        /// lies come from the machine that owns the truth, and the tumble of the limbs — the part a
+        /// watcher can derive perfectly well on its own, and the part that makes a corpse read as a
+        /// corpse — stays local and free. Without the rotation a watcher sees an upright pelvis
+        /// with the rest of the body hanging off it while the owner's copy lies on its side.
         /// </para>
         ///
         /// <para>
-        /// In FixedUpdate because it is a physics write, and the correction has to land in the same
-        /// step the solver reads it.
+        /// The root IS the hips while a body is limp — see <see cref="FollowHips"/> for why there
+        /// is no positional offset between them; reintroducing one here would put every watcher's
+        /// copy of the body at a different height from the machine that owns it. The rotation is
+        /// undone through <see cref="hipsToRoot"/>, the same offset the driver applied.
+        /// </para>
+        ///
+        /// <para>
+        /// MovePosition/MoveRotation rather than direct assignment, because a kinematic body moved
+        /// by assignment teleports without telling the solver it moved: the limbs hanging off it
+        /// get no sweep between the two poses and are left behind, snapping after the pelvis a step
+        /// later. The Move calls are the interpolated move the joints can follow.
         /// </para>
         /// </summary>
-        private void FixedUpdate() => PinHipsToRoot();
-
         private void PinHipsToRoot()
         {
-            if (!IsLimp || Drives || Hips == null) return;
-            if (bones.Count == 0 || bones[0].Body == null) return;
+            if (Hips == null || bones.Count == 0 || bones[0].Body == null) return;
 
-            // Same reason the driver stops following once settled: driving the pelvis every step
-            // keeps the limbs jointed to it awake, so a watcher would be the one machine whose copy
-            // of a corpse never stops shivering. A settled body's root is not moving either, so
-            // there is nothing to keep up with.
-            if (sleepWhenSettled && IsSettled) return;
+            // The NetworkTransform moved the root in Update and dragged the hips' transform with it;
+            // pushed into PhysX at the start of the step, that stale pose would overwrite these targets.
+            Physics.SyncTransforms();
 
-            // The root IS the hips while a body is limp — see FollowHips for why there is no offset
-            // between them. Reintroducing one here would put every watcher's copy of the body at a
-            // different height from the machine that owns it.
             bones[0].Body.MovePosition(transform.position);
+            bones[0].Body.MoveRotation(transform.rotation * Quaternion.Inverse(hipsToRoot));
+        }
+
+        /// <summary>
+        /// Before the animator runs: put every simulated bone back to its pre-knockdown pose, so
+        /// the blend's target is that pose wherever nothing animates the bone, and the animator's
+        /// pose wherever something does. Rewritten every frame because the blend writes the bone
+        /// too — without this, a bone no animator touches would blend from its ragdoll pose to
+        /// itself and never move.
+        /// </summary>
+        private void Update()
+        {
+            if (!IsLimp && blendRemaining > 0f) WriteRecoveryTarget();
+        }
+
+        private void WriteRecoveryTarget()
+        {
+            foreach (Bone bone in bones)
+                if (bone.Transform != null)
+                    bone.Transform.SetLocalPositionAndRotation(bone.RestPosition, bone.RestRotation);
         }
 
         private void LateUpdate()
@@ -710,22 +988,11 @@ namespace SpaceGame.Gameplay.Ragdoll
                             && FastestAngularSpeed <= settleAngularSpeed;
                 slowSeconds = slow ? slowSeconds + Time.deltaTime : 0f;
 
-                // Sleep BEFORE the follow, and skip the follow once asleep. Writing a transform
-                // wakes the Rigidbody it belongs to, so a FollowHips that kept running would put
-                // the body straight back to sleep and wake it again on every single frame — which
-                // is not sleeping at all, just a more elaborate way of never settling. Once the
-                // body is asleep it is not moving, so there is nothing left for the root to follow.
-                if (sleepWhenSettled && IsSettled)
-                {
-                    SleepBones();
-                    return;
-                }
-
-                if (Drives) FollowHips();
+                if (sleepWhenSettled && IsSettled) SleepBones();
                 return;
             }
 
-            if (blendRemaining > 0f) BlendRecovery();
+            if (blendRemaining > 0f) BlendRecovery(Time.deltaTime);
         }
 
         /// <summary>
@@ -740,7 +1007,23 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </para>
         ///
         /// <para>
-        /// The hips are put back afterwards because moving the root drags them: they are its child.
+        /// Everything is read from the bodies' PHYSICS poses, never from the transforms, and it runs
+        /// in FixedUpdate so the write lands before the solver's next step. A transform is the
+        /// interpolated pose — a fraction of a step behind the body — and writing it back into the
+        /// body teleports the body into the past: every frame, which is jitter and a body that
+        /// never settles.
+        /// </para>
+        ///
+        /// <para>
+        /// Moving the root moves every transform under it, not only the hips — including branches
+        /// that are jointed to the hips without being their children. So every simulated bone is
+        /// re-seated to its own body's pose afterwards, and the sync into PhysX before the next step
+        /// is a no-op instead of a teleport.
+        /// </para>
+        ///
+        /// <para>
+        /// The root takes the hips' orientation too, through <see cref="hipsToRoot"/>, so the
+        /// replicated root tells every watcher which way the body lies, not only where.
         /// </para>
         ///
         /// <para>
@@ -763,15 +1046,17 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         private void FollowHips()
         {
-            if (Hips == null) return;
+            if (Hips == null || bones.Count == 0 || bones[0].Body == null) return;
 
-            Vector3 hipWorld = Hips.position;
-            Quaternion hipRotation = Hips.rotation;
+            Rigidbody hips = bones[0].Body;
+            transform.SetPositionAndRotation(hips.position, hips.rotation * hipsToRoot);
 
-            transform.position = hipWorld;
-
-            Hips.position = hipWorld;
-            Hips.rotation = hipRotation;
+            // Moving the root moved every transform under it. Put each simulated bone back where
+            // its body actually is — parents first, which is the order bones are kept in — so the
+            // sync into PhysX before the next step is a no-op instead of a teleport.
+            foreach (Bone bone in bones)
+                if (bone.Body != null)
+                    bone.Transform.SetPositionAndRotation(bone.Body.position, bone.Body.rotation);
         }
 
         /// <summary>
@@ -786,7 +1071,6 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (Hips == null) return;
 
             Vector3 hipWorld = Hips.position;
-            Quaternion hipRotation = Hips.rotation;
 
             Vector3 grounded = hipWorld - Vector3.up * standingHipHeight;
             if (Physics.Raycast(hipWorld + Vector3.up * 0.1f, Vector3.down, out RaycastHit hit,
@@ -795,22 +1079,133 @@ namespace SpaceGame.Gameplay.Ragdoll
                 grounded = hit.point;
             }
 
-            // Yaw only. The body's own tilt is where it fell, and carrying that into the root would
-            // stand the creature up sideways.
-            Vector3 facing = Vector3.ProjectOnPlane(Hips.forward, Vector3.up);
-            if (facing.sqrMagnitude < 1e-4f)
-                facing = Vector3.ProjectOnPlane(Hips.up, Vector3.up);
+            Quaternion upright = UprightRotation();
 
-            transform.position = grounded;
-            if (facing.sqrMagnitude > 1e-4f)
-                transform.rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
+            // Moving the root drags every bone under it, not just the hips, so every bone's world
+            // pose is taken first and put back after — the blend starts from where the body lay.
+            var worldPoses = new (Vector3, Quaternion)[bones.Count];
+            for (int i = 0; i < bones.Count; i++)
+                worldPoses[i] = (bones[i].Transform.position, bones[i].Transform.rotation);
 
-            Hips.position = hipWorld;
-            Hips.rotation = hipRotation;
+            transform.SetPositionAndRotation(grounded, upright);
+
+            for (int i = 0; i < bones.Count; i++)
+                bones[i].Transform.SetPositionAndRotation(worldPoses[i].Item1, worldPoses[i].Item2);
+
+            // Transforms are not auto-synced here, so the root's own Rigidbody would go on reading
+            // the tilt it had while limp until the next step. PlayerLook turns the player with
+            // MoveRotation(body.rotation * yaw), and the first mouse movement after getting up
+            // wrote that stale tilt straight back: a rolled view that nothing ever levelled.
+            Physics.SyncTransforms();
         }
 
         /// <summary>
-        /// Ease the bones from where they came to rest into whatever is animating them now.
+        /// The root's rotation stood upright under the body: yaw only, facing the way the body lies.
+        ///
+        /// <para>
+        /// The body's own tilt is where it fell, and carrying that into the root would stand the
+        /// creature up sideways. Measured through <see cref="hipsToRoot"/>, so "forward" is the
+        /// root's forward as the body now carries it, not whichever way the hip bone's own axes
+        /// happen to point on this rig. A body lying exactly along the vertical has no facing to
+        /// read, and keeps the root's current rotation. A body that <see cref="KeepsFacingOnRecover"/>
+        /// takes the yaw it had before the knockdown instead.
+        /// </para>
+        /// </summary>
+        private Quaternion UprightRotation()
+        {
+            if (KeepsFacingOnRecover) return Quaternion.Euler(0f, PreLimpRotation.eulerAngles.y, 0f);
+
+            Quaternion carried = Hips.rotation * hipsToRoot;
+
+            Vector3 facing = Vector3.ProjectOnPlane(carried * Vector3.forward, Vector3.up);
+            if (facing.sqrMagnitude < 1e-4f)
+                facing = Vector3.ProjectOnPlane(carried * Vector3.up, Vector3.up);
+
+            return facing.sqrMagnitude > 1e-4f
+                ? Quaternion.LookRotation(facing.normalized, Vector3.up)
+                : transform.rotation;
+        }
+
+        /// <summary>
+        /// What a save records for the root's rotation: upright while a LIVING body is knocked
+        /// down, the way the body lies for a corpse.
+        ///
+        /// <para>
+        /// A knockdown is not saved — on load the body is alive, not limp, and nothing would ever
+        /// run <see cref="PlaceRootUnderHips"/> to undo a tilt recorded mid-fall; a player would
+        /// stay rolled on its side for good, because the look rig only ever adds yaw to the
+        /// rotation it finds. A corpse is different: it goes limp again on load, and keeping the
+        /// tilt lets it start lying the way it lay. Read off the pelvis through
+        /// <see cref="hipsToRoot"/> rather than off the root, which stops following once the
+        /// body sleeps and is gone entirely once the budget has frozen it.
+        /// </para>
+        /// </summary>
+        public Quaternion RotationToSave
+        {
+            get
+            {
+                if (IsCorpse && CorpseHips(out Pose hips)) return hips.rotation * hipsToRoot;
+                return IsLimp && Hips != null ? UprightRotation() : transform.rotation;
+            }
+        }
+
+        /// <summary>
+        /// What a save records for the root's position: for a corpse, the root that puts the
+        /// PELVIS back where it lies.
+        ///
+        /// <para>
+        /// While limp the root sits at the hips exactly (see <see cref="FollowHips"/>). A load does
+        /// not know that: it places the root and rebuilds the model on it in its standing pose, so
+        /// a corpse recorded at its own pelvis came back with the pelvis a hip height further
+        /// along its tilted up axis — shifted sideways, floating, and put to sleep there. Saving
+        /// the root one standing hip offset back from the pelvis, along the saved rotation, is the
+        /// root that pose needs.
+        /// </para>
+        /// <para>
+        /// A living body keeps its live position: it reloads standing, and nothing about a
+        /// knockdown is saved.
+        /// </para>
+        /// </summary>
+        public Vector3 PositionToSave =>
+            IsCorpse && CorpseHips(out Pose hips)
+                ? hips.position - hips.rotation * hipsToRoot * hipsOffset
+                : transform.position;
+
+        /// <summary>
+        /// Where a corpse's pelvis lies, in world space — off the live bone while the body is limp,
+        /// off <see cref="frozenHips"/> once the budget has frozen it. False when there is no
+        /// ragdolled pelvis to read: the body never went down.
+        /// </summary>
+        private bool CorpseHips(out Pose hips)
+        {
+            if (IsLimp && Hips != null)
+            {
+                hips = new Pose(Hips.position, Hips.rotation);
+                return true;
+            }
+
+            if (frozen)
+            {
+                hips = new Pose(transform.position + transform.rotation * frozenHips.position,
+                                transform.rotation * frozenHips.rotation);
+                return true;
+            }
+
+            hips = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Ease the bones from where they came to rest into the pose they should now hold —
+        /// position and rotation both.
+        ///
+        /// <para>
+        /// The target is whatever the bone holds when this runs: <see cref="Update"/> writes the
+        /// pre-knockdown pose into it every frame, and the animator overwrites whichever channels it
+        /// animates. Both channels matter because neither kind of rig writes both — a humanoid
+        /// avatar animates no bone translations, a hard-surface or procedurally walked rig no bone
+        /// rotations — so a blend over one channel only leaves the other in the ragdoll pose.
+        /// </para>
         ///
         /// <para>
         /// This is the whole of "getting up". There are no get-up clips in the project — four
@@ -826,9 +1221,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// driving while their body finishes standing up.
         /// </para>
         /// </summary>
-        private void BlendRecovery()
+        private void BlendRecovery(float deltaTime)
         {
-            blendRemaining -= Time.deltaTime;
+            blendRemaining -= deltaTime;
 
             float t = recoverBlendSeconds > 0f
                 ? Mathf.Clamp01(1f - blendRemaining / recoverBlendSeconds)
@@ -844,6 +1239,8 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (bone.Transform == null) continue;
                 bone.Transform.localRotation =
                     Quaternion.Slerp(bone.RecoverFrom, bone.Transform.localRotation, eased);
+                bone.Transform.localPosition =
+                    Vector3.Lerp(bone.RecoverFromPosition, bone.Transform.localPosition, eased);
             }
 
             if (blendRemaining <= 0f) blendRemaining = 0f;
@@ -852,8 +1249,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         // ── Building the skeleton ─────────────────────────────────────────────
 
         /// <summary>
-        /// Find the model's rig, decide which of its bones are worth simulating, and wire bodies,
-        /// shapes and joints through what survives. Runs once, on the first limp.
+        /// Find the model's rig, decide which of its bones are worth simulating, and wire bodies and
+        /// shapes through what survives, noting which body each bone hangs from. Runs once, on the
+        /// first limp; the joints themselves are made per knockdown by <see cref="RebuildJoints"/>.
         ///
         /// <para>
         /// Bodies go on the RIG, never on the pieces of geometry hanging off it, and that is the
@@ -921,8 +1319,21 @@ namespace SpaceGame.Gameplay.Ragdoll
                 if (parent == null && bone != Hips) parent = Hips;
 
                 if (parent != null && bodies.TryGetValue(parent, out Rigidbody parentBody))
-                    joints.Add(BuildJoint(made, parentBody));
+                    made.Parent = parentBody;
             }
+
+            var masses = new float[bones.Count];
+            var parents = new int[bones.Count];
+            for (int i = 0; i < bones.Count; i++)
+            {
+                masses[i] = bones[i].Body.mass;
+                parents[i] = bones[i].Parent != null
+                    ? bones.FindIndex(b => b.Body == bones[i].Parent)
+                    : (i == 0 ? -1 : 0);
+            }
+
+            float[] balanced = RagdollSkeleton.ClampMassRatios(masses, parents, maxJointMassRatio);
+            for (int i = 0; i < bones.Count; i++) bones[i].Body.mass = balanced[i];
         }
 
         /// <summary>
@@ -981,7 +1392,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             }
 
             // Never this component's own transform. It is the entity, not a bone: FollowHips moves
-            // it to wherever the hips ended up and puts the hips back afterwards, which is a no-op
+            // it to wherever the hips ended up and re-seats the bones afterwards, which is a no-op
             // if they are the same object — so a body whose root were its own hips would flail
             // twenty metres away and leave its transform, its NetworkTransform and its save record
             // standing where it died.
@@ -1247,10 +1658,10 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             var body = bone.gameObject.AddComponent<Rigidbody>();
             body.mass = RagdollSkeleton.MassFor(weight, totalWeight, totalMass, minBoneMass);
-            body.interpolation = RigidbodyInterpolation.Interpolate;
             body.angularDamping = angularDamping;
             body.linearDamping = linearDamping;
             body.solverIterations = solverIterations;
+            body.sleepThreshold = boneSleepThreshold;
 
             // The gauntlet launches at 48 m/s. A discrete body at that speed is through the terrain
             // between two ticks and gone.
@@ -1263,7 +1674,8 @@ namespace SpaceGame.Gameplay.Ragdoll
                 Transform = bone,
                 Body = body,
                 Colliders = OwnColliders(bone, kept, rig),
-                RecoverFrom = bone.localRotation,
+                RestPosition = bone.localPosition,
+                RestRotation = bone.localRotation,
             };
         }
 
@@ -1451,11 +1863,19 @@ namespace SpaceGame.Gameplay.Ragdoll
             return filter != null ? filter.sharedMesh : null;
         }
 
-        private Joint BuildJoint(Bone bone, Rigidbody parent)
+        private Joint BuildJoint(Bone bone, Rigidbody parent, IList<Transform> simulated)
         {
             var joint = bone.Transform.gameObject.AddComponent<CharacterJoint>();
             joint.connectedBody = parent;
             joint.enablePreprocessing = false;
+            joint.enableProjection = true;
+            joint.projectionDistance = projectionDistance;
+            joint.projectionAngle = projectionAngle;
+
+            RagdollSkeleton.JointAxes(LocalBoneDirection(bone.Transform, simulated),
+                                      out Vector3 twist, out Vector3 swing);
+            joint.axis = twist;
+            joint.swingAxis = swing;
 
             joint.swing1Limit = new SoftJointLimit { limit = swingLimit };
             joint.swing2Limit = new SoftJointLimit { limit = swingLimit };
@@ -1498,38 +1918,64 @@ namespace SpaceGame.Gameplay.Ragdoll
                 : 0.1f;
         }
 
-        /// <summary>The bone's local axis pointing down its own segment, and which way along it.</summary>
-        private int LongAxis(Transform bone, List<Transform> simulated, out float sign)
-        {
-            Vector3 target = Vector3.zero;
-            bool found = false;
+        /// <summary>
+        /// Closer than this, a child says nothing about which way its bone runs. Geometry, not a
+        /// tunable: a millimetre is far below any bone length and far above float noise.
+        /// </summary>
+        private const float MinChildOffset = 1e-3f;
 
-            for (int i = 0; i < bone.childCount && !found; i++)
+        /// <summary>
+        /// Which way the bone runs, in its own local space: toward its first simulated child, else
+        /// its first other child, else onward from its parent (a hand, a head, a foot).
+        ///
+        /// <para>
+        /// Children sitting on the bone's own origin are skipped. A hard-surface rig usually hangs
+        /// its mesh piece exactly at the bone, and that offset is zero — read as a direction it
+        /// sends <see cref="RagdollSkeleton.JointAxes"/> to its fallback axis, which is the same
+        /// across-the-limb twist this exists to prevent.
+        /// </para>
+        /// </summary>
+        private static Vector3 LocalBoneDirection(Transform bone, IList<Transform> simulated)
+        {
+            if (TryChildDirection(bone, simulated, out Vector3 local)) return local;
+            if (TryChildDirection(bone, null, out local)) return local;
+
+            return bone.parent != null
+                ? bone.InverseTransformDirection(bone.position - bone.parent.position)
+                : Vector3.up;
+        }
+
+        /// <summary>
+        /// Bone-local direction to the first child set off from the bone's origin, among the
+        /// simulated ones when <paramref name="simulated"/> is given, else among all of them.
+        /// </summary>
+        private static bool TryChildDirection(Transform bone, IList<Transform> simulated, out Vector3 local)
+        {
+            for (int i = 0; i < bone.childCount; i++)
             {
                 Transform child = bone.GetChild(i);
-                if (!simulated.Contains(child)) continue;
-                target = child.position;
-                found = true;
+                if (simulated != null && !simulated.Contains(child)) continue;
+
+                Vector3 offset = child.position - bone.position;
+                if (offset.sqrMagnitude < MinChildOffset * MinChildOffset) continue;
+
+                local = bone.InverseTransformDirection(offset);
+                return true;
             }
 
-            if (!found && bone.childCount > 0)
-            {
-                target = bone.GetChild(0).position;
-                found = true;
-            }
+            local = Vector3.zero;
+            return false;
+        }
 
-            if (!found)
-            {
-                sign = 1f;
-                return 1;
-            }
-
-            Vector3 local = bone.InverseTransformDirection((target - bone.position).normalized);
+        /// <summary>The bone's local axis pointing down its own segment, and which way along it.</summary>
+        private static int LongAxis(Transform bone, IList<Transform> simulated, out float sign)
+        {
+            Vector3 local = LocalBoneDirection(bone, simulated);
             int axis = 0;
             if (Mathf.Abs(local.y) > Mathf.Abs(local[axis])) axis = 1;
             if (Mathf.Abs(local.z) > Mathf.Abs(local[axis])) axis = 2;
 
-            sign = Mathf.Sign(local[axis]);
+            sign = local[axis] < 0f ? -1f : 1f;
             return axis;
         }
 

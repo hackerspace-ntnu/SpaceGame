@@ -30,8 +30,45 @@ namespace SpaceGame.Agents
                  "if none does, the first spawned takes it.")]
         public bool isLeader;
 
+        [Tooltip("Rides one of the group's carriers (a member with a CrewShift) instead of walking: " +
+                 "spawned seated on a free crew post while the group marches, on foot by its " +
+                 "carrier's gangway while the group is stopped.")]
+        public bool crew;
+
         [Min(1)]
         public int count = 1;
+
+        [Tooltip("When set, how many of this member a group gets is drawn from these weights instead " +
+                 "of being count: seeded by the group's roster seed, so a group that folds, unfolds or " +
+                 "reloads comes back with the same number. Empty uses count.")]
+        public WeightedCount[] countWeights = Array.Empty<WeightedCount>();
+
+        [Tooltip("Where this member rides in the group's column. Shuffled members are dealt into a " +
+                 "seeded order (ColumnDeal) instead of marching in the order they are listed.")]
+        public ColumnCard column;
+
+        // Keeps this draw apart from the other rolls seeded by the group's roster seed and a plan index.
+        private const int CountSalt = 0x5EED;
+
+        /// <summary>How many of this member the group with <paramref name="rosterSeed"/> gets;
+        /// <paramref name="index"/> is the plan index the first of them would take.</summary>
+        public int DrawCount(int rosterSeed, int index)
+        {
+            if (countWeights == null || countWeights.Length == 0) return Mathf.Max(1, count);
+
+            var weights = new float[countWeights.Length];
+            for (int i = 0; i < weights.Length; i++) weights[i] = countWeights[i].weight;
+            int pick = RosterDraw.PickWeighted(weights, RosterDraw.Roll01(rosterSeed, index + CountSalt));
+            return pick < 0 ? Mathf.Max(1, count) : Mathf.Max(1, countWeights[pick].count);
+        }
+    }
+
+    /// <summary>One possible member count and how likely it is (NpcGroupMemberSpec.countWeights).</summary>
+    [Serializable]
+    public struct WeightedCount
+    {
+        [Min(1)] public int count;
+        [Min(0f)] public float weight;
     }
 
     /// <summary>
@@ -149,6 +186,11 @@ namespace SpaceGame.Agents
         public bool useStartPosition;
         public Vector3 startPosition;
 
+        [Tooltip("Seconds a new world's group spends at its start before choosing where to go, as if " +
+                 "it had just arrived there. 0 sets off on the first tick. Lets a player who lands " +
+                 "nearby reach it before it walks out of range.")]
+        [Min(0f)] public float initialStaySeconds;
+
         [Tooltip("This group hunts players. It roams looking for you rather than working sites, and " +
                  "heads for your last known position when it loses you.")]
         public bool bountyHunters;
@@ -258,10 +300,11 @@ namespace SpaceGame.Agents
         [NonSerialized] public int FightersDead;
 
         /// <summary>
-        /// A war party with no member left and no fighter standing, dismounted riders included
-        /// (WarPartyRules.IsWipedOut). It never re-spawns; the director resolves it. Saved
-        /// (Record.wipedOut), so a party wiped out just before a save does not respawn at full
-        /// strength on load — the director sees it Defeated instead.
+        /// A group with no member and no fighter left standing, dismounted riders included
+        /// (WarPartyRules.IsWipedOut). It never re-spawns in this world: a war party is resolved by the
+        /// director, any other group -- a caravan, a herd -- is simply gone. Saved (Record.wipedOut),
+        /// so a group wiped out just before a save does not respawn at full strength on load; a war
+        /// party is then seen Defeated instead.
         /// </summary>
         public bool WipedOut;
 
@@ -271,6 +314,13 @@ namespace SpaceGame.Agents
         /// vessel. Saved (Record.delivered), so a party that landed before a save does not fly in again.
         /// </summary>
         public bool Delivered;
+
+        /// <summary>
+        /// The group's crew is ashore (or on its way ashore/back) rather than seated aboard its
+        /// carriers. Saved (Record.crewAshore), so a walking city mid-disembark on save comes back
+        /// the same way rather than snapping its crew back aboard.
+        /// </summary>
+        public bool CrewAshore;
 
         /// <summary>The vessel flying this group in, or flying home after dropping it off. Runtime only.</summary>
         [NonSerialized] public GameObject Transport;
@@ -375,6 +425,10 @@ namespace SpaceGame.Agents
             // transport flies in again; one without never reads it.
             public bool delivered;
 
+            // Appended 2026-09-24 (Striders walking city). Older saves read false: the group comes
+            // back marching, its crew seated, which is what every group without crew already does.
+            public bool crewAshore;
+
             // Appended 2026-10-03 (settlement expeditions spec §4.4). Older saves read null: no owner, so
             // a war party is still the war director's (IsOwnedByWar).
             public string owner;
@@ -399,6 +453,7 @@ namespace SpaceGame.Agents
             tier = Tier,
             wipedOut = WipedOut,
             delivered = Delivered,
+            crewAshore = CrewAshore,
             owner = Owner,
         };
 
@@ -414,13 +469,14 @@ namespace SpaceGame.Agents
             Lead = record.lead;
             HasLead = record.hasLead;
             LeadAge = record.leadAge;
-            // 0 is what an older save reads. Taking it would re-seed a caravan once and save that back
-            // for good, so the group keeps the seed it was created with (its id's StableHash).
-            if (record.rosterSeed != 0) RosterSeed = record.rosterSeed;
+            // 0 is what a save from before seeds were saved reads: every group then drew from its id's
+            // StableHash, so it keeps drawing the people it had rather than a new world's seed.
+            RosterSeed = record.rosterSeed != 0 ? record.rosterSeed : RosterDraw.StableHash(Id);
             QuarryProfileId = record.quarryProfileId ?? string.Empty;
             Tier = Mathf.Max(0, record.tier);
             WipedOut = record.wipedOut;
             Delivered = record.delivered;
+            CrewAshore = record.crewAshore;
             Owner = record.owner ?? string.Empty;
         }
     }

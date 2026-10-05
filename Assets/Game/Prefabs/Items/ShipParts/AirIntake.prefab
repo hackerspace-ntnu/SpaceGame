@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 7244344967411671907}
   - component: {fileID: 2777723932628652242}
   - component: {fileID: 928104910239665595}
+  - component: {fileID: -8432248583891907221}
   m_Layer: 0
   m_Name: AirIntake
   m_TagString: Untagged
@@ -318,11 +319,24 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   kind: 4
   installRange: 30
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &-8432248583891907221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018862276870464110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &1244540100207843431
 GameObject:
   m_ObjectHideFlags: 0

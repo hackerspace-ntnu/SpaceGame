@@ -18,8 +18,9 @@ namespace SpaceGame.Core.Safety
         ///
         /// <para>
         /// The fifth legitimate holder, and the one that was missing. Every one of those goes
-        /// through <c>BodyHold</c> to <c>PlayerRagdoll.HoldDown</c>, whose <c>Suspend</c> switches
-        /// the controller's input off — so any of them that outlasts the timeout was being handed
+        /// through <c>BodyHold</c> to <c>PlayerRagdoll.HoldDown</c> or <c>HoldStanding</c>,
+        /// whose suspend (<c>PlayerRagdoll.SuspendLayers</c>) switches the controller's input
+        /// off — so any of them that outlasts the timeout was being handed
         /// the controls back mid-effect, and the player then walked around invisible inside a
         /// singularity or upright inside a block of ice. <c>Frozen</c> and <c>Foamed</c> are ten
         /// seconds each and have always tripped it; the bottled singularity is what finally made

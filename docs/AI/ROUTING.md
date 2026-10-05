@@ -106,6 +106,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a cutscene locked or blacked out the wrong player in a multiplayer session | [Cutscenes](systems/Cutscenes.md) |
 | a cutscene played for one player only, or moved a body the server overwrote | [Cutscenes](systems/Cutscenes.md) |
 | a dab passes through foam that is already there and lands on the ground behind it | [FoamGun](systems/FoamGun.md) |
+| a dead NPC drops nothing, or its gun appears on the sand only after I reload | [Inventory](systems/Inventory.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
 | a decoration or tent placed by a Settlement renders enormous even though its own prefab measures correctly outside the settlement | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a defeated war-party monowheel vanishes the moment the fight ends | [Striders](systems/Striders.md) |
@@ -796,6 +797,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the back slot is clickable all over my body instead of on the pack's bars | [BodyEquipment](systems/BodyEquipment.md) |
 | the backpack's flaps move on their own after a death | [Combat](systems/Combat.md) |
 | the ball lightning orb drifts through creatures without ever hurting them | [Combat](systems/Combat.md) |
+| the ball lightning projectile's billboard is invisible, or a flat card seen edge-on, while riding or spectating | [Combat](systems/Combat.md) |
 | the bar is the wrong length or sits off-centre on its plate | [SupplyGauge](systems/SupplyGauge.md) |
 | the barge's interior is missing when I walk inside | [DuneBarge](systems/DuneBarge.md) |
 | the barges hold their place but the rear scouts keep riding up to the lead house | [Striders](systems/Striders.md) |
@@ -1313,6 +1315,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
 | walking into the robot town raises no alarm and nobody comes | [AgentSystem](systems/AgentSystem.md) |
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
+| weapons and items appear lying around the world for no reason | [AgentSystem](systems/AgentSystem.md) |
+| weapons and items appear lying around the world for no reason | [Inventory](systems/Inventory.md) |
 | what an item was holding is gone the moment I press drop, but a slot switch keeps it | [Inventory](systems/Inventory.md) |
 | which menu item wires this prefab, item, creature or vehicle | [EditorTooling](systems/EditorTooling.md) |
 | which scene is build index 0 or 1, and where does the world scene live | [Scenes](systems/Scenes.md) |
@@ -1803,4 +1807,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1308 symptoms, 469 paths, 67 docs -->
+<!-- 1312 symptoms, 469 paths, 67 docs -->

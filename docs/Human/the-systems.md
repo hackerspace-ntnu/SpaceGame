@@ -469,6 +469,12 @@ Everything in the Strider city kicks up the same sand clouds the monowheels do. 
 
 **Worth knowing:** A dust cloud counts as something drawn, so anything that measures a machine by everything it draws sees the cloud too: the first build sat the crab outrider's rider eleven metres up in the air.
 
+### Settlements seen from afar *(SettlementLods)*
+
+The walking city's machines and the sky fleet each carry a second, cheap version of themselves that the game draws once they are far away: every piece of the machine fused into one mesh per kind of paint, which then simplifies itself further as it recedes. Nobody models these by hand; a tool makes them every time a machine is rebuilt. Far away the moving parts freeze in place.
+
+**Worth knowing:** Smoke and dust are never part of the cheap version, so they keep running at every distance.
+
 ### Tracks that turn *(TrackBelts)*
 
 The Strider barges' tracks work the way real ones do: each link travels round the loop and every wheel turns, at the speed that side of the barge is actually covering, so the links on the sand stay put while the barge rolls over them. A barge turning on the spot runs one track forward and the other back. Every computer works this out from how the barge is seen to move, so nothing extra is sent over the network, and nothing is saved.

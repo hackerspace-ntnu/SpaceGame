@@ -148,6 +148,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a cutscene locked or blacked out the wrong player in a multiplayer session | [Cutscenes](systems/Cutscenes.md) |
 | a cutscene played for one player only, or moved a body the server overwrote | [Cutscenes](systems/Cutscenes.md) |
 | a dab passes through foam that is already there and lands on the ground behind it | [FoamGun](systems/FoamGun.md) |
+| a dead crab outrider or monowheel stands upright again when seen from a distance | [SettlementLods](systems/SettlementLods.md) |
 | a dead NPC drops nothing, or its gun appears on the sand only after I reload | [Inventory](systems/Inventory.md) |
 | a dead NPC's body stays lying there for minutes | [EntitySystem](systems/EntitySystem.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -258,6 +259,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a menu choice drops me back on the main menu instead of opening the page it names | [UI](systems/UI.md) |
 | a menu list is far shorter on an ultrawide monitor than on a 16:9 one | [UI](systems/UI.md) |
 | a menu swallows my movement keys, or a hotkey does nothing while a panel is open | [UI](systems/UI.md) |
+| a merged far level shows parts of a machine inside out | [SettlementLods](systems/SettlementLods.md) |
 | a mesa or cliff bakes at the wrong ground height, or off-screen entirely | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a mesh built under a pack surface lands tens of metres away | [Backpack](systems/Backpack.md) |
 | a mesh renders inside-out in Unity and looks correct in Blender | [ArtPipeline](systems/ArtPipeline.md) |
@@ -1525,6 +1527,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the walker stops dead at the rim of a portal it should be able to cross | [Locomotion](systems/Locomotion.md) |
 | the walking city leaves while its crew are still ashore | [Striders](systems/Striders.md) |
 | the walking city turns round every few minutes and never reaches a stop | [Striders](systems/Striders.md) |
+| the walking houses or the sky fleet cost hundreds of draw calls even far away | [SettlementLods](systems/SettlementLods.md) |
 | the walking houses stop 17 m apart with their decks through each other | [Striders](systems/Striders.md) |
 | the walking houses, crawlers, crabs or barges throw no dust | [VehicleDust](systems/VehicleDust.md) |
 | the warning banner shows no symbol at all, just the text | [Visor](systems/Visor.md) |
@@ -1810,6 +1813,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Art/Textures/Effects/AirlockMist_Negative.png` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Textures/Effects/AirlockMist_Positive.png` | [ColonyInterior](systems/ColonyInterior.md) |
+| `Assets/Game/Editor/AssetPipeline/SettlementLodSettings.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Environment/SkyCitySettlementWiring.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Tests/GroupMemberTakenByPlayerTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/World/ColonyAirlockPassageAuthoring.cs` | [ColonyResidents](systems/ColonyResidents.md) |
@@ -1846,6 +1850,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Motors/TrackedHullMotor.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Scripts/agents/Residents/Core/Companions.cs` | [Errands](systems/Errands.md) |
+| `Assets/Game/Editor/AssetPipeline/SettlementLodBaker.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Vehicles/StriderMonowheelBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Agents/Vehicles/Ground/Monowheels/` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Astronaut/` | [ColonyInterior](systems/ColonyInterior.md) |
@@ -1889,6 +1894,7 @@ Longest match wins.
 | `Assets/Game/Editor/Animation/ActionReachMeasurer.cs` | [StationTable](systems/StationTable.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Environment/SkyFleetPlacement.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Tests/SettlementLodBakerTests.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Tests/StriderDustEmitterTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Editor/Tests/StriderRosterAssetTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Traversal/LadderClimberWiring.cs` | [Ladders](systems/Ladders.md) |
@@ -1971,6 +1977,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [SupplyGauge](systems/SupplyGauge.md) |
 | `Assets/Game/Scripts/agents/Entity/BeltCarrier.cs` | [HandTools](systems/HandTools.md) |
+| `Assets/Game/Settings/SettlementLodSettings.asset` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Art/Materials/Items/FlameBillow.mat` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Materials/Vehicles/SandDust.mat` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Art/Shaders/Effects/Flashlight.hlsl` | [Flashlight](systems/Flashlight.md) |
@@ -2191,6 +2198,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Items/Tools` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Scripts/Gear/Wingsuit` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Scripts/Vehicles/Lod/` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/World/Colony/` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Scripts/World/Safety/` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/agents/Audio/` | [audio](systems/audio.md) |
@@ -2250,4 +2258,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1611 symptoms, 613 paths, 85 docs -->
+<!-- 1614 symptoms, 618 paths, 86 docs -->

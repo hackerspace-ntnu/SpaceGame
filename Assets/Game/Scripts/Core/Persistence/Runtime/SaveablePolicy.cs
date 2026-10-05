@@ -21,6 +21,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
+using SpaceGame.Agents.Residents;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Locomotion;
@@ -43,13 +44,12 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         private static readonly HashSet<string> Transient = new()
         {
-            "AgentProjectile",
             "TurretProjectile",
             "Projectile",
 
             // RocketLauncherTurret is NOT here any more, and never should have been. It is the
             // launcher, not the rocket — the rocket is TurretProjectile, blacklisted on the line
-            // above — and the entry reads like it was added by name-association with the three real
+            // above — and the entry reads like it was added by name-association with the real
             // projectile types around it. The contradiction it produced is visible in the assets:
             // Assets/Game/Resources/Saveable/RocketSpawn.prefab is the only thing carrying the
             // component, it already ships SaveableEntity + TransformSaveable + RigidbodySaveable,
@@ -309,9 +309,8 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(ProvocationSaveable));
             }
 
-            // What makes AgentStateSaveable's last-known position mean anything. SearchModule starts
-            // on a falling edge (had a target, lost it) and a restored agent's `hadTarget` is always
-            // false — so the position the save went out of its way to keep was never walked to.
+            // A search in progress: without it an agent saved mid-search reloads standing still, with
+            // the last-known position AgentStateSaveable kept and nothing walking to it.
             if (go.GetComponent<SearchModule>() != null && go.GetComponent<SearchSaveable>() == null)
             {
                 go.AddComponent<SearchSaveable>();
@@ -331,6 +330,14 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(NoiseInvestigationSaveable));
             }
 
+            // A settlement resident's memory of players — familiarity and grudges. Its day is
+            // re-planned from the seed on load; what it remembers about you is not derivable.
+            if (go.GetComponent<Resident>() != null && go.GetComponent<ResidentSaveable>() == null)
+            {
+                go.AddComponent<ResidentSaveable>();
+                parts.Add(nameof(ResidentSaveable));
+            }
+
             // Fleeing is hysteresis — trigger radius in, safe radius out — so it cannot be recomputed
             // from where things are standing. A creature restored calm inside the gap between the two
             // never resumes running.
@@ -347,18 +354,12 @@ namespace SpaceGame.Core.Persistence
         private static void EnsureAgentRoutine(GameObject go, List<string> parts)
         {
             // Keyed off PatrolModule rather than AgentTargeting, which is where patrol progress used
-            // to ride. PatrolRobot has the first and not the second, so the one
-            // population whose whole identity IS a route was the population saving nothing about it.
+            // to ride: a patroller need not carry AgentTargeting, and one without it saved nothing
+            // about the route that is its whole identity.
             if (go.GetComponent<PatrolModule>() != null && go.GetComponent<PatrolSaveable>() == null)
             {
                 go.AddComponent<PatrolSaveable>();
                 parts.Add(nameof(PatrolSaveable));
-            }
-
-            if (go.GetComponent<BasePatrolModule>() != null && go.GetComponent<BasePatrolSaveable>() == null)
-            {
-                go.AddComponent<BasePatrolSaveable>();
-                parts.Add(nameof(BasePatrolSaveable));
             }
 
             // Anchors, not just destinations. These modules re-latch their home from
@@ -398,12 +399,6 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(AgentGoalSaveable));
             }
 
-            if (go.GetComponent<HerdModule>() != null && go.GetComponent<HerdMemberSaveable>() == null)
-            {
-                go.AddComponent<HerdMemberSaveable>();
-                parts.Add(nameof(HerdMemberSaveable));
-            }
-
             if (go.GetComponent<FormationModule>() != null && go.GetComponent<FormationSaveable>() == null)
             {
                 go.AddComponent<FormationSaveable>();
@@ -433,11 +428,10 @@ namespace SpaceGame.Core.Persistence
         {
             // Every cooldown in the game reloaded at zero, which is a free hit for whoever reloads:
             // a melee creature saved mid-swing struck immediately, a turret two seconds into its
-            // reload was ready. One saver for all three modules because an agent composes them and
+            // reload was ready. One saver for both modules because an agent composes them and
             // they hold the same shape of state.
             if (go.GetComponent<CombatCadenceSaveable>() == null &&
-                (go.GetComponent<AgentRangedCombatModule>() != null ||
-                 go.GetComponent<CloseCombatModule>() != null ||
+                (go.GetComponent<CloseCombatModule>() != null ||
                  go.GetComponent<NpcItemUseModule>() != null))
             {
                 go.AddComponent<CombatCadenceSaveable>();
@@ -471,25 +465,11 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(EntityFactionSaveable));
             }
 
-            // Which health thresholds have already fired. Without it, onThresholdReached re-fires on
-            // the first hit after every load — a badly hurt creature replays its enrage and its
-            // scream — and any module a threshold switched off comes back on.
-            if (go.GetComponent<HealthReactionModule>() != null &&
-                go.GetComponent<HealthReactionSaveable>() == null)
-            {
-                go.AddComponent<HealthReactionSaveable>();
-                parts.Add(nameof(HealthReactionSaveable));
-            }
-
-            // What the motor was in the middle of. Any of the five, because an entity carries exactly
-            // one and the saver writes only the block for the motor it finds. Includes the flag that
-            // says what a mid-arc body's isKinematic should go back to — lose that and an agent saved
-            // mid-leap is permanently kinematic and unpushable.
+            // What the motor was in the middle of. Any of the three, because an entity carries exactly
+            // one and the saver writes only the block for the motor it finds.
             if (go.GetComponent<MotorStateSaveable>() == null &&
                 (go.GetComponent<NavMeshAgentMotor>() != null ||
-                 go.GetComponent<RigidbodyMotor>() != null ||
                  go.GetComponent<HoverRigidbodyMotor>() != null ||
-                 go.GetComponent<FlyingRigidbodyMotor>() != null ||
                  go.GetComponent<LeggedDriver>() != null))
             {
                 go.AddComponent<MotorStateSaveable>();

@@ -116,6 +116,41 @@ namespace SpaceGame.EditorTools
             return true;
         }
 
+        /// <summary>
+        /// Give an item that has no icon its first one: render it with the house framing into
+        /// <c>Sprites/Items/&lt;name&gt;.png</c> and bind the sprite.
+        ///
+        /// <para>
+        /// For a builder that has just made an item, which <see cref="GenerateFor"/> declines (no
+        /// icon to write over) and <see cref="GenerateAll"/> would answer by rewriting every other
+        /// item's PNG as well. An item that already has an icon is left alone.
+        /// </para>
+        /// </summary>
+        public static bool CreateFor(InventoryItem item, out string note)
+        {
+            note = "";
+            if (item == null) { note = "no item"; return false; }
+            if (item.icon != null) return true;
+            if (item.itemPrefab == null) { note = "itemPrefab is null"; return false; }
+
+            Directory.CreateDirectory(SpriteDir);
+            string target = Path.Combine(SpriteDir, item.name + ".png").Replace('\\', '/');
+            Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a) ? a : DefaultAngle;
+            GameObject renderPrefab = item.iconPrefab != null ? item.iconPrefab : item.itemPrefab;
+
+            Texture2D tex = PrefabPreviewRenderer.Render(renderPrefab, angle, Resolution, Background, out note);
+            if (tex == null) return false;
+
+            File.WriteAllBytes(target, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.Refresh();
+            ImportAsSprite(target);
+
+            item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(target);
+            EditorUtility.SetDirty(item);
+            return item.icon != null;
+        }
+
         [MenuItem("Tools/Generate All Item Icons")]
         public static void GenerateAll()
         {

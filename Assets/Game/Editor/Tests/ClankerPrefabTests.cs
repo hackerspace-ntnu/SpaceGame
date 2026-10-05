@@ -63,9 +63,7 @@ namespace SpaceGame.EditorTools
             CollectionAssert.AreEqual(expected, Names(prefab),
                 "a body variant carries the RPR Clanker's stack plus, when it wears Humanoid.controller, the action wiring");
 
-            Assert.IsNull(prefab.GetComponent<HerdModule>(), "the old PatrolRobot herd");
             Assert.IsNull(prefab.GetComponent<WanderModule>(), "the Clanker patrols; it does not wander");
-            Assert.IsNull(prefab.GetComponent<AgentRangedCombatModule>(), "the built-in ray weapon is gone");
             Assert.IsNull(prefab.GetComponent<CloseCombatModule>());
             Assert.IsNull(prefab.GetComponentInChildren<InteractableProxy>(true));
 

@@ -92,19 +92,7 @@ PrefabInstance:
       addedObject: {fileID: 4141151548559146359}
     - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3369397755188228847}
-    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
-      insertIndex: -1
       addedObject: {fileID: -435676786900427705}
-    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7367855340965146424}
-    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 848998252157302659}
-    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4646163596536689625}
   m_SourcePrefab: {fileID: 100100000, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
 --- !u!1 &6521133302145211711 stripped
 GameObject:
@@ -161,6 +149,12 @@ MonoBehaviour:
   speedMultiplier: 1.15
   run: 1
   stopDistanceMargin: 0.5
+  holdReleaseMargin: 2
+  holdLookAhead: 2
+  alignStopDistance: 0.02
+  alignSpeedMultiplier: 0.5
+  alignReleaseMargin: 0.3
+  alignGiveUpSeconds: 4
 --- !u!114 &4141151548559146359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,19 +191,6 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
---- !u!114 &3369397755188228847
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6521133302145211711}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c672eb793055441e0a2ba07913619da5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
-  drawGizmos: 1
 --- !u!114 &-435676786900427705
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -222,98 +203,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
---- !u!114 &7367855340965146424
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6521133302145211711}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
-  minBoneWeightFraction: 0.015
-  maxBones: 20
-  minimumUsefulBones: 4
-  limbAspect: 0.3
-  minRadius: 0.04
-  totalMass: 70
-  minBoneMass: 0.6
-  maxJointMassRatio: 8
-  angularDamping: 0.6
-  linearDamping: 0.05
-  solverIterations: 14
-  sleepWhenSettled: 1
-  boneSleepThreshold: 0.05
-  selfCollision: 0
-  swingLimit: 45
-  twistLimit: 25
-  projectionDistance: 0.05
-  projectionAngle: 10
-  settleLinearSpeed: 0.35
-  settleAngularSpeed: 1.2
-  settleSeconds: 0.45
-  maxLimpSeconds: 4
-  recoverBlendSeconds: 0.35
-  groundProbeHeight: 3
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  maxConcurrentRagdolls: 12
---- !u!114 &848998252157302659
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6521133302145211711}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
-  knockdown:
-    fallSeconds: 0.1
-    minSeconds: 0.1
-    maxSeconds: 0.2
-    threshold: 0.35
-    fullSeverity: 1
-    damageWeight: 1
-    lowHealthWeight: 0.5
-    knockbackWeight: 1
-    knockbackReferenceSpeed: 20
-    settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
-  deathImpulse: 2.5
-  deathImpulseLift: 0.35
---- !u!114 &4646163596536689625
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6521133302145211711}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
-  agent: {fileID: 0}
-  motor: {fileID: 0}
-  bodyRoot: {fileID: 0}
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  probeStartHeight: 0.6
-  probeDistance: 8
-  footprintRadius: 0
-  soleOffset: 0
-  maxCorrection: 1
-  heightFollowSpeed: 12
-  alignToSlope: 1
-  slopeFollow: 0.35
-  maxTiltDegrees: 30
-  tiltFollowSpeed: 8

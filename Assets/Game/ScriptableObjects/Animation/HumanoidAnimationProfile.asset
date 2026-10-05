@@ -11,24 +11,45 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 84db9d0b84234bd397b4e02bf4a8c9c5, type: 3}
   m_Name: HumanoidAnimationProfile
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   locomotion: {fileID: 11400000, guid: 17c42ea85cf7406a9497357efee841df, type: 2}
   locomotionVariants:
   - {fileID: 11400000, guid: f18aa680436a48efaed85afd7325ad73, type: 2}
   - {fileID: 11400000, guid: 4cb694b853b641fa9c54c91e8e9a5050, type: 2}
+  - {fileID: 11400000, guid: 49972ce3ffae440a2818b0fd613bc5b0, type: 2}
+  - {fileID: 11400000, guid: b41f5563367c846c497c25f3e7fd65c2, type: 2}
+  - {fileID: 11400000, guid: cda4ed2a076244d5a82f328bfadc20f9, type: 2}
+  - {fileID: 11400000, guid: 5bb2b732826ff49f993f897eea492460, type: 2}
+  - {fileID: 11400000, guid: 1e123522d425a492db08d33a345927f7, type: 2}
+  - {fileID: 11400000, guid: 383913ce8cfd24314b00cc28f726edf0, type: 2}
   holdPoses:
   - style: 1
     clip: {fileID: 4072314899578035812, guid: a8978c393cae9044dbc5e8ec87c947b4, type: 3}
+    armsOnly: 0
   - style: 2
     clip: {fileID: 7300238579497392160, guid: d5d65196dad7126438cf6f02f7d3c705, type: 3}
+    armsOnly: 0
   - style: 3
     clip: {fileID: -57794709565900691, guid: 84781f800961561439ffe31c702436b5, type: 3}
+    armsOnly: 0
   - style: 4
     clip: {fileID: -7342238307180667810, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
   - style: 5
     clip: {fileID: -4708846537797790282, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
   - style: 6
     clip: {fileID: 8324860437086164814, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
+  - style: 7
+    clip: {fileID: 2931362099718132477, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 0
+  - style: 8
+    clip: {fileID: 7994627924475153551, guid: ec116326f04a347aaa94834dac60bfb0, type: 3}
+    armsOnly: 1
+  - style: 9
+    clip: {fileID: 7400000, guid: 79ba4cfacfc0a4c7bb029bd05a2cc41b, type: 2}
+    armsOnly: 1
   raiseOneArm:
     down: {fileID: -152358634275284821, guid: d4462d3fb1d84b91a7bd117135a6eb05, type: 3}
     level: {fileID: -814940555687654210, guid: c9da497a3dd24f7fba537a3424e5b7d0, type: 3}

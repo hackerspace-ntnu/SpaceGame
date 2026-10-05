@@ -218,6 +218,35 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void TryEnterAndReportQuarantineLikeRun()
+        {
+            Thrower t = Make<Thrower>();
+            Thrower sibling = Make<Thrower>();
+
+            Assert.IsTrue(Fault.TryEnter(t, "site"));
+
+            for (int i = 0; i < Fault.MaxFaultsPerWindow; i++)
+            {
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("\\[Fault\\].*site"));
+                Fault.Report(t, "site", new InvalidOperationException("boom"));
+            }
+
+            Assert.IsFalse(Fault.TryEnter(t, "site"), "a quarantined site refuses entry");
+            Assert.IsTrue(Fault.TryEnter(t, "other"), "other sites on the same owner stay open");
+            Assert.IsTrue(Fault.TryEnter(sibling, "site"), "the same site on another owner stays open");
+            Assert.AreEqual(Fault.MaxFaultsPerWindow, FaultLedger.TotalFaults, "every report lands in the ledger");
+        }
+
+        [Test]
+        public void TryEnterRefusesADestroyedOwner()
+        {
+            Thrower t = Make<Thrower>();
+            UnityEngine.Object.DestroyImmediate(t.gameObject);
+
+            Assert.IsFalse(Fault.TryEnter(t, "site"));
+        }
+
+        [Test]
         public void ADestroyedOwnerIsNotTouched()
         {
             Thrower t = Make<Thrower>();

@@ -660,20 +660,75 @@ namespace SpaceGame.Core
         //   B = variant | arm << 8 (arm: 0 none, 1 left, 2 right).
         public const ushort CharacterActed = 116; // server → everyone else
 
+        // ── Settlement residents ──
+        // Both on the RESIDENT's relay. The server alone picks what a resident says — the line
+        // table, the resident's memory and its stance live there — so a player addressing one
+        // only asks, and the answer comes back as a line id every machine looks up in its own
+        // copy of the same table. Speech is not replayed to late joiners: a line is a moment,
+        // and the resident's standing activity already arrives with its NetworkVariable.
+        //
+        //   ResidentAddressed   Target = the speaking PLAYER's NetworkObjectId (the sender), so
+        //                       the server answers the right person even on the host.
+        //   ResidentSaid        Target = the addressee player's NetworkObjectId, 0 for a line
+        //                       said to nobody in particular.
+        //                       A = the line id — LineTable.IdOf's uint FNV-1a hash carried
+        //                       bit-for-bit in the int field: send unchecked((int)id), read
+        //                       unchecked((uint)arg.A). Never a numeric conversion; ids above
+        //                       int.MaxValue arrive negative and must round-trip unchanged.
+        //                       B = the subject resident's index in its settlement roster
+        //                       ({friend}, {kin} in the line), -1 for none.
+        public const ushort ResidentAddressed = 117; // player → server
+        public const ushort ResidentSaid      = 118; // server → everyone, host included
+
+        // ── Player racket ──
+        // Owner → server, on the PLAYER's relay: "I am sprinting here". Sprint is decided on the
+        // owner and never replicated, while noise is heard only where agents tick — the server —
+        // so the owner reports it, throttled to one per PlayerStance.racketInterval. No payload:
+        // the server emits from its own copy of the body.
+        public const ushort SprintRacket = 119; // owner → server
+
+        // ── Seats ──
+        // Both owner → server, on the PLAYER's relay. The server decides and writes the answer into
+        // PlayerSeating's NetworkVariable; nothing is sent back, because every machine reads that.
+        // (Not the retired 92/93 SeatRequest/SeatRelease, which belonged to ship chairs.)
+        //   SitRequest   A = Seat.Id of the seat the player wants to sit on.
+        //   StandRequest no payload: stand the sender up.
+        public const ushort SitRequest   = 120; // owner → server
+        public const ushort StandRequest = 121; // owner → server
+
+        // ── Pushables ──
+        // Both owner → server, on the PLAYER's relay. The server decides and writes the answer into PlayerPushing's
+        // NetworkVariable; nothing is sent back, because every machine reads that.
+        //   PushRequest    A = Pushable.Id of the cart the player wants to take hold of.
+        //   ReleaseRequest no payload: let the sender's hands off the cart.
+        public const ushort PushRequest    = 122; // owner → server
+        public const ushort ReleaseRequest = 123; // owner → server
+
+        // ── Colony airlocks ──
+        // On the BUILDING's channel: the settlement wrapper's NetworkObject, or the building's root
+        // when it has none (a hand-placed colony, which then runs each machine's airlock alone).
+        // A = the AirlockChamber's index among the chambers on that entity (NetChannel.IndexOf).
+        //   AirlockOperate B = -1 asks for the state (a late joiner); otherwise bit 0 is the hatch
+        //                  (0 inner, 1 outer) and bit 1 says the clicker stands in the chamber.
+        //   AirlockState   B = AirlockState.ToWire(), plus bit 8 when it is the answer to an ask
+        //                  (land in it, do not animate into it).
+        public const ushort AirlockOperate = 124; // clicker → server
+        public const ushort AirlockState   = 125; // server → everyone
+
         // ── Knockdown requests ──
         // Owner → server, on the VICTIM's relay: "my own landing was hard enough to knock me down".
         // A = RagdollCause. The server checks Network.MayActFor and prices it through
         // RagdollController.Knock, which broadcasts Knockdown (82). A client cannot broadcast, and a
         // fall is only ever measured by the machine that owns the body — hence the round trip.
-        public const ushort KnockdownRequest = 119; // owner → server, on the VICTIM's relay
+        public const ushort KnockdownRequest = 126; // owner → server, on the VICTIM's relay
 
         // Owner → server, on the PLAYER's relay: "I pressed Jump while knocked down — let me up".
-        // The server checks Network.MayActFor and answers with GotUp (118). Players only; handled
+        // The server checks Network.MayActFor and answers with GotUp (128). Players only; handled
         // by PlayerRagdoll.
-        public const ushort GetUpRequest = 117; // owner → server, on the PLAYER's relay
+        public const ushort GetUpRequest = 127; // owner → server, on the PLAYER's relay
 
         // Server → everyone, on the PLAYER's relay: stand this knocked-down player up now. Every
         // machine runs its own copy of the ragdoll, so every machine has to be told.
-        public const ushort GotUp = 118; // server → everyone, on the PLAYER's relay
+        public const ushort GotUp = 128; // server → everyone, on the PLAYER's relay
     }
 }

@@ -3,8 +3,8 @@
 // The broadcast itself lives in the static Noise class, so anything without a
 // component — a weapon, an explosion, a scripted event — can report a sound with
 // one call. This exists for the case where the emitter *is* an object in the
-// world and its transform is the answer, which is what EntityAudioModule,
-// PerceptionModule and HealthReactionModule all want.
+// world and its transform is the answer, which is what HealthReactionModule
+// wants.
 //
 // It used to own the broadcast, using an OverlapSphere against a serialized
 // receiverLayers mask. That mask defaulted to Nothing, so an emitter added

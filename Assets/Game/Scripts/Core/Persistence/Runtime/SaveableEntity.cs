@@ -585,29 +585,46 @@ namespace SpaceGame.Core.Persistence
                 return;
             }
 
-            if (gameObject.scene.IsValid() && !string.IsNullOrEmpty(gameObject.scene.path))
-            {
-                // Placed in a scene at edit time: authored. Its state is a delta on top of what the
-                // scene file already contains, and it must never be re-instantiated on load.
-                AssignIfChanged(ref authored, true);
+            StampSceneIdentity();
+        }
 
-                string prefabGuid = ResolveSourcePrefabGuid();
-                if (!string.IsNullOrEmpty(prefabGuid)) AssignIfChanged(ref prefabId, prefabGuid);
+        /// <summary>
+        /// Bakes the identity of an object placed in a scene at edit time — authored, its source
+        /// prefab's id and a GUID of its own — and reports whether any of it changed. Does nothing
+        /// for a prefab asset, in Play mode, or outside a saved scene.
+        ///
+        /// What <see cref="OnValidate"/> does for every scene object, public so an editor tool that
+        /// adds this component can stamp it there and then and know whether the scene needs saving,
+        /// rather than depending on when Unity next validates it.
+        /// </summary>
+        public bool StampSceneIdentity()
+        {
+            if (Application.isPlaying || PrefabUtility.IsPartOfPrefabAsset(this) || EditorUtility.IsPersistent(this))
+                return false;
+            if (!gameObject.scene.IsValid() || string.IsNullOrEmpty(gameObject.scene.path)) return false;
 
-                if (string.IsNullOrEmpty(instanceId) || IsIdTakenBySomeoneElseInScene())
-                    AssignIfChanged(ref instanceId, Guid.NewGuid().ToString("N"));
+            // Placed in a scene at edit time: authored. Its state is a delta on top of what the
+            // scene file already contains, and it must never be re-instantiated on load.
+            bool changed = AssignIfChanged(ref authored, true);
 
-                // On a PREFAB INSTANCE the assignments above are not enough. Writing the field and
-                // calling SetDirty leaves the value matching the prefab's own, so Unity records no
-                // override and writes nothing into the scene file — the identity is regenerated,
-                // differently, every single time the scene is opened, and no saved record can ever
-                // be matched back to the object it belongs to.
-                //
-                // Registering the values through SerializedObject is what makes them overrides, and
-                // therefore what makes them survive in the scene at all.
-                if (PrefabUtility.IsPartOfPrefabInstance(this))
-                    RecordAsPrefabOverrides();
-            }
+            string prefabGuid = ResolveSourcePrefabGuid();
+            if (!string.IsNullOrEmpty(prefabGuid)) changed |= AssignIfChanged(ref prefabId, prefabGuid);
+
+            if (string.IsNullOrEmpty(instanceId) || IsIdTakenBySomeoneElseInScene())
+                changed |= AssignIfChanged(ref instanceId, Guid.NewGuid().ToString("N"));
+
+            // On a PREFAB INSTANCE the assignments above are not enough. Writing the field and
+            // calling SetDirty leaves the value matching the prefab's own, so Unity records no
+            // override and writes nothing into the scene file — the identity is regenerated,
+            // differently, every single time the scene is opened, and no saved record can ever
+            // be matched back to the object it belongs to.
+            //
+            // Registering the values through SerializedObject is what makes them overrides, and
+            // therefore what makes them survive in the scene at all.
+            if (PrefabUtility.IsPartOfPrefabInstance(this))
+                RecordAsPrefabOverrides();
+
+            return changed;
         }
 
         /// <summary>
@@ -685,18 +702,20 @@ namespace SpaceGame.Core.Persistence
             return false;
         }
 
-        private void AssignIfChanged(ref string field, string value)
+        private bool AssignIfChanged(ref string field, string value)
         {
-            if (field == value) return;
+            if (field == value) return false;
             field = value;
             EditorUtility.SetDirty(this);
+            return true;
         }
 
-        private void AssignIfChanged(ref bool field, bool value)
+        private bool AssignIfChanged(ref bool field, bool value)
         {
-            if (field == value) return;
+            if (field == value) return false;
             field = value;
             EditorUtility.SetDirty(this);
+            return true;
         }
 #endif
     }

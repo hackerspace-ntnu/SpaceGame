@@ -24,7 +24,7 @@ symptoms:
   - "a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing"
   - "the host is the last player to spawn and misses the crew gather"
 reads_with: [TerrainGeneration, Persistence, SceneTransitions, NavMeshSystem]
-updated: 2026-09-26
+updated: 2026-10-04
 ---
 
 # World Streaming
@@ -52,7 +52,7 @@ Server-authoritative additive loading of chunk scenes around moving anchors, plu
 | Type | File | Role |
 | --- | --- | --- |
 | `WorldStreamer` | [Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) | NetworkBehaviour; anchors, op queue, terrain cache, migration RPC, `OnChunkLoaded/WillUnload/Unloaded` (static). `IsChunkLoadedAt(point)`; `IsGroundLoadedAround(point, radius)` — every terrain chunk in `ChunkGrid.CoordsAround` is `Loaded` (false until ready) — for anything reading the ground round a point that must not mistake "not streamed in yet" for "nothing there" (`SettlementPopulation.keepGroundChunksLoaded`, `VesselPilot`'s landing search) |
-| `WorldStreamingConfig` | [Core/WorldStreamingConfig.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamingConfig.cs) | ScriptableObject: grid, tunables, `ConfigId` (asset GUID), `ChunkInfo[]` |
+| `WorldStreamingConfig` | [Core/WorldStreamingConfig.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamingConfig.cs) | ScriptableObject: grid, tunables, `ConfigId` (asset GUID), `ChunkInfo[]`, `siteCatalog` (the world's baked [`WorldSiteCatalog`](Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs), written by `Tools/SpaceGame/World/Bake Site Catalog`; `WorldStreamer.Awake` merges it into `WorldSiteRegistry` before any chunk loads and warns when none is set, `OnDestroy` clears the registry — [TerrainGeneration.md](TerrainGeneration.md)) |
 | `ChunkInfo` (struct) | same file | `gridCoord`, `sceneName`, `scenePath`, `worldBounds`, `hasTerrain` |
 | `ChunkGrid` (struct) | [Grid/ChunkGrid.cs](Assets/Game/Scripts/World/Streaming/Grid/ChunkGrid.cs) | Pure geometry; `ToCoord` clamps, `TryGetStreamingCoord`/`DistanceOutside`/`PredictAhead`, and `WindowAround` for the chunks a view of a given span centred on a position covers (Gotchas); `CoordsAround(pos, radius, list)` is that window clipped to the grid |
 | `SceneTracked` | [Core/SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) | `Pin`/`Migrate`/`Release`/`Despawn` + `keepChunksLoaded`; also `IPersistentEntity`. Added at runtime to every pickup by `SaveablePolicy.EnsureSpawned` |

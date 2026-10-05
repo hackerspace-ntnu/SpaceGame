@@ -89,6 +89,12 @@ namespace SpaceGame.Agents
         private readonly Dictionary<string, NpcGroupTemplate> templatesById = new();
         private readonly List<Transform> players = new();
 
+        // Owners whose runtime groups' records a director keeps itself, so a restore must not drop them.
+        private readonly HashSet<string> claimedOwners = new();
+
+        // Groups already warned about having nobody to spawn: a group near a player is asked again every tick.
+        private readonly HashSet<string> warnedNobodyToSpawn = new();
+
         private float tickTimer;
         private float playerTimer;
 
@@ -102,6 +108,9 @@ namespace SpaceGame.Agents
         public event Action<NpcGroup, GameObject> QuarrySighted;
 
         public float SpawnRadius => spawnRadius;
+
+        /// <summary>A spawned group stays real while any player is within this distance.</summary>
+        public float DespawnRadius => despawnRadius;
 
         // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -248,7 +257,7 @@ namespace SpaceGame.Agents
         // ── Runtime groups ───────────────────────────────────────────────────────
 
         /// <summary>
-        /// A group that no template seeded — a war party. Its template must be in <c>templates</c>
+        /// A group that no template seeded — a war party, an expedition band. Its template must be in <c>templates</c>
         /// (normally <c>runtimeOnly</c>), or a save could never restore it. Server only.
         /// </summary>
         public NpcGroup CreateGroup(NpcGroupTemplate template, string groupId, Vector3 start)
@@ -280,6 +289,16 @@ namespace SpaceGame.Agents
             groups.Add(group);
             Log($"{template.displayName} created as '{groupId}' at {start:F0}");
             return group;
+        }
+
+        /// <summary>
+        /// A director whose runtime groups carry <paramref name="owner"/> (NpcGroup.Owner) and survive a
+        /// load without a quarry claims it here, before any save is restored (its Awake). Unclaimed
+        /// runtime records keep the war-party rule: restored only while hunting someone.
+        /// </summary>
+        public void ClaimRuntimeOwner(string owner)
+        {
+            if (!string.IsNullOrEmpty(owner)) claimedOwners.Add(owner);
         }
 
         public NpcGroup FindGroup(string groupId)
@@ -334,6 +353,23 @@ namespace SpaceGame.Agents
                     return template;
 
             return null;
+        }
+
+        /// <summary>The template in this sim's list with <paramref name="templateId"/>; null when there is none.</summary>
+        public NpcGroupTemplate FindTemplate(string templateId) =>
+            templateId != null && templatesById.TryGetValue(templateId, out NpcGroupTemplate template) ? template : null;
+
+        /// <summary>
+        /// Make a folded group real now rather than on the next tick, at its <see cref="NpcGroup.SpawnPoses"/> when set:
+        /// a hand-off in view, where the members must appear on the tick the bodies they replace vanish. The caller
+        /// checks a player is within <see cref="DespawnRadius"/>, or the next tick folds the group again. Server only.
+        /// </summary>
+        public void SpawnNow(NpcGroup group)
+        {
+            NpcGroupTemplate template = TemplateFor(group);
+            if (template == null || group.Spawned) return;
+
+            Spawn(group, template);
         }
 
         public FactionDefinition TribeOf(NpcGroup group) => TemplateFor(group)?.tribe;
@@ -413,6 +449,14 @@ namespace SpaceGame.Agents
 
         private void TickVirtual(NpcGroup group, NpcGroupTemplate template, float delta)
         {
+            // The expedition director owns the goal, and clears it to halt: the sim only walks the
+            // record there. No errand, no dwell, no hunt of its own.
+            if (group.Owner == NpcGroup.OwnerExpedition)
+            {
+                if (group.HasGoal) group.AdvanceToward(FoldedSpeed(group, template), delta);
+                return;
+            }
+
             if (group.IsWarParty)
             {
                 TickWarPartyVirtual(group, template, delta);
@@ -557,8 +601,16 @@ namespace SpaceGame.Agents
         private void Spawn(NpcGroup group, NpcGroupTemplate template)
         {
             using ProfilerMarker.AutoScope sample = SpawnMarker.Auto();
+            // One-shot: the owner's exact poses are for this spawn only, used or not.
+            List<Pose> poses = group.SpawnPoses;
+            group.SpawnPoses = null;
+
             List<PlannedMember> plan = NpcGroupComposition.Resolve(group, template);
-            if (plan.Count == 0) return;
+            if (plan.Count == 0)
+            {
+                WarnNobodyToSpawn(group, template, "its plan is empty");
+                return;
+            }
 
             if (plan.Count > GroupMembership.GunnerIndexStride)
                 Debug.LogError($"[NpcWorldSim] '{group.Id}' plans {plan.Count} members, more than " +
@@ -588,6 +640,7 @@ namespace SpaceGame.Agents
                 ? new Vector3(vessel.transform.position.x, group.Position.y, vessel.transform.position.z)
                 : group.Position;
             Vector3 heading = group.Heading;
+            Quaternion facing = FacingAlong(heading);
             int followerIndex = 0;
             bool leaderTaken = false;
 
@@ -611,15 +664,21 @@ namespace SpaceGame.Agents
                 bool crewAboard = carrier != null && !group.CrewAshore;
                 if (carrier != null) slot = crewAboard ? carrier.transform.position : carrier.GangwayPoint;
 
+                Pose pose = poses != null && index < poses.Count ? poses[index] : new Pose(slot, facing);
+
                 // Known before the spawn, so a rider is made with its NavMeshAgent already off. Crew
                 // never take a vessel seat (Rides), even one left over when their carriers are full.
                 bool seated = crewAboard ||
                               (riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats);
 
-                // Stamped before the network spawn, so the loadout roll in OnNetworkSpawn is seeded.
+                // Stamped before the network spawn, so the loadout roll in OnNetworkSpawn is seeded, and
+                // so is whatever the group's owner stamps after it.
                 int memberIndex = index;
-                GameObject member = SpawnMember(planned.Prefab, slot, heading, seated,
-                    instance => GroupMembership.Stamp(instance, group, memberIndex, template.tribe));
+                GameObject member = SpawnMember(planned.Prefab, pose, seated, instance =>
+                {
+                    GroupMembership.Stamp(instance, group, memberIndex, template.tribe);
+                    group.MemberStamp?.Invoke(instance, memberIndex);
+                });
                 if (member == null) continue;
 
                 leaderTaken |= leads;
@@ -637,7 +696,11 @@ namespace SpaceGame.Agents
 
             if (vessel != null) Launch(vessel, group, template, riders);
 
-            if (group.Live.Count == 0) return;
+            if (group.Live.Count == 0)
+            {
+                WarnNobodyToSpawn(group, template, $"none of its {plan.Count} planned members has a prefab");
+                return;
+            }
 
             // Nobody was flagged, so the first spawned leads. FormationModule falls back the same
             // way, but making it explicit here means the task list lands on the right member.
@@ -646,6 +709,19 @@ namespace SpaceGame.Agents
 
             group.Spawned = true;
             Log($"{template.displayName} spawned ({group.Live.Count} members)");
+        }
+
+        /// <summary>
+        /// A group due to spawn that has nobody to spawn stays folded with a player beside it: said once per group, since
+        /// it is asked again every tick. Its owner's plan (<see cref="NpcGroup.PlannedOverride"/>) or the template's members
+        /// and tribe roster are where to look.
+        /// </summary>
+        private void WarnNobodyToSpawn(NpcGroup group, NpcGroupTemplate template, string why)
+        {
+            if (!warnedNobodyToSpawn.Add(group.Id)) return;
+
+            string source = group.PlannedOverride != null ? $"its owner's plan ('{group.Owner}')" : $"template '{template.id}'s members and roster";
+            Debug.LogWarning($"[NpcWorldSim] '{group.Id}' should spawn but {why}: nobody appears and it stays folded. Check {source}.", this);
         }
 
         /// <summary>
@@ -734,24 +810,21 @@ namespace SpaceGame.Agents
         private static Vector3 QuarryPoint(NpcGroup group) =>
             group.HasLead ? group.Lead : group.HasGoal ? group.GoalPosition : group.Position;
 
-        private static Quaternion FacingQuarry(NpcGroup group)
+        private static Quaternion FacingQuarry(NpcGroup group) => FacingAlong(QuarryPoint(group) - group.Position);
+
+        private static Quaternion FacingAlong(Vector3 direction)
         {
-            Vector3 toward = QuarryPoint(group) - group.Position;
-            toward.y = 0f;
-            return toward.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(toward, Vector3.up) : Quaternion.identity;
+            direction.y = 0f;
+            return direction.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(direction, Vector3.up) : Quaternion.identity;
         }
 
-        private GameObject SpawnMember(GameObject prefab, Vector3 position, Vector3 heading, bool seated,
-                                       Action<GameObject> beforeSpawn)
+        private GameObject SpawnMember(GameObject prefab, Pose pose, bool seated, Action<GameObject> beforeSpawn)
         {
+            Vector3 position = pose.position;
             if (NavMesh.SamplePosition(position, out NavMeshHit hit, spawnSampleDistance, NavMesh.AllAreas))
                 position = hit.position;
 
-            Quaternion rotation = heading.sqrMagnitude > 1e-4f
-                ? Quaternion.LookRotation(heading, Vector3.up)
-                : Quaternion.identity;
-
-            return NpcSpawn.Create(prefab, position, rotation, this, beforeSpawn, seated);
+            return NpcSpawn.Create(prefab, position, pose.rotation, this, beforeSpawn, seated);
         }
 
         private void Configure(GameObject member, NpcGroup group, NpcGroupTemplate template, bool leads)
@@ -767,20 +840,20 @@ namespace SpaceGame.Agents
             // being pulled two ways and arrive at neither.
             if (leads && member.TryGetComponent(out NpcTaskModule tasks))
             {
-                tasks.SetTasks(template.tasks, group.TaskIndex);
                 tasks.SetHome(group.Position);
 
                 if (group.HasGoal && member.TryGetComponent(out AgentGoal goal))
                     SetGoal(goal, group);
 
-                // Spawned partway through a stop: the leader works out the rest of it rather than
-                // setting off at once. It owns the stay from here; ReadBackCrew writes back what is
-                // left, so the record must not keep a copy to replay on the next fold or spawn.
-                if (!group.HasGoal && group.DwellRemaining > 0f)
-                {
-                    tasks.StayFor(group.DwellRemaining);
-                    group.DwellRemaining = 0f;
-                }
+                // After the goal, so a travelling leader's first tick already sees it. A group spawned
+                // partway through a stop finishes it rather than setting off at once.
+                tasks.ResumeTask(template.tasks, group.TaskIndex, group.HasGoal, group.DwellRemaining,
+                                 group.LastSiteId);
+
+                // The leader owns the stay from here; Despawn and CaptureRecords write back what is
+                // left (ReadTaskBack, ReadBackCrew), so the record must not keep a copy to replay on
+                // the next fold or spawn.
+                if (!group.HasGoal) group.DwellRemaining = 0f;
             }
 
             // See SceneTracked.SetKeepChunksLoaded. A spawned member is by definition within
@@ -898,7 +971,7 @@ namespace SpaceGame.Agents
 
             GameObject leader = LiveLeader(group);
             if (leader != null && leader.TryGetComponent(out NpcTaskModule tasks))
-                group.TaskIndex = tasks.CurrentTaskIndex;
+                ReadTaskBack(group, tasks);
 
             ReadBackCrew(group);
 
@@ -908,6 +981,7 @@ namespace SpaceGame.Agents
                 (!group.Delivered || NearestPlayerDistance(group.Transport.transform.position) > despawnRadius))
                 DespawnTransport(group);
 
+            ReadMembersBack(group);
             DespawnMembers(group);
             group.Spawned = false;
             Log($"{template.displayName} folded back to a record");
@@ -965,6 +1039,39 @@ namespace SpaceGame.Agents
             var order = new List<GameObject>(group.Live);
             order.Reverse();
             return order;
+        }
+
+        /// <summary>
+        /// Hand each member still in Live, the dead included, to the owner's <see cref="NpcGroup.ReadBack"/>
+        /// before the fold despawns it.
+        /// </summary>
+        private static void ReadMembersBack(NpcGroup group)
+        {
+            if (group.ReadBack == null) return;
+
+            foreach (GameObject member in group.Live)
+                if (member != null && member.TryGetComponent(out GroupMembership membership))
+                    group.ReadBack(member, membership.MemberIndex);
+        }
+
+        /// <summary>
+        /// The leader's errand back into the record — the inverse of <see cref="NpcTaskModule.ResumeTask"/>,
+        /// so a group folds in the phase it was in. A dwelling or choosing leader has no goal, and the
+        /// record's goal is cleared to match: left standing, the folded group would walk back to the
+        /// site it had already reached. Skipped for a leader without tasks, whose goal is the
+        /// director's (<see cref="SteerSpawned"/>), not an errand's.
+        /// </summary>
+        public static void ReadTaskBack(NpcGroup group, NpcTaskModule tasks)
+        {
+            group.TaskIndex = tasks.CurrentTaskIndex;
+            if (!tasks.HasTasks) return;
+
+            group.LastSiteId = tasks.LastSiteId;
+            bool dwelling = tasks.CurrentPhase == NpcTaskModule.Phase.Dwelling;
+            group.DwellRemaining = dwelling ? tasks.PhaseTimer : 0f;
+
+            if (tasks.CurrentPhase != NpcTaskModule.Phase.Travelling)
+                group.HasGoal = false;
         }
 
         /// <summary>
@@ -1160,13 +1267,16 @@ namespace SpaceGame.Agents
                    && profileId == group.QuarryProfileId;
         }
 
-        /// <summary>Tell every hunting squad where a player just was. For noise, gunfire, witnesses.</summary>
+        /// <summary>
+        /// Tell every hunting squad where a player just was. For noise, gunfire, witnesses. Never a
+        /// director's group: a war party follows its own quarry's trail, an expedition its own goal.
+        /// </summary>
         public void ReportSighting(Vector3 position)
         {
             foreach (NpcGroup group in groups)
             {
                 NpcGroupTemplate template = TemplateFor(group);
-                if (template == null || !template.bountyHunters || group.IsWarParty || group.DisbandWhenFolded) continue;
+                if (template == null || !template.bountyHunters || group.IsDirected || group.DisbandWhenFolded) continue;
 
                 group.Lead = position;
                 group.HasLead = true;
@@ -1306,9 +1416,7 @@ namespace SpaceGame.Agents
                 // permanent entry for a group that can never appear.
                 if (!templatesById.ContainsKey(record.templateId ?? string.Empty)) continue;
 
-                // A released war party saved mid-fold: it was already leaving. Restoring it would leave a
-                // hunter with nobody to hunt.
-                if (templatesById[record.templateId].runtimeOnly && string.IsNullOrEmpty(record.quarryProfileId))
+                if (templatesById[record.templateId].runtimeOnly && !KeepsRuntimeRecord(in record, claimedOwners))
                     continue;
 
                 // ApplyRecord seeds it from the record, or from its id as CreateGroup does when an
@@ -1322,6 +1430,16 @@ namespace SpaceGame.Agents
                 groups.Add(restored);
             }
         }
+
+        /// <summary>
+        /// Whether a runtime-only group's record comes back on load: always when a director claimed its
+        /// owner (<see cref="ClaimRuntimeOwner"/>), which keeps its own records; otherwise only a war
+        /// party still hunting. A released party saved mid-fold was already leaving, and restoring it
+        /// would leave a hunter with nobody to hunt.
+        /// </summary>
+        public static bool KeepsRuntimeRecord(in NpcGroup.Record record, ICollection<string> claimedOwners) =>
+            (!string.IsNullOrEmpty(record.owner) && claimedOwners.Contains(record.owner))
+            || !string.IsNullOrEmpty(record.quarryProfileId);
 
         private bool IsRuntime(NpcGroup group) => TemplateFor(group) is { runtimeOnly: true };
 

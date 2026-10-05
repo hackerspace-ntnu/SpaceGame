@@ -28,6 +28,7 @@
 //
 // Runs at 50: after AgentController (0), so a MoveIntent or a rider's input lands before the twist
 // for that frame is computed, and before LeggedLocomotion (100), which consumes it.
+using SpaceGame.Gameplay;
 using SpaceGame.Locomotion;
 using UnityEngine;
 using SpaceGame.World;
@@ -311,13 +312,6 @@ namespace SpaceGame.Agents
             // requested mid-frame cannot leak one more frame of travel into the legs.
             if (locomotion != null) locomotion.SetTwist(0f, 0f);
         }
-
-        public void NudgeDestination(Vector3 offset)
-        {
-            if (destination.HasValue) destination = destination.Value + offset;
-        }
-
-        public void SuggestDestination(Vector3 position) => destination = position;
 
         // ── Save/restore ──────────────────────────────────────────────────────────
         //

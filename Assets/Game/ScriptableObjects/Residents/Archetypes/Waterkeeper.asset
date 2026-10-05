@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54862c0fb1d14b798837a1e081db32ca, type: 3}
+  m_Name: Waterkeeper
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentArchetype
+  roleName: waterkeeper
+  post: {fileID: 11400000, guid: 3341a6d193d34d93ada62078f59a3b6a, type: 2}
+  trips: 0
+  chore: {fileID: 11400000, guid: b15a9c157aaf54c93bf4e4ddbf4fc7ef, type: 2}
+  duty: 0
+  challengesArmed: 0
+  nerve: 0.4
+  temper: 0.7
+  heldItem: {fileID: 11400000, guid: cbcf6a519d4094cf2a6a8ceba68ea811, type: 2}
+  beltItems:
+  - {fileID: 11400000, guid: baf2b8fc497a04996a58b80424b99006, type: 2}

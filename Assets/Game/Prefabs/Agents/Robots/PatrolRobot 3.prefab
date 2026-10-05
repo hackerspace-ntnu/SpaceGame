@@ -63,7 +63,6 @@ GameObject:
   - component: {fileID: 8606269569700701831}
   - component: {fileID: -4905406337871856757}
   - component: {fileID: 887615353182435970}
-  - component: {fileID: -4416368321103889466}
   - component: {fileID: -793941967296430392}
   - component: {fileID: 7912013939212748138}
   - component: {fileID: 9077173001429015515}
@@ -1130,18 +1129,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &-4416368321103889466
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &-793941967296430392
 MonoBehaviour:
   m_ObjectHideFlags: 0

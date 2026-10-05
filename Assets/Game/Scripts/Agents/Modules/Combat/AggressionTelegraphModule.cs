@@ -116,6 +116,14 @@ namespace SpaceGame.Agents
 
         public int FacingPriority => facingPriority;
 
+        /// <summary>No barks: for an owner whose warnings are spoken by its own voice (a settlement resident).</summary>
+        public void Mute()
+        {
+            warningLines = System.Array.Empty<string>();
+            lastWarningLines = System.Array.Empty<string>();
+            provokedLines = System.Array.Empty<string>();
+        }
+
         private void Hold(CharacterAction action, bool held)
         {
             if (held) actions.Play(action);

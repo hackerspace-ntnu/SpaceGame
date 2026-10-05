@@ -157,7 +157,7 @@ namespace SpaceGame.Agents
             if (motor) motor.GroundOffset = 0f;
 
             // Back to the authored pose, not to the last lean we wrote. On the rigs where nothing
-            // animates this node -- the Nomad, the PatrolRobots, the Vrescal -- leaving the lean
+            // animates this node -- the Nomad, the Vrescal -- leaving the lean
             // behind would freeze a dead or streamed-out body at whatever angle the last hillside
             // it stood on happened to be.
             if (bodyRoot && grounding != null) bodyRoot.localRotation = grounding.RestBodyRotation;
@@ -182,7 +182,9 @@ namespace SpaceGame.Agents
             // would flatten the leap. A rope carry is the same case with no end time: an animal
             // hanging off a jetpack is not standing on the dune underneath it, and leaning it into
             // that slope reads as a creature pasted onto ground it is nowhere near.
-            if (motor != null && (motor.IsLeaping || motor.IsCarried)) grounded = false;
+            // A climb along a ladder is a third: the terrain under a body halfway up a tower is
+            // not what it is standing on.
+            if (motor != null && (motor.IsLeaping || motor.IsCarried || motor.IsRidingLink)) grounded = false;
 
             // NetAuthority disables the motor and the NavMeshAgent on every remote copy. There the
             // height already arrived inside the replicated transform, and correcting it again here
@@ -218,9 +220,8 @@ namespace SpaceGame.Agents
         /// Not the agent root, whose yaw navigation owns and whose collider must stay upright, and
         /// not an arbitrary renderer's own transform: a SkinnedMeshRenderer deforms to its BONES,
         /// so tilting the object holding that renderer moves nothing. Walking up from the root bone
-        /// to the child of this agent lands on <c>Model</c> for the Nomad and BountyHunter,
-        /// <c>Armature</c> for the PatrolRobots, and <c>Arm_DuneRat</c> /
-        /// <c>vrescal</c> for two of the creatures.
+        /// to the child of this agent lands on <c>Model</c> for the Nomad and BountyHunter, and
+        /// <c>Arm_DuneRat</c> / <c>vrescal</c> for two of the creatures.
         /// </para>
         /// <para>
         /// Three probes, because one rig defeats each of the first two. The Golem is assembled from

@@ -41,7 +41,6 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 > additive edits that own a few named fields, plus the windows, importers and bakers.
 
 ## Model
-
 - **Content prefabs are hand-authored assets, except the ones a kept builder owns** (the agent and tribe pipeline above, each listed under Menu items). A hand edit is safe on the rest; on a built prefab the next rebuild discards it.
 - Three menu roots, inconsistently: `Tools/…` (most), `SpaceGame/…` (terrain, environment, Look Lab), `World/…` (streaming).
 - Wiring passes write private `[SerializeField]`s through [SerializedFields](Assets/Game/Editor/Support/SerializedFields.cs), which **warns** on an unresolved field name instead of silently no-op'ing.
@@ -49,7 +48,6 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 - `Audit`/`Report`/`Validate`/`Diagnose`/`Preview` commands are read-only; `Build`/`Wire`/`Apply`/`Fix`/`Bake`/`Setup` write assets.
 
 ## Menu items
-
 | Menu path | File | What it does |
 | --- | --- | --- |
 | SpaceGame/Environment/Install Volumetric Render Features | [VolumetricSetup.cs](Assets/Game/Editor/Environment/VolumetricSetup.cs) | Adds fog/cloud render features to the URP renderer asset (idempotent) |
@@ -89,17 +87,17 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | Tools/SpaceGame/Ragdoll/Wire Prefabs | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Adds `AgentRagdoll`/`PlayerRagdoll` across creature + player prefabs |
 | Tools/SpaceGame/Ragdoll/{Report Candidates, Audit Skeletons, Diagnose Wired Prefabs} | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Read-only: felling candidates, skinned vs rigid-part rigs, broken joints on wired prefabs |
 | Tools/Tests/Run EditMode Tests (headless) | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Runs the EditMode suite, writes a result file |
-| Tools/Tests/{Build Multiplayer Test Player, Print Multiplayer Test Commands} | [MultiplayerTestPlayerBuilder.cs](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) | Builds the standalone player for two-machine tests; logs the host/client CLI invocations |
+| Tools/Tests/{Build Multiplayer Test Player, Print Multiplayer Test Commands} | [MultiplayerTestPlayerBuilder.cs](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) | Builds the standalone player for two-machine tests (the three core scenes plus the 11 chunk scenes around the nomad settlement and the spawn); logs the host/client CLI invocations |
 | Tools/Vehicles/Build Desert Crawler Prefab · Tools/SpaceGame/Vehicles/Build Strider Habitat Walker | [DesertCrawlerBuilder.cs](Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs) · [StriderCityBuilder.cs](Assets/Game/Editor/Vehicles/StriderCityBuilder.cs) | `DesertCrawler.prefab` (six-legged habitat, a Strider worker; the builder writes every hand-tuned value itself and keeps the NetworkObject/SaveableEntity fileIDs `Chunk_7_4` overrides) · `StriderHabitatWalker.prefab`, a variant of the RigWalker with the helm removed and crew posts added ([Striders.md](Striders.md)) |
 | Tools/World/Bake Sandstorm Noise | [SandstormNoiseGenerator.cs](Assets/Game/Editor/Weather/SandstormNoiseGenerator.cs) | Writes `Textures/Environment/SandstormNoise.asset` |
 | Tools/World Streaming/Chunk World | [WorldChunkerEditor.cs](Assets/Game/Editor/World/WorldChunkerEditor.cs) | Window: splits a master scene into 500×500 m chunk scenes + TerrainData, rewrites `WorldStreamingConfig.asset` |
 | Tools/World Streaming/Bake Map Meshes | [MapMeshBaker.cs](Assets/Game/Editor/Map/MapMeshBaker.cs) | Window: one low-poly mesh per chunk into `Resources/MapMeshes` |
 | World/Streaming/Bake World NavMesh | [WorldNavMeshBaker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) | Bakes all chunk collision into one NavMesh asset (edit mode only) |
+| World/Streaming/Audit Settlement NavMesh · Show Settlement NavMesh Audit Findings | [SettlementNavMeshAudit.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/SettlementNavMeshAudit.cs) | Read-only. NavMesh islands, then every loaded settlement's spots, entrances, ladders and pen gates checked on-mesh and reachable from the walkable heart, plus narrow stair flights; failures logged by path and drawn in the Scene view |
 | World/Streaming/Check World NavMesh Is Current | [WorldNavMeshStaleness.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) | Compares per-chunk dependency hashes against bake-time hashes |
 | World/Streaming/Run Chunk Traversal Probe | [ChunkStreamingProbeMenu.cs](Assets/Game/Scripts/World/Streaming/Diagnostics/Editor/ChunkStreamingProbeMenu.cs) | Deletes the old report, arms a streaming probe run |
 
 ## What writes what
-
 | Script | Writes |
 | --- | --- |
 | [ExpeditionRigWiring](Assets/Game/Editor/Backpack/ExpeditionRigWiring.cs) | Backpack rig + 5 holder prefabs; also edits `PlayerCharacter.prefab` |
@@ -114,7 +112,6 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | [LibraryExporter](Assets/Game/Editor/AssetPipeline/LibraryExporter.cs) | `docs/library/` PNGs + `library.json` — outside `Assets/`, deliberately |
 
 ## Importers & postprocessors
-
 | Type | File | Applies to |
 | --- | --- | --- |
 | `AssetPostprocessor.OnPreprocessModel` | [MeshReadablePostprocessor.cs](Assets/Game/Editor/AssetPipeline/MeshReadablePostprocessor.cs) | Every imported model — forces `isReadable = true` so runtime NavMesh/collider code sees real geometry |
@@ -126,7 +123,6 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 Custom inspectors: [TerrainGenManagerEditor](Assets/Game/Editor/Terrain/TerrainGenManagerEditor.cs) (Bake All / Regenerate / Clear), [TerrainFeatureSpawnerEditor](Assets/Game/Editor/Terrain/TerrainFeatureSpawnerEditor.cs) + [TerrainFeatureHandles](Assets/Game/Editor/Terrain/TerrainFeatureHandles.cs) (scene-view footprint handles, live preview, Bake & Save Mesh via [TerrainFeatureBakeUtility](Assets/Game/Editor/Terrain/TerrainFeatureBakeUtility.cs)), [CaveSpawnerEditor](Assets/Game/Editor/Terrain/CaveSpawnerEditor.cs) (Bake & Save NavMesh), [WorldStreamerEditor](Assets/Game/Scripts/World/Streaming/Editor/WorldStreamerEditor.cs), [PackShapeLibraryEditor](Assets/Game/Scripts/Items/Backpack/Placement/Editor/PackShapeLibraryEditor.cs) (paintable mask grid), [BehaviourModuleEditor](Assets/Game/Editor/Agents/BehaviourModuleEditor.cs), [RoverBogieIKEditor](Assets/Game/Scripts/Vehicles/Rover/Editor/RoverBogieIKEditor.cs).
 
 ## Flows
-
 Change an artifact end to end:
 
 1. Edit the Blender source, export the FBX to `Assets/Game/Art/Models/…` ([ArtPipeline](ArtPipeline.md)); the postprocessors run on import.
@@ -137,19 +133,16 @@ Change an artifact end to end:
 Regenerate the streamed world: `Tools ▸ World Streaming ▸ Chunk World` → `World ▸ Streaming ▸ Bake World NavMesh` → `Tools ▸ World Streaming ▸ Bake Map Meshes` → `Tools ▸ Save System ▸ Wire Saveable Chunk Scenes`.
 
 ## Multiplayer
-
 - [NetworkPrefabRegistrar](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) is the sweep: it adds every prefab with a root `NetworkObject` to the list referenced by `Prefabs/Systems/NetworkManager.prefab`, choosing the **largest** existing `NetworkPrefabsList` because several near-duplicates survive from a restructure.
 - The list NetworkManager actually reads is `ScriptableObjects/Networking/DefaultNetworkPrefabs.asset`. `Assets/DefaultNetworkPrefabs.asset` at the project root is Netcode's own regenerated file and is **not** consulted.
 - A script-added `NetworkObject` ships `GlobalObjectIdHash 0` and NGO silently keeps one prefab per hash, so a tool that adds one must `ImportAsset(ForceUpdate)` then `ForceReserializeAssets`. Missing registration fails on **clients only**.
 
 ## Persistence
-
 - [SaveableWiring](Assets/Game/Scripts/Core/Persistence/Editor/SaveableWiring.cs) stamps `SaveableEntity` (identity ids) onto prefabs, open scenes and every chunk scene.
 - [SaveWiringValidator](Assets/Game/Scripts/Core/Persistence/Editor/SaveWiringValidator.cs) catches duplicate instance ids, unsaved scene-placed objects and restored prefabs missing from the network list — none of which any compiler or unit test can see.
 - [SaveCoverageReport](Assets/Game/Scripts/Core/Persistence/Editor/SaveCoverageReport.cs) heuristically lists mutable state with no saver — a starting point, not a defect list.
 
 ## Gotchas
-
 - **Most prefabs are the only copy now.** Unless a kept builder owns it, there is no builder to re-run, so a prefab overwritten or broken by hand cannot be regenerated — recover it from git. **Measure an imported FBX instance where it stands, never with its rotation reset.** The FBX root carries the import's axis rotation; `SetPositionAndRotation(zero, identity)` lays the model on its back, and its renderer bounds then measure its depth. `StriderElderBuilder.ScaleToHeight` did that and scaled the elder to 5 m. Set the position only. Likewise a rigid-part walker built on `CrabWalkerBuilder.BuildBodyFrom` gets its hips put on the root wherever its soles were authored: the elder's stand above z = 0, and the old sole-relative drop left its hip plane 0.25 m off the root.
 - **Never wipe an animator controller's sub-assets by hand; empty it through the API.** Two ways of "starting over" on a controller a prefab references have each produced a controller with no states and a clean console: `DeleteAsset` + `CreateAnimatorControllerAtPath`, and keeping the asset but `DestroyImmediate`-ing every sub-asset and resetting `layers`. The second is the nasty one: the write saves and reads back correctly, and *later in the session* the in-memory controller turns up **empty and dirty**, so the next `AssetDatabase` save writes that empty object over the good file. Clear through `RemoveState` / `RemoveAnyStateTransition` / `RemoveParameter`, keep the layer and its state machine, then force-reimport and count the states on disk.
 - **`*Menu` entry points end in a modal dialog, and a modal parks the editor until a human clicks.** `NetworkPrefabRegistrar.SyncMenu` and `WorldNavMeshBaker.BakeMenu` both finish with `EditorUtility.DisplayDialog`; anything calling one from code blocks every tool, test and MCP call behind an OK button. Call the worker — `NetworkPrefabRegistrar.Sync(out _, out _)`, `WorldNavMeshBaker.Bake(config)` — and log its report.
@@ -163,7 +156,6 @@ Regenerate the streamed world: `Tools ▸ World Streaming ▸ Chunk World` → `
 - A stuck "address already in use" UDP port survives [PlayModeTransportTeardown](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs); restarting the Editor is the only known cure.
 
 ## Extending
-
 1. Put the script under [Assets/Game/Editor/](Assets/Game/Editor) in the matching subfolder, namespace `SpaceGame.EditorTools`.
 2. Name the menu `Tools/SpaceGame/<Area>/<Verb Noun>`; separate a destructive `Fix`/`Wire` from a read-only `Audit`/`Report` twin.
 3. **Prefer an additive pass over a regenerating one.** Load the prefab with `PrefabUtility.LoadPrefabContents(path)`, mutate only the fields the pass owns, `SaveAsPrefabAsset`, `UnloadPrefabContents` in a `finally`. Never `SaveAsPrefabAsset` a prefab you composed from scratch over an authored one.

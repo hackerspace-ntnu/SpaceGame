@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54862c0fb1d14b798837a1e081db32ca, type: 3}
+  m_Name: Tanner
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentArchetype
+  roleName: tanner
+  post: {fileID: 11400000, guid: 93065d1581ad0435c909dd5715761cb0, type: 2}
+  trips: 0
+  chore: {fileID: 0}
+  duty: 0
+  challengesArmed: 0
+  nerve: 0.5
+  temper: 0.6
+  heldItem: {fileID: 11400000, guid: c7a66494c8bac442fa41a0eecb9b6277, type: 2}
+  beltItems:
+  - {fileID: 11400000, guid: 5c607215213b94f4da24d4c53a1176ba, type: 2}

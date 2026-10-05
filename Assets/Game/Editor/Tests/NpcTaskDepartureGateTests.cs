@@ -20,7 +20,7 @@ namespace SpaceGame.EditorTools
             // EditMode AddComponent does not run Awake, and Awake is what finds the AgentGoal.
             typeof(NpcTaskModule).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 ?.Invoke(tasks, null);
-            tasks.SetTasks(new[] { new NpcTask { targetSite = SiteKind.Ruin, dwellSeconds = new Vector2(1f, 1f) } });
+            tasks.ResumeTask(new[] { new NpcTask { targetSite = SiteKind.Ruin, dwellSeconds = new Vector2(1f, 1f) } }, -1, travelling: false, dwellRemaining: 0f, siteId: null);
         }
 
         [TearDown]
@@ -59,7 +59,7 @@ namespace SpaceGame.EditorTools
         public void AClosedGate_HoldsChoosing_SoARespawnedLeaderWaitsForItsCrew()
         {
             tasks.SetDepartureGate(() => false);
-            tasks.SetTasks(new[] { new NpcTask { targetSite = SiteKind.Ruin } });
+            tasks.ResumeTask(new[] { new NpcTask { targetSite = SiteKind.Ruin } }, -1, travelling: false, dwellRemaining: 0f, siteId: null);
 
             Tick(1f);
 

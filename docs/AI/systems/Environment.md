@@ -40,7 +40,7 @@ symptoms:
   - "an authored interior fog volume fades out as soon as I step into the room it is in"
   - "high up during the intro descent the skybox still shows ground-level mountains at eye level"
 reads_with: [Persistence, AgentSystem, ArtPipeline]
-updated: 2026-09-17
+updated: 2026-10-01
 ---
 
 # Environment
@@ -80,7 +80,7 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 | `FogVolumes` | [FogVolumes.cs](Assets/Game/Scripts/World/Environment/Fog/FogVolumes.cs) | Static registry; uploads the 8 nearest volumes + 8 nearest lights as shader globals |
 | `FogVolume` / `FogLight` / `FogShapeKind` | [Fog/](Assets/Game/Scripts/World/Environment/Fog/) | Authored body of air (Ellipsoid/Box/Cylinder/GroundLayer); opt-in lamp |
 | `CloudLayer` | [CloudLayer.cs](Assets/Game/Scripts/World/Environment/Sky/CloudLayer.cs) | One per scene; spherical shell parameters, pushes `_VolumetricCloudFade` |
-| `DayNightCycle` / `SkyNetwork` | [DayNightCycle.cs](Assets/Game/Scripts/World/Environment/Sky/DayNightCycle.cs), [SkyNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/SkyNetwork.cs) | Hour from clock+anchor; SkyNetwork carries the anchor only (Sun prefab has no NetworkObject) |
+| `DayNightCycle` / `SkyNetwork` | [DayNightCycle.cs](Assets/Game/Scripts/World/Environment/Sky/DayNightCycle.cs), [SkyNetwork.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/SkyNetwork.cs) | Hour from clock+anchor; SkyNetwork carries the anchor only (Sun prefab has no NetworkObject). The anchor also states the DAY: `Day` = floor(anchorDay + anchorPhase + elapsed/cycleDuration); `static Main` (first unfrozen live cycle), `HourOfDay`, `GameMinutesNow` = (Day + TimeOfDay) × 1440 (continuous), `JumpToHour(h)` (same day, server/offline), `DayAt(...)` pure helper **Day counter:** **The day crosses the wire explicitly.** `SkyAnchor.Day` (int) travels beside `Phase` (still 0..1) and `Clock`; `SkyNetwork` reads `ReadAnchor(out day, out phase, out clock)` and clients `AdoptAnchor(day, phase, clock)`. The 2-arg `AdoptAnchor(phase, clock)` states day 0 — only for anchors that carry no day. **`AnchorTo(phase, clock)` moves the hour, never the day** (it keeps the day the old anchor puts `clock` on); `AnchorTo(day, phase, clock)` states both. `SyncClockSource` restates with the cached day explicitly, because the old anchor read against the NEW clock lands on a random day. `JumpToHour` on a client is overwritten by the server's next anchor — call it on the server. |
 | `WindField` / `ClothWindDriver` | [WindField.cs](Assets/Game/Scripts/Vehicles/DuneFoil/Core/WindField.cs), [ClothWindDriver.cs](Assets/Game/Scripts/Presentation/Cloth/ClothWindDriver.cs) | The only wind source; resolved **reflectively** across the asmdef boundary |
 | `StructureAmbientMotion` | [StructureAmbientMotion.cs](Assets/Game/Scripts/World/Environment/Props/StructureAmbientMotion.cs) | Procedural idle motion on bone-parented props (no clips, per-instance phase) |
 
@@ -132,7 +132,7 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 ## Persistence
 
 - [SandstormSaveable](Assets/Game/Scripts/Core/Persistence/Adapters/SandstormSaveable.cs), key `"weather"` (global saver, on the `SandstormManager`/`NetworkGameManager` object): weather-clock reading, every storm as a flat `StormRecord`, `nextStormId`, and the director's countdown/active id.
-- [DayNightSaveable](Assets/Game/Scripts/Core/Persistence/Adapters/DayNightSaveable.cs), key `"sky"`: `timeOfDay`.
+- [DayNightSaveable](Assets/Game/Scripts/Core/Persistence/Adapters/DayNightSaveable.cs), key `"sky"`: `timeOfDay` and `day` (appended 2026-10-01; a save without it loads as day 0).
 - `StormRecord` deliberately flattens `Vector2` to two floats — Newtonsoft walks `Vector2.normalized` into a `StackOverflowException` without a converter.
 - Restore order matters: `Sandstorms.ResetClock()` runs before registration so a quickload cannot inherit the previous world's weather time; `RestoreStorms` also restores `nextId` so restored and freshly-rolled storms cannot collide.
 - Fog volumes, `FogLight` and `CloudLayer` hold **no runtime state** — nothing to save.

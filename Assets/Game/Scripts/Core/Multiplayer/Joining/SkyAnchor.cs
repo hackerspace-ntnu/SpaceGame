@@ -24,6 +24,9 @@ namespace SpaceGame.Core
         /// </summary>
         public bool Stated;
 
+        /// <summary>Whole days the world had run when <see cref="Phase"/> was measured.</summary>
+        public int Day;
+
         /// <summary>Time of day, 0 midnight to 1 midnight.</summary>
         public float Phase;
 
@@ -33,6 +36,7 @@ namespace SpaceGame.Core
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref Stated);
+            serializer.SerializeValue(ref Day);
             serializer.SerializeValue(ref Phase);
             serializer.SerializeValue(ref Clock);
         }
@@ -44,6 +48,7 @@ namespace SpaceGame.Core
         /// </summary>
         public bool Equals(SkyAnchor other) =>
             Stated == other.Stated &&
+            Day == other.Day &&
             Phase.Equals(other.Phase) &&
             Clock.Equals(other.Clock);
     }

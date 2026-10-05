@@ -3,9 +3,9 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.TestTools.Constraints;
-using Is = UnityEngine.TestTools.Constraints.Is;
 using SpaceGame.Agents;
 using SpaceGame.Diagnostics;
+using Is = UnityEngine.TestTools.Constraints.Is;
 
 namespace SpaceGame.Tests
 {
@@ -117,18 +117,51 @@ namespace SpaceGame.Tests
             Assert.AreEqual(1, healthy.Calls);
         }
 
-        [Test]
-        public void TickingAModuleAllocatesNothing()
-        {
-            var module = agent.AddComponent<WalkingModule>();
-            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
-            TestDelegate ticks = () => { for (int i = 0; i < 1000; i++) AgentController.RunModule(module, in context, 0.02f); };
-            ticks();   // warm up: the first call JITs, and the constraint would count the JIT's garbage
+        private const int AllocationProbeCalls = 1000;
 
-            // Is.Not.AllocatingGCMemory, not GC.GetAllocatedBytesForCurrentThread: Unity's Mono
-            // answers 0 to the latter whatever was allocated, so a test built on it always passes.
-            Assert.That(ticks, Is.Not.AllocatingGCMemory(), "a closure or a key string per module per frame");
-            Assert.GreaterOrEqual(module.Calls, 2000, "and every tick still ran");
+        // Runs `calls` once before it is measured, so JIT and first-use statics are not counted
+        // against the loop. The measurement is Unity's GC.Alloc recorder (AllocatingGCMemory):
+        // GC.GetAllocatedBytesForCurrentThread reads 0 under the editor's Mono whatever is allocated.
+        private static TestDelegate WarmedUp(TestDelegate calls)
+        {
+            calls();
+            return calls;
+        }
+
+        [Test]
+        public void RunningAModuleAllocatesNothing()
+        {
+            var healthy = agent.AddComponent<WalkingModule>();
+            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
+
+            TestDelegate calls = () =>
+            {
+                for (int i = 0; i < AllocationProbeCalls; i++)
+                    AgentController.RunModule(healthy, in context, 0.02f);
+            };
+
+            Assert.That(WarmedUp(calls), Is.Not.AllocatingGCMemory(),
+                        "RunModule runs once per module per creature per frame; any allocation here is garbage every frame");
+        }
+
+        // The control for the test above: proves the probe sees a per-call closure, so a zero there
+        // is a measurement and not a runtime that cannot count. This is the shape RunModule used to have.
+        [Test]
+        public void TheAllocationProbeSeesAPerCallClosure()
+        {
+            var healthy = agent.AddComponent<WalkingModule>();
+            var context = new AgentContext { Self = agent.transform, Position = Vector3.zero };
+
+            TestDelegate calls = () =>
+            {
+                for (int i = 0; i < AllocationProbeCalls; i++)
+                {
+                    AgentContext local = context;
+                    Fault.Run(healthy, "probe", () => healthy.Tick(in local, 0.02f));
+                }
+            };
+
+            Assert.That(WarmedUp(calls), Is.AllocatingGCMemory());
         }
 
         [Test]

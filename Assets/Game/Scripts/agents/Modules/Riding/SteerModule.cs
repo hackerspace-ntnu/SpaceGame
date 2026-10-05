@@ -2,8 +2,8 @@
 // anything: ground vehicle, mounted creature, flying blimp — the module doesn't care.
 //
 // SteerModule reads rider input and forwards it to the motor via IRiderControllable.
-// The motor interprets that input in its own physics model (tank-steer on RigidbodyMotor /
-// NavMeshAgentMotor, throttle+yaw+vertical on FlyingRigidbodyMotor, etc.).
+// The motor interprets that input in its own physics model (tank-steer on NavMeshAgentMotor,
+// throttle+steer on HoverRigidbodyMotor, pitch+roll+flap on OrnithopterFlightMotor, etc.).
 //
 // Flow per frame while mounted + rider has input above threshold:
 //   1. SteerModule.Update → ReadMountedInput → build RiderInput.
@@ -16,7 +16,7 @@
 // can then run if MountModule.allowAISelfMovementWhenMounted is true.
 //
 // Jump / leap are one-shot rider actions and keep their dedicated interfaces
-// (IMountJumpMotor / IMountLeapMotor). Motors that don't implement them (e.g. FlyingRigidbodyMotor)
+// (IMountJumpMotor / IMountLeapMotor). Motors that don't implement them (e.g. HoverRigidbodyMotor)
 // simply ignore the rider's jump button.
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -106,7 +106,6 @@ namespace SpaceGame.Agents
         private bool forcedVerticalActionEnabled;
         private bool forcedRunActionEnabled;
         private bool forcedTurnActionEnabled;
-        private bool runtimeMovementPathEnsured;
 
         // ─────────── Public API ───────────
         public bool IsMounted => mountModule && mountModule.IsMounted;
@@ -127,7 +126,6 @@ namespace SpaceGame.Agents
             if (!mountModule)
                 mountModule = GetComponent<MountModule>();
 
-            EnsureRuntimeMovementPath();
             agentController = GetComponent<AgentController>();
             ResolveMotorReferences();
 
@@ -228,8 +226,6 @@ namespace SpaceGame.Agents
 
         private void ResolveMotorReferences()
         {
-            EnsureRuntimeMovementPath();
-
             if (!agentController)
                 agentController = GetComponent<AgentController>();
 
@@ -250,37 +246,6 @@ namespace SpaceGame.Agents
             riderMotor = GetComponent<IRiderControllable>();
             jumpMotor = GetComponent<IMountJumpMotor>();
             leapMotor = GetComponent<IMountLeapMotor>();
-        }
-
-        private void EnsureRuntimeMovementPath()
-        {
-            if (runtimeMovementPathEnsured)
-                return;
-
-            if (!HasMovementMotor() && GetComponent<Rigidbody>() != null)
-                gameObject.AddComponent<RigidbodyMotor>();
-
-            if (!agentController && !TryGetComponent(out agentController))
-                agentController = gameObject.AddComponent<AgentController>();
-
-            if (agentController != null)
-            {
-                agentController.RefreshMotor();
-                agentController.RefreshModules();
-            }
-
-            runtimeMovementPathEnsured = true;
-        }
-
-        private bool HasMovementMotor()
-        {
-            foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (mb is IMovementMotor)
-                    return true;
-            }
-
-            return false;
         }
 
         // ─────────── OnValidate ───────────

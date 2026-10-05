@@ -21,6 +21,9 @@
 //
 //   Player.app/Contents/MacOS/<exe> -batchmode -nographics -sgmode persist -logFile persist.log
 //
+// The settlement has its own three modes (settlement-host, settlement-client, settlement-persist), and so do its
+// expeditions (expedition-host, expedition-client, expedition-persist).
+//
 // The scripts themselves live on AutotestRunner, one partial per mode.
 using UnityEngine;
 

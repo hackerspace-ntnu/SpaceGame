@@ -33,7 +33,7 @@ symptoms:
   - "the gear wall has one more bottle on it than there are people in the crew"
   - "a docked item pops in or out much later, at the unrelated moment something else changes"
 reads_with: [Inventory, Backpack, PlayerShip, InteractionSystem, Persistence, Multiplayer]
-updated: 2026-09-12
+updated: 2026-10-03
 ---
 
 # Oxygen
@@ -121,6 +121,8 @@ The plant has **no `NetworkObject` of its own** — nested on `PlayerShip.prefab
 - **An item that MOVED between two authored lists has to be taken out of the old one, and nothing does that for you.** Deleting a `Stock` call only stops the builder ADDING the item; the reference already on the prefab stays where it is. The tank left in `startingMainItems` as well as in `perCrewItems` is one bottle on top of the per-crew count at every crew size — so a solo player finds two and reads it as the count simply being wrong. `Unstock` is the mirror that removes it, and `Verify` fails the run if a tank is in both. (`DeleteArrayElementAtIndex` on an object reference NULLS the row the first time and only removes it the second, which is why `Unstock` clears it first — a hole left behind is an item the container tries to stow on every spawn and cannot resolve.)
 - **Run the builders in order.** `OxygenGearBuilder` first (the fixture's aim volumes are measured off the items that go in them), then `OxygenGeneratorBuilder`, then **Tools ▸ Vehicles ▸ Build PlayerShip Prefab**. `Tools ▸ SpaceGame ▸ Build Oxygen System (items + generator)` does the first two in one press. Rebuilding the fixture alone orphans the hull's strip of its savers — see [PlayerShip.md](PlayerShip.md)'s gotcha and re-run **Tools ▸ Save System ▸ Wire Saveable Prefabs** after it.
 - **The items enter the game on the ship's gear wall, and the tanks are counted per head.** `OxygenGearBuilder.RouteIntoTheGame` puts the battery in `WallInventory.startingMainItems` — the fixed manifest — and the tank in `WallInventory.perCrewItems`, which `ArrivalDirector.StockCrewStores` lays on at launch, one per crew member riding that hull down. `InventoryWallBuilder` reads both lists off the existing prefab and writes them back, so they survive a rebuild of the wall. Without the battery the plant is unreachable — a machine that needs a cell nobody can obtain. **One battery, whatever the crew size:** the plant needs exactly one and it never drains, so a second is a duplicate with nothing to do; a bottle is a store and a crew of four splitting one is a party-size difficulty curve nobody authored (`GDC-L1-SYS-0008`).
+
+- **`startingBattery` seeds a plant nobody has touched.** Negative (the default) leaves the lander's plant waiting for a cell; the colony interiors set `1`, so their filler runs from the start ([ColonyInterior.md](ColonyInterior.md)). It is applied in `Awake`, before the server publishes the plant, and a restored save overwrites it — but an untouched plant saves nothing, so a plant whose battery was taken out gets the seed back after a reload.
 
 ## Extending
 

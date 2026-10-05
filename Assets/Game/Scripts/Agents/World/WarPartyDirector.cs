@@ -192,7 +192,7 @@ namespace SpaceGame.Agents
         {
             foreach (NpcGroup group in new List<NpcGroup>(sim.Groups))
             {
-                if (!group.IsWarParty || book.FindByGroup(group.Id) != null) continue;
+                if (!group.IsOwnedByWar || book.FindByGroup(group.Id) != null) continue;
 
                 FactionDefinition tribe = sim.TribeOf(group);
                 if (tribe == null) continue;
@@ -297,8 +297,8 @@ namespace SpaceGame.Agents
             {
                 if (reportedMissingTemplate.Add(war.Tribe))
                     Debug.LogError($"[WarParty] {war.Tribe.factionName} is at war but the NpcWorldSim has no " +
-                                   "war-party template for it (runtimeOnly, bountyHunters, tribe set). Run " +
-                                   "Tools/SpaceGame/Agents/Wire War Party Templates.", this);
+                                   "war-party template for it. Add an NpcGroupTemplate with runtimeOnly, " +
+                                   "bountyHunters and this tribe set to the NpcWorldSim's templates list.", this);
 
                 book.ClearParty(war, settings.partyCooldown);
                 return;
@@ -312,6 +312,7 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            party.Owner = NpcGroup.OwnerWar;
             party.QuarryProfileId = war.ProfileId;
             party.Tier = war.Tier;
             RefreshTrail(party, quarryPosition);

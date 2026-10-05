@@ -1,0 +1,977 @@
+fileFormatVersion: 2
+guid: 8cf8888047d9bc248be227e8f9c6786e
+AssetOrigin:
+  serializedVersion: 1
+  productId: 318012
+  packageName: Free Cooking Animations
+  packageVersion: 1.0
+  assetPath: Assets/EEJANAI_Team/CookingAnimations/FBX/Washing vegetables (loop).fbx
+  uploadId: 750831
+ModelImporter:
+  serializedVersion: 24200
+  internalIDToNameTable: []
+  externalObjects: {}
+  materials:
+    materialImportMode: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Washing vegetables (loop)
+      takeName: Washing vegetables (loop)_Baked
+      internalID: 458601964605703763
+      firstFrame: 0
+      lastFrame: 80
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 1
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human:
+    - boneName: EEJANAIBot:Hips
+      humanName: Hips
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftUpLeg
+      humanName: LeftUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightUpLeg
+      humanName: RightUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftLeg
+      humanName: LeftLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightLeg
+      humanName: RightLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftFoot
+      humanName: LeftFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightFoot
+      humanName: RightFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:Spine
+      humanName: Spine
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:Spine1
+      humanName: Chest
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:Neck
+      humanName: Neck
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:Head
+      humanName: Head
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftShoulder
+      humanName: LeftShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightShoulder
+      humanName: RightShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftArm
+      humanName: LeftUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightArm
+      humanName: RightUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftForeArm
+      humanName: LeftLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightForeArm
+      humanName: RightLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHand
+      humanName: LeftHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHand
+      humanName: RightHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftToeBase
+      humanName: LeftToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightToeBase
+      humanName: RightToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandThumb1
+      humanName: Left Thumb Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandThumb2
+      humanName: Left Thumb Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandThumb3
+      humanName: Left Thumb Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandIndex1
+      humanName: Left Index Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandIndex2
+      humanName: Left Index Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandIndex3
+      humanName: Left Index Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandMiddle1
+      humanName: Left Middle Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandMiddle2
+      humanName: Left Middle Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandMiddle3
+      humanName: Left Middle Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandRing1
+      humanName: Left Ring Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandRing2
+      humanName: Left Ring Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandRing3
+      humanName: Left Ring Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandPinky1
+      humanName: Left Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandPinky2
+      humanName: Left Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:LeftHandPinky3
+      humanName: Left Little Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandThumb1
+      humanName: Right Thumb Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandThumb2
+      humanName: Right Thumb Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandThumb3
+      humanName: Right Thumb Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandIndex1
+      humanName: Right Index Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandIndex2
+      humanName: Right Index Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandIndex3
+      humanName: Right Index Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandMiddle1
+      humanName: Right Middle Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandMiddle2
+      humanName: Right Middle Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandMiddle3
+      humanName: Right Middle Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandRing1
+      humanName: Right Ring Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandRing2
+      humanName: Right Ring Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandRing3
+      humanName: Right Ring Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandPinky1
+      humanName: Right Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandPinky2
+      humanName: Right Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:RightHandPinky3
+      humanName: Right Little Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: EEJANAIBot:Spine2
+      humanName: UpperChest
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    skeleton:
+    - name: Washing vegetables (loop)(Clone)
+      parentName: 
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIbot
+      parentName: Washing vegetables (loop)(Clone)
+      position: {x: 0.0008722257, y: 0, z: -0.036440335}
+      rotation: {x: 0, y: -0.0000020066473, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Armature
+      parentName: EEJANAIbot
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.00000003774895, y: 0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:Hips
+      parentName: Armature
+      position: {x: -0.00078868866, y: 1.0707012, z: -0.043842234}
+      rotation: {x: 0.006458361, y: -0.0000000042043573, z: -0.00000025032543, w: 0.99997914}
+      scale: {x: 0.99999994, y: 0.9999998, z: 0.9999998}
+    - name: EEJANAIBot:Spine
+      parentName: EEJANAIBot:Hips
+      position: {x: 0.000000008940713, y: 0.10182431, z: -0.000000020023435}
+      rotation: {x: -0.08015573, y: 0.0000000037489643, z: 0.00000024697778, w: 0.9967824}
+      scale: {x: 0.9999999, y: 0.99999994, z: 0.9999999}
+    - name: EEJANAIBot:Spine1
+      parentName: EEJANAIBot:Spine
+      position: {x: -0.0000000059604637, y: 0.100026675, z: 0.0000000065192602}
+      rotation: {x: -0.00000006705522, y: 7.2741313e-10, z: 7.048325e-10, w: 1}
+      scale: {x: 0.99999994, y: 1, z: 1.0000001}
+    - name: EEJANAIBot:Spine2
+      parentName: EEJANAIBot:Spine1
+      position: {x: 4.4703483e-10, y: 0.09322061, z: -0.0000000027939686}
+      rotation: {x: 0.01288571, y: -0.000000004823149, z: 0.00000003762658, w: 0.999917}
+      scale: {x: 0.9999999, y: 1, z: 0.99999994}
+    - name: EEJANAIBot:Neck
+      parentName: EEJANAIBot:Spine2
+      position: {x: -0.000000007152557, y: 0.16865335, z: 0.000000013038521}
+      rotation: {x: -0.00000004470348, y: 3.1796785e-13, z: -3.6381403e-10, w: 1}
+      scale: {x: 0.99999994, y: 1.0000001, z: 0.99999994}
+    - name: EEJANAIBot:Head
+      parentName: EEJANAIBot:Neck
+      position: {x: 0.0000000024586881, y: 0.09341938, z: 0.02841041}
+      rotation: {x: 0.0000000745058, y: 0.000000005820446, z: -0.000000009822603, w: 1}
+      scale: {x: 0.99999976, y: 1, z: 0.99999994}
+    - name: EEJANAIBot:HeadTop_End
+      parentName: EEJANAIBot:Head
+      position: {x: -0.000000004209578, y: 0.20962772, z: 0.101229325}
+      rotation: {x: -0.000000052154057, y: 2.7977618e-13, z: 0.0000000094588195, w: 1}
+      scale: {x: 1, y: 1, z: 1.0000001}
+    - name: EEJANAIBot:HeadTop_End_end
+      parentName: EEJANAIBot:HeadTop_End
+      position: {x: -0, y: 0.23279029, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:RightShoulder
+      parentName: EEJANAIBot:Spine2
+      position: {x: 0.0456997, y: 0.11195868, z: -0.008066305}
+      rotation: {x: -0.48443046, y: -0.57096386, z: 0.52616346, w: -0.40308723}
+      scale: {x: 1.0000002, y: 1.0000011, z: 1.0000006}
+    - name: EEJANAIBot:RightArm
+      parentName: EEJANAIBot:RightShoulder
+      position: {x: -0.00000007264315, y: 0.10838185, z: 0.00000005215405}
+      rotation: {x: 0.024615869, y: 0.0025623143, z: -0.10349843, w: -0.9943217}
+      scale: {x: 1, y: 1.0000001, z: 1.0000004}
+    - name: EEJANAIBot:RightForeArm
+      parentName: EEJANAIBot:RightArm
+      position: {x: -0.00000007450575, y: 0.27841523, z: 0.00000003318968}
+      rotation: {x: 0.000000026077029, y: -0.00000003329478, z: 0.000000032094245, w: 1}
+      scale: {x: 1.0000004, y: 1.0000005, z: 1.0000005}
+    - name: EEJANAIBot:RightHand
+      parentName: EEJANAIBot:RightForeArm
+      position: {x: -0.00000029802297, y: 0.2832887, z: 0.00000011920915}
+      rotation: {x: -0, y: -0, z: 8.682289e-16, w: 1}
+      scale: {x: 1.0000001, y: 1.0000004, z: 1.0000005}
+    - name: EEJANAIBot:RightHandThumb1
+      parentName: EEJANAIBot:RightHand
+      position: {x: -0.026818557, y: 0.024647929, z: 0.015739782}
+      rotation: {x: 0.11660981, y: -0.12356358, z: 0.33745012, w: 0.9258842}
+      scale: {x: 1.0000008, y: 1.0000011, z: 1.000001}
+    - name: EEJANAIBot:RightHandThumb2
+      parentName: EEJANAIBot:RightHandThumb1
+      position: {x: 0.000000024214351, y: 0.04188998, z: 0.00000014528614}
+      rotation: {x: -0.0023153576, y: 0.001170464, z: -0.009300325, w: 0.9999534}
+      scale: {x: 0.99999976, y: 0.9999995, z: 0.9999995}
+    - name: EEJANAIBot:RightHandThumb3
+      parentName: EEJANAIBot:RightHandThumb2
+      position: {x: -0.000000029802276, y: 0.034162633, z: 0.000000033527574}
+      rotation: {x: -0.001664229, y: 0.00080731953, z: -0.0069199153, w: 0.9999744}
+      scale: {x: 1.0000008, y: 1.0000019, z: 1.0000012}
+    - name: EEJANAIBot:RightHandThumb4
+      parentName: EEJANAIBot:RightHandThumb3
+      position: {x: -0.000000014305114, y: 0.02574993, z: -0.000000009536743}
+      rotation: {x: 0.005774892, y: 0.11750989, z: 0.04874391, w: 0.99185795}
+      scale: {x: 1.0000002, y: 1.0000014, z: 1.000001}
+    - name: EEJANAIBot:RightHandThumb4_end
+      parentName: EEJANAIBot:RightHandThumb4
+      position: {x: -0, y: 0.025749814, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:RightHandIndex1
+      parentName: EEJANAIBot:RightHand
+      position: {x: -0.02259839, y: 0.09108278, z: 0.0051785773}
+      rotation: {x: 0.00012124704, y: 0.000000066589955, z: 0.00016426327, w: 1}
+      scale: {x: 1.0000007, y: 1.000001, z: 1.0000006}
+    - name: EEJANAIBot:RightHandIndex2
+      parentName: EEJANAIBot:RightHandIndex1
+      position: {x: 0.0000000037225567, y: 0.03700007, z: 0.000000040589796}
+      rotation: {x: -0.00034419823, y: -0.00000022638648, z: -0.00025573611, w: 0.9999999}
+      scale: {x: 1.0000004, y: 1.0000002, z: 1.0000007}
+    - name: EEJANAIBot:RightHandIndex3
+      parentName: EEJANAIBot:RightHandIndex2
+      position: {x: 0.000000027942352, y: 0.028500143, z: -0.000000004627501}
+      rotation: {x: -0.0054869414, y: -0.0000003414069, z: 0.0000881524, w: 0.9999849}
+      scale: {x: 1.0000002, y: 1.0000001, z: 1.0000002}
+    - name: EEJANAIBot:RightHandIndex4
+      parentName: EEJANAIBot:RightHandIndex3
+      position: {x: -0.000000009536743, y: 0.027721746, z: 0.000000019073486}
+      rotation: {x: 0.00570736, y: -0.0010022046, z: -0.000092976, w: 0.9999832}
+      scale: {x: 1.0000001, y: 0.9999999, z: 1.0000001}
+    - name: EEJANAIBot:RightHandIndex4_end
+      parentName: EEJANAIBot:RightHandIndex4
+      position: {x: -0, y: 0.02772186, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:RightHandMiddle1
+      parentName: EEJANAIBot:RightHand
+      position: {x: 0.00000018626429, y: 0.09532501, z: 0.00000037467316}
+      rotation: {x: 0.000039644558, y: -0.000000097078576, z: 0.0005018864, w: 0.99999994}
+      scale: {x: 1.0000002, y: 1.0000008, z: 1.0000005}
+    - name: EEJANAIBot:RightHandMiddle2
+      parentName: EEJANAIBot:RightHandMiddle1
+      position: {x: 0.000000029809552, y: 0.037000205, z: -0.00000003687815}
+      rotation: {x: -0.00009947839, y: 0.0000000024735483, z: -0.0008499859, w: 0.9999997}
+      scale: {x: 1.0000001, y: 1.0000005, z: 1.0000004}
+    - name: EEJANAIBot:RightHandMiddle3
+      parentName: EEJANAIBot:RightHandMiddle2
+      position: {x: 0.000000005587927, y: 0.029499948, z: 6.948527e-10}
+      rotation: {x: -0.0006988178, y: -0.0000000548066, z: 0.00032196133, w: 0.9999997}
+      scale: {x: 1.0000002, y: 0.9999999, z: 1.0000002}
+    - name: EEJANAIBot:RightHandMiddle4
+      parentName: EEJANAIBot:RightHandMiddle3
+      position: {x: 0.000000028610229, y: 0.029466216, z: 0.0000000047683715}
+      rotation: {x: 0.0007507554, y: -0.0009289587, z: -0.00016732256, w: 0.9999993}
+      scale: {x: 1.0000001, y: 1.0000002, z: 1.0000008}
+    - name: EEJANAIBot:RightHandMiddle4_end
+      parentName: EEJANAIBot:RightHandMiddle4
+      position: {x: -0, y: 0.029466325, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:RightHandRing1
+      parentName: EEJANAIBot:RightHand
+      position: {x: 0.018651307, y: 0.09103587, z: 0.000430727}
+      rotation: {x: -0.00012775509, y: -0.000000016298108, z: -0.00015592143, w: 1}
+      scale: {x: 1.0000005, y: 1.0000006, z: 1.0000006}
+    - name: EEJANAIBot:RightHandRing2
+      parentName: EEJANAIBot:RightHandRing1
+      position: {x: 0.000000033530284, y: 0.03379287, z: 0.000000014150816}
+      rotation: {x: 0.0004289709, y: -0.00000019215584, z: 0.00022150528, w: 0.99999994}
+      scale: {x: 1.0000001, y: 1.0000004, z: 1.0000004}
+    - name: EEJANAIBot:RightHandRing3
+      parentName: EEJANAIBot:RightHandRing2
+      position: {x: -1.3642397e-12, y: 0.028896932, z: 0.000000036407027}
+      rotation: {x: -0.00018957995, y: 0.00000023589926, z: 0.00011265245, w: 1}
+      scale: {x: 1.0000004, y: 1.0000008, z: 1.0000002}
+    - name: EEJANAIBot:RightHandRing4
+      parentName: EEJANAIBot:RightHandRing3
+      position: {x: -0.000000009536743, y: 0.026388017, z: 0.000000023841855}
+      rotation: {x: -0.0000918264, y: -0.0001459383, z: 0.0007995147, w: 0.99999976}
+      scale: {x: 1, y: 1.0000005, z: 1.0000005}
+    - name: EEJANAIBot:RightHandRing4_end
+      parentName: EEJANAIBot:RightHandRing4
+      position: {x: -0, y: 0.026388066, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:RightHandPinky1
+      parentName: EEJANAIBot:RightHand
+      position: {x: 0.038062803, y: 0.080766715, z: 0.0048669833}
+      rotation: {x: -0.000034064073, y: -0.000000057055992, z: -0.000520372, w: 0.99999994}
+      scale: {x: 1.0000005, y: 1.000001, z: 1.0000006}
+    - name: EEJANAIBot:RightHandPinky2
+      parentName: EEJANAIBot:RightHandPinky1
+      position: {x: -0.00000003726013, y: 0.036000118, z: -0.0000000035724905}
+      rotation: {x: 0.000022990584, y: -0.00000007751054, z: -0.0008462472, w: 0.9999997}
+      scale: {x: 1.0000001, y: 1.0000001, z: 1.0000001}
+    - name: EEJANAIBot:RightHandPinky3
+      parentName: EEJANAIBot:RightHandPinky2
+      position: {x: -0.000000050484132, y: 0.020999826, z: -0.000000007523327}
+      rotation: {x: -0.000004599063, y: 0.00000021407054, z: 0.0004969807, w: 0.9999999}
+      scale: {x: 1.0000002, y: 1.0000002, z: 1.0000001}
+    - name: EEJANAIBot:RightHandPinky4
+      parentName: EEJANAIBot:RightHandPinky3
+      position: {x: -0.000000038146972, y: 0.021157712, z: 0.000000009536743}
+      rotation: {x: 0.000013567209, y: -0.0015697201, z: 0.000040965617, w: 0.99999875}
+      scale: {x: 1.0000001, y: 1.0000008, z: 1.0000004}
+    - name: EEJANAIBot:RightHandPinky4_end
+      parentName: EEJANAIBot:RightHandPinky4
+      position: {x: -0, y: 0.021157788, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:LeftShoulder
+      parentName: EEJANAIBot:Spine2
+      position: {x: -0.045704465, y: 0.11195663, z: -0.008066251}
+      rotation: {x: 0.48442262, y: -0.5709704, z: 0.5261616, w: 0.4030898}
+      scale: {x: 0.9999999, y: 0.9999996, z: 1}
+    - name: EEJANAIBot:LeftArm
+      parentName: EEJANAIBot:LeftShoulder
+      position: {x: 0.000000009313224, y: 0.10837713, z: 0.0000002421439}
+      rotation: {x: -0.024606615, y: 0.0025612712, z: -0.103503704, w: 0.99432135}
+      scale: {x: 0.9999997, y: 1.0000007, z: 1.0000004}
+    - name: EEJANAIBot:LeftForeArm
+      parentName: EEJANAIBot:LeftArm
+      position: {x: 0.000000074505806, y: 0.2784154, z: -0.0000000052520908}
+      rotation: {x: 0.00000053644175, y: 0.00000005308538, z: 0.00000010406073, w: 1}
+      scale: {x: 1.0000002, y: 0.99999976, z: 1.0000002}
+    - name: EEJANAIBot:LeftHand
+      parentName: EEJANAIBot:LeftForeArm
+      position: {x: -0.000000059604645, y: 0.28328848, z: 0.00000013170057}
+      rotation: {x: 0.000000100582895, y: 0.0000000123399815, z: -0.00000007450579, w: 1}
+      scale: {x: 1, y: 1.0000002, z: 0.9999999}
+    - name: EEJANAIBot:LeftHandThumb1
+      parentName: EEJANAIBot:LeftHand
+      position: {x: 0.026817326, y: 0.024661481, z: 0.01576194}
+      rotation: {x: 0.11634382, y: 0.12331174, z: -0.33731917, w: 0.925999}
+      scale: {x: 1.0000006, y: 1.0000001, z: 1.0000001}
+    - name: EEJANAIBot:LeftHandThumb2
+      parentName: EEJANAIBot:LeftHandThumb1
+      position: {x: -0.00000008009369, y: 0.041871097, z: 0.000000020489097}
+      rotation: {x: -0.0020661799, y: -0.0010432339, z: 0.0082134, w: 0.99996364}
+      scale: {x: 0.9999999, y: 1.000001, z: 1.0000011}
+    - name: EEJANAIBot:LeftHandThumb3
+      parentName: EEJANAIBot:LeftHandThumb2
+      position: {x: -0.000000007450575, y: 0.034183927, z: 0.000000005587932}
+      rotation: {x: -0.0015305125, y: -0.0007449802, z: 0.006073458, w: 0.9999801}
+      scale: {x: 1, y: 1, z: 0.99999976}
+    - name: EEJANAIBot:LeftHandThumb4
+      parentName: EEJANAIBot:LeftHandThumb3
+      position: {x: 0.000000017881392, y: 0.025805878, z: -0.00000007137656}
+      rotation: {x: 0.005151559, y: -0.12268301, z: -0.041651573, w: 0.9915581}
+      scale: {x: 1.0000001, y: 0.99999976, z: 0.9999999}
+    - name: EEJANAIBot:LeftHandThumb4_end
+      parentName: EEJANAIBot:LeftHandThumb4
+      position: {x: -0, y: 0.025805824, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:LeftHandIndex1
+      parentName: EEJANAIBot:LeftHand
+      position: {x: 0.022598643, y: 0.09109306, z: 0.0051803235}
+      rotation: {x: -0.00084644556, y: 0.00000008014629, z: 0.00004317691, w: 0.9999997}
+      scale: {x: 1.0000004, y: 1.000001, z: 1.0000007}
+    - name: EEJANAIBot:LeftHandIndex2
+      parentName: EEJANAIBot:LeftHandIndex1
+      position: {x: 0.000000026084068, y: 0.036999952, z: -0.000000026142516}
+      rotation: {x: 0.0014501229, y: 0.00000002763635, z: -0.000105099425, w: 0.9999989}
+      scale: {x: 1.0000001, y: 0.9999999, z: 1.0000002}
+    - name: EEJANAIBot:LeftHandIndex3
+      parentName: EEJANAIBot:LeftHandIndex2
+      position: {x: 0.000000005585431, y: 0.028500073, z: -0.000000052315944}
+      rotation: {x: -0.008245684, y: -0.00000043159037, z: 0.00006636639, w: 0.999966}
+      scale: {x: 1.0000002, y: 1.000001, z: 1.0000006}
+    - name: EEJANAIBot:LeftHandIndex4
+      parentName: EEJANAIBot:LeftHandIndex3
+      position: {x: -0, y: 0.027748596, z: 0.00000001847744}
+      rotation: {x: 0.0076419204, y: 0.00037736626, z: 0.000015884807, w: 0.9999708}
+      scale: {x: 1.0000001, y: 1.0000005, z: 1.0000005}
+    - name: EEJANAIBot:LeftHandIndex4_end
+      parentName: EEJANAIBot:LeftHandIndex4
+      position: {x: -0, y: 0.027748639, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:LeftHandMiddle1
+      parentName: EEJANAIBot:LeftHand
+      position: {x: 0.00000038743013, y: 0.09533396, z: -0.00000028683846}
+      rotation: {x: -0.0011865216, y: 0.00000011786694, z: 0.00003067001, w: 0.9999993}
+      scale: {x: 1.0000006, y: 1.000001, z: 1.0000005}
+    - name: EEJANAIBot:LeftHandMiddle2
+      parentName: EEJANAIBot:LeftHandMiddle1
+      position: {x: -0.000000029791385, y: 0.036999945, z: 0.000000076939585}
+      rotation: {x: -0.002539992, y: -0.000000057313734, z: -0.00002119023, w: 0.9999968}
+      scale: {x: 1, y: 1.0000001, z: 1.0000006}
+    - name: EEJANAIBot:LeftHandMiddle3
+      parentName: EEJANAIBot:LeftHandMiddle2
+      position: {x: 0.000000009315837, y: 0.029499978, z: -0.000000044426997}
+      rotation: {x: 0.0072252206, y: 0.00000025673643, z: -0.000020545243, w: 0.9999739}
+      scale: {x: 1, y: 1.0000007, z: 1}
+    - name: EEJANAIBot:LeftHandMiddle4
+      parentName: EEJANAIBot:LeftHandMiddle3
+      position: {x: 0.000000009536743, y: 0.029528689, z: 0.000000010728836}
+      rotation: {x: -0.0034961444, y: 0.0010239448, z: -0.000031592128, w: 0.9999934}
+      scale: {x: 0.9999997, y: 0.9999994, z: 0.9999999}
+    - name: EEJANAIBot:LeftHandMiddle4_end
+      parentName: EEJANAIBot:LeftHandMiddle4
+      position: {x: -0, y: 0.029528579, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:LeftHandRing1
+      parentName: EEJANAIBot:LeftHand
+      position: {x: -0.018650835, y: 0.09104533, z: 0.00043030098}
+      rotation: {x: 0.0054999846, y: -0.00000004091144, z: -0.000007084617, w: 0.9999849}
+      scale: {x: 1.0000004, y: 1.0000005, z: 1.0000004}
+    - name: EEJANAIBot:LeftHandRing2
+      parentName: EEJANAIBot:LeftHandRing1
+      position: {x: 0.000000011175867, y: 0.031500004, z: -0.000000047235506}
+      rotation: {x: 0.000005001201, y: 0.000000011799904, z: -0.000000019982414, w: 1}
+      scale: {x: 1.0000005, y: 1.0000007, z: 1.0000006}
+    - name: EEJANAIBot:LeftHandRing3
+      parentName: EEJANAIBot:LeftHandRing2
+      position: {x: -0.00000002424269, y: 0.029499883, z: -0.00000006100158}
+      rotation: {x: 0.00033010403, y: 0.0000004624952, z: 0.00000035271012, w: 1}
+      scale: {x: 1.0000007, y: 1.0000012, z: 1.0000011}
+    - name: EEJANAIBot:LeftHandRing4
+      parentName: EEJANAIBot:LeftHandRing3
+      position: {x: 0.00000022292137, y: 0.026443092, z: 0.00000006556511}
+      rotation: {x: -0.005836713, y: -0.00049379905, z: -0.000013588534, w: 0.9999829}
+      scale: {x: 1.0000001, y: 1, z: 1.0000001}
+    - name: EEJANAIBot:LeftHandRing4_end
+      parentName: EEJANAIBot:LeftHandRing4
+      position: {x: -0, y: 0.026443176, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:LeftHandPinky1
+      parentName: EEJANAIBot:LeftHand
+      position: {x: -0.038062613, y: 0.08077771, z: 0.004868837}
+      rotation: {x: 0.000012913852, y: -0.000000028311794, z: -0.0020457339, w: 0.999998}
+      scale: {x: 1.0000002, y: 1.0000007, z: 1.0000002}
+    - name: EEJANAIBot:LeftHandPinky2
+      parentName: EEJANAIBot:LeftHandPinky1
+      position: {x: -0.0000000012078082, y: 0.035999898, z: 0.0000000098953}
+      rotation: {x: -0.0000010008342, y: 0.00000028625905, z: 0.00021072812, w: 1}
+      scale: {x: 1.0000002, y: 0.9999999, z: 1.0000004}
+    - name: EEJANAIBot:LeftHandPinky3
+      parentName: EEJANAIBot:LeftHandPinky2
+      position: {x: 0.000000006948534, y: 0.021000044, z: 0.000000070423965}
+      rotation: {x: 0.000008068239, y: -0.000000617192, z: 0.00006673948, w: 1}
+      scale: {x: 1.0000007, y: 1.0000011, z: 1}
+    - name: EEJANAIBot:LeftHandPinky4
+      parentName: EEJANAIBot:LeftHandPinky3
+      position: {x: -0.000000007152557, y: 0.02125523, z: 0.000000007152557}
+      rotation: {x: -0.000004327543, y: 0.0007841254, z: 0.00029585353, w: 0.99999964}
+      scale: {x: 1, y: 1.0000005, z: 1.0000007}
+    - name: EEJANAIBot:LeftHandPinky4_end
+      parentName: EEJANAIBot:LeftHandPinky4
+      position: {x: -0, y: 0.021255204, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:RightUpLeg
+      parentName: EEJANAIBot:Hips
+      position: {x: 0.08207789, y: -0.06771762, z: -0.015122207}
+      rotation: {x: -0.0000000083827905, y: 0.010356475, z: 0.9999464, w: -0.00000025337073}
+      scale: {x: 0.9999998, y: 1.0000002, z: 1.0000001}
+    - name: EEJANAIBot:RightLeg
+      parentName: EEJANAIBot:RightUpLeg
+      position: {x: -0.0000000022852151, y: 0.4437149, z: -0.000000005122274}
+      rotation: {x: -0.038091395, y: -0.0000000115225145, z: -0.000000003351711, w: 0.99927425}
+      scale: {x: 0.99999976, y: 1, z: 0.99999976}
+    - name: EEJANAIBot:RightFoot
+      parentName: EEJANAIBot:RightLeg
+      position: {x: 0.0000000038493155, y: 0.4452783, z: 0.0000000018626454}
+      rotation: {x: 0.45974016, y: -0.000000059238673, z: 0.00000013975017, w: 0.88805354}
+      scale: {x: 1.0000007, y: 1.0000006, z: 0.9999999}
+    - name: EEJANAIBot:RightToeBase
+      parentName: EEJANAIBot:RightFoot
+      position: {x: 7.337979e-10, y: 0.13816877, z: -0.000000029802326}
+      rotation: {x: 0.33524156, y: 0.000000033781056, z: 0.000000068289395, w: 0.9421323}
+      scale: {x: 1.0000002, y: 0.9999998, z: 0.99999964}
+    - name: EEJANAIBot:RightToe_End
+      parentName: EEJANAIBot:RightToeBase
+      position: {x: 0.000000024661421, y: 0.092781216, z: -0.0000000010430813}
+      rotation: {x: -0.00000008940696, y: -0.011608141, z: 2.3283062e-10, w: 0.9999327}
+      scale: {x: 1.0000015, y: 1.0000011, z: 1.000001}
+    - name: EEJANAIBot:RightToe_End_end
+      parentName: EEJANAIBot:RightToe_End
+      position: {x: -0, y: 0.092781216, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: EEJANAIBot:LeftUpLeg
+      parentName: EEJANAIBot:Hips
+      position: {x: -0.082077876, y: -0.06771817, z: -0.015122164}
+      rotation: {x: 0.00000009653389, y: 0.0103679765, z: 0.9999463, w: -0.0000002668357}
+      scale: {x: 0.9999998, y: 0.99999994, z: 1}
+    - name: EEJANAIBot:LeftLeg
+      parentName: EEJANAIBot:LeftUpLeg
+      position: {x: 0.0000000010795593, y: 0.4437138, z: -0.00000006542542}
+      rotation: {x: -0.038112506, y: 0.0000001225913, z: -0.000000020825851, w: 0.9992735}
+      scale: {x: 1.0000006, y: 1.0000004, z: 0.9999999}
+    - name: EEJANAIBot:LeftFoot
+      parentName: EEJANAIBot:LeftLeg
+      position: {x: -0.0000000022886877, y: 0.44527903, z: 0.00000002793968}
+      rotation: {x: 0.45974854, y: 0.00000001653563, z: 0.00000015708741, w: 0.88804924}
+      scale: {x: 1.0000005, y: 1.0000008, z: 0.9999999}
+    - name: EEJANAIBot:LeftToeBase
+      parentName: EEJANAIBot:LeftFoot
+      position: {x: 0.0000000095171755, y: 0.13816868, z: -0.000000014901165}
+      rotation: {x: 0.33524156, y: -0.00000003102073, z: 0.00000012973156, w: 0.94213223}
+      scale: {x: 1.0000012, y: 1.0000004, z: 1.0000004}
+    - name: EEJANAIBot:LeftToe_End
+      parentName: EEJANAIBot:LeftToeBase
+      position: {x: 0.000000010896474, y: 0.09278137, z: 0.0000000035762786}
+      rotation: {x: -0.000000029802312, y: 0.0118691465, z: 0.00000001257285, w: 0.99992955}
+      scale: {x: 1.000001, y: 1.0000005, z: 1.0000002}
+    - name: EEJANAIBot:LeftToe_End_end
+      parentName: EEJANAIBot:LeftToe_End
+      position: {x: -0, y: 0.09278135, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Beta_Joints
+      parentName: EEJANAIbot
+      position: {x: 0.000000005935526, y: -5.8790244e-11, z: -0.0000000066780648}
+      rotation: {x: -0.00000003774895, y: -4.1504614e-19, z: 7.23562e-34, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Beta_Surface
+      parentName: EEJANAIbot
+      position: {x: 0.000000005935526, y: -5.8790244e-11, z: -0.0000000066780648}
+      rotation: {x: -0.00000003774895, y: -4.1504614e-19, z: 7.23562e-34, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 3
+  humanoidOversampling: 1
+  avatarSetup: 1
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

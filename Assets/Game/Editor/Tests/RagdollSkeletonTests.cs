@@ -178,7 +178,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void SubtreeBulk_WeighsTheWholeBranch_NotTheBoneAtItsHead()
         {
-            // PatrolRobot 1. Its hips carry too little to be worth simulating, so the chest and both
+            // A robot whose hips carry too little to be worth simulating, so the chest and both
             // legs come out as branch roots at the same depth — and by its own bulk alone a thigh
             // outweighs a chest, so the robot ended up rooted at its right leg with the left leg
             // jointed to it and the entire upper body hanging off the pair.

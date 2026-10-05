@@ -495,6 +495,45 @@ namespace SpaceGame.Tests
             Assert.IsNull(saver.CaptureState());
         }
 
+        /// <summary>
+        /// A wall built WITH gear that the players emptied stays empty after a reload.
+        ///
+        /// <para>
+        /// Every load builds the wall from its prefab, and building it lays the starting gear on
+        /// again. Only a record clears that back off — so a wall with starting gear has to write
+        /// one even when it is empty, or every reload hands the players its battery once more.
+        /// The fixture's second wall stands for the reloaded one: its starting gear is already on
+        /// it, the way <c>Awake</c> leaves it, before the record is read.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void AWallEmptiedOfItsStartingGearStaysEmptyAfterAReload()
+        {
+            InventoryItem battery = Item("battery");
+
+            WallInventory emptied = Wall();
+            StartingMain(emptied, battery);
+            var saver = emptied.gameObject.AddComponent<WallInventorySaveable>();
+
+            object captured = saver.CaptureState();
+            Assert.IsNotNull(captured, "an emptied wall with starting gear wrote no record, so the " +
+                                       "next load would lay its gear on again.");
+
+            WallInventory reloaded = Wall();
+            StartingMain(reloaded, battery);
+            Assert.IsTrue(reloaded.TryPlace(battery, PackSurfaceId.WallGrid, new Vector2(M(0.18f), M(0.18f)), 0f));
+
+            reloaded.gameObject.AddComponent<WallInventorySaveable>()
+                    .RestoreState(JObject.Parse(JsonConvert(captured)));
+
+            Assert.AreEqual(0, reloaded.Layout.Placements.Count,
+                            "the reload granted the starting gear a second time.");
+        }
+
+        private static void StartingMain(WallInventory wall, params InventoryItem[] items) =>
+            typeof(PackContainer).GetField("startingMainItems", Hidden)
+                                 .SetValue(wall, new List<InventoryItem>(items));
+
         // ── The press, end to end ────────────────────────────────────────────
         //
         // The one path nothing else covers, and the one that shipped broken: a player pointing at

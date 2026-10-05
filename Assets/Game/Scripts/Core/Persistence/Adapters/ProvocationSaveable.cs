@@ -51,9 +51,11 @@ namespace SpaceGame.Core.Persistence
             public float calmingFor;
 
             /// <summary>
-            /// The aggression meter, 0-100. **Appended** — an older save has no such field and
-            /// deserializes it as 0, which reads as "calm", which is what every save written before
-            /// the meter existed meant.
+            /// The aggression meter, 0-100. **Appended** — an older save has no such field. Before
+            /// the meter this saver wrote a record only for a provoked creature, so an old record
+            /// with an aggressor is a grudge, and <see cref="RestoreState"/> reads its missing meter
+            /// as <see cref="AggressionMath.Max"/>; deserialized as-is it would read 0, "calm", and
+            /// every grudge saved before the meter existed would be forgiven on load.
             ///
             /// Worth saving separately from the grudge because the interesting states are the ones
             /// BELOW a grudge: a nomad you have spent twenty seconds making wary is a different
@@ -105,7 +107,7 @@ namespace SpaceGame.Core.Persistence
             // ProvocationModule.OnEnable already resets to exactly that. Nothing to undo.
             if (state == null) return;
 
-            State restored = state.ToObject<State>(SaveSerializer.Serializer);
+            State restored = Read(state);
 
             pendingAggression = restored.aggression;
             pendingAggressor = restored.aggressor;
@@ -122,6 +124,22 @@ namespace SpaceGame.Core.Persistence
 
             hasPending = true;
         }
+
+        /// <summary>
+        /// Parses a record, reading a missing meter beside an aggressor as a grudge (see
+        /// <see cref="State.aggression"/>).
+        /// </summary>
+        private static State Read(JObject state)
+        {
+            State restored = state.ToObject<State>(SaveSerializer.Serializer);
+            if (PredatesTheMeter(state) && restored.aggressor.IsSet)
+                restored.aggression = AggressionMath.Max;
+            return restored;
+        }
+
+        /// <summary>A record written before <see cref="State.aggression"/> was appended.</summary>
+        private static bool PredatesTheMeter(JObject state) =>
+            !state.ContainsKey(nameof(State.aggression));
 
         public void OnLoadComplete()
         {

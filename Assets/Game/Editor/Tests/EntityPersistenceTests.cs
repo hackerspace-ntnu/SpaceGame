@@ -59,6 +59,18 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void InventoryCapture_SavesALentSlotEmpty_AndKeepsEveryPosition()
+        {
+            // A band's kit weapon lent to a resident for its muster (ILentSlots) must not become its own on a load.
+            string[] held = { "Tool_Hammer", "Tool_Spear_Stone", null, "Tool_Rope" };
+
+            List<string> ids = LentSlots.SavedIds(held.Length, i => held[i], i => i == 1);
+
+            CollectionAssert.AreEqual(new[] { "Tool_Hammer", null, null, "Tool_Rope" }, ids);
+            CollectionAssert.AreEqual(held, LentSlots.SavedIds(held.Length, i => held[i], _ => false), "nothing lent: the bag as it is");
+        }
+
+        [Test]
         public void NeedsSaving_IsFalseForAKinematicBodyThatIsNothingElse()
         {
             // The counter-case, so the clause above is not simply saving everything. A kinematic body
@@ -268,7 +280,7 @@ namespace SpaceGame.EditorTools
             AgentTargeting targeting = agent.AddComponent<AgentTargeting>();
             var saver = agent.AddComponent<AgentStateSaveable>();
 
-            targeting.RestoreMemory(null, new Vector3(3f, 4f, 5f), true, 2.5f, null);
+            targeting.RestoreMemory(null, false, new Vector3(3f, 4f, 5f), true, 2.5f, null);
 
             // Through StateBag, so the Vector3 converters are exercised — the same path a real save
             // takes. Read without them, a Vector3 recurses through its own properties.
@@ -277,7 +289,7 @@ namespace SpaceGame.EditorTools
 
             Assert.IsTrue(bag.TryGetRaw(saver.SaveKey, out JObject payload));
 
-            targeting.RestoreMemory(null, Vector3.zero, false, 0f, null);
+            targeting.RestoreMemory(null, false, Vector3.zero, false, 0f, null);
             saver.RestoreState(payload);
             saver.OnLoadComplete();
 

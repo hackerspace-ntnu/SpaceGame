@@ -47,7 +47,6 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(rider);
             StringAssert.StartsWith("Strider_", rider.name, "faction is not replicated: the rider must ship as a Strider");
             Assert.IsNull(crab.GetComponent<CloseCombatModule>(), "the mount carries, the rider shoots");
-            Assert.IsNull(crab.GetComponent<AgentRangedCombatModule>());
         }
 
         [Test]

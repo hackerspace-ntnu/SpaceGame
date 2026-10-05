@@ -224,7 +224,7 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             house.AddComponent<FormationModule>().SetFormation("fold-mid-stop", true);
             var tasks = house.AddComponent<NpcTaskModule>();
-            tasks.SetTasks(new[] { new NpcTask { targetSite = SiteKind.Ruin } });
+            tasks.ResumeTask(new[] { new NpcTask { targetSite = SiteKind.Ruin } }, -1, travelling: false, dwellRemaining: 0f, siteId: null);
             tasks.RestoreTaskState(NpcTaskModule.Phase.Dwelling, 0, "site", "site-1", 30f, 0f, -1, true, Vector3.zero);
             var person = new GameObject("Crew"); junk.Add(person);
             house.AddComponent<CrewShift>().Take(person, aboard: false);

@@ -19,13 +19,15 @@ namespace SpaceGame.EditorTools
     internal static class HumanoidContentCheck
     {
         /// <summary>Where humanoid clips live; the Audit lists what in here nothing uses yet.</summary>
-        public static readonly string[] LibraryFolders =
+        public static readonly string[] LibraryFolders = new[]
         {
             "Assets/Game/Art/Animations/Player",
-            "Assets/ThirdParty/Kevin Iglesias",
+            // Not "Masked Poses": hand-only grip poses meant to be masked over a body, which the hold-pose system replaces.
+            "Assets/ThirdParty/Kevin Iglesias/Human Animations/Animations/Male",
+            "Assets/ThirdParty/Kevin Iglesias/Human Animations/Animations/Female",
             QuaterniusClipImporter.Folder.TrimEnd('/'),
             CmuClipImporter.Folder.TrimEnd('/'),
-        };
+        }.Concat(LibraryClipImporter.TakeFolders).ToArray();
 
         public static void ThrowIfInvalid(HumanoidAnimationProfile profile, IReadOnlyList<CharacterAction> actions)
         {

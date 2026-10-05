@@ -95,7 +95,7 @@ namespace SpaceGame.EditorTools
             NpcTaskModule tasks = lead.gameObject.AddComponent<NpcTaskModule>();
             typeof(NpcTaskModule).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 ?.Invoke(tasks, null);
-            tasks.SetTasks(new[] { new NpcTask { targetSite = SiteKind.Ruin } });
+            tasks.ResumeTask(new[] { new NpcTask { targetSite = SiteKind.Ruin } }, -1, travelling: false, dwellRemaining: 0f, siteId: null);
 
             var crew = new GameObject("Crew"); junk.Add(crew);
             lead.Take(crew, aboard: false);

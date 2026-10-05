@@ -139,8 +139,8 @@ consults the list, so an unregistered prefab is a **host that works and clients 
 | Tier | Rule | Members | Why |
 |---|---|---|---|
 | 1 | **MUST** be a root `NetworkObject` **and** in the prefab list | Anything `IWorldService.Spawn` can be handed — including **every `InventoryItem.itemPrefab`**, `RocketSpawn`, `ornithopterPrefab`, the networked player prefab | Dropping a hotbar slot runs `EquipmentController.OnItemDropped` → `GameServices.ItemDropService.DropItem` → `PlayerDropService` → `GameServices.World.Spawn`, so an item never thought of as a world object still needs one |
-| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`, `AgentProjectile` | Every machine instantiates its own bullet; only the authority's applies damage, flagged by `Weapon.ShotDealsDamage`. `AgentBullet.prefab` carries netcode that nothing uses — it lies about the design |
-| 3 | **MUST NOT** be networked: equipped visuals | `GrapplingHookGun`, `CixinGunFinal`, `SuperSword`, `magazine_cixin`, `Line` | `EquipItemSocket.Equip` does a plain `Object.Instantiate(prefab, …, socket)` onto a bone, rebuilt locally from the replicated hotbar. A `NetworkObject` cannot parent to a plain transform anyway |
+| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile` (the turret's rocket gets its `TurretProjectile` component added at runtime) | Every machine instantiates its own bullet; only the authority's applies damage, flagged by `Weapon.ShotDealsDamage` (`TurretProjectile.Cosmetic` for the turret) |
+| 3 | **MUST NOT** be networked: equipped visuals | `GrapplingHookGun`, `CixinGunFinal`, `magazine_cixin`, `Line` | `EquipItemSocket.Equip` does a plain `Object.Instantiate(prefab, …, socket)` onto a bone, rebuilt locally from the replicated hotbar. A `NetworkObject` cannot parent to a plain transform anyway |
 
 Additional rules:
 

@@ -271,7 +271,6 @@ namespace SpaceGame.EditorTools
             GameObject wheel = Load(path);
             Assert.IsNull(wheel.GetComponent<AgentRagdoll>(), "a monowheel is a vehicle: it must live under Prefabs/Agents/Vehicles/");
             Assert.IsNull(wheel.GetComponent<CloseCombatModule>(), "the mount carries, the riders shoot");
-            Assert.IsNull(wheel.GetComponent<AgentRangedCombatModule>());
         }
 
         // -- the Strider wheels --------------------------------------------------------------------

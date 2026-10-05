@@ -155,7 +155,9 @@ namespace SpaceGame.Agents
                 if (!TrySampleNavMesh(to, sampleDistance, out Vector3 end)) return 0;
 
                 navPath ??= new NavMeshPath();
-                if (!NavMesh.CalculatePath(start, end, NavMesh.AllAreas, navPath)) return 0;
+                // Ground only: the legs follow corners in straight lines and cannot cross a ladder or a
+                // jump link, so a route planned over one would walk them into the foot of it.
+                if (!NavMesh.CalculatePath(start, end, SpaceGame.Gameplay.NavLinkAreas.GroundMask, navPath)) return 0;
                 if (navPath.status == NavMeshPathStatus.PathInvalid) return 0;
 
                 int found = navPath.GetCornersNonAlloc(into);

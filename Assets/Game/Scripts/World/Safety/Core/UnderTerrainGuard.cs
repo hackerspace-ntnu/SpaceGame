@@ -469,7 +469,7 @@ namespace SpaceGame.World.Safety
             Vector3 recovered = new(was.x, targetY, was.z);
 
             // Through the shared placement path rather than a raw transform write. This guard is on
-            // NavMeshAgent-driven bodies too (DuneRat, the patrol robots, Nomad), and an agent
+            // NavMeshAgent-driven bodies too (DuneRat, Nomad), and an agent
             // navigates from its own position: moving only the transform leaves the agent where it
             // was and it is dragged straight back on the next frame. That path also handles the
             // CharacterController's cached position and the interpolation trap that makes a

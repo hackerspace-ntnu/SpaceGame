@@ -250,6 +250,50 @@ namespace SpaceGame.Agents
 
         public bool IsWarParty => !string.IsNullOrEmpty(QuarryProfileId);
 
+        public const string OwnerWar = "war";
+        public const string OwnerExpedition = "expedition";
+
+        /// <summary>
+        /// The director that decides for this group (<see cref="OwnerWar"/>, <see cref="OwnerExpedition"/>);
+        /// empty for a group the sim runs on its own template, and for a war party from an older save.
+        /// Saved (Record.owner).
+        /// </summary>
+        public string Owner = string.Empty;
+
+        /// <summary>
+        /// The war director's party: hunting a quarry, and owned by no other director. An empty owner
+        /// is an older save's party. A released party (quarry cleared) is nobody's war party any more.
+        /// </summary>
+        public bool IsOwnedByWar => IsWarParty && (string.IsNullOrEmpty(Owner) || Owner == OwnerWar);
+
+        /// <summary>A director decides this group's goal; the sim's own hunter and errand rules leave it alone.</summary>
+        public bool IsDirected => IsWarParty || !string.IsNullOrEmpty(Owner);
+
+        /// <summary>
+        /// The owner's members, replacing the template's and the roster's draw (an expedition's are
+        /// its own residents). Null: the template decides. Runtime only.
+        /// </summary>
+        [NonSerialized] public List<PlannedMember> PlannedOverride;
+
+        /// <summary>
+        /// Called for each member before its network spawn, after GroupMembership is stamped, with its
+        /// plan index. Runtime only.
+        /// </summary>
+        [NonSerialized] public Action<GameObject, int> MemberStamp;
+
+        /// <summary>
+        /// Exact poses for the next spawn, by plan index, used instead of formation slots (a hand-off in
+        /// view). Consumed by that spawn: set to null as it starts. Runtime only.
+        /// </summary>
+        [NonSerialized] public List<Pose> SpawnPoses;
+
+        /// <summary>
+        /// Called on a fold for every member still in <see cref="Live"/>, with its plan index, before it
+        /// is despawned. The dead are included — a corpse is deactivated, not destroyed — so check its
+        /// health; a member destroyed outright (its chunk unloaded) is gone and gets no call. Runtime only.
+        /// </summary>
+        [NonSerialized] public Action<GameObject, int> ReadBack;
+
         // Runtime only, never saved. Counted by GroupMembership while the group is spawned and reset on
         // every spawn, which is why a folded party cannot be "defeated": nobody can reach it.
         [NonSerialized] public int FightersSpawned;
@@ -384,6 +428,10 @@ namespace SpaceGame.Agents
             // Appended 2026-09-24 (Striders walking city). Older saves read false: the group comes
             // back marching, its crew seated, which is what every group without crew already does.
             public bool crewAshore;
+
+            // Appended 2026-10-03 (settlement expeditions spec §4.4). Older saves read null: no owner, so
+            // a war party is still the war director's (IsOwnedByWar).
+            public string owner;
         }
 
         public Record ToRecord() => new Record
@@ -406,6 +454,7 @@ namespace SpaceGame.Agents
             wipedOut = WipedOut,
             delivered = Delivered,
             crewAshore = CrewAshore,
+            owner = Owner,
         };
 
         public void ApplyRecord(in Record record)
@@ -428,6 +477,7 @@ namespace SpaceGame.Agents
             WipedOut = record.wipedOut;
             Delivered = record.delivered;
             CrewAshore = record.crewAshore;
+            Owner = record.owner ?? string.Empty;
         }
     }
 }

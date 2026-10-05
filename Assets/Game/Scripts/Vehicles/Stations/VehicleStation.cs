@@ -55,7 +55,6 @@
 // because a station is a thing in the scene with its own collider and its own prompt, whereas a
 // latch is a field of one — and one fixture may own several latches, which is what put NetLatch in
 // a constructor in the first place.
-using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
@@ -333,8 +332,12 @@ namespace SpaceGame.Vehicles
                 // question, and a station whose question died reads as free, which is the state
                 // it already had. Releasing here would be wrong twice over: this path only runs
                 // on a client, and the release is the server's to decide.
-                StartCoroutine(Fault.Coroutine(
-                    this, "VehicleStation.AskForState", AskForStateWhenConnected()));
+                //
+                // A joining client asks what state this station is in: a wheel somebody took before
+                // you connected must not read as free.
+                StartCoroutine(Fault.Coroutine(this, "VehicleStation.AskForState",
+                    this.NetToServerWhenSpawned(NetMsg.StationClaim,
+                                                new NetArg { A = StationIndex, B = AskVerb })));
         }
 
         protected virtual void OnDisable()
@@ -347,30 +350,6 @@ namespace SpaceGame.Vehicles
             // put a message on a wire that may already be gone, and the server's own copy of this
             // station is doing the same thing on its own machine.
             SetOccupant(null);
-        }
-
-        /// <summary>
-        /// A joining client asks what state this station is in, once there is somebody to ask.
-        ///
-        /// Waits for the vehicle's NetworkObject to actually be spawned rather than sending on the
-        /// first frame: before that there is no relay, the send falls through to a local dispatch,
-        /// and the client answers its own question with the state it already had — which is the
-        /// prefab's, which is the thing being corrected. A wheel that somebody took before you
-        /// connected must not read as free.
-        /// </summary>
-        private IEnumerator AskForStateWhenConnected()
-        {
-            GameObject root = NetChannel.RootOf(this);
-            NetworkObject netObj = root != null ? root.GetComponent<NetworkObject>() : null;
-            if (netObj == null) yield break;
-
-            while (!netObj.IsSpawned)
-            {
-                if (!Network.IsNetworked) yield break;
-                yield return null;
-            }
-
-            this.NetToServer(NetMsg.StationClaim, new NetArg { A = StationIndex, B = AskVerb });
         }
 
         /// <summary>

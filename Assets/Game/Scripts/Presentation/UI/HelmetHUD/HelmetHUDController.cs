@@ -32,6 +32,9 @@ namespace SpaceGame.Presentation
 
         [Header("Subsystems")]
         [SerializeField] private HelmetDangerVignette dangerVignette;
+        [Tooltip("UI/HelmetHUDDangerVignette. Referenced rather than looked up by name, which a player " +
+                 "build strips.")]
+        [SerializeField] private Shader dangerVignetteShader;
 
         /// <summary>Things you play by. Drawn at every detail level except Off.</summary>
         public RectTransform Vitals { get; private set; }
@@ -175,6 +178,7 @@ namespace SpaceGame.Presentation
             {
                 dangerVignette = MakeLayer("DangerVignette", Vitals)
                                  .gameObject.AddComponent<HelmetDangerVignette>();
+                dangerVignette.Build(dangerVignetteShader);
             }
 
             // Annotations, not Vitals: the reticle describes something in the world rather than

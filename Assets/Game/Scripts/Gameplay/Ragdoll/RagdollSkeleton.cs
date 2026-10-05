@@ -157,8 +157,8 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <para>
         /// Which branch is the BODY, in one number. The ragdoll has to be rooted somewhere, and when
         /// a rig's own root carries too little to be worth simulating its children become branch
-        /// roots at equal depth with nothing above them — for PatrolRobot 1 that is a chest and two
-        /// legs. By its own bulk a thigh outscores a chest, so the robot came out rooted at its
+        /// roots at equal depth with nothing above them — for a robot with light hips that is a
+        /// chest and two legs. By its own bulk a thigh outscores a chest, so it came out rooted at its
         /// right leg, with the left leg jointed to it and the entire upper body hanging off the
         /// pair. By the bulk of what hangs BELOW it the chest wins easily, because it carries the
         /// head, both arms and every finger.

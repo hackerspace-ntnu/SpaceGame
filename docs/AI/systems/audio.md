@@ -51,9 +51,8 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 | `AudioLoop` | [AudioLoop.cs](Assets/Game/Scripts/Presentation/Audio/AudioLoop.cs) | Drop-on MonoBehaviour wrapper over `LoopingEmitter` (ambience, hums). Replaces FMOD's `StudioEventEmitter` so scene loops go through the catalog. |
 | `AudioManager` | [AudioManager.cs](Assets/Game/Scripts/Presentation/Audio/AudioManager.cs) | **Bus volumes only** (`bus:/`, `/Music`, `/SFX`, `/UI`, `/Reverb`) from `GameSettings`. Singleton on Bootstrap. Not a playback route. |
 | `PlayerAudioModule` | [PlayerAudioModule.cs](Assets/Game/Scripts/Presentation/Audio/PlayerAudioModule.cs) | Player voice: footsteps paced by **distance travelled** (`strideLength`), jump/land/dash, hurt/death/revive. |
-| `EntityAudioModule` | [EntityAudioModule.cs](Assets/Game/Scripts/agents/Audio/EntityAudioModule.cs) | Creature/NPC voice: footsteps off `IMovementMotor.Velocity`, aggro on `ChaseModule` edge, randomised ambient mumbles. Also fires `NoiseEmitter`. |
 | `UIButton` | [UIButton.cs](Assets/Game/Scripts/Presentation/UI/Buttons/UIButton.cs) | UI audio: `Sfx.Play2D(hoverId)` / `(pressId)` on pointer enter/down. |
-| `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/agents/Audio) | **Not audio.** AI perception — `OverlapSphereNonAlloc` broadcast of "something was heard". Lives here because it is triggered alongside sounds. |
+| `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/agents/Audio) | **Not audio.** AI perception — a static receiver registry (`Noise.Emit`), server-side. `NoiseReceiverModule.Heard` (C# event, `NoiseType, Vector3, Transform`) fires for every noise heard whatever the masks say. Lives here because it is triggered alongside sounds. |
 
 ## Catalog
 
@@ -101,6 +100,7 @@ Volumes only, and not via the save system: [`GameSettings`](Assets/Game/Scripts/
 ## Gotchas
 
 - **`Sfx` returns before FMOD outside Play Mode.** FMOD's `RuntimeManager` exists only in Play Mode and **logs an error** (not an exception) when reached outside it, and NUnit fails any test on an unexpected error log — so every EditMode test whose action made a sound (throwing a lasso) failed on audio. The `Application.isPlaying` check sits after the missing-event warning, so a missing catalog entry still reports in tests, and before the cooldown and cull. Pinned by `SfxEditModeTests`, which uses `Play2D`: a positioned play is culled before FMOD whenever the open scene has a listener out of range, and would pass without reaching the `RuntimeManager`.
+- **Gunshot aggression is independent of `investigateOn`** (fixed 2026-10-01). It used to sit inside the investigate gate, so an agent whose `investigateOn` lacked `Gunshot` never counted shots on its `ProvocationModule` meter at all.
 - **`Sfx` warns once per `SfxId`, forever.** Fix a bank or a mapping mid-session and it stays silent — call `Sfx.Reset()` (auto-called on play-mode entry in editor) to clear `Complained` and the catalog cache.
 - **`Play2D` uses `sourceKey = 0`.** All 2D sounds share one cooldown bucket per id — fine for UI, wrong if you want per-widget rate limiting.
 - **Override does not override tuning.** An inspector `EventReference` picks the asset; cooldown, `maxDistance` and `volume` still come from the catalog entry for that `SfxId`. A slot with no entry gets `cooldown 0`, no cull, `volume 1`.

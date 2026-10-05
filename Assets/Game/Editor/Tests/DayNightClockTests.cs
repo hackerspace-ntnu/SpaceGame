@@ -254,7 +254,7 @@ namespace SpaceGame.Tests
             host.AnchorTo(Authored, 0d);
             host.AdoptAnchor(0.78f, 1500d);
 
-            host.ReadAnchor(out float phase, out double clock);
+            host.ReadAnchor(out _, out float phase, out double clock);
             joiner.AdoptAnchor(phase, clock);
 
             // An hour and a half of session later, when the joiner is actually looking at the sky.
@@ -370,7 +370,7 @@ namespace SpaceGame.Tests
             DayNightCycle cycle = NewCycle("sun");
             cycle.AnchorTo(0.6375f, 4321.5d);
 
-            cycle.ReadAnchor(out float phase, out double clock);
+            cycle.ReadAnchor(out _, out float phase, out double clock);
 
             // Exact, not approximate: this pair is what goes on the wire, and every value ever
             // stored arrived as a float, so narrowing the double back cannot lose anything.

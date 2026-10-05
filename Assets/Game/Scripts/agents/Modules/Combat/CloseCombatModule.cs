@@ -114,9 +114,8 @@ namespace SpaceGame.Agents
         // AgentController, and asking twice would be a second answer free to drift from the first.
         private AgentAuthority authority;
 
-        // Read by ChaseModule (to tighten chaseStopDistance and skip herd-spread offsets that would
-        // park the agent outside melee reach) and by AgentTargeting (to cover the range in its
-        // acquisition window).
+        // Read by ChaseModule (to tighten chaseStopDistance so the agent parks inside melee reach)
+        // and by AgentTargeting (to cover the range in its acquisition window).
         public float AttackRange => attackRange;
 
         // ── Save/restore ──────────────────────────────────────────────────────────
@@ -364,16 +363,22 @@ namespace SpaceGame.Agents
 
         private void LandBlow(Transform target)
         {
+            // Melee, so the victim's guard gets its say: MeleeDefense lifts only against a
+            // DamageKind.Melee blow, and an unspecified one made every NPC-on-NPC swing unblockable.
             var health = target.GetComponentInChildren<HealthComponent>();
-            if (health != null && health.Alive)
-                NetDamage.Apply(health.gameObject, attackDamage, transform);
+            DamageDefense defense = health != null && health.Alive
+                ? NetDamage.Apply(health.gameObject, attackDamage, transform, DamageKind.Melee)
+                : DamageDefense.None;
 
             // Alongside the damage, not inside the presentation below: a shove moves the victim,
             // and where the victim ends up is exactly the state every machine must agree on.
             // BlastPush routes it correctly for each kind of target — a player is
             // owner-authoritative and gets NetMsg.Flung, a creature's transform belongs to its
             // motor so it is asked for a leap, and a loose Rigidbody takes a mass-scaled impulse.
-            Knock(target);
+            // A blow caught on the guard or ducked does not shove: the body met it and stood.
+            // The answer is real here because this runs on the deciding machine only, where
+            // NetDamage resolves the hit in place rather than sending it as a request.
+            if (defense == DamageDefense.None) Knock(target);
 
             // Deliberately NOT part of the presentation below, and not carried in the message
             // either: this hands out the TARGET, which is exactly the divergent state AgentActed
@@ -449,9 +454,9 @@ namespace SpaceGame.Agents
         private void OnAgentActed(in NetArg arg, ulong sender)
         {
             // Is this message even ours? An unrecognised kind is ignored rather than assumed — see
-            // AgentAction — and it matters on this exact channel: an agent carrying an
-            // AgentRangedCombatModule as well broadcasts its shots here, and swinging a sword for a
-            // rifle shot is worse than playing nothing.
+            // AgentAction — and it matters on this exact channel: the same agent broadcasts its
+            // aggression band and war cries here too, and swinging a sword for a war cry is worse
+            // than playing nothing.
             if (arg.A != AgentAction.Melee) return;
 
             // The deciding machine already drew this while performing it, and NetRelay excludes the

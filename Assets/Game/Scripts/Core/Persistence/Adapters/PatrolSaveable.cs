@@ -10,10 +10,10 @@ namespace SpaceGame.Core.Persistence
     /// matters most — where its territory is centred.
     ///
     /// <b>Why this is its own saver and not part of the agent's.</b> Patrol progress used to ride on
-    /// <see cref="AgentStateSaveable"/>, which is keyed off <c>AgentTargeting</c>. The patrol robots
-    /// and the deathmatch bots have a <see cref="PatrolModule"/> and no <c>AgentTargeting</c> at all,
-    /// so the one population whose entire identity is a route was the one population saving nothing
-    /// about it. Keying off the module that owns the state is the fix, and it is the same rule every
+    /// <see cref="AgentStateSaveable"/>, which is keyed off <c>AgentTargeting</c>. A patroller can
+    /// carry a <see cref="PatrolModule"/> and no <c>AgentTargeting</c> at all (the patrol robots and
+    /// deathmatch bots that first did were later deleted), and then the agent whose entire identity
+    /// is a route was the one saving nothing about it. Keying off the module that owns the state is the fix, and it is the same rule every
     /// other saver here follows.
     ///
     /// <b>The anchor is the important field.</b> In <see cref="PatrolMode.RadiusBased"/> with no

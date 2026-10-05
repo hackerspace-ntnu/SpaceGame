@@ -7,8 +7,43 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Raxy_White.001
+    second: {fileID: 2100000, guid: 985b845c341b41a181de58a3d55c7ca1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Raxy_White.002
+    second: {fileID: 2100000, guid: 985b845c341b41a181de58a3d55c7ca1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: raxy_armor
     second: {fileID: 2100000, guid: 48d84dcb3371a48a6bd0703230526108, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_armor.004
+    second: {fileID: 2100000, guid: d51b9d4eb2fe4de5ad1f966456ff50db, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_bandit_red
+    second: {fileID: 2100000, guid: c1169f1df749c44deb1d110dad203a6b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_bandit_red_dark
+    second: {fileID: 2100000, guid: d9f8bdb8f1eba467c8ed0e3f1c2419c4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_bedroll
+    second: {fileID: 2100000, guid: 68fc66c4261cf44258cbb50472c4dfaf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_bone
+    second: {fileID: 2100000, guid: 2ef0df2684c7b415c87a75a10c8769a5, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -22,33 +57,108 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: raxy_canvas
+    second: {fileID: 2100000, guid: 95a13ca242a33472f9b6517b7b2024e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_clay
+    second: {fileID: 2100000, guid: 352beacc793a34dce8b826c54397c115, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_cloak_charcoal
+    second: {fileID: 2100000, guid: a1cc0855cabc941428078a628f0acb8c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_cloak_sand
+    second: {fileID: 2100000, guid: b2e56c25f15504a41afaf1108184891a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_cloak_sand_dark
+    second: {fileID: 2100000, guid: 59641cc497eb24b6bac172cecdc532f9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_copper
+    second: {fileID: 2100000, guid: 0c681ced1ba7c49b5990cc89eb17f752, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_denim
+    second: {fileID: 2100000, guid: ccf679890960f4c36aa1282394bb4118, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_duster
+    second: {fileID: 2100000, guid: 92f5779ee855c43b58accc92b557247a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_duster_dark
+    second: {fileID: 2100000, guid: b03864c3087c74bb8b67f5bf3f2169af, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_feather
+    second: {fileID: 2100000, guid: 11b815354552348cf81de26e86eddefc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_felt
+    second: {fileID: 2100000, guid: ec6fdcf6ff3d84b4cb3229f3b37ec459, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_felt_dark
+    second: {fileID: 2100000, guid: 770d53e7224144ca1a8c6319c5c75a05, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_flask
+    second: {fileID: 2100000, guid: 79c53e81677b47e390646c0dcc90e9f0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_fur
+    second: {fileID: 2100000, guid: de51c2e2ca391439faae5732f9f625dd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_fur_dark
+    second: {fileID: 2100000, guid: fb035af5da335432f960f973a4e84f67, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_gambeson
+    second: {fileID: 2100000, guid: 217e647c4ed37499d99e38042d36f80c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_glow
+    second: {fileID: 2100000, guid: 243c0c201223c437aa98ac6d5e1e0be5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_hat_leather
+    second: {fileID: 2100000, guid: 47f55b6fbdf934d78a6641f4ca5b642f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_hivis
+    second: {fileID: 2100000, guid: 30d5a6cb0f6fb4fe6be64ae966a7ea07, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_leaf
+    second: {fileID: 2100000, guid: 82c35c11b530f43d3aea13965e0786b0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: raxy_leather
     second: {fileID: 2100000, guid: 962f9dbe477aa43b38b395aabb49674a, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: raxy_mouth
-    second: {fileID: 2100000, guid: 9d48d8f5b1cd24f49b54bfb8841506a7, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: raxy_pants
-    second: {fileID: 2100000, guid: a4754b321229a46e4ba6178068058852, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: raxy_poncho
-    second: {fileID: 2100000, guid: 30b3c3ccbb8a94a04850f7a66d3c51a0, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: raxy_rust
-    second: {fileID: 2100000, guid: 8b0f79f5d813448b58447b54b42af8d2, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: raxy_shorts
-    second: {fileID: 2100000, guid: 2dc657b59a4e3452da26b346a3bbf97a, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -57,13 +167,73 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: raxy_poncho.003
-    second: {fileID: 2100000, guid: 7a0713aef256485fbb3ce83c7d8a440a, type: 2}
+      name: raxy_leather_tan
+    second: {fileID: 2100000, guid: 8f97819185f89448cbe738c2a5e81635, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_lens
+    second: {fileID: 2100000, guid: bec4b8e0a0e704381bd76e749b4adf22, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_linen
+    second: {fileID: 2100000, guid: 075eaf0daca694e1c8556ba35101814a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_linen_dark
+    second: {fileID: 2100000, guid: e757287ab90c740f6a15a7ef43c41a0f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_mouth
+    second: {fileID: 2100000, guid: 9d48d8f5b1cd24f49b54bfb8841506a7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_oilcloth
+    second: {fileID: 2100000, guid: 3d1cfa25a65ba426f9a49e70da16d90b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_paint_orange
+    second: {fileID: 2100000, guid: 91d77ce113206432f85fd630af39910e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_paint_teal
+    second: {fileID: 2100000, guid: dbbd1173a47db44bfba3e9d3b59e7688, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_pants
+    second: {fileID: 2100000, guid: a4754b321229a46e4ba6178068058852, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_plate
+    second: {fileID: 2100000, guid: bd9cd3fceae4b4a33a2a78ad8d93bd6e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_plate_dark
+    second: {fileID: 2100000, guid: 79a715480cf564af48b445f321bc2df1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_poncho
+    second: {fileID: 2100000, guid: 30b3c3ccbb8a94a04850f7a66d3c51a0, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: raxy_poncho.001
     second: {fileID: 2100000, guid: 36ccf70c3f2f4711ab67671a86c47236, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_poncho.003
+    second: {fileID: 2100000, guid: 7a0713aef256485fbb3ce83c7d8a440a, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -87,23 +257,123 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: raxy_armor.004
-    second: {fileID: 2100000, guid: d51b9d4eb2fe4de5ad1f966456ff50db, type: 2}
+      name: raxy_reflect
+    second: {fileID: 2100000, guid: 27dae702f6fca41f18c76df1bc7ab910, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Raxy_White.001
-    second: {fileID: 2100000, guid: 985b845c341b41a181de58a3d55c7ca1, type: 2}
+      name: raxy_robe
+    second: {fileID: 2100000, guid: 8e71fc8eecea7487f8c6f62ef793ebfc, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Raxy_White.002
-    second: {fileID: 2100000, guid: 985b845c341b41a181de58a3d55c7ca1, type: 2}
+      name: raxy_robe_dark
+    second: {fileID: 2100000, guid: 9d2e685d1cd62483f85bb9c57e0e053a, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: raxy_flask
-    second: {fileID: 2100000, guid: 79c53e81677b47e390646c0dcc90e9f0, type: 2}
+      name: raxy_rubber
+    second: {fileID: 2100000, guid: cea7eed638bae46febcd4951561f3692, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_rust
+    second: {fileID: 2100000, guid: 8b0f79f5d813448b58447b54b42af8d2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_sail
+    second: {fileID: 2100000, guid: b5f18b27f0619443e85d622713bc8e5c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_sash_teal
+    second: {fileID: 2100000, guid: 9817bb76b294241dcbdc146359875af8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_scrap
+    second: {fileID: 2100000, guid: c5bd861c1a7c84fe5be5c4ad28341b4d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_shawl_indigo
+    second: {fileID: 2100000, guid: 5bd16f06624e74aaea5a08d8ea3ff684, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_shorts
+    second: {fileID: 2100000, guid: 2dc657b59a4e3452da26b346a3bbf97a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_slate
+    second: {fileID: 2100000, guid: 955692b06efc9454c80db8d64c84766b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_slate_dark
+    second: {fileID: 2100000, guid: 5f7d3a0b39fb24fb38afc35074136b8d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_straw
+    second: {fileID: 2100000, guid: 2fa083231e78949e1aa173222e31467f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_straw_dark
+    second: {fileID: 2100000, guid: f95afc6ca8dae4c92978e7ce32c1c360, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_suit_grey
+    second: {fileID: 2100000, guid: 902c70a3a11024cf69b5ee3cf8ce79b9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_suit_white
+    second: {fileID: 2100000, guid: 3fed0ddab0f8e4e8089c5b7a723b2ccd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_trousers_olive
+    second: {fileID: 2100000, guid: dfc178fe76dba4567b5ae9ddb6ab687b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_turban_sand
+    second: {fileID: 2100000, guid: bc05041b79e8f4cf3bd303c2d836470e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_vest_lining
+    second: {fileID: 2100000, guid: 75a6e32f2aed04624acef3ea69222dc8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_vest_ochre
+    second: {fileID: 2100000, guid: 27838eadbc4044c3b9359fa96dfc5668, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_wader
+    second: {fileID: 2100000, guid: 70380f71b00304e4fa2b234b37e9bb16, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_wader_dark
+    second: {fileID: 2100000, guid: bcb5a40af7f434dc9ac721b97f10e781, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_wood
+    second: {fileID: 2100000, guid: 39eacef4487514585baa33a076b188bf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: raxy_wraps
+    second: {fileID: 2100000, guid: 7a14b94d778ea4d74af0a444c2a51fdf, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

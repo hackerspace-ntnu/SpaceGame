@@ -31,6 +31,8 @@ namespace SpaceGame.EditorTools
             string Mask(string layer) =>
                 AssetDatabase.GetAssetPath(controller.layers.First(l => l.name == layer).avatarMask);
             Assert.AreEqual(HumanoidMasks.Folder + "UpperBody.mask", Mask(HumanoidLayers.UpperBody));
+            Assert.AreEqual(HumanoidMasks.Folder + "Arms.mask", Mask(HumanoidLayers.HoldArms),
+                            "a hold that leaves the body mask on bends a walking carrier at the hip");
             Assert.AreEqual(HumanoidMasks.Folder + "LeftArm.mask", Mask(HumanoidLayers.WornLeft));
             Assert.AreEqual(HumanoidMasks.Folder + "UpperBody.mask", Mask(HumanoidLayers.ActionUpper));
             Assert.AreEqual(HumanoidMasks.Folder + "RightArm.mask", Mask(HumanoidLayers.ActionRightArm));

@@ -270,6 +270,8 @@ GameObject:
   - component: {fileID: 114649342}
   - component: {fileID: 114649346}
   - component: {fileID: 114649347}
+  - component: {fileID: 114649349}
+  - component: {fileID: 114649348}
   m_Layer: 0
   m_Name: NpcWorldSim
   m_TagString: Untagged
@@ -1858,6 +1860,32 @@ MonoBehaviour:
       LongitudinalJitter: 3
       DriftAmplitude: 1.5
       DriftRate: 0.05
+  - id: settlement-expedition
+    displayName: Settlement Expedition
+    tribe: {fileID: 0}
+    runtimeOnly: 1
+    members: []
+    tasks: []
+    travelSpeed: 3.5
+    startNearSite: 1
+    useStartPosition: 0
+    startPosition: {x: 0, y: 0, z: 0}
+    initialStaySeconds: 0
+    bountyHunters: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 1
+      RowSpacing: 3
+      LaneSpacing: 2
+      LateralJitter: 0.5
+      LongitudinalJitter: 0.5
+      DriftAmplitude: 0.3
+      DriftRate: 0.1
   spawnRadius: 250
   despawnRadius: 360
   spawnSampleDistance: 25
@@ -1945,6 +1973,31 @@ MonoBehaviour:
   trailArriveRadius: 20
   absentQuarryGrace: 120
   fallbackAttempts: 8
+--- !u!114 &114649348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 114649341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 151da35c851b34201bfab0517ff72801, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.ExpeditionSaveable
+--- !u!114 &114649349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 114649341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9da4c0c22874548d9bc0bd556d773c9f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionDirector
+  simulateStepMinutes: 10
 --- !u!1 &118567313
 GameObject:
   m_ObjectHideFlags: 0
@@ -1957,7 +2010,6 @@ GameObject:
   - component: {fileID: 118567316}
   - component: {fileID: 118567315}
   - component: {fileID: 118567314}
-  - component: {fileID: 118567319}
   - component: {fileID: 118567318}
   m_Layer: 0
   m_Name: '[SaveSystem]'
@@ -2037,18 +2089,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a140b4e7c70954d6c8d5273f16e93704, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.LeashSaveable
---- !u!114 &118567319
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 118567313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0185a432076c040f7931ed13214f708d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HerdStateSaveable
 --- !u!4 &135571990 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1001130551400491267, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}
@@ -2302,7 +2342,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 885.9
+      value: 906
       objectReference: {fileID: 0}
     - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5110,7 +5150,7 @@ Transform:
   m_GameObject: {fileID: 1900100001}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3789.8, y: 120, z: 1571}
+  m_LocalPosition: {x: 2974.53, y: 120, z: 571}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

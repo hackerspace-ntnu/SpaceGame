@@ -98,7 +98,6 @@ namespace SpaceGame.EditorTools
             {
                 Assert.IsEmpty(horse.GetComponentsInChildren<CloseCombatModule>(true),
                                $"{horse.name} must not kick or trample — the rider does the fighting");
-                Assert.IsEmpty(horse.GetComponentsInChildren<AgentRangedCombatModule>(true), horse.name);
                 Assert.IsEmpty(horse.GetComponentsInChildren<NpcItemUseModule>(true),
                                $"{horse.name} carries no weapon of its own");
                 Assert.IsEmpty(horse.GetComponentsInChildren<FightOrFlightModule>(true),

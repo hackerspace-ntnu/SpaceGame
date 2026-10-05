@@ -28,6 +28,7 @@ symptoms:
   - "the Scene(s) Have Been Modified dialog appears in the middle of a full test run, during Netcode BuildTests.BasicBuildTest"
   - "the editor adds objects to my scene while I am doing nothing and no agent is running"
   - "headless_tests.txt says CANCELLED, or my queued test run was discarded as too old"
+  - "an autotest moves its player and it is back where it was the next frame; stand-ins never spawn beside the observer"
 reads_with: [Multiplayer, Persistence, EditorTooling]
 updated: 2026-10-04
 ---
@@ -40,7 +41,6 @@ updated: 2026-10-04
 **Related:** [Multiplayer.md](Multiplayer.md) · [Persistence.md](Persistence.md) · [spacegame-multiplayer](.claude/skills/spacegame-multiplayer/SKILL.md) · [spacegame-persistence](.claude/skills/spacegame-persistence/SKILL.md)
 
 ## Model
-
 - **Everything is EditMode. There are zero `[UnityTest]`s and zero play-mode assemblies.** No coroutines, no frames, no physics stepping. Tests that need time march a system manually in a `for` loop.
 - Two different assemblies host tests, and they see different things:
   - [`Assets/Game/Tests/EditMode/`](Assets/Game/Tests/EditMode) has [`SpaceGame.Tests.EditMode.asmdef`](Assets/Game/Tests/EditMode/SpaceGame.Tests.EditMode.asmdef) — `autoReferenced: false`, `UNITY_INCLUDE_TESTS`, Editor-only. It references only the 15 modular `SpaceGame.*` asmdefs. **An asmdef cannot reference `Assembly-CSharp`**, so nothing here can touch a type that lives outside a module.
@@ -50,7 +50,6 @@ updated: 2026-10-04
 - Shared fixtures are thin — three helpers, no base classes: [`PersistenceProbe`](Assets/Game/Editor/Tests/PersistenceProbe.cs) (`.For(prefabPath).Mutate(…).AssertSurvivesRoundTrip()` / `.AssertWiredCorrectly()`, oracle derived from the real `SaveablePolicy.Ensure`), [`WalkerTestRig`](Assets/Game/Tests/EditMode/WalkerTestRig.cs) (real limb proportions), [`MultiplayerTestPlayerBuilder`](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) (3-scene player build). 57 `[SetUp]` / 90 `[TearDown]`, no `[Category]`, no `[Explicit]`.
 
 ## Suites
-
 | Area | Path | ~Tests | Notes |
 | --- | --- | --- | --- |
 | Locomotion & walkers | `Tests/EditMode` (+ 3 in `Editor/Tests`) | 300 / 26 files | Densest suite. Pure math: IK chains, gait, hip budget, support planes. `WalkerTestRig` shared. |
@@ -67,7 +66,6 @@ updated: 2026-10-04
 | Portals | `Editor/Tests` | 25 / 2 files | Lifecycle + traversal. |
 
 ## Coverage gaps
-
 Blunt: these have **zero** tests. Grep of every test file finds no mention.
 
 - **`World/ProceduralGeneration` (68 files) — nothing.** Terrain gen, settlements, facades, bridges. The single largest untested subsystem. (`Terrain` hits in tests are `UnderTerrainRuleTests`, a safety rule, not generation.)
@@ -79,7 +77,6 @@ Blunt: these have **zero** tests. Grep of every test file finds no mention.
 - **Play-mode / runtime behaviour** — no play-mode suite exists at all. Anything requiring `Awake`, physics, NavMesh or a frame loop is verified by hand or by the batch-mode autotest.
 
 ## Running tests
-
 The Test Runner API is async and needs a live Editor. There is **no verified `unity -batchmode -runTests` path in this repo** — do not invent one.
 
 | Goal | Command |
@@ -94,20 +91,36 @@ Two-process client verification (the only real proof of client-side netcode):
 
 ```
 # menu: Tools ▸ Tests ▸ Build Multiplayer Test Player   (builds ../Build/MPTest/SpaceGameMP.app,
-#       3 scenes only: Bootstrap, MainMenu, world/persistentScene)
+#       Bootstrap, MainMenu, world/persistentScene and 11 chunk scenes: the settlement's Chunk_6_3 with its
+#       neighbours, and the chunks around the spawn in Chunk_7_5)
 # menu: Tools ▸ Tests ▸ Print Multiplayer Test Commands  → prints the exact paths + expected values
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode host   -logFile /tmp/mp_host.log &
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode client -logFile /tmp/mp_client.log &
 grep '\[MPTEST\]' /tmp/mp_host.log /tmp/mp_client.log
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode persist -logFile /tmp/mp_persist.log
+# the nomad settlement: host and client, then one process through a save and reload
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode settlement-host   -logFile /tmp/mp_settlement_host.log &
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode settlement-client -logFile /tmp/mp_settlement_client.log &
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode settlement-persist -logFile /tmp/mp_settlement_persist.log
+# the settlement's expedition band: host and client, then one process through a save and reload
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode expedition-host   -logFile /tmp/mp_expedition_host.log &
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode expedition-client -logFile /tmp/mp_expedition_client.log &
+"<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode expedition-persist -logFile /tmp/mp_expedition_persist.log
 ```
+
+The player's executable is `SpaceGame` inside `SpaceGameMP.app/Contents/MacOS` (the product name), not `SpaceGameMP` as the older command lines above say. A player build compiles every script itself and refuses with "Type ... has an extra field ... can't be serialized" while another session is half-way through changing a serialized type: wait and rebuild.
+
+The settlement modes also log, per machine, `HOST_BODIES` / `CLIENT_BODIES` (every 5 s for 70 s after the settle, and at each census): one line led by the clock minute with, per resident, the replicated activity, place, seat and cart ids, whether the seat and the cart really are held (`+`/`-`), the tool in the hand, the `HoldStyle` and the Full/Upper loops playing (`AutotestProbes.TakeBodyLine`). Pair the host's and the client's lines by minute: a resident that differs is a body the client derives differently. `settlement-persist` also leaves a cart off its authored pose before saving (`PERSIST_CART_MOVED_METRES`, `PERSIST_SAVE_CART_RECORDS`) and checks it after the reload (`PERSIST_CART_RESTORED=True`). **Written 2026-10-03 and compiled, not yet run: the player build was attempted and did not finish (the editor recompiled mid-build), so the animation features have still not been seen on a real client or through a reload.**
+
+The settlement modes (`AutotestRunner.Settlement.cs`) put the host's player in the settlement, because no chunk loads unless somebody stands near it, and count with `AutotestProbes.TakeSettlementCensus`: residents (and how many are hidden indoors, hold a place, stand within 0.15 m of its stand point, climb), penned stock and how much of it is still inside a pen, gates and how many are open. The client never leaves the spawn and must count the same as the host (`CLIENT_RESIDENTS == HOST_RESIDENTS`, `CLIENT_STOCK == HOST_STOCK`) and see the gate the host opened (`CLIENT_GATE_OPEN_SEEN=True`). `settlement-persist` opens a gate, saves, reloads the world and counts again: every `PERSIST_AFTER_LOAD_*` must equal its `PERSIST_BEFORE_SAVE_*`. `AutotestProbes.FindSettlement` is the loaded settlement **with residents**: the culture-less astronaut colony loads in the same 3x3 and has no society.
+
+The expedition modes (`AutotestRunner.Expeditions.cs`, probes in `AutotestProbes.Expeditions.cs`) send one band of the nomad settlement out and home, see [Expeditions.md](Expeditions.md). They **drive** time instead of waiting: the clock is set to the departure hour and jumped over the muster, and jumped past `walkLimitMinutes` only when the walk-out or walk-in did not finish by itself (`*_HANDOFF_BY` / `*_HOMECOMING_BY` say which rule fired). The host's player is the observer and is moved to where each rule needs it — after it has stood up from the crash-landed ship (`*_ARRIVAL_SEAT`, Gotchas), and every move is checked to have stuck (`*_<STEP>_OBSERVER_PLACED`: within 10 m, on loaded ground): behind the muster spot, `handoffObserveRadius` + 50 m out, while the band walks out (unobserved, so the hand-off is the 150 m one and the band folds); 120 m from the folded band to make its stand-ins real; back behind the settlement so it folds for `SimulateDays(2)`; and 40 m from the hand-off point for `SendHome`, so the walk-in swaps stand-ins for residents. Each mode ends `HOST_EXP_PASS` / `CLIENT_EXP_PASS` / `PERSIST_EXP_PASS`, plus `*_FAILED=` naming every failed check with what it saw. Across the two logs `CLIENT_EXP_STAND_INS == HOST_EXP_STAND_INS` and `CLIENT_EXP_STAND_IN_LINE == HOST_EXP_STAND_IN_LINE` (key, name and the item in hand per stand-in). `expedition-persist` checks the save text itself (`entries.expeditions` holds the band and its members, its `npcworld` group record has `owner: expedition`) and, after the reload, the same band on the same stage, no second band past the hand-off, and its residents still away and hidden. **Run 2026-10-04: all three passed; after the settlement was regenerated, host and client failed `STAND_INS=0` until the observer stood up from its arrival seat first.** They need the Phase 0–1 editor steps done first (director wired into `persistentScene`, site catalog baked, muster spot placed, resident prefabs prepared): a missing piece fails the first check that needs it (`*_DIRECTOR`, `*_BAND_RAISED`, `*_MUSTERED_WITH_KIT`, `*_STAND_INS`).
 
 Assert across **both** logs: `HOST_CLIENTS=2`, `CLIENT_SPAWNED > 0`, `CLIENT_PLAYER_OBJECT=True`, `CLIENT_SUPPRESSED == CLIENT_AUTHORITIES`, `CLIENT_HEALTH_SEEN == HOST_HEALTH_AFTER`, `HOST_RELAY_FROM_CLIENT=1`, and for the ship's terminal (`AutotestRunner.Terminal.cs`, see [Terminal.md](Terminal.md)) `CLIENT_TERMINAL_PAGE_SEEN == HOST_TERMINAL_PAGE == 2`, `HOST_TERMINAL_OCCUPIED=True` then `HOST_TERMINAL_RELEASED=True`. `persist` mode runs alone and checks save/quit/load (`PERSIST_CHARGES_AFTER_LOAD`, …). Extend [`AutotestRunner.Client.cs`](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.Client.cs) with a `Report(key, value)` rather than building a second harness. To *play* a build against the Editor: `open "<app>" --args -sgprofile client` (without it both sign in as the same anonymous PlayerId and the lobby 409s).
 
 Adjacent validation menus that are cheaper than a test run: `Tools ▸ Save System ▸ Validate Save Wiring`, `Tools ▸ SpaceGame ▸ Multiplayer ▸ Sync Network Prefabs`, `Tools ▸ SpaceGame ▸ Items ▸ Audit Held Item Poses` / `Audit Item Scale Ladder`, `Tools ▸ SpaceGame ▸ Ragdoll ▸ Audit Skeletons`.
 
 ## Headless verification
-
 `python3 tools/typecheck.py` — **verified working on this machine**: prints `Unity 6000.3.11f1` then
 `Assembly-CSharp: <n> sources | rsp <dag>` and `Assembly-CSharp: no errors.`, exit 0.
 
@@ -134,7 +147,6 @@ Limits you must know before trusting a green result:
 - It deliberately skips `Library/VP` MPPM clone caches, because a clone can hold a stale domain.
 
 ## Gotchas
-
 - **`AddComponent` outside play mode raises no `Awake`, `Start` or `OnEnable`.** A component that initialises in `Awake` is a bag of nulls in a test. Initialise explicitly, or test the pure class behind the MonoBehaviour.
 - **A failing run and a run that never started look identical.** Always delete `Temp/headless_tests.txt` first (the runner does) and wait for `DONE`.
 - **`Scene(s) Have Been Modified` is a MODAL dialog, and a headless run used to raise it.** The Test Framework's first task, `SaveModifiedSceneTask`, calls `EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo` whenever any loaded scene is dirty. Modal = the editor loop, the run and every MCP session sharing the editor stop until someone clicks; nothing is logged (a `ReadConsole` sat 30 minutes on 2026-09-05; four agent tasks blocked on 2026-09-24). Two ways to meet it: a probe/builder left the open scene dirty, or **a second run started while another was in flight** — an EditMode run lives inside an untitled scratch scene (`CreateBootstrapSceneTask`) its tests dirty, and `TestRunnerApi.Execute` happily starts a second job beside it (Editor.log 2026-09-24: `Executing IPrebuildSetup` at line 613640 while the run begun at 604737 was still logging test output, which then continued after the second run's `IPostBuildCleanup`). [`HeadlessTestRunner`](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) now closes both: a deferred request waits for `TestRunnerApi.IsRunActive()` (internal — read by reflection; it logs an error if a package upgrade removes it) to go false, then **discards a dirty untitled scene silently** (reopening Bootstrap — untitled scratch never holds work) and **refuses to run over a dirty saved scene**, writing `ABORTED=dirty-scene <path>` then `DONE` so a poller sees why nothing ran. Save or revert that scene and re-queue. It does not guard runs started some other way (the Test Runner window, MCP `run_tests`) — those still prompt over a dirty scene. The post-run cleanup waits for the framework's own `RestoreSceneSetupTask`; `RunFinished` fires *before* it, while the scratch scene is still active.
@@ -148,6 +160,8 @@ Limits you must know before trusting a green result:
 - **One broken assembly freezes the loaded domain for EVERY assembly, and your own test then keeps running in its pre-edit form.** A compile error anywhere — in this project's case `SpaceGame.Tests.EditMode`, broken by a signature change in a *different* agent's work — makes Unity log `Editor compiler errors found. Will not reload assemblies.` and refuse the swap. Your assembly compiled fine and `Library/ScriptAssemblies/Assembly-CSharp-Editor.dll` on disk *does* contain your new test (`strings <dll> | grep <TestName>`), but the `AppDomain` still holds the old one, so a renamed or newly added test never runs and a deleted one keeps failing with **byte-identical text across every run**. `ImportAsset(ForceUpdate)`, `RequestScriptCompilation(CleanBuildCache)` and `EditorUtility.RequestScriptReload()` all recompile and none of them help. **Check `grep 'Will not reload assemblies' Editor.log` and then `grep 'error CS' Editor.log | tail` before believing any red test, and before concluding anything about your own change** — the errors may name a file you have never opened. Do not chase the `Hotreload:` lines in the log; they are routine and were a red herring here. Same family as the MPPM stale domain below: the assembly on disk is right and the one answering questions is not.
 - **MPPM clones can run a stale domain** and silently import nothing; check `Application.dataPath` before believing MCP results. `typecheck.py` excludes their rsp for the same reason.
 - **`SpaceGame.Tests.EditMode` cannot reach `Assembly-CSharp`.** If the type under test is not inside a `SpaceGame.*` asmdef, the test belongs in `Assets/Game/Editor/Tests/`, not `Assets/Game/Tests/EditMode/`.
+- **A new world straps every player into the crash-landed ship, and a seat puts its rider back every frame.** `SeatedRider.HoldSeats` writes an owned body onto its chair in each `LateUpdate` until the player stands up (Q) or `ArrivalDirector`'s `strandedSeatTimeout` (180 s) turfs everyone out, so an autotest's `NetworkedTeleport.Move` of its player is undone on the next frame with nothing logged. A mode that stages no world, or `StageNew` without `disposable`, flies the arrival. The expedition modes waited 4 minutes by luck on the old settlement layout (the band walked its whole walk-out) and then lost the race on the new one (it skipped to its hand-off unseen, the watch began inside the 180 s): the "observer" never reached the band and no stand-in spawned. Stand up first (`SeatedRider.RequestLocalRelease` once `LocalPlayerMayLeave`) or stage a disposable world, and check a move took.
+- **A client that joined mid-stream can hold two copies of a chunk** (Multiplayer.md Gotchas). `expedition-client` then read the never-spawned copy: `SEEN_TWICE (4)`, `RESIDENT_BODIES (144 bodies, 70 residents + 4 stand-ins)`, `MEMBERS_BACK` at once, so it ran minutes ahead of the host and counted the stand-ins still on the road as `STAND_INS_AFTER_SWAP (4)`. It now stops at `CLIENT_EXP_SETTLEMENT_COPIES` instead. And `LeaveArrivalSeat` must wait for the arrival to be over (`ArrivalDirector.IsPending` false) before asking whether the player is seated: the body exists before the seat takes it (`PERSIST_EXP_ARRIVAL_SEAT=not seated`, then `WALKOUT_OBSERVER_PLACED` 425.9 m off).
 - **Host-only verification proves nothing.** The server instantiates prefabs directly and never consults the network prefab list — an unregistered prefab yields a perfect host and blank clients. `NetworkPrefabRegistrationTests` is the static guard; the two-process run is the real one.
 - **A persistence round-trip must use real JSON text and a *different* instance.** Restoring onto the object you captured from passes even when the saver restores nothing; object-level round-trips hide the `Vector3`/`Quaternion` converter stack overflow.
 - **`Assert.AreEqual` on a `Vector2`/`Vector3` is BITWISE, and its failure message rounds both sides to two decimals.** The same rectangle written `30 * PackGrid.Cell` and `4.05` need not be the same float, so a 1e-8 m difference fails and prints `(0.00, 0.00)` against `(0.00, 0.00)` — naming neither the axis nor the amount. Assert the components as floats with a delta and put the value in the message. Same trap the other way round: a boundary built by hand, `(1f + band) - 1f`, is one ulp *outside* a band the code tests with `<=`, so the test fails on IEEE rounding and says nothing about the system.
@@ -155,7 +169,6 @@ Limits you must know before trusting a green result:
 - The commit-block hook fires on `$(…)`, backticks and `$((`, including inside heredocs — write throwaway analysis in a Python file rather than retrying an inline shell one-liner.
 
 ## Extending
-
 1. Decide the assembly. Type lives inside a `SpaceGame.*` asmdef → `Assets/Game/Tests/EditMode/` (and add that asmdef to the `references` list in [`SpaceGame.Tests.EditMode.asmdef`](Assets/Game/Tests/EditMode/SpaceGame.Tests.EditMode.asmdef)). Otherwise → `Assets/Game/Editor/Tests/`. Backpack/inventory work by convention goes in `Assets/Game/Tests/Editor/`.
 2. Name the file `<Thing>Tests.cs`, namespace `SpaceGame.Tests`, plain `public class` (no base class, no `[TestFixture]` needed). Write the fixture *first* and confirm it fails — for a new type that means a compile error naming it.
 3. Prefer testing a pure class. If the logic only exists inside a MonoBehaviour, extract the arithmetic into a plain class (as `Locomotion/Policy` did) instead of fighting `Awake`.

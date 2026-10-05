@@ -15,11 +15,17 @@ namespace SpaceGame.Core
     public static class SimulationDrivers
     {
         /// <summary>
-        /// Everything on <paramref name="root"/> that moves it of its own accord: the agent brain,
-        /// its motor, and the NavMeshAgent underneath both.
+        /// Everything on <paramref name="root"/> that moves it of its own accord: its motor, and
+        /// the NavMeshAgent underneath it.
         ///
-        /// Matched by interface and base type, never by name, so a new motor or a renamed
-        /// controller is covered the day it is written.
+        /// <para>
+        /// Not the <see cref="AgentController"/>. It decides for itself whether this machine
+        /// simulates the agent and, where it does not, ticks only its presentation modules (ambient
+        /// chatter) — switching it off here is what kept those host-only for every NPC.
+        /// </para>
+        ///
+        /// Matched by interface and base type, never by name, so a new motor is covered the day it
+        /// is written.
         /// </summary>
         public static List<Behaviour> Discover(GameObject root)
         {
@@ -30,7 +36,7 @@ namespace SpaceGame.Core
             {
                 if (behaviour == null || !BelongsTo(root, behaviour)) continue;
 
-                if (behaviour is AgentController or IMovementMotor)
+                if (behaviour is IMovementMotor)
                     found.Add(behaviour);
             }
 

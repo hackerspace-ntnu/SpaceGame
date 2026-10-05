@@ -59,8 +59,8 @@ namespace SpaceGame.EditorTools
             var group = new NpcGroup { Id = record.id, TemplateId = record.templateId };
             group.ApplyRecord(in record);
 
-            // A bare group has no seed of its own, so a missing one leaves 0 (ApplyRecord keeps, never zeroes).
-            Assert.AreEqual(0, group.RosterSeed);
+            // Before seeds were saved every group drew from its id's hash, so an older save keeps that.
+            Assert.AreEqual(RosterDraw.StableHash("nomad-caravan"), group.RosterSeed);
             Assert.AreEqual(string.Empty, group.QuarryProfileId);
             Assert.AreEqual(0, group.Tier);
             Assert.IsFalse(group.IsWarParty);
@@ -69,12 +69,13 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ApplyRecord_WithNoSeed_KeepsTheGroupsOwn_ButASavedSeedWins()
+        public void ApplyRecord_WithNoSeed_DrawsFromItsId_ButASavedSeedWins()
         {
-            var group = new NpcGroup { Id = "caravan", RosterSeed = RosterDraw.StableHash("caravan") };
+            // A new world's seed: an older save, written before seeds were saved, drew from the id's hash.
+            var group = new NpcGroup { Id = "caravan", RosterSeed = 918273 };
 
             group.ApplyRecord(new NpcGroup.Record { id = "caravan" });
-            Assert.AreEqual(RosterDraw.StableHash("caravan"), group.RosterSeed, "an older save has no seed to give");
+            Assert.AreEqual(RosterDraw.StableHash("caravan"), group.RosterSeed, "an older save drew from its id");
 
             group.ApplyRecord(new NpcGroup.Record { id = "caravan", rosterSeed = 42 });
             Assert.AreEqual(42, group.RosterSeed);

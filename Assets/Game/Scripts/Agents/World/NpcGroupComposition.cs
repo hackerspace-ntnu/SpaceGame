@@ -1,6 +1,6 @@
 // Which prefabs a group spawns, in spawn order. Kept out of NpcWorldSim so the rule — explicit prefab,
-// else the roster's draw for the role, and a war party's people from its tier — is tested without
-// spawning anything.
+// else the roster's deal for the role, a war party's people from its tier, and the shuffled members
+// dealt into their column — is tested without spawning anything.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -36,6 +36,15 @@ namespace SpaceGame.Agents
         {
             var plan = new List<PlannedMember>();
             FactionRoster roster = template.tribe != null ? template.tribe.roster : null;
+            // How many of each role the roster has dealt this group: its draws come off one deck per role.
+            var dealt = new Dictionary<RosterRole, int>();
+
+            GameObject Deal(RosterRole role)
+            {
+                dealt.TryGetValue(role, out int n);
+                dealt[role] = n + 1;
+                return roster.Deal(role, group.RosterSeed, n);
+            }
 
             if (group.IsWarParty)
             {
@@ -53,7 +62,7 @@ namespace SpaceGame.Agents
                     if (wanted == null) continue;
 
                     for (int i = 0; i < Mathf.Max(1, wanted.count); i++)
-                        plan.Add(new PlannedMember(roster.Draw(wanted.role, group.RosterSeed, plan.Count), plan.Count == 0));
+                        plan.Add(new PlannedMember(Deal(wanted.role), plan.Count == 0));
                 }
 
                 return plan;
@@ -61,22 +70,81 @@ namespace SpaceGame.Agents
 
             if (template.members == null) return plan;
 
+            ColumnCard leaderCard = default;
+            bool leaderListed = false;
+            var deck = new List<ColumnCard>();
+            var deckPlaces = new List<int>();
+
             foreach (NpcGroupMemberSpec spec in template.members)
             {
                 if (spec == null) continue;
+
+                if (spec.isLeader && !leaderListed)
+                {
+                    leaderCard = spec.column;
+                    leaderListed = true;
+                }
 
                 int count = spec.DrawCount(group.RosterSeed, plan.Count);
                 for (int i = 0; i < count; i++)
                 {
                     GameObject prefab = spec.prefab != null
                         ? spec.prefab
-                        : roster != null ? roster.Draw(spec.role, group.RosterSeed, plan.Count) : null;
+                        : roster != null ? Deal(spec.role) : null;
+
+                    // Nothing drawn takes no slot, so only a member that spawns is dealt a place.
+                    if (spec.column.shuffled && prefab != null)
+                    {
+                        deck.Add(spec.column);
+                        deckPlaces.Add(plan.Count);
+                    }
 
                     plan.Add(new PlannedMember(prefab, spec.isLeader, spec.crew));
                 }
             }
 
+            DealColumn(plan, deck, deckPlaces, leaderCard, template.formation, group);
             return plan;
+        }
+
+        /// <summary>
+        /// Deals the shuffled members (<paramref name="deck"/>, listed at <paramref name="places"/> in
+        /// the plan) into those places in the order the group's seed deals (<see cref="ColumnDeal"/>).
+        /// A deck no shuffle can deal is left as listed; ColumnDeal has logged why.
+        /// </summary>
+        private static void DealColumn(List<PlannedMember> plan, List<ColumnCard> deck, List<int> places,
+                                       ColumnCard leader, FormationShape shape, NpcGroup group)
+        {
+            if (deck.Count < 2) return;
+
+            if (!ColumnDeal.TryDeal(leader, deck, FollowerSlots(plan, places), shape, group.RosterSeed, out int[] order))
+                return;
+
+            var listed = new PlannedMember[places.Count];
+            for (int i = 0; i < places.Count; i++) listed[i] = plan[places[i]];
+            for (int i = 0; i < places.Count; i++) plan[places[i]] = listed[order[i]];
+        }
+
+        /// <summary>
+        /// The formation slot each of <paramref name="places"/> takes, counted as NpcWorldSim.Spawn counts
+        /// them: every planned member that spawns and does not lead takes the next.
+        /// </summary>
+        private static List<int> FollowerSlots(List<PlannedMember> plan, List<int> places)
+        {
+            var slotAt = new int[plan.Count];
+            int followers = 0;
+            bool leaderTaken = false;
+            for (int i = 0; i < plan.Count; i++)
+            {
+                if (plan[i].Prefab == null) continue;
+
+                if (plan[i].Leads && !leaderTaken) leaderTaken = true;
+                else slotAt[i] = followers++;
+            }
+
+            var slots = new List<int>(places.Count);
+            foreach (int place in places) slots.Add(slotAt[place]);
+            return slots;
         }
     }
 }

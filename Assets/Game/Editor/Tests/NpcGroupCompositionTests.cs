@@ -214,6 +214,85 @@ namespace SpaceGame.EditorTools
             finally { Object.DestroyImmediate(house); Object.DestroyImmediate(person); }
         }
 
+        /// <summary>A walking-city-like template: a leader, shuffled vehicles of three kinds, then crew.</summary>
+        private NpcGroupTemplate ShuffledTemplate(out GameObject[] vehicles)
+        {
+            GameObject house = Make("House"), crawler = Make("Crawler"), wheel = Make("Wheel"), person = Make("Person");
+            vehicles = new[] { house, crawler, wheel };
+            ColumnCard Shuffled(string kind) => new ColumnCard { shuffled = true, kind = kind, footprint = new Rect(-2f, -2f, 4f, 4f) };
+            return new NpcGroupTemplate
+            {
+                id = "city",
+                tribe = tribe,
+                formation = new FormationShape { Lanes = 2, RowSpacing = 35f, LaneSpacing = 30f },
+                members = new[]
+                {
+                    new NpcGroupMemberSpec { prefab = house, isLeader = true },
+                    new NpcGroupMemberSpec { prefab = house, count = 2, column = Shuffled("house") },
+                    new NpcGroupMemberSpec { prefab = crawler, count = 2, column = Shuffled("crawler") },
+                    new NpcGroupMemberSpec { prefab = wheel, count = 4, column = Shuffled(null) },
+                    new NpcGroupMemberSpec { prefab = person, crew = true, count = 3 },
+                },
+            };
+        }
+
+        /// The user, 2026-10-05: the city's vehicles must not march sorted by type, but "like drawing
+        /// from a card deck". The shuffled members are dealt into their own places; the leader stays
+        /// first and the crew after them.
+        [Test]
+        public void ShuffledMembers_AreDealtFromTheGroupsSeed_LeaderFirst_CrewLast()
+        {
+            NpcGroupTemplate template = ShuffledTemplate(out GameObject[] vehicles);
+            var columns = new HashSet<string>();
+            for (int seed = 1; seed <= 60; seed++)
+            {
+                List<PlannedMember> plan = NpcGroupComposition.Resolve(new NpcGroup { Id = "city", RosterSeed = seed }, template);
+                Assert.AreEqual(12, plan.Count);
+                Assert.IsTrue(plan[0].Leads && plan[0].Prefab == vehicles[0]);
+                Assert.IsTrue(plan.Skip(9).All(p => p.Crew), "crew after every carrier");
+                List<GameObject> column = plan.Skip(1).Take(8).Select(p => p.Prefab).ToList();
+                Assert.AreEqual(2, column.Count(p => p == vehicles[0]));
+                Assert.AreEqual(2, column.Count(p => p == vehicles[1]));
+                Assert.AreEqual(4, column.Count(p => p == vehicles[2]));
+                Assert.IsNull(ColumnDeal.FirstBroken(template.members[0].column,
+                    plan.Skip(1).Take(8).Select(p => template.members.First(m => m.prefab == p.Prefab && !m.isLeader).column).ToList(),
+                    Enumerable.Range(0, 8).ToList(), template.formation));
+                columns.Add(string.Join(",", column.Select(p => p.name)));
+            }
+
+            Assert.Greater(columns.Count, 10, "every world deals its own column");
+        }
+
+        /// The order is a pure function of the saved roster seed: a refold, or a reload from the
+        /// group's record, brings back the column the player saw.
+        [Test]
+        public void ShuffledMembers_ARestoredGroup_DealsTheSameColumn()
+        {
+            NpcGroupTemplate template = ShuffledTemplate(out _);
+            var live = new NpcGroup { Id = "city", RosterSeed = 918273 };
+            var restored = new NpcGroup { Id = "city" };
+            restored.ApplyRecord(live.ToRecord());
+
+            CollectionAssert.AreEqual(NpcGroupComposition.Resolve(live, template).Select(p => p.Prefab),
+                                      NpcGroupComposition.Resolve(restored, template).Select(p => p.Prefab));
+        }
+
+        /// The roster's draws for a role are dealt from a deck, so a war party of five Riders from a
+        /// roster of five monowheels rides every one of them (the user, 2026-10-05: none too rare).
+        [Test]
+        public void WarParty_DealsItsRiders_EveryKindBeforeAnyTwice()
+        {
+            GameObject[] wheels = { Make("W1"), Make("W2"), Make("W3"), Make("W4"), Make("W5") };
+            tribe.roster.members = wheels.Select((w, i) => new RosterMember { role = RosterRole.Rider, prefab = w, weight = i < 3 ? 3f : 1f })
+                .ToArray();
+            tribe.roster.warPartyTiers = new[] { new WarPartyTier { roles = new[] { new RoleCount { role = RosterRole.Rider, count = 5 } } } };
+            var template = new NpcGroupTemplate { tribe = tribe };
+
+            for (int seed = 0; seed < 50; seed++)
+                CollectionAssert.AreEquivalent(wheels,
+                    NpcGroupComposition.Resolve(new NpcGroup { QuarryProfileId = "p", RosterSeed = seed }, template).Select(p => p.Prefab));
+        }
+
         private static readonly WeightedCount[] ElderCounts =
         {
             new WeightedCount { count = 1, weight = 0.65f },

@@ -211,12 +211,24 @@ namespace SpaceGame.Agents
                     Id = template.id,
                     TemplateId = template.id,
                     Position = ResolveStart(template),
-                    RosterSeed = RosterDraw.StableHash(template.id),
+                    RosterSeed = NewWorldSeed(),
                     DwellRemaining = template.initialStaySeconds,
                 };
 
                 groups.Add(group);
             }
+        }
+
+        /// <summary>
+        /// A seeded group's roster seed: the new world's own, so the Strider city deals its own column and
+        /// elders and a caravan its own faces in every world. Saved in the group's record, so the world
+        /// keeps it. Never 0, which a record reads as "no seed saved".
+        /// </summary>
+        private static int NewWorldSeed()
+        {
+            int seed;
+            do seed = Guid.NewGuid().GetHashCode(); while (seed == 0);
+            return seed;
         }
 
         private Vector3 ResolveStart(NpcGroupTemplate template)
@@ -1291,13 +1303,12 @@ namespace SpaceGame.Agents
                 if (templatesById[record.templateId].runtimeOnly && string.IsNullOrEmpty(record.quarryProfileId))
                     continue;
 
-                // Seeded as CreateGroup seeds it, so a record from before rosterSeed existed still draws
-                // the same people (ApplyRecord keeps this when the record's seed reads 0).
+                // ApplyRecord seeds it from the record, or from its id as CreateGroup does when an
+                // older record has no seed.
                 var restored = new NpcGroup
                 {
                     Id = record.id,
                     TemplateId = record.templateId,
-                    RosterSeed = RosterDraw.StableHash(record.id),
                 };
                 restored.ApplyRecord(in record);
                 groups.Add(restored);

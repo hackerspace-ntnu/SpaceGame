@@ -42,19 +42,18 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void Riders_AreTheFiveMonowheels_SinglesWeightedThreeToADoublesOne()
+        public void Riders_AreTheFiveMonowheels_WeightedAlike()
         {
             RosterMember[] riders = Roster.members.Where(m => m.role == RosterRole.Rider).ToArray();
             CollectionAssert.AreEquivalent(
                 StriderMonowheelBuilder.Singles.Concat(StriderMonowheelBuilder.Doubles).Select(StriderMonowheelBuilder.PrefabPath),
                 riders.Select(m => AssetDatabase.GetAssetPath(m.prefab)));
 
-            foreach (RosterMember rider in riders)
-            {
-                bool single = StriderMonowheelBuilder.Singles.Select(StriderMonowheelBuilder.PrefabPath)
-                    .Contains(AssetDatabase.GetAssetPath(rider.prefab));
-                Assert.AreEqual(single ? 3f : 1f, rider.weight, rider.prefab.name);
-            }
+            // A war party is dealt its Riders from a deck (FactionRoster.Deal): alike weights put no
+            // wheel at the back of every round, where a small party would never reach it (the user,
+            // 2026-10-05: some monowheels were too rare).
+            Assert.IsTrue(riders.All(r => Mathf.Approximately(r.weight, riders[0].weight) && r.weight > 0f),
+                          "run Author Strider Roster");
         }
 
         [Test]

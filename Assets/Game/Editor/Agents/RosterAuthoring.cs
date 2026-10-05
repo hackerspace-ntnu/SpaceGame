@@ -50,9 +50,10 @@ namespace SpaceGame.EditorTools
         private const string StriderHostileLinesPath = RosterDir + "/StriderHostileLines.asset";
         public const string StriderWarPartyTemplateId = "strider-war-party";
         public const string StriderCityTemplateId = "strider-city";
-        // A war party's Rider draw: a single monowheel three times as often as a double (spec §4).
-        private const float SingleMonowheelWeight = 3f;
-        private const float DoubleMonowheelWeight = 1f;
+        // A war party's Riders are dealt from a deck (FactionRoster.Deal): every monowheel once a round,
+        // a weight only ordering the round. Alike, so no wheel sits at the back of every round where a
+        // two- or three-wheel party never reaches it (the user, 2026-10-05: some were too rare).
+        private const float MonowheelWeight = 1f;
         // Rust red: the colour the whole column reads as from across a dune (spec §2).
         private static readonly Color StriderHudColor = new Color(0.72f, 0.22f, 0.12f);
 
@@ -169,8 +170,8 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The Striders' roster: the four Strider nomads as scouts and warriors, and the five
-        /// monowheels as Riders, so every war party is a convoy. A single is drawn three times as
-        /// often as a double: about one draw in four brings a driver and three gunners. The crab
+        /// monowheels as Riders, so every war party is a convoy, dealt its wheels from a deck of all five:
+        /// no wheel twice before every one has ridden (a five-wheel party rides each once). The crab
         /// outrider is not a Rider here; it stays with the walking city as a fixed prefab.
         ///
         /// Run after Build Strider Nomad NPCs and Build Strider Monowheels (validation reads the
@@ -182,10 +183,8 @@ namespace SpaceGame.EditorTools
         {
             GameObject[] people = NomadPrefabBuilder.StriderNomads
                 .Select(recipe => Load<GameObject>(recipe.PrefabPath)).Where(p => p != null).ToArray();
-            RosterMember[] convoy = StriderMonowheelBuilder.Singles
-                .Select(v => Member(RosterRole.Rider, Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v)), SingleMonowheelWeight))
-                .Concat(StriderMonowheelBuilder.Doubles
-                    .Select(v => Member(RosterRole.Rider, Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v)), DoubleMonowheelWeight)))
+            RosterMember[] convoy = StriderMonowheelBuilder.Singles.Concat(StriderMonowheelBuilder.Doubles)
+                .Select(v => Member(RosterRole.Rider, Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v)), MonowheelWeight))
                 .Where(m => m.prefab != null)
                 .ToArray();
 
@@ -194,8 +193,7 @@ namespace SpaceGame.EditorTools
                 .Concat(convoy)
                 .ToArray();
 
-            // Weighted draws, not exact counts: roughly 2 singles / 2 singles + a double / 3 singles +
-            // 2 doubles (spec §4). Exact counts would need a role of their own.
+            // Dealt, not counted: 2 and 3 different wheels, then all five.
             AuthorRoster("Striders", StriderFactionPath, StriderRosterPath, StriderHostileLinesPath, StriderHostileLines,
                 members, StriderHandItemPaths, new[]
                 {
@@ -487,17 +485,18 @@ namespace SpaceGame.EditorTools
         // The houses that carry the city; the first leads. Crew posts are per house, so the crew scales with it.
         public const int StriderCityHouses = 3;
         // The rows a carrier (a house or a barge) may ride in: the ground the city levels at a stop covers
-        // them (CityFarthestCarrierSlot). The shuffle keeps every carrier there (StriderCityColumn).
+        // them (CityFarthestCarrierSlot). The column's deal keeps every carrier there (StriderCityColumn).
         private const int CityCarrierRows = 6;
         private const int StriderCityWorkers = 2;
         private const int StriderCityOutriders = 2;
         // Monowheel scouts riding with the column; ScoutRota keeps two of them out on a sweep. Shared out
-        // over the singles in order, one extra each to the first while the remainder lasts (3, 3, 2).
+        // over every kind of monowheel in order, one extra each to the first while the remainder lasts
+        // (2, 2, 2, 1, 1): every kind rides with the city (the user, 2026-10-05).
         public const int StriderCityScouts = 8;
         // One crewed barge of each kind (StriderBargeBuilder.Barges; the user, 2026-09-25).
         public static int StriderCityBarges => StriderBargeBuilder.Barges.Length;
-        // A barge (34 m) is longer than a row is deep: StriderCityColumn only takes a shuffle in which every
-        // barge clears its neighbours at their slots (StriderCityTemplateTests measures it again).
+        // A barge (34 m) is longer than a row is deep: its card keeps it clear of its neighbours at their
+        // slots (StriderCityColumn; StriderCityTemplateTests deals the column for many seeds).
 
         /// <summary>The walking city's column.</summary>
         public static readonly FormationShape CityShape = new FormationShape
@@ -533,7 +532,7 @@ namespace SpaceGame.EditorTools
         private const float CityRegroupMargin = 30f;
 
         /// <summary>
-        /// Every city member's FormationModule.regroupDistance: the column is shuffled
+        /// Every city member's FormationModule.regroupDistance: the column is dealt anew in every world
         /// (<see cref="StriderCityColumn"/>), so any vehicle may ride in its farthest slot. Rebuild the
         /// members after a change to the column.
         /// </summary>
@@ -546,7 +545,8 @@ namespace SpaceGame.EditorTools
         public static bool IsCityCarrier(GameObject prefab) =>
             IsAt(prefab, StriderCityBuilder.HabitatPath) || IsCityBarge(prefab);
 
-        private static bool IsCityBarge(GameObject prefab) =>
+        /// <summary>Whether <paramref name="prefab"/> is one of the city's barges.</summary>
+        public static bool IsCityBarge(GameObject prefab) =>
             StriderBargeBuilder.Barges.Any(b => IsAt(prefab, StriderBargeBuilder.PrefabPath(b.Variant)));
 
         /// <summary>
@@ -556,9 +556,12 @@ namespace SpaceGame.EditorTools
         public static string CityKind(GameObject prefab)
         {
             if (IsCityBarge(prefab)) return "barge";
-            if (StriderMonowheelBuilder.Singles.Any(v => IsAt(prefab, StriderMonowheelBuilder.PrefabPath(v)))) return null;
+            if (CityScoutVariants.Any(v => IsAt(prefab, StriderMonowheelBuilder.PrefabPath(v)))) return null;
             return prefab.name;
         }
+
+        /// <summary>Every kind of monowheel, in the order <see cref="ScoutShare"/> shares the city's scouts out.</summary>
+        private static string[] CityScoutVariants => StriderMonowheelBuilder.Singles.Concat(StriderMonowheelBuilder.Doubles).ToArray();
 
         private static bool IsAt(GameObject prefab, string path) => AssetDatabase.GetAssetPath(prefab) == path;
 
@@ -596,8 +599,9 @@ namespace SpaceGame.EditorTools
         /// outriders, three crewed barges, eight monowheel scouts and a crew that fills every crew post on
         /// the houses and barges.
         /// Carriers are listed before the crew because NpcWorldSim seats each crew member on a carrier already spawned.
-        /// The vehicles behind the lead house are shuffled (<see cref="StriderCityColumn"/>); it starts a
-        /// short walk from the player's spawn (<see cref="StriderCityStartSite"/>).
+        /// The vehicles behind the lead house are dealt into a column at spawn from the group's per-world
+        /// seed (<see cref="ColumnDeal"/>, cards from <see cref="StriderCityColumn"/>); it starts a short
+        /// walk from the player's spawn (<see cref="StriderCityStartSite"/>).
         /// Idempotent: finds its template by id and rewrites every field it owns.
         /// </summary>
         [MenuItem("Tools/SpaceGame/Agents/Wire Strider City")]
@@ -608,7 +612,7 @@ namespace SpaceGame.EditorTools
             var crawler = Load<GameObject>(DesertCrawlerBuilder.PrefabPath);
             var crab = Load<GameObject>(StriderCrabOutriderBuilder.PrefabPath);
             var elder = Load<GameObject>(StriderElderBuilder.PrefabPath);
-            GameObject[] scouts = StriderMonowheelBuilder.Singles
+            GameObject[] scouts = CityScoutVariants
                 .Select(v => Load<GameObject>(StriderMonowheelBuilder.PrefabPath(v))).ToArray();
             GameObject[] barges = StriderBargeBuilder.Barges
                 .Select(b => Load<GameObject>(StriderBargeBuilder.PrefabPath(b.Variant))).ToArray();
@@ -618,15 +622,22 @@ namespace SpaceGame.EditorTools
             // Near the player's spawn rather than at a Ruin: see StriderCityStartSite.
             if (!StriderCityStartSite.TryChoose(out Vector3 start, out _)) return;
 
-            // Every vehicle behind the lead house, shuffled so the column is not a parade of pairs.
-            var followers = Enumerable.Repeat(habitat, StriderCityHouses - 1)
-                .Concat(Enumerable.Repeat(crawler, StriderCityWorkers))
-                .Concat(Enumerable.Repeat(crab, StriderCityOutriders))
-                .Concat(barges)
-                .Concat(scouts.SelectMany((scout, i) => Enumerable.Repeat(scout, ScoutShare(i, scouts.Length))))
+            // Every vehicle behind the lead house and how many of it: a card each in the column's deck.
+            List<(GameObject prefab, int count)> followers = new List<(GameObject, int)>
+                {
+                    (habitat, StriderCityHouses - 1),
+                    (crawler, StriderCityWorkers),
+                    (crab, StriderCityOutriders),
+                }
+                .Concat(barges.Select(barge => (barge, 1)))
+                .Concat(scouts.Select((scout, i) => (scout, ScoutShare(i, scouts.Length))))
                 .ToList();
-            if (!StriderCityColumn.TryOrder(habitat, followers, CityKind, IsCityCarrier, IsCityBarge,
-                                            CityShape, CityCarrierSlots, out List<GameObject> column)) return;
+            ColumnCard leaderCard = StriderCityColumn.Card(habitat, shuffled: false);
+            var cards = followers.ToDictionary(f => f.prefab, f => StriderCityColumn.Card(f.prefab, shuffled: true));
+            // Caught here rather than at a spawn: a deck no shuffle can deal (ColumnDeal logs why).
+            List<ColumnCard> deck = followers.SelectMany(f => Enumerable.Repeat(cards[f.prefab], f.count)).ToList();
+            if (!ColumnDeal.TryDeal(leaderCard, deck, Enumerable.Range(0, deck.Count).ToList(), CityShape,
+                                    RosterDraw.StableHash(StriderCityTemplateId), out _)) return;
 
             WithWorldSim(sim =>
             {
@@ -672,11 +683,12 @@ namespace SpaceGame.EditorTools
 
                 SerializedProperty members = t.FindPropertyRelative("members");
                 members.arraySize = 0;
-                AddMember(members, habitat, RosterRole.Scout, 1, leader: true, crew: false);
-                // One spec per vehicle, in slot order. The crabs are a fixed prefab, never the roster's
-                // Rider draw: that is the war parties' monowheels.
-                foreach (GameObject vehicle in column)
-                    AddMember(members, vehicle, vehicle == crab ? RosterRole.Rider : RosterRole.Scout, 1, leader: false, crew: false);
+                AddMember(members, habitat, RosterRole.Scout, 1, leader: true, crew: false, leaderCard);
+                // Listed by kind; each world deals them into its own column. The crabs are a fixed
+                // prefab, never the roster's Rider deal: that is the war parties' monowheels.
+                foreach ((GameObject vehicle, int count) in followers)
+                    AddMember(members, vehicle, vehicle == crab ? RosterRole.Rider : RosterRole.Scout, count, leader: false, crew: false,
+                              cards[vehicle]);
                 // Half fighters, half scouts, one per crew post on every carrier; an odd post goes to a scout.
                 int crew = StriderCityHouses * StriderCityBuilder.CrewPosts + barges.Length * StriderBargeBuilder.CrewPosts;
                 int fighters = crew / 2;
@@ -738,9 +750,9 @@ namespace SpaceGame.EditorTools
             shape.FindPropertyRelative("DriftRate").floatValue = s.DriftRate;
         }
 
-        /// <summary>The <paramref name="index"/>-th single's share of <see cref="StriderCityScouts"/>; the first ones take one extra each while the remainder lasts.</summary>
-        internal static int ScoutShare(int index, int singles) =>
-            StriderCityScouts / singles + (index < StriderCityScouts % singles ? 1 : 0);
+        /// <summary>The <paramref name="index"/>-th monowheel kind's share of <see cref="StriderCityScouts"/>; the first ones take one extra each while the remainder lasts.</summary>
+        internal static int ScoutShare(int index, int kinds) =>
+            StriderCityScouts / kinds + (index < StriderCityScouts % kinds ? 1 : 0);
 
         /// <summary>The city's elders: usually one, sometimes two, rarely three (one per house at most).</summary>
         public static readonly WeightedCount[] StriderCityElders =
@@ -761,7 +773,8 @@ namespace SpaceGame.EditorTools
             }
         }
 
-        private static void AddMember(SerializedProperty members, GameObject prefab, RosterRole role, int count, bool leader, bool crew)
+        private static void AddMember(SerializedProperty members, GameObject prefab, RosterRole role, int count, bool leader, bool crew,
+                                      ColumnCard column = default)
         {
             int i = members.arraySize;
             members.InsertArrayElementAtIndex(i);
@@ -773,6 +786,13 @@ namespace SpaceGame.EditorTools
             m.FindPropertyRelative("crew").boolValue = crew;
             // InsertArrayElementAtIndex copies its neighbour: an elder's weights must not leak into the next spec.
             m.FindPropertyRelative("countWeights").arraySize = 0;
+            SerializedProperty card = m.FindPropertyRelative("column");
+            card.FindPropertyRelative("shuffled").boolValue = column.shuffled;
+            card.FindPropertyRelative("kind").stringValue = column.kind ?? string.Empty;
+            card.FindPropertyRelative("withinFirstSlots").intValue = column.withinFirstSlots;
+            card.FindPropertyRelative("keepsClear").boolValue = column.keepsClear;
+            card.FindPropertyRelative("footprint").rectValue = column.footprint;
+            card.FindPropertyRelative("slotTolerance").floatValue = column.slotTolerance;
         }
 
         /// <summary>

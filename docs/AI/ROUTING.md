@@ -516,6 +516,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every left-side vertex group of a copied character is empty | [ArtPipeline](systems/ArtPipeline.md) |
 | every limb of the ragdoll is jointed straight to one hub instead of down the limb | [Combat](systems/Combat.md) |
 | every module on the schematic reads MISSING on a ship that is clearly whole | [ShipSchematic](systems/ShipSchematic.md) |
+| every new world's Strider city has the same column | [Striders](systems/Striders.md) |
 | every NPC of one prefab stands in the same idle and steps off on the same foot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
 | every NPC throws the same jab and cross | [HumanoidAnimation](systems/HumanoidAnimation.md) |
@@ -878,6 +879,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the deployed rig is too big — it reads as a tent rather than a pack | [Backpack](systems/Backpack.md) |
 | the display-copy tests are all green and gear on the wall still shoves me around | [Backpack](systems/Backpack.md) |
 | the door opens for the host and stays shut for clients | [InteractionSystem](systems/InteractionSystem.md) |
+| the double monowheels never ride with the city, or one monowheel kind is rare in war parties | [Striders](systems/Striders.md) |
 | the dune barge drives but its tracks and wheels stand still | [TrackBelts](systems/TrackBelts.md) |
 | the dune barge export fails with 'no room for the player's body | [DuneBarge](systems/DuneBarge.md) |
 | the editor adds objects to my scene while I am doing nothing and no agent is running | [Testing](systems/Testing.md) |
@@ -1193,6 +1195,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the strap-on booster does nothing at all when I aim at the ground or a wall | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the Strider city drops the frame rate and nobody knows which system | [Diagnostics](systems/Diagnostics.md) |
 | the Strider city has already walked off by the time I reach its start | [Striders](systems/Striders.md) |
+| the Strider city marches sorted by vehicle type: walkers first, then crabs, then barges | [Striders](systems/Striders.md) |
 | the Strider city rides in matching pairs, like a parade | [Striders](systems/Striders.md) |
 | the Strider city starts on a hillside, or inside the Clanker town's alarm ring | [Striders](systems/Striders.md) |
 | the Strider crew sit inside the walls of their walking house | [Vehicles](systems/Vehicles.md) |
@@ -1808,4 +1811,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1313 symptoms, 469 paths, 67 docs -->
+<!-- 1316 symptoms, 469 paths, 67 docs -->

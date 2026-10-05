@@ -329,12 +329,36 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 4
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: running goods between the trade posts
       targetSite: 5
@@ -433,24 +457,72 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: running goods between the trade posts
       targetSite: 5
@@ -549,120 +621,252 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
-    - prefab: {fileID: 7855985018472554799, guid: 0fcc8e79bec6440beb2c49c1343c14a4, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
+      column:
+        shuffled: 0
+        kind: StriderHabitatWalker
+        withinFirstSlots: 12
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -15.74483
+          y: -12.968899
+          width: 31.489658
+          height: 27.561054
+        slotTolerance: 8
     - prefab: {fileID: 3920125714913502079, guid: ade2c352218d0654aa42348edd37b947, type: 3}
       role: 0
       isLeader: 0
       crew: 0
-      count: 1
+      count: 2
       countWeights: []
-    - prefab: {fileID: 3920125714913502079, guid: ade2c352218d0654aa42348edd37b947, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
+      column:
+        shuffled: 1
+        kind: StriderHabitatWalker
+        withinFirstSlots: 12
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -15.74483
+          y: -12.968899
+          width: 31.489658
+          height: 27.561054
+        slotTolerance: 8
     - prefab: {fileID: 7855985018472554799, guid: 0fcc8e79bec6440beb2c49c1343c14a4, type: 3}
       role: 0
       isLeader: 0
       crew: 0
-      count: 1
+      count: 2
       countWeights: []
-    - prefab: {fileID: 8683533901673170491, guid: 30695acfc17cf384eac28a394d94684a, type: 3}
-      role: 0
+      column:
+        shuffled: 1
+        kind: DesertCrawler
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -10.767538
+          y: -14.344118
+          width: 21.535074
+          height: 25.08656
+        slotTolerance: 8
+    - prefab: {fileID: 8245780198159841428, guid: 81b4e2cd12bc1944b9da1bd214bb35de, type: 3}
+      role: 2
       isLeader: 0
       crew: 0
-      count: 1
+      count: 2
       countWeights: []
-    - prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
-    - prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
+      column:
+        shuffled: 1
+        kind: StriderCrabOutrider
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -5.181661
+          y: -4.028392
+          width: 10.363324
+          height: 9.249971
+        slotTolerance: 1.6
     - prefab: {fileID: 6255694193989187041, guid: afebd3f8d7d7a724f9539e017fdfae07, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 1
+        kind: barge
+        withinFirstSlots: 12
+        keepsClear: 1
+        footprint:
+          serializedVersion: 2
+          x: -7.653511
+          y: -22.149202
+          width: 15.244849
+          height: 33.66879
+        slotTolerance: 4
     - prefab: {fileID: 5805050892606582730, guid: ac4ed41981380a04aa323bba4bdca998, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 1
+        kind: barge
+        withinFirstSlots: 12
+        keepsClear: 1
+        footprint:
+          serializedVersion: 2
+          x: -7.653511
+          y: -19.934969
+          width: 15.244849
+          height: 31.454556
+        slotTolerance: 4
+    - prefab: {fileID: 8683533901673170491, guid: 30695acfc17cf384eac28a394d94684a, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: barge
+        withinFirstSlots: 12
+        keepsClear: 1
+        footprint:
+          serializedVersion: 2
+          x: -7.653511
+          y: -19.934969
+          width: 15.244849
+          height: 24.395306
+        slotTolerance: 4
     - prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
       role: 0
       isLeader: 0
       crew: 0
-      count: 1
+      count: 2
       countWeights: []
-    - prefab: {fileID: 8997635125253337859, guid: 57171156033888b4ebe929745c331d22, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
-    - prefab: {fileID: 8997635125253337859, guid: 57171156033888b4ebe929745c331d22, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
-    - prefab: {fileID: 8245780198159841428, guid: 81b4e2cd12bc1944b9da1bd214bb35de, type: 3}
-      role: 2
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
-    - prefab: {fileID: 8839976493965510072, guid: 00260f5575d63e04dbd27d6d521d1e5d, type: 3}
-      role: 0
-      isLeader: 0
-      crew: 0
-      count: 1
-      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -0.85449743
+          y: -4.5787377
+          width: 1.7626433
+          height: 8.341272
+        slotTolerance: 4
     - prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
       role: 0
       isLeader: 0
       crew: 0
-      count: 1
+      count: 2
       countWeights: []
-    - prefab: {fileID: 8245780198159841428, guid: 81b4e2cd12bc1944b9da1bd214bb35de, type: 3}
-      role: 2
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -0.9574834
+          y: -4.5787377
+          width: 1.9413004
+          height: 8.341272
+        slotTolerance: 4
+    - prefab: {fileID: 8997635125253337859, guid: 57171156033888b4ebe929745c331d22, type: 3}
+      role: 0
       isLeader: 0
       crew: 0
-      count: 1
+      count: 2
       countWeights: []
-    - prefab: {fileID: 8482551549741299328, guid: 9b178970e5563944ba29cb747119e7bd, type: 3}
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -0.85449743
+          y: -4.5787377
+          width: 1.7626433
+          height: 8.341272
+        slotTolerance: 4
+    - prefab: {fileID: 5705080575746212662, guid: c575f358b1b813c4e8bda3b1d53ae74c, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -2.0010738
+          y: -5.184476
+          width: 4.08443
+          height: 8.94701
+        slotTolerance: 4
+    - prefab: {fileID: 6812825112896388665, guid: 17934fd3b87156a4189e627e1beded79, type: 3}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 1
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: -2.8517265
+          y: -5.184476
+          width: 5.703452
+          height: 7.298716
+        slotTolerance: 4
     - prefab: {fileID: 0}
       role: 1
       isLeader: 0
       crew: 1
       count: 15
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 0}
       role: 0
       isLeader: 0
       crew: 1
       count: 15
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 4513809822329001233, guid: 0aa53d1dbe38a48488e095df5ccfd9d6, type: 3}
       role: 0
       isLeader: 0
@@ -675,6 +879,18 @@ MonoBehaviour:
         weight: 0.25
       - count: 3
         weight: 0.1
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: picking over a ruin
       targetSite: 2
@@ -751,60 +967,180 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 9084312159628000530, guid: b1bf8bd749c4741f8b9f1bc99307887f, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6641747005437992729, guid: e423cfdf945624ad892c33b00e2d8450, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 4375941295063180595, guid: 9f38a891192e44383a04c1cf85df3b3a, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6320590716706008551, guid: 600a297774679412697efb8407ef232b, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6041516499664464153, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 7597401561177595076, guid: d7b830fd7553b4d07a97cadffa0ba701, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6643838780466197570, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3329947332983915974, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 9073734896679703001, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: running goods between the trade posts
       targetSite: 5
@@ -981,12 +1317,36 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 3
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks: []
     travelSpeed: 4.4
     startNearSite: 7
@@ -1019,12 +1379,36 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 4
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: grazing the open ground
       targetSite: 6
@@ -1117,12 +1501,36 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 5
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: grazing the open ground
       targetSite: 6
@@ -1215,12 +1623,36 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 4
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: grazing the open ground
       targetSite: 6
@@ -1313,18 +1745,54 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 3306571613298777548, guid: 8dac043065b0ca04c9f7e80c0069a1ae, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 6
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     - prefab: {fileID: 2370927830721863249, guid: 3376a5ba2f4d5ff4ca4c2e1a08b34d55, type: 3}
       role: 0
       isLeader: 0
       crew: 0
       count: 2
       countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
     tasks:
     - label: driving the herd to new grazing
       targetSite: 6

@@ -39,7 +39,7 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void TheCity_IsItsHousesTwoWorkersTwoCrabsThreeBargesEightScouts_AndACrewPerPost()
+        public void TheCity_IsItsHousesTwoWorkersTwoCrabsThreeBargesEightScoutsOfEveryKind_AndACrewPerPost()
         {
             NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
 
@@ -65,13 +65,15 @@ namespace SpaceGame.EditorTools
             Assert.Greater(System.Array.FindIndex(city.members, m => m.crew), System.Array.FindLastIndex(city.members, IsBarge),
                            "crew after every carrier, or they spawn with nowhere to sit");
 
-            string[] singles = StriderMonowheelBuilder.Singles.Select(StriderMonowheelBuilder.PrefabPath).ToArray();
-            bool IsScout(NpcGroupMemberSpec m) => singles.Contains(AssetDatabase.GetAssetPath(m.prefab));
+            // Every kind of monowheel rides with the city (the user, 2026-10-05: some were too rare).
+            string[] wheels = StriderMonowheelBuilder.Singles.Concat(StriderMonowheelBuilder.Doubles)
+                .Select(StriderMonowheelBuilder.PrefabPath).ToArray();
+            bool IsScout(NpcGroupMemberSpec m) => wheels.Contains(AssetDatabase.GetAssetPath(m.prefab));
             Assert.AreEqual(RosterAuthoring.StriderCityScouts, Count(IsScout), "the scouts the rota sends out");
             Assert.IsTrue(city.members.Where(IsScout).All(m => !m.crew && !m.isLeader && m.role == RosterRole.Scout));
-            for (int i = 0; i < singles.Length; i++)
-                Assert.AreEqual(RosterAuthoring.ScoutShare(i, singles.Length),
-                                Count(m => AssetDatabase.GetAssetPath(m.prefab) == singles[i]), $"{singles[i]}: its share of the scouts");
+            for (int i = 0; i < wheels.Length; i++)
+                Assert.AreEqual(RosterAuthoring.ScoutShare(i, wheels.Length),
+                                Count(m => AssetDatabase.GetAssetPath(m.prefab) == wheels[i]), $"{wheels[i]}: its share of the scouts");
 
             Assert.AreEqual(CityLanes, city.formation.Lanes, "formation shape unchanged");
             Assert.AreEqual(CityRowSpacing, city.formation.RowSpacing, 0.01f, "re-run Wire Strider City");
@@ -110,68 +112,65 @@ namespace SpaceGame.EditorTools
         }
 
         /// FormationModule measures regroupDistance from the leader: a follower whose slot is farther
-        /// out than that counts as separated at its own slot and rides for the leader instead.
+        /// out than that counts as separated at its own slot and rides for the leader instead. The
+        /// column is dealt anew in every world, so any vehicle may draw the farthest slot.
         [Test]
-        public void EveryFollower_ReachesItsSlot_WithinItsRegroupDistance()
+        public void EveryFollower_ReachesTheFarthestSlot_WithinItsRegroupDistance()
         {
             NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
+            List<NpcGroupMemberSpec> followers = city.members.Where(m => !m.crew && !m.isLeader).ToList();
 
-            // Followers take slots in spawn order, which is template order; the leader holds none, and
-            // the crew ride the houses.
-            int followerIndex = 0;
-            foreach (NpcGroupMemberSpec spec in city.members.Where(m => !m.crew))
+            Assert.AreEqual(RosterAuthoring.CityFollowers, followers.Sum(m => m.count), "CityFollowers counts every slot the template fills");
+            float reach = FormationMath.FarthestSlot(RosterAuthoring.CityFollowers, city.formation);
+            foreach (NpcGroupMemberSpec spec in followers)
+                Assert.Less(reach, spec.prefab.GetComponent<FormationModule>().RegroupDistance,
+                            $"{spec.prefab.name}: rebuild it after a template change");
+        }
+
+        /// Every vehicle behind the lead house is a card of the city's deck (ColumnDeal), with the
+        /// rules and the footprint WireStriderCity measured from its prefab.
+        [Test]
+        public void EveryFollower_IsACardOfTheDeck_WithItsRulesAndFootprint()
+        {
+            NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
+            NpcGroupMemberSpec leader = city.members.Single(m => m.isLeader);
+            Assert.IsFalse(leader.column.shuffled, "the lead house rides first");
+            Assert.AreEqual(StriderCityColumn.Card(leader.prefab, shuffled: false), leader.column, "re-run Wire Strider City");
+
+            foreach (NpcGroupMemberSpec spec in city.members.Where(m => !m.crew && !m.isLeader))
             {
-                float regroup = spec.prefab.GetComponent<FormationModule>().RegroupDistance;
-                for (int i = spec.isLeader ? 1 : 0; i < spec.count; i++, followerIndex++)
-                {
-                    float reach = FormationMath.FarthestSlot(followerIndex + 1, city.formation);
-                    Assert.Less(reach, regroup, $"{spec.prefab.name} in slot {followerIndex}: rebuild it after a template change");
-                }
+                Assert.IsTrue(spec.column.shuffled, $"{spec.prefab.name}: dealt into the column");
+                Assert.AreEqual(StriderCityColumn.Card(spec.prefab, shuffled: true), spec.column,
+                                $"{spec.prefab.name}: re-run Wire Strider City after a rebuild");
             }
 
-            Assert.AreEqual(RosterAuthoring.CityFollowers, followerIndex, "CityFollowers counts every slot the template fills");
+            Assert.IsTrue(city.members.Where(m => m.crew).All(m => !m.column.shuffled), "the crew ride the carriers");
         }
 
-        /// A barge is 34 m long and its pivot 22 m from its stern, longer than a row is deep: every barge
-        /// must clear every other member at their slots, with each one's fixed offset and drift at its
-        /// worst (or both parked as far off their slots as their slotTolerance lets them), measured from
-        /// the prefabs' renderers (StriderCityColumn.FirstOverlap). Only barges are judged.
+        /// The user, 2026-10-04 and 2026-10-05: not a parade of matching pairs, not sorted by kind, and
+        /// "like drawing from a card deck". Whatever seed a world draws, the column it deals keeps every
+        /// carrier on the ground the city levels at a stop, no house, crawler, crab or barge beside or
+        /// behind its own kind, and every barge (34 m, longer than a row is deep) clear of its neighbours.
         [Test]
-        public void EveryBarge_ClearsItsNeighbours_AtTheirSlots()
+        public void EverySeed_DealsAColumnThatKeepsTheRules_AndTheWorldsDiffer()
         {
             NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
-            string[] barges = StriderBargeBuilder.Barges.Select(b => StriderBargeBuilder.PrefabPath(b.Variant)).ToArray();
+            NpcGroupMemberSpec leader = city.members.Single(m => m.isLeader);
+            List<ColumnCard> deck = city.members.Where(m => m.column.shuffled)
+                .SelectMany(m => Enumerable.Repeat(m.column, m.count)).ToList();
+            List<int> slots = Enumerable.Range(0, deck.Count).ToList();
 
-            List<StriderCityColumn.Placed> column = StriderCityColumn.Place(Leader(city), Followers(city),
-                p => barges.Contains(AssetDatabase.GetAssetPath(p)), city.formation);
+            var columns = new HashSet<string>();
+            for (int seed = 0; seed < 300; seed++)
+            {
+                int worldSeed = RosterDraw.StableHash("world" + seed);
+                Assert.IsTrue(ColumnDeal.TryDeal(leader.column, deck, slots, city.formation, worldSeed, out int[] order), $"seed {worldSeed}");
+                List<PlannedMember> plan = NpcGroupComposition.Resolve(new NpcGroup { Id = city.id, RosterSeed = worldSeed }, city);
+                columns.Add(string.Join(",", plan.Skip(1).Take(deck.Count).Select(p => p.Prefab.name)));
+            }
 
-            Assert.IsNull(StriderCityColumn.FirstOverlap(column, city.formation), "re-run Wire Strider City");
+            Assert.Greater(columns.Count, 290, "every world deals its own column");
         }
-
-        /// The user, 2026-10-04: the column looked like a parade, every kind riding in its own block. It
-        /// is a shuffle now — no house, crawler, crab or barge beside its own kind in a row or behind it
-        /// in a lane (the scouts go anywhere) — that still keeps every carrier on the ground the city
-        /// levels at a stop.
-        [Test]
-        public void TheColumn_IsMixed_AndItsCarriersRideOnTheLevelGround()
-        {
-            NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
-            List<GameObject> followers = Followers(city);
-
-            Assert.IsNull(StriderCityColumn.FirstSameKindNeighbours(followers.Select(RosterAuthoring.CityKind).ToList(), city.formation.Lanes),
-                          "no kind beside or behind its own (re-run Wire Strider City)");
-            int lastCarrier = followers.FindLastIndex(RosterAuthoring.IsCityCarrier);
-            Assert.Less(lastCarrier, RosterAuthoring.CityCarrierSlots,
-                        "a carrier beyond the level footprint stands on a slope at every stop");
-        }
-
-        private static GameObject Leader(NpcGroupTemplate city) => city.members.Single(m => m.isLeader).prefab;
-
-        /// <summary>The prefab in each follower slot, in slot order: template order, the leader's own spec aside, crew not counted.</summary>
-        private static List<GameObject> Followers(NpcGroupTemplate city) =>
-            city.members.Where(m => !m.crew)
-                .SelectMany(m => Enumerable.Repeat(m.prefab, m.isLeader ? m.count - 1 : m.count))
-                .ToList();
     }
 
     /// The Striders' war party, as WireWorldSim writes it into the persistent scene: a monowheel convoy.

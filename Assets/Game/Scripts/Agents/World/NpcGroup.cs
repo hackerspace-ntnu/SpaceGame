@@ -43,7 +43,11 @@ namespace SpaceGame.Agents
                  "reloads comes back with the same number. Empty uses count.")]
         public WeightedCount[] countWeights = Array.Empty<WeightedCount>();
 
-        // Keeps this draw apart from the roster draw made for the same plan index.
+        [Tooltip("Where this member rides in the group's column. Shuffled members are dealt into a " +
+                 "seeded order (ColumnDeal) instead of marching in the order they are listed.")]
+        public ColumnCard column;
+
+        // Keeps this draw apart from the other rolls seeded by the group's roster seed and a plan index.
         private const int CountSalt = 0x5EED;
 
         /// <summary>How many of this member the group with <paramref name="rosterSeed"/> gets;
@@ -415,9 +419,9 @@ namespace SpaceGame.Agents
             Lead = record.lead;
             HasLead = record.hasLead;
             LeadAge = record.leadAge;
-            // 0 is what an older save reads. Taking it would re-seed a caravan once and save that back
-            // for good, so the group keeps the seed it was created with (its id's StableHash).
-            if (record.rosterSeed != 0) RosterSeed = record.rosterSeed;
+            // 0 is what a save from before seeds were saved reads: every group then drew from its id's
+            // StableHash, so it keeps drawing the people it had rather than a new world's seed.
+            RosterSeed = record.rosterSeed != 0 ? record.rosterSeed : RosterDraw.StableHash(Id);
             QuarryProfileId = record.quarryProfileId ?? string.Empty;
             Tier = Mathf.Max(0, record.tier);
             WipedOut = record.wipedOut;

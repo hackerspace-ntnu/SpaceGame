@@ -55,7 +55,23 @@ namespace SpaceGame.EditorTools
             Call("Start");
 
             CollectionAssert.AreEqual(new[] { "caravan" }, sim.Groups.Select(g => g.Id));
-            Assert.AreNotEqual(0, sim.Groups[0].RosterSeed, "a seeded group takes a seed from its id");
+            Assert.AreNotEqual(0, sim.Groups[0].RosterSeed, "0 is what an older save reads for no seed");
+        }
+
+        /// A seeded group's seed is the new world's own (the Strider city's column, its elders, a
+        /// caravan's faces), not its id's: two worlds seeded from the same templates differ.
+        [Test]
+        public void Seeding_EachNewWorld_DrawsItsOwnSeeds()
+        {
+            var seeds = new HashSet<int>();
+            for (int world = 0; world < 8; world++)
+            {
+                ((List<NpcGroup>)typeof(NpcWorldSim).GetField("groups", Private).GetValue(sim)).Clear();
+                Call("Start");
+                seeds.Add(sim.FindGroup("caravan").RosterSeed);
+            }
+
+            Assert.Greater(seeds.Count, 1);
         }
 
         [Test]
@@ -149,12 +165,13 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void RestoreRecords_FromAnOlderSave_KeepsEveryGroupsOwnSeed()
+        public void RestoreRecords_FromAnOlderSave_DrawsFromEachGroupsId()
         {
             Call("Start");
 
-            // Older saves have no rosterSeed: it reads 0, which must not overwrite the seed a group
-            // already draws from, or the caravan's faces and guns change once and for good.
+            // Older saves have no rosterSeed: it reads 0. Those worlds drew every group from its id's
+            // hash, so that is the seed it keeps — not this session's new-world seed, or the caravan's
+            // faces and guns would change once and for good.
             var oldCaravan = new NpcGroup { Id = "caravan", TemplateId = "caravan" };
             var oldParty = new NpcGroup { Id = "warparty:sand:p:3", TemplateId = "sand-war-party", QuarryProfileId = "p" };
 

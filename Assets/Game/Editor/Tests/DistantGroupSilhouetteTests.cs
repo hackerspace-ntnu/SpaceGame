@@ -1,6 +1,7 @@
 // The folded Strider city drawn from afar: in the live spawn's slots and dealt order for every seed and
-// heading, every vehicle with a merged level and far dust, shown only while folded and beyond spawnRadius
-// with a camera, nothing over unloaded ground, and gliding -- never stepping -- between the server's writes.
+// heading, every vehicle with a merged level and far dust, shown while folded with a camera (even inside
+// spawnRadius, until the live city replaces it), nothing over unloaded ground, and gliding -- never
+// stepping -- between the server's writes.
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -49,12 +50,12 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ItIsDrawn_OnlyFolded_BeyondSpawnRadius_WithACamera()
+        public void ItIsDrawn_WhileFolded_WithACamera_EvenInsideSpawnRadius()
         {
-            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 600f, spawnRadius: 250f));
-            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: true, cameraDistance: 600f, spawnRadius: 250f), "the live city is drawn");
-            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 200f, spawnRadius: 250f), "about to spawn");
-            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: float.NaN, spawnRadius: 250f), "no camera");
+            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 600f));
+            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: true, cameraDistance: 600f), "the live city is drawn");
+            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 200f), "inside spawnRadius but not yet spawned: still drawn, or only dust stands there until the server ticks");
+            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: float.NaN), "no camera");
         }
 
         [Test]

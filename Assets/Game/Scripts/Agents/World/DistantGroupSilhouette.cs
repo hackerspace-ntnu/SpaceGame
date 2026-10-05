@@ -7,8 +7,9 @@
 // same order on every machine), each standing on the terrain under it, each with a copy of its far dust.
 // Plain renderers, no NetworkObjects, nothing saved.
 //
-// Drawn only while the group is folded, the camera is beyond spawnRadius and there is loaded terrain
-// under the slot -- so never over the void. When the group spawns the renderers go and the dust stays to
+// Drawn while the group is folded and there is a camera and loaded terrain under the slot -- so never over
+// the void. Not hidden by distance: the server spawns a second or more after a player crosses spawnRadius
+// (its sim tick and player refresh), and hiding at the crossing left only dust standing there meanwhile. When the group spawns the renderers go and the dust stays to
 // settle: the live city arrives inside the cloud, in the same slots, drawing its own merged level.
 using System.Collections.Generic;
 using SpaceGame.Vehicles;
@@ -87,9 +88,12 @@ namespace SpaceGame.Agents
             return places;
         }
 
-        /// <summary>Folded, with a camera beyond <paramref name="spawnRadius"/>. NaN (no camera) compares false: not drawn.</summary>
-        public static bool ShouldShow(bool spawned, float cameraDistance, float spawnRadius) =>
-            !spawned && cameraDistance > spawnRadius;
+        /// <summary>
+        /// Folded, with a camera (NaN: none, not drawn). Hidden by <c>Spawned</c> alone, never by distance, so the
+        /// city stands until the live one replaces it; the two overlap, identical, for at most one publish.
+        /// </summary>
+        public static bool ShouldShow(bool spawned, float cameraDistance) =>
+            !spawned && !float.IsNaN(cameraDistance);
 
         public static Vector3 FollowPosition(Vector3 shown, Vector3 target, float dt, float lag) =>
             Vector3.Lerp(shown, target, 1f - Mathf.Exp(-dt / lag));
@@ -121,7 +125,7 @@ namespace SpaceGame.Agents
                     ? float.NaN
                     : Vector2.Distance(new Vector2(cam.transform.position.x, cam.transform.position.z),
                                        new Vector2(view.ShownPosition.x, view.ShownPosition.z));
-                Pose(view, terrains, ShouldShow(state.Spawned, distance, sim.SpawnRadius), snapped);
+                Pose(view, terrains, ShouldShow(state.Spawned, distance), snapped);
             }
 
             gone.Clear();

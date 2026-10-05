@@ -983,6 +983,7 @@ GameObject:
   - component: {fileID: -3439728406815543228}
   - component: {fileID: 5988664828226168782}
   - component: {fileID: 8894830672395398178}
+  - component: {fileID: 6773451581284351391}
   m_Layer: 0
   m_Name: StriderMonowheel_Runner
   m_TagString: Untagged
@@ -1282,7 +1283,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 0
+  corpseLifetime: 0
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &6655945215400825979
@@ -1735,6 +1736,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85fbbb8ee0af2284a8714c454c38c09d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AbandonedVehicleSaveable
+--- !u!114 &6773451581284351391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8839976493965510072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &9055607115439942380
 GameObject:
   m_ObjectHideFlags: 0

@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: 849675727406858281}
   - component: {fileID: 8755680667421789252}
   - component: {fileID: 3622724155574715589}
+  - component: {fileID: 418294391282017909}
   m_Layer: 0
   m_Name: BallLightningWeapon_Pickup
   m_TagString: Untagged
@@ -272,6 +273,18 @@ MonoBehaviour:
   linearDamping: 1.5
   angularDamping: 4
   minimumGrabSize: 0.45
+--- !u!114 &418294391282017909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5420671718850216553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &4332673557954807269
 PrefabInstance:
   m_ObjectHideFlags: 0

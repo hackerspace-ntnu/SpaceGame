@@ -1197,6 +1197,7 @@ GameObject:
   - component: {fileID: 6699243187067779534}
   - component: {fileID: -7924096159143747965}
   - component: {fileID: 9003402752226060737}
+  - component: {fileID: -7193374463786195992}
   m_Layer: 0
   m_Name: Appa
   m_TagString: Untagged
@@ -1438,7 +1439,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 1
 --- !u!114 &281093112832633915
@@ -2367,6 +2368,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
+--- !u!114 &-7193374463786195992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &3120901560776529387
 GameObject:
   m_ObjectHideFlags: 0

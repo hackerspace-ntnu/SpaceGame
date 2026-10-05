@@ -516,6 +516,7 @@ GameObject:
   - component: {fileID: -8372165612877603286}
   - component: {fileID: 5641044394817960115}
   - component: {fileID: 66407678447290153}
+  - component: {fileID: 1139697054921243031}
   m_Layer: 0
   m_Name: Strider_Longcoat
   m_TagString: Untagged
@@ -1007,7 +1008,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityLootTable
   lootEntries: []
   dropInventoryContents: 1
-  dropOnDespawn: 0
+  lootLifetime: 180
 --- !u!114 &4543302291479871962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1123,7 +1124,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &8404542096083689905
@@ -1730,6 +1731,18 @@ MonoBehaviour:
   hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
+--- !u!114 &1139697054921243031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4744905822893513358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &4871939358677950573
 GameObject:
   m_ObjectHideFlags: 0

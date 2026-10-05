@@ -228,6 +228,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7832917103406282232}
+    - targetCorrespondingSourceObject: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -7105483806214104986}
   m_SourcePrefab: {fileID: 100100000, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
 --- !u!4 &2949769492445866411 stripped
 Transform:
@@ -324,6 +327,7 @@ MonoBehaviour:
   holdSize: 1.2
   packSize: 0
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &8762530914650836997
 MonoBehaviour:
@@ -427,6 +431,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.6504664, y: 2.9088082, z: 11.126574}
   m_Center: {x: 0.32673228, y: 0.11100769, z: -0.23585176}
+--- !u!114 &-7105483806214104986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6060401903264006024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!4 &8283341453566841463 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}

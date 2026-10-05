@@ -53,6 +53,7 @@ GameObject:
   - component: {fileID: 8416476732712291472}
   - component: {fileID: 8335813745079777345}
   - component: {fileID: 4267339532360086985}
+  - component: {fileID: -2784925549543859309}
   m_Layer: 0
   m_Name: SmallMotor
   m_TagString: Untagged
@@ -349,11 +350,24 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   kind: 3
   installRange: 30
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &-2784925549543859309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6903902851709510415}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &8036714199032211643
 PrefabInstance:
   m_ObjectHideFlags: 0

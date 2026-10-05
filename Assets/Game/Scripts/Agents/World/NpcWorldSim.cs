@@ -361,7 +361,8 @@ namespace SpaceGame.Agents
             // First: a wiped-out or released party's vessel still has to leave before it can be removed.
             TickTransport(group, template, delta);
 
-            // Wiped out: waits for the director to resolve it rather than re-spawning at full strength.
+            // Wiped out: gone for good. A war party waits for the director to resolve it; any other group is
+            // simply never spawned again in this world.
             if (group.WipedOut) return;
 
             if (group.Spawned)
@@ -385,10 +386,17 @@ namespace SpaceGame.Agents
 
             // Live alone is not the party: a rider who dismounted is in no mount's saddle and still
             // fights. Folding here would re-spawn fresh riders beside them, or call the party beaten.
-            if (WarPartyRules.IsWipedOut(group.Live.Count, GroupMembership.CountStanding(group.Fighters)))
+            // Standing, not present: a body lies where it fell for minutes (HealthReactionModule
+            // corpseLifetime), and a member with no health -- a walking city's house -- never falls.
+            //
+            // Any group, not only a war party: one that folded back into a record re-spawned at full
+            // strength, with fresh guns, the next tick a player was in range -- on the spot where it
+            // had just been killed. Wiped out is for good in this world; the record saves it.
+            if (WarPartyRules.IsWipedOut(GroupMembership.CountStanding(group.Live),
+                                         GroupMembership.CountStanding(group.Fighters)))
             {
                 group.Spawned = false;
-                if (group.IsWarParty) group.WipedOut = true;
+                group.WipedOut = true;
                 Log($"{template.displayName} was wiped out");
                 return;
             }

@@ -1273,6 +1273,7 @@ GameObject:
   - component: {fileID: 6264196981007672090}
   - component: {fileID: 8053404926183458829}
   - component: {fileID: -2223607601577834730}
+  - component: {fileID: -7582973309246487615}
   m_Layer: 0
   m_Name: ClankerOutrider
   m_TagString: Untagged
@@ -1457,10 +1458,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 1853705877722032836}
   animatorDriver: {fileID: 3917715879482503850}
-  nearbyAgentScanRadius: 0
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &679577174304606003
@@ -1515,7 +1512,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &966155989710273793
@@ -1540,6 +1537,7 @@ MonoBehaviour:
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
+  sightRecheckInterval: 0.2
   memoryDuration: 12
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
@@ -2367,3 +2365,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dba9c324820a2d3438abb638878e91eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CrewSaveable
+--- !u!114 &-7582973309246487615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9222632965478916354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable

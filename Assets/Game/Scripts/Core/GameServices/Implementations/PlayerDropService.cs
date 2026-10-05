@@ -34,13 +34,13 @@ namespace SpaceGame.Core
         /// </summary>
         private const float GroundProbeLift = 0.5f;
 
-        public void DropItem(Transform origin, InventoryItem item, ItemState state = null)
+        public GameObject DropItem(Transform origin, InventoryItem item, ItemState state = null)
         {
-            if (origin == null || item == null || item.itemPrefab == null) return;
+            if (origin == null || item == null || item.itemPrefab == null) return null;
 
             GameObject obj = GameServices.World.Spawn(item.itemPrefab, SpawnPoint(origin, item),
                                                      Quaternion.identity);
-            if (obj == null) return;
+            if (obj == null) return null;
 
             // Everything the slot remembered about this instance rides the object it becomes, and
             // goes back into whichever slot picks it up. Uninterpreted while it lies there — see
@@ -63,6 +63,7 @@ namespace SpaceGame.Core
             SaveableEntity.EnsureRuntime(obj, item.ID);
 
             Toss(origin.forward, obj);
+            return obj;
         }
 
         /// <summary>

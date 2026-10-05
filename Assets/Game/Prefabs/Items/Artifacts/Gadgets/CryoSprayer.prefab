@@ -24391,6 +24391,7 @@ GameObject:
   - component: {fileID: 4071610271537526660}
   - component: {fileID: 3434425222101131910}
   - component: {fileID: 6128987874003044717}
+  - component: {fileID: -7902566921377919079}
   m_Layer: 0
   m_Name: CryoSprayer
   m_TagString: Untagged
@@ -24739,11 +24740,15 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   range: 18
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
   coneHalfAngle: 22
+  sightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   sweepsPerSecond: 15
   freezeSeconds: 0.75
   frost:
@@ -24753,6 +24758,18 @@ MonoBehaviour:
   tank: {fileID: 535777130103028069}
   holdTimeout: 0.5
   nozzle: {fileID: 3434425222101131910}
+--- !u!114 &-7902566921377919079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8908047390930028619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &9111790101412636461
 GameObject:
   m_ObjectHideFlags: 0

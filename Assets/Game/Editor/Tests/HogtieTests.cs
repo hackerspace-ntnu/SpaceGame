@@ -230,10 +230,11 @@ namespace SpaceGame.EditorTools
             public readonly List<InventoryItem> Dropped = new List<InventoryItem>();
             public Transform LastOrigin;
 
-            public void DropItem(Transform origin, InventoryItem item, ItemState state = null)
+            public GameObject DropItem(Transform origin, InventoryItem item, ItemState state = null)
             {
                 Dropped.Add(item);
                 LastOrigin = origin;
+                return null;
             }
         }
 

@@ -1,7 +1,7 @@
 // What a monowheel does when it is killed: it stops dead and can no longer be ridden.
 //
 // HealthReactionModule parks a corpse by switching its AgentController off; the wheel's corpse
-// despawn is off (despawnDelay 0), because a wreck its group lost stays in the world for
+// despawn is off (corpseLifetime 0), because a wreck its group lost stays in the world for
 // AbandonedVehicle's lifetime. That is not enough for a physics vehicle: the MonowheelMotor runs
 // on its own FixedUpdate and would keep rolling towards its last destination until the body is
 // taken away, and the MountModule would keep offering the saddle of a wreck. So on death this stops the motor, switches it off, and switches the mount off

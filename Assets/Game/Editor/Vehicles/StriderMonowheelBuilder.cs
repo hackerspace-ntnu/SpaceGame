@@ -486,7 +486,7 @@ namespace SpaceGame.EditorTools
             var reaction = root.AddComponent<HealthReactionModule>();
             // A wreck is not a corpse: AbandonedVehicle leaves it in the world for its lifetime, so the
             // players who won the fight can see it, and takes it away only once nobody is looking.
-            SerializedFields.Edit(reaction, so => SerializedFields.SetFloat(so, "despawnDelay", 0f));
+            SerializedFields.Edit(reaction, so => SerializedFields.SetFloat(so, "corpseLifetime", 0f));
             root.AddComponent<MonowheelWreck>();
             root.AddComponent<AbandonedVehicle>();
 

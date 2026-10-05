@@ -103,6 +103,7 @@ GameObject:
   - component: {fileID: 307060614282235164}
   - component: {fileID: 6718805662309183032}
   - component: {fileID: 3879599192908921742}
+  - component: {fileID: -6918624243752187489}
   m_Layer: 0
   m_Name: Strider_Beanie
   m_TagString: Untagged
@@ -594,7 +595,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityLootTable
   lootEntries: []
   dropInventoryContents: 1
-  dropOnDespawn: 0
+  lootLifetime: 180
 --- !u!114 &8744254156476224498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -710,7 +711,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &707495911454934564
@@ -1317,6 +1318,18 @@ MonoBehaviour:
   hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
+--- !u!114 &-6918624243752187489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 343479618667777863}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &547888546303306806
 GameObject:
   m_ObjectHideFlags: 0

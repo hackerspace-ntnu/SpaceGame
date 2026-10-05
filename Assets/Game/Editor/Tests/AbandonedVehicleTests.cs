@@ -111,12 +111,6 @@ namespace SpaceGame.EditorTools
         public bool IsDefeated(bool hadDriver, bool hasDriver, bool alive) =>
             AbandonedVehicle.IsDefeated(hadDriver, hasDriver, alive);
 
-        [TestCase(0f, false, ExpectedResult = true)]
-        [TestCase(0f, true, ExpectedResult = false)]
-        [TestCase(1f, false, ExpectedResult = false)]
-        public bool ShouldTakeAway(float remaining, bool playerNear) =>
-            AbandonedVehicle.ShouldTakeAway(remaining, playerNear);
-
         [Test]
         public void AWreckedWheel_LeavesItsGroup_AndIsSavedByTheWorld_ForItsLifetime()
         {

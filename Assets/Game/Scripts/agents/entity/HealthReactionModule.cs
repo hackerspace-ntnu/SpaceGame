@@ -1,5 +1,5 @@
 // Reacts to HealthComponent events by enabling/disabling modules at configurable thresholds.
-// Handles death cleanup: despawn timer and noise emission. The body going limp is AgentRagdoll's,
+// Handles death cleanup: the body's lifetime (Remains) and noise emission. The body going limp is AgentRagdoll's,
 // which subscribes to the same HealthComponent directly — a corpse has to be limp on every machine
 // looking at it, and this module's consequences are deliberately run only where the death happened.
 // Drag onto any entity with a HealthComponent.
@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using FMODUnity;
 using SpaceGame.Audio;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Agents
@@ -50,26 +51,14 @@ namespace SpaceGame.Agents
         [SerializeField] private float deathNoiseRadius = 20f;
         [SerializeField] private SfxId deathId = SfxId.EntityDeath;
         [SerializeField] private EventReference deathSound;
-        [Tooltip("Destroy or disable the GameObject after this delay. 0 = never.")]
-        [SerializeField] private float despawnDelay = 8f;
+        [Tooltip("Seconds the body lies where it fell before the world takes it away -- and then only " +
+                 "once no player is close enough to watch it go (Remains). 0 = it stays for good, which " +
+                 "is a Strider monowheel's wreck: AbandonedVehicle decides when that goes.")]
+        [SerializeField] private float corpseLifetime = 180f;
         [SerializeField] private bool disableAgentOnDeath = true;
 
-        /// <summary>
-        /// Raised on the frame the body is taken away, immediately before it is switched off.
-        ///
-        /// Exists for <see cref="EntityLootTable"/>, which can be told to hold its drop until
-        /// then. A corpse that pays out the moment it dies puts the pickup on the floor beside a
-        /// creature the player is still watching fall over, which reads as the loot belonging to
-        /// something else; waiting for the body to go makes the drop the thing that replaces it.
-        ///
-        /// Fires wherever the despawn does, which is every machine -- the timer is local. Anything
-        /// that must happen once for the world, loot included, still has to say so itself.
-        /// </summary>
-        public event Action Despawning;
-
-        /// <summary>Whether this body ever goes away on its own. False means the despawn timer is
-        /// switched off, so <see cref="Despawning"/> will never fire and nothing may wait on it.</summary>
-        public bool Despawns => despawnDelay > 0f;
+        /// <summary>Whether this body is ever taken away on its own.</summary>
+        public bool Despawns => corpseLifetime > 0f;
 
         [Header("Diagnostics")]
         [Tooltip("Log every hit this entity takes, with who dealt it and how much. For 'it keeps taking damage and I cannot see what from'. HealthComponent already records LastDamageSource; nothing was reading it back out, so the only way to answer the question was to guess. Off by default: a busy fight would fill the console.")]
@@ -180,13 +169,11 @@ namespace SpaceGame.Agents
             health.OnRevive -= HandleRevive;
         }
 
-        // A revive that lands inside the death despawn window (respawn delay is
-        // shorter than despawnDelay in the deathmatch minigame) must cancel the
-        // pending Despawn, or the entity is disabled again mid-fight seconds after
-        // coming back. Also restores the agent this module disabled on death.
+        // A body brought back to life is not remains any more: its countdown stops, or the world would
+        // take a living creature away. Also restores the agent this module disabled on death.
         private void HandleRevive()
         {
-            CancelInvoke(nameof(Despawn));
+            if (TryGetComponent(out Remains remains)) remains.Stop();
 
             if (disableAgentOnDeath && agentController)
                 agentController.enabled = true;
@@ -263,12 +250,12 @@ namespace SpaceGame.Agents
         private void HandleDeath()
         {
             // A save being loaded, not a kill. Everything below is a consequence of dying — a sound,
-            // a noise event, a UnityEvent, a despawn countdown — and none of them may happen again on
-            // the load after the one that killed this entity. What must still happen is the resulting
-            // STATE, or the world comes back with a corpse standing up and fighting.
+            // a noise event, a UnityEvent — and none of them may happen again on the load after the
+            // one that killed this entity. What must still happen is the resulting STATE, or the world
+            // comes back with a corpse standing up and fighting.
             if (health && health.IsRestoring)
             {
-                ApplyDeadState(immediate: true);
+                ApplyDeadState();
                 return;
             }
 
@@ -284,30 +271,26 @@ namespace SpaceGame.Agents
 
             onDeath?.Invoke();
 
-            ApplyDeadState(immediate: false);
+            ApplyDeadState();
         }
 
         /// <summary>
-        /// The lasting part of dying: the agent stops thinking and the body eventually goes away.
+        /// The lasting part of dying: the agent stops thinking and the body lies there, counting down
+        /// to being taken away.
         ///
-        /// Split out so a restored death can reach it without the one-off effects. <paramref
-        /// name="immediate"/> skips the despawn delay, because that delay exists to let a player watch
-        /// something die — a corpse arriving from a save has already been dead for however long the
-        /// player was away, and waiting out the timer would leave it briefly standing.
+        /// Split out so a restored death can reach it without the one-off effects. A restored death
+        /// does not restart a countdown already running: <c>RemainsSaveable</c> may have put back the
+        /// time the body had left before this death was replayed, and a body from a save older than
+        /// that saver gets the full lifetime. The countdown is the server's -- a client's copy goes
+        /// when the server's network despawn reaches it.
         /// </summary>
-        private void ApplyDeadState(bool immediate)
+        private void ApplyDeadState()
         {
             if (disableAgentOnDeath && agentController)
                 agentController.enabled = false;
 
-            if (immediate)
-            {
-                if (despawnDelay > 0f) Despawn();
-                return;
-            }
-
-            if (despawnDelay > 0f)
-                Invoke(nameof(Despawn), despawnDelay);
+            if (corpseLifetime > 0f && Network.Decides)
+                Remains.On(gameObject).BeginUnlessCounting(corpseLifetime);
         }
 
         private void CheckThresholds()
@@ -352,14 +335,6 @@ namespace SpaceGame.Agents
                     if (mb) mb.enabled = false;
 
             if (announce) reaction.onThresholdReached?.Invoke();
-        }
-
-        private void Despawn()
-        {
-            // Before the deactivation, not after: a listener on a disabled object is a listener
-            // that has already been unsubscribed by its own OnDisable.
-            Despawning?.Invoke();
-            gameObject.SetActive(false);
         }
     }
 }

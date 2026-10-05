@@ -213,6 +213,16 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(AbandonedVehicleSaveable));
             }
 
+            // How long a dead body, or the loot it shed, has left lying there. On everything that CAN
+            // become remains rather than on what already is: the Remains itself is added at runtime,
+            // so a freshly loaded item has none until this saver puts one back.
+            if ((go.GetComponent<HealthComponent>() != null || IsPickup(go) || go.GetComponent<Remains>() != null) &&
+                go.GetComponent<RemainsSaveable>() == null)
+            {
+                go.AddComponent<RemainsSaveable>();
+                parts.Add(nameof(RemainsSaveable));
+            }
+
             // Who this was fighting, and what it remembers. AgentTargeting rather than
             // AgentController: an agent with no targeting has no combat state to lose, and the saver
             // would capture an empty bag on every entity in the world.

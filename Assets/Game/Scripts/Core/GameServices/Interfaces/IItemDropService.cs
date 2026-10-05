@@ -26,7 +26,11 @@ namespace SpaceGame.Core
         /// Null for a caller with nothing to hand over — loot shed by a dying agent, a rope cut off
         /// a hogtied body — which lands the item at its authored defaults, exactly as before.
         /// </para>
+        /// <para>
+        /// Returns the object now lying in the world, or null when nothing was dropped — so a caller
+        /// that owns what it dropped can say so: a dead NPC's loot is given a lifetime (Remains).
+        /// </para>
         /// </summary>
-        void DropItem(Transform origin, InventoryItem item, ItemState state = null);
+        GameObject DropItem(Transform origin, InventoryItem item, ItemState state = null);
     }
 }

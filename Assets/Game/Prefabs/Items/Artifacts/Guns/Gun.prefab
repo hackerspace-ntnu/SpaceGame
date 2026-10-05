@@ -14803,6 +14803,7 @@ GameObject:
   - component: {fileID: 4121923052710515893}
   - component: {fileID: 7575472035181093071}
   - component: {fileID: 4527455029467475081}
+  - component: {fileID: 1333305601008065565}
   m_Layer: 0
   m_Name: Gun
   m_TagString: Untagged
@@ -15162,6 +15163,18 @@ MonoBehaviour:
   recoilUpwardBias: 0.05
   fovKick: 2.5
   fovKickSeconds: 0.1
+--- !u!114 &1333305601008065565
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5032710560570511402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &5128458658228012577
 GameObject:
   m_ObjectHideFlags: 0

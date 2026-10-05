@@ -1,5 +1,8 @@
 // Attach to any entity to declare its faction and give access to relationship queries.
-// Self-registers in EntityTargetRegistry on enable so targeting modules can find it.
+// Self-registers in EntityTargetRegistry on enable so targeting modules can find it -- while it is
+// alive. A dead body lies where it fell for minutes (Remains), and nothing should count it: not its
+// town's population cap, not an alarm, not a menace check. It leaves the registry on death and comes
+// back on revive.
 //
 // Factions are the sole definition of who targets whom — modules look up candidates
 // by faction relationship, not by string tag.
@@ -52,11 +55,33 @@ namespace SpaceGame.Agents
                 relationshipTable = table;
         }
 
-        private void OnEnable() => EntityTargetRegistry.Register(this);
+        private HealthComponent health;
+
+        private void OnEnable()
+        {
+            health = GetComponent<HealthComponent>();
+            if (health != null)
+            {
+                health.OnDeath += Unregister;
+                health.OnRevive += Register;
+            }
+
+            if (health == null || health.Alive) Register();
+        }
+
+        private void Register() => EntityTargetRegistry.Register(this);
+
+        private void Unregister() => EntityTargetRegistry.Unregister(this);
 
         private void OnDisable()
         {
-            EntityTargetRegistry.Unregister(this);
+            if (health != null)
+            {
+                health.OnDeath -= Unregister;
+                health.OnRevive -= Register;
+            }
+
+            Unregister();
 
             // Whoever this entity was told to overlook is forgotten with it. An ignore is a
             // relationship between two live objects — a creature that is despawned, streamed out

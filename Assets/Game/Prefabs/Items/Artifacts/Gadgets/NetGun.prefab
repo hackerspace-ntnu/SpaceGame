@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 2810191196761231609}
   - component: {fileID: 140140056096140166}
   - component: {fileID: -4998218674795954901}
+  - component: {fileID: 407994545815484520}
   m_Layer: 0
   m_Name: NetGun
   m_TagString: Untagged
@@ -182,6 +183,7 @@ MonoBehaviour:
   holdSize: 1.25
   packSize: 0.63
   sizeReference: {fileID: 2558684390854812122}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &4225057544121112433
 MonoBehaviour:
@@ -204,6 +206,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   netHalfWidth: 3
   cordWidth: 0.028
   netMaterial: {fileID: 2100000, guid: d08a96379ab974d2a8d971d23f0f9edc, type: 2}
@@ -217,6 +220,7 @@ MonoBehaviour:
     shearLimit: 1.3
     shearStiffness: 0.3
     bendStiffness: 0.016
+    cinchStiffness: 0.22
     faceDrag: 0.25
     bloomSpeed: 7
     bundleFraction: 0.08
@@ -226,11 +230,12 @@ MonoBehaviour:
     hemWeight: 3
   struggle:
     holdSeconds: 30
-    shuffleRadius: 1.4
     hobbleSpeed: 0.28
-    thrashFrequency: 2.4
-    thrashShare: 0.45
-    dragInfluence: 0.9
+    maxUsefulStruggleRate: 2.5
+    struggleDecaySeconds: 1.2
+    struggleMoveDeadzone: 0.5
+    struggleReversalAngle: 120
+    struggleMultiplier: 2
   muzzle: {fileID: 8756610772779162463}
   catchableLayers:
     serializedVersion: 2
@@ -351,6 +356,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &407994545815484520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 845299076640281366}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &6520978797856505012
 GameObject:
   m_ObjectHideFlags: 0

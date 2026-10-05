@@ -256,10 +256,11 @@ namespace SpaceGame.Agents
         [NonSerialized] public int FightersDead;
 
         /// <summary>
-        /// A war party with no member left and no fighter standing, dismounted riders included
-        /// (WarPartyRules.IsWipedOut). It never re-spawns; the director resolves it. Saved
-        /// (Record.wipedOut), so a party wiped out just before a save does not respawn at full
-        /// strength on load — the director sees it Defeated instead.
+        /// A group with no member and no fighter left standing, dismounted riders included
+        /// (WarPartyRules.IsWipedOut). It never re-spawns in this world: a war party is resolved by the
+        /// director, any other group -- a caravan, a herd -- is simply gone. Saved (Record.wipedOut),
+        /// so a group wiped out just before a save does not respawn at full strength on load; a war
+        /// party is then seen Defeated instead.
         /// </summary>
         public bool WipedOut;
 

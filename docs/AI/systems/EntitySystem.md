@@ -8,6 +8,8 @@ paths:
   - Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs
   - Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs
 symptoms:
+  - "dead bodies and dropped loot vanish while nobody is looking"
+  - "a dead NPC's body stays lying there for minutes"
   - "a creature disappears for clients when it walks into another chunk"
   - "console warns No prefab registered for id when loading a world"
   - "a runtime-spawned entity is captured in the save but never comes back"
@@ -17,7 +19,7 @@ symptoms:
   - "a moving NPC keeps nine chunks loaded around itself"
   - "a Sky transport prefab carries a SaveableEntity and savers after a merge"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # Entity System
@@ -65,7 +67,7 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 | `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
 | `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents + rolled `LootEntry` list. |
 | `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
-| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling, hurt/death SFX, despawn after `despawnDelay` via `SetActive(false)`. |
+| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling, hurt/death SFX; on death the body lies where it fell and the server starts its `Remains` countdown (`corpseLifetime`, 180 s; 0 = stays, a monowheel wreck). |
 
 ## Flows
 

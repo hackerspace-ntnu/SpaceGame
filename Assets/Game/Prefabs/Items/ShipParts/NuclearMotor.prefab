@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 52072006979884629}
   - component: {fileID: 7660159812258023571}
   - component: {fileID: 6006346566362793441}
+  - component: {fileID: 6952662635095234918}
   m_Layer: 0
   m_Name: NuclearMotor
   m_TagString: Untagged
@@ -318,11 +319,24 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   kind: 1
   installRange: 30
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &6952662635095234918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6559196875987912508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &7365802813263355638
 GameObject:
   m_ObjectHideFlags: 0

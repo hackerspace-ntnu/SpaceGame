@@ -10,7 +10,8 @@
 // out of the group the way a player taking it does (ReleaseToPlayer): out of Live and the column,
 // its seats stood down so nobody re-crews it, and its record handed to the world store. From then
 // on it counts down `lifetime`; once that is up it is taken away the first moment no player is
-// within `unseenDistance`, so nobody watches it blink out. A player who mounts it before then makes
+// within `unseenDistance`, so nobody watches it blink out (UnseenRemoval, the rule a dead NPC's
+// Remains share). A player who mounts it before then makes
 // it theirs for good: it never counts down again (MountModule switches a wreck's saddle off, so only
 // a driverless wheel can be claimed).
 //
@@ -91,10 +92,6 @@ namespace SpaceGame.Agents
         public static bool IsDefeated(bool hadDriver, bool hasDriver, bool alive) =>
             !alive || (hadDriver && !hasDriver);
 
-        /// <summary>Its lifetime is up and nobody is close enough to see it go.</summary>
-        public static bool ShouldTakeAway(float remaining, bool playerNear) =>
-            remaining <= 0f && !playerNear;
-
         private void WatchForDefeat()
         {
             bool hasDriver = passenger != null && passenger.HasRider;
@@ -127,25 +124,8 @@ namespace SpaceGame.Agents
             }
 
             Remaining = Mathf.Max(0f, Remaining - delta);
-            if (ShouldTakeAway(Remaining, PlayerWithin(unseenDistance))) NpcSpawn.Remove(gameObject);
-        }
-
-        private bool PlayerWithin(float distance)
-        {
-            NpcWorldSim sim = NpcWorldSim.Instance;
-            if (sim == null) return false;
-
-            sim.CollectPlayerPositions(players);
-            Vector3 here = transform.position;
-
-            foreach (Vector3 player in players)
-            {
-                Vector3 delta = player - here;
-                delta.y = 0f;
-                if (delta.sqrMagnitude <= distance * distance) return true;
-            }
-
-            return false;
+            if (UnseenRemoval.IsDue(Remaining, transform.position, unseenDistance, players))
+                NpcSpawn.Remove(gameObject);
         }
     }
 }

@@ -639,7 +639,7 @@ MonoBehaviour:
       role: 0
       isLeader: 0
       crew: 0
-      count: 2
+      count: 1
       countWeights: []
       column:
         shuffled: 1
@@ -837,7 +837,7 @@ MonoBehaviour:
       role: 1
       isLeader: 0
       crew: 1
-      count: 15
+      count: 12
       countWeights: []
       column:
         shuffled: 0
@@ -855,7 +855,7 @@ MonoBehaviour:
       role: 0
       isLeader: 0
       crew: 1
-      count: 15
+      count: 12
       countWeights: []
       column:
         shuffled: 0
@@ -876,11 +876,9 @@ MonoBehaviour:
       count: 1
       countWeights:
       - count: 1
-        weight: 0.65
+        weight: 0.75
       - count: 2
         weight: 0.25
-      - count: 3
-        weight: 0.1
       column:
         shuffled: 0
         kind: 
@@ -941,7 +939,7 @@ MonoBehaviour:
     travelSpeed: 2.6999998
     startNearSite: 2
     useStartPosition: 1
-    startPosition: {x: 3340.1294, y: 109.16351, z: 1221.2712}
+    startPosition: {x: 2474.53, y: 105.3972, z: 471}
     initialStaySeconds: 600
     bountyHunters: 0
     transport:

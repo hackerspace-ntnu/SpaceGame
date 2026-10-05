@@ -5381,6 +5381,12 @@ MonoBehaviour:
   speedMultiplier: 1
   run: 0
   stopDistanceMargin: 0.5
+  holdReleaseMargin: 2
+  holdLookAhead: 2
+  alignStopDistance: 0.02
+  alignSpeedMultiplier: 0.5
+  alignReleaseMargin: 0.3
+  alignGiveUpSeconds: 4
 --- !u!114 &7043232539498318336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5412,7 +5418,7 @@ MonoBehaviour:
   leaderMovingSpeed: 0.4
   restRadius: 45
   holdSlotAtRest: 1
-  regroupDistance: 352.35693
+  regroupDistance: 318.10498
   navSampleDistance: 20
 --- !u!114 &4350758363565057367
 MonoBehaviour:

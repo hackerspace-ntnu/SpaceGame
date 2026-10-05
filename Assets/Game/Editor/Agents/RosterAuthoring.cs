@@ -483,7 +483,8 @@ namespace SpaceGame.EditorTools
         // over and find it there rather than chase it toward a stop 1-2.5 km off (the user, 2026-10-04).
         public const float StriderCityInitialStay = 600f;
         // The houses that carry the city; the first leads. Crew posts are per house, so the crew scales with it.
-        public const int StriderCityHouses = 3;
+        // Two: three read as too many walking houses (the user, 2026-10-05).
+        public const int StriderCityHouses = 2;
         // The rows a carrier (a house or a barge) may ride in: the ground the city levels at a stop covers
         // them (CityFarthestCarrierSlot). The column's deal keeps every carrier there (StriderCityColumn).
         private const int CityCarrierRows = 6;
@@ -595,7 +596,7 @@ namespace SpaceGame.EditorTools
         };
 
         /// <summary>
-        /// The Striders' one walking city: three houses (the first leads), two worker crawlers, two crab
+        /// The Striders' one walking city: two houses (the first leads), two worker crawlers, two crab
         /// outriders, three crewed barges, eight monowheel scouts and a crew that fills every crew post on
         /// the houses and barges.
         /// Carriers are listed before the crew because NpcWorldSim seats each crew member on a carrier already spawned.
@@ -754,12 +755,11 @@ namespace SpaceGame.EditorTools
         internal static int ScoutShare(int index, int kinds) =>
             StriderCityScouts / kinds + (index < StriderCityScouts % kinds ? 1 : 0);
 
-        /// <summary>The city's elders: usually one, sometimes two, rarely three (one per house at most).</summary>
+        /// <summary>The city's elders: usually one, sometimes two (one per house at most).</summary>
         public static readonly WeightedCount[] StriderCityElders =
         {
-            new WeightedCount { count = 1, weight = 0.65f },
+            new WeightedCount { count = 1, weight = 0.75f },
             new WeightedCount { count = 2, weight = 0.25f },
-            new WeightedCount { count = 3, weight = 0.10f },
         };
 
         private static void WriteCountWeights(SerializedProperty member, WeightedCount[] weights)

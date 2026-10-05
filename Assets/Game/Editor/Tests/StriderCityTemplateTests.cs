@@ -49,6 +49,7 @@ namespace SpaceGame.EditorTools
             int Count(System.Func<NpcGroupMemberSpec, bool> which) => city.members.Where(which).Sum(m => m.count);
             bool IsCrab(NpcGroupMemberSpec m) => AssetDatabase.GetAssetPath(m.prefab) == StriderCrabOutriderBuilder.PrefabPath;
             Assert.AreEqual(RosterAuthoring.StriderCityHouses, Count(m => AssetDatabase.GetAssetPath(m.prefab) == StriderCityBuilder.HabitatPath));
+            Assert.AreEqual(2, RosterAuthoring.StriderCityHouses, "two walking houses (the user, 2026-10-05: three were too many)");
             Assert.AreEqual(1, city.members.Count(m => m.isLeader));
             Assert.AreEqual(StriderCityBuilder.HabitatPath, AssetDatabase.GetAssetPath(city.members[0].prefab), "carriers before crew");
             Assert.AreEqual(2, Count(m => AssetDatabase.GetAssetPath(m.prefab) == DesertCrawlerBuilder.PrefabPath));
@@ -98,15 +99,15 @@ namespace SpaceGame.EditorTools
         private static bool IsElder(NpcGroupMemberSpec m) => AssetDatabase.GetAssetPath(m.prefab) == StriderElderBuilder.PrefabPath;
 
         [Test]
-        public void TheElders_RideLast_AsStandingCrew_OneToThreeByWeight()
+        public void TheElders_RideLast_AsStandingCrew_OneOrTwoByWeight()
         {
             NpcGroupTemplate city = ReadTemplate(RosterAuthoring.StriderCityTemplateId);
             NpcGroupMemberSpec elder = city.members.Last();
             Assert.IsTrue(IsElder(elder), "the elders are the last spec: a weighted count shifts every later member's draw");
             Assert.AreEqual(1, city.members.Count(IsElder));
             Assert.IsTrue(elder.crew && !elder.isLeader, "elders ride the houses' standing posts");
-            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, elder.countWeights.Select(w => w.count).ToArray());
-            CollectionAssert.AreEqual(new[] { 0.65f, 0.25f, 0.10f }, elder.countWeights.Select(w => w.weight).ToArray());
+            CollectionAssert.AreEqual(new[] { 1, 2 }, elder.countWeights.Select(w => w.count).ToArray());
+            CollectionAssert.AreEqual(new[] { 0.75f, 0.25f }, elder.countWeights.Select(w => w.weight).ToArray());
             Assert.LessOrEqual(elder.countWeights.Max(w => w.count), RosterAuthoring.StriderCityHouses * StriderCityBuilder.StandingPosts,
                                "never more elders than standing posts: a spare one would walk beside the houses");
         }

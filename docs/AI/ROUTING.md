@@ -1475,6 +1475,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the strap-on booster does nothing at all when I aim at the ground or a wall | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the Strider city drops the frame rate and nobody knows which system | [Diagnostics](systems/Diagnostics.md) |
 | the Strider city has already walked off by the time I reach its start | [Striders](systems/Striders.md) |
+| the Strider city has too many walking houses | [Striders](systems/Striders.md) |
 | the Strider city marches sorted by vehicle type: walkers first, then crabs, then barges | [Striders](systems/Striders.md) |
 | the Strider city rides in matching pairs, like a parade | [Striders](systems/Striders.md) |
 | the Strider city starts on a hillside, or inside the Clanker town's alarm ring | [Striders](systems/Striders.md) |
@@ -2248,4 +2249,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1609 symptoms, 613 paths, 85 docs -->
+<!-- 1610 symptoms, 613 paths, 85 docs -->

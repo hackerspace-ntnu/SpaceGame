@@ -8,6 +8,11 @@
 // Concentus.OpusCodecFactory is deliberately NOT used: it probes for a native libopus and P/Invokes
 // it when present. Constructing the managed structs directly means there is no probing, no
 // DllImport surface, and the same code path on every platform.
+//
+// The vendored copy carries one local fix, in OpusDecoder.opus_decode_frame: without it every DTX
+// frame -- what the encoder sends during a pause in speech -- threw on decode, which cut off the
+// end of every phrase and logged an error for each frame of the pause. THIRD_PARTY_NOTICES.md has
+// the details; VoiceTests.PausesInSpeechDecodeCleanly pins it.
 using System;
 using Concentus.Enums;
 using Concentus.Structs;
@@ -84,6 +89,7 @@ namespace SpaceGame.Voice
     public sealed class VoiceDecoder : IDisposable
     {
         private OpusDecoder decoder;
+        private int failures;
 
         public VoiceDecoder()
         {
@@ -114,7 +120,15 @@ namespace SpaceGame.Voice
             }
             catch (Exception e)
             {
-                Debug.LogError($"[Voice] Opus decode failed: {e.Message}");
+                // Packets come off the network, so a run of bad ones can be another machine's doing,
+                // and a LogError per frame is sixteen stack-trace captures a second — enough to
+                // hitch the frame rate on its own. Said once per voice, then only as a running count.
+                failures++;
+                if (failures == 1)
+                    Debug.LogError($"[Voice] Opus decode failed: {e.Message}");
+                else if (failures % 100 == 0)
+                    Debug.LogError($"[Voice] {failures} Opus decode failures on this voice so far. Latest: {e.Message}");
+
                 return 0;
             }
         }

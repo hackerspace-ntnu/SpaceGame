@@ -58,10 +58,19 @@ not record at 48 kHz. Compiled as its own assembly (`Concentus.asmdef`).
 `3885c4e46513ef0fc81fca100189e54f1714c6ca` (2025-09-27).
 
 **What was left out:** `AssemblyInfo.cs` (`InternalsVisibleTo` entries for the upstream test
-projects) and `Concentus.csproj`. Everything else is upstream, unmodified — including
-`Native/`, which is never called: the voice code constructs `OpusEncoder`/`OpusDecoder`
-directly rather than going through `OpusCodecFactory`, so no native libopus is ever probed
-for or P/Invoked. Keeping the tree unpatched is what makes it updatable.
+projects) and `Concentus.csproj`. Everything else is upstream — including `Native/`, which is
+never called: the voice code constructs `OpusEncoder`/`OpusDecoder` directly rather than going
+through `OpusCodecFactory`, so no native libopus is ever probed for or P/Invoked.
+
+**What was changed:** one line, in `Opus/Structs/OpusDecoder.cs` (`opus_decode_frame`), marked
+`SpaceGame patch`. When a frame's payload is 1 byte or less — a DTX frame, which the encoder
+sends during every pause in speech — libopus sets `data = NULL` and conceals. The port sets its
+span to empty but leaves the offset into it (`data_ptr`) unchanged, so the next
+`data.Slice(data_ptr)` throws `ArgumentOutOfRangeException`. The patch resets `data_ptr` to 0.
+Without it every pause in speech failed to decode, end of the last word included
+(`[Voice] Opus decode failed: public error during decoding: Specified argument was out of the
+range of valid values.`). `VoiceTests.PausesInSpeechDecodeCleanly` fails without the patch. **When
+updating Concentus,** check whether upstream has fixed this; if not, apply the patch again.
 
 **Licence:** BSD 3-Clause, © Xiph.Org Foundation, Skype Limited, CSIRO, Microsoft Corp.,
 Jean-Marc Valin, Gregory Maxwell, Mark Borgerding, Timothy B. Terriberry and Logan Stromberg.

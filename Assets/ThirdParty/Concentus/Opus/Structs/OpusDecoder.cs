@@ -243,6 +243,12 @@ namespace Concentus.Structs
             if (len <= 1)
             {
                 data = null;
+                // SpaceGame patch (see THIRD_PARTY_NOTICES.md): libopus nulls a pointer here, but
+                // this port carries a span plus an offset, and the offset was left pointing past
+                // the end of the now-empty span. Every DTX frame then threw
+                // ArgumentOutOfRangeException from data.Slice(data_ptr) below. A null pointer has
+                // no offset, so reset it.
+                data_ptr = 0;
                 /* In that case, don't conceal more than what the ToC says */
                 frame_size = Inlines.IMIN(frame_size, this.frame_size);
             }

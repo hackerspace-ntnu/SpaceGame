@@ -172,6 +172,40 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void PausesInSpeechDecodeCleanly()
+        {
+            // With DTX on, the encoder answers silence with 1-2 byte packets (and frames that mix the
+            // tail of a word with DTX). Vendored Concentus 2.2.2 threw on every one of them until it
+            // was patched — see THIRD_PARTY_NOTICES.md — which clipped the end of every phrase and
+            // logged an error per frame of each pause. A failing decode also logs an error, which
+            // fails this test by itself.
+            using var encoder = new VoiceEncoder();
+            using var decoder = new VoiceDecoder();
+
+            var packet = new byte[VoiceFormat.MaxPacketBytes];
+            var decoded = new short[VoiceFormat.FrameSamples];
+            var silence = new short[VoiceFormat.FrameSamples];
+            int dtxPackets = 0;
+
+            for (int frame = 0; frame < 24; frame++)
+            {
+                short[] input = frame < 8
+                    ? Tone(VoiceFormat.FrameSamples, 220f, 0.5f, frame * VoiceFormat.FrameSamples)
+                    : silence;
+
+                int bytes = encoder.Encode(input, packet);
+                Assert.Greater(bytes, 0, $"the encoder produced nothing for frame {frame}");
+                if (bytes <= 2) dtxPackets++;
+
+                Assert.AreEqual(VoiceFormat.FrameSamples, decoder.Decode(packet, bytes, decoded),
+                                $"frame {frame} ({bytes} bytes) did not decode to a full frame");
+            }
+
+            // Otherwise the test passed without exercising what it is for.
+            Assert.Greater(dtxPackets, 0, "the encoder never went into DTX, so nothing was tested");
+        }
+
+        [Test]
         public void AnUndersizedBufferIsRefusedRatherThanOverrun()
         {
             using var encoder = new VoiceEncoder();

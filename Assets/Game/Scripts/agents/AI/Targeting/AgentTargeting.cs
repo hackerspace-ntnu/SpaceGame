@@ -250,9 +250,9 @@ namespace SpaceGame.Agents
             foreach (CloseCombatModule melee in GetComponents<CloseCombatModule>())
                 weaponRange = Mathf.Max(weaponRange, melee.AttackRange);
 
-            // The artifacts the agent is actually carrying: an NPC holding a looted rifle that
+            // The artifacts the agent is actually carrying or wearing: an NPC holding a looted rifle that
             // reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to join.
-            foreach (NpcItemUseModule item in GetComponents<NpcItemUseModule>())
+            foreach (ItemUseModuleBase item in GetComponents<ItemUseModuleBase>())
                 weaponRange = Mathf.Max(weaponRange, item.MaxRange);
 
             effectiveAcquisitionRange = Mathf.Max(settings.acquisitionRange, weaponRange + WeaponRangeMargin);

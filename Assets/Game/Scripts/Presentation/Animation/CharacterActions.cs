@@ -132,7 +132,11 @@ namespace SpaceGame.Presentation
         /// the other one (see <see cref="CharacterAction.Mirrors"/>).</param>
         /// <param name="variant">A specific variant — the one a message carried, so every machine
         /// plays the same swing. Negative picks one.</param>
-        public bool Play(CharacterAction action, ItemGrip.Hand? arm = null, int variant = -1)
+        /// <param name="speedScale">On top of this body's own speed for the action: for a caller whose
+        /// motion sets the pace and whose clip has to keep up — a ledge climb lands its Grab mark on the
+        /// moment the body reaches the lip. It is the slot's speed parameter, so the network animator
+        /// carries it to every watcher.</param>
+        public bool Play(CharacterAction action, ItemGrip.Hand? arm = null, int variant = -1, float speedScale = 1f)
         {
             if (action == null || !Ready() || !WritesAnimator) return false;
 
@@ -170,7 +174,7 @@ namespace SpaceGame.Presentation
             }
 
             animator.SetBool(track.MirrorHash, action.Mirrors(arm));
-            animator.SetFloat(track.SpeedHash, action.SpeedFor(Seed));
+            animator.SetFloat(track.SpeedHash, action.SpeedFor(Seed) * speedScale);
             animator.SetLayerWeight(track.Layer, 1f);
             animator.CrossFadeInFixedTime(state, action.FadeIn, track.Layer, 0f);
 

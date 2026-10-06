@@ -1,6 +1,11 @@
 """Export satellite_tower.blend -> satellite_tower.fbx, baking its procedural look into texture atlases.
 
     blender --background --python satellite_tower_export.py
+    blender --background --python satellite_tower_export.py -- Interior Shack   # re-bake only these atlases
+
+With atlas names after `--`, every group is still unwrapped (the FBX needs every UV) but only the named
+atlases are baked; the others keep their PNGs, which match because Smart UV Project is deterministic on
+unchanged geometry. Re-bake an atlas whenever any of ITS objects changed shape.
 
 Reads only: the .blend is never saved. Everything below happens in memory, inside `_exportlib.export`'s
 `prepare` hook, on the file it has just opened.
@@ -386,6 +391,10 @@ def bake_atlas(atlas, objs):
           % (atlas, len(objs), len(mats), area, size, size / np.sqrt(max(area, 1e-6))))
     unwrap(objs)
 
+    if ONLY and atlas not in ONLY:
+        print("  atlas %s: unwrapped, bake skipped (keeping its PNGs)" % atlas)
+        return
+
     prefix = "SatTower_%s_" % atlas
     save(prefix + "BaseColor", bake_input(mats, objs, "Base Color", prefix + "BaseColor", True, size))
 
@@ -415,7 +424,13 @@ def reassign(atlas, objs):
         o.data.polygons.foreach_set("material_index", faces)
 
 
+ONLY = set(sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else set()
+
+
 def prepare():
+    unknown = ONLY - set(ATLAS_SIZE)
+    if unknown:
+        raise SystemExit("Unknown atlas name(s): %s" % ", ".join(sorted(unknown)))
     os.makedirs(TEXTURES, exist_ok=True)
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"

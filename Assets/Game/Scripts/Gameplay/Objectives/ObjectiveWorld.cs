@@ -133,6 +133,38 @@ namespace SpaceGame.Gameplay.Objectives
             return false;
         }
 
+        /// <summary>The crew's hull's first socket that takes <paramref name="kind"/>, whatever is in it; null for none.</summary>
+        public ShipPartSocket SocketOf(ShipPartKind kind)
+        {
+            ShipPartRack ship = Ship;
+            if (ship == null) return null;
+
+            foreach (ShipPartSocket socket in ship.Sockets)
+                if (socket != null && socket.Kind == kind) return socket;
+
+            return null;
+        }
+
+        /// <summary>
+        /// EVERY machine: the flat distance from <paramref name="point"/> to the nearest member of the crew,
+        /// metres; infinity with nobody in the session. Player positions are replicated, so the server asks it
+        /// of everyone.
+        /// </summary>
+        public float NearestCrewDistance(Vector3 point)
+        {
+            float nearest = float.PositiveInfinity;
+
+            foreach (PlayerIdentity member in Crew)
+            {
+                if (member == null) continue;
+                Vector3 at = member.transform.position;
+                float dx = at.x - point.x, dz = at.z - point.z;
+                nearest = Mathf.Min(nearest, Mathf.Sqrt(dx * dx + dz * dz));
+            }
+
+            return nearest;
+        }
+
         /// <summary>
         /// A point on the ground at a ship-relative offset: sideways and forward in the hull's own
         /// frame, so "in front of the nose" means the same thing however the wreck came to rest.

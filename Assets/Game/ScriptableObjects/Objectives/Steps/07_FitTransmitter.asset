@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 838681016c31514478898b0e41aadee6, type: 3}
+  m_Name: 07_FitTransmitter
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.FitTransmitterStep
+  id: fit-transmitter
+  title: Get the long-range transmitter working
+  briefing:
+  - Our long-range transmitter burnt out on the way down. Until it's replaced we're
+    deaf. The terminal can show the hull and nothing else.
+  - There's a radar dish tower in sight of the wreck. If its transmitter survived,
+    bring it home and fit it in the cradle aft, once the burnt one is out.
+  lookAtFocus: 1
+  transmitter: {fileID: 11400000, guid: e146236e80756b24c9c79380c7632b66, type: 2}
+  searchRadius: 700
+  jammedStatus: Burnt out and jammed in its cradle
+  burningStatus: On fire. Take the extinguisher off its bracket and put it out
+  pullStatus: The fire is out. Pull the burnt unit
+  fetchStatus: Fetch the working transmitter from the radar dish tower

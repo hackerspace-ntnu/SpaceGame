@@ -234,9 +234,7 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            Ray aim = aimProvider != null
-                ? aimProvider.GetAimRay()
-                : new Ray(transform.position, transform.forward);
+            Ray aim = HolderAimRay();
 
             arg.P = aim.origin;
             arg.R = Quaternion.LookRotation(aim.direction);

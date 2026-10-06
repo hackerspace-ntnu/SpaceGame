@@ -21,8 +21,8 @@ symptoms:
   - "an NPC slides up a ladder instead of climbing it"
   - "[Ladder] found no NavMesh within 1 m of its foot or exit"
   - "the project has no 'Ladder' NavMesh area"
-reads_with: [PlayerCharacter, ArtPipeline, Wingsuit, NavMeshSystem, AgentSystem]
-updated: 2026-10-05
+reads_with: [PlayerCharacter, LedgeClimbing, ArtPipeline, Wingsuit, NavMeshSystem, AgentSystem]
+updated: 2026-10-06
 ---
 
 # Ladders
@@ -57,6 +57,7 @@ The Sky City and barge builders call [`ModelMarkerImport.GatherLadders`](Assets/
   `halfWidth`, from `footMargin` below the foot up to the step-off height. `TopContains`: a band
   `topBand` either side of the step-off height, from `topReach` back over the exit floor out to the
   climber's side of the gap.
+- **A ledge climb holds the body the same way** (`SetClimbing`), so `TryTakeHold` refuses while `IsClimbing` and the ledge climber refuses inside a ladder volume ([LedgeClimbing.md](LedgeClimbing.md)). The body-capsule maths (world height, radius, feet, overlap/sweep) lives in `PlayerBodyShape`, shared by both.
 - **The climber owns the body the way a wing does.** `PlayerMovement.SetClimbing(true)` skips the
   velocity write, fall damage and the leg jump; the probe and animator keep running. Gravity is off
   and restored to what it was.

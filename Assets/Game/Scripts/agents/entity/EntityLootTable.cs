@@ -1,5 +1,5 @@
 // Defines what an entity drops on death and handles the actual drop.
-// Drops items from EntityInventoryComponent (guaranteed) plus random rolls from the loot table.
+// Drops items from EntityInventoryComponent and everything worn (guaranteed) plus random rolls from the loot table.
 // Every drop lies beside the body for `lootLifetime` and is then taken away like the body (Remains).
 // Requires HealthComponent on the same GameObject.
 using System;
@@ -28,7 +28,7 @@ namespace SpaceGame.Agents
         [SerializeField] private List<LootEntry> lootEntries;
 
         [Header("Drop inventory items on death")]
-        [Tooltip("If true, all items currently in EntityInventoryComponent are also dropped.")]
+        [Tooltip("If true, the bag's contents (EntityInventoryComponent) and everything worn (EntityBodyEquipment) are also dropped.")]
         [SerializeField] private bool dropInventoryContents = true;
 
         [Header("Lying there")]
@@ -37,13 +37,26 @@ namespace SpaceGame.Agents
                  "up makes it the player's for good. 0 = it stays until somebody does.")]
         [SerializeField] private float lootLifetime = 180f;
 
+        [Header("Killed aloft")]
+        [Tooltip("A body killed seated in an IAirborneCarrier (the NPC craft) drops its loot once it is " +
+                 "within this many metres of solid ground below it, not at the kill point.")]
+        [SerializeField, Min(0.1f)] private float landedHeight = 1.5f;
+        [Tooltip("How far below a body killed aloft to look for the ground it is falling to, metres. Must " +
+                 "exceed the highest an NPC flies.")]
+        [SerializeField, Min(1f)] private float groundSearchDepth = 600f;
+
         private HealthComponent health;
         private EntityInventoryComponent entityInventory;
+
+        // Seated under an IAirborneCarrier: latched on the way in, and kept through a death, so the seat
+        // letting the body go before this table hears OnDeath (handler order) cannot turn it into a ground death.
+        private bool seatedAloft;
 
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
             entityInventory = GetComponent<EntityInventoryComponent>();
+            seatedAloft = UnderAirborneCarrier();
 
             if (!health)
                 Debug.LogWarning($"{name}: EntityLootTable needs a HealthComponent.", this);
@@ -61,6 +74,15 @@ namespace SpaceGame.Agents
                 health.OnDeath -= Drop;
         }
 
+        private void OnTransformParentChanged()
+        {
+            if (UnderAirborneCarrier()) seatedAloft = true;
+            else if (!health || health.Alive) seatedAloft = false;
+        }
+
+        private bool UnderAirborneCarrier() =>
+            transform.parent != null && transform.parent.GetComponentInParent<IAirborneCarrier>() != null;
+
         /// Roll the table and put the results on the floor beside the body.
         private void Drop()
         {
@@ -76,7 +98,25 @@ namespace SpaceGame.Agents
             // times and the corpse pays out five times.
             if (health && health.IsRestoring) return;
 
-            if (dropInventoryContents && entityInventory != null) DropBag();
+            // Killed in the air (D8): the body falls, and its loot goes down with it rather than from the
+            // kill point.
+            if (seatedAloft)
+            {
+                LootAwaitingGround.Begin(gameObject, DropAll, landedHeight, groundSearchDepth);
+                return;
+            }
+
+            DropAll();
+        }
+
+        /// The bag, what is worn and the rolls, beside the body.
+        private void DropAll()
+        {
+            if (dropInventoryContents)
+            {
+                if (entityInventory != null) DropBag();
+                DropWorn();
+            }
 
             if (lootEntries == null)
                 return;
@@ -110,6 +150,17 @@ namespace SpaceGame.Agents
                 DropOne(contents.Item);
                 entityInventory.RestoreSlot(slot, null);
             }
+        }
+
+        /// <summary>
+        /// What it was wearing, under the same guards and lifetime as the bag: a Sky nomad's wing pack is
+        /// how a player gets to fly (D7). Taken off the body as it drops, so a corpse never holds a copy
+        /// of what is lying beside it.
+        /// </summary>
+        private void DropWorn()
+        {
+            if (!TryGetComponent(out EntityBodyEquipment body)) return;
+            foreach (InventoryItem item in body.TakeAllWorn()) DropOne(item);
         }
 
         private void DropOne(InventoryItem item)

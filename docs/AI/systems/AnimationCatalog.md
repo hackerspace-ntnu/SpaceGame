@@ -17,7 +17,7 @@ symptoms:
   - "a pose sheet shows the same figure in every cell"
   - "an NPC with an injured, drunk or heavy walk skates or moonwalks"
 reads_with: [HumanoidAnimation, AgentSystem, Residents, ArtPipeline, Stations]
-updated: 2026-10-03
+updated: 2026-10-06
 ---
 
 # Animation Catalog
@@ -33,7 +33,7 @@ plays, what answers each cue today, and where the vocabulary is still thin. Numb
 
 | Library | Where | Files → clips | Loops | Minutes | What it is good for |
 |---|---|---|---|---|---|
-| Mixamo singles | `Art/Animations/Humanoid/*.fbx` | 38 → 51 | 13 | 3.4 | Get-ups, slips and stumbles, kneeling work, fishing cast, fax/keypad/device work, salute, bow, bartending, a lying-down sleep loop, a ladder climb cycle |
+| Mixamo singles | `Art/Animations/Humanoid/*.fbx` | 38 → 51 | 13 | 3.4 | Get-ups, slips and stumbles, kneeling work, fishing cast, fax/keypad/device work, salute, bow, bartending, a lying-down sleep loop, a ladder climb cycle; and (2026-10-06, player-only) `Ledge Climb Low/Mid/High/Running` for the ledge climb ([LedgeClimbing.md](LedgeClimbing.md)) — root motion kept out of the pose; and (2026-10-06, player-only) `Lift Heavy` / `Set Down Heavy`, cut from `Lifting Object.fbx` (a crouched heave of something very heavy), played by name by `Liftable` ([Lifting.md](Lifting.md)) |
 | Mocap Central sample | `ThirdParty/MocapCentral` (79 of 127 Unity-rig takes; full set unzipped, git-ignored, in `Art/Animations/_Packed~/MC_Sample`) | 79 → 84 | 23 | 6.1 | Dance start/loop/stop sets, injured and drunk and swagger and heavy-hammer walks, wounded collapse and get-up, piano, spellbook, vending machine, singing, conversation beats |
 | Motion Cast FREE01 (No Root copies) | `ThirdParty/Motion Cast-FREE01/No Root Animations` | 16 → 37 | 8 | 4.6 | Acted emotions: crying, laughing, mad laugh, applause, exhaustion, disgust, hunger, waving, threats, six speech-gesture beats |
 | EEJANAI cooking | `ThirdParty/EEJANAI_Team/CookingAnimations/FBX` | 18 → 18 | 8 | 1.6 | Chopping, washing, stirring, wok, pan, grill, blender, plating, pouring, seasoning, eating, drinking. Each is now its own station cue (`chop`, `wash`, `stir`, `cookpan`, `cookwok`, `grill`, `blend`, `plate`, `season`), see [Stations.md](Stations.md) |

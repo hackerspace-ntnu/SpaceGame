@@ -160,8 +160,7 @@ namespace SpaceGame.Gameplay.Objectives
             return true;
         }
 
-        private static bool CrewHasLanded =>
-            ArrivalDirector.Instance == null || ArrivalDirector.Instance.HasArrived;
+        private static bool CrewHasLanded => ArrivalDirector.CrewHasLanded;
 
         /// <summary>SERVER: the player on <paramref name="clientId"/> has done their part of step <paramref name="step"/>.</summary>
         public void RecordFinished(ulong clientId, int step)

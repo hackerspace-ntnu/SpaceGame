@@ -569313,7 +569313,7 @@
       "MarsRuinStone"
     ],
     "linked_libraries": [
-      "C:\\Users\\tobia\\AppData\\Local\\Programs\\Blender5\\blender-5.2.1-windows-x64\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
+      "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
     ],
     "auto_suffixed_names": [
       "Cube.001",
@@ -569559,7 +569559,9 @@
       {
         "name": "Model_SatelliteTower",
         "objects": [],
-        "children": []
+        "children": [
+          "Coll_SatelliteTower"
+        ]
       }
     ],
     "objects": [
@@ -636126,7 +636128,7 @@
       "Material.001"
     ],
     "linked_libraries": [
-      "C:\\Users\\tobia\\AppData\\Local\\Programs\\Blender5\\blender-5.2.1-windows-x64\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
+      "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
     ],
     "auto_suffixed_names": [
       "Sphere.001",
@@ -640522,7 +640524,7 @@
       "raxy_wraps"
     ],
     "linked_libraries": [
-      "C:\\Users\\tobia\\AppData\\Local\\Programs\\Blender5\\blender-5.2.1-windows-x64\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
+      "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
     ],
     "auto_suffixed_names": [
       "Clothes_skirt_Male.001"
@@ -640731,7 +640733,7 @@
       "Material.001"
     ],
     "linked_libraries": [
-      "C:\\Users\\tobia\\AppData\\Local\\Programs\\Blender5\\blender-5.2.1-windows-x64\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_sculpt.blend"
+      "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_sculpt.blend"
     ],
     "auto_suffixed_names": []
   },
@@ -664367,6 +664369,1836 @@
       "Cube.033"
     ]
   },
+  "models/creatures/caraxoid.blend": {
+    "collections": [
+      {
+        "name": "Caraxoid_Baby",
+        "objects": [
+          "CaraxoidBaby_Rig",
+          "CaraxoidBaby_BeakLower",
+          "CaraxoidBaby_BeakUpper",
+          "CaraxoidBaby_Body",
+          "CaraxoidBaby_Fur_Cape",
+          "CaraxoidBaby_Fur_Chest",
+          "CaraxoidBaby_Fur_Legs",
+          "CaraxoidBaby_Fur_Mane",
+          "CaraxoidBaby_Fur_Tail",
+          "CaraxoidBaby_Hands",
+          "CaraxoidBaby_Head",
+          "CaraxoidBaby_Jaw"
+        ],
+        "children": []
+      },
+      {
+        "name": "Caraxoid_Blue",
+        "objects": [
+          "CaraxoidBlue_Rig",
+          "CaraxoidBlue_Body",
+          "CaraxoidBlue_Head",
+          "CaraxoidBlue_Jaw",
+          "CaraxoidBlue_TeethUpper",
+          "CaraxoidBlue_TeethLower",
+          "CaraxoidBlue_Fur_Mane",
+          "CaraxoidBlue_Fur_Cape",
+          "CaraxoidBlue_Fur_Chest",
+          "CaraxoidBlue_Fur_Legs",
+          "CaraxoidBlue_Fur_Tail"
+        ],
+        "children": []
+      },
+      {
+        "name": "Caraxoid_Red",
+        "objects": [
+          "Caraxoid_Rig",
+          "Caraxoid_TeethUpper",
+          "Caraxoid_TeethLower",
+          "Caraxoid_Feathers_Legs",
+          "Caraxoid_Feathers_HindWings",
+          "Caraxoid_Feathers_Neck",
+          "Caraxoid_Feathers_Crown",
+          "Caraxoid_Feathers_Crest",
+          "Caraxoid_Body",
+          "Caraxoid_Head",
+          "Caraxoid_Jaw",
+          "Caraxoid_Feathers_Tail",
+          "Caraxoid_Feathers_NeckBase",
+          "Caraxoid_Feathers_NeckSeam"
+        ],
+        "children": []
+      },
+      {
+        "name": "Caraxoid_Tan",
+        "objects": [
+          "CaraxoidTan_Rig",
+          "CaraxoidTan_Body",
+          "CaraxoidTan_Head",
+          "CaraxoidTan_Jaw",
+          "CaraxoidTan_Fur_Mane",
+          "CaraxoidTan_Fur_Cape",
+          "CaraxoidTan_Fur_Chest",
+          "CaraxoidTan_Fur_Legs",
+          "CaraxoidTan_Fur_Tail",
+          "CaraxoidTan_BeakUpper",
+          "CaraxoidTan_BeakLower",
+          "CaraxoidTan_Hands"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Caraxoid_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          46.0434,
+          11.6924,
+          17.4695
+        ],
+        "vertices": 39385,
+        "polygons": 39260,
+        "materials": [
+          "Caraxoid_Skin_Body"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_Crest",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          3.4224,
+          2.2859,
+          9.1806
+        ],
+        "vertices": 252,
+        "polygons": 252,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_Crown",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          4.6106,
+          3.2136,
+          3.4205
+        ],
+        "vertices": 819,
+        "polygons": 819,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_HindWings",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          6.0479,
+          11.5794,
+          5.6029
+        ],
+        "vertices": 1134,
+        "polygons": 1134,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_Legs",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          3.952,
+          9.1876,
+          4.7313
+        ],
+        "vertices": 1260,
+        "polygons": 1260,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_Neck",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          6.0952,
+          7.2533,
+          13.1408
+        ],
+        "vertices": 5271,
+        "polygons": 5271,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_NeckBase",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          9.9578,
+          7.3885,
+          6.9789
+        ],
+        "vertices": 4851,
+        "polygons": 4851,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_NeckSeam",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          8.5219,
+          8.7793,
+          6.8022
+        ],
+        "vertices": 2268,
+        "polygons": 2268,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Feathers_Tail",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          27.7759,
+          8.7933,
+          9.0129
+        ],
+        "vertices": 3192,
+        "polygons": 3192,
+        "materials": [
+          "Caraxoid_Feathers"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Head",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          4.0852,
+          3.7009,
+          2.6727
+        ],
+        "vertices": 17744,
+        "polygons": 17780,
+        "materials": [
+          "Caraxoid_Skin_Head",
+          "Caraxoid_Eye"
+        ],
+        "modifiers": [
+          "Armature",
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Caraxoid_Jaw",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          4.0078,
+          2.8939,
+          2.0235
+        ],
+        "vertices": 6146,
+        "polygons": 6144,
+        "materials": [
+          "Caraxoid_Skin_Jaw"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_Rig",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "bones": [
+          "Root",
+          "Hips",
+          "Spine_01",
+          "Spine_02",
+          "Spine_03",
+          "Spine_04",
+          "Neck_01",
+          "Neck_02",
+          "Neck_03",
+          "Neck_04",
+          "Neck_05",
+          "Neck_06",
+          "Neck_07",
+          "Neck_08",
+          "Head",
+          "Jaw",
+          "Crown_Ctrl",
+          "Crown_01",
+          "Crown_02",
+          "Crown_03",
+          "Crown_04",
+          "Crown_05",
+          "Crown_06",
+          "Crown_07",
+          "Crown_08",
+          "Crown_09",
+          "Crown_10",
+          "Crown_11",
+          "Crown_12",
+          "Crown_13",
+          "Crown_14",
+          "Crown_15",
+          "Crown_16",
+          "Crown_17",
+          "Crown_18",
+          "Crown_19",
+          "Crown_20",
+          "Crown_21",
+          "Crown_22",
+          "Crown_23",
+          "Crown_24",
+          "Crown_25",
+          "Crown_26",
+          "Crown_27",
+          "Crown_28",
+          "Crown_29",
+          "Crown_30",
+          "Crown_31",
+          "Crown_32",
+          "Crown_33",
+          "Crown_34",
+          "Crown_35",
+          "Crown_36",
+          "Crown_37",
+          "Crown_38",
+          "Crown_39",
+          "Crest_01",
+          "Crest_02",
+          "Crest_03",
+          "Crest_04",
+          "Crest_05",
+          "Crest_06",
+          "Crest_07",
+          "Crest_08",
+          "Crest_09",
+          "Crest_10",
+          "Crest_11",
+          "Crest_12",
+          "FrontShoulder.L",
+          "FrontLeg_Upper.L",
+          "FrontLeg_Lower.L",
+          "FrontLeg_Foot.L",
+          "FrontShoulder.R",
+          "FrontLeg_Upper.R",
+          "FrontLeg_Lower.R",
+          "FrontLeg_Foot.R",
+          "Tail_01",
+          "Tail_02",
+          "Tail_03",
+          "Tail_04",
+          "Tail_05",
+          "Tail_06",
+          "Tail_07",
+          "Tail_08",
+          "Tail_09",
+          "Tail_10",
+          "Tail_11",
+          "Tail_12",
+          "Tail_13",
+          "Tail_14",
+          "Tail_15",
+          "Tail_16",
+          "HindLeg_Upper.L",
+          "HindLeg_Lower.L",
+          "HindLeg_Ankle.L",
+          "HindLeg_Foot.L",
+          "HindLeg_Upper.R",
+          "HindLeg_Lower.R",
+          "HindLeg_Ankle.R",
+          "HindLeg_Foot.R"
+        ]
+      },
+      {
+        "name": "Caraxoid_TeethLower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          1.6386,
+          1.2512,
+          0.8978
+        ],
+        "vertices": 300,
+        "polygons": 300,
+        "materials": [
+          "Caraxoid_Teeth"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "Caraxoid_TeethUpper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Red"
+        ],
+        "dimensions": [
+          1.8876,
+          1.7166,
+          1.1215
+        ],
+        "vertices": 350,
+        "polygons": 350,
+        "materials": [
+          "Caraxoid_Teeth"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_BeakLower",
+        "type": "MESH",
+        "location": [
+          9.1761,
+          0.0,
+          -12.2199
+        ],
+        "scale": [
+          1.6667,
+          3.1021,
+          1.6667
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          2.4076,
+          2.5347,
+          1.7292
+        ],
+        "vertices": 46,
+        "polygons": 46,
+        "materials": [
+          "CaraxoidTan_Beak.002"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_BeakUpper",
+        "type": "MESH",
+        "location": [
+          9.8775,
+          0.0,
+          -12.2381
+        ],
+        "scale": [
+          1.6667,
+          3.1021,
+          1.6667
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          2.1601,
+          2.7693,
+          2.1545
+        ],
+        "vertices": 55,
+        "polygons": 55,
+        "materials": [
+          "CaraxoidTan_Beak.002"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          22.6886,
+          5.7703,
+          10.0039
+        ],
+        "vertices": 35189,
+        "polygons": 35020,
+        "materials": [
+          "CaraxoidTan_Skin_Body.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Fur_Cape",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          2.8707,
+          5.0319,
+          3.542
+        ],
+        "vertices": 2325,
+        "polygons": 2325,
+        "materials": [
+          "CaraxoidTan_Fur.001",
+          "CaraxoidTan_FurDark.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Fur_Chest",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          2.9905,
+          5.0538,
+          4.562
+        ],
+        "vertices": 3375,
+        "polygons": 3375,
+        "materials": [
+          "CaraxoidTan_Fur.001",
+          "CaraxoidTan_FurDark.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Fur_Legs",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          6.8298,
+          6.6757,
+          4.7886
+        ],
+        "vertices": 5825,
+        "polygons": 5825,
+        "materials": [
+          "CaraxoidTan_Fur.001",
+          "CaraxoidTan_FurDark.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Fur_Mane",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          4.9683,
+          4.5728,
+          7.7575
+        ],
+        "vertices": 12950,
+        "polygons": 12950,
+        "materials": [
+          "CaraxoidTan_Fur.001",
+          "CaraxoidTan_FurDark.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Fur_Tail",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          11.3169,
+          5.0967,
+          4.0803
+        ],
+        "vertices": 3975,
+        "polygons": 3975,
+        "materials": [
+          "CaraxoidTan_Fur.001",
+          "CaraxoidTan_FurDark.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Hands",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          1.7185,
+          3.3802,
+          2.2387
+        ],
+        "vertices": 308,
+        "polygons": 308,
+        "materials": [
+          "CaraxoidTan_HandScales.001",
+          "CaraxoidTan_Claws.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Head",
+        "type": "MESH",
+        "location": [
+          9.1761,
+          0.0,
+          -11.9385
+        ],
+        "scale": [
+          1.6667,
+          1.6667,
+          1.6667
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          3.5962,
+          3.2055,
+          2.3245
+        ],
+        "vertices": 17744,
+        "polygons": 17780,
+        "materials": [
+          "CaraxoidTan_Skin_Head.001",
+          "CaraxoidTan_Eye.001"
+        ],
+        "modifiers": [
+          "Armature",
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Jaw",
+        "type": "MESH",
+        "location": [
+          9.1761,
+          0.0,
+          -11.9385
+        ],
+        "scale": [
+          1.6667,
+          1.6667,
+          1.6667
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "dimensions": [
+          3.4476,
+          2.5876,
+          2.0486
+        ],
+        "vertices": 6146,
+        "polygons": 6144,
+        "materials": [
+          "CaraxoidTan_Skin_Jaw.001"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBaby_Rig",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          -42.3664,
+          -2.475
+        ],
+        "scale": [
+          0.45,
+          0.45,
+          0.45
+        ],
+        "collections": [
+          "Caraxoid_Baby"
+        ],
+        "bones": [
+          "Root",
+          "Hips",
+          "Spine_01",
+          "Spine_02",
+          "Spine_03",
+          "Spine_04",
+          "Neck_01",
+          "Neck_02",
+          "Neck_03",
+          "Neck_04",
+          "Neck_05",
+          "Neck_06",
+          "Neck_07",
+          "Neck_08",
+          "Head",
+          "Jaw",
+          "Mane_Ctrl",
+          "FrontShoulder.L",
+          "FrontLeg_Upper.L",
+          "FrontLeg_Lower.L",
+          "FrontLeg_Foot.L",
+          "FrontLeg_Finger1_1.L",
+          "FrontLeg_Finger1_2.L",
+          "FrontLeg_Finger2_1.L",
+          "FrontLeg_Finger2_2.L",
+          "FrontLeg_Finger3_1.L",
+          "FrontLeg_Finger3_2.L",
+          "FrontShoulder.R",
+          "FrontLeg_Upper.R",
+          "FrontLeg_Lower.R",
+          "FrontLeg_Foot.R",
+          "FrontLeg_Finger1_1.R",
+          "FrontLeg_Finger1_2.R",
+          "FrontLeg_Finger2_1.R",
+          "FrontLeg_Finger2_2.R",
+          "FrontLeg_Finger3_1.R",
+          "FrontLeg_Finger3_2.R",
+          "Tail_01",
+          "Tail_02",
+          "Tail_03",
+          "Tail_04",
+          "Tail_05",
+          "Tail_06",
+          "Tail_07",
+          "Tail_08",
+          "Tail_09",
+          "Tail_10",
+          "Tail_11",
+          "Tail_12",
+          "Tail_13",
+          "Tail_14",
+          "Tail_15",
+          "Tail_16",
+          "HindLeg_Upper.L",
+          "HindLeg_Lower.L",
+          "HindLeg_Ankle.L",
+          "HindLeg_Foot.L",
+          "HindLeg_Upper.R",
+          "HindLeg_Lower.R",
+          "HindLeg_Ankle.R",
+          "HindLeg_Foot.R"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          46.0434,
+          11.6924,
+          17.4695
+        ],
+        "vertices": 39385,
+        "polygons": 39260,
+        "materials": [
+          "CaraxoidBlue_Skin_Body"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Fur_Cape",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          5.5733,
+          7.0866,
+          4.4959
+        ],
+        "vertices": 2325,
+        "polygons": 2325,
+        "materials": [
+          "CaraxoidBlue_Fur"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Fur_Chest",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          6.6662,
+          9.4599,
+          9.9679
+        ],
+        "vertices": 3300,
+        "polygons": 3300,
+        "materials": [
+          "CaraxoidBlue_Fur"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Fur_Legs",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          14.8961,
+          10.7148,
+          8.4319
+        ],
+        "vertices": 14275,
+        "polygons": 14275,
+        "materials": [
+          "CaraxoidBlue_Fur"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Fur_Mane",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          8.8106,
+          8.5968,
+          16.5601
+        ],
+        "vertices": 12750,
+        "polygons": 12750,
+        "materials": [
+          "CaraxoidBlue_Fur"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Fur_Tail",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          18.8482,
+          6.3119,
+          8.754
+        ],
+        "vertices": 4375,
+        "polygons": 4375,
+        "materials": [
+          "CaraxoidBlue_Fur"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Head",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          4.0852,
+          3.7009,
+          2.6727
+        ],
+        "vertices": 17744,
+        "polygons": 17780,
+        "materials": [
+          "CaraxoidBlue_Skin_Head",
+          "CaraxoidBlue_Eye"
+        ],
+        "modifiers": [
+          "Armature",
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Jaw",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          4.0078,
+          2.8939,
+          2.0235
+        ],
+        "vertices": 6146,
+        "polygons": 6144,
+        "materials": [
+          "CaraxoidBlue_Skin_Jaw"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_Rig",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          20.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "bones": [
+          "Root",
+          "Hips",
+          "Spine_01",
+          "Spine_02",
+          "Spine_03",
+          "Spine_04",
+          "Neck_01",
+          "Neck_02",
+          "Neck_03",
+          "Neck_04",
+          "Neck_05",
+          "Neck_06",
+          "Neck_07",
+          "Neck_08",
+          "Head",
+          "Jaw",
+          "Mane_Ctrl",
+          "FrontShoulder.L",
+          "FrontLeg_Upper.L",
+          "FrontLeg_Lower.L",
+          "FrontLeg_Foot.L",
+          "FrontShoulder.R",
+          "FrontLeg_Upper.R",
+          "FrontLeg_Lower.R",
+          "FrontLeg_Foot.R",
+          "Tail_01",
+          "Tail_02",
+          "Tail_03",
+          "Tail_04",
+          "Tail_05",
+          "Tail_06",
+          "Tail_07",
+          "Tail_08",
+          "Tail_09",
+          "Tail_10",
+          "Tail_11",
+          "Tail_12",
+          "Tail_13",
+          "Tail_14",
+          "Tail_15",
+          "Tail_16",
+          "HindLeg_Upper.L",
+          "HindLeg_Lower.L",
+          "HindLeg_Ankle.L",
+          "HindLeg_Foot.L",
+          "HindLeg_Upper.R",
+          "HindLeg_Lower.R",
+          "HindLeg_Ankle.R",
+          "HindLeg_Foot.R"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_TeethLower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          1.6386,
+          1.2512,
+          0.8978
+        ],
+        "vertices": 300,
+        "polygons": 300,
+        "materials": [
+          "Caraxoid_Teeth"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidBlue_TeethUpper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Blue"
+        ],
+        "dimensions": [
+          1.8876,
+          1.7166,
+          1.1215
+        ],
+        "vertices": 350,
+        "polygons": 350,
+        "materials": [
+          "Caraxoid_Teeth"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_BeakLower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          3.8365,
+          1.7465,
+          1.4435
+        ],
+        "vertices": 46,
+        "polygons": 46,
+        "materials": [
+          "CaraxoidTan_Beak"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_BeakUpper",
+        "type": "MESH",
+        "location": [
+          0.4208,
+          0.0,
+          -0.0109
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          3.8241,
+          1.9404,
+          2.7426
+        ],
+        "vertices": 55,
+        "polygons": 55,
+        "materials": [
+          "CaraxoidTan_Beak"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          49.9019,
+          12.2963,
+          21.6984
+        ],
+        "vertices": 35189,
+        "polygons": 35020,
+        "materials": [
+          "CaraxoidTan_Skin_Body"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Fur_Cape",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          5.4884,
+          8.2073,
+          4.5796
+        ],
+        "vertices": 2325,
+        "polygons": 2325,
+        "materials": [
+          "CaraxoidTan_Fur",
+          "CaraxoidTan_FurDark"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Fur_Chest",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          7.4741,
+          10.9141,
+          9.9233
+        ],
+        "vertices": 3375,
+        "polygons": 3375,
+        "materials": [
+          "CaraxoidTan_Fur",
+          "CaraxoidTan_FurDark"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Fur_Legs",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          14.6492,
+          12.4996,
+          9.1071
+        ],
+        "vertices": 5825,
+        "polygons": 5825,
+        "materials": [
+          "CaraxoidTan_Fur",
+          "CaraxoidTan_FurDark"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Fur_Mane",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          10.5202,
+          9.4342,
+          16.6402
+        ],
+        "vertices": 12950,
+        "polygons": 12950,
+        "materials": [
+          "CaraxoidTan_Fur",
+          "CaraxoidTan_FurDark"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Fur_Tail",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          19.9562,
+          6.08,
+          4.8842
+        ],
+        "vertices": 4375,
+        "polygons": 4375,
+        "materials": [
+          "CaraxoidTan_Fur",
+          "CaraxoidTan_FurDark"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Hands",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          3.3787,
+          7.012,
+          4.5003
+        ],
+        "vertices": 308,
+        "polygons": 308,
+        "materials": [
+          "CaraxoidTan_HandScales",
+          "CaraxoidTan_Claws"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Head",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          4.2998,
+          3.7811,
+          2.5809
+        ],
+        "vertices": 17744,
+        "polygons": 17780,
+        "materials": [
+          "CaraxoidTan_Skin_Head",
+          "CaraxoidTan_Eye"
+        ],
+        "modifiers": [
+          "Armature",
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Jaw",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "dimensions": [
+          4.0778,
+          2.9351,
+          2.1992
+        ],
+        "vertices": 6146,
+        "polygons": 6144,
+        "materials": [
+          "CaraxoidTan_Skin_Jaw"
+        ],
+        "modifiers": [
+          "Armature"
+        ]
+      },
+      {
+        "name": "CaraxoidTan_Rig",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          -20.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Caraxoid_Tan"
+        ],
+        "bones": [
+          "Root",
+          "Hips",
+          "Spine_01",
+          "Spine_02",
+          "Spine_03",
+          "Spine_04",
+          "Neck_01",
+          "Neck_02",
+          "Neck_03",
+          "Neck_04",
+          "Neck_05",
+          "Neck_06",
+          "Neck_07",
+          "Neck_08",
+          "Head",
+          "Jaw",
+          "Mane_Ctrl",
+          "FrontShoulder.L",
+          "FrontLeg_Upper.L",
+          "FrontLeg_Lower.L",
+          "FrontLeg_Foot.L",
+          "FrontLeg_Finger1_1.L",
+          "FrontLeg_Finger1_2.L",
+          "FrontLeg_Finger2_1.L",
+          "FrontLeg_Finger2_2.L",
+          "FrontLeg_Finger3_1.L",
+          "FrontLeg_Finger3_2.L",
+          "FrontShoulder.R",
+          "FrontLeg_Upper.R",
+          "FrontLeg_Lower.R",
+          "FrontLeg_Foot.R",
+          "FrontLeg_Finger1_1.R",
+          "FrontLeg_Finger1_2.R",
+          "FrontLeg_Finger2_1.R",
+          "FrontLeg_Finger2_2.R",
+          "FrontLeg_Finger3_1.R",
+          "FrontLeg_Finger3_2.R",
+          "Tail_01",
+          "Tail_02",
+          "Tail_03",
+          "Tail_04",
+          "Tail_05",
+          "Tail_06",
+          "Tail_07",
+          "Tail_08",
+          "Tail_09",
+          "Tail_10",
+          "Tail_11",
+          "Tail_12",
+          "Tail_13",
+          "Tail_14",
+          "Tail_15",
+          "Tail_16",
+          "HindLeg_Upper.L",
+          "HindLeg_Lower.L",
+          "HindLeg_Ankle.L",
+          "HindLeg_Foot.L",
+          "HindLeg_Upper.R",
+          "HindLeg_Lower.R",
+          "HindLeg_Ankle.R",
+          "HindLeg_Foot.R"
+        ]
+      }
+    ],
+    "materials": [
+      "CaraxoidBlue_Eye",
+      "CaraxoidBlue_Fur",
+      "CaraxoidBlue_Skin_Body",
+      "CaraxoidBlue_Skin_Head",
+      "CaraxoidBlue_Skin_Jaw",
+      "CaraxoidTan_Beak",
+      "CaraxoidTan_Beak.002",
+      "CaraxoidTan_Claws",
+      "CaraxoidTan_Claws.001",
+      "CaraxoidTan_Eye",
+      "CaraxoidTan_Eye.001",
+      "CaraxoidTan_Fur",
+      "CaraxoidTan_Fur.001",
+      "CaraxoidTan_FurDark",
+      "CaraxoidTan_FurDark.001",
+      "CaraxoidTan_HandScales",
+      "CaraxoidTan_HandScales.001",
+      "CaraxoidTan_Skin_Body",
+      "CaraxoidTan_Skin_Body.001",
+      "CaraxoidTan_Skin_Head",
+      "CaraxoidTan_Skin_Head.001",
+      "CaraxoidTan_Skin_Jaw",
+      "CaraxoidTan_Skin_Jaw.001",
+      "Caraxoid_Eye",
+      "Caraxoid_Feathers",
+      "Caraxoid_Skin_Body",
+      "Caraxoid_Skin_Head",
+      "Caraxoid_Skin_Jaw",
+      "Caraxoid_Teeth",
+      "Dots Stroke"
+    ],
+    "linked_libraries": [],
+    "auto_suffixed_names": []
+  },
   "models/creatures/conjuring_robot.blend": {
     "collections": [
       {
@@ -677896,7 +679728,7 @@
       "Dunehorn_Unused"
     ],
     "linked_libraries": [
-      "C:\\Users\\tobia\\AppData\\Local\\Programs\\Blender5\\blender-5.2.1-windows-x64\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_sculpt.blend"
+      "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_sculpt.blend"
     ],
     "auto_suffixed_names": []
   },
@@ -700006,7 +701838,7 @@
       "Mat_Hide_Vrescal_LowPoly"
     ],
     "linked_libraries": [
-      "C:\\Users\\tobia\\AppData\\Local\\Programs\\Blender5\\blender-5.2.1-windows-x64\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
+      "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\assets\\brushes\\essentials_brushes-mesh_texture.blend"
     ],
     "auto_suffixed_names": []
   },
@@ -701423,6 +703255,228 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/gear/dish_transmitter.blend": {
+    "collections": [
+      {
+        "name": "Coll_DishTransmitter",
+        "objects": [
+          "DishTransmitter"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_DishTransmitterBroken",
+        "objects": [
+          "DishTransmitterBroken"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_DishTransmitterCradle",
+        "objects": [
+          "DishTransmitterCradle"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_ShipTransmitterCradle",
+        "objects": [
+          "ShipTransmitterCradle"
+        ],
+        "children": []
+      },
+      {
+        "name": "Model_DishTransmitter",
+        "objects": [],
+        "children": [
+          "Coll_DishTransmitter",
+          "Coll_DishTransmitterCradle",
+          "Coll_DishTransmitterBroken",
+          "Coll_ShipTransmitterCradle"
+        ]
+      }
+    ],
+    "objects": [
+      {
+        "name": "DishTransmitter",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DishTransmitter"
+        ],
+        "dimensions": [
+          0.88,
+          0.36,
+          0.358
+        ],
+        "vertices": 4000,
+        "polygons": 3660,
+        "materials": [
+          "Mat_Paint_Olive_Deep",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Paint_Cell_Green",
+          "Mat_Metal_Copper_Oxide",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Paint_Hull_Bleached"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "DishTransmitterBroken",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DishTransmitterBroken"
+        ],
+        "dimensions": [
+          0.9427,
+          0.5814,
+          0.358
+        ],
+        "vertices": 4152,
+        "polygons": 3776,
+        "materials": [
+          "Mat_Metal_Rust_Deep",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Rust_Deep",
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Copper_Oxide",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Neutral_Slate_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "DishTransmitterCradle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DishTransmitterCradle"
+        ],
+        "dimensions": [
+          1.38,
+          1.9494,
+          0.5404
+        ],
+        "vertices": 528,
+        "polygons": 432,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "ShipTransmitterCradle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ShipTransmitterCradle"
+        ],
+        "dimensions": [
+          1.46,
+          0.665,
+          0.311
+        ],
+        "vertices": 512,
+        "polygons": 390,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Rust_Pale",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Metal_Copper_Oxide",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Hazard_Yellow"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Emissive_Green_CRT",
+      "Mat_Emissive_Red_Warn",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Copper_Oxide",
+      "Mat_Metal_Rust_Deep",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Rust_Pale",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Neutral_Slate_Dark",
+      "Mat_Paint_Cell_Green",
+      "Mat_Paint_Hazard_Yellow",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Olive_Deep",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//..\\..\\palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/gear/dragon_bazooka.blend": {
     "collections": [
       {
@@ -701845,6 +703899,124 @@
       "Mat_Paint_Lacquer_Vermilion",
       "Mat_Plastic_Rubber_Black",
       "Mat_Wood_Ply_Worn"
+    ],
+    "linked_libraries": [
+      "//..\\..\\palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "models/gear/fire_extinguisher.blend": {
+    "collections": [
+      {
+        "name": "Coll_ExtinguisherBracket",
+        "objects": [
+          "ExtinguisherBracket"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_FireExtinguisher",
+        "objects": [
+          "FireExtinguisher"
+        ],
+        "children": []
+      },
+      {
+        "name": "Model_FireExtinguisher",
+        "objects": [],
+        "children": [
+          "Coll_FireExtinguisher",
+          "Coll_ExtinguisherBracket"
+        ]
+      }
+    ],
+    "objects": [
+      {
+        "name": "ExtinguisherBracket",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ExtinguisherBracket"
+        ],
+        "dimensions": [
+          0.24,
+          0.1213,
+          0.77
+        ],
+        "vertices": 244,
+        "polygons": 204,
+        "materials": [
+          "Mat_Paint_Warn_Red",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Paint_Cell_Green",
+          "Mat_Paint_Hazard_Yellow"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "FireExtinguisher",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_FireExtinguisher"
+        ],
+        "dimensions": [
+          0.182,
+          0.44,
+          0.6844
+        ],
+        "vertices": 633,
+        "polygons": 447,
+        "materials": [
+          "Mat_Paint_Warn_Red",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Paint_Cell_Green",
+          "Mat_Paint_Hazard_Yellow"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Cell_Green",
+      "Mat_Paint_Hazard_Yellow",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Warn_Red",
+      "Mat_Plastic_Rubber_Black"
     ],
     "linked_libraries": [
       "//..\\..\\palette.blend"
@@ -712431,6 +714603,70 @@
     "linked_libraries": [],
     "auto_suffixed_names": []
   },
+  "models/gear/soldering_torch.blend": {
+    "collections": [
+      {
+        "name": "Coll_SolderingTorch",
+        "objects": [
+          "SolderingTorch"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "SolderingTorch",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SolderingTorch"
+        ],
+        "dimensions": [
+          0.068,
+          0.3243,
+          0.199
+        ],
+        "vertices": 741,
+        "polygons": 532,
+        "materials": [
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Paint_Warn_Red"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Hazard_Yellow",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Warn_Red",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//..\\..\\palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/gear/squirter.blend": {
     "collections": [
       {
@@ -715386,6 +717622,116 @@
       "Mat_Metal_Brass_Tarnished",
       "Mat_Metal_Steel_Dark",
       "Mat_Metal_Steel_Worn"
+    ],
+    "linked_libraries": [
+      "//..\\..\\palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "models/props/caraxoid_nest.blend": {
+    "collections": [
+      {
+        "name": "Coll_CaraxoidNest",
+        "objects": [
+          "Mesh_CaraxoidNest_Rim",
+          "Mesh_CaraxoidNest_Lining",
+          "Mesh_CaraxoidNest_Eggs"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_CaraxoidNest_Eggs",
+        "type": "MESH",
+        "location": [
+          -2.6,
+          2.4,
+          0.55
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CaraxoidNest"
+        ],
+        "dimensions": [
+          2.763,
+          3.2762,
+          1.485
+        ],
+        "vertices": 888,
+        "polygons": 960,
+        "materials": [
+          "Mat_Hide_Ivory_Spine"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_CaraxoidNest_Lining",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.12
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CaraxoidNest"
+        ],
+        "dimensions": [
+          11.2,
+          11.2,
+          0.56
+        ],
+        "vertices": 218,
+        "polygons": 240,
+        "materials": [
+          "Mat_Hide_Sand_Pale"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_CaraxoidNest_Rim",
+        "type": "MESH",
+        "location": [
+          -2.3097,
+          4.6165,
+          0.5923
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CaraxoidNest"
+        ],
+        "dimensions": [
+          16.9044,
+          17.4294,
+          2.3867
+        ],
+        "vertices": 3120,
+        "polygons": 2080,
+        "materials": [
+          "Mat_Wood_Ply_Worn",
+          "Mat_Wood_Timber_Silvered"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Ivory_Spine",
+      "Mat_Hide_Sand_Pale",
+      "Mat_Wood_Ply_Worn",
+      "Mat_Wood_Timber_Silvered"
     ],
     "linked_libraries": [
       "//..\\..\\palette.blend"

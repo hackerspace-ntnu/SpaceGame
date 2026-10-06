@@ -189,6 +189,25 @@ namespace SpaceGame.Gameplay.Arrival
         /// <summary>True once the crash has finished, or once a save said it already had.</summary>
         public bool HasArrived { get; private set; }
 
+        /// <summary>
+        /// Whether the crew are down: the arrival has finished, or this world has no arrival at all
+        /// (a scene with no director). The one reading of "after the landing" for anything that
+        /// waits on it — objectives, and the ship's burnt-out transmitter catching fire.
+        /// </summary>
+        public static bool CrewHasLanded => Instance == null || Instance.HasArrived;
+
+        /// <summary>
+        /// SERVER: a hull has come down for good, once per hull per arrival — so once per world,
+        /// since a world is arrived in exactly once. Raised from the same point the starter
+        /// vehicle is delivered from, and for the same reason: never from inside a save's capture.
+        /// What the crash did to the ship (a door burst, the oxygen plant thrown out) hangs off this.
+        /// </summary>
+        public static event System.Action<GameObject> HullLanded;
+
+        // Statics outlive play mode with Enter Play Mode Options on (see INVARIANTS).
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetLandingListeners() => HullLanded = null;
+
         /// <summary>True while any hull is actually flying its arc.</summary>
         public bool IsRunning { get; private set; }
 
@@ -475,6 +494,11 @@ namespace SpaceGame.Gameplay.Arrival
                 ship.name = shipPrefab.name + " (Landed)";
 
             HasArrived = true;
+
+            // The crash's damage still happens to a ship that skipped the flight: the back door is
+            // burst and the oxygen plant thrown out, so the opening objectives are the same ones.
+            // The starter vehicle is NOT delivered here; the disposable session never had one.
+            AnnounceLanded(ship);
         }
 
         /// <summary>
@@ -973,6 +997,21 @@ namespace SpaceGame.Gameplay.Arrival
             // retrying from the next landing path would only log it again.
             flight.StarterVehicleDelivered = true;
             starterVehicle.Deliver(flight.Ship);
+
+            AnnounceLanded(flight.Ship);
+        }
+
+        /// <summary>
+        /// SERVER: raise <see cref="HullLanded"/> for a hull that is down for good — from the end of a
+        /// descent, and from a disposable session's ship put down already landed, which never flies
+        /// one. Each listener is its own fault domain: one broken crash effect must not stop the rest.
+        /// </summary>
+        private void AnnounceLanded(GameObject ship)
+        {
+            if (HullLanded == null || ship == null) return;
+
+            foreach (System.Delegate listener in HullLanded.GetInvocationList())
+                Fault.Run(this, "Arrival.HullLanded", () => ((System.Action<GameObject>)listener)(ship));
         }
 
         /// <summary>

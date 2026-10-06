@@ -71,6 +71,31 @@ namespace SpaceGame.Items
         /// </summary>
         private bool crewStocked;
 
+        [Header("Taking")]
+        [Tooltip("How close a player must be, and whether they must see it, to take gear off this " +
+                 "wall. The defaults are no rule: the crosshair's own range, through anything.")]
+        [SerializeField] private WallTakeReach takeReach = new();
+
+        /// <summary>
+        /// The reach rule for taking gear off this wall. Both machines read it: the looking
+        /// player's before offering the take, the server again before honouring it.
+        /// </summary>
+        public WallTakeReach TakeReach => takeReach;
+
+        /// <summary>
+        /// Where the gear at <paramref name="uv"/> on <paramref name="surfaceId"/> is, for the
+        /// reach rule: a hand's width off the face, so a sight line to it ends in front of the
+        /// board rather than in it.
+        /// </summary>
+        public Vector3 TakePoint(PackSurfaceId surfaceId, Vector2 uv)
+        {
+            PackSurface face = SurfaceFor(surfaceId);
+            return face != null ? face.ToWorld(uv, TakePointLift) : transform.position;
+        }
+
+        /// <summary>How far off the face <see cref="TakePoint"/> stands, in the surface's frame.</summary>
+        private const float TakePointLift = 0.1f;
+
         private void Awake() => BeginContents();
 
         // ── Crew stores ──────────────────────────────────────────────────────
@@ -231,11 +256,16 @@ namespace SpaceGame.Items
             IPlayerInventory hotbar = HotbarOf(arg);
             if (hotbar == null) return;
 
+            // Re-asked here rather than trusted: the press came from a client, and the rule is
+            // the only thing standing between a player and gear they cannot reach.
+            Vector2 at = new Vector2(arg.P.x, arg.P.z);
+            if (!takeReach.AllowsBody(arg.Resolve(), TakePoint(surface, at), transform)) return;
+
             // Idempotent by construction: the space is empty the second time, so nothing is found
             // under the point and TryTakeToHotbar answers false rather than conjuring a duplicate.
             // That is exactly the race two players grabbing the same item produce, and this is the
             // machine that settles it.
-            TryTakeToHotbar(surface, new Vector2(arg.P.x, arg.P.z), hotbar);
+            TryTakeToHotbar(surface, at, hotbar);
         }
 
         /// <summary>Put it on the wall, if it is still in that slot and the spot is still free.</summary>

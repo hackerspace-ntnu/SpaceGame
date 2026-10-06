@@ -1,0 +1,93 @@
+// Assets/Game/Editor/Tests/NpcOrnithopterFlightTests.cs
+// The riskiest slice end to end, on the REAL prefab (no Play Mode): a pilot seated in NpcOrnithopter
+// takes off from the ground — or launches off Sky City height — flies to a goal, sets down within the
+// spec's ~15 m, steps off unhurt, and the craft is retired. The craft lives in a preview scene with its
+// own physics; the ground lives in the default scene, which is where PhysicsGroundProbe looks.
+using System.Collections.Generic;
+using System.Reflection;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using SpaceGame.Agents;
+using SpaceGame.Core;
+using SpaceGame.EditorTools;
+using SpaceGame.Gameplay;
+using SpaceGame.Vehicles;
+
+namespace SpaceGame.Tests
+{
+    public class NpcOrnithopterFlightTests
+    {
+        private static readonly Vector3 Ground0 = new Vector3(200000f, 0f, 200000f);
+        private const float Dt = 0.02f;
+        private const float LandingTolerance = 15f;
+        private readonly List<Object> junk = new();
+        private IWorldService previousWorld;
+        private InstantiatingWorld world;
+        private SimulationMode originalMode;
+        private UnityEngine.SceneManagement.Scene scene;
+
+        [SetUp]
+        public void SetUp()
+        {
+            previousWorld = GameServices.World;
+            world = new InstantiatingWorld(junk);
+            GameServices.World = world;
+            originalMode = Physics.simulationMode;
+            Physics.simulationMode = SimulationMode.Script;
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ground.hideFlags = HideFlags.HideAndDontSave;
+            junk.Add(ground);
+            ground.transform.position = Ground0 + Vector3.down * 0.5f;
+            ground.transform.localScale = new Vector3(6000f, 1f, 6000f);
+            Physics.SyncTransforms();
+            scene = EditorSceneManager.NewPreviewScene();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            EditorSceneManager.ClosePreviewScene(scene);
+            Physics.simulationMode = originalMode;
+            GameServices.World = previousWorld;
+            foreach (Object o in junk) if (o != null) Object.DestroyImmediate(o);
+            junk.Clear();
+        }
+
+        [TestCase(3f, 600f)]
+        [TestCase(280f, 2000f)]
+        public void TheRealCraft_FliesToItsGoal_AndSetsThePilotDownNearIt(float startHeight, float goalDistance)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcOrnithopterBuilder.PrefabPath);
+            Assert.IsNotNull(prefab, "build the NPC craft first");
+            var craft = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            junk.Add(craft);
+            craft.transform.position = Ground0 + Vector3.up * startHeight;
+            var motor = craft.GetComponent<FlyingRigidbodyMotor>();
+            typeof(FlyingRigidbodyMotor).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(motor, null);
+            var aviator = craft.GetComponent<NpcAviator>();
+            GameObject pilot = NpcAviatorTests.Pilot(junk);
+            pilot.transform.position = craft.transform.position;
+            Vector3 goal = Ground0 + Vector3.right * goalDistance;
+            Assert.IsTrue(aviator.Fly(pilot, goal, 60f, 6f));
+
+            PhysicsScene physics = scene.GetPhysicsScene();
+            for (int i = 0; i < 25000 && !world.Despawned.Contains(craft); i++)
+            {
+                MoveIntent? intent = aviator.Tick(new AgentContext { Self = craft.transform, Position = craft.transform.position }, Dt);
+                MoveIntent applied = intent ?? MoveIntent.Idle();
+                motor.Tick(in applied, Dt);
+                motor.StepPhysics(Dt);
+                physics.Simulate(Dt);
+            }
+
+            Assert.Contains(craft, world.Despawned, "the craft never landed");
+            Assert.IsNull(pilot.transform.parent, "the pilot was never set down");
+            var flat = new Vector2(pilot.transform.position.x - goal.x, pilot.transform.position.z - goal.z);
+            Assert.Less(flat.magnitude, LandingTolerance, $"set down {flat.magnitude:F1} m from the goal");
+            var health = pilot.GetComponent<HealthComponent>();
+            Assert.AreEqual(health.GetMaxHealth, health.GetHealth, "the landing hurt the pilot");
+        }
+    }
+}

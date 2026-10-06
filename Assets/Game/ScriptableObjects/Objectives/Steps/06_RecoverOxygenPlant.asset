@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da4a39d433d38c24d958ed2d45a0652e, type: 3}
+  m_Name: 06_RecoverOxygenPlant
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.RecoverOxygenPlantStep
+  id: recover-oxygen-plant
+  title: Recover the oxygen plant
+  briefing:
+  - Hold on. Cabin air is gone. The back door burst open when we hit, and the oxygen
+    plant went out through it.
+  - It's lying on the sand behind us. Grab its handle and drag it back to its mount,
+    then give it a power cell. Two of you will haul it faster.
+  lookAtFocus: 1
+  outsideStatus: Thrown out of the back door. Grab its handle
+  haulingStatus: Hauling  <b>{0:0} m</b> to its mount
+  powerStatus: In its mount. Fit a power cell
+  beaconLift: 1.5

@@ -118,6 +118,10 @@ namespace SpaceGame.Items
         [Header("Arrival & release")]
         [SerializeField] private float arrivalDistance = 2.5f;
 
+        [Tooltip("How flat the rope must be, 0 to 1, for the climb to face along it. Steeper — a hook " +
+                 "almost overhead — faces into the surface the hook is in instead.")]
+        [SerializeField, Range(0f, 1f)] private float ledgeFacingMinFlat = 0.3f;
+
         [Tooltip("Multiplier on the speed the player already had when the rope drops. Above 1 " +
                  "rewards releasing at the bottom of a fast arc.")]
         [SerializeField] private float exitMomentumScale = 1.1f;
@@ -234,6 +238,12 @@ namespace SpaceGame.Items
 
         private Vector3 _hookPoint;
         private Vector3 _hitNormal = Vector3.up;
+
+        /// <summary>
+        /// Reeled to an edge the player can climb: the winch has stopped and the rope holds them just
+        /// below the lip until Jump climbs off it. See FixedUpdate.
+        /// </summary>
+        private bool _perched;
         private Vector3 _flightDirection = Vector3.forward;
         private float _ropeLength;
 
@@ -246,6 +256,13 @@ namespace SpaceGame.Items
         private Transform _head;
         private Rigidbody _body;
         private PlayerMovement _movement;
+        private LedgeClimber _climber;
+
+        /// <summary>
+        /// <see cref="ClimbOffRope"/> as a delegate, made once: the offer is renewed every physics
+        /// step, and converting the method group each time would allocate each time.
+        /// </summary>
+        private System.Action _climbOffRope;
         private PlayerLook _look;
         private CrosshairUI _crosshair;
 
@@ -874,6 +891,7 @@ namespace SpaceGame.Items
             // anywhere. Hand the rope to the machine instead.
             if (_body == null || _body.isKinematic)
             {
+                _climber?.WithdrawRopeClimb();
                 TickTow();
                 return;
             }
@@ -894,7 +912,21 @@ namespace SpaceGame.Items
 
             Vector3 radial = toHook / dist;
 
-            if (_winch.Winching)
+            // Swinging or hanging, the rope may be climbed off: Jump asks the climber, which asks this.
+            // Standing on the ground the rope is no ledge route — Jump is an ordinary jump there. A perch
+            // always offers, though: hung against stepped geometry, the feet can read as on the ground.
+            Vector3 facing = LedgeFacing(radial);
+            if (_perched || _movement == null || !_movement.IsOnGround)
+            {
+                _climbOffRope ??= ClimbOffRope;
+                _climber?.OfferRopeClimb(anchor, facing, _climbOffRope);
+            }
+            else
+            {
+                _climber?.WithdrawRopeClimb();
+            }
+
+            if (_winch.Winching && !_perched)
             {
                 Winch(radial, dist, dt);
                 Ratchet(dist);
@@ -902,8 +934,21 @@ namespace SpaceGame.Items
 
             ApplyRopeConstraint(anchor, radial, dist, dt);
 
+            // Hanging below an edge: the rope just holds, and the stall timer has nothing to time.
+            if (_perched) return;
+
             if (_winch.Winching && dist <= arrivalDistance)
             {
+                // Reeled to an edge the player can climb: hang there, still, and let Jump take them up.
+                // No edge in reach is today's release, boost and all.
+                if (_climber != null && _climber.RopeLedgeInReach(anchor, facing))
+                {
+                    _perched = true;
+                    _body.linearVelocity = Vector3.zero;
+                    _climber.SetHanging(true);
+                    return;
+                }
+
                 ReleaseInto(radial, arrived: true);
                 return;
             }
@@ -1105,6 +1150,27 @@ namespace SpaceGame.Items
             // happen for itself — see AnnounceRelease.
             AnnounceRelease();
 
+            StopGrapple();
+        }
+
+        /// <summary>
+        /// Which way a climb off this rope faces: along the rope, flattened — or, with the hook nearly
+        /// overhead, into the surface it is buried in. Body forward when neither has a direction.
+        /// </summary>
+        private Vector3 LedgeFacing(Vector3 radial)
+        {
+            Vector3 flat = new Vector3(radial.x, 0f, radial.z);
+            if (flat.magnitude < ledgeFacingMinFlat) flat = new Vector3(-_hitNormal.x, 0f, -_hitNormal.z);
+            return flat.sqrMagnitude > 1e-4f ? flat.normalized : _body.transform.forward;
+        }
+
+        /// <summary>
+        /// The climber took the player off the rope. Let go with no boost — the climb owns the body now —
+        /// announced before the teardown, while owner is still set, as <see cref="ReleaseInto"/> does.
+        /// </summary>
+        private void ClimbOffRope()
+        {
+            AnnounceRelease();
             StopGrapple();
         }
 
@@ -1319,6 +1385,9 @@ namespace SpaceGame.Items
             _pendingRestore = false;
             _stallTime = 0f;
             _tow = null;
+            if (_perched) _climber?.SetHanging(false);
+            _perched = false;
+            _climber?.WithdrawRopeClimb();
 
             rope.Hide();
             DestroyHead();
@@ -1343,6 +1412,7 @@ namespace SpaceGame.Items
             _body = owner != null ? owner.GetComponent<Rigidbody>() : null;
             _movement = owner != null ? owner.GetComponent<PlayerMovement>() : null;
             _look = owner != null ? owner.GetComponent<PlayerLook>() : null;
+            _climber = owner != null ? owner.GetComponent<LedgeClimber>() : null;
         }
 
         /// <summary>

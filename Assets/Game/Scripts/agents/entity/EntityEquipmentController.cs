@@ -27,7 +27,7 @@ using SpaceGame.Weapons;
 
 namespace SpaceGame.Agents
 {
-    public class EntityEquipmentController : MonoBehaviour
+    public class EntityEquipmentController : MonoBehaviour, INpcItemUser
     {
         [Header("Socket")]
         [Tooltip("Where held items are parented. Leave empty and it is resolved automatically: " +
@@ -393,37 +393,21 @@ namespace SpaceGame.Agents
                 ? Quaternion.LookRotation(direction.normalized, Vector3.up)
                 : transform.rotation;
 
-            // Owner-side hook first, exactly as the player path does it. An item that wants to
-            // describe its own use — a grapple reporting where it is hooking — gets the chance,
-            // and anything it writes overrides what was filled in above.
-            equippedUsable.OnRequestUse(ref arg);
-
-            // Presentation before effect, matching EquipmentController. Weapon.Present() returns
-            // early on the simulating machine after playing its report, so this does not put a
-            // second bullet in the air here.
-            equippedUsable.PlayUse(gameObject, arg);
-            equippedUsable.TryUse(gameObject, arg);
-
-            // Peers. Nothing is excluded: unlike a player's own use, no other machine has already
-            // presented this one locally.
-            this.NetToOthers(NetMsg.ItemUsed, arg);
+            NpcItemFire.Fire(this, equippedUsable, arg);
 
             return true;
         }
 
         /// <summary>Use the held item at a point straight ahead. For items that need no target.</summary>
         public bool TryUseForward() =>
-            TryUseAt(FireOrigin + transform.forward * 100f);
+            TryUseAt(FireOrigin + transform.forward * NpcItemFire.ForwardReach);
 
         /// <summary>
-        /// Use the held item on this entity itself — a stim, a shield, an effect artifact.
-        ///
-        /// Aimed at the ground under its own feet rather than at nothing, because an aimed item
-        /// used with a degenerate direction falls back to its holder's forward, and a healing item
-        /// that happens to also raycast would otherwise hit whatever is in front of the NPC.
+        /// Use the held item on this entity itself — a stim, a shield, an effect artifact. Aimed at the
+        /// ground under its own feet (<see cref="NpcItemFire.SelfAimDrop"/>).
         /// </summary>
         public bool TryUseOnSelf() =>
-            TryUseAt(transform.position + Vector3.down * 0.5f);
+            TryUseAt(transform.position + Vector3.down * NpcItemFire.SelfAimDrop);
 
         /// <summary>Peer side: cosmetics only. The effect already happened on the server.</summary>
         private void OnItemUsedElsewhere(in NetArg arg, ulong sender)

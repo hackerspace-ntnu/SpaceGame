@@ -1,0 +1,239 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5730976248970617837
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1330686208677846921, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: MotorComponent
+      value: 
+      objectReference: {fileID: 1999671220052644999}
+    - target: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_Name
+      value: NpcOrnithopter
+      objectReference: {fileID: 0}
+    - target: {fileID: 4719381695298895875, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 969594058
+      objectReference: {fileID: 0}
+    - target: {fileID: 4719381695298895875, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4719381695298895875, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3255795817
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582560777457738104, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 4096831134557326267, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 112924537384872545, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 5719820741869269405, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: -8143382019233687135, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: -5899206964481542120, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: -6536609851289175598, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 4917675695160102420, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 7142430832772596472, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 953034273079448755, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 7332977462342065972, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    - {fileID: 4237981363711814107, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1999671220052644999}
+    - targetCorrespondingSourceObject: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1822861372713607215}
+    - targetCorrespondingSourceObject: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3074462559311085014}
+    - targetCorrespondingSourceObject: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7717550461364542293}
+  m_SourcePrefab: {fileID: 100100000, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+--- !u!54 &4333122766593290807 stripped
+Rigidbody:
+  m_CorrespondingSourceObject: {fileID: 8334716752209072602, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+  m_PrefabInstance: {fileID: 5730976248970617837}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7166074244684907727 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+  m_PrefabInstance: {fileID: 5730976248970617837}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1999671220052644999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7166074244684907727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca7ba5a805ba44ccb6f65d44d1d0d9ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FlyingRigidbodyMotor
+  body: {fileID: 4333122766593290807}
+  maxSpeed: 25
+  maxVerticalSpeed: 3
+  acceleration: 8
+  deceleration: 8
+  faceRotateSpeed: 1.5
+  riderTurnSpeed: 45
+  bankPerTurnRate: 0.5
+  maxBank: 35
+  pitchAlongPath: 1
+  maxPitch: 40
+  kinematicHull: 0
+  altitudeHold: 0
+  cruiseAltitude: 40
+  altitudeHoldGain: 0.5
+  gravityWhenIdle: 0
+--- !u!114 &1822861372713607215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7166074244684907727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f9753b4f5f51c4e803b0bdb58ba66b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceGame.Vehicles.Ornithopter::SpaceGame.Vehicles.Ornithopter.NpcOrnithopterWings
+  settings:
+    SpreadSpeed: 3
+    SpreadSeconds: 0.6
+    FlapHzIdle: 0.35
+    FlapHzMax: 1.6
+    GlideEffort: 0.15
+    EffortPerClimbSpeed: 0.25
+    WreckSinkSpeed: 12
+    WreckSpread: 0.4
+    TurnRateForFullTurn: 45
+  maxSampleGap: 0.2
+  velocitySmoothingSeconds: 0.15
+--- !u!114 &3074462559311085014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7166074244684907727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9000f2d569b07c6428ef0e59a120ab3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.VesselSeats
+  seats:
+  - {fileID: 9202323653920682241}
+  seatOffset: {x: 0, y: 0, z: 0}
+  navMeshReach: 6
+  chairPose: {fileID: 0}
+--- !u!114 &7717550461364542293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7166074244684907727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66aebbd13406de64293065b77c129d03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.NpcAviator
+  priority: 30
+  active: 1
+  flight:
+    LookAhead: 80
+    ClimbSlope: 25
+    DescentSlope: 15
+    ApproachSlope: 12
+    MaxApproachSlope: 35
+    FlareDistance: 45
+    FlareSpeed: 0.25
+    SpiralSpeed: 0.4
+    SpiralRadius: 25
+    SpiralLead: 40
+    TouchdownHeight: 1.4
+    TouchdownTolerance: 0.6
+    TakeOffClearance: 3
+    LandingTolerance: 5
+    WreckSlope: 40
+  launchGraceSeconds: 0.5
+  noGroundDepth: 300
+  footprintRadius: 6
+  landing:
+    ringMin: 3
+    ringMax: 14
+    candidatesPerRing: 12
+    rings: 3
+    maxSlopeDegrees: 18
+    maxHeightSpread: 2
+    clearanceHeight: 15
+    hoverHeight: 0
+    navMeshReach: 4
+    farSidePenalty: 10
+  probe:
+    castReach: 300
+    surfaceSkin: 0.5
+  siteCheckInterval: 1
+  crash:
+    SafeClosingSpeed: 8
+    LethalClosingSpeed: 32
+    MaxDamage: 100
+    GroundSearchDistance: 12
+    SurfaceClearance: 0.6
+  crashMask:
+    serializedVersion: 2
+    m_Bits: 641
+--- !u!4 &9202323653920682241 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3476141279942136556, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+  m_PrefabInstance: {fileID: 5730976248970617837}
+  m_PrefabAsset: {fileID: 0}

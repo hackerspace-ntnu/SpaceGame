@@ -59,7 +59,7 @@ symptoms:
   - "NPC corpses vanish instantly on clients while the host still sees them fall"
   - "NPCs never block or dodge each other's melee blows, only the player's"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence, HumanoidAnimation]
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # Combat
@@ -167,6 +167,7 @@ Messages: `NetMsg.Damage` (10, → server on the *target's* relay, `A` = amount,
 Ordering on load: the record lands → `LoadHealth` → `RestoreHealth` clamps to the prefab's `maxHealth` → `OnRestored` (replication) then `OnDeath`/`OnRevive`. `IsRestoring` is set for the whole call and cleared in a `finally`, so a throwing listener cannot make every later death in the session look like a restore. `PlayerController` re-checks `playerHealth.Alive` on enable because an event cannot be replayed into a delegate that was empty when it fired.
 
 ## Gotchas
+- **`RagdollWiring.IsBody` decides who gets an `AgentRagdoll`, and its "is a body" signal is loose on purpose** (`AgentController`, `LeggedLocomotion` or a root `HealthComponent`). Machines are refused by three rules, any one enough: a vehicle folder (`Prefabs/Agents/Vehicles/`, `Prefabs/Vehicles/`), a root `VesselPilot`, or a root `WalkerPlatformCarrier`. A new machine outside those folders that is flown or walked through an `AgentController` needs one of the components or it is wired as a creature — the Sky City fleet was ([SkyTribe](SkyTribe.md)).
 - **The settle grace must outlast a fall.** Cutting it to 0.15 s with the down-times (2026-09-24) stood every knockdown up mid-fall (about 0.4 s to drop from the hips): bodies half-collapsed and snapped back, which reads as spasming. It is 1.5 s, and `KnockdownPolicyTests` refuses a prefab that overrides it below a fall. A prefab whose ragdoll predates the field holds no value and takes the code default; an editor that loaded it earlier keeps the old default until it is reimported.
 
 - **A humanoid body's flinch is decided on the server from the damage it dealt.** `HealthComponent.OnDamage` fires only where `Damage()` ran; every other machine learns the new health through `RestoreHealth`, which cannot tell a hit from a heal, so a flinch raised by `HealthReactionModule` alone was host-only. [`HurtReaction`](Assets/Game/Scripts/Presentation/Animation/HurtReaction.cs) picks it (full body standing, upper body moving or seated, cooldown-limited) and sends it with `NetMsg.CharacterActed`. Creatures still use `hurtAnimTrigger` plus the weapons' per-machine `TriggerHurt` ([HumanoidAnimation.md](HumanoidAnimation.md)).

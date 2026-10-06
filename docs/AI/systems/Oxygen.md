@@ -12,6 +12,9 @@ paths:
   - Assets/Game/Prefabs/Items/Supplies
   - Assets/Game/Resources/Items/Supplies
 symptoms:
+  - "the cabin has no air and my suit drains inside the ship"
+  - "the oxygen plant is missing from the deck in a new world"
+  - "the oxygen plant lies out on the sand behind the ship"
   - "the bottle docked in the plant does not show it filling"
   - "the crosshair lights up on the oxygen plant's body but neither receptacle can be aimed at"
   - "the plant's lamp is dark with a power cell fitted, or lit with none"
@@ -33,7 +36,7 @@ symptoms:
   - "the gear wall has one more bottle on it than there are people in the crew"
   - "a docked item pops in or out much later, at the unrelated moment something else changes"
 reads_with: [Inventory, Backpack, PlayerShip, InteractionSystem, Persistence, Multiplayer]
-updated: 2026-10-03
+updated: 2026-10-06
 ---
 
 # Oxygen
@@ -58,6 +61,32 @@ A wall-mounted plant on the lander's main deck with two receptacles: a rectangul
 - **The bottle on your back is the real item.** Until 2026-09-03 the expedition rig had one MODELLED INTO it — `Mesh_Rig_OxygenTank` plus its bands, authored as "a fixed fitting, not an item" — so the pack showed a bottle nothing could take off. That geometry is deleted and the rig carries a real `OxygenTank` in its authored starting items instead ([Backpack.md](Backpack.md)).
 - **Everything above the meshes is generated.** Authored = the `.blend` and the two constants in each builder. A hand edit to either prefab is destroyed by the next run, silently.
 
+- **The crash throws the plant out (2026-10-06).** [`OxygenPlantMount`](Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantMount.cs),
+  beside `OxygenGenerator` on the fixture, listens for `ArrivalDirector.HullLanded` (server, once per world): it
+  bursts the lander's `BackDoor` open through the door's own networked state (`SetOpenByAuthority`), spawns
+  `LooseOxygenPlant.prefab` 30-60 m behind it (8 m to either side, on the ground), and strews `debrisCount` small
+  scraps (visual-only models, no colliders) along the line from the door to it on every machine, from a generator
+  seeded by the two replicated end points, so every machine and every reload lays the same scraps with nothing sent
+  or saved (they replaced a dark LineRenderer furrow that read as a black stripe; a breadcrumb of wreckage leads the
+  eye to the plant, GDC-L1-LEVEL-0001). `HullLanded` is raised by the descent's touchdown AND by
+  `SpawnAlreadyLanded`, so the crash happens in disposable sessions too (until 2026-10-06 it did not: that path
+  never raised the event, so no plant was thrown out, no quest beat, cabin air as normal). While it is out the mounted plant is hidden, collider and dock volumes included, so no
+  bottle can be filled. The loose plant is a [`Liftable`](Assets/Game/Scripts/World/Lifting/Liftable.cs)
+  ([Lifting.md](Lifting.md)): lifted by the handle on its control-head end and carried; within `mountRadius` (3 m, flat)
+  of the mount the server despawns it and the plant is back in its mount, with whatever cell it had (none in a new
+  world) — but **cracked**.
+- **Cracked: solder the seams (2026-10-06).** The fixture carries a [`TorchRepairable`](Assets/Game/Scripts/Gameplay/Repair/TorchRepairable.cs)
+  (`OxygenPlantMount.damage`); `Receive` calls `Damage()`. Three seams on the front face (`Seam_A/B/C`, glowing cubes the
+  authoring places on the mesh) close in order, 2 s of soldering-torch flame each (6 s in all, progress kept across a
+  save); the one being worked pulses bright with a light on it, the rest glow dull, closed ones are dark beads. Only
+  when the last closes does `Damaged` clear and `Running` (in its mount, whole, powered) become possible. The torch is
+  the soldering torch ([Artifacts.md](Artifacts.md)).
+- **Cabin air needs a running plant.** A [`BreathableVolume`](Assets/Game/Scripts/Gameplay/Oxygen/BreathableVolume.cs)
+  may name an [`IAirSupply`](Assets/Game/Scripts/Gameplay/Oxygen/IAirSupply.cs); the lander's `BreathableAir` names
+  the plant mount, whose `SuppliesAir` is `Running` (in its mount, not `Damaged`, AND `Powered`). `SuitOxygen.Breathing` counts only
+  volumes whose `HasAir` is true, read every frame on every machine, so nothing is sent when the plant stops or
+  starts. A volume with no supply (a cave, a habitat) is breathable as before.
+
 ## Key types
 
 | Type | File | Role |
@@ -67,6 +96,9 @@ A wall-mounted plant on the lander's main deck with two receptacles: a rectangul
 | `OxygenGeneratorDock` | [OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs) | One receptacle: `IInteractable` + `IInteractionReadout` on a **trigger** volume. Owns no state. |
 | `DockableSupply` | [DockableSupply.cs](Assets/Game/Scripts/Items/Supplies/DockableSupply.cs) | The carried item. No use verb; exists for the hold pose and to paint its own gauge. |
 | `EmissiveLamp` | [EmissiveLamp.cs](Assets/Game/Scripts/Presentation/EmissiveLamp.cs) | Paints one lamp or one **submesh** of one through a shared `MaterialPropertyBlock`. |
+| `OxygenPlantMount` | [Oxygen/OxygenPlantMount.cs](Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantMount.cs) | In its mount or thrown out; the crash ejection; `IAirSupply`; the `ILiftDestination` the loose plant is carried to; `Damaged` from its `TorchRepairable`. Server-written `NetworkVariable`s, read on spawn. |
+| `TorchRepairable` | [Repair/TorchRepairable.cs](Assets/Game/Scripts/Gameplay/Repair/TorchRepairable.cs) | Reusable: ordered seams closed by `Solder(seconds)` (server), one `NetworkVariable` pair (damaged, seconds), glows derived everywhere. Saved by [`TorchRepairableSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TorchRepairableSaveable.cs), key `torchRepair`, null when whole. Wired by `OxygenPlantRecoveryAuthoring` (*Author Oxygen Plant Cracks*). |
+| `OxygenPlantMountSaveable` | [Adapters/OxygenPlantMountSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenPlantMountSaveable.cs) | Key `oxygenMount`: `{ detached, furrowFrom, furrowTo }` (the crash's end points, named for the furrow they once drew; a non-zero `furrowTo` is "already thrown out once", `HasBeenEjected`); null for a plant never thrown out. Baked on the fixture by hand. |
 | `OxygenGeneratorSaveable` | [Adapters/OxygenGeneratorSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) | Save key `oxygen`. Both docks; never the fill deadline. |
 | `OxygenGearBuilder` | OxygenGearBuilder.cs | Builds the three item prefabs + assets, registers them for clients, and routes them into the game: one battery in the gear wall's fixed manifest, the tank in its **per-crew** list, one tank on the rig. |
 | `OxygenGeneratorBuilder` | OxygenGeneratorBuilder.cs | Builds the fixture: body collider, the two aim volumes, the lamps, the light, the saver. |
@@ -101,8 +133,15 @@ The plant has **no `NetworkObject` of its own** — nested on `PlayerShip.prefab
 | Cell fitted, bottle standing in the collar (and whether it is full) | `OxygenGeneratorSaveable`, key `oxygen`. Baked into the fixture prefab by its own builder, because `SaveablePolicy.Ensure` only runs on an entity's ROOT and this one is nested. Collected by the **hull's** entity. |
 | The fill deadline | **Nothing.** It is an instant on a clock the loaded session does not share. `RestoreDock` calls `RefreshFill`, so a world saved with a bottle half-filled in a powered plant reloads and fills it again from the start. |
 | An untouched plant | **Nothing.** `CaptureState` returns null with both docks empty, so a ship nobody has used carries no record. |
+| How far the cracks are soldered | `TorchRepairableSaveable`, key `torchRepair` (`{damaged, soldered}` seconds), on the fixture; null when whole, so **every older save loads the plant uncracked**. A world saved today with the plant still out (before the torch existed) has no torch on its gear wall: take one from the dev browser. |
+| Plant out of its mount, the crash's end points (and so the debris) | `OxygenPlantMountSaveable`, key `oxygenMount`. The loose plant is its own runtime entity (pose = where it was left). **A save from before 2026-10-06 has no record: the plant is in its mount**, the rule for every world already past its crash. Its cabin then has air only while the plant is powered. |
 
 ## Gotchas
+
+- **The cabin's air is now the plant's.** Before 2026-10-06 the lander's cabin was breathable whether or not the plant
+  had a cell; now it needs the plant in its mount and powered. An old world whose plant never got a cell loses its
+  cabin air until one goes in (the battery is on the gear wall). Deliberate: the user's rule is no cabin air until
+  the plant is back and running.
 
 - **A dock's aim volume must be a TRIGGER *and* stand proud of the machine's own body box.** The interaction ray takes the nearest hit; a solid collider answers with the first `IInteractable` on itself or above it, so the plant's body box — which encloses both receptacles — would answer for the whole machine and neither dock could ever be aimed at. Two things fix it together: the volumes are triggers (see-through unless the interactable is on the trigger's own GameObject) and `OxygenGeneratorBuilder` pushes each one `DockFrontClearance` **in front of the measured body box**. The cell slot needs the push — a docked cell clears the machine's front face by 32 mm and nothing else. Both halves are guarded by `PlayerShip_BothOxygenDocksAreAimedAtFromTheAisle`, whose probe deliberately *includes* triggers, unlike every walkability probe beside it.
 - **Re-orienting the ITEM silently breaks the MACHINE's dock.** The plant seats a bottle by turning it onto the machine's +Z; that used to be `FromToRotation(up, forward)`, which was right only while the bottle's length was its own up. Laying the bottle down for the pack turned a bottle plugged into the hatch into one lying flat against the machine — nothing failed, the dock just stopped meaning anything, and the only tell was the aim volume reaching 0.548 instead of 0.910. `OxygenGeneratorBuilder.PlugPose` now derives it: the direction the item extends from its own ORIGIN (signed, because the long AXIS alone plugged it into the wall), and the roll from where its gauge sits, built with `LookRotation` because `FromToRotation` between opposite vectors is free to pick any perpendicular axis. Anything that re-orients an item has to re-check every dock that seats it.

@@ -122,7 +122,10 @@ namespace SpaceGame.Vehicles
         /// away from the vessel. Returns the NPC, or null when the seat was empty or this machine is
         /// not the authority.
         /// </summary>
-        public GameObject Unseat(int seat, Vector3 worldPoint)
+        public GameObject Unseat(int seat, Vector3 worldPoint) => Unseat(seat, worldPoint, navMeshReach);
+
+        /// <summary>As <see cref="Unseat(int, Vector3)"/>, onto NavMesh within <paramref name="reach"/> of the point instead of this vessel's own reach.</summary>
+        public GameObject Unseat(int seat, Vector3 worldPoint, float reach)
         {
             GameObject npc = OccupantAt(seat);
             if (npc == null || !Network.Simulates(this)) return null;
@@ -130,7 +133,7 @@ namespace SpaceGame.Vehicles
             // Unity will not reparent out of an inactive hierarchy; the NPC goes down with the hull.
             if (!gameObject.activeInHierarchy) return null;
 
-            if (NavMesh.SamplePosition(worldPoint, out NavMeshHit hit, navMeshReach, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(worldPoint, out NavMeshHit hit, reach, NavMesh.AllAreas))
                 worldPoint = hit.position;
 
             Vector3 away = worldPoint - transform.position;
@@ -142,7 +145,7 @@ namespace SpaceGame.Vehicles
             Vacate(seat);
             NpcSeating.Detach(npc.transform);
             npc.transform.SetPositionAndRotation(worldPoint, facing);
-            records[seat].Restore(npc, navMeshReach);
+            records[seat].Restore(npc, reach);
             RefreshPresented();
             return npc;
         }

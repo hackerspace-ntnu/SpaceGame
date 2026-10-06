@@ -82,6 +82,12 @@ namespace SpaceGame.Core.Persistence
             // to have.
             if (go.GetComponent<VesselPilot>() != null) return false;
 
+            // An NPC-flown craft is a vehicle for one flight: the flier's group record (or nothing, for a
+            // sortie) is what comes back after a load (D4). Its non-kinematic body and its AgentController
+            // each qualify on their own, and WorldService.Spawn runs EnsureSpawned on every runtime spawn, so
+            // without this a craft caught mid-flight by a save would be wired and restored with nobody aboard.
+            if (go.GetComponent<NpcAviator>() != null) return false;
+
             foreach (Component c in go.GetComponents<Component>())
             {
                 if (c == null) continue;
@@ -272,6 +278,13 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(ShipPartsSaveable));
             }
 
+            // The fire a burnt-out module starts, beside the rack whose broken bit it burns on.
+            if (go.GetComponent<ShipPartFire>() != null && go.GetComponent<ShipPartFireSaveable>() == null)
+            {
+                go.AddComponent<ShipPartFireSaveable>();
+                parts.Add(nameof(ShipPartFireSaveable));
+            }
+
             // Which team a hull is painted for. Runtime-spawned rather than authored — every versus
             // ship is made mid-match — so the runtime pass is the one that matters here, and it is
             // the reason this clause exists rather than the colour being wired onto a prefab.
@@ -432,7 +445,7 @@ namespace SpaceGame.Core.Persistence
             // they hold the same shape of state.
             if (go.GetComponent<CombatCadenceSaveable>() == null &&
                 (go.GetComponent<CloseCombatModule>() != null ||
-                 go.GetComponent<NpcItemUseModule>() != null))
+                 go.GetComponent<ItemUseModuleBase>() != null))
             {
                 go.AddComponent<CombatCadenceSaveable>();
                 parts.Add(nameof(CombatCadenceSaveable));
@@ -454,6 +467,14 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<EntityEquipmentSaveable>();
                 parts.Add(nameof(EntityEquipmentSaveable));
+            }
+
+            // What it wears: without this a looted wing pack grows back on the corpse on every reload.
+            if (go.GetComponent<EntityBodyEquipment>() != null &&
+                go.GetComponent<EntityBodyEquipmentSaveable>() == null)
+            {
+                go.AddComponent<EntityBodyEquipmentSaveable>();
+                parts.Add(nameof(EntityBodyEquipmentSaveable));
             }
 
             // Which side this entity is on. SetFaction is a runtime reassignment — a spawner

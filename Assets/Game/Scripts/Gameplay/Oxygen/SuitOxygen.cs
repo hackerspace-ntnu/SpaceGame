@@ -143,8 +143,21 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public bool OnReserve => !Breathing && TankFraction <= 0f;
 
-        /// <summary>Whether the wearer is standing in breathable air and therefore not draining.</summary>
-        public bool Breathing => volumes.Count > 0;
+        /// <summary>
+        /// Whether the wearer is standing in breathable air and therefore not draining: inside a
+        /// volume whose air is there now (<see cref="BreathableVolume.HasAir"/>). The lander's cabin
+        /// has none while its oxygen plant is out of its mount or unpowered.
+        /// </summary>
+        public bool Breathing
+        {
+            get
+            {
+                foreach (BreathableVolume volume in volumes)
+                    if (volume != null && volume.HasAir) return true;
+
+                return false;
+            }
+        }
 
         /// <summary>Fraction of the connected tank at or below which the visor warns.</summary>
         public float WarnFraction => warnFraction;

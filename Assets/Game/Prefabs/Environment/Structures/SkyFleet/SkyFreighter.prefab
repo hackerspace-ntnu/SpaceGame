@@ -9973,12 +9973,6 @@ PrefabInstance:
       addedObject: {fileID: 3056679509492206958}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: acd94f9721d029d44ad4406b3396ed68, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3119296977106314092}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: acd94f9721d029d44ad4406b3396ed68, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 57637828983513286}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: acd94f9721d029d44ad4406b3396ed68, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 745058987035712132}
     - targetCorrespondingSourceObject: {fileID: -8391222552659086748, guid: acd94f9721d029d44ad4406b3396ed68, type: 3}
       insertIndex: -1
@@ -10645,73 +10639,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
---- !u!114 &3119296977106314092
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6808168672840351895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
-  minBoneWeightFraction: 0.015
-  maxBones: 20
-  minimumUsefulBones: 4
-  limbAspect: 0.3
-  minRadius: 0.04
-  totalMass: 70
-  minBoneMass: 0.6
-  maxJointMassRatio: 8
-  angularDamping: 0.6
-  linearDamping: 0.05
-  solverIterations: 14
-  sleepWhenSettled: 1
-  boneSleepThreshold: 0.05
-  selfCollision: 0
-  swingLimit: 45
-  twistLimit: 25
-  projectionDistance: 0.05
-  projectionAngle: 10
-  settleLinearSpeed: 0.35
-  settleAngularSpeed: 1.2
-  settleSeconds: 0.45
-  maxLimpSeconds: 4
-  recoverBlendSeconds: 0.35
-  groundProbeHeight: 3
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  maxConcurrentRagdolls: 12
---- !u!114 &57637828983513286
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6808168672840351895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
-  knockdown:
-    fallSeconds: 0.1
-    minSeconds: 0.1
-    maxSeconds: 0.2
-    threshold: 0.35
-    fullSeverity: 1
-    damageWeight: 1
-    lowHealthWeight: 0.5
-    knockbackWeight: 1
-    knockbackReferenceSpeed: 20
-    settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
-  deathImpulse: 2.5
-  deathImpulseLift: 0.35
 --- !u!114 &745058987035712132
 MonoBehaviour:
   m_ObjectHideFlags: 0

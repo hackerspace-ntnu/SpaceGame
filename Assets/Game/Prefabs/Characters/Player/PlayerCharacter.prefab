@@ -173,6 +173,8 @@ GameObject:
   - component: {fileID: 1175561888287225135}
   - component: {fileID: 4461348525464975764}
   - component: {fileID: 5216251872559827799}
+  - component: {fileID: 8469934664603299133}
+  - component: {fileID: 257940740392925301}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -789,6 +791,8 @@ MonoBehaviour:
   forwardTapThreshold: 0.5
   sprintDuration: 10
   sprintRecharge: 5
+  racketRadius: 12
+  racketInterval: 2
 --- !u!114 &7418329057712344102
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1074,6 +1078,128 @@ MonoBehaviour:
   crawlSpeed: 1.4
   arriveDistance: 0.1
   maxCrawlSeconds: 8
+--- !u!114 &1853165448607433757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f52e51190964b8c823adb8879936eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterActions
+  animator: {fileID: 0}
+--- !u!114 &1175561888287225135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98aef13143c54bd6bfe9cd74867f3925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.IdleVariation
+  animator: {fileID: 0}
+  secondsPerIdle: 14
+  blendSeconds: 0.8
+  secondsPerFidget: 9
+--- !u!114 &4461348525464975764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e937dc32bd941ce8218cf5823caf7bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.HurtReaction
+--- !u!114 &5216251872559827799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f4f71220dd5483e81143d86bee11e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.BodyLanguage
+  actions: {fileID: 0}
+  reactions: {fileID: 0}
+  fullBody: 0
+  movingAbove: 0.5
+  holdRetrySeconds: 0.25
+--- !u!114 &8469934664603299133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 741b427a227107141883278e6566ef55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.LedgeClimber
+  minClimbHeight: 1
+  maxReach: 4.5
+  probe:
+    wallProbeDistance: 1
+    probeRadius: 0.1
+    maxWalkableSlope: 45
+    lipInset: 0.1
+    lipSearchDepth: 1
+    sampleStep: 0.1
+    handRoom: 0.3
+    lipClearance: 0.1
+    standoff: 0.7
+    standInset: 0.15
+    topTolerance: 0.3
+    hookGrabAbove: 1.5
+    hookGrabBelow: 0.3
+    hookSearchBack: 1
+    hookSearchAhead: 0.6
+  lowClimbUpAction: {fileID: 11400000, guid: e0c0a46fea541eb4ca8c58cce2fa231f, type: 2}
+  midClimbUpAction: {fileID: 11400000, guid: 9612874c61fd5ea40862b007ac3c756a, type: 2}
+  highClimbUpAction: {fileID: 11400000, guid: 102e68d7157718847a95758ae6e2789a, type: 2}
+  runningClimbUpAction: {fileID: 11400000, guid: ed51df2bbf19df44fa63136bb8a7e396, type: 2}
+  lowVaultAction: {fileID: 11400000, guid: e0c0a46fea541eb4ca8c58cce2fa231f, type: 2}
+  highVaultAction: {fileID: 11400000, guid: 102e68d7157718847a95758ae6e2789a, type: 2}
+  hangAction: {fileID: 11400000, guid: d65d6add0f40b45eda1b80b11a2ada45, type: 2}
+  midEdgeHeight: 2
+  highEdgeHeight: 3.3
+  animationSpeedRange: {x: 0.5, y: 3}
+  pullSpeed: 7
+  overSpeed: 5
+  minPhaseSeconds: 0.15
+  lineSnap: 12
+  vaultExitSpeed: 4
+  maxClimbSpeed: 12
+  arriveTolerance: 0.05
+  stallSpeed: 0.25
+  stallTimeout: 0.4
+--- !u!114 &257940740392925301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb8a5648f810799489dc871bb2cb6428, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.LedgeAirGrab
+  minHeight: 0.2
+  airReach: 3.3
+  afterJumpDelay: 0.15
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2828,61 +2954,3 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 3745584353352685527, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
   m_PrefabInstance: {fileID: 5507852043821667659}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1853165448607433757
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4516265153368369930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f52e51190964b8c823adb8879936eaa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterActions
-  animator: {fileID: 0}
---- !u!114 &1175561888287225135
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4516265153368369930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 98aef13143c54bd6bfe9cd74867f3925, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.IdleVariation
-  animator: {fileID: 0}
-  secondsPerIdle: 14
-  blendSeconds: 0.8
-  secondsPerFidget: 9
---- !u!114 &4461348525464975764
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4516265153368369930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3e937dc32bd941ce8218cf5823caf7bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.HurtReaction
---- !u!114 &5216251872559827799
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4516265153368369930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76f4f71220dd5483e81143d86bee11e8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.BodyLanguage
-  actions: {fileID: 0}
-  reactions: {fileID: 0}
-  fullBody: 0
-  movingAbove: 0.5
-  holdRetrySeconds: 0.25

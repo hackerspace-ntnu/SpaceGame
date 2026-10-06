@@ -29,8 +29,8 @@ namespace SpaceGame.Gameplay
         /// <summary>Nothing on the body: the terminal takes the camera.</summary>
         public CharacterMoment InteractionMoment => CharacterMoment.None;
 
-        public const int PageCount = 3;
-        public static readonly string[] PageNames = { "SHIP", "STATUS", "GPS" };
+        public const int PageCount = 4;
+        public static readonly string[] PageNames = { "SHIP", "STATUS", "GPS", "COMMS" };
 
         [Tooltip("The per-machine zoom-in this console opens on a press. On the same prefab; wired by the builder.")]
         [SerializeField] private TerminalFocusSession session;

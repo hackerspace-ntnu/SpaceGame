@@ -80,6 +80,9 @@ namespace SpaceGame.World
             return beds;
         }
 
+        /// <summary>How far the last Generate spread from this transform, metres; 0 before the first.</summary>
+        public float GeneratedExtent => generatedExtent;
+
         /// <summary>Where the settlement's walkable area is; every resident place must be reachable from here.</summary>
         public Vector3 WalkableHeart => walkableHeart;
 

@@ -124,6 +124,12 @@ namespace SpaceGame.Agents
 
         public int Population { get; private set; }
 
+        /// <summary>Whose settlement this is.</summary>
+        public FactionDefinition Owner => owner;
+
+        /// <summary>Metres from this object inside which the owner's people count as living here.</summary>
+        public float CountRadius => countRadius;
+
         /// <summary>
         /// Hold the clock, as a raised alarm does. Set by whatever knows the settlement cannot take
         /// new people right now (SettlementDeck, while a moving settlement is under way). Runtime

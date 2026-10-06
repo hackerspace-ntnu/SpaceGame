@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using SpaceGame.Presentation;
 using SpaceGame.Vehicles;
 
 namespace SpaceGame.Gameplay
@@ -45,8 +46,15 @@ namespace SpaceGame.Gameplay
         public Vector3 Position;
         public float HeadingDegrees;
 
+        /// <summary>What the long-range transmitter has heard: the ship's replicated <c>ShipSignal</c> value.</summary>
+        public SignalDestination Signal;
+
+        /// <summary>The intercepted call the COMMS page prints. Empty when the hull has no <c>ShipSignal</c>.</summary>
+        public string SignalTranscript;
+
         public static TelemetrySnapshot Empty => new()
         {
+            SignalTranscript = string.Empty,
             OxygenBattery01 = -1f,
             OxygenTank01 = -1f,
             PartKinds = System.Array.Empty<ShipPartKind>(),
@@ -70,6 +78,55 @@ namespace SpaceGame.Gameplay
 
         /// <summary>Radar range of the GPS page's crew plot, metres.</summary>
         public const float RadarRange = 250f;
+
+        /// <summary>What every page but the hull drawing says while the long-range transmitter is dead.</summary>
+        public const string OfflineLine = "NO CARRIER: LONG-RANGE TRANSMITTER OFFLINE";
+
+        /// <summary>
+        /// A working long-range transmitter is fitted — the rack's own fitted mask, so the burnt-out unit the
+        /// hull lands with does not count. Everything the ship knows beyond its own hull arrives through it.
+        /// </summary>
+        public static bool TransmitterOnline(in TelemetrySnapshot s) =>
+            ShipPartInfo.FittedOfKind(s.PartsInstalledMask, s.PartKinds, ShipPartKind.Transmitter) > 0;
+
+        /// <summary>
+        /// Does <paramref name="page"/> show static rather than its readout? Every page but the hull drawing,
+        /// while the transmitter is offline: the drawing is the ship's internal computer, the rest is fed
+        /// from outside it.
+        /// </summary>
+        public static bool ShowsStatic(int page, in TelemetrySnapshot s) =>
+            page != TerminalScreen.ShipPage && !TransmitterOnline(s);
+
+        /// <summary>The COMMS tab is up only once there is a carrier to put on it.</summary>
+        public static bool CommsTabShown(in TelemetrySnapshot s) => TransmitterOnline(s);
+
+        /// <summary>
+        /// The COMMS page: the intercepted call, word for word, then where it comes from as a bearing and a
+        /// range from the hull — the same compass the GPS page reads in.
+        /// </summary>
+        public static string CommsPage(in TelemetrySnapshot s)
+        {
+            if (!TransmitterOnline(s)) return OfflineLine;
+            if (!s.Signal.Received) return "CARRIER ACQUIRED\nSCANNING BANDS...";
+            if (!s.Signal.HasDestination) return "CARRIER ACQUIRED\nNO VOICE TRAFFIC ON ANY BAND";
+
+            float bearing = SignalDestinationRule.Bearing(s.Position, s.Signal.Position);
+            float range = SignalDestinationRule.FlatDistance(s.Position, s.Signal.Position);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("INTERCEPT        OPEN BAND  LOOPED");
+            sb.AppendLine();
+            sb.AppendLine($"\"{s.SignalTranscript}\"");
+            sb.AppendLine();
+            if (!string.IsNullOrEmpty(s.Signal.Origin)) sb.AppendLine($"ORIGIN           {s.Signal.Origin.ToUpperInvariant()}");
+            sb.AppendLine($"BEARING          {Mathf.RoundToInt(bearing) % 360:000}°  {Compass(bearing)}");
+            sb.Append($"RANGE            {Range(range)}");
+            return sb.ToString();
+        }
+
+        /// <summary>A distance as a terminal prints it: metres under a kilometre, kilometres to two places above.</summary>
+        public static string Range(float metres) =>
+            metres < 1000f ? $"{Mathf.RoundToInt(metres)} m" : $"{metres / 1000f:0.00} km";
 
         public static string Clock(float timeOfDay01)
         {

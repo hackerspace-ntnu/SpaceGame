@@ -164,6 +164,12 @@ Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump h
 
 **Worth knowing:** the player is 3 m tall, so their head reaches the floor at the top of a ladder a whole body height before their feet do — the climb steps you over that lip rather than stopping you under it.
 
+### Climbing ledges *(LedgeClimbing)*
+
+Press Space in front of something too tall to jump onto and you climb it — up onto the top if there is room to stand there, over it if it is only a fence or a thin wall. It reaches about a jump plus an arm's length, roughly four and a half metres. The grappling hook finishes the same way: reel yourself to a hook near an edge and you hang just under it until you press Space to pull yourself up. Hold Space while jumping or falling past an edge and you catch it on the way. There are no climbing animations yet, so the climb runs on a fixed timer until they are made.
+
+**Worth knowing:** a double tap of Space always opens the wings, even if its first tap had started a climb — the climb is cancelled.
+
 ### Creatures, NPCs and turrets *(AgentSystem)*
 
 Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.
@@ -187,6 +193,12 @@ Sitting used to be a trick: a villager was lifted to whatever height was under i
 A cart used to be a prop glued to a pair of hands, held up over the head with its wheels in the air. Now it is a real object standing on the ground: walk up, right-click, and your hands close on its handlebar; the cart comes round in front of you, wheels on the sand, and follows wherever you walk, turning when you turn. Shafts lift as your hands do. Let go (right-click again, jump, or draw something) and it stays where it stands. A villager whose job calls for a cart does the same.
 
 **Worth knowing:** nothing is sent while a cart moves, because it simply follows the body that pushes it; only where it was left is remembered, for everyone and in the save. Carts do not yet bump into walls, and no settlement has a cart beside the drover's post yet, so the drover still works empty-handed.
+
+### Lifting something heavy by one end *(Lifting)*
+
+The oxygen plant the crash throws out of the ship is too heavy to pick up, so you lift one end of it. Right-click its handle and your character squats, takes hold and heaves the near end up to the waist; the far end stays on the sand and slides after you, swinging round when you turn and riding up ramps and over bumps. You walk a little slower than usual, cannot sprint or jump, and Esc or right-click puts it down again where you stand.
+
+**Worth knowing:** the lifted end is drawn from your own body on your own screen, so it never lags your hands; everyone else sees it follow your character. Only one person can carry it at a time, and a world saved mid-carry reloads with the plant lying where you were carrying it.
 
 ### Work stations: the right motion at the right prop *(Stations)*
 
@@ -312,6 +324,18 @@ You can walk into it, and it is meant to be worth doing. The cloud and the rain 
 
 **Worth knowing:** the cloud is drawn no wider than the circle the lightning can reach, so what you can see is what can hit you. There is a limit on how many storms can stand at once; uncork past it and the oldest one blows out.
 
+### The lander's burnt-out transmitter *(ShipTransmitterFire)*
+
+The ship lands with its long-range transmitter dead: a scorched box jammed in a cradle on the cabin wall, spitting sparks. The crash also burst the back door open and threw the oxygen plant out onto the sand, so there is no air in the cabin until the crew drag it back by its handle — slowly, scraping, faster with two — and give it a power cell. A little after the plant is running again, the dead transmitter catches fire. A fire extinguisher hangs in a bracket nearby: grab it and hold the trigger on the flames until they die. Only then does the unit come loose; pulled out, it drops on the floor, fizzles and is gone, and the working transmitter from the old satellite dish can go in its place. The ship cannot count as airworthy until it has.
+
+**Worth knowing:** the fire happens exactly once per world. Everyone sees the same fire, and a save remembers whether it is burning, how strongly, or that it has already been put out.
+
+### The signal the new transmitter hears *(ShipSignal)*
+
+The moment the working transmitter goes in, the ship picks up a voice: a looped call on the open band from someone out in the desert, telling whoever came down in the fireball to walk to them. The terminal grows a COMMS page that prints the call with a bearing and a distance, the map table marks the place, and a new objective, "Answer the signal", points the crew there with a light column on the horizon. The place is the nearest settlement that stays put and will not shoot at you: never the walking Strider city, the flying Sky City or the Clanker town, and never the settlement the wreck came down beside (anything within 300 m is skipped).
+
+**Worth knowing:** the destination is picked once per world, by the host, from where the ship actually landed, and then saved, so it never changes on reload and every player is sent to the same place. Today that is the Mars colony, about 390 m south-east of the crash site.
+
 ### Burning the ground *(Flamethrower)*
 
 Hold the trigger and a jet of fire reaches about six metres. Anything caught in it starts burning on its own clock and keeps burning after the flame has moved on — and so does the sand. You do not have to aim down at the ground: anything the flame passes low over catches, so firing across open sand leaves a line of fire standing in it, lighting the ground for about five seconds, and anything that walks into it catches too. That is the point of the weapon: you are not shooting things, you are deciding where it is dangerous to stand.
@@ -396,7 +420,7 @@ A wall-mounted machine on the lander's main deck with two receptacles that can o
 
 ### The ship's terminal *(Terminal)*
 
-A leaning, cream-cased CRT console standing on the starboard side of the cockpit. Right-click it and the camera glides from your eyes to a seat in front of the glass, the cursor comes free, and the screen shows one of three pages: the lander itself in 3D with its missing parts glowing red (see below), a status readout in words plus who is aboard and the ship's clock, and a GPS page with the ship's position and heading and a radar of where the crew are standing. Click the tabs or press 1, 2, 3 to flip pages; Esc, right-click again, or simply walking off puts the camera back in your head.
+A leaning, cream-cased CRT console standing on the starboard side of the cockpit. Right-click it and the camera glides from your eyes to a seat in front of the glass, the cursor comes free, and the screen shows one of its pages: the lander itself in 3D with its missing parts glowing red (see below), a status readout in words plus who is aboard and the ship's clock, a GPS page with the ship's position and heading and a radar of where the crew are standing, and, once the ship can hear the outside world, a COMMS page. Until a working long-range transmitter is fitted only the 3D drawing works: every other page is snow and "NO CARRIER", and there is no COMMS tab at all. Click the tabs or press 1 to 4 to flip pages; Esc, right-click again, or simply walking off puts the camera back in your head.
 
 **Worth knowing:** the page you pick is the page everyone sees — it is a real screen in the world, so a crewmate looking over your shoulder reads what you read — and while you are at it the terminal says "In use" to anyone else. Nothing it shows is stored anywhere; every line is read off systems that already save and replicate themselves. It stands at its author's own size rather than the 1.7x the other fixtures use, because its screen leans back to face an eye above it.
 ### The ship's schematic *(ShipSchematic)*
@@ -442,6 +466,12 @@ A 60-tonne walkable, drivable hover vehicle with four seats, which also flies th
 A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; you fly it lying prone in a cradle. It has no throttle — speed is bought with altitude or with flapping, and flapping spends a stamina bar that only refills while gliding, so you get roughly six seconds of hard climb. Pulling back does not climb directly, it raises the wing's angle and the flight path curves up a moment later; push too far and it stalls, drops its nose, and recovers on its own.
 
 **Worth knowing:** Crash damage is measured on how fast you close on the surface, not how fast you were travelling — gliding onto sand at 20 m/s costs nothing and a scraped wingtip costs nothing, while a held dive into a cliff is instantly fatal.
+
+### NPCs flying ornithopters *(NpcFlight)*
+
+NPCs can fly the same ornithopter you do, but not the same way: their craft is a copy of yours with the hard flight model taken out, so it simply flies where it is told — climbs to a cruising height, heads for its goal, circles down if it arrives too high, and sets its pilot down within a few metres of where it was going. Nobody can climb into an NPC's craft and take it, and it is never saved: after a load the NPC is back, not its flight.
+
+**Worth knowing:** shoot the pilot and the body drops straight down while the empty craft spirals into the ground nearby.
 
 ### The wingsuit *(Wingsuit)*
 
@@ -535,9 +565,9 @@ Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 t
 
 ### The opening objectives *(Objectives)*
 
-After the crash the crew share one short chain of objectives: try the basic controls, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
+After the crash the crew share one short chain of objectives: try the basic controls, haul the oxygen plant back in, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, get the long-range transmitter working (put out its fire, pull it, fetch a working one from the radar dish tower), answer the signal it picks up by walking to the settlement calling, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
 
-**Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, repair ship) decides what finishes it. A new kind of step, such as following a lead to a settlement, is a new small class; the chain itself does not change.
+**Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, fit transmitter, answer signal, repair ship) decides what finishes it. A new kind of step is a new small class; the chain itself does not change.
 
 ## How the game gets made
 

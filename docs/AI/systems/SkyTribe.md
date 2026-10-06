@@ -36,6 +36,8 @@ symptoms:
   - "Failed to create agent because it is not close enough to the NavMesh logged twice every time a Sky war party spawns"
   - "after a quickload an empty sky transport hull stays parked at the city and no party owns it"
   - "after running a prefab builder the sky transports have SaveableEntity, savers and AgentRagdoll in their prefab diff"
+  - "a blast makes the sky city or a sky ship go limp"
+  - "the sky ships can't be ledge-climbed; the ledge probe treats the deck as a character"
   - "there is no Sky City in the world at all, and no Sky war party ever raises"
   - "the Sky City stands inside a rock spire south of the spawn"
   - "the sky city moves but its houses and decks stay behind"
@@ -132,6 +134,7 @@ Faction, roster and prefabs are authored assets, not save state. City residents 
 - **The Sky roster silently has fewer people than the code lists** whenever a `SkyTribePeople` recipe's prefab does not exist yet (`SkySoldier` today) — `AuthorSkyRoster` filters missing prefabs rather than failing, so nothing breaks, but the roster, the tiers' role counts and the city population all read four people, not five, until `Build Sky Soldier NPC` runs.
 - **Never rewrite `SkyCityBuilder`/`SkyFleetBuilder` wholesale** — the sky city art is finished; extend them (as the NavMesh bake and settlement wiring do, chained onto the end of `Build`) and never edit `sky_city.blend`/`.fbx`.
 - **The transports stay unwired because they carry a `VesselPilot`.** Their `HealthComponent` and `EntityFaction` each qualify for `SaveablePolicy.NeedsSaving`, and `HealthComponent` alone made `RagdollWiring` call them bodies, so every builder chaining `Wire Saveable Prefabs` → `RagdollWiring` re-added `SaveableEntity`, four savers, `RagdollRig` and `AgentRagdoll` to both prefabs until 2026-09-24. `NeedsSaving` and `RagdollWiring.IsBody` now refuse any root with a `VesselPilot`; a new vessel is covered by carrying one. `SkyTransportPrefabTests.TheVesselCarriesNoSaversAndNoRagdoll` reads both prefabs off disk.
+- **The fleet's hulls stay unragdolled because they carry a `WalkerPlatformCarrier`.** `SkyCityFleet`, `SkySkiff`, `SkyFreighter` and `SkyTug` are flown through an `AgentController`, which alone makes `RagdollWiring.HasDrivenSkeleton` true, have no `VesselPilot`, and live under `Environment/Structures/SkyFleet/`, outside both vehicle folders — so `Wire Prefabs` gave every root a `RagdollRig` + `AgentRagdoll` (removed 2026-10-06). A blast could make the whole city go limp, and the player's ledge probe read each deck as a character and refused to climb it. `RagdollWiring.IsBody` now refuses any root with a `WalkerPlatformCarrier` — a deck people ride, which no creature has (today: the fleet, DesertCrawler, DuneFoil, RigWalker, PlayerShip, the DuneBarges). `SkyFleetPrefabTests.Hull_IsNotARagdollBody` and `FleetPrefab_CarriesNoRagdoll` guard it.
 - **Chain a builder to its end, never to `SyncMenu()`.** Any menu that must run to completion in one pass (`Build Sky Nomad NPCs`, `Build Sky Transports`) calls `NetworkPrefabRegistrar.Sync(out _, out _)`, not `SyncMenu()` — the latter opens a modal "OK" dialog that parks the rest of the chain (savers, ragdolls) until a human clicks it.
 
 ## Extending

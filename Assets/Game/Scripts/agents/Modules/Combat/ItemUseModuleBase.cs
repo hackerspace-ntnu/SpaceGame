@@ -1,0 +1,424 @@
+// Decides WHEN an NPC uses an item; a subclass says WHICH (the hand, a worn gauntlet). The subclass
+// hands over an INpcItemUser, which does the using.
+//
+// Side-effect module, so it never claims the frame. It does claim the FACING channel, which is the
+// whole reason that channel exists — the NPC keeps its weapon on target while Chase, Flee or the
+// formation still own where its feet go.
+using Unity.Profiling;
+using UnityEngine;
+using SpaceGame.Gameplay;
+
+namespace SpaceGame.Agents
+{
+    public abstract class ItemUseModuleBase : BehaviourModuleBase, IFacingModule
+    {
+        public enum Trigger
+        {
+            /// <summary>Fire at whatever AgentTargeting has acquired. Guns, throwables.</summary>
+            TargetInRange,
+
+            /// <summary>Use on itself when health drops below a fraction. Stims, shields.</summary>
+            WhenHurt,
+
+            /// <summary>Use on a fixed timer regardless of the world. Beacons, tools, flavour.</summary>
+            OnInterval,
+        }
+
+        [Header("When")]
+        [SerializeField] private Trigger trigger = Trigger.TargetInRange;
+
+        [Tooltip("Closest the target may be. Below this the module passes, so a melee module or a " +
+                 "back-off module handles it instead.")]
+        [SerializeField] private float minRange = 3f;
+
+        [Tooltip("Furthest the target may be. Also widens AgentTargeting's acquisition range at " +
+                 "startup, so an NPC equipped to shoot 40 m actually notices things at 40 m.")]
+        [SerializeField] private float maxRange = 30f;
+
+        [Range(0f, 1f)]
+        [Tooltip("WhenHurt only: use once health falls to this fraction of maximum.")]
+        [SerializeField] private float hurtThreshold = 0.4f;
+
+        [Header("Cadence")]
+        [SerializeField] private float cooldown = 1.4f;
+
+        [Tooltip("Shots per trigger. 1 for a single shot.")]
+        [SerializeField] private int burstCount = 1;
+
+        [SerializeField] private float burstInterval = 0.14f;
+
+        [Tooltip("Seconds after acquiring a target before the first shot. Without it an NPC that " +
+                 "walks round a rock fires in the same frame it sees you, which reads as a trap " +
+                 "rather than a person.")]
+        [SerializeField] private float reactionDelay = 0.45f;
+
+        [Header("Aim")]
+        [Tooltip("Height up the target to aim for, in metres above its origin. A character's origin " +
+                 "is between its feet, so 0 shoots the ground it stands on.")]
+        [SerializeField] private float targetHeightOffset = 1.1f;
+
+        [Tooltip("Aim where the target will be rather than where it is, in seconds of lead. 0 " +
+                 "always aims at the present, which against a running player means always missing " +
+                 "behind.")]
+        [SerializeField] private float leadSeconds = 0.25f;
+
+        [Tooltip("Degrees of random spread added per shot. 0 is a perfect marksman, which is not a " +
+                 "compliment — it reads as a scripted hit rather than an NPC aiming.")]
+        [SerializeField] private float spreadDegrees = 2.5f;
+
+        [Tooltip("Require line of sight before firing. Off makes the NPC shoot through the terrain.")]
+        [SerializeField] private bool requireLineOfSight = true;
+
+        [Tooltip("Sight blockers for an NPC with no PerceptionModule. With one, the shot line uses " +
+                 "perception's occlusion layers and its self / carrier / target rules instead.")]
+        [SerializeField] private LayerMask lineOfSightBlockers = ~0;
+
+        [Header("Facing")]
+        [Tooltip("Turn the body toward the target while this module has something to shoot at.")]
+        [SerializeField] private bool claimFacing = true;
+
+        [SerializeField] private int facingPriority = ModulePriority.RangedAttack;
+
+        // No animation of its own: a use plays the ITEM's use action (UsableItem.useAction), on
+        // every machine, through the same PlayUse that plays its sound — so a watcher sees the
+        // shot as well as hearing it.
+
+        // Side-effect only: this module says when to pull a trigger, never where to walk.
+        public override bool ClaimsMovement => false;
+
+        public int FacingPriority => facingPriority;
+
+        /// <summary>
+        /// Read by AgentTargeting at Awake so acquisition covers this weapon's reach. An NPC that
+        /// can shoot further than it can see never starts the fight it is equipped for.
+        /// </summary>
+        public float MaxRange => trigger == Trigger.TargetInRange ? maxRange : 0f;
+
+        private HealthComponent health;
+        private PerceptionModule perception;
+
+        private float cooldownTimer;
+        private int burstRemaining;
+        private float burstTimer;
+        private float targetHeldFor;
+        private Transform lastTarget;
+        private Vector3 lastTargetPosition;
+        private Vector3 targetVelocity;
+        private bool hasFacingTarget;
+        private Vector3 facingPoint;
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string LineOfSightMarkerName = "SpaceGame.ItemUse.LineOfSight";
+        private static readonly ProfilerMarker LineOfSightMarker = new(LineOfSightMarkerName);
+
+        private void Reset() => SetPriorityDefault(ModulePriority.RangedAttack);
+
+        /// <summary>What this module fires. Null means nothing to use; the module then does nothing.</summary>
+        protected abstract INpcItemUser User { get; }
+
+        /// <summary>Make the item ready to use now (draw it, check it is worn and opted in); false if there is nothing.</summary>
+        protected abstract bool PrepareUse();
+
+        protected virtual void Awake()
+        {
+            health = GetComponent<HealthComponent>();
+            perception = GetComponent<PerceptionModule>();
+        }
+
+        private void OnEnable()
+        {
+            // A restore already set this module up. Consumed, so a later genuine enable still
+            // resets the cadence as it always did.
+            if (cadenceRestored)
+            {
+                cadenceRestored = false;
+                return;
+            }
+
+            cooldownTimer = 0f;
+            burstRemaining = 0;
+            targetHeldFor = 0f;
+            hasFacingTarget = false;
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // `targetHeldFor` is the one that matters most and is the least obvious: it is the
+        // has-aimed-long-enough accumulator behind `reactionDelay`, so losing it means every NPC in
+        // the world grants the player another half second of grace after each load. The cooldown
+        // and the burst are the same free-shot problem the other combat modules have.
+        //
+        // See Core/Persistence/Adapters/CombatCadenceSaveable.cs.
+        private bool cadenceRestored;
+
+        public float CooldownTimer => cooldownTimer;
+        public int BurstRemaining => burstRemaining;
+        public float BurstTimer => burstTimer;
+        public float TargetHeldFor => targetHeldFor;
+        public Transform LastTarget => lastTarget;
+        public Vector3 LastTargetPosition => lastTargetPosition;
+        public bool HasFacingTarget => hasFacingTarget;
+        public Vector3 FacingPoint => facingPoint;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreCadence(float cooldown, int burstLeft, float burst, float heldFor,
+                                   bool facing, Vector3 face)
+        {
+            cadenceRestored = true;
+            cooldownTimer = cooldown;
+            burstRemaining = burstLeft;
+            burstTimer = burst;
+            targetHeldFor = heldFor;
+            hasFacingTarget = facing;
+            facingPoint = face;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Seeds the lead-prediction tracker with the target and the position it was differencing
+        /// against, so the first frame after a load does not read a whole session's displacement as
+        /// one frame of velocity and fire the shot into the next county.
+        /// </summary>
+        public void RestoreAimTracking(Transform target, Vector3 lastPosition)
+        {
+            lastTarget = target;
+            lastTargetPosition = target != null ? lastPosition : Vector3.zero;
+            targetVelocity = Vector3.zero;
+        }
+
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime)
+        {
+            hasFacingTarget = false;
+
+            if (User == null) return null;
+
+            cooldownTimer -= deltaTime;
+
+            // A burst in progress outranks starting anything new, so an interrupted volley finishes
+            // rather than leaving the NPC with one round of a three-round burst fired.
+            if (burstRemaining > 0)
+            {
+                TickBurst(in context, deltaTime);
+                return null;
+            }
+
+            switch (trigger)
+            {
+                case Trigger.TargetInRange: TickTargetTrigger(in context, deltaTime); break;
+                case Trigger.WhenHurt:      TickHurtTrigger();                        break;
+                case Trigger.OnInterval:    TickIntervalTrigger();                    break;
+            }
+
+            return null;
+        }
+
+        // ── Triggers ─────────────────────────────────────────────────────────────
+
+        private void TickTargetTrigger(in AgentContext context, float deltaTime)
+        {
+            AgentTargeting targeting = context.Targeting;
+            Transform target = targeting != null ? targeting.Target : null;
+
+            if (target == null)
+            {
+                targetHeldFor = 0f;
+                lastTarget = null;
+                User.ClearAim();
+                return;
+            }
+
+            TrackTargetVelocity(target, deltaTime);
+
+            float distance = targeting.DistanceToTarget;
+            if (distance < minRange || distance > maxRange)
+                return;
+
+            Vector3 aim = PredictAimPoint(target);
+
+            if (requireLineOfSight && !HasLineOfSight(aim, target))
+                return;
+
+            // Aim continuously while in the band, whether or not the cooldown is up. Swinging onto
+            // target only at the moment of firing is what makes an NPC look like a turret.
+            User.AimAt(aim);
+            facingPoint = target.position;
+            hasFacingTarget = claimFacing;
+
+            targetHeldFor += deltaTime;
+            if (targetHeldFor < reactionDelay) return;
+
+            if (cooldownTimer > 0f) return;
+
+            BeginBurst();
+        }
+
+        private void TickHurtTrigger()
+        {
+            if (health == null || cooldownTimer > 0f) return;
+            if (health.GetMaxHealth <= 0 || !health.Alive) return;
+
+            float fraction = health.GetHealth / (float)health.GetMaxHealth;
+            if (fraction > hurtThreshold) return;
+
+            if (!PrepareUse()) return;
+
+            if (User.TryUseOnSelf())
+                cooldownTimer = cooldown;
+        }
+
+        private void TickIntervalTrigger()
+        {
+            if (cooldownTimer > 0f) return;
+            if (!PrepareUse()) return;
+
+            if (User.TryUseForward())
+                cooldownTimer = cooldown;
+        }
+
+        // ── Firing ───────────────────────────────────────────────────────────────
+
+        private void BeginBurst()
+        {
+            if (!PrepareUse()) return;
+
+            burstRemaining = Mathf.Max(1, burstCount);
+            burstTimer = 0f;
+            cooldownTimer = cooldown;
+        }
+
+        private void TickBurst(in AgentContext context, float deltaTime)
+        {
+            burstTimer -= deltaTime;
+            if (burstTimer > 0f) return;
+
+            AgentTargeting targeting = context.Targeting;
+            Transform target = targeting != null ? targeting.Target : null;
+
+            // The target dying or breaking away mid-burst ends it. Continuing would put the rest of
+            // the volley through the space where somebody used to be.
+            if (target == null)
+            {
+                burstRemaining = 0;
+                return;
+            }
+
+            Vector3 aim = ApplySpread(PredictAimPoint(target));
+
+            User.AimAt(aim);
+            facingPoint = target.position;
+            hasFacingTarget = claimFacing;
+
+            User.TryUseAt(aim);
+
+            burstRemaining--;
+            burstTimer = burstInterval;
+        }
+
+        // ── Aim ──────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Track the target's velocity ourselves rather than asking it.
+        ///
+        /// The target may be a player whose Rigidbody is owner-authoritative and replicated, a
+        /// creature driven by a NavMeshAgent, or a vehicle — three different places to read a
+        /// velocity from, two of which lie on a machine that does not own the thing. Differencing
+        /// its position is the one answer that is true everywhere.
+        /// </summary>
+        private void TrackTargetVelocity(Transform target, float deltaTime)
+        {
+            if (target != lastTarget)
+            {
+                lastTarget = target;
+                lastTargetPosition = target.position;
+                targetVelocity = Vector3.zero;
+                return;
+            }
+
+            if (deltaTime <= 0f) return;
+
+            Vector3 instant = (target.position - lastTargetPosition) / deltaTime;
+            lastTargetPosition = target.position;
+
+            // Smoothed, because a single frame's difference across a replicated transform is mostly
+            // network jitter, and leading a target by jitter is worse than not leading it at all.
+            targetVelocity = Vector3.Lerp(targetVelocity, instant, 1f - Mathf.Exp(-6f * deltaTime));
+        }
+
+        private Vector3 PredictAimPoint(Transform target)
+        {
+            Vector3 point = target.position + Vector3.up * targetHeightOffset;
+            return point + targetVelocity * leadSeconds;
+        }
+
+        private Vector3 ApplySpread(Vector3 aim)
+        {
+            if (spreadDegrees <= 0f) return aim;
+
+            Vector3 origin = User.FireOrigin;
+            Vector3 direction = aim - origin;
+            float distance = direction.magnitude;
+            if (distance < 0.01f) return aim;
+
+            Quaternion deviation = Quaternion.Euler(
+                UnityEngine.Random.Range(-spreadDegrees, spreadDegrees),
+                UnityEngine.Random.Range(-spreadDegrees, spreadDegrees),
+                0f);
+
+            return origin + deviation * (direction / distance) * distance;
+        }
+
+        private bool HasLineOfSight(Vector3 aim, Transform target)
+        {
+            using ProfilerMarker.AutoScope sample = LineOfSightMarker.Auto();
+
+            Vector3 origin = User.FireOrigin;
+
+            // One copy of the rules: perception ignores this NPC's own colliders, its carrier's when
+            // it rides as cargo (crew fire out of their house), and the target's.
+            if (perception != null)
+                return perception.HasLineOfSightFrom(origin, aim, target);
+
+            Vector3 direction = aim - origin;
+            float distance = direction.magnitude;
+
+            if (distance < 0.01f) return true;
+
+            // Stop just short of the target, or the target's own collider registers as the thing
+            // blocking the shot and the NPC never fires at anybody.
+            return !Physics.Raycast(origin, direction / distance, distance - 0.5f,
+                                    lineOfSightBlockers, QueryTriggerInteraction.Ignore);
+        }
+
+        // ── Facing channel ───────────────────────────────────────────────────────
+
+        public bool TryGetFacing(in AgentContext context, out Vector3 facePosition)
+        {
+            facePosition = facingPoint;
+            return hasFacingTarget;
+        }
+
+        protected override void OnValidate()
+        {
+            minRange = Mathf.Max(0f, minRange);
+            maxRange = Mathf.Max(minRange + 0.5f, maxRange);
+            cooldown = Mathf.Max(0.05f, cooldown);
+            burstCount = Mathf.Max(1, burstCount);
+            burstInterval = Mathf.Max(0.02f, burstInterval);
+            reactionDelay = Mathf.Max(0f, reactionDelay);
+            leadSeconds = Mathf.Max(0f, leadSeconds);
+            spreadDegrees = Mathf.Max(0f, spreadDegrees);
+            targetHeightOffset = Mathf.Max(0f, targetHeightOffset);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (trigger != Trigger.TargetInRange) return;
+
+            Gizmos.color = new Color(1f, 0.4f, 0.3f, 0.6f);
+            Gizmos.DrawWireSphere(transform.position, maxRange);
+            Gizmos.color = new Color(1f, 0.8f, 0.3f, 0.4f);
+            Gizmos.DrawWireSphere(transform.position, minRange);
+        }
+    }
+}

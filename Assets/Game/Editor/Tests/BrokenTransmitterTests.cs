@@ -197,7 +197,7 @@ namespace SpaceGame.Tests
         }
 
         [Test]
-        public void TheFireIsNotArmedUntilTheOxygenPlantIsBackAndRunning()
+        public void TheFireIsNotArmedUntilThePlantRunsAndSomebodyHasAFilledBottleSeated()
         {
             ShipPartRack rack = BrokenRack(out _);
             ShipPartFire fire = rack.GetComponent<ShipPartFire>();
@@ -218,7 +218,10 @@ namespace SpaceGame.Tests
             object plant = plantField.GetValue(generator);
             plant.GetType().GetField("Battery").SetValue(plant, 1f);
             plantField.SetValue(generator, plant);
-            Assert.IsTrue((bool)armed.GetValue(fire), "the plant is home and running and the fire is not armed.");
+            Assert.IsFalse((bool)armed.GetValue(fire), "the fire was armed before anybody had a filled bottle seated.");
+
+            mount.RestoreRefilled(true);
+            Assert.IsTrue((bool)armed.GetValue(fire), "the plant is running and the crew have air, and the fire is not armed.");
 
             rack.TryRemoveBroken(0);
             Assert.IsFalse((bool)armed.GetValue(fire), "the fire was armed with no burnt-out unit in the socket.");
@@ -285,6 +288,22 @@ namespace SpaceGame.Tests
             Assert.AreEqual(1f - drain, live.Charge, 1e-3f, "a second of fog did not cost a second of charge.");
             live.Tick(100f, drawing: false);
             Assert.AreEqual(1f - drain, live.Charge, 1e-3f, "the tank filled back up on its own.");
+        }
+
+        [Test]
+        public void TheFireCatchesAlmostAsSoonAsThePlantComesOnline()
+        {
+            Assert.LessOrEqual(new ShipPartFireTuning().igniteDelay, 5f, "a new fire waits a long breather after the plant comes online.");
+
+            var ship = AssetDatabase.LoadAssetAtPath<GameObject>(ShipPrefabPath);
+            float shipped = new SerializedObject(ship.GetComponent<ShipPartFire>()).FindProperty("tuning.igniteDelay").floatValue;
+            Assert.AreEqual(3f, shipped, 0.01f, "the lander's fire still waits its old delay (the field keeps its value; write the asset).");
+
+            var shippedTuning = new ShipPartFireTuning { igniteDelay = shipped, startStrength = tuning.startStrength, growSeconds = tuning.growSeconds };
+            ShipPartFireState s = ShipPartFireRules.Step(new ShipPartFireState(), shipped * 0.5f, armed: true, shippedTuning);
+            Assert.AreEqual(ShipPartFirePhase.Dormant, s.phase, "the fire caught the instant the plant came online.");
+            s = ShipPartFireRules.Step(s, shipped, armed: true, shippedTuning);
+            Assert.AreEqual(ShipPartFirePhase.Burning, s.phase, "the fire had not caught a few seconds after the plant came online.");
         }
 
         [Test]

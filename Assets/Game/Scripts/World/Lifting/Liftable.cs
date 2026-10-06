@@ -66,6 +66,10 @@ namespace SpaceGame.World
         [Tooltip("How quickly the far end swings round behind a turn, per second. Higher follows the body more tightly.")]
         [SerializeField, Min(0.1f)] private float swingRate = 5f;
 
+        [Tooltip("The furthest the load may trail behind the way the carrier faces, in degrees. Past it the grips would swing out " +
+                 "of the hands' reach (a whip turn on the spot), so the far end is dragged round with the body instead.")]
+        [SerializeField, Range(5f, 90f)] private float maxSwingLag = 25f;
+
         [Tooltip("How far into the lift clip the hands close on the grips, 0-1. Before it the load lies still; after it the " +
                  "near end rises with the hands.")]
         [SerializeField, Range(0.05f, 0.95f)] private float gripFraction = 0.45f;
@@ -143,11 +147,14 @@ namespace SpaceGame.World
 
         private Rigidbody body;
         private Collider[] ownColliders = Array.Empty<Collider>();
-        private readonly List<Collider> solidWhileFree = new();
+        private readonly List<Collider> offWhileHeld = new();
         private readonly HashSet<Collider> unseenByGround = new();
         private WalkerGround ground;
         private LiftShape? shape;
         private LiftCarrier carrier;
+
+        // The body whose hands this load is in right now, whatever decided it: what a save asks for the rest pose.
+        private LiftCarrier heldBy;
         private bool spawned;
 
         // This machine's own player, while it is the carrier.
@@ -155,8 +162,9 @@ namespace SpaceGame.World
         private PlayerController localController;
         private CharacterActions localActions;
         private PlayerInputManager localInputs;
+        private Interactor localInteractor;
         private IPlayerInventory localInventory;
-        private bool liftRequested;
+        private float liftRequestedAt = float.NegativeInfinity;
         private bool puttingDown;
         private float settleEndsAt = -1f;
         private int handledFrame = -1;
@@ -169,9 +177,13 @@ namespace SpaceGame.World
         public string LoadId => loadId;
         public string Label => displayName;
         public float SwingRate => swingRate;
+        public float MaxSwingLag => maxSwingLag;
         public float GripFraction => gripFraction;
         public Transform GripLeft => gripLeft;
         public Transform GripRight => gripRight;
+
+        // How long the prompt says "Lifting…" while the server is asked: past it, a refused request reads as refused.
+        private const float RequestPatience = 1f;
 
         private LiftState State => IsSpawned && !IsServer ? networkState.Value : decided;
 
@@ -180,6 +192,15 @@ namespace SpaceGame.World
 
         /// <summary>The load's shape in its own frame, measured from its markers.</summary>
         public LiftShape Shape => shape ??= Measure();
+
+        /// <summary>The load <paramref name="body"/> is carrying right now, or null.</summary>
+        public static Liftable CarriedBy(GameObject body)
+        {
+            if (body == null) return null;
+            foreach (Liftable load in active)
+                if (load != null && load.IsCarriedBy(body)) return load;
+            return null;
+        }
 
         public static void Register(ILiftDestination destination)
         {
@@ -238,7 +259,7 @@ namespace SpaceGame.World
         // ── The look ─────────────────────────────────────────────────────────
 
         public string Prompt => CarriedByLocalPlayer ? "RMB / Esc: put down"
-            : liftRequested ? "Lifting…"
+            : Time.time - liftRequestedAt < RequestPatience ? "Lifting…"
             : IsCarried ? "Somebody is carrying it"
             : "RMB: lift it by the handle";
 
@@ -290,7 +311,7 @@ namespace SpaceGame.World
             if (who.TryGetComponent(out PlayerController controller) && controller.IsDead) return false;
             if (who.TryGetComponent(out PlayerSeating seating) && seating.IsSeated) return false;
             if (who.TryGetComponent(out PlayerPushing pushing) && pushing.IsPushing) return false;
-            if (who.TryGetComponent(out PlayerMovement movement) && movement.IsHauling && !CarriedBy(who)) return false;
+            if (who.TryGetComponent(out PlayerMovement movement) && movement.IsHauling && !IsCarriedBy(who)) return false;
             return LiftCarrier.On(who).CanReach;
         }
 
@@ -304,8 +325,18 @@ namespace SpaceGame.World
 
         private void RequestLift(GameObject who)
         {
-            liftRequested = true;
+            liftRequestedAt = Time.time;
             this.NetToServer(NetMsg.LiftRequest, new NetArg { A = 1 }.With(who));
+        }
+
+        /// <summary>
+        /// The carrier's own machine asks to set the load into the destination it is aiming at (a <see cref="LiftDock"/>). The
+        /// server finds the destination that wants it and that the carrier stands near enough to.
+        /// </summary>
+        public void RequestPlace()
+        {
+            if (carrier == null || puttingDown || !Network.Owns(carrier.transform)) return;
+            this.NetToServer(NetMsg.LiftRequest, new NetArg { A = 2 }.With(carrier.gameObject));
         }
 
         /// <summary>
@@ -342,11 +373,34 @@ namespace SpaceGame.World
                 return;
             }
 
-            if (!CarriedBy(who)) return;
+            if (!IsCarriedBy(who)) return;
+
+            if (arg.A == 2)
+            {
+                SetInto(who);
+                return;
+            }
+
             Pose restPose = new Pose(arg.P, arg.HasOrientation ? arg.R : transform.rotation);
             Pose own = ServerRestPose();
             if ((restPose.position - own.position).sqrMagnitude > restTolerance * restTolerance) restPose = own;
             Decide(Resting(restPose));
+        }
+
+        /// <summary>
+        /// SERVER: set the load into the first destination that wants it and that its carrier stands within reach of. The
+        /// carrier is measured, not the load: the load is 3.8 m long and out in front of them.
+        /// </summary>
+        private void SetInto(GameObject who)
+        {
+            foreach (ILiftDestination destination in destinations)
+            {
+                if (destination == null || !destination.Accepts(this)) continue;
+                if (!LiftDestinations.Reached(who.transform.position, destination.Point, destination.Radius)) continue;
+
+                destination.Receive(this);
+                return;
+            }
         }
 
         /// <summary>SERVER: whoever carries the load lets go of it where it is (death, disconnect, too far away).</summary>
@@ -377,7 +431,7 @@ namespace SpaceGame.World
             Present(Time.deltaTime);
         }
 
-        /// <summary>SERVER: drop a carrier who has gone, died or wandered off, and hand the load to a destination it has reached.</summary>
+        /// <summary>SERVER: drop a carrier who has gone, died or wandered off.</summary>
         private void Judge()
         {
             LiftState state = decided;
@@ -387,20 +441,7 @@ namespace SpaceGame.World
                 bool gone = who == null ||
                             (who.TryGetComponent(out PlayerController controller) && controller.IsDead) ||
                             (who.transform.position - GripPoint).sqrMagnitude > releaseDistance * releaseDistance;
-                if (gone)
-                {
-                    PutDownForCarrier();
-                    return;
-                }
-            }
-
-            foreach (ILiftDestination destination in destinations)
-            {
-                if (destination == null || !destination.Accepts(this)) continue;
-                if (!LiftDestinations.Reached(transform.position, destination.Point, destination.Radius)) continue;
-
-                destination.Receive(this);
-                return;
+                if (gone) PutDownForCarrier();
             }
         }
 
@@ -410,7 +451,7 @@ namespace SpaceGame.World
         private void Apply(bool skipLift)
         {
             LiftState state = State;
-            liftRequested = false;
+            liftRequestedAt = float.NegativeInfinity;
             puttingDown = false;
 
             if (!state.Held)
@@ -473,6 +514,7 @@ namespace SpaceGame.World
             if (localInputs != null) localInputs.OnInteractPressed -= OnLocalInteractPressed;
             localInventory = null;
             localInputs = null;
+            localInteractor = null;
             if (localMovement != null) localMovement.StopHauling();
             localMovement = null;
             localController = null;
@@ -482,7 +524,15 @@ namespace SpaceGame.World
         // offline the grant lands inside the very press that asked for it.
         private void OnLocalInteractPressed()
         {
-            if (carrier != null && PutsDown(false, true, true, Time.frameCount == grantedFrame)) OnLocalInteract(carrier.gameObject);
+            if (carrier == null || AimsAtDock()) return;
+            if (PutsDown(false, true, true, Time.frameCount == grantedFrame)) OnLocalInteract(carrier.gameObject);
+        }
+
+        // The same press at a dock that takes this load means "set it in", which the dock asks for itself.
+        private bool AimsAtDock()
+        {
+            if (localInteractor == null) localInteractor = carrier.GetComponentInChildren<Interactor>(true);
+            return localInteractor != null && localInteractor.HoveredInteractable is LiftDock dock && dock.Takes(this);
         }
 
         private void OnLocalSlotSelected(InventorySlot slot)
@@ -608,21 +658,23 @@ namespace SpaceGame.World
         }
 
         /// <summary>
-        /// A carried load is a ghost to the world: it does not shove the crew, snag on the ramp's lip or push the hull it is
-        /// carried into. Put down, it is solid again. Only what was solid is switched, and only that is switched back.
+        /// A carried load is a ghost: it does not shove the crew, snag on the ramp's lip or push the hull it is carried into,
+        /// and the carrier's crosshair passes through it to the mount it is aimed at. Its colliders are off for as long as it is
+        /// in somebody's hands — only those that were on, and only those are switched back.
         /// </summary>
-        public void SetCarried(bool carried)
+        public void SetHeldBy(LiftCarrier by)
         {
-            if (carried)
+            heldBy = by;
+            if (by != null)
             {
-                solidWhileFree.Clear();
+                offWhileHeld.Clear();
                 foreach (Collider c in ownColliders)
-                    if (c != null && !c.isTrigger) { c.isTrigger = true; solidWhileFree.Add(c); }
+                    if (c != null && c.enabled) { c.enabled = false; offWhileHeld.Add(c); }
                 return;
             }
 
-            foreach (Collider c in solidWhileFree) if (c != null) c.isTrigger = false;
-            solidWhileFree.Clear();
+            foreach (Collider c in offWhileHeld) if (c != null) c.enabled = true;
+            offWhileHeld.Clear();
         }
 
         /// <summary>
@@ -668,8 +720,8 @@ namespace SpaceGame.World
         public Vector3 PositionToSave => SavedPose.position;
         public Quaternion RotationToSave => SavedPose.rotation;
 
-        private Pose SavedPose => carrier != null && carrier.Load == this
-            ? carrier.RestFromHere()
+        private Pose SavedPose => heldBy != null && heldBy.Load == this
+            ? heldBy.RestFromHere()
             : new Pose(transform.position, transform.rotation);
 
         // ── Who ──────────────────────────────────────────────────────────────
@@ -685,7 +737,7 @@ namespace SpaceGame.World
             }
         }
 
-        private bool CarriedBy(GameObject who) =>
+        private bool IsCarriedBy(GameObject who) =>
             who != null && State.Held && who.TryGetComponent(out NetworkObject net) && net.NetworkObjectId == State.Carrier;
 
         private static GameObject BodyOf(ulong networkObjectId)

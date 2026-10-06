@@ -19,7 +19,7 @@ namespace SpaceGame.Core.Persistence
     {
         public const string Key = "dishRig";   // written into save files — NEVER rename
 
-        /// <summary>Degrees within which a dish counts as never touched, and nothing is stored for it.</summary>
+        /// <summary>Degrees within which a dish counts as at its start, and nothing is stored for it.</summary>
         private const float RestTolerance = 0.01f;
 
         private DishRig rig;
@@ -38,7 +38,7 @@ namespace SpaceGame.Core.Persistence
 
         public object CaptureState()
         {
-            if (Rig == null || Rig.IsAtRest(RestTolerance)) return null;
+            if (Rig == null || Rig.IsAtStart(RestTolerance)) return null;
 
             return new State { azimuth = Rig.Azimuth, elevation = Rig.Elevation };
         }
@@ -47,11 +47,13 @@ namespace SpaceGame.Core.Persistence
         {
             if (Rig == null) return;
 
-            // No entry means "at rest" — and it has to be SAID, because the same dish may have been
-            // turned by a previous restore in this session.
+            // No entry means "at its start" — and it has to be SAID, because the same dish may have been
+            // turned by a previous restore in this session. A save written before the dish started
+            // pointing up has no entry for a dish nobody turned, so that dish comes back pointing up too;
+            // one somebody turned has its angles and keeps them.
             if (state == null)
             {
-                Rig.RestoreAngles(Rig.RestAzimuth, Rig.RestElevation);
+                Rig.RestoreAngles(Rig.StartAzimuth, Rig.StartElevation);
                 return;
             }
 

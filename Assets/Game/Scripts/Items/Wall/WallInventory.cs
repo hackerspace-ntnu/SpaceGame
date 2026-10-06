@@ -64,6 +64,10 @@ namespace SpaceGame.Items
                  "starting item lists above; these scale with the party.")]
         [SerializeField] private List<InventoryItem> perCrewItems = new();
 
+        [Tooltip("How full each crew store is laid on, 0-1. The lander's bottles come down EMPTY: the crash vents the " +
+                 "crew's own, and filling one at the oxygen plant is the beat that gets them breathing again.")]
+        [SerializeField, Range(0f, 1f)] private float perCrewCharge = 1f;
+
         /// <summary>
         /// Whether <see cref="StockForCrew"/> has already run. A wall is stocked exactly once, at
         /// the arrival that put the ship on the ground, and never again — a second pass would
@@ -141,7 +145,7 @@ namespace SpaceGame.Items
                     // rather than a player choosing a face, the same standing the authored lists
                     // and a restored save have. Every face of a wall is reachable anyway, so the
                     // two differ only in what they say.
-                    if (StowAuthored(item))
+                    if (StowAuthored(item, perCrewCharge))
                     {
                         stowed++;
                         continue;

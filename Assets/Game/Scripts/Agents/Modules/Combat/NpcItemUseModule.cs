@@ -20,7 +20,17 @@ namespace SpaceGame.Agents
 
         private EntityEquipmentController equipment;
 
-        protected override INpcItemUser User => equipment;
+        // Lazy as well as in Awake: AgentTargeting reads MaxRange (which asks for a User) from its own
+        // Awake, which may run before this one. Unity null, not interface null: a destroyed controller
+        // must read as nothing to use.
+        protected override INpcItemUser User
+        {
+            get
+            {
+                if (!equipment) equipment = GetComponent<EntityEquipmentController>();
+                return equipment ? equipment : null;
+            }
+        }
 
         protected override void Awake()
         {

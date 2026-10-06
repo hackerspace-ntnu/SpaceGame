@@ -42,6 +42,10 @@ namespace SpaceGame.Characters
                  "at its hook instead (LedgeProbe's hook settings).")]
         [SerializeField, Min(0.1f)] private float maxReach = 4.5f;
 
+        [Tooltip("How far, in degrees, the move keys may point from straight ahead and a Jump on the ground " +
+                 "still climbs. No keys held climbs too; sideways or backwards beyond this is a plain jump.")]
+        [SerializeField, Range(0f, 180f)] private float climbIntentAngle = 60f;
+
         [SerializeField] private LedgeProbe probe = new LedgeProbe();
 
         [Header("Animation — each action's Grab mark is where the pull-up ends")]
@@ -166,8 +170,22 @@ namespace SpaceGame.Characters
                 if (!CanStart()) return false;
                 return TryClimb(probe.FindAtHook(Shape, ropeAnchor, ropeFacing));
             }
-            if (movement.IsTethered || !movement.IsOnGround) return false;
+            if (movement.IsTethered || !movement.IsOnGround || !MeansToClimb()) return false;
             return TryClimbFrom(transform.forward, minClimbHeight, maxReach);
+        }
+
+        /// <summary>
+        /// Whether a Jump on the ground means "climb" (GDC-L1-FEEL-0003 both ways: forgive, but do not read
+        /// intent into input that plainly meant something else). Moving toward the wall, or not moving at
+        /// all while facing it, is a climb; strafing along it or backing away is a jump. Near buildings
+        /// nearly everything is an edge the hands could take, so without this every hop beside a railing
+        /// and every jump backwards off a deck was taken for a climb.
+        /// </summary>
+        private bool MeansToClimb()
+        {
+            Vector3 wish = movement.WishDirection;
+            return wish == Vector3.zero ||
+                   Vector3.Angle(wish, transform.forward) <= climbIntentAngle;
         }
 
         /// <summary>

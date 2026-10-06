@@ -18,6 +18,8 @@ symptoms:
   - "climbing over an edge is slow and floaty"
   - "double-tapping Space next to a wall climbs instead of opening the wings"
   - "double-tapping Space while grappling climbs instead of opening the ornithopter"
+  - "jumping next to a railing or off a deck backwards climbs instead of jumping"
+  - "pressing Jump while strafing along a wall does not climb"
   - "pressing Jump next to another player or an NPC climbs onto their head"
   - "perched on the grapple under an edge, Jump does a plain jump instead of climbing"
   - "climbing onto a moving barge or the strider city stalls and drops me"
@@ -83,6 +85,7 @@ Nothing saved: a climb lasts about a second, and a player loaded mid-climb just 
 - **A grapple's edge is found at the hook, not from the feet.** Rediscovering it from the body failed one geometry at a time: the winch arrives 2.5 m from the anchor with the body 1.7–2.4 m off the face (past an on-foot wall reach), deck edges, railings and stairs stand proud of the wall below them, and upper decks overhang lower ones. Measured 2026-10-06 against the satellite tower prefab, grapples to real edges: ~0/118 from the feet, 54/118 after reach + stepped-top patches, 128/128 with `FindAtHook`. The hook point is the player's intent; the probe only asks whether there is an edge to grab near it.
 - **Edge samples start just past the face (`lipInset` 0.1, the probe radius).** A railing's top rail is a few centimetres deep; at the original 0.3 m the downward sweep fell past it into the drop beyond, so every railing (the tower's 1.6 m deck rails) refused while solid boxes climbed fine.
 - **The on-foot wall sweep covers the whole climb height** (a capsule from `minHeight/2` to `reach`), so the face is whatever stands out furthest. Swept at one height it found the recessed concrete under the tower's decks and the climb rose straight up through the deck edge, railing and stairs.
+- **On foot, Jump climbs only when it means to** (`MeansToClimb`, user decision 2026-10-06): move keys within `climbIntentAngle` (60°) of facing, or no keys at all, climb; strafing along a wall or backing away is a plain jump. With edge-at-the-hands detection nearly everything beside a building is grabbable, so every hop along a railing and every jump backwards off a deck was being taken for a climb. Not applied to the rope (the hook already says where) or the mid-air hold.
 - **Crouched is refused**: a crouched capsule is short and the hang and landing heights assume the standing one.
 - **`TryClimbFrom` checks `CanStart` before reading `Feet`**, because `BodyCapsule` can be null on a body that is not the player's. That is why it takes no feet argument: a caller passing `climber.Feet` evaluated them first.
 - **A grounded player with the rope out keeps today's jump**: the rope offers its climb only while airborne — or perched, because a body hung against stepped geometry can read `IsOnGround` and the offer was withdrawn under it.

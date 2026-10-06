@@ -25,9 +25,6 @@ namespace SpaceGame.Agents
     {
         private const int Torso = (int)BodySlot.Torso;
 
-        // An aim point closer than a centimetre to the gauntlet names no direction.
-        private const float MinAimDistanceSqr = 1e-4f;
-
         [Tooltip("Worn from the start, by body slot: Torso, LeftGauntlet, RightGauntlet. An entry of the " +
                  "wrong kind for its slot is skipped with a warning. A save that says otherwise wins.")]
         [SerializeField] private InventoryItem[] startingWorn = new InventoryItem[GearRef.BodySlotCount];
@@ -353,25 +350,16 @@ namespace SpaceGame.Agents
         public Vector3 FireOrigin(BodySlot slot) =>
             instances[(int)slot] != null ? instances[(int)slot].transform.position : transform.position;
 
-        /// <summary>Fire a worn item at <paramref name="aimPoint"/>. Server only; peers see it through ItemUsed.</summary>
+        /// <summary>Fire an opted-in worn item at <paramref name="aimPoint"/>. Server only; peers see it through ItemUsed.</summary>
         public bool TryUseWornAt(BodySlot slot, Vector3 aimPoint)
         {
-            UsableItem usable = UsableIn(slot);
-            if (usable == null || !Network.Simulates(this)) return false;
+            // Public, so it checks the opt-in itself rather than trusting every caller to.
+            if (!IsNpcUsable(slot) || !Network.Simulates(this)) return false;
 
             AimAt(aimPoint);
-            Vector3 origin = FireOrigin(slot);
-            Vector3 direction = aimPoint - origin;
-            var arg = new NetArg
-            {
-                // A body code, never a hand-slot number: EntityEquipmentController ignores it.
-                A = UseSlotCode.Encode(GearRef.Body(slot)),
-                P = origin,
-                R = direction.sqrMagnitude > MinAimDistanceSqr
-                    ? Quaternion.LookRotation(direction.normalized, Vector3.up)
-                    : transform.rotation,
-            };
-            NpcItemFire.Fire(this, usable, arg);
+            // A body code, never a hand-slot number: EntityEquipmentController ignores it.
+            int code = UseSlotCode.Encode(GearRef.Body(slot));
+            NpcItemFire.Fire(this, UsableIn(slot), NpcItemFire.AimedArg(code, FireOrigin(slot), aimPoint, transform.rotation));
             return true;
         }
 

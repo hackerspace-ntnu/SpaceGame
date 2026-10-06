@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Items;
 using SpaceGame.World;
 
 namespace SpaceGame.Gameplay.Objectives
@@ -23,6 +26,17 @@ namespace SpaceGame.Gameplay.Objectives
         [Tooltip("{0} = seams soldered, {1} = seams in all.")]
         [SerializeField] private string damagedStatus = "Damaged: solder the seams  <b>{0}/{1}</b>";
         [SerializeField] private string powerStatus = "Fit a power cell";
+
+        [Header("The torch")]
+        [Tooltip("The soldering torch, for pointing at it while nobody carries one.")]
+        [SerializeField] private InventoryItem torch;
+
+        [Tooltip("Said once, when the plant is first seated cracked: where the torch is and how to use it.")]
+        [SerializeField, TextArea(2, 4)] private string[] torchRemark =
+        {
+            "It's in, but the crash cracked it. See those glowing seams? Those have to be sealed before it will run.",
+            "There's a soldering torch on the gear wall. Take it with RMB, then hold LMB on the glowing seam until it closes. Three seams.",
+        };
 
         [Tooltip("How high above a target the beacon stands, in metres.")]
         [SerializeField, Min(0f)] private float beaconLift = 1.5f;
@@ -54,14 +68,21 @@ namespace SpaceGame.Gameplay.Objectives
                 : outsideStatus;
         }
 
-        /// <summary>The loose plant until someone carries it; then where it goes; then the seam being soldered.</summary>
+        /// <summary>
+        /// The loose plant until someone carries it; then where it goes; then, cracked, the torch on the gear wall while nobody
+        /// carries one and the seam being soldered once somebody does.
+        /// </summary>
         public override bool TryGetWaypoint(ObjectiveWorld world, out Vector3 position)
         {
             position = default;
             OxygenPlantMount mount = MountOf(world);
             if (mount == null) return false;
 
-            if (mount.Damaged && mount.Damage.TryGetWorkingSeam(out position)) return true;
+            if (mount.Damaged)
+            {
+                if (!CrewGear.AnyoneCarries(world, torch) && CrewGear.TryFindOnWall(world.Ship, torch, out position)) return true;
+                if (mount.Damage.TryGetWorkingSeam(out position)) return true;
+            }
 
             Liftable plant = mount.Detached ? LoosePlant(mount) : null;
             position = plant != null && !plant.IsCarried ? plant.transform.position : mount.Point;
@@ -74,6 +95,22 @@ namespace SpaceGame.Gameplay.Objectives
             OxygenPlantMount mount = MountOf(world);
             position = mount != null ? mount.DoorPoint : default;
             return mount != null;
+        }
+
+        // ── Remarks ──────────────────────────────────────────────────────────
+
+        private const int TorchRemark = 0;
+
+        public override int RemarkCount => 1;
+
+        public override IReadOnlyList<string> RemarkLines(int index) =>
+            index == TorchRemark ? torchRemark : Array.Empty<string>();
+
+        /// <summary>The torch tutorial, the first time the plant stands in its mount cracked.</summary>
+        public override bool IsRemarkDue(ObjectiveWorld world, int index)
+        {
+            OxygenPlantMount mount = MountOf(world);
+            return index == TorchRemark && mount != null && mount.Damaged;
         }
 
         public override bool TryGetBeacon(ObjectiveWorld world, out Vector3 position)

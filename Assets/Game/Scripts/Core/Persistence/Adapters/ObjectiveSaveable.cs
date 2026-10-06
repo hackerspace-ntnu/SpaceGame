@@ -37,6 +37,9 @@ namespace SpaceGame.Core.Persistence
 
             /// <summary>The current step's one-time setup has already run.</summary>
             public bool begun;
+
+            /// <summary>Which of the current step's remarks have been said, by bit. Absent (0) in older saves.</summary>
+            public int remarks;
         }
 
         public object CaptureState()
@@ -49,6 +52,7 @@ namespace SpaceGame.Core.Persistence
                 step = live.CurrentStepId,
                 complete = live.IsComplete,
                 begun = live.Progress.Begun,
+                remarks = live.Progress.Remarks,
             };
         }
 
@@ -58,7 +62,7 @@ namespace SpaceGame.Core.Persistence
             if (live == null || state == null) return;
 
             State restored = state.ToObject<State>(SaveSerializer.Serializer);
-            live.Restore(restored.step, restored.complete, restored.begun);
+            live.Restore(restored.step, restored.complete, restored.begun, restored.remarks);
         }
 
         /// <summary>

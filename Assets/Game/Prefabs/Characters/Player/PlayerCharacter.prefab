@@ -1150,6 +1150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.LedgeClimber
   minClimbHeight: 1
   maxReach: 4.5
+  climbIntentAngle: 60
   probe:
     wallProbeDistance: 1
     probeRadius: 0.1

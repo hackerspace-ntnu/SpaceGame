@@ -11,6 +11,10 @@ paths:
   - Assets/Game/Prefabs/Environment/Structures/Facilities/OxygenGenerator.prefab
   - Assets/Game/Prefabs/Items/Supplies
   - Assets/Game/Resources/Items/Supplies
+  - Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantStatusLights.cs
+  - Assets/Game/Scripts/Gameplay/Repair/
+  - Assets/Game/Scripts/Presentation/Feedback/SparkingCable.cs
+  - Assets/Game/Art/Models/Vehicles/PlayerShip/oxygen_mount_empty.fbx
 symptoms:
   - "the cabin has no air and my suit drains inside the ship"
   - "the oxygen plant is missing from the deck in a new world"
@@ -72,12 +76,23 @@ A wall-mounted plant on the lander's main deck with two receptacles: a rectangul
   `SpawnAlreadyLanded`, so the crash happens in disposable sessions too (until 2026-10-06 it did not: that path
   never raised the event, so no plant was thrown out, no quest beat, cabin air as normal). While it is out the mounted plant is hidden, collider and dock volumes included, so no
   bottle can be filled. The loose plant is a [`Liftable`](Assets/Game/Scripts/World/Lifting/Liftable.cs)
-  ([Lifting.md](Lifting.md)): lifted by the handle on its control-head end and carried; within `mountRadius` (3 m, flat)
-  of the mount the server despawns it and the plant is back in its mount, with whatever cell it had (none in a new
-  world) — but **cracked**.
+  ([Lifting.md](Lifting.md)): lifted by the handle on its control-head end, carried in, and **set in by pressing interact at
+  the empty mount** (a `LiftDock` volume; the carrier within `mountRadius`, 5 m flat, server-checked). The server despawns it
+  and the plant is back in its mount, with whatever cell it had (none in a new world) — but **cracked**.
+- **The empty mount (2026-10-06).** While the plant is out, `OxygenPlantMount.emptyMount` (`EmptyMount`, authored inactive,
+  never one of the parts `ShowPlant` hides) shows on the wall: the torn frame (`Vehicles/PlayerShip/oxygen_mount_empty.fbx`
+  from `_Source~/models/props/oxygen_mount_empty.blend` — C-channel rails, a bent bolt plate, sheared bolts, a torn strap, a
+  sprung junction box), three ripped cables each throwing `TransmitterSparks` with a `SparkingCable` short every 0.7-3 s
+  (a burst, and most times the ball-lightning arc as a crackle — the catalog has no crackle), and the `PlantDock` volume.
+  Aimed at empty-handed it says "Oxygen plant missing: find it outside" (GDC-L1-UX-0004: the frame is the signifier).
+- **Status lamps (2026-10-06).** [`OxygenPlantStatusLights`](Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantStatusLights.cs) paints
+  three beads on the front (`StatusLamp_A/B/C`, `Mat_Emissive_Green_CRT`) every frame from replicated state: a slow green
+  pulse while `Running`, a red blink while cracked, steady amber while whole but unpowered — pattern as well as colour, so it
+  reads without telling green from red (GDC-L1-SYS-0006). Coming online plays `ShipRepair` once; the first reading (a
+  spawn, a load) plays nothing.
 - **Cracked: solder the seams (2026-10-06).** The fixture carries a [`TorchRepairable`](Assets/Game/Scripts/Gameplay/Repair/TorchRepairable.cs)
   (`OxygenPlantMount.damage`); `Receive` calls `Damage()`. Three seams on the front face (`Seam_A/B/C`, glowing cubes the
-  authoring places on the mesh) close in order, 2 s of soldering-torch flame each (6 s in all, progress kept across a
+  authoring places on the mesh, 0.8, 2.0 and 3.4 m above the deck) close in order, 2 s of soldering-torch flame each (6 s in all, progress kept across a
   save); the one being worked pulses bright with a light on it, the rest glow dull, closed ones are dark beads. Only
   when the last closes does `Damaged` clear and `Running` (in its mount, whole, powered) become possible. The torch is
   the soldering torch ([Artifacts.md](Artifacts.md)).
@@ -97,7 +112,8 @@ A wall-mounted plant on the lander's main deck with two receptacles: a rectangul
 | `DockableSupply` | [DockableSupply.cs](Assets/Game/Scripts/Items/Supplies/DockableSupply.cs) | The carried item. No use verb; exists for the hold pose and to paint its own gauge. |
 | `EmissiveLamp` | [EmissiveLamp.cs](Assets/Game/Scripts/Presentation/EmissiveLamp.cs) | Paints one lamp or one **submesh** of one through a shared `MaterialPropertyBlock`. |
 | `OxygenPlantMount` | [Oxygen/OxygenPlantMount.cs](Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantMount.cs) | In its mount or thrown out; the crash ejection; `IAirSupply`; the `ILiftDestination` the loose plant is carried to; `Damaged` from its `TorchRepairable`. Server-written `NetworkVariable`s, read on spawn. |
-| `TorchRepairable` | [Repair/TorchRepairable.cs](Assets/Game/Scripts/Gameplay/Repair/TorchRepairable.cs) | Reusable: ordered seams closed by `Solder(seconds)` (server), one `NetworkVariable` pair (damaged, seconds), glows derived everywhere. Saved by [`TorchRepairableSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TorchRepairableSaveable.cs), key `torchRepair`, null when whole. Wired by `OxygenPlantRecoveryAuthoring` (*Author Oxygen Plant Cracks*). |
+| `OxygenPlantStatusLights` | [Oxygen/OxygenPlantStatusLights.cs](Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantStatusLights.cs) | The lamps: green pulse / red blink / amber, derived, nothing sent or saved |
+| `TorchRepairable` | [Repair/TorchRepairable.cs](Assets/Game/Scripts/Gameplay/Repair/TorchRepairable.cs) | Reusable: ordered seams closed by `Solder(seconds)` (server), one `NetworkVariable` pair (damaged, seconds), glows derived everywhere. Saved by [`TorchRepairableSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TorchRepairableSaveable.cs), key `torchRepair`, null when whole. Wired by `OxygenPlantRecoveryAuthoring` (*Tools ▸ SpaceGame ▸ Oxygen ▸ Author Oxygen Plant Fixture (PlayerShip)*: cracks, lamps, empty mount, dock, radius, the fire's delay). |
 | `OxygenPlantMountSaveable` | [Adapters/OxygenPlantMountSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenPlantMountSaveable.cs) | Key `oxygenMount`: `{ detached, furrowFrom, furrowTo }` (the crash's end points, named for the furrow they once drew; a non-zero `furrowTo` is "already thrown out once", `HasBeenEjected`); null for a plant never thrown out. Baked on the fixture by hand. |
 | `OxygenGeneratorSaveable` | [Adapters/OxygenGeneratorSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) | Save key `oxygen`. Both docks; never the fill deadline. |
 | `OxygenGearBuilder` | OxygenGearBuilder.cs | Builds the three item prefabs + assets, registers them for clients, and routes them into the game: one battery in the gear wall's fixed manifest, the tank in its **per-crew** list, one tank on the rig. |

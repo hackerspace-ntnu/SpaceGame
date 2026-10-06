@@ -31,7 +31,7 @@ namespace SpaceGame.Vehicles
     [DisallowMultipleComponent]
     [RequireComponent(typeof(VesselSeats))]
     [RequireComponent(typeof(FlyingRigidbodyMotor))]
-    public class NpcAviator : BehaviourModuleBase, IAirborneCarrier
+    public class NpcAviator : BehaviourModuleBase, IAirborneCarrier, IStowsTorsoGear
     {
         private const int PilotSeat = 0;
 

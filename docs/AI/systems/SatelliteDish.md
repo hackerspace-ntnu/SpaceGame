@@ -6,6 +6,8 @@ paths:
   - Assets/Game/Scripts/Gameplay/DishControl
   - Assets/Game/Scripts/Gameplay/Interaction/Core/ClaimableConsole.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/DishRigSaveable.cs
+  - Assets/Game/Scripts/Core/Persistence/Adapters/DishConsoleSaveable.cs
+  - Assets/Game/Editor/Tests/DishTowerQuestTests.cs
   - Assets/Game/Prefabs/Environment/Structures/SatelliteTower
   - Assets/Game/Art/Models/Environment/Structures/SatelliteTower
   - Assets/Game/Art/Textures/Environment/SatelliteTower
@@ -15,6 +17,8 @@ paths:
   - Assets/Game/Prefabs/Items/ShipParts/DishTransmitter.prefab
   - Assets/Game/Resources/Items/ShipParts/DishTransmitter.asset
 symptoms:
+  - "the dish control lectern says Dish drives unresponsive"
+  - "the dish points straight up in a new world"
   - "the satellite dish turns for the operator but not for the other player"
   - "the dish snaps back to where it was after loading a save"
   - "the dish control lectern says In use and nobody is at it"
@@ -28,7 +32,7 @@ symptoms:
   - "the transmitter cradle on the dish will not take anything I hold"
   - "the transmitter on the dish can be taken from the catwalk, or through the feed cabin"
   - "I am right next to the transmitter and the crosshair offers no take"
-reads_with: [InteractionSystem, Terminal, Ladders, ArtPipeline, Multiplayer, Persistence]
+reads_with: [InteractionSystem, Terminal, ShipSignal, Objectives, Ladders, ArtPipeline, Multiplayer, Persistence]
 updated: 2026-10-06
 ---
 
@@ -59,14 +63,23 @@ bridge), `DeckHut` on props off the roof deck, and the scrap shack with its anne
 ## Model
 
 - **Three components, the terminal's split.** [`DishRig`](Assets/Game/Scripts/Gameplay/DishControl/DishRig.cs) owns the angles (server-decided, replicated); [`DishConsole`](Assets/Game/Scripts/Gameplay/DishControl/DishConsole.cs) owns who is at the controls and forwards their command; [`DishControlSession`](Assets/Game/Scripts/Gameplay/DishControl/DishControlSession.cs) is the operator's machine only: camera, readout, raw input.
+- **A new world's dish points nearly straight up** (`DishRig.startElevation` 85, the motor's top; azimuth at
+  rest). The transmitter rides the elevation pivot: at 85 its device centre is (0, 73.37, 1.05) in prefab space,
+  73 m above the ground, 47 m over the catwalk and 1 m off the tower axis, out of any grapple's reach; at 40
+  (the model's rest) (0, 66.26, 18.94); at 15, (0, 57.17, 24.92). Turning the dish down is the puzzle.
+- **The drives are dead until the hook leaves its board.** `DishConsole` reads `hookBoard` (`CatwalkGearBoard`)
+  for `hookItem` (`Resources/Items/Artifacts/GrapplingHook`); on the first server frame it is gone the drives latch
+  awake for good (putting it back does not relock). Locked, the crosshair says "Dish drives unresponsive", a press
+  plays `InteractDenied` on the presser's machine, and the server drops any steer. The latch is a replicated
+  `NetworkVariable<bool>`, saved by `DishConsoleSaveable` (key `dishConsole`, hand-placed on the lectern).
 - **The motor is arithmetic.** [`DishSlew.Step`](Assets/Game/Scripts/Gameplay/DishControl/DishSlew.cs) ramps a velocity toward `command × MaxSpeed` at `Acceleration`, and on a limited axis caps it at `sqrt(2·a·d)` so the dish brakes ONTO its limit. Tunables are two [`SlewMotor`](Assets/Game/Scripts/Gameplay/DishControl/SlewMotor.cs)s on `DishRig` (azimuth 6°/s, 4°/s², wraps; elevation 4°/s, 3°/s², 15-85).
 - **Angles are the source rig's.** Azimuth 0-360 about the tower's vertical; elevation in degrees above the horizon, rest 40 (the Blender pivot's 50° about its X is `90 - elevation`). Each pivot turns from its imported rest pose about a serialized LOCAL axis (`azimuthAxis`, `elevationAxis`), measured and signed when the prefab was built — the FBX empties carry the axis conversion, so no axis is assumed.
 - **The tower is its own entity.** The prefab root carries a `NetworkObject` (`SynchronizeTransform` and `AutoObjectParentSync` off) + `NetRelay`: the channel for the door's `NetLatch`, the dish's variables and the console's claim. It is placed in a scene, never spawned; see Gotchas.
 - **The door** is a stock [`DoorInteraction`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DoorInteraction.cs) on `SatTower_Int_Door` (an unrotated empty the export adds as the hinge's parent), single leaf: `_leftDoor` = `SatTower_Int_DoorHinge`, `swingDegrees` 100, `swingAxis` the hinge's measured local vertical, signed outward. A `BoxCollider` on `SatTower_Int_DoorLeaf` swings with it.
 - **Two gear walls ride the tower's entity** (2026-10-06). Both are stock [`WallInventory`](Assets/Game/Scripts/Items/Wall/WallInventory.cs)s ([Backpack.md](Backpack.md)) with no `SaveableEntity` of their own, the pattern `PlayerShip` uses for its gear wall. No new code: the only change they needed is `WallInventorySaveable.recordName` (see Persistence).
   - **`CatwalkGearBoard`**: a nested `AstroDeco_SmallGearBoard` instance (the smallest wall: 6 x 10 cells, drawn 1.34 x 2.12 m), turned landscape and hung on the azimuth bearing drum beside the catwalk ladder's exit. Centre (-1.59, 27.72, 7.99) in prefab space, bearing -11.25 deg (between two drum ribs; the exit is on the -22.5 deg rib, 2.2 m away), 0.95-2.29 m above the 26.1 m deck, back 7 mm off the rib tips at r 8.10. It stocks ONE `GrapplingHook` through its own `startingMainItems`. Its `SaveableEntity`, `TransformSaveable` and `PersistentFixture` are removed as prefab overrides.
-  - **`TransmitterCradle`**: under `SatTower_Rig_Elevation`, saddled on the TOP of the feed horn, the cylinder (radius 1.98 m, centre (0, 64.69, 20.68), along the dish axis) that sticks 1.6 m out of the feed cabin's dish-facing face; the cabin is the box at the dish's focus, held out on the four feed legs. Moved there 2026-10-06 at the user's request (first placed on the cube's +X side). At rest (azimuth 0, elevation 40) the device centre is (0, 66.12, 18.92) in prefab space, world (3151.2, 182.8, 908.3) in `Chunk_6_3`: 66.1 m above the ground, 40.0 m above the catwalk, on the horn's upper side, centred left-right, plug end toward the cube (0.29 m clear of its face). It turns and tilts with the dish. Model `dish_transmitter_cradle.fbx`: plate, clamp straps, the receptacle the plug seats in, a short cable run into a gland, and two saddle bands that wrap down the horn's curve (built for its 1.975 m radius). One reserved face, `SURF_CradleSocket` (`PackSurface.acceptsOnly` = `DishTransmitter`, 10 x 4 cells); `displayScale` 0.998, so the copy is drawn at the device's true 0.88 m; `startingMainItems` = the one `DishTransmitter`. A solid `BoxCollider` over the device volume is what the wall aim hits once the cradle is empty. **Close range only:** its `WallInventory.takeReach` ([`WallTakeReach`](Assets/Game/Scripts/Items/Wall/WallTakeReach.cs)) is `maxDistance` 4 m with `needsLineOfSight`, so it is taken only by someone who has grappled out to it, never from the catwalk or through the cabin. The board keeps the default (no rule).
-- **The dish transmitter is the mission object, and there is one.** It is stocked only on this cradle and is in no loot table. It is a `ShipPartItem` of the eighth kind, `ShipPartKind.Transmitter` ([PlayerShip.md](PlayerShip.md)), so the existing install path fits it into the lander's `Part_Transmitter_A` socket (a wall cradle in the aft room, once its burnt-out unit is put out and taken off: [ShipTransmitterFire.md](ShipTransmitterFire.md)). Model `models/gear/dish_transmitter.blend` (`Coll_DishTransmitter`, 0.88 x 0.36 x 0.36 m, a salvaged signal core: an olive power block with a torn-off side cover over exposed circuit boards, a folded antenna and stub dish on its roof, stencil and warning stripes and a rusted patch plate; in front of it an amber-glowing heater coil (`Mat_Emissive_Amber`, the one focal glow) seen through the slots of a vented steel heat chamber in a cage with a carry handle; radial cooling fins; a seven-pin connector in a locking collar. No glass or crystal, by the user's direction; `Coll_DishTransmitterCradle` beside it), exported by `dish_transmitter_export.py`.
+  - **`TransmitterCradle`**: under `SatTower_Rig_Elevation`, saddled on the TOP of the feed horn, the cylinder (radius 1.98 m, centre (0, 64.69, 20.68), along the dish axis) that sticks 1.6 m out of the feed cabin's dish-facing face; the cabin is the box at the dish's focus, held out on the four feed legs. Moved there 2026-10-06 at the user's request (first placed on the cube's +X side). At rest (azimuth 0, elevation 40) the device centre is (0, 66.12, 18.92) in prefab space, world (3151.2, 182.8, 908.3) in `Chunk_6_3`: 66.1 m above the ground, 40.0 m above the catwalk, on the horn's upper side, centred left-right, plug end toward the cube. Since the 1.5x resize (2026-10-06) the cradle fills the horn: its cable gland ends 0.03 m short of the cabin face and its plate's outer end overhangs the horn tip by ~0.04 m (the cable run behind the receptacle was shortened to 0.45x so the 2.07 m cradle became 1.77 m on a 1.75 m horn), so a further resize has nowhere to go along the horn. It turns and tilts with the dish. Model `dish_transmitter_cradle.fbx`: plate, clamp straps, the receptacle the plug seats in, a short cable run into a gland, and two saddle bands that wrap down the horn's curve (built for its 1.975 m radius). One reserved face, `SURF_CradleSocket` (`PackSurface.acceptsOnly` = `DishTransmitter`, 11 x 5 cells, at plate height 0.0375); `displayScale` 1.323 = 1.32 / (packSize 0.95 x `PackScale.Factor` 1.05), so the copy is drawn at the device's true 1.32 m. The item's own `packSize` cannot simply follow the model: `ShipPartsTests.TheHaulLadder_KeepsTrueSizeOrder` caps the shortest module at the next rung (the Belly Motor's 0.95), so the seated size is bought with `displayScale` and the hand size with `holdSize` 1.26; `startingMainItems` = the one `DishTransmitter`. A solid `BoxCollider` over the device volume is what the wall aim hits once the cradle is empty. **Close range only:** its `WallInventory.takeReach` ([`WallTakeReach`](Assets/Game/Scripts/Items/Wall/WallTakeReach.cs)) is `maxDistance` 4 m with `needsLineOfSight`, so it is taken only by someone who has grappled out to it, never from the catwalk or through the cabin. The board keeps the default (no rule).
+- **The dish transmitter is the mission object, and there is one.** It is stocked only on this cradle and is in no loot table. It is a `ShipPartItem` of the eighth kind, `ShipPartKind.Transmitter` ([PlayerShip.md](PlayerShip.md)), so the existing install path fits it into the lander's `Part_Transmitter_A` socket (a wall cradle in the aft room, once its burnt-out unit is put out and taken off: [ShipTransmitterFire.md](ShipTransmitterFire.md)). Model `models/gear/dish_transmitter.blend` (`Coll_DishTransmitter`, 1.32 x 0.54 x 0.54 m since 2026-10-06, when the device, its burnt-out twin and both cradles were scaled 1.5x at the user's request — all but the dish cradle's saddle bands and edge shims, which stay fitted to the 1.975 m horn, a salvaged signal core: an olive power block with a torn-off side cover over exposed circuit boards, a folded antenna and stub dish on its roof, stencil and warning stripes and a rusted patch plate; in front of it an amber-glowing heater coil (`Mat_Emissive_Amber`, the one focal glow) seen through the slots of a vented steel heat chamber in a cage with a carry handle; radial cooling fins; a seven-pin connector in a locking collar. No glass or crystal, by the user's direction; `Coll_DishTransmitterCradle` beside it), exported by `dish_transmitter_export.py`.
 - **Why there** (`GDC-L1-LEVEL-0004`, `GDC-L1-UX-0004`): the hook hangs where the climb ends, in sight of the feed it is needed for, so the space states the problem and the tool together. The cradle takes only its own device, so the put-back verb cannot be misread. Both are contextual; the user's play-test of the grapple route is the evidence that counts.
 
 ## Placement
@@ -94,7 +107,7 @@ record does too: a save written before the move puts the tower back where it was
 | Type | Role |
 | --- | --- |
 | `DishRig` | `NetworkBehaviour`, `IPersistentEntity`. `NetworkVariable<float>` azimuth/elevation; server steps `DishSlew` from `Drive(command)`; peers follow at `MaxSpeed × followCatchUp`; `RestoreAngles`, `IsAtRest`; motor hum via `LoopingEmitter` (`SfxId.DishMotorLoop`, a stand-in on `ElectricHum`). |
-| `DishConsole` | `ClaimableConsole`, `IInteractable`, `IInteractionReadout` ("Dish control", "In use"). `Steer(command)` → `SteerServerRpc`, accepted only from `OperatorId`; any operator change zeroes the drive. |
+| `DishConsole` | `ClaimableConsole`, `IInteractable`, `IInteractionReadout` ("Dish control", "In use", "Dish drives unresponsive"). `DrivesUnlocked`, `BoardHoldsHook`, `TransmitterCradle` (read by `FitTransmitterStep`); static `Live`. `Steer(command)` → `SteerServerRpc`, accepted only from `OperatorId`; any operator change zeroes the drive. |
 | `ClaimableConsole` | The one-operator claim lifted out of `TerminalConsole`: `NetworkVariable<ulong>` operator, `RequestClaim`, `Release`, disconnect release, `OnOperatorChanged`. |
 | `DishControlSession` | `GameplayMenuScope.Enter(freezeTime: false)`, spawns `DishFocusCamera` at `FeedVantage`, shows `DishReadout`, sends the quantised command on change, `Exit` on RMB / Esc / B / death / disable. |
 | `DishFocusCamera` / `DishReadout` | A `FocusCamera` that CUTS (fly-in 0) to a fixed vantage; the code-built screen overlay (angles, limits, the commanded direction lit at once). |
@@ -125,7 +138,8 @@ record does too: a save written before the move puts the tower back where it was
 
 | State | Saver | Key |
 | --- | --- | --- |
-| Dish angles | `DishRigSaveable` → `DishRig.RestoreAngles` (instant, published) | `dishRig` |
+| Dish angles | `DishRigSaveable` → `DishRig.RestoreAngles` (instant, published); none = the start pose (85) | `dishRig` |
+| Drives awake | `DishConsoleSaveable` → `DishConsole.RestoreUnlocked`; none = locked, re-derived from the board | `dishConsole` |
 | Door open | `DoorSaveable` on `SatTower_Int_Door` | `door` |
 | Catwalk board contents | `WallInventorySaveable` on `CatwalkGearBoard` | `wallInventory` |
 | Cradle contents | `WallInventorySaveable` on `TransmitterCradle`, `recordName` `transmitterCradle` | `wallInventory.transmitterCradle` |
@@ -160,6 +174,9 @@ transmitter persists like any held item (the player's inventory, or a world-item
 
 ## Extending
 
+- **An old save** keeps a turned dish's angles; an UNTOUCHED dish has no record, so it comes back pointing up.
+  With no `dishConsole` record the drives start dead and wake on the first server frame if the board's saved
+  contents no longer hold the hook. The quest marker and remarks are [Objectives.md](Objectives.md)'s.
 - **Retune the motor** on `DishRig` (`azimuthMotor`, `elevationMotor`) — tests in `DishControlTests` read `DishSlew`.
 - **A real motor sound** replaces `AudioCatalog` entry 706 (`DishMotorLoop`); nothing else changes.
 - **Re-bake only what changed:** `satellite_tower_export.py -- Interior` unwraps every atlas but bakes only the named ones; the rest keep their PNGs, which still match because Smart UV Project is deterministic on unchanged geometry. A full bake beside a running Unity can run the machine out of commit (it did at 2.9 GB free, 2026-10-06).

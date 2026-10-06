@@ -7,11 +7,11 @@ namespace SpaceGame.Items
     [Serializable]
     public sealed class ShipPartFireTuning
     {
-        [Tooltip("Seconds after the oxygen plant is back in its mount and running before a " +
-                 "burnt-out unit still seated in its cradle catches fire. A breather after the haul: " +
-                 "the crew get their air back and see the unit sparking before it goes up " +
-                 "(GDC-L1-LEVEL-0003: a rest beat after a peak, then the next rise).")]
-        [Min(0f)] public float igniteDelay = 75f;
+        [Tooltip("Seconds after the oxygen plant is back in its mount and running before a burnt-out unit still seated in " +
+                 "its cradle catches fire. Almost at once, by the user's call (2026-10-06): the plant coming online is what " +
+                 "sets the overloaded unit off, so the two read as cause and effect. This drops the rest beat " +
+                 "GDC-L1-LEVEL-0003 recommends after a peak; the team chose the chain reaction over the breather.")]
+        [Min(0f)] public float igniteDelay = 3f;
 
         [Tooltip("How strong a fire is the moment it catches, 0..1. Small enough to read as " +
                  "'something is starting' rather than an emergency already lost.")]

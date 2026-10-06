@@ -29,7 +29,7 @@ symptoms:
   - "the transmitter is on fire but there are no flames, on the host or a client"
   - "the burnt-out transmitter can be pulled out before it has ever caught fire"
   - "the transmitter never catches fire"
-reads_with: [PlayerShip, SatelliteDish, Flamethrower, Backpack, Persistence, Multiplayer]
+reads_with: [PlayerShip, SatelliteDish, ShipSignal, Flamethrower, Backpack, Persistence, Multiplayer]
 updated: 2026-10-06
 ---
 
@@ -68,7 +68,7 @@ fizzles and is gone. The socket is then free for the working transmitter from th
   Its rules are pure ([`ShipPartFireRules`](Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFireRules.cs)):
   Dormant → Burning → Out, Out is permanent. The ignition clock runs only while the fire is **armed**
   (`ShipPartFire.Armed`): the crew are down, the unit is seated, and the ship's `OxygenPlantMount` is `Running` (in
-  its mount, its cracks soldered and powered). At `igniteDelay` (75 s) it catches at `startStrength` (0.15) and grows to 1 over
+  its mount, its cracks soldered and powered). At `igniteDelay` (**3 s**, 2026-10-06; was 75) it catches at `startStrength` (0.15) and grows to 1 over
   `growSeconds` (45 s). A douse knocks strength off; at 0 it is out for good. Because the unit cannot leave before
   its fire, every world gets this fire exactly once.
 - **Not a new fire system.** The flames are `Resources/Effects/BodyFire` (the burning-body shell) under the unit's
@@ -83,8 +83,10 @@ fizzles and is gone. The socket is then free for the working transmitter from th
   hold stream, valve, timeout, `SupplyReservoir` tank and `CryoSprayerNozzle` plume are shared, the verb (`Land`) is
   each gun's own. Range 5 m, cone 20° (widened by the fire's reach), douse 0.4/s, tank 0.17/s (about 6 s), no refill.
   On the authority it calls `ShipPartFire.Douse` for each burning fire it covers in sight.
-- **Where:** cradle on the port recess between the map projector and the oxygen plant, device centre (-2.88, 5.65,
-  -0.90) ship-local, 2.67 m above the deck. Bracket on the repair station's front at (-1.14, 3.72, -1.75), 2.4 m from
+- **Where:** cradle on the port recess between the map projector and the oxygen plant, device centre (-2.77, 5.65,
+  -0.90) ship-local, 2.67 m above the deck. Since the 2026-10-06 1.5x resize (cradle 2.19 x 1.0 m, device 1.32 m,
+  plate 0.0375 thick) the part's outboard face stands 0.17 m clear of the empty oxygen mount and of `PlantDock`'s aim
+  volume, both at x -2.34, and the standing terminal is over 6 m away. Bracket on the repair station's front at (-1.14, 3.72, -1.75), 2.4 m from
   the fire (outside its full 2 m reach), a `WallInventory` whose one shelf face accepts only the extinguisher.
 
 ## Key types
@@ -101,12 +103,14 @@ fizzles and is gone. The socket is then free for the working transmitter from th
 ## Flows
 
 1. **Crash.** The unit sparks, jammed in its socket. The oxygen plant is out of the ship ([Oxygen.md](Oxygen.md)).
-2. **The plant is carried home, soldered and powered.** The fire is armed; 75 s later it **ignites**: flames, brighter sparks,
+2. **The plant is carried home, soldered and powered.** The fire is armed; 3 s later it **ignites**: flames, brighter sparks,
    the loop; people in reach catch.
 3. **Grab the extinguisher** off the bracket (the wall's crosshair take), hold Use on the flames.
 4. **Out.** Strength 0 → `Out`. RMB pulls the unit: the husk pops onto the floor and fizzles out in 15 s. The socket
    is empty and ghosts for a held transmitter.
-5. **Fit** the working transmitter from the dish with the stock `ShipPartItem` use. The rack completes.
+5. **Fit** the working transmitter from the dish with the stock `ShipPartItem` use. The terminal comes out of
+   static, the COMMS tab appears and the ship hears the signal ([ShipSignal.md](ShipSignal.md)); the objective
+   `fit-transmitter` walks the crew through steps 2-5 and hands on to `answer-signal`.
 
 ## Multiplayer
 
@@ -132,11 +136,18 @@ fizzles and is gone. The socket is then free for the working transmitter from th
 A new world starts with the unit seated and the clock at 0. **A save from before this feature** has no `broken`
 field: it reads as the authored mask, so the burnt-out unit is seated (unless that save already has a
 transmitter fitted, where there is nothing to burn), and with no `partFire` record its clock starts once the
-oxygen plant is running — for a world already past its crash the plant counts as in its mount, so the 75 s start
+oxygen plant is running — for a world already past its crash the plant counts as in its mount, so the 3 s start
 on load if it is powered, or when its cell goes in.
 A fire saved burning reloads burning at its strength; one put out reloads out and never relights.
 
 ## Gotchas
+
+- **The fire follows the plant almost at once (2026-10-06, the user's call).** `igniteDelay` went 75 → 3 s so the plant
+  coming online and the overloaded unit catching read as cause and effect; it drops the rest beat GDC-L1-LEVEL-0003 argues
+  for after a peak. The field kept its old value on the prefab until `OxygenPlantRecoveryAuthoring` wrote it
+  (INVARIANTS: a serialized field keeps its old value); `BrokenTransmitterTests.TheFireCatchesAlmostAsSoonAsThePlantComesOnline`
+  reads the asset. A world loaded with the plant already running and the unit unburnt ignites about 3 s after the load
+  (sooner if its saved clock had already passed 3 s).
 
 - **`BodyFire`'s emitters do not play on awake.** A burning body starts them through `FlameLayers.SetEmitting`;
   the first version of this fire only instantiated the prefab and made it active, and burned with NO flames on any

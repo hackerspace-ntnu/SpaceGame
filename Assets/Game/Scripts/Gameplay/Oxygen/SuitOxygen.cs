@@ -26,6 +26,13 @@ namespace SpaceGame.Gameplay
     /// <item>At zero suit, <see cref="suffocationDamage"/> every <see cref="suffocationInterval"/>.</item>
     /// </list>
     /// <para>
+    /// <b>The crash reserve.</b> When the crash throws the lander's oxygen plant out it also vents every crew member's
+    /// socketed bottle (<see cref="EnterCrashReserve"/>), and fills the suit's own reserve past its normal size to
+    /// <see cref="crashReserveSeconds"/> — minutes, not seconds, enough to bring the plant home. It is the same reserve,
+    /// draining by the same rules; its ceiling just starts higher and comes back down to <see cref="suitSeconds"/> as it
+    /// is spent, or the moment the wearer has real air again (shelter, or a bottle with something in it).
+    /// </para>
+    /// <para>
     /// <b>A tank supplies you from the socket and from nowhere else.</b> One in your hand, on the
     /// mat, or in a hotbar slot is cargo. See <see cref="OxygenSocket"/>; until 2026-09-04 a tank
     /// could also be breathed straight from the hand, which was a second path to the same outcome
@@ -69,6 +76,10 @@ namespace SpaceGame.Gameplay
                  "rather than as a slow recovery the player has to wait out.")]
         [SerializeField, Min(0f)] private float refillPerSecond = 6f;
 
+        [Tooltip("Seconds the suit's reserve is filled to when the crash vents the crew's bottles: an emergency supply " +
+                 "long enough to recover the oxygen plant without hurrying past the beat, short enough that it is a clock.")]
+        [SerializeField, Min(1f)] private float crashReserveSeconds = 240f;
+
         [Header("Running out")]
         [Tooltip("Damage per suffocation tick once the suit is empty.")]
         [SerializeField, Min(1)] private int suffocationDamage = 5;
@@ -107,6 +118,13 @@ namespace SpaceGame.Gameplay
             -1f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         /// <summary>
+        /// How much the reserve holds right now: <see cref="suitSeconds"/>, or more while a crash reserve lasts. Replicated so
+        /// every gauge drains the crash reserve from full rather than reading "full" until the last minute.
+        /// </summary>
+        private readonly NetworkVariable<float> networkCeiling = new(
+            60f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+        /// <summary>
         /// The authoritative values where this is simulated, and the last replicated ones
         /// everywhere else. Kept as plain fields rather than read out of the NetworkVariables so
         /// that an unspawned or offline suit still works — writing a NetworkVariable that has never
@@ -114,6 +132,7 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private float suit;
         private float tank = -1f;
+        private float ceiling;
 
         private readonly HashSet<BreathableVolume> volumes = new();
 
@@ -128,8 +147,17 @@ namespace SpaceGame.Gameplay
         /// <summary>Seconds of air a full suit holds.</summary>
         public float SuitCapacity => suitSeconds;
 
-        /// <summary>The suit's reserve as 0..1.</summary>
-        public float SuitFraction => suitSeconds > 0f ? Mathf.Clamp01(suit / suitSeconds) : 0f;
+        /// <summary>The suit's reserve as 0..1, of what it holds right now (a crash reserve drains from full too).</summary>
+        public float SuitFraction => Ceiling > 0f ? Mathf.Clamp01(suit / Ceiling) : 0f;
+
+        /// <summary>What the reserve holds right now: the suit's size, or more while a crash reserve lasts.</summary>
+        public float Ceiling => Mathf.Max(suitSeconds, ceiling);
+
+        /// <summary>Is the wearer living on the crash's emergency reserve?</summary>
+        public bool OnCrashReserve => ceiling > suitSeconds;
+
+        /// <summary>Every live suit. The crash vents them all; the oxygen plant asks whether any has air again.</summary>
+        public static IReadOnlyList<SuitOxygen> Every => All;
 
         /// <summary>Is a tank plugged into the pack's socket? An EMPTY one still counts.</summary>
         public bool TankConnected => tank >= 0f;
@@ -170,6 +198,7 @@ namespace SpaceGame.Gameplay
             health = GetComponentInChildren<HealthComponent>();
             socket = new OxygenSocket(gameObject);
             suit = suitSeconds;
+            ceiling = suitSeconds;
         }
 
         private void OnEnable() => All.Add(this);
@@ -186,6 +215,7 @@ namespace SpaceGame.Gameplay
             {
                 networkSuit.Value = suit;
                 networkTank.Value = tank;
+                networkCeiling.Value = Ceiling;
                 return;
             }
 
@@ -193,8 +223,10 @@ namespace SpaceGame.Gameplay
             // events coming, so read them once on spawn.
             networkSuit.OnValueChanged += ApplySuit;
             networkTank.OnValueChanged += ApplyTank;
+            networkCeiling.OnValueChanged += ApplyCeiling;
             suit = networkSuit.Value;
             tank = networkTank.Value;
+            ceiling = networkCeiling.Value;
         }
 
         public override void OnNetworkDespawn()
@@ -203,11 +235,14 @@ namespace SpaceGame.Gameplay
 
             networkSuit.OnValueChanged -= ApplySuit;
             networkTank.OnValueChanged -= ApplyTank;
+            networkCeiling.OnValueChanged -= ApplyCeiling;
         }
 
         private void ApplySuit(float _, float next) => suit = next;
 
         private void ApplyTank(float _, float next) => tank = next;
+
+        private void ApplyCeiling(float _, float next) => ceiling = next;
 
         /// <summary>Called by a <see cref="BreathableVolume"/> the wearer has entered.</summary>
         public void EnterBreathable(BreathableVolume volume)
@@ -278,7 +313,31 @@ namespace SpaceGame.Gameplay
 
             float fromTank = wanted + topUp > 0f ? socket.Draw(wanted + topUp) : 0f;
 
-            suit = SuitAfter(Breathing, suit, suitSeconds, refillPerSecond * dt, wanted, fromTank);
+            suit = SuitAfter(Breathing, suit, Ceiling, refillPerSecond * dt, wanted, fromTank);
+            ceiling = CeilingAfter(ceiling, suitSeconds, Breathing || socket.Charge > 0f);
+        }
+
+        /// <summary>
+        /// The reserve's size after a tick. A crash reserve keeps its size while it is spent, so its gauge drains from full,
+        /// and is gone, back to <paramref name="normal"/>, the moment the wearer has real air (shelter or a bottle with
+        /// something in it). Pure, for the reason <see cref="SuitAfter"/> is.
+        /// </summary>
+        public static float CeilingAfter(float ceiling, float normal, bool hasAir) =>
+            hasAir ? normal : Mathf.Max(normal, ceiling);
+
+        /// <summary>
+        /// SERVER: the crash vents this suit's socketed bottle and opens the emergency reserve. Once per crash; a suit
+        /// already on it is left alone.
+        /// </summary>
+        public void EnterCrashReserve()
+        {
+            if (!Authoritative || OnCrashReserve) return;
+
+            socket.Refresh();
+            socket.Vent();
+            suit = ceiling = crashReserveSeconds;
+            Publish();
+            warningShown = null;
         }
 
         /// <summary>
@@ -340,6 +399,7 @@ namespace SpaceGame.Gameplay
 
             networkSuit.Value = suit;
             networkTank.Value = tank;
+            networkCeiling.Value = Ceiling;
         }
 
         /// <summary>
@@ -378,7 +438,7 @@ namespace SpaceGame.Gameplay
                 // The reserve is engaged: no tank, or a dry one. This is the alarm the 60 seconds
                 // exist for, and it fires whether or not a tank was ever fitted — a player who set
                 // out with an empty socket is in exactly the same trouble as one whose tank ran dry.
-                text = "RESERVE OXYGEN";
+                text = "O2 RESERVE";
                 severity = MessageSeverity.Alarm;
             }
             else if (TankFraction <= warnFraction)
@@ -407,9 +467,16 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public void RestoreOxygen(float value)
         {
-            suit = Mathf.Clamp(value, 0f, suitSeconds);
+            // A save taken on the crash reserve holds more than a suit does, and keeps it: the reserve comes back as large
+            // as what was left of it.
+            suit = Mathf.Clamp(value, 0f, Mathf.Max(suitSeconds, crashReserveSeconds));
+            ceiling = Mathf.Max(suitSeconds, suit);
 
-            if (IsSpawned && IsServer) networkSuit.Value = suit;
+            if (IsSpawned && IsServer)
+            {
+                networkSuit.Value = suit;
+                networkCeiling.Value = Ceiling;
+            }
 
             // Re-evaluated from scratch next frame, so a world reloaded into an already-failing
             // suit still announces itself.

@@ -142,13 +142,19 @@ namespace SpaceGame.World
 
         /// <summary>
         /// The heading after <paramref name="deltaTime"/>: swung toward <paramref name="toward"/> at <paramref name="rate"/>
-        /// (per second, exponential), so the far end trails round a turn instead of snapping to it. Flat.
+        /// (per second, exponential), so the far end trails round a turn instead of snapping to it, but never more than
+        /// <paramref name="maxLagDegrees"/> behind. Flat.
         /// </summary>
-        public static Vector3 Swing(Vector3 heading, Vector3 toward, float rate, float deltaTime)
+        public static Vector3 Swing(Vector3 heading, Vector3 toward, float rate, float deltaTime, float maxLagDegrees = 180f)
         {
             Vector3 from = Flat(heading), to = Flat(toward);
             float t = 1f - Mathf.Exp(-Mathf.Max(0f, rate) * Mathf.Max(0f, deltaTime));
-            return Vector3.Slerp(from, to, t).normalized;
+            Vector3 swung = Vector3.Slerp(from, to, t).normalized;
+
+            // Never further behind than the hands can follow: past it the far end is dragged round with the body.
+            float lag = Vector3.SignedAngle(to, swung, Vector3.up);
+            if (Mathf.Abs(lag) <= maxLagDegrees) return swung;
+            return Quaternion.AngleAxis(Mathf.Sign(lag) * maxLagDegrees, Vector3.up) * to;
         }
 
         public static Vector3 Flat(Vector3 v)

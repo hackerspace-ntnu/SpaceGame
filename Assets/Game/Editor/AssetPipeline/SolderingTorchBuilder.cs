@@ -75,10 +75,19 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            GameObject root = BuildHierarchy(model, flame, ember);
-            Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
-            Object.DestroyImmediate(root);
+            var root = new GameObject("SolderingTorch");
+            GameObject prefab;
+            try
+            {
+                BuildHierarchy(root, model, flame, ember);
+                Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
+                prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+
             if (prefab == null)
             {
                 Debug.LogError("[SolderingTorch] Prefab save failed.");
@@ -91,15 +100,18 @@ namespace SpaceGame.EditorTools
             StockGearWall(item);
             AssetDatabase.SaveAssets();
 
-            if (!BatchIconGenerator.GenerateFor(item, out string note)) Debug.LogWarning($"[SolderingTorch] Icon: {note}");
+            // First build: give the item its icon, then draw it again over itself — the first render after an import is
+            // Unity's placeholder and comes out blank (INVARIANTS: a shader that reports no errors). A rebuild just redraws.
+            bool drawn = (item.icon != null || BatchIconGenerator.CreateFor(item, out _)) && BatchIconGenerator.GenerateFor(item, out string note);
+            if (!drawn) Debug.LogWarning("[SolderingTorch] The icon could not be drawn.");
+            AssetDatabase.SaveAssets();
             Verify();
         }
 
         // ── The prefab ───────────────────────────────────────────────────────
 
-        private static GameObject BuildHierarchy(GameObject model, Material flame, Material ember)
+        private static void BuildHierarchy(GameObject root, GameObject model, Material flame, Material ember)
         {
-            var root = new GameObject("SolderingTorch");
 
             var modelInstance = (GameObject)PrefabUtility.InstantiatePrefab(model);
             modelInstance.name = "Model";
@@ -151,7 +163,7 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetEnumByName(so, "holdStyle", nameof(ItemGrip.HoldStyle.OneHanded));
             });
 
-            SupplyReservoir gas = SupplyReservoir.On(root);
+            SupplyReservoir gas = root.AddComponent<SupplyReservoir>();
             SerializedFields.Edit(gas, so =>
             {
                 SerializedFields.SetEnumByName(so, "kind", nameof(SupplyKind.Reagent));
@@ -169,8 +181,6 @@ namespace SpaceGame.EditorTools
                 SerializedFields.Set(so, "nozzle", rig);
                 SerializedFields.SetInt(so, "maxUses", -1);
             });
-
-            return root;
         }
 
         /// <summary>A short, stiff blue-white jet: quick particles stretched along their travel, scaled with the held item.</summary>

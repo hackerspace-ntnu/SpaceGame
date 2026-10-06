@@ -8,7 +8,8 @@
 // Sky City deck or a dune slope never reads at rest, and only the corpse's limp ceiling ends that wait.
 // Despawned on the way down: the drop is made at the last ground seen below it, never at altitude. No
 // ground ever seen (over the map's edge): nothing drops, loudly. Server only: it is only ever added where
-// the death was simulated. Not saved: see NpcFlight.md Gotchas.
+// the death was simulated. Not saved, and NpcFlightModule keeps the corpse out of the save until it is
+// done (WhenDropped): see NpcFlight.md Gotchas.
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -26,6 +27,7 @@ namespace SpaceGame.Agents
         private static bool quitting;
 
         private Action drop;
+        private Action dropped;
         private float landedHeight;
         private float searchDepth;
         private bool hasGround;
@@ -40,6 +42,25 @@ namespace SpaceGame.Agents
             waiting.landedHeight = landedHeight;
             waiting.searchDepth = searchDepth;
             waiting.rig = body.GetComponent<RagdollRig>();
+        }
+
+        /// <summary>
+        /// Run <paramref name="then"/> once <paramref name="body"/> has no loot waiting on it: when the
+        /// drop is made (or given up), or at once when nothing is held. NpcFlightModule keeps a pilot killed
+        /// aloft out of the save until then, so a save taken during the fall never keeps the pack on it.
+        /// Independent of OnDeath handler order: asked before the loot table has heard the death, the
+        /// table's seated-aloft latch says a drop is coming, and the waiter is made now for Begin to fill.
+        /// </summary>
+        public static void WhenDropped(GameObject body, Action then)
+        {
+            if (body == null) { then(); return; }
+
+            if (!body.TryGetComponent(out LootAwaitingGround waiting))
+            {
+                if (!body.TryGetComponent(out EntityLootTable table) || !table.DropsOnceDown) { then(); return; }
+                waiting = body.AddComponent<LootAwaitingGround>();
+            }
+            waiting.dropped += then;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -79,6 +100,7 @@ namespace SpaceGame.Agents
             {
                 Debug.LogWarning($"[Loot] '{name}' was killed aloft and taken away before any ground was seen below it; its loot was not dropped.", this);
                 drop = null;
+                Finish();
                 return;
             }
 
@@ -95,6 +117,14 @@ namespace SpaceGame.Agents
             Action pending = drop;
             drop = null;
             pending();
+            Finish();
+        }
+
+        private void Finish()
+        {
+            Action waiting = dropped;
+            dropped = null;
+            waiting?.Invoke();
         }
 
         /// <summary>

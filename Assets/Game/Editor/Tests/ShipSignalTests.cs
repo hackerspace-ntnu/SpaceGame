@@ -7,7 +7,6 @@
 // Awake or OnEnable in EditMode, so the rack is woken and registered explicitly.
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -26,8 +25,6 @@ namespace SpaceGame.Tests
 {
     public class ShipSignalTests
     {
-        private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
-
         private const string ShipPrefabPath = "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab";
         private const string TerminalPrefabPath = "Assets/Game/Prefabs/Environment/Structures/Facilities/StandingTerminal.prefab";
         private const string ChainPath = "Assets/Game/ScriptableObjects/Objectives/CrashSiteChain.asset";
@@ -39,7 +36,7 @@ namespace SpaceGame.Tests
         [TearDown]
         public void CleanUp()
         {
-            ActiveRacks().RemoveAll(r => r == null || spawned.Contains(r.gameObject));
+            TestHulls.Forget(spawned);
 
             foreach (Object o in spawned)
                 if (o != null) Object.DestroyImmediate(o);
@@ -316,39 +313,7 @@ namespace SpaceGame.Tests
 
         // ─────────────────────────── Fixture ───────────────────────────
 
-        /// <summary>
-        /// A hull with two sockets, a fitted belly motor (0) and the transmitter (1) holding its burnt-out
-        /// unit, and the signal beside the rack. Registered first, so ObjectiveWorld.Ship answers with it.
-        /// </summary>
-        private ShipPartRack Rack(out ShipSignal signal)
-        {
-            var root = Track(new GameObject("TestShip"));
-            Socket(root, "Part_Belly_A", ShipPartKind.SmallMotor);
-            Socket(root, "Part_Transmitter_A", ShipPartKind.Transmitter);
-
-            var rack = root.AddComponent<ShipPartRack>();
-            var rso = new SerializedObject(rack);
-            rso.FindProperty("authoredInstalledMask").intValue = 0b01;
-            rso.FindProperty("authoredBrokenMask").intValue = 0b10;
-            rso.ApplyModifiedPropertiesWithoutUndo();
-            typeof(ShipPartRack).GetMethod("Awake", Hidden).Invoke(rack, null);
-
-            signal = root.AddComponent<ShipSignal>();
-
-            List<ShipPartRack> racks = ActiveRacks();
-            racks.RemoveAll(r => r == null);
-            racks.Insert(0, rack);
-            return rack;
-        }
-
-        private static void Socket(GameObject root, string name, ShipPartKind kind)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(root.transform, false);
-            var so = new SerializedObject(go.AddComponent<ShipPartSocket>());
-            so.FindProperty("kind").enumValueIndex = (int)kind;
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
+        private ShipPartRack Rack(out ShipSignal signal) => TestHulls.TransmitterRack(spawned, broken: true, out signal);
 
         private static TelemetrySnapshot Snapshot(int installedMask)
         {
@@ -384,10 +349,6 @@ namespace SpaceGame.Tests
             spawned.Add(o);
             return o;
         }
-
-        private static List<ShipPartRack> ActiveRacks() =>
-            (List<ShipPartRack>)typeof(ShipPartRack)
-                .GetField("active", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
 
         private static JObject RoundTrip(object captured) =>
             captured == null ? null : JObject.Parse(JsonConvert.SerializeObject(captured, SaveSerializer.Settings));

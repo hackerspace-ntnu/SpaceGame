@@ -184,7 +184,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.88, y: 0.35799998, z: 0.36004984}
+  m_Size: {x: 1.3199999, y: 0.5369998, z: 0.5400748}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &7627548566155297276
 MonoBehaviour:
@@ -324,8 +324,8 @@ MonoBehaviour:
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.84
-  packSize: 0
+  holdSize: 1.26
+  packSize: 0.95
   sizeReference: {fileID: 7494725931636510544}
   confinedToSurfaces: 
   keepColliders: 0
@@ -382,11 +382,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aad96b205d6824d3aadb34dd8e4d0c6d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.17899998
+      value: -0.26849994
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aad96b205d6824d3aadb34dd8e4d0c6d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.000000021338462
+      value: 0.00000003200769
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: aad96b205d6824d3aadb34dd8e4d0c6d, type: 3}
       propertyPath: m_LocalRotation.w

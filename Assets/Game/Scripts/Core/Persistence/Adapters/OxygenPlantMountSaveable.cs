@@ -40,13 +40,18 @@ namespace SpaceGame.Core.Persistence
             // files, so they stay. A non-zero furrowTo means "already thrown out once".
             public Vector3 furrowFrom;
             public Vector3 furrowTo;
+
+            // Appended 2026-10-06: somebody has seated a filled bottle since the plant came back. Absent in older records,
+            // where it reads false — and the plant sets it again the first frame it runs with a full bottle seated, which
+            // every crew member in a world from before the crash vent has.
+            public bool refilled;
         }
 
         public object CaptureState()
         {
             if (Mount == null || (!Mount.Detached && !Mount.HasBeenEjected)) return null;
 
-            return new State { detached = Mount.Detached, furrowFrom = Mount.EjectedFrom, furrowTo = Mount.EjectedTo };
+            return new State { detached = Mount.Detached, furrowFrom = Mount.EjectedFrom, furrowTo = Mount.EjectedTo, refilled = Mount.AirRefilled };
         }
 
         public void RestoreState(JObject state)
@@ -56,11 +61,13 @@ namespace SpaceGame.Core.Persistence
             if (state == null)
             {
                 Mount.Restore(false, Vector3.zero, Vector3.zero);
+                Mount.RestoreRefilled(false);
                 return;
             }
 
             var restored = state.ToObject<State>(SaveSerializer.Serializer);
             Mount.Restore(restored.detached, restored.furrowFrom, restored.furrowTo);
+            Mount.RestoreRefilled(restored.refilled);
         }
     }
 }

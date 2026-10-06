@@ -124,7 +124,9 @@ namespace SpaceGame.Items
                     plantMountResolved = true;
                 }
 
-                return plantMount == null || plantMount.Running;
+                // The plant running is not enough: the fire waits until the crew have air again — a filled bottle seated
+                // in somebody's pack — so the refill is its own beat before the fire.
+                return plantMount == null || (plantMount.Running && plantMount.AirRefilled);
             }
         }
 

@@ -21,6 +21,23 @@ namespace SpaceGame.Agents
         /// </summary>
         public const float SelfAimDrop = 0.5f;
 
+        /// <summary>
+        /// A use aimed from <paramref name="origin"/> at <paramref name="aimPoint"/>, under
+        /// <paramref name="slotCode"/>; faces <paramref name="fallback"/> when the two points coincide.
+        /// </summary>
+        public static NetArg AimedArg(int slotCode, Vector3 origin, Vector3 aimPoint, Quaternion fallback)
+        {
+            Vector3 direction = aimPoint - origin;
+            return new NetArg
+            {
+                A = slotCode,
+                P = origin,
+                R = direction.sqrMagnitude > UsableItem.MinAimDistanceSqr
+                    ? Quaternion.LookRotation(direction.normalized, Vector3.up)
+                    : fallback,
+            };
+        }
+
         public static void Fire(Component host, UsableItem item, NetArg arg)
         {
             // Owner-side hook first, exactly as the player path does it: an item that describes its own

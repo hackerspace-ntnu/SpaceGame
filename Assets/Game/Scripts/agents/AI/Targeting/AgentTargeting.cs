@@ -252,6 +252,7 @@ namespace SpaceGame.Agents
 
             // The artifacts the agent is actually carrying or wearing: an NPC holding a looted rifle that
             // reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to join.
+            // A module with nothing to fire reads 0 (ItemUseModuleBase.MaxRange): a bare forearm widens nothing.
             foreach (ItemUseModuleBase item in GetComponents<ItemUseModuleBase>())
                 weaponRange = Mathf.Max(weaponRange, item.MaxRange);
 
@@ -280,13 +281,27 @@ namespace SpaceGame.Agents
             PhaseTimers();
             if (health != null)
                 health.OnDamage += HandleDamaged;
+
+            // Worn gear goes on after Awake (Start, the server's spawn) and comes off when looted, so
+            // the reach is re-read whenever a module's changes rather than only at startup.
+            itemUseModules = GetComponents<ItemUseModuleBase>();
+            foreach (ItemUseModuleBase item in itemUseModules)
+                item.ReachChanged += RecomputeEffectiveRanges;
+            RecomputeEffectiveRanges();
         }
 
         private void OnDisable()
         {
             if (health != null)
                 health.OnDamage -= HandleDamaged;
+
+            if (itemUseModules != null)
+                foreach (ItemUseModuleBase item in itemUseModules)
+                    if (item != null) item.ReachChanged -= RecomputeEffectiveRanges;
         }
+
+        // The modules subscribed to in OnEnable, so OnDisable unsubscribes from exactly those.
+        private ItemUseModuleBase[] itemUseModules;
 
         // The cached authority lookup walks up to the nearest NetworkObject, and reparenting is the
         // only thing that changes which one that is. See AgentAuthority.Invalidate.

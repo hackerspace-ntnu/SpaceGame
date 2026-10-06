@@ -4,6 +4,7 @@
 // Side-effect module, so it never claims the frame. It does claim the FACING channel, which is the
 // whole reason that channel exists — the NPC keeps its weapon on target while Chase, Flee or the
 // formation still own where its feet go.
+using System;
 using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Gameplay;
@@ -89,10 +90,19 @@ namespace SpaceGame.Agents
         public int FacingPriority => facingPriority;
 
         /// <summary>
-        /// Read by AgentTargeting at Awake so acquisition covers this weapon's reach. An NPC that
-        /// can shoot further than it can see never starts the fight it is equipped for.
+        /// Read by AgentTargeting so acquisition covers this weapon's reach. An NPC that can shoot
+        /// further than it can see never starts the fight it is equipped for. Zero with nothing to
+        /// use, so a bare forearm does not widen it.
         /// </summary>
-        public float MaxRange => trigger == Trigger.TargetInRange ? maxRange : 0f;
+        public float MaxRange => trigger == Trigger.TargetInRange && User != null ? maxRange : 0f;
+
+        /// <summary>
+        /// What this module can fire changed after startup (a gauntlet worn, taken off, opted in), so
+        /// <see cref="MaxRange"/> may have. AgentTargeting re-reads its ranges on it.
+        /// </summary>
+        public event Action ReachChanged;
+
+        protected void RaiseReachChanged() => ReachChanged?.Invoke();
 
         private HealthComponent health;
         private PerceptionModule perception;

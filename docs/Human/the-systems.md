@@ -196,7 +196,7 @@ A cart used to be a prop glued to a pair of hands, held up over the head with it
 
 ### Lifting something heavy by one end *(Lifting)*
 
-The oxygen plant the crash throws out of the ship is too heavy to pick up, so you lift one end of it. Right-click its handle and your character squats, takes hold and heaves the near end up to the waist; the far end stays on the sand and slides after you, swinging round when you turn and riding up ramps and over bumps. You walk a little slower than usual, cannot sprint or jump, and Esc or right-click puts it down again where you stand.
+The oxygen plant the crash throws out of the ship is too heavy to pick up, so you lift one end of it. Right-click its handle and your character squats, takes hold and heaves the near end up to the waist; the far end stays on the sand and slides after you, swinging round when you turn and riding up ramps and over bumps. You walk a little slower than usual, cannot sprint or jump, and Esc or right-click puts it down again where you stand; carry it to the empty frame on the ship's wall and right-click there to set it back in its mount.
 
 **Worth knowing:** the lifted end is drawn from your own body on your own screen, so it never lags your hands; everyone else sees it follow your character. Only one person can carry it at a time, and a world saved mid-carry reloads with the plant lying where you were carrying it.
 

@@ -385,15 +385,8 @@ namespace SpaceGame.Agents
             aimPoint = worldAimPoint;
             hasAimPoint = true;
 
-            Vector3 origin = FireOrigin;
-            Vector3 direction = worldAimPoint - origin;
-
-            var arg = new NetArg { A = equippedSlotIndex, P = origin };
-            arg.R = direction.sqrMagnitude > 0.0001f
-                ? Quaternion.LookRotation(direction.normalized, Vector3.up)
-                : transform.rotation;
-
-            NpcItemFire.Fire(this, equippedUsable, arg);
+            NpcItemFire.Fire(this, equippedUsable,
+                             NpcItemFire.AimedArg(equippedSlotIndex, FireOrigin, worldAimPoint, transform.rotation));
 
             return true;
         }
@@ -440,7 +433,7 @@ namespace SpaceGame.Agents
             Transform item = equippedObject.transform;
 
             Vector3 direction = aimPoint - item.position;
-            if (direction.sqrMagnitude < 0.0001f) return;
+            if (direction.sqrMagnitude < UsableItem.MinAimDistanceSqr) return;
 
             Quaternion wanted = Quaternion.LookRotation(direction.normalized, Vector3.up);
 

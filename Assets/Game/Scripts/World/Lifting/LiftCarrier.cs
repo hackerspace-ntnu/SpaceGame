@@ -25,7 +25,7 @@ namespace SpaceGame.World
         private enum Phase { Free, Lifting, Carrying, Lowering }
 
         [Tooltip("How far from the shoulders the hands carry the grips, as a fraction of the arm's length: 1 is a straight arm.")]
-        [SerializeField, Range(0.5f, 1f)] private float armReach = 0.98f;
+        [SerializeField, Range(0.5f, 1f)] private float armReach = 0.92f;
 
         [Tooltip("How far below the shoulders the hands carry the grips, as a fraction of the arm's length. Near 1 is the waist " +
                  "of a body whose arms hang almost straight, which is how a heavy end is carried.")]
@@ -77,7 +77,7 @@ namespace SpaceGame.World
             shape = target.Shape;
             bodyColliders = GetComponentsInChildren<Collider>(false);
             load.SetSeenByGround(bodyColliders, false);
-            load.SetCarried(true);
+            load.SetHeldBy(this);
 
             from = new Pose(load.transform.position, load.transform.rotation);
             heading = LiftPoseSolver.Flat(load.transform.rotation * shape.Axis);
@@ -120,15 +120,27 @@ namespace SpaceGame.World
 
         private void OnDisable() => Drop();
 
+        private void Forget()
+        {
+            load = null;
+            phase = Phase.Free;
+            bodyColliders = Array.Empty<Collider>();
+            if (language != null) language.OccupyArms(BodyArms.None);
+        }
+
         private Liftable Detach()
         {
             Liftable let = load;
-            if (let == null) return null;
+            if (let == null)
+            {
+                Forget();
+                return null;
+            }
 
             load = null;
             phase = Phase.Free;
             let.SetSeenByGround(bodyColliders, true);
-            let.SetCarried(false);
+            let.SetHeldBy(null);
             bodyColliders = Array.Empty<Collider>();
             if (language != null) language.OccupyArms(BodyArms.None);
             return let;
@@ -139,7 +151,12 @@ namespace SpaceGame.World
         /// <summary>Poses the load on the body and reaches the arms for its grips. Every frame from LateUpdate; public so a test can step it.</summary>
         public void Follow(float deltaTime)
         {
-            if (load == null) return;
+            if (load == null)
+            {
+                // Destroyed under the hands (despawned into its mount mid-lowering): nothing left to hand back but the arms.
+                if (!ReferenceEquals(load, null)) Forget();
+                return;
+            }
 
             elapsed += deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
@@ -150,7 +167,7 @@ namespace SpaceGame.World
             probeFrom = Mathf.Max(carryPoint.y, load.transform.position.y) + ProbeAboveHands;
             // Not before the hands close on it: the load lies still while the body bends down to it.
             if (phase != Phase.Lifting || t >= load.GripFraction)
-                heading = LiftPoseSolver.Swing(heading, transform.forward, load.SwingRate, deltaTime);
+                heading = LiftPoseSolver.Swing(heading, transform.forward, load.SwingRate, deltaTime, load.MaxSwingLag);
 
             Pose restingGrip = new Pose(from.position + from.rotation * shape.Grip, from.rotation);
             Vector3 grip;

@@ -51,6 +51,11 @@ namespace SpaceGame.Gameplay
         [Tooltip("The elevation the model was authored at.")]
         [SerializeField] private float restElevation = 40f;
 
+        [Tooltip("Where a new world's dish points, degrees above the horizon: nearly straight up, so the " +
+                 "transmitter on its feed horn is out of reach until somebody turns the dish down from the " +
+                 "control room. Clamped to the elevation motor's limits. Azimuth starts at its rest.")]
+        [SerializeField] private float startElevation = 85f;
+
         [Header("Motors")]
         [SerializeField] private SlewMotor azimuthMotor = new() { MaxSpeed = 6f, Acceleration = 4f, Wraps = true };
 
@@ -117,13 +122,13 @@ namespace SpaceGame.Gameplay
             ApplyPose();
         }
 
-        /// <summary>The authored angles: what a dish nobody has touched stands at.</summary>
-        public bool IsAtRest(float tolerance) =>
+        /// <summary>The starting angles: what a dish nobody has touched stands at, and what no save record means.</summary>
+        public bool IsAtStart(float tolerance) =>
             Mathf.Abs(Mathf.DeltaAngle(Azimuth, restAzimuth)) <= tolerance &&
-            Mathf.Abs(Elevation - restElevation) <= tolerance;
+            Mathf.Abs(Elevation - StartElevation) <= tolerance;
 
-        public float RestAzimuth => restAzimuth;
-        public float RestElevation => restElevation;
+        public float StartAzimuth => restAzimuth;
+        public float StartElevation => DishSlew.Clamp(startElevation, elevationMotor);
 
         private void Awake()
         {
@@ -133,7 +138,8 @@ namespace SpaceGame.Gameplay
             if (elevationPivot != null) elevationRest = elevationPivot.localRotation;
 
             azimuth = new SlewAxis(DishSlew.Clamp(restAzimuth, azimuthMotor));
-            elevation = new SlewAxis(DishSlew.Clamp(restElevation, elevationMotor));
+            elevation = new SlewAxis(StartElevation);
+            ApplyPose();
         }
 
         public override void OnNetworkSpawn()

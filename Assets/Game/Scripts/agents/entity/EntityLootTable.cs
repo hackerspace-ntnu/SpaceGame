@@ -52,6 +52,9 @@ namespace SpaceGame.Agents
         // letting the body go before this table hears OnDeath (handler order) cannot turn it into a ground death.
         private bool seatedAloft;
 
+        /// <summary>A death now hands the drop to <see cref="LootAwaitingGround"/> (seated aloft, latched).</summary>
+        internal bool DropsOnceDown => seatedAloft;
+
         private void Awake()
         {
             health = GetComponent<HealthComponent>();

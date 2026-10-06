@@ -103,7 +103,8 @@ namespace SpaceGame.EditorTools
                 heading = next;
             }
 
-            Assert.Less(largestStep, 2f, "a 90 degree turn snapped the load round instead of swinging it.");
+            // A body that snaps 90 degrees in one frame moves the load at most a twelfth of the way at 60 fps.
+            Assert.Less(largestStep, 10f, "a 90 degree turn snapped the load round instead of swinging it.");
             Assert.Less(Vector3.Angle(heading, Vector3.right), 1f, "two seconds after a turn the load has still not followed.");
         }
 
@@ -146,8 +147,9 @@ namespace SpaceGame.EditorTools
             (GameObject body, Liftable plant, _) = Lifted();
 
             float height = plant.GripPoint.y - Stage;
+            float hips = body.GetComponentInChildren<Animator>(true).GetBoneTransform(HumanBodyBones.Hips).position.y - Stage;
             float ahead = Vector3.Dot(plant.GripPoint - body.transform.position, body.transform.forward);
-            Assert.That(height, Is.InRange(1.2f, 1.9f), "the lifted end is not at a 3 m player's waist.");
+            Assert.That(height, Is.InRange(hips - 0.2f, hips + 0.5f), $"the lifted end ({height:0.00} m) is not at the waist (hips {hips:0.00} m).");
             Assert.That(ahead, Is.InRange(0.35f, 0.9f), "the lifted end is inside the body or out at arm's length.");
         }
 
@@ -235,8 +237,17 @@ namespace SpaceGame.EditorTools
             var body = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath));
             body.hideFlags = HideFlags.DontSave;
             Vector3 grips = plant.GripPoint;
-            body.transform.SetPositionAndRotation(new Vector3(grips.x, Stage, grips.z - 0.6f), Quaternion.identity);
+
+            // The player's root is not at its feet: its 3 m capsule reaches a metre below it, which is where the ground is.
+            CapsuleCollider capsule = body.GetComponentsInChildren<CapsuleCollider>(true).First(c => !c.isTrigger);
+            float rootAboveFeet = -capsule.transform.TransformPoint(capsule.center - Vector3.up * capsule.height * 0.5f).y;
+            body.transform.SetPositionAndRotation(new Vector3(grips.x, Stage + rootAboveFeet, grips.z - 0.6f), Quaternion.identity);
             made.Add(body);
+
+            // The idle pose, so the shoulders are where they stand in play rather than in the asset's bind pose.
+            Animator animator = body.GetComponentInChildren<Animator>(true);
+            animator.Rebind();
+            animator.Update(0f);
             Physics.SyncTransforms();
 
             LiftCarrier carrier = LiftCarrier.On(body);

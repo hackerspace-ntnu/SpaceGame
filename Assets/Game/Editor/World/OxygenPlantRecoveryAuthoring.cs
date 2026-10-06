@@ -5,14 +5,18 @@
 //     the two grips on it, a heel under them and a foot under the far end, a kinematic body that is NOT interpolated (it is posed
 //     in LateUpdate and an interpolating body puts itself back), and no NetworkTransform (its pose is derived on every machine
 //     from the carrier's body, so a replicated one would fight it).
-//   * PlayerShip.prefab — the mounted plant's fixture gains its cracks: a TorchRepairable with three seams on its front face, a
-//     glowing crack on each and a light that follows the one being worked, its saver, and the mount's reference to it.
+//   * PlayerShip.prefab — the mounted plant's fixture gains its cracks (a TorchRepairable with three seams on its front face, a
+//     glowing crack on each and a light that follows the one being worked, its saver), its status lamps (green running, red
+//     cracked, amber unpowered), and the EmptyMount shown while the plant is out: the torn frame, three ripped cables that
+//     spark and crackle, and the LiftDock volume the carried plant is set in through. Also the transmitter fire's ignite
+//     delay, which the plant coming online now sets off almost at once.
 //
 // PlayerShip.prefab is written by other sessions too: take the scratchpad's playership.lock before running the second item.
 using System.Collections.Generic;
 using System.Linq;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 using SpaceGame.Presentation;
 using SpaceGame.World;
 using Unity.Netcode.Components;
@@ -25,10 +29,13 @@ namespace SpaceGame.EditorTools
     {
         public const string LoosePlantPath = "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/LooseOxygenPlant.prefab";
         public const string ShipPath = "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab";
-        public const string LiftActionPath = "Assets/Game/ScriptableObjects/Animation/Actions/Mixamo/Lift Heavy.asset";
-        public const string SetDownActionPath = "Assets/Game/ScriptableObjects/Animation/Actions/Mixamo/Set Down Heavy.asset";
+        public const string LiftActionPath = "Assets/Game/ScriptableObjects/Animation/Actions/Mixamo/Heave Load Up.asset";
+        public const string SetDownActionPath = "Assets/Game/ScriptableObjects/Animation/Actions/Mixamo/Set Load Down.asset";
         private const string BarMaterialPath = "Assets/Game/Art/Materials/Palette/Mat_Metal_Steel_Dark.mat";
         private const string SeamMaterialPath = "Assets/Game/Art/Materials/Vehicles/Mat_Emissive_Amber (DoubleSided).mat";
+        private const string LampMaterialPath = "Assets/Game/Art/Materials/Vehicles/Mat_Emissive_Green_CRT (DoubleSided).mat";
+        public const string EmptyFramePath = "Assets/Game/Art/Models/Vehicles/PlayerShip/oxygen_mount_empty.fbx";
+        private const string SparksPath = "Assets/Game/Prefabs/Items/ShipParts/TransmitterSparks.prefab";
 
         // ── The loose plant, in its own frame (it lies on its back, control head toward -Z; measured off its box collider) ──
 
@@ -59,6 +66,24 @@ namespace SpaceGame.EditorTools
         private static readonly float[] SeamTilt = { 18f, -25f, 8f };
         private static readonly Vector3 SeamSize = new(0.035f, 0.3f, 0.02f);
         private const float SeamStandOff = 0.008f;
+
+        // ── The empty mount, the dock and the lamps, in the fixture's own frame (deck at y 0, wall at z 0, aisle +Z) ──
+
+        public const string EmptyMountName = "EmptyMount";
+        private const string DockName = "PlantDock";
+        private static readonly Vector3 DockCentre = new(0f, 1.1f, 0.7f);
+        private static readonly Vector3 DockSize = new(1.4f, 2.3f, 1.4f);
+        private static readonly string[] CableEnds = { "Marker_CableEnd_A", "Marker_CableEnd_B", "Marker_CableEnd_C" };
+
+        public const string LampPrefix = "StatusLamp_";
+        private static readonly Vector2[] LampAt = { new(0.16f, 1.74f), new(0.24f, 1.74f), new(0.32f, 1.74f) };
+        private const float LampDiameter = 0.04f;
+
+        // The transmitter fire catches this long after the plant comes online (ShipPartFireTuning.igniteDelay).
+        public const float FireIgniteDelay = 3f;
+
+        // How close, flat, the carrier must stand to the mount to set the plant in (OxygenPlantMount.mountRadius).
+        public const float MountRadius = 5f;
 
         [MenuItem("Tools/SpaceGame/Oxygen/Author Liftable Loose Plant")]
         public static void AuthorLoosePlant()
@@ -113,13 +138,16 @@ namespace SpaceGame.EditorTools
             VerifyLoosePlant();
         }
 
-        [MenuItem("Tools/SpaceGame/Oxygen/Author Oxygen Plant Cracks (PlayerShip)")]
-        public static void AuthorShipCracks()
+        [MenuItem("Tools/SpaceGame/Oxygen/Author Oxygen Plant Fixture (PlayerShip)")]
+        public static void AuthorShipFixture()
         {
             var seamMaterial = AssetDatabase.LoadAssetAtPath<Material>(SeamMaterialPath);
-            if (seamMaterial == null)
+            var lampMaterial = AssetDatabase.LoadAssetAtPath<Material>(LampMaterialPath);
+            var frame = AssetDatabase.LoadAssetAtPath<GameObject>(EmptyFramePath);
+            var sparks = AssetDatabase.LoadAssetAtPath<GameObject>(SparksPath);
+            if (seamMaterial == null || lampMaterial == null || frame == null || sparks == null)
             {
-                Debug.LogError($"[OxygenPlantRecovery] No seam material at {SeamMaterialPath}.");
+                Debug.LogError($"[OxygenPlantRecovery] Missing an input: {SeamMaterialPath}, {LampMaterialPath}, {EmptyFramePath} or {SparksPath}.");
                 return;
             }
 
@@ -128,6 +156,8 @@ namespace SpaceGame.EditorTools
             {
                 Transform fixture = FixtureOf(root);
                 OxygenPlantMount mount = fixture.GetComponent<OxygenPlantMount>();
+                GameObject empty = EmptyMount(fixture, mount, frame, sparks);
+
                 TorchRepairable cracks = fixture.TryGetComponent(out TorchRepairable had) ? had : fixture.gameObject.AddComponent<TorchRepairable>();
                 if (!fixture.TryGetComponent(out TorchRepairableSaveable _)) fixture.gameObject.AddComponent<TorchRepairableSaveable>();
 
@@ -135,7 +165,7 @@ namespace SpaceGame.EditorTools
                 var glows = new List<Renderer>();
                 for (int i = 0; i < SeamAt.Length; i++)
                 {
-                    Transform seam = Seam(fixture, i, seamMaterial);
+                    Transform seam = Seam(fixture, i, seamMaterial, empty.transform);
                     seams.Add(seam);
                     glows.Add(seam.GetComponent<Renderer>());
                 }
@@ -148,7 +178,27 @@ namespace SpaceGame.EditorTools
                     SerializedFields.SetObjects(so, "seamGlows", glows);
                     SerializedFields.Set(so, "seamLight", light);
                 });
-                SerializedFields.Edit(mount, so => SerializedFields.Set(so, "damage", cracks));
+
+                OxygenPlantStatusLights lights = fixture.TryGetComponent(out OxygenPlantStatusLights hadLights)
+                    ? hadLights
+                    : fixture.gameObject.AddComponent<OxygenPlantStatusLights>();
+                var lamps = new List<Renderer>();
+                for (int i = 0; i < LampAt.Length; i++) lamps.Add(Lamp(fixture, i, lampMaterial, empty.transform));
+                SerializedFields.Edit(lights, so =>
+                {
+                    SerializedFields.Set(so, "mount", mount);
+                    SerializedFields.SetObjects(so, "lamps", lamps);
+                });
+
+                SerializedFields.Edit(mount, so =>
+                {
+                    SerializedFields.Set(so, "damage", cracks);
+                    SerializedFields.Set(so, "emptyMount", empty);
+                    SerializedFields.SetFloat(so, "mountRadius", MountRadius);
+                });
+
+                ShipPartFire fire = root.GetComponentInChildren<ShipPartFire>(true);
+                if (fire != null) SerializedFields.Edit(fire, so => SerializedFields.SetFloat(so, "tuning.igniteDelay", FireIgniteDelay));
 
                 PrefabUtility.SaveAsPrefabAsset(root, ShipPath);
             }
@@ -158,6 +208,98 @@ namespace SpaceGame.EditorTools
             }
 
             VerifyShip();
+        }
+
+        /// <summary>
+        /// What the wall shows while the plant is out, under one inactive child: the torn frame (its own model), a spark
+        /// emitter and a short circuit at each ripped cable end (read off the model's markers, never parented to them), and the
+        /// dock volume. Rebuilt from scratch on every run.
+        /// </summary>
+        private static GameObject EmptyMount(Transform fixture, OxygenPlantMount mount, GameObject frame, GameObject sparks)
+        {
+            Transform old = fixture.Find(EmptyMountName);
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+
+            var empty = new GameObject(EmptyMountName);
+            empty.transform.SetParent(fixture, false);
+
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(frame, empty.transform);
+            model.name = "Frame";
+            foreach (Collider c in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+
+            foreach (string marker in CableEnds)
+            {
+                Transform end = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == marker);
+                if (end == null) throw new System.InvalidOperationException($"[OxygenPlantRecovery] {EmptyFramePath} has no {marker}.");
+
+                var spark = (GameObject)PrefabUtility.InstantiatePrefab(sparks, empty.transform);
+                spark.name = "CableSparks_" + marker.Substring(marker.Length - 1);
+                spark.transform.position = end.position;
+                spark.transform.rotation = fixture.rotation * Quaternion.Euler(-60f, 0f, 0f);
+                var cable = spark.AddComponent<SparkingCable>();
+                SerializedFields.Edit(cable, so => SerializedFields.Set(so, "sparks", spark.GetComponentInChildren<ParticleSystem>(true)));
+            }
+
+            var dock = new GameObject(DockName);
+            dock.transform.SetParent(empty.transform, false);
+            var box = dock.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.center = DockCentre;
+            box.size = DockSize;
+            var lift = dock.AddComponent<LiftDock>();
+            SerializedFields.Edit(lift, so => SerializedFields.Set(so, "destination", mount));
+
+            empty.SetActive(false);
+            return empty;
+        }
+
+        /// <summary>One status lamp: a small emissive bead on the plant's front face, placed on the mesh like a seam.</summary>
+        private static Renderer Lamp(Transform fixture, int index, Material material, Transform skip)
+        {
+            string name = LampPrefix + (char)('A' + index);
+            Transform lamp = fixture.Find(name);
+            if (lamp == null)
+            {
+                GameObject made = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                made.name = name;
+                Object.DestroyImmediate(made.GetComponent<Collider>());
+                lamp = made.transform;
+                lamp.SetParent(fixture, false);
+            }
+
+            Vector2 at = LampAt[index];
+            lamp.localPosition = new Vector3(at.x, at.y, SurfaceDepth(fixture, at, lamp, skip) + LampDiameter * 0.25f);
+            lamp.localRotation = Quaternion.identity;
+            lamp.localScale = Vector3.one * LampDiameter;
+            Renderer renderer = lamp.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return renderer;
+        }
+
+        /// <summary>
+        /// The crew's spare bottles on the ship's gear wall come down EMPTY: the crash vents everyone's own, and filling one
+        /// at the plant is the refill beat (RefillAirStep). Only new worlds see it — a loaded wall keeps its saved contents.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Oxygen/Author Empty Crew Bottles (Gear Wall)")]
+        public static void AuthorEmptyCrewBottles()
+        {
+            const string wallPath = "Assets/Game/Prefabs/Items/Equipment/InventoryWall.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(wallPath);
+            try
+            {
+                SerializedFields.Edit(root.GetComponent<WallInventory>(), so => SerializedFields.SetFloat(so, "perCrewCharge", 0f));
+                PrefabUtility.SaveAsPrefabAsset(root, wallPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            var saved = AssetDatabase.LoadAssetAtPath<GameObject>(wallPath).GetComponent<WallInventory>();
+            float charge = new SerializedObject(saved).FindProperty("perCrewCharge").floatValue;
+            if (charge > 0f) Debug.LogError($"[OxygenPlantRecovery] {wallPath} still lays its crew bottles on at {charge:0.00}.");
+            else Debug.Log("[OxygenPlantRecovery] The gear wall's crew bottles come down empty.");
         }
 
         // ── The parts ────────────────────────────────────────────────────────
@@ -216,7 +358,7 @@ namespace SpaceGame.EditorTools
         /// One glowing crack on the fixture's front face: placed where a ray from the aisle meets the plant's own mesh, so it lies
         /// on the surface rather than floating in front of the body collider.
         /// </summary>
-        private static Transform Seam(Transform fixture, int index, Material material)
+        private static Transform Seam(Transform fixture, int index, Material material, Transform skip)
         {
             string name = SeamPrefix + (char)('A' + index);
             Transform seam = fixture.Find(name);
@@ -230,7 +372,7 @@ namespace SpaceGame.EditorTools
             }
 
             Vector2 at = SeamAt[index];
-            float depth = SurfaceDepth(fixture, at, seam);
+            float depth = SurfaceDepth(fixture, at, seam, skip);
             seam.localPosition = new Vector3(at.x, at.y, depth + SeamStandOff);
             seam.localRotation = Quaternion.Euler(0f, 0f, SeamTilt[index]);
             seam.localScale = SeamSize;
@@ -241,15 +383,15 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>How far toward the aisle (+Z) the plant's front surface is at (x, y), in the fixture's frame: the nearest mesh hit.</summary>
-        private static float SurfaceDepth(Transform fixture, Vector2 at, Transform skip)
+        private static float SurfaceDepth(Transform fixture, Vector2 at, Transform self, Transform skip)
         {
             float best = float.NegativeInfinity;
             var from = new Vector3(at.x, at.y, 3f);
 
             foreach (MeshFilter filter in fixture.GetComponentsInChildren<MeshFilter>(true))
             {
-                if (filter.sharedMesh == null || filter.transform == skip || filter.name.StartsWith(SeamPrefix)) continue;
-                if (filter.name.StartsWith("Marker_")) continue;
+                if (filter.sharedMesh == null || filter.transform == self || filter.transform.IsChildOf(skip)) continue;
+                if (filter.name.StartsWith(SeamPrefix) || filter.name.StartsWith(LampPrefix) || filter.name.StartsWith("Marker_")) continue;
 
                 Mesh mesh = filter.sharedMesh;
                 Vector3[] vertices = mesh.vertices;
@@ -356,9 +498,17 @@ namespace SpaceGame.EditorTools
                 else if (cracks.SeamCount != SeamAt.Length) problems.Add($"{cracks.SeamCount} seams, not {SeamAt.Length}");
                 if (fixture.GetComponent<TorchRepairableSaveable>() == null) problems.Add("no TorchRepairableSaveable");
                 if (fixture.GetComponent<OxygenPlantMount>().Damage != cracks) problems.Add("the mount does not reference its cracks");
+                Transform empty = fixture.Find(EmptyMountName);
+                if (empty == null || empty.gameObject.activeSelf) problems.Add("no inactive EmptyMount");
+                else if (empty.GetComponentInChildren<LiftDock>(true) == null) problems.Add("the empty mount has no dock");
+                else if (empty.GetComponentsInChildren<SparkingCable>(true).Length != CableEnds.Length) problems.Add("the cables do not all spark");
+                if (fixture.GetComponent<OxygenPlantStatusLights>() == null) problems.Add("no status lamps");
+                ShipPartFire fire = saved.GetComponentInChildren<ShipPartFire>(true);
+                if (fire != null && !Mathf.Approximately(new SerializedObject(fire).FindProperty("tuning.igniteDelay").floatValue, FireIgniteDelay))
+                    problems.Add("the transmitter fire still waits its old delay");
 
                 if (problems.Count > 0) Debug.LogError("[OxygenPlantRecovery] PlayerShip: " + string.Join("; ", problems));
-                else Debug.Log("[OxygenPlantRecovery] The ship's oxygen plant has its cracks.");
+                else Debug.Log("[OxygenPlantRecovery] The ship's oxygen plant has its cracks, lamps, empty mount and dock.");
             }
             finally
             {

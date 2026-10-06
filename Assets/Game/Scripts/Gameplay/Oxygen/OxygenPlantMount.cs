@@ -15,8 +15,9 @@ namespace SpaceGame.Gameplay
     /// At the first landing of a world (<see cref="ArrivalDirector.HullLanded"/>) the back door
     /// bursts open and the plant is thrown out: the mounted plant goes dark and untouchable, a
     /// loose copy (<see cref="Liftable"/>) is spawned on the ground behind the door, and a few scraps
-    /// lie strewn along the line it flew, from the door to where it came to rest. Carried back to
-    /// within <see cref="mountRadius"/>, the loose copy is despawned and the plant is in its mount again —
+    /// lie strewn along the line it flew, from the door to where it came to rest. Carried back
+    /// to its mount and set in by pressing interact at the empty mount (<see cref="LiftDock"/>, the carrier
+    /// within <see cref="mountRadius"/>), the loose copy is despawned and the plant is in its mount again —
     /// the pattern a ship module follows, whose fitted mesh always lives in the ship — but cracked
     /// (<see cref="TorchRepairable"/>): it runs only once its seams are soldered shut.
     /// </para>
@@ -50,8 +51,13 @@ namespace SpaceGame.Gameplay
                  "mount without one takes its plant back whole.")]
         [SerializeField] private TorchRepairable damage;
 
-        [Tooltip("How close, ignoring height, the carried plant must come to its mount to snap in.")]
-        [SerializeField, Min(0.2f)] private float mountRadius = 1.6f;
+        [Tooltip("How close, ignoring height, the CARRIER must stand to the mount to set the plant in. Generous: the plant " +
+                 "is 3.8 m long and carried out in front of them.")]
+        [SerializeField, Min(0.2f)] private float mountRadius = 5f;
+
+        [Tooltip("What the wall shows while the plant is out: the empty frame, the ripped cables and their sparks, and the " +
+                 "dock volume the carried plant is set in through. Authored inactive; shown only while the plant is out.")]
+        [SerializeField] private GameObject emptyMount;
 
         [Header("Crash debris")]
         [Tooltip("Small visual-only pieces (models, no colliders or saved state) strewn along the line " +
@@ -69,7 +75,13 @@ namespace SpaceGame.Gameplay
         [Tooltip("How far a piece is sunk into the sand, in metres, so none sits on it like a toy.")]
         [SerializeField, Min(0f)] private float debrisSink = 0.08f;
 
+        [Header("The crew's air")]
+        [Tooltip("How full a bottle seated in a crew member's pack socket must be to count as the crew having air again " +
+                 "after the crash, 0-1. The transmitter fire waits for it.")]
+        [SerializeField, Range(0.05f, 1f)] private float refilledFraction = 0.9f;
+
         private readonly NetworkVariable<bool> networkDetached = new();
+        private readonly NetworkVariable<bool> networkRefilled = new();
         private readonly NetworkVariable<Vector3> networkEjectedFrom = new();
         private readonly NetworkVariable<Vector3> networkEjectedTo = new();
 
@@ -82,6 +94,7 @@ namespace SpaceGame.Gameplay
         private readonly List<Renderer> hiddenRenderers = new();
         private readonly List<Collider> hiddenColliders = new();
         private bool detached;
+        private bool refilled;
         private Vector3 ejectedFrom;
         private Vector3 ejectedTo;
         private bool spawned;
@@ -101,6 +114,12 @@ namespace SpaceGame.Gameplay
 
         /// <summary>The plant's cracks, if it has any to have.</summary>
         public TorchRepairable Damage => damage;
+
+        /// <summary>
+        /// Somebody has seated a filled bottle in their pack since the plant came back online — the crew can breathe outside
+        /// the ship again. Once true it stays true; the transmitter fire and the refill objective wait for it.
+        /// </summary>
+        public bool AirRefilled => refilled;
 
         /// <summary>In its mount, whole and powered: the cabin has air.</summary>
         public bool Running => !detached && !Damaged && Generator != null && Generator.Powered;
@@ -158,6 +177,7 @@ namespace SpaceGame.Gameplay
         {
             spawned = true;
             networkDetached.OnValueChanged += OnWireChanged;
+            networkRefilled.OnValueChanged += OnWireChanged;
             networkEjectedTo.OnValueChanged += OnWireVectorChanged;
 
             if (IsServer) Publish();
@@ -168,6 +188,7 @@ namespace SpaceGame.Gameplay
         {
             spawned = false;
             networkDetached.OnValueChanged -= OnWireChanged;
+            networkRefilled.OnValueChanged -= OnWireChanged;
             networkEjectedTo.OnValueChanged -= OnWireVectorChanged;
         }
 
@@ -179,11 +200,36 @@ namespace SpaceGame.Gameplay
             if (Network.Simulates(this)) return;
 
             detached = networkDetached.Value;
+            refilled = networkRefilled.Value;
             ejectedFrom = networkEjectedFrom.Value;
             ejectedTo = networkEjectedTo.Value;
         }
 
-        private void Update() => Present();
+        private void Update()
+        {
+            if (Network.Simulates(this) && !refilled && Running && AnyBottleRefilled()) SetRefilled(true);
+            Present();
+        }
+
+        /// <summary>SERVER: is a filled bottle seated in any suit's pack socket?</summary>
+        private bool AnyBottleRefilled()
+        {
+            foreach (SuitOxygen suit in SuitOxygen.Every)
+                if (suit != null && suit.TankConnected && suit.TankFraction >= refilledFraction) return true;
+            return false;
+        }
+
+        /// <summary>SERVER: the save system's way in for the crew's air.</summary>
+        public void RestoreRefilled(bool isRefilled)
+        {
+            if (Network.Simulates(this)) SetRefilled(isRefilled);
+        }
+
+        private void SetRefilled(bool isRefilled)
+        {
+            refilled = isRefilled;
+            Publish();
+        }
 
         // ── The crash (SERVER) ───────────────────────────────────────────────
 
@@ -209,6 +255,12 @@ namespace SpaceGame.Gameplay
 
             if (burstDoor != null) burstDoor.SetOpenByAuthority(true);
 
+            // The crash vents every crew member's bottle: they are on the suit's emergency reserve until a bottle is filled
+            // at this plant and seated again.
+            foreach (SuitOxygen suit in SuitOxygen.Every)
+                if (suit != null) suit.EnterCrashReserve();
+
+            refilled = false;
             Set(true, from, to);
             return true;
         }
@@ -260,6 +312,7 @@ namespace SpaceGame.Gameplay
             if (!spawned || !IsServer) return;
 
             networkDetached.Value = detached;
+            networkRefilled.Value = refilled;
             networkEjectedFrom.Value = ejectedFrom;
             networkEjectedTo.Value = ejectedTo;
         }
@@ -284,6 +337,10 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private void ShowPlant(bool shown)
         {
+            // The empty mount is the plant's opposite, and is never itself one of the hidden parts: it is inactive while the
+            // plant is in, so the searches below do not find it.
+            if (shown && emptyMount != null) emptyMount.SetActive(false);
+
             if (!shown)
             {
                 foreach (Renderer r in GetComponentsInChildren<Renderer>())
@@ -293,6 +350,7 @@ namespace SpaceGame.Gameplay
                     if (c.enabled) { c.enabled = false; hiddenColliders.Add(c); }
 
                 foreach (Light l in GetComponentsInChildren<Light>()) l.enabled = false;
+                if (emptyMount != null) emptyMount.SetActive(true);
                 return;
             }
 

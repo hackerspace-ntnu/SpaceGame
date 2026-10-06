@@ -102,8 +102,8 @@ namespace SpaceGame.Items
             return new Ray(transform.position, transform.forward);
         }
 
-        // An aim point closer than a centimetre names no direction.
-        private const float MinAimDistanceSqr = 1e-4f;
+        /// <summary>An aim point closer than this (squared; a centimetre) names no direction.</summary>
+        public const float MinAimDistanceSqr = 1e-4f;
 
         /// <summary>
         /// What the owner reported about this use — chiefly where they were aiming.

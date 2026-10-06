@@ -73,7 +73,7 @@ that. (From the old crash site, (2974, 571), it led to `outpost (1)`, 676 m at 2
 | `SignalDestination` | `INetworkSerializable` value: `Received`, `HasDestination`, `Id`, `Origin`, `Position`, `Radius`; `To(...)`, `Nowhere` |
 | `SignalDestinationRule` | `TryChoose`, `Welcomes`, `FlatDistance`, `Bearing` (clockwise from +Z) |
 | `ShipSignalSaveable` | Key `shipSignal`: `{ received, id, origin, x, y, z, radius }`; null until heard. Hand-placed on the prefab |
-| `FitTransmitterStep` | `fit-transmitter`: status by socket state and fire phase; waypoint the socket while broken, the loose transmitter after; met by a working one fitted |
+| `FitTransmitterStep` | `fit-transmitter`: status by socket state and fire phase; waypoint the socket while broken, the transmitter on the dish (the one tower marker), then loose or home; two remarks (tower, hook); met by a working one fitted. See [SatelliteDish.md](SatelliteDish.md) |
 | `AnswerSignalStep` | `answer-signal`: begins once `Received`; waypoint + beacon on the destination; met when a crew member is within `Radius + arrivalMargin` (15 m); met at once for `Nowhere` |
 
 ## Flows

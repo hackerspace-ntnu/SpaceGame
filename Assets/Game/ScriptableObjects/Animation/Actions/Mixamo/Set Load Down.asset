@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
-  m_Name: Lift Heavy
+  m_Name: Set Load Down
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
   slot: 0
   playback: 0
   variants:
-  - clip: {fileID: -203655887218126122, guid: 7d1c53212070a97459fd989c5311ca96, type: 3}
+  - clip: {fileID: 4061839508520268033, guid: 7d1c53212070a97459fd989c5311ca96, type: 3}
     aimDown: {fileID: 0}
     aimUp: {fileID: 0}
     enter: {fileID: 0}
@@ -24,9 +24,9 @@ MonoBehaviour:
     contactAt: 0
   authoredHand: 0
   mirrorForOtherArm: 0
-  speedRange: {x: 1.6, y: 1.6}
-  fadeIn: 0.25
-  fadeOut: 0.5
+  speedRange: {x: 2, y: 2}
+  fadeIn: 0.2
+  fadeOut: 0.35
   marks: []
   reach: {x: 0, y: 0, z: 0}
   cues: []

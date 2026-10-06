@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 166384515796824267}
   serializedVersion: 2
   m_LocalRotation: {x: 0.030690195, y: 0.70644045, z: 0.030690225, w: 0.7064405}
-  m_LocalPosition: {x: 0, y: 0.022647982, z: 0.24899456}
+  m_LocalPosition: {x: 0, y: 0.022562927, z: 0.24997073}
   m_LocalScale: {x: 0.010000002, y: 0.01, z: 0.010000003}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -53,11 +53,12 @@ MonoBehaviour:
   - {fileID: 637475828258982536}
   holders: {fileID: 0}
   shapes: {fileID: 11400000, guid: b3edc3a708c9944d3a4df57c20109e1f, type: 2}
-  displayScale: 0.9977324
+  displayScale: 1.3233083
   startingStrapItems: []
   startingMainItems:
   - {fileID: 11400000, guid: e146236e80756b24c9c79380c7632b66, type: 2}
   perCrewItems: []
+  perCrewCharge: 1
   takeReach:
     maxDistance: 4
     needsLineOfSight: 1
@@ -106,8 +107,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.9, y: 0.35799998, z: 0.38004985}
-  m_Center: {x: 0, y: 0.204, z: 0}
+  m_Size: {x: 1.34, y: 0.557, z: 0.56}
+  m_Center: {x: 0, y: 0.306, z: 0}
 --- !u!1 &631428403172795595
 GameObject:
   m_ObjectHideFlags: 0
@@ -1582,7 +1583,7 @@ Transform:
   m_GameObject: {fileID: 2863978645531290001}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.47142854, y: 0.025, z: -0.18857142}
+  m_LocalPosition: {x: -0.6877895, y: 0.0375, z: -0.3126316}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1601,7 +1602,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PackSurface
   id: 7
-  size: {x: 0.945, y: 0.378}
+  size: {x: 1.0395, y: 0.4725}
   acceptsOnly:
   - {fileID: 11400000, guid: e146236e80756b24c9c79380c7632b66, type: 2}
 --- !u!1 &2949656690389845668
@@ -5185,6 +5186,7 @@ GameObject:
   - component: {fileID: 685382181911518902}
   - component: {fileID: 1568678408399260863}
   - component: {fileID: 2112719154929556882}
+  - component: {fileID: 736279454246371571}
   m_Layer: 0
   m_Name: DishConsole
   m_TagString: Untagged
@@ -5278,6 +5280,23 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   rig: {fileID: 849768010505008050}
   session: {fileID: 1568678408399260863}
+  hookBoard: {fileID: 182244109720596250}
+  hookItem: {fileID: 11400000, guid: a8ed2d0bd649a40a689b18f4aea02731, type: 2}
+  lockedPrompt: Dish drives unresponsive
+  refusedSound: 508
+  transmitterCradle: {fileID: 5916209808524614745}
+--- !u!114 &736279454246371571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7856403912558617844}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a3a5757c3ec5ce4db948d0f1e5ade6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.DishConsoleSaveable
 --- !u!1 &8021583416622030203
 GameObject:
   m_ObjectHideFlags: 0
@@ -5484,6 +5503,7 @@ MonoBehaviour:
   elevationAxis: {x: -1, y: -0, z: -0}
   restAzimuth: 0
   restElevation: 40
+  startElevation: 85
   azimuthMotor:
     MaxSpeed: 6
     Acceleration: 4
@@ -6380,6 +6400,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 336aa98b9efc1457ca65a4256d43136c, type: 3}
+--- !u!114 &182244109720596250 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1723975013855308988, guid: 336aa98b9efc1457ca65a4256d43136c, type: 3}
+  m_PrefabInstance: {fileID: 1543534182661292966}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6f625d8bc8264491bfa46c3eea92ce7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WallInventory
 --- !u!4 &5655079473922262213 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6562128354752743267, guid: 336aa98b9efc1457ca65a4256d43136c, type: 3}

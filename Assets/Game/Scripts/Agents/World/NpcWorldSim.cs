@@ -56,6 +56,10 @@ namespace SpaceGame.Agents
         [Tooltip("How far the spawner may search for walkable ground under a member's slot.")]
         [SerializeField] private float spawnSampleDistance = 25f;
 
+        [Tooltip("Finds the ground under a group whose members were in the air when it was read back (a Sky " +
+                 "wing folded mid-flight), so it comes back on foot (D4).")]
+        [SerializeField] private PhysicsGroundProbe groundProbe = new PhysicsGroundProbe();
+
         [Header("Simulation")]
         [Tooltip("Seconds between virtual ticks. A record has nothing to interpolate, so this can " +
                  "be slow — the cost of a group is this divided into one lerp.")]
@@ -1140,9 +1144,24 @@ namespace SpaceGame.Agents
             group.TransportParkedFor = 0f;
         }
 
-        /// <summary>A spawned group's position: its vessel's while aboard, else its members' centroid.</summary>
-        private static Vector3 CurrentPosition(NpcGroup group) =>
-            !group.Delivered && group.Transport != null ? group.Transport.transform.position : Centroid(group);
+        /// <summary>
+        /// A spawned group's position: its vessel's while aboard, else its members' centroid put back on
+        /// the ground — the centroid is mid-air while its members fly.
+        /// </summary>
+        private Vector3 CurrentPosition(NpcGroup group) =>
+            !group.Delivered && group.Transport != null
+                ? group.Transport.transform.position
+                : GroundedPosition(Centroid(group), spawnSampleDistance, groundProbe);
+
+        /// <summary>
+        /// <paramref name="point"/>, or the ground straight under it when there is no NavMesh within
+        /// <paramref name="navMeshReach"/> — the members' centroid is mid-air while they fly.
+        /// </summary>
+        public static Vector3 GroundedPosition(Vector3 point, float navMeshReach, PhysicsGroundProbe probe)
+        {
+            if (NavMesh.SamplePosition(point, out _, navMeshReach, NavMesh.AllAreas)) return point;
+            return probe != null && probe.TryGroundBelow(point, out Vector3 ground) ? ground : point;
+        }
 
         /// <summary>
         /// Take a group's bodies out of the world: its spawned members, and every fighter that is no

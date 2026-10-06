@@ -703314,9 +703314,9 @@
           "Coll_DishTransmitter"
         ],
         "dimensions": [
-          0.88,
-          0.36,
-          0.358
+          1.32,
+          0.54,
+          0.537
         ],
         "vertices": 4000,
         "polygons": 3660,
@@ -703356,9 +703356,9 @@
           "Coll_DishTransmitterBroken"
         ],
         "dimensions": [
-          0.9427,
-          0.5814,
-          0.358
+          1.414,
+          0.872,
+          0.537
         ],
         "vertices": 4152,
         "polygons": 3776,
@@ -703398,9 +703398,9 @@
           "Coll_DishTransmitterCradle"
         ],
         "dimensions": [
-          1.38,
-          1.9494,
-          0.5404
+          1.767,
+          1.949,
+          0.696
         ],
         "vertices": 528,
         "polygons": 432,
@@ -703432,9 +703432,9 @@
           "Coll_ShipTransmitterCradle"
         ],
         "dimensions": [
-          1.46,
-          0.665,
-          0.311
+          2.19,
+          0.997,
+          0.466
         ],
         "vertices": 512,
         "polygons": 390,
@@ -719363,6 +719363,151 @@
       "Mat_Plastic_Cream_Aged",
       "Mat_Plastic_Rubber_Black",
       "Mat_Plastic_Safety_Yellow"
+    ],
+    "linked_libraries": [
+      "//..\\..\\palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "models/props/oxygen_mount_empty.blend": {
+    "collections": [
+      {
+        "name": "Coll_OxygenMountEmpty",
+        "objects": [
+          "OxygenMountEmpty",
+          "Marker_CableEnd_A",
+          "Marker_CableEnd_B",
+          "Marker_CableEnd_C"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_CableEnd_A",
+        "type": "MESH",
+        "location": [
+          0.0287,
+          -0.1914,
+          0.912
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_OxygenMountEmpty"
+        ],
+        "dimensions": [
+          0.006,
+          0.006,
+          0.006
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_CableEnd_B",
+        "type": "MESH",
+        "location": [
+          0.1906,
+          -0.3026,
+          0.9735
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_OxygenMountEmpty"
+        ],
+        "dimensions": [
+          0.006,
+          0.006,
+          0.006
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_CableEnd_C",
+        "type": "MESH",
+        "location": [
+          0.3322,
+          -0.4036,
+          1.0552
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_OxygenMountEmpty"
+        ],
+        "dimensions": [
+          0.006,
+          0.006,
+          0.006
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "OxygenMountEmpty",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_OxygenMountEmpty"
+        ],
+        "dimensions": [
+          0.72,
+          0.4129,
+          2.1
+        ],
+        "vertices": 2334,
+        "polygons": 1726,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Copper_Oxide",
+          "Mat_Paint_Hazard_Yellow"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Metal_Copper_Oxide",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Paint_Hazard_Yellow",
+      "Mat_Plastic_Rubber_Black"
     ],
     "linked_libraries": [
       "//..\\..\\palette.blend"

@@ -20,8 +20,8 @@ namespace SpaceGame.Items
     public sealed class SolderingTorchArtifact : SprayerItem
     {
         [Header("Flame")]
-        [Tooltip("How far past the nozzle the flame works, in metres: a step and an arm's length, which is how a torch is used.")]
-        [SerializeField, Min(0.2f)] private float range = 2.2f;
+        [Tooltip("How far past the nozzle the flame works, in metres: an arm's length from the eye of a 3 m body, so the low seam at knee height is in reach.")]
+        [SerializeField, Min(0.2f)] private float range = 3f;
 
         [Tooltip("How far off the aim line a seam may be and still be under the flame, in metres.")]
         [SerializeField, Min(0.01f)] private float flameRadius = 0.25f;

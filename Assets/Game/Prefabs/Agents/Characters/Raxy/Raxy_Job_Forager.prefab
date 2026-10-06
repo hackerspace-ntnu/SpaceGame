@@ -1893,6 +1893,7 @@ GameObject:
   - component: {fileID: 761005442411441279}
   - component: {fileID: 7774525089437864843}
   - component: {fileID: 2675072001943874029}
+  - component: {fileID: 5434662057889292353}
   m_Layer: 0
   m_Name: Raxy_Job_Forager
   m_TagString: Untagged
@@ -3405,6 +3406,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &5434662057889292353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &6352483063516593831
 GameObject:
   m_ObjectHideFlags: 0

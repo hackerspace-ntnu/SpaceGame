@@ -2568,6 +2568,7 @@ GameObject:
   - component: {fileID: 1001342978226468131}
   - component: {fileID: 4319133760431987841}
   - component: {fileID: 8823138340319888103}
+  - component: {fileID: 2215731790173673175}
   m_Layer: 0
   m_Name: Drifter_RaxyPoncho
   m_TagString: Untagged
@@ -3819,6 +3820,7 @@ MonoBehaviour:
   offstageAfterSeconds: 10
   settleDistance: 30
   doorstepDistance: 2
+  onMeshWithin: 2
   deckReach: 3
   approachStandOff: 8
   thresholdArriveRadius: 0.5
@@ -4047,6 +4049,7 @@ MonoBehaviour:
   maxSpeedMultiplier: 1.35
   leaderMovingSpeed: 0.4
   restRadius: 6
+  holdSlotAtRest: 0
   regroupDistance: 40
   navSampleDistance: 6
 --- !u!114 &4319133760431987841
@@ -4073,6 +4076,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &2215731790173673175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8868609454500565137}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &9007465859897056724
 GameObject:
   m_ObjectHideFlags: 0

@@ -567,7 +567,8 @@ namespace SpaceGame.EditorTools
                 ConfigureWatch(root);
                 ConfigureWander(root, recipe);
                 ConfigureGoalTravel(root, recipe);
-                ConfigureFlight(root, recipe);
+                ConfigureGroupMembership(root, recipe);
+                ConfigureFlightAndGear(root, recipe);
                 ConfigureAlerts(root);
                 ConfigureHearing(root);
                 ConfigureTelegraph(root);
@@ -584,6 +585,7 @@ namespace SpaceGame.EditorTools
                 // Every component this prefab needs must be added HERE. A rebuild overwrites the
                 // asset wholesale, so anything added by hand in the Inspector is silently gone.
                 AgentGroundConformWiring.Ensure(root);
+                DistanceDormancyWiring.Ensure(root);
 
                 saved = PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out ok);
             }
@@ -1612,17 +1614,20 @@ namespace SpaceGame.EditorTools
         private const float SortieArriveRadius = 12f;
 
         /// <summary>
-        /// Group membership (lead or follow an NpcWorldSim group), the worn gear, the Repulsor's
-        /// trigger finger and the wing-pack flight. Priorities by hand: AddComponent does not run Reset.
+        /// Lead or follow an NpcWorldSim group. Priorities by hand: AddComponent does not run Reset.
         /// </summary>
-        private static void ConfigureFlight(GameObject root, NomadRecipe recipe)
+        private static void ConfigureGroupMembership(GameObject root, NomadRecipe recipe)
         {
-            if (recipe.JoinsGroups)
-            {
-                SetPriority(root, "SpaceGame.Agents.NpcTaskModule", ModulePriority.Fallback);
-                SetPriority(root, "SpaceGame.Agents.FormationModule", ModulePriority.Social);
-            }
+            if (!recipe.JoinsGroups) return;
+            SetPriority(root, "SpaceGame.Agents.NpcTaskModule", ModulePriority.Fallback);
+            SetPriority(root, "SpaceGame.Agents.FormationModule", ModulePriority.Social);
+        }
 
+        /// <summary>
+        /// The worn gear, the Repulsor's trigger finger and the wing-pack flight, with the sortie task.
+        /// </summary>
+        private static void ConfigureFlightAndGear(GameObject root, NomadRecipe recipe)
+        {
             var body = FindComponent(root, "SpaceGame.Agents.EntityBodyEquipment");
             if (body != null)
             {

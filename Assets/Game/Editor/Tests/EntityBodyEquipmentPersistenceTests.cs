@@ -255,5 +255,21 @@ namespace SpaceGame.Tests
             GameObject pack = world.Spawned.First(go => go.name.StartsWith(Pack.itemPrefab.name));
             Assert.Less(pack.transform.position.y - Far.y, 3f, "the pack was dropped at altitude");
         }
+
+        [Test]
+        public void AWaiterDisabledBeforeItsDropWasHandedOver_StillAnswersWhoeverWaits()
+        {
+            // WhenDropped made the waiter ahead of the loot table's Begin, and the body went first.
+            var body = new GameObject("Corpse");
+            junk.Add(body);
+            var waiting = body.AddComponent<LootAwaitingGround>();
+            bool answered = false;
+            LootAwaitingGround.WhenDropped(body, () => answered = true);
+            Assume.That(answered, Is.False);
+
+            Invoke(waiting, "OnDisable");
+
+            Assert.IsTrue(answered, "a save hold waiting on this corpse would never be released");
+        }
     }
 }

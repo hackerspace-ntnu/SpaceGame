@@ -203,6 +203,10 @@ MonoBehaviour:
   deceleration: 0.12
   faceRotateSpeed: 0.05
   riderTurnSpeed: 45
+  bankPerTurnRate: 0
+  maxBank: 0
+  pitchAlongPath: 0
+  maxPitch: 45
   kinematicHull: 1
   altitudeHold: 0
   cruiseAltitude: 40
@@ -382,6 +386,8 @@ MonoBehaviour:
   - prefab: {fileID: 3497702707996761266, guid: d7716ab2f67859d44bd4a2362545f7a0, type: 3}
     weight: 1
   - prefab: {fileID: 8177062249650104587, guid: 807b1a3f473b62548ac343179ea1b37d, type: 3}
+    weight: 1
+  - prefab: {fileID: 4185836092062339046, guid: 6d5745202d0d3124c8bb0092bef26185, type: 3}
     weight: 1
   maxPopulation: 16
   spawnInterval: 45

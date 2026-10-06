@@ -1893,6 +1893,7 @@ GameObject:
   - component: {fileID: 6699724103069553564}
   - component: {fileID: -4230739484878981509}
   - component: {fileID: -1066377117540261030}
+  - component: {fileID: 2107660742483305119}
   m_Layer: 0
   m_Name: Raxy_Type_KiteRider
   m_TagString: Untagged
@@ -3406,6 +3407,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &2107660742483305119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6320590716706008551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &6352483063516593831
 GameObject:
   m_ObjectHideFlags: 0

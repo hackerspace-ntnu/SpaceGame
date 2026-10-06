@@ -248,11 +248,19 @@ A second neutral tribe, living in a city that drifts slowly across the sky 280 m
 
 **Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
 
+The sky people also fly on their own. Each wears a folded wing pack on their back — the same aircraft you can fly. Now and then one steps off the moored city and flies down to the desert, and a pair of scouts hops from place to place by air, landing and walking the last stretch. They shoot from the cradle while they fly. Shoot one down and its body and its pack fall to the ground together, and the pack is yours to fly. A flight in progress is not saved: after a reload the flier is gone, or back on its feet.
+
 ### The tribe that lives on walking machines *(Striders)*
 
 A third neutral tribe of masked, long-coated wanderers, whose home is a city that walks: two six-legged houses with a crew of six on each deck, three tracked dune barges with four lookouts on each roof, two digging crawlers, two crab riders scouting alongside, and a column of one-wheeled monowheels — some ridden two-up with a gunner riding pillion — a pair of which are always off sweeping wide of the city and riding back in, all marching together from one salvage site to the next. One to three elders ride with it — old Striders whose bodies now walk on four robot legs — each standing on the front of a house's deck. At every stop the crew and the elders climb down one by one and work the ground while the crawlers spread out and dig; when the stay is over they are called back, and the city does not move off until the last of them is back aboard. Its war parties are convoys of those same monowheels, who dismount to fight on foot like every rider does.
 
 **Worth knowing:** the houses are the player's own walking rig with the helm taken out — you can climb onto a deck and ride along, but nobody can steer a Strider house except the city itself; the barges are the same — you can walk aboard and go inside, but only the city drives them — and in this first version the machines cannot be destroyed.
+
+### Standing still when nobody is near *(SimulationDistance)*
+
+People and animals that no player is near simply stop: they stand where they were, still visible, until someone comes within about 250 metres, and they only settle again once everyone is beyond roughly 360. This keeps tribes, Clanker towns and wildlife from fighting each other where nobody can see. Machines and travelling groups never stop, so the sky city still drifts in the distance, and anything hunting a player keeps coming.
+
+**Worth knowing:** a shot from far away wakes its target for half a minute, so a sniped creature fights back or flees instead of standing there as a dummy.
 
 ### Picking a creature up off the ground *(CarriedAgent)*
 
@@ -409,6 +417,8 @@ Doors, levers, ship consoles, seats and helms, pickups, cave exits and dialogue 
 Your suit holds one minute of air. That is not the supply — it is the alarm. The real supply is the tank clipped into the socket on the back of your pack, which holds thirty minutes, and while it has anything left in it your suit stays full and the tank is what empties. When the tank runs dry the suit's minute starts, the visor says so, and when that minute is gone you begin to suffocate. Indoors — the lander, and anywhere else sealed — nothing drains at all and the suit tops itself back up for free.
 
 You can carry as many tanks as fit on the pack, but only the one in the socket is plugged into you: a tank in your hand or lying on the mat is luggage. Swapping means opening the pack and dragging a fresh one into the socket, which is exactly what the suit's last minute is for.
+
+The crash landing vents every bottle and leaves the crew on an emergency suit reserve of about four minutes ("O2 RESERVE"): bring the oxygen plant home, fill an empty bottle from the gear wall at its collar, press B and seat it in the pack's socket.
 
 **Worth knowing:** the tank is where the number lives, so two tanks on your mat can read 12% and 87% and you pick. There is no way to breathe a tank without the pack — set out without one and you have sixty seconds, full stop.
 

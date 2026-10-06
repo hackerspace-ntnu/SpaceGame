@@ -1058,6 +1058,7 @@ GameObject:
   - component: {fileID: 2838454875312877706}
   - component: {fileID: 8292317950302789811}
   - component: {fileID: -4481262386715310132}
+  - component: {fileID: 5405682333432946704}
   m_Layer: 0
   m_Name: SwampMan_02
   m_TagString: Untagged
@@ -1266,18 +1267,6 @@ MonoBehaviour:
   headAimHeight: 1.6
   headInset: 0.15
   sightRecheckInterval: 0.2
-  memoryDuration: 12
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
 --- !u!114 &7802209472988599680
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2245,6 +2234,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &5405682333432946704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4375941295063180595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &4469374149451229493
 GameObject:
   m_ObjectHideFlags: 0

@@ -68,7 +68,8 @@ fizzles and is gone. The socket is then free for the working transmitter from th
   Its rules are pure ([`ShipPartFireRules`](Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFireRules.cs)):
   Dormant → Burning → Out, Out is permanent. The ignition clock runs only while the fire is **armed**
   (`ShipPartFire.Armed`): the crew are down, the unit is seated, and the ship's `OxygenPlantMount` is `Running` (in
-  its mount, its cracks soldered and powered). At `igniteDelay` (**3 s**, 2026-10-06; was 75) it catches at `startStrength` (0.15) and grows to 1 over
+  its mount, its cracks soldered and powered) **and `AirRefilled`** — somebody has seated a filled bottle since
+  (2026-10-06: the refill is its own beat before the fire). At `igniteDelay` (**3 s**, 2026-10-06; was 75) it catches at `startStrength` (0.15) and grows to 1 over
   `growSeconds` (45 s). A douse knocks strength off; at 0 it is out for good. Because the unit cannot leave before
   its fire, every world gets this fire exactly once.
 - **Not a new fire system.** The flames are `Resources/Effects/BodyFire` (the burning-body shell) under the unit's
@@ -103,7 +104,8 @@ fizzles and is gone. The socket is then free for the working transmitter from th
 ## Flows
 
 1. **Crash.** The unit sparks, jammed in its socket. The oxygen plant is out of the ship ([Oxygen.md](Oxygen.md)).
-2. **The plant is carried home, soldered and powered.** The fire is armed; 3 s later it **ignites**: flames, brighter sparks,
+2. **The plant is carried home, soldered and powered; a crew member fills a bottle and seats it.** The fire is armed;
+   3 s later it **ignites**: flames, brighter sparks,
    the loop; people in reach catch.
 3. **Grab the extinguisher** off the bracket (the wall's crosshair take), hold Use on the flames.
 4. **Out.** Strength 0 → `Out`. RMB pulls the unit: the husk pops onto the floor and fizzles out in 15 s. The socket
@@ -142,12 +144,7 @@ A fire saved burning reloads burning at its strength; one put out reloads out an
 
 ## Gotchas
 
-- **The fire follows the plant almost at once (2026-10-06, the user's call).** `igniteDelay` went 75 → 3 s so the plant
-  coming online and the overloaded unit catching read as cause and effect; it drops the rest beat GDC-L1-LEVEL-0003 argues
-  for after a peak. The field kept its old value on the prefab until `OxygenPlantRecoveryAuthoring` wrote it
-  (INVARIANTS: a serialized field keeps its old value); `BrokenTransmitterTests.TheFireCatchesAlmostAsSoonAsThePlantComesOnline`
-  reads the asset. A world loaded with the plant already running and the unit unburnt ignites about 3 s after the load
-  (sooner if its saved clock had already passed 3 s).
+- **The fire follows the plant almost at once (2026-10-06, the user's call).** `igniteDelay` went 75 → 3 s so the plant coming online and the overloaded unit catching read as cause and effect; it drops the rest beat GDC-L1-LEVEL-0003 argues for after a peak. The field kept its old value on the prefab until `OxygenPlantRecoveryAuthoring` wrote it (INVARIANTS: a serialized field keeps its old value); `BrokenTransmitterTests.TheFireCatchesAlmostAsSoonAsThePlantComesOnline` reads the asset. A world loaded with the plant already running and the unit unburnt ignites about 3 s after the load (sooner if its saved clock had already passed 3 s).
 
 - **`BodyFire`'s emitters do not play on awake.** A burning body starts them through `FlameLayers.SetEmitting`;
   the first version of this fire only instantiated the prefab and made it active, and burned with NO flames on any

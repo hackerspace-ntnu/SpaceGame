@@ -1154,12 +1154,12 @@ namespace SpaceGame.Agents
                 : GroundedPosition(Centroid(group), spawnSampleDistance, groundProbe);
 
         /// <summary>
-        /// <paramref name="point"/>, or the ground straight under it when there is no NavMesh within
-        /// <paramref name="navMeshReach"/> — the members' centroid is mid-air while they fly.
+        /// The NavMesh nearest <paramref name="point"/> within <paramref name="navMeshReach"/>, else the
+        /// ground straight under it — the members' centroid is mid-air while they fly.
         /// </summary>
         public static Vector3 GroundedPosition(Vector3 point, float navMeshReach, PhysicsGroundProbe probe)
         {
-            if (NavMesh.SamplePosition(point, out _, navMeshReach, NavMesh.AllAreas)) return point;
+            if (NavMesh.SamplePosition(point, out NavMeshHit hit, navMeshReach, NavMesh.AllAreas)) return hit.position;
             return probe != null && probe.TryGroundBelow(point, out Vector3 ground) ? ground : point;
         }
 

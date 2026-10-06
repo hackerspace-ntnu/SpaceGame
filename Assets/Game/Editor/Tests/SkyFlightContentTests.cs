@@ -5,6 +5,7 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AI;
 using SpaceGame.Agents;
 using SpaceGame.EditorTools;
 using SpaceGame.Items;
@@ -34,9 +35,9 @@ namespace SpaceGame.Tests
         }
 
         [Test]
-        public void EverySkyNomad_WearsTheWingPack_AndCanFlyIt()
+        public void EverySkyPerson_WearsTheWingPack_AndCanFlyIt()
         {
-            foreach (NomadPrefabBuilder.NomadRecipe recipe in NomadPrefabBuilder.SkyNomads)
+            foreach (NomadPrefabBuilder.NomadRecipe recipe in NomadPrefabBuilder.SkyTribePeople)
             {
                 GameObject nomad = Load(recipe.PrefabPath);
                 InventoryItem[] starting = StartingWorn(nomad, recipe.Name);
@@ -56,6 +57,15 @@ namespace SpaceGame.Tests
                 Assert.IsNotNull(nomad.GetComponent<SpaceGame.Core.Persistence.EntityBodyEquipmentSaveable>(),
                                  $"{recipe.Name}'s worn gear would not survive a reload");
             }
+        }
+
+        [Test]
+        public void TheSkySoldier_IsFieldedByTheSkyRoster()
+        {
+            var roster = AssetDatabase.LoadAssetAtPath<FactionRoster>(RosterAuthoring.SkyRosterPath);
+            Assert.IsNotNull(roster, RosterAuthoring.SkyRosterPath);
+            Assert.IsTrue(roster.members.Any(m => AssetDatabase.GetAssetPath(m.prefab) == NomadPrefabBuilder.SkySoldier.PrefabPath),
+                          "the roster skips a SkyTribePeople recipe whose prefab was never built");
         }
 
         [Test]
@@ -83,6 +93,8 @@ namespace SpaceGame.Tests
             NpcGroupTemplate wing = StriderCityTemplateTests.ReadTemplate(RosterAuthoring.SkyWingTemplateId);
 
             Assert.IsFalse(wing.runtimeOnly, "seeded at startup");
+            Assert.IsTrue(wing.useStartPosition, "no Ruin exists to seed it at: it would start at the sim's origin, under the terrain");
+            Assert.AreEqual(RosterAuthoring.SkyWingStart, wing.startPosition);
             Assert.AreEqual(RosterAuthoring.SkyFactionPath, AssetDatabase.GetAssetPath(wing.tribe));
             Assert.AreEqual(1, wing.members.Count(m => m.isLeader));
             Assert.IsTrue(wing.tasks.All(t => t.targetSite != SiteKind.Home), "a sky-wing cannot fly back up to the city");
@@ -104,6 +116,57 @@ namespace SpaceGame.Tests
                 Assert.AreEqual(FarAway.y + 0.5f, grounded.y, 0.1f, "a fold mid-flight would respawn the group in the air");
             }
             finally { Object.DestroyImmediate(block); }
+        }
+
+        [Test]
+        public void ARecordNearTheNavMesh_IsPutOnTheNavMesh()
+        {
+            Vector3 top = FarAway + Vector3.up * 0.5f;
+            NavMeshData data = NpcAviatorTests.BuildSlabNavMesh(top, 40f);
+            NavMeshDataInstance mesh = NavMesh.AddNavMeshData(data);
+            try
+            {
+                Vector3 grounded = NpcWorldSim.GroundedPosition(top + new Vector3(3f, 2f, -4f), 25f, new PhysicsGroundProbe());
+
+                Assert.AreEqual(top.y, grounded.y, 0.3f, "the record is the NavMesh point, not the point above it");
+                Assert.AreEqual(top.x + 3f, grounded.x, 0.3f);
+                Assert.AreEqual(top.z - 4f, grounded.z, 0.3f);
+            }
+            finally
+            {
+                mesh.Remove();
+                Object.DestroyImmediate(data);
+            }
+        }
+
+        [Test]
+        public void ASpawnedGroupsPosition_IsItsMembersCentroid_Grounded()
+        {
+            var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var simHost = new GameObject("NpcWorldSim");
+            var flier = new GameObject("Flier");
+            try
+            {
+                block.transform.position = FarAway;
+                block.transform.localScale = new Vector3(40f, 1f, 40f);
+                flier.transform.position = FarAway + Vector3.up * 60f;
+                Physics.SyncTransforms();
+                var sim = simHost.AddComponent<NpcWorldSim>();
+                var group = new NpcGroup();
+                group.Live.Add(flier);
+
+                var position = (Vector3)typeof(NpcWorldSim)
+                    .GetMethod("CurrentPosition", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(sim, new object[] { group });
+
+                Assert.AreEqual(FarAway.y + 0.5f, position.y, 0.1f, "the record keeps the fliers' mid-air centroid");
+            }
+            finally
+            {
+                Object.DestroyImmediate(flier);
+                Object.DestroyImmediate(simHost);
+                Object.DestroyImmediate(block);
+            }
         }
     }
 }

@@ -9,7 +9,9 @@
 // air, or minLaunchClearance of empty sky above it (the NPC craft just climbs away: NpcFlightPlan, no
 // energy model, so no ledge is needed). Never in a fight: a nomad with a target fights on foot. A nomad
 // that has been falling for fallDeploySeconds deploys to land, fight or not: that is saving itself, not
-// taking off.
+// taking off. Falling means off the NavMesh (its NavMeshAgent off, or no NavMesh at its feet) AND no
+// ground under a ray cast from fallProbeLift above them: a nomad's root stands on the NavMesh, which can
+// lie under a one-sided terrain or mesh surface (a dune crest) that a short ray from the feet never hits.
 // Off the Sky City (an airborne site) a resident with nowhere to be now and then flies a SORTIE to a
 // ground site; it counts as one only once it is in the air. A sortie flier is never saved and is taken
 // away once unseen after sortieLifetime (UnseenRemoval), so the city's refills cannot pile people up on
@@ -20,6 +22,7 @@
 // corpse once its loot is down (LootAwaitingGround); a group member is External throughout.
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Items;
@@ -61,6 +64,13 @@ namespace SpaceGame.Agents
         [Tooltip("Ground nearer than this straight down counts as standing on it, metres.")]
         [SerializeField, Min(0.1f)] private float groundClearance = 0.6f;
 
+        [Tooltip("The falling check's ground ray starts this far above the feet, metres — over a surface the " +
+                 "root may stand just under, where the NavMesh lies below a one-sided terrain or mesh.")]
+        [SerializeField, Min(0f)] private float fallProbeLift = 1f;
+
+        [Tooltip("Feet within this of the NavMesh, with the NavMeshAgent on, are walking on it — never falling, metres.")]
+        [SerializeField, Min(0.1f)] private float navMeshStandTolerance = 1f;
+
         [Tooltip("Craft spawned this far above the feet, metres — clear of the ground (or the city deck) it climbs away from.")]
         [SerializeField, Min(0f)] private float takeoffLift = 3f;
 
@@ -94,6 +104,7 @@ namespace SpaceGame.Agents
         private readonly SaveScopeHold saveHold = new SaveScopeHold();
         private readonly List<Vector3> players = new();
         private EntityBodyEquipment body;
+        private NavMeshAgent navAgent;
         private float nextAttempt;
         private float airborneFor;
         private float nextSortieCheck;
@@ -102,6 +113,8 @@ namespace SpaceGame.Agents
 
         public NpcAviator Aviator { get; private set; }
         public bool InFlight => Aviator != null;
+        /// <summary>Off the ground right now — a fall it may be about to deploy from. Read by simulation distance.</summary>
+        public bool IsAirborne => airborneFor > 0f;
         public bool OnSortie { get; private set; }
 
         public override string ModuleDescription =>
@@ -112,6 +125,7 @@ namespace SpaceGame.Agents
 
         // Lazy: EditMode tests run no Awake.
         private EntityBodyEquipment Body => body != null ? body : body = GetComponent<EntityBodyEquipment>();
+        private NavMeshAgent NavAgent => navAgent != null ? navAgent : navAgent = GetComponent<NavMeshAgent>();
 
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
@@ -123,7 +137,7 @@ namespace SpaceGame.Agents
             }
 
             Vector3 feet = transform.position;
-            bool airborne = FlightLaunch.IsAirborne(feet, groundClearance, groundMask);
+            bool airborne = IsOffTheGround(feet);
             airborneFor = airborne ? airborneFor + deltaTime : 0f;
             bool falling = airborneFor >= fallDeploySeconds;
             if (Time.time < nextAttempt) return null;
@@ -153,6 +167,18 @@ namespace SpaceGame.Agents
                 OnSortie = true;
             }
             return MoveIntent.Idle();
+        }
+
+        /// <summary>Off the NavMesh and over no ground: a fall, or the start of one.</summary>
+        private bool IsOffTheGround(Vector3 feet)
+        {
+            NavMeshAgent agent = NavAgent;
+            if (agent != null && agent.enabled &&
+                NavMesh.SamplePosition(feet, out _, navMeshStandTolerance, agent.areaMask))
+                return false;
+
+            return !Physics.Raycast(feet + Vector3.up * fallProbeLift, Vector3.down, fallProbeLift + groundClearance,
+                                    groundMask, QueryTriggerInteraction.Ignore);
         }
 
         private bool WearsWingPack()
@@ -208,7 +234,13 @@ namespace SpaceGame.Agents
 
         private void OnPilotReleased(GameObject npc, bool alive)
         {
-            if (Aviator != null) Aviator.PilotReleased -= OnPilotReleased;
+            if (Aviator != null)
+            {
+                Aviator.PilotReleased -= OnPilotReleased;
+                // Landed short of a goal whose ground never streamed in: flying back would only circle
+                // it again, so the goal is dropped and whatever gives goals hands out the next one.
+                if (Aviator.GaveUp && TryGetComponent(out AgentGoal own)) own.Clear();
+            }
             Aviator = null;
             nextAttempt = Time.time + relaunchCooldown;
 

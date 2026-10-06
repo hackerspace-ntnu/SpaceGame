@@ -7,7 +7,9 @@
 // Seating is VesselSeats' (one marker, SEAT_Cradle): feet off, brain on, so a pilot shoots from the
 // cradle (D6), and a dead pilot is dropped straight down. LandingSiteFinder picks reachable ground near
 // the goal once that ground has streamed in; until then (or if there is none) the craft lands at the
-// goal itself, projected onto the ground. This class owns the endings:
+// goal itself, projected onto the ground. With no ground under the goal at all (not streamed in) it
+// never lands: it circles the goal at cruise until the ground appears, and after groundWaitSeconds
+// of circling turns back to the last ground it flew over and lands there. This class owns the endings:
 //   • touchdown (the plan says down) or a crash (flying into the world past the launch grace): price
 //     the arrival, stand the pilot on the NavMesh, retire the craft;
 //   • the pilot dies: the plan spirals the craft in as a wreck (D8), retired when it reaches the ground
@@ -61,6 +63,10 @@ namespace SpaceGame.Vehicles
         [Tooltip("Seconds between looks for a landing site while none is chosen.")]
         [SerializeField, Min(0.1f)] private float siteCheckInterval = 1f;
 
+        [Tooltip("Seconds the craft circles a goal with no ground under it (not streamed in) before it gives " +
+                 "the goal up and lands on the last ground it flew over instead.")]
+        [SerializeField, Min(1f)] private float groundWaitSeconds = 60f;
+
         [Header("Crash")]
         [Tooltip("What an arrival costs the pilot, by closing speed — the player's craft's own curve.")]
         [SerializeField] private OrnithopterCrashConfig crash = new OrnithopterCrashConfig();
@@ -94,12 +100,15 @@ namespace SpaceGame.Vehicles
         private Transform releasedBody;
         private Vector3 goal;
         private Vector3 landingPoint;
+        private Vector3 lastGround;
         private Vector3 lastVelocity;
         private float cruiseHeight;
         private float landingReach;
         private float launchedAt;
         private float nextSiteCheck;
         private float wreckedAtHeight;
+        private float heldFor;
+        private bool landingKnown;
         private bool flying;
         private bool unseatFailureReported;
 
@@ -113,6 +122,8 @@ namespace SpaceGame.Vehicles
         public GameObject Pilot => Seats.OccupantAt(PilotSeat);
         public bool HasSite { get; private set; }
         public bool Wrecked { get; private set; }
+        /// <summary>This flight gave its goal up (no ground ever streamed in under it) and landed short.</summary>
+        public bool GaveUp { get; private set; }
         public Vector3 Goal => goal;
         public Vector3 LandingPoint => landingPoint;
         public NpcFlightPhase Phase => Plan.Phase;
@@ -128,11 +139,17 @@ namespace SpaceGame.Vehicles
         public bool Fly(GameObject pilot, Vector3 destination, float cruiseHeight, float landingSampleDistance)
         {
             if (pilot == null || flying || !IsAlive(pilot) || !Network.Simulates(this)) return false;
+            Vector3 takeOff = pilot.transform.position;
             if (!Seats.Seat(PilotSeat, pilot)) return false;
 
             probe.IgnoreHierarchy(transform);
             goal = destination;
-            landingPoint = probe.TryGround(destination, out Vector3 ground, out _) ? ground : destination;
+            landingPoint = destination;
+            landingKnown = false;
+            GaveUp = false;
+            heldFor = 0f;
+            ProbeLanding();
+            lastGround = probe.TryGroundBelow(transform.position, out Vector3 below) ? below : takeOff;
             this.cruiseHeight = cruiseHeight;
             landingReach = landingSampleDistance;
             HasSite = false;
@@ -180,18 +197,29 @@ namespace SpaceGame.Vehicles
                 return MoveIntent.Idle();
             }
 
-            float groundBelow = grounded ? below.y : position.y - noGroundDepth;
-            NpcFlightStep step = Plan.Step(position, groundBelow, landingPoint, cruiseHeight);
+            if (grounded) lastGround = below;
+            if (!Wrecked && !landingKnown) ProbeLanding();
+
+            // Over ground that has not streamed in, a living flight holds cruise over the last ground it
+            // saw; only a wreck sinks toward the stand-in depth (and is retired past it).
+            float groundBelow = grounded ? below.y : Wrecked ? position.y - noGroundDepth : lastGround.y;
+            NpcFlightStep step = Wrecked || landingKnown
+                ? Plan.Step(position, groundBelow, landingPoint, cruiseHeight)
+                : Plan.Hold(position, groundBelow, goal, cruiseHeight);
+
+            if (Plan.Holding)
+            {
+                heldFor += deltaTime;
+                if (heldFor >= groundWaitSeconds) GiveUpGoal();
+            }
 
             // Landed: touched down this step, or a touchdown that could not set its pilot down last tick
             // and is retried.
             if (Plan.Phase == NpcFlightPhase.Landed)
             {
-                // Down over no ground is down at the landing point itself: the pilot stands under the
-                // cradle, never at the stand-in depth.
-                Vector3 ground = grounded
-                    ? new Vector3(position.x, below.y, position.z)
-                    : position - Vector3.up * flight.TouchdownHeight;
+                // Only a known landing lands, so down over no ground is down on the landing ground itself
+                // — never at the stand-in depth, never in mid-air.
+                Vector3 ground = grounded ? new Vector3(position.x, below.y, position.z) : landingPoint;
                 Touchdown(ground, Mathf.Max(0f, -lastVelocity.y));
                 return MoveIntent.Idle();
             }
@@ -209,7 +237,29 @@ namespace SpaceGame.Vehicles
             if (!site.HasValue || site.Value.Mode != DropMode.Land) return;
 
             HasSite = true;
+            landingKnown = true;
             landingPoint = site.Value.Point;
+        }
+
+        /// <summary>The goal projected onto the ground, once there is ground under it to find.</summary>
+        private void ProbeLanding()
+        {
+            if (!probe.TryGround(goal, out Vector3 ground, out _)) return;
+            landingKnown = true;
+            landingPoint = ground;
+        }
+
+        /// <summary>
+        /// Circled groundWaitSeconds over a goal whose ground never streamed in: land on the last ground
+        /// flown over instead (where it took off, if it has flown over none) — a real surface, unlike the goal.
+        /// </summary>
+        private void GiveUpGoal()
+        {
+            goal = lastGround;
+            landingPoint = lastGround;
+            landingKnown = true;
+            HasSite = false;
+            GaveUp = true;
         }
 
         private void OnCollisionEnter(Collision collision)

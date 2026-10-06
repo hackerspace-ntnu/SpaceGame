@@ -132,11 +132,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a cook stirs, ploughs or swings a pickaxe at the stove | [Residents](systems/Residents.md) |
 | a cook stirs, ploughs or swings a pickaxe at the stove | [Stations](systems/Stations.md) |
 | a coroutine threw once and that feature never worked again for the rest of the session | [Diagnostics](systems/Diagnostics.md) |
+| a corpse jitters or stands up after I kill a far-off NPC | [SimulationDistance](systems/SimulationDistance.md) |
 | a crab walker's moveSpeed is raised but it never walks faster than 1.76 m/s | [Striders](systems/Striders.md) |
 | a creature built from several meshes blows apart when it dies, while single-mesh ones fall fine | [Combat](systems/Combat.md) |
 | a creature disappears for clients when it walks into another chunk | [EntitySystem](systems/EntitySystem.md) |
 | a creature fed trespass never gets angry no matter how long I stand there | [AgentSystem](systems/AgentSystem.md) |
 | a creature gets up with its limbs still bent or stretched | [Combat](systems/Combat.md) |
+| a creature I shot from very far away does not react | [SimulationDistance](systems/SimulationDistance.md) |
 | a creature is teleported but its NavMeshAgent stays behind | [SceneTransitions](systems/SceneTransitions.md) |
 | a creature keeps taking damage and there is no attacker anywhere | [AgentSystem](systems/AgentSystem.md) |
 | a creature let go at altitude sinks at walking pace instead of falling | [CarriedAgent](systems/CarriedAgent.md) |
@@ -301,6 +303,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a nomad wears spread wings hanging off nothing instead of a folded pack | [BodyEquipment](systems/BodyEquipment.md) |
 | a nomad's folded pack still shows on its back while it flies the ornithopter | [BodyEquipment](systems/BodyEquipment.md) |
 | a nomad's looted wing pack is back on it after reloading | [BodyEquipment](systems/BodyEquipment.md) |
+| a pack hunting me stops chasing when I run far enough | [SimulationDistance](systems/SimulationDistance.md) |
 | a pack I left closed on the sand is lying open again after a save and reload | [Backpack](systems/Backpack.md) |
 | a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
 | a painted eye texture comes out as two or four pupils, mirrored, on one eyeball | [StylizedEyes](systems/StylizedEyes.md) |
@@ -461,8 +464,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
 | a Sky nomad I shot dropped its gun but not its wing pack | [Inventory](systems/Inventory.md) |
 | a Sky nomad killed in flight is reloaded still wearing its wing pack, which never drops | [NpcFlight](systems/NpcFlight.md) |
+| a Sky nomad pilot is stood in mid-air where its craft landed | [NpcFlight](systems/NpcFlight.md) |
 | a Sky nomad saved mid-flight is back on the ground where it took off after loading | [NpcFlight](systems/NpcFlight.md) |
 | a Sky nomad shot down in flight drops its wing pack in mid-air, far from where its body lands | [NpcFlight](systems/NpcFlight.md) |
+| a Sky nomad standing on a dune crest deploys its craft again and again | [NpcFlight](systems/NpcFlight.md) |
 | a Sky nomad walks a two-kilometre leg instead of flying | [AgentSystem](systems/AgentSystem.md) |
 | a Sky nomad walks a two-kilometre leg instead of flying | [NpcFlight](systems/NpcFlight.md) |
 | a sky transport flies stern-first, its cockpit house trailing instead of leading | [SkyTribe](systems/SkyTribe.md) |
@@ -520,6 +525,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a vehicle at the back of the Strider column keeps riding up to the lead house | [Striders](systems/Striders.md) |
 | a vehicle walking toward the camera stands in front of its dust cloud, legs crisp | [VehicleDust](systems/VehicleDust.md) |
+| a villager stands still until I walk within about 250 m | [SimulationDistance](systems/SimulationDistance.md) |
 | a villager warns me when I punch him instead of fighting back | [Residents](systems/Residents.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
 | a wall block's end shows a dark face where the terrace wall bends | [SettlementStreets](systems/SettlementStreets.md) |
@@ -600,6 +606,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an item, faction or targeting asset never turns up in Registry<T>.Get | [CoreServices](systems/CoreServices.md) |
 | an NPC behind a waist-high wall never sees me standing there | [AgentSystem](systems/AgentSystem.md) |
 | an NPC chasing a player who disconnected just goes back to wandering instead of searching | [AgentSystem](systems/AgentSystem.md) |
+| an NPC far away stands frozen in place and does nothing | [SimulationDistance](systems/SimulationDistance.md) |
 | an NPC holding an item slides along in a frozen gun-aim pose, legs not moving, with a valid avatar | [Inventory](systems/Inventory.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
 | an NPC is shot or hit from behind and flinches the same way as from the front | [NpcAnimationPlan](systems/NpcAnimationPlan.md) |
@@ -742,7 +749,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | expedition-host reports STAND_INS=0 though the band is Out, folded and 4/4 away; the console is clean | [Expeditions](systems/Expeditions.md) |
 | Failed to bind UDP socket' or a 409 'already a member of the lobby' when launching two instances | [Multiplayer](systems/Multiplayer.md) |
 | Failed to create agent because it is not close enough to the NavMesh logged once per rider when a group spawns in the air | [AgentSystem](systems/AgentSystem.md) |
+| Failed to create agent because it is not close enough to the NavMesh logged once per sleeping NPC when Play Mode stops | [SimulationDistance](systems/SimulationDistance.md) |
 | Failed to create agent because it is not close enough to the NavMesh logged twice every time a Sky war party spawns | [SkyTribe](systems/SkyTribe.md) |
+| Failed to create agent because it is not close enough to the NavMesh when I fly near the sky city | [SimulationDistance](systems/SimulationDistance.md) |
 | Failed to load LeashEnd.cs. File may be corrupted or was serialized with a newer version of Unity | [Lasso](systems/Lasso.md) |
 | far away the walking city's legs are frozen and nothing hides it | [VehicleDust](systems/VehicleDust.md) |
 | fire patches pile up in a heap when I hold the trigger on one spot | [Flamethrower](systems/Flamethrower.md) |
@@ -902,6 +911,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my hand-added component disappeared after someone rebuilt the prefab | [AgentSystem](systems/AgentSystem.md) |
 | my health gauge shows another player's health | [Visor](systems/Visor.md) |
 | my jetpack is suddenly gone, though the gear screen still says I am wearing it | [BodyEquipment](systems/BodyEquipment.md) |
+| my mount stops dead when I ride it into a cave | [SimulationDistance](systems/SimulationDistance.md) |
 | my new item never appears in the dev item browser (O key) | [Inventory](systems/Inventory.md) |
 | my own backpack bounces into view in front of the first-person camera | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my oxygen drains inside the colony | [ColonyInterior](systems/ColonyInterior.md) |
@@ -928,6 +938,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | nothing on the pack says where the oxygen bottle is supposed to go | [Backpack](systems/Backpack.md) |
 | nothing on the pack says where the oxygen bottle is supposed to go | [Oxygen](systems/Oxygen.md) |
 | NPC corpses vanish instantly on clients while the host still sees them fall | [Combat](systems/Combat.md) |
+| NPC pilots never shoot at anything while flying | [NpcFlight](systems/NpcFlight.md) |
+| NPCs and creatures fight each other far away where no player is | [SimulationDistance](systems/SimulationDistance.md) |
 | NPCs cannot see me from outside the ship | [AgentSystem](systems/AgentSystem.md) |
 | NPCs cannot walk on a rock or mesa I just generated | [TerrainGeneration](systems/TerrainGeneration.md) |
 | NPCs never block or dodge each other's melee blows, only the player's | [Combat](systems/Combat.md) |
@@ -1545,6 +1557,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the singularity eats things but they never go anywhere | [BottledSingularity](systems/BottledSingularity.md) |
 | the singularity is invisible — no sphere, no ring, just the bottle | [BottledSingularity](systems/BottledSingularity.md) |
 | the sky city moves but its houses and decks stay behind | [SkyTribe](systems/SkyTribe.md) |
+| the sky city or a Strider house stopped moving in the distance | [SimulationDistance](systems/SimulationDistance.md) |
 | the Sky City stands inside a rock spire south of the spawn | [SkyTribe](systems/SkyTribe.md) |
 | the Sky roster only ever has four people even though a fifth recipe exists | [SkyTribe](systems/SkyTribe.md) |
 | the sky ships can't be ledge-climbed; the ledge probe treats the deck as a character | [SkyTribe](systems/SkyTribe.md) |
@@ -1816,8 +1829,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackThirdPerson.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DishConsoleSaveable.cs` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/ghost_mount_frame.blend` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Prefabs/Agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FireExtinguisher.prefab` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
-| `Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/ScriptableObjects/Settlements/NomadTerraceStreets.asset` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DriftRouteSaveable.cs` | [SkyTribe](systems/SkyTribe.md) |
@@ -1981,11 +1994,15 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Monowheel/MountedGunners.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Scripts/agents/Residents/Plan/ChoreRounds.cs` | [Errands](systems/Errands.md) |
+| `Assets/Game/Scripts/agents/Simulation/DistanceDormant.cs` | [SimulationDistance](systems/SimulationDistance.md) |
+| `Assets/Game/Scripts/agents/Simulation/SimulationRange.cs` | [SimulationDistance](systems/SimulationDistance.md) |
+| `Assets/Game/Scripts/agents/Simulation/SimulationRules.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Scripts/agents/entity/EntityBodyEquipment.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloudVolume.hlsl` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/AssetPipeline/LibraryClipImporter.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkObjectDefaults.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/DistanceDormancyPrefabTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/DistantGroupSilhouetteTests.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Editor/Tests/MonowheelGroundContactTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/StriderCityLevelGroundTests.cs` | [Striders](systems/Striders.md) |
@@ -2026,6 +2043,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Body/Focus/InspectStance.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Items/Equipped/CraftDeployment.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitRecolor.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Attitude.cs` | [ResidentReputation](systems/ResidentReputation.md) |
@@ -2051,6 +2069,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/World/AbandonedVehicle.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Textures/Environment/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
+| `Assets/Game/Editor/Agents/DistanceDormancyWiring.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Animation/ActionReachMeasurer.cs` | [StationTable](systems/StationTable.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Environment/SkyFleetPlacement.cs` | [SkyTribe](systems/SkyTribe.md) |
@@ -2124,12 +2143,15 @@ Longest match wins.
 | `Assets/Game/Art/Materials/Effects/AirlockFog.mat` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Editor/Environment/SkyCityBuilder.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Editor/Environment/SkyFleetMovers.cs` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Editor/Tests/DistanceDormantTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/DuneBargePrefabTests.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Tests/GroupMembershipTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/LadderTraversalTests.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Editor/Tests/MonowheelPrefabTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/NpcFlightModuleTests.cs` | [NpcFlight](systems/NpcFlight.md) |
+| `Assets/Game/Editor/Tests/SimulationRangeTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
+| `Assets/Game/Editor/Tests/SimulationRulesTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/TerraceKitAssetTests.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
 | `Assets/Game/Editor/Vehicles/SeatedBodyMeasure.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/VehicleDustWiring.cs` | [VehicleDust](systems/VehicleDust.md) |
@@ -2202,6 +2224,7 @@ Longest match wins.
 | `Assets/Game/Editor/Dev/StriderCityTeleport.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Editor/Support/DustCloudRecipe.cs` | [Monowheel](systems/Monowheel.md) |
+| `Assets/Game/Editor/Tests/AgentParkingTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/BoosterClampTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/ColonyZFightTests.cs` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Editor/Tests/HatchPassageTests.cs` | [DuneBarge](systems/DuneBarge.md) |
@@ -2437,4 +2460,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1721 symptoms, 690 paths, 92 docs -->
+<!-- 1734 symptoms, 700 paths, 93 docs -->

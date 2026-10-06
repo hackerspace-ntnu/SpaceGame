@@ -84,7 +84,7 @@ namespace SpaceGame.Agents
         }
 
         private bool UnderAirborneCarrier() =>
-            transform.parent != null && transform.parent.GetComponentInParent<IAirborneCarrier>() != null;
+            AirborneSeat.IsSeatedAloft(transform);
 
         /// Roll the table and put the results on the floor beside the body.
         private void Drop()

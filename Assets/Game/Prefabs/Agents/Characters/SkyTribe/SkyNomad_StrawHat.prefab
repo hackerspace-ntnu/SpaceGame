@@ -8002,6 +8002,7 @@ GameObject:
   - component: {fileID: -9221137720533044254}
   - component: {fileID: 2274915186563737552}
   - component: {fileID: 5069339822192665862}
+  - component: {fileID: 9046460868129027205}
   m_Layer: 0
   m_Name: SkyNomad_StrawHat
   m_TagString: Untagged
@@ -8485,6 +8486,8 @@ MonoBehaviour:
   cruiseHeight: 60
   landingSampleDistance: 6
   groundClearance: 0.6
+  fallProbeLift: 1
+  navMeshStandTolerance: 1
   takeoffLift: 3
   minLaunchClearance: 12
   takeoffClearRadius: 6
@@ -9442,6 +9445,18 @@ MonoBehaviour:
   hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
+--- !u!114 &9046460868129027205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8177062249650104587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &8232017916830137649
 GameObject:
   m_ObjectHideFlags: 0

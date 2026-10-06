@@ -199,7 +199,7 @@ namespace SpaceGame.Agents
 
         private AgentAuthority authority;
 
-        // Read for AgentController.Offstage: an agent that is not in the scene's action acquires no one.
+        // Read for AgentController.IsParked: an agent that is not in the scene's action acquires no one.
         private AgentController controller;
 
         /// <summary>
@@ -509,9 +509,9 @@ namespace SpaceGame.Agents
             if (!SimulatesHere)
                 return;
 
-            // Offstage (indoors, asleep): nobody to acquire and nothing to score — the same as the
+            // Parked (indoors, asleep, out of range): nobody to acquire and nothing to score — the same as the
             // controller starving its modules. The current target, if any, is left as it was.
-            if (controller != null && controller.Offstage)
+            if (controller != null && controller.IsParked)
                 return;
 
             float deltaTime = Time.deltaTime;

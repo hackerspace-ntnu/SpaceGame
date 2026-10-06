@@ -89,5 +89,41 @@ namespace SpaceGame.Tests
             var health = pilot.GetComponent<HealthComponent>();
             Assert.AreEqual(health.GetMaxHealth, health.GetHealth, "the landing hurt the pilot");
         }
+
+        // pitch: craft nose up (+) / down (-), degrees; roll: bank, degrees. The craft banks to 35 and pitches to 40.
+        [TestCase(1f, true, 0f, 0f)]
+        [TestCase(-1f, false, 0f, 0f)]
+        [TestCase(1f, true, 0f, 35f)]
+        [TestCase(-1f, false, 0f, 35f)]
+        [TestCase(1f, true, -35f, 0f)]
+        [TestCase(-1f, false, -35f, 0f)]
+        [TestCase(1f, true, 35f, 0f)]
+        [TestCase(-1f, false, 35f, 0f)]
+        public void APilotLyingInTheRealCradle_SeesAlongTheCraftsNose(float side, bool seen, float pitch, float roll)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcOrnithopterBuilder.PrefabPath);
+            Assert.IsNotNull(prefab, "build the NPC craft first");
+            var craft = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            junk.Add(craft);
+            craft.transform.position = Ground0 + Vector3.up * 50f;
+            GameObject pilot = NpcAviatorTests.Pilot(junk);
+            var eye = pilot.AddComponent<PerceptionModule>();
+            var so = new SerializedObject(eye);
+            so.FindProperty("occlusionLayers").intValue = ~0;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(craft.GetComponent<VesselSeats>().Seat(0, pilot));
+            Assert.Greater(Mathf.Abs(pilot.transform.forward.y), 0.9f, "the cradle no longer lays its pilot prone; this test lost its point");
+            craft.transform.rotation = Quaternion.Euler(-pitch, 0f, roll);
+            Vector3 nose = Vector3.ProjectOnPlane(craft.transform.forward, Vector3.up).normalized;
+
+            var target = new GameObject("Target");
+            junk.Add(target);
+            target.transform.position = pilot.transform.position + nose * (30f * side);
+            target.AddComponent<CapsuleCollider>().height = 3f;
+            Physics.SyncTransforms();
+
+            Assert.AreEqual(seen, eye.IsVisible(target.transform),
+                            seen ? "a prone pilot is blind to what lies ahead of its craft" : "a prone pilot sees behind its craft");
+        }
     }
 }

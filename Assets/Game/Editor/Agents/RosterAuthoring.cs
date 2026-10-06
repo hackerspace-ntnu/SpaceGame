@@ -705,6 +705,12 @@ namespace SpaceGame.EditorTools
         private const float SkyWingSearchRadius = 1500f;
         private const float SkyWingArriveRadius = 12f;
         private const float SkyWingTravelMultiplier = 1f;
+
+        // Where the wing is seeded: the ground NavMesh under the Sky City's first mooring (route[0],
+        // 3350/1400). No Ruin, ScrapField or Camp site exists to seed it at, and startNearSite with
+        // none falls back to the sim's own origin, under the terrain. Verified 2026-10-06 against
+        // WorldNavMesh.asset: terrain 110.1, NavMesh 110.3.
+        internal static readonly Vector3 SkyWingStart = new Vector3(3350f, 110.3f, 1400f);
         private static readonly Vector2 SkyWingDwell = new Vector2(60f, 180f);
         private static readonly (string label, SiteKind site, string[] chatter)[] SkyWingStops =
         {
@@ -715,8 +721,9 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// A pair of Sky scouts that hop between ground sites on their wing packs: the ground-to-ground
-        /// flights of D2. Seeded at startup at a Ruin; each leg too long to walk is flown (NpcFlightModule),
-        /// each pilot alone to the shared goal (D5). Idempotent: rewrites its template by id.
+        /// flights of D2. Seeded at startup at <see cref="SkyWingStart"/>; a stop whose site kind does
+        /// not exist is a roam point instead (NpcTaskPlanner). Each leg too long to walk is flown
+        /// (NpcFlightModule), each pilot alone to the shared goal (D5). Idempotent: rewrites its template by id.
         /// </summary>
         [MenuItem("Tools/SpaceGame/Agents/Wire Sky Wing")]
         public static void WireSkyWing()
@@ -736,8 +743,8 @@ namespace SpaceGame.EditorTools
                 t.FindPropertyRelative("runtimeOnly").boolValue = false;
                 t.FindPropertyRelative("bountyHunters").boolValue = false;
                 t.FindPropertyRelative("showFromAfar").boolValue = false;
-                t.FindPropertyRelative("useStartPosition").boolValue = false;
-                t.FindPropertyRelative("startNearSite").enumValueIndex = (int)SiteKind.Ruin;
+                t.FindPropertyRelative("useStartPosition").boolValue = true;
+                t.FindPropertyRelative("startPosition").vector3Value = SkyWingStart;
                 t.FindPropertyRelative("initialStaySeconds").floatValue = 0f;
                 t.FindPropertyRelative("travelSpeed").floatValue = SkyWingFoldedSpeed;
 

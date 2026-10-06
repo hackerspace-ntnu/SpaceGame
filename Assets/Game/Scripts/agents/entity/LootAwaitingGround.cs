@@ -91,10 +91,17 @@ namespace SpaceGame.Agents
         /// <summary>
         /// Despawned before it landed: Remains took a body left hanging, or its chunk went. A scene being
         /// torn down, the application quitting or the server shutting down is not that, and spawns nothing.
+        /// Made by WhenDropped and gone before Begin handed it a drop: no drop is coming, so whoever waits
+        /// is answered now.
         /// </summary>
         private void OnDisable()
         {
-            if (drop == null || !gameObject.scene.isLoaded || quitting || ShuttingDown) return;
+            if (!gameObject.scene.isLoaded || quitting || ShuttingDown) return;
+            if (drop == null)
+            {
+                Finish();
+                return;
+            }
 
             if (!hasGround)
             {

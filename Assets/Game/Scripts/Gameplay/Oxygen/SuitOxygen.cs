@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Items;
 using SpaceGame.Presentation;
@@ -93,6 +94,10 @@ namespace SpaceGame.Gameplay
         [Tooltip("Fraction of the CONNECTED TANK at or below which the visor warns. At the " +
                  "standard 30-minute tank this is three minutes' notice.")]
         [SerializeField, Range(0f, 1f)] private float warnFraction = 0.10f;
+
+        [Tooltip("The tone played on this player's own machine as an alarm (O2 RESERVE, SUFFOCATING) comes up. The catalog " +
+                 "has no breathing or dedicated alarm event, so the UI error tone stands in.")]
+        [SerializeField] private SfxId alarmTone = SfxId.UiError;
 
         /// <summary>
         /// Seconds left in the suit's own reserve. Everyone / Server, matching
@@ -450,6 +455,7 @@ namespace SpaceGame.Gameplay
 
             if (text == null) SystemMessages.Clear("suit.oxygen");
             else SystemMessages.Post("suit.oxygen", text, severity);
+            if (text != null && severity == MessageSeverity.Alarm) Sfx.Play(alarmTone, transform);
 
             warningShown = text;
         }

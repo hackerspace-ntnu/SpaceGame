@@ -1257,6 +1257,7 @@ namespace SpaceGame.EditorTools
             // hand in the Inspector: a hand-added module is invisible to this list, so the next
             // drifter built is missing it.
             AgentGroundConformWiring.Ensure(root);
+            DistanceDormancyWiring.Ensure(root);
 
             // The blink is part of the face rather than of the temperament, but it lives in this half
             // because this is the half that reaches existing prefabs -- and it touches nothing the

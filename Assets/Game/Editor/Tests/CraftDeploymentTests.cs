@@ -14,13 +14,13 @@ namespace SpaceGame.Tests
         private static readonly Vector3 FarAway = new Vector3(150000f, 6000f, 150000f);
         private readonly List<Object> junk = new();
         private IWorldService previousWorld;
-        private DespawnSpy world;
+        private InstantiatingWorld world;
 
         [SetUp]
         public void SetUp()
         {
             previousWorld = GameServices.World;
-            world = new DespawnSpy();
+            world = new InstantiatingWorld(junk);
             GameServices.World = world;
         }
 
@@ -75,14 +75,6 @@ namespace SpaceGame.Tests
             Assert.IsFalse(FlightLaunch.HasLaunchRoom(middle, Vector3.forward, 0.6f, 6f, 1.5f, ~0), "mid-block is not a launch");
             Assert.IsTrue(FlightLaunch.HasLaunchRoom(edge, Vector3.forward, 0.6f, 6f, 1.5f, ~0), "facing off the edge is a launch");
             Assert.IsTrue(FlightLaunch.IsAirborne(FarAway + Vector3.up * 20f, 0.6f, ~0), "20 m up is airborne");
-        }
-
-        private sealed class DespawnSpy : IWorldService
-        {
-            public readonly List<GameObject> Despawned = new();
-            public void Despawn(GameObject gameObject) => Despawned.Add(gameObject);
-            public GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation,
-                                    ulong ownerClientId = NetworkSpawn.NoOwner) => null;
         }
     }
 }

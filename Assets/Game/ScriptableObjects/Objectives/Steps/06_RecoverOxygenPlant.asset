@@ -17,12 +17,18 @@ MonoBehaviour:
   briefing:
   - Hold on. Cabin air is gone. The back door burst open when we hit, and the oxygen
     plant went out through it.
-  - It's lying on the sand behind us. Lift it by the handle and carry it back to its
-    mount. The crash will have cracked it, so take the soldering torch off the gear
-    wall and close the seams, then give it a power cell.
+  - It's lying on the sand behind us. Lift it by the handle and carry it back to
+    its mount. The crash will have cracked it, so take the soldering torch off the
+    gear wall and close the seams, then give it a power cell.
   lookAtFocus: 1
   outsideStatus: Thrown out of the back door. Lift it by the handle
   carryingStatus: 'Carrying:  <b>{0:0} m</b> to its mount'
   damagedStatus: 'Damaged: solder the seams  <b>{0}/{1}</b>'
   powerStatus: Fit a power cell
+  torch: {fileID: 11400000, guid: ad4dea599137eca49916333f41cce1fc, type: 2}
+  torchRemark:
+  - It's in, but the crash cracked it. See those glowing seams? Those have to be
+    sealed before it will run.
+  - There's a soldering torch on the gear wall. Take it with RMB, then hold LMB on
+    the glowing seam until it closes. Three seams.
   beaconLift: 1.5

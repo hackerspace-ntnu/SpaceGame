@@ -40,6 +40,8 @@ opted-in worn gauntlets; all of it identical on host and clients.
 | D9 | **NPC worn-gauntlet use is included** in this phase (opt-in per item). |
 | D5 | *Not asked; assumed:* **no formation flying** in this phase (each pilot flies alone to the shared goal). Say so at review if you want formations. |
 
+> **Open, pending the user's decision (recorded 2026-10-06, Task 10):** D7 is contradicted by content that predates this phase — `PlayerCharacterNetworked.prefab` starts wearing a `WingPack`, and a container in `persistentScene.unity` holds three more. Nothing in this phase changed them; remove them or amend D7.
+
 ## User decision (post-review, 2026-10-06): NPC-only simple flight motor
 
 On reviewing the implementation plan, the user changed one thing: *"for the ornicopter: we only want

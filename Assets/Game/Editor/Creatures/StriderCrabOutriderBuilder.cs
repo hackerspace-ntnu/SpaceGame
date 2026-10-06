@@ -55,6 +55,7 @@ namespace SpaceGame.EditorTools
             root.AddComponent<HealthReactionModule>();
 
             EntityFactionWiring.Ensure(root, System.IO.Path.GetFileNameWithoutExtension(PrefabPath));
+            DistanceDormancyWiring.Ensure(root);
 
             root.AddComponent<PerceptionModule>();
             root.AddComponent<AgentTargeting>();

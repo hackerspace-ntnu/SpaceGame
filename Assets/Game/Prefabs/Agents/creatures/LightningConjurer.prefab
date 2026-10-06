@@ -79,6 +79,7 @@ GameObject:
   - component: {fileID: 1745046679782072027}
   - component: {fileID: 428737040874688456}
   - component: {fileID: 4761291211493792448}
+  - component: {fileID: 8944591835019232408}
   m_Layer: 0
   m_Name: LightningConjurer
   m_TagString: Untagged
@@ -575,6 +576,8 @@ MonoBehaviour:
     quantity: 1
   dropInventoryContents: 1
   lootLifetime: 180
+  landedHeight: 1.5
+  groundSearchDepth: 600
 --- !u!114 &6835850495059612289
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -914,6 +917,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &8944591835019232408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1001 &949234609638625119
 PrefabInstance:
   m_ObjectHideFlags: 0

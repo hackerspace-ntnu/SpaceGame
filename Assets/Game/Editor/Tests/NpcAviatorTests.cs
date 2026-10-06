@@ -85,7 +85,8 @@ namespace SpaceGame.Tests
 
         private Vector3 GoalPoint => FarAway + Vector3.forward * 2000f;
         private bool Fly() => aviator.Fly(pilot, GoalPoint, 60f, 6f);
-        private MoveIntent? Tick() => aviator.Tick(new AgentContext { Self = craft.transform, Position = craft.transform.position }, 0.02f);
+        private MoveIntent? Tick(float deltaTime = 0.02f) =>
+            aviator.Tick(new AgentContext { Self = craft.transform, Position = craft.transform.position }, deltaTime);
         private void Touchdown(float closingSpeed) =>
             typeof(NpcAviator).GetMethod("Touchdown", Private).Invoke(aviator, new object[] { craft.transform.position, closingSpeed });
 
@@ -305,16 +306,66 @@ namespace SpaceGame.Tests
             CollectionAssert.DoesNotContain(world.Despawned, craft);
         }
 
-        [Test]
-        public void ALandingOverNoGround_StandsThePilotUnderTheCraft_NotAtTheStandInDepth()
-        {
-            Vector3 landing = craft.transform.position - Vector3.up * new NpcFlightSettings().TouchdownHeight;
-            Assert.IsTrue(aviator.Fly(pilot, landing, 60f, 6f));
+        // The goal straight under the craft, at touchdown height below it: with ground there it lands at once.
+        private Vector3 GoalUnderTheCraft => craft.transform.position - Vector3.up * new NpcFlightSettings().TouchdownHeight;
 
+        [Test]
+        public void WithNoGroundUnderTheGoal_TheCraftCirclesAndNeverSetsThePilotDown()
+        {
+            float cruiseOver = pilot.transform.position.y;   // the take-off spot: the last ground it knows
+            Assert.IsTrue(aviator.Fly(pilot, GoalUnderTheCraft, 60f, 6f));
+
+            // Flown by a stand-in for the motor: 25 m/s toward each step's target, for 50 s.
+            for (int i = 0; i < 50; i++)
+            {
+                MoveIntent? intent = Tick(1f);
+                Assert.IsTrue(intent.HasValue, "the craft stopped flying: it landed with no ground under the goal");
+                craft.transform.position = Vector3.MoveTowards(craft.transform.position, intent.Value.TargetPosition, 25f);
+            }
+
+            Assert.AreEqual(cruiseOver + 60f, craft.transform.position.y, 5f, "a circling craft did not hold cruise over the last ground it saw");
+            CollectionAssert.DoesNotContain(world.Despawned, craft, "the craft landed over ground that never streamed in");
+            Assert.AreEqual(NpcFlightPhase.EnRoute, aviator.Phase, "the craft approached a landing with no ground under it");
+            Assert.IsTrue(pilot.transform.IsChildOf(craft.transform), "the pilot was stood in mid-air");
+        }
+
+        [Test]
+        public void GroundStreamingInUnderTheGoal_LetsTheCraftLand()
+        {
+            Vector3 goal = GoalUnderTheCraft;
+            Assert.IsTrue(aviator.Fly(pilot, goal, 60f, 6f));
+            craft.transform.position += Vector3.up * 60f;   // climbed to cruise, circling
+            Tick();
+            CollectionAssert.DoesNotContain(world.Despawned, craft);
+
+            Ground(goal, 80f);
+            craft.transform.position = goal + Vector3.up * new NpcFlightSettings().TouchdownHeight;
+            Physics.SyncTransforms();
             Tick();
 
-            CollectionAssert.Contains(world.Despawned, craft, "the craft did not set down at its landing");
-            Assert.AreEqual(landing.y, pilot.transform.position.y, 0.5f, "the pilot was stood at the no-ground stand-in depth");
+            CollectionAssert.Contains(world.Despawned, craft, "the craft never landed once the ground had loaded");
+            Assert.AreEqual(goal.y, pilot.transform.position.y, 0.5f, "the pilot was not stood on the ground");
+        }
+
+        [Test]
+        public void CirclingTooLong_GivesTheGoalUp_AndLandsOnTheLastGroundFlownOver()
+        {
+            Vector3 lastGround = craft.transform.position + Vector3.down * 30f;
+            Ground(lastGround, 20f);   // under the craft only, not under the goal
+            Assert.IsTrue(aviator.Fly(pilot, craft.transform.position + Vector3.forward * 50f, 60f, 6f));
+
+            float wait = (float)typeof(NpcAviator).GetField("groundWaitSeconds", Private).GetValue(aviator);
+            Tick(wait + 1f);
+
+            Assert.AreEqual(lastGround.y, aviator.LandingPoint.y, 0.01f, "the craft kept circling a goal with no ground");
+            Assert.AreEqual(lastGround.z, aviator.LandingPoint.z, 0.01f);
+
+            craft.transform.position = lastGround + Vector3.up * new NpcFlightSettings().TouchdownHeight;
+            Physics.SyncTransforms();
+            Tick();
+
+            CollectionAssert.Contains(world.Despawned, craft, "the craft never landed on the ground it fell back to");
+            Assert.AreEqual(lastGround.y, pilot.transform.position.y, 0.5f);
         }
 
         [Test]
@@ -432,18 +483,24 @@ namespace SpaceGame.Tests
 
         private NavMeshDataInstance BakeNavMesh(Vector3 top, float size)
         {
+            NavMeshData data = BuildSlabNavMesh(top, size);
+            junk.Add(data);
+            return NavMesh.AddNavMeshData(data);
+        }
+
+        /// <summary>A NavMesh over a square slab whose walkable top is at <paramref name="top"/>. The caller destroys it.</summary>
+        internal static NavMeshData BuildSlabNavMesh(Vector3 top, float size)
+        {
             var source = new NavMeshBuildSource
             {
                 shape = NavMeshBuildSourceShape.Box,
                 transform = Matrix4x4.Translate(top + Vector3.down * 0.5f),
                 size = new Vector3(size, 1f, size),
             };
-            NavMeshData data = NavMeshBuilder.BuildNavMeshData(NavMesh.GetSettingsByID(0),
-                                                               new List<NavMeshBuildSource> { source },
-                                                               new Bounds(top, new Vector3(size + 20f, 30f, size + 20f)),
-                                                               Vector3.zero, Quaternion.identity);
-            junk.Add(data);
-            return NavMesh.AddNavMeshData(data);
+            return NavMeshBuilder.BuildNavMeshData(NavMesh.GetSettingsByID(0),
+                                                   new List<NavMeshBuildSource> { source },
+                                                   new Bounds(top, new Vector3(size + 20f, 30f, size + 20f)),
+                                                   Vector3.zero, Quaternion.identity);
         }
 
         private GameObject Box()

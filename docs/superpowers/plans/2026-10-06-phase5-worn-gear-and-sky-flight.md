@@ -4625,6 +4625,8 @@ return "rendered";
 
 ### Task 10: Docs consolidation, stale references, and the human Play Mode checklist
 
+> **Open, pending the user's decision (recorded 2026-10-06, Task 10):** D7 is contradicted by content that predates this phase — `PlayerCharacterNetworked.prefab` starts wearing a `WingPack`, and a container in `persistentScene.unity` holds three more. Nothing in this phase changed them; remove them or amend D7.
+
 **Files:**
 - Modify: `docs/AI/systems/Ornithopter.md` (delete the stale `OrnithopterBuilder` / `WingPackBuilder` rows and Gotchas that describe a builder which no longer exists: the "Builders" Key types row, "`WingPackBuilder` writes the `WornFit` now", "`WingPackBuilder` is STILL lossy", and the "Prefab lives under `Prefabs/agents/…`" line if it still names a builder. Replace them with one Gotcha: "`DuneOrnithopter.prefab` and `WingPack.prefab` are hand-owned (no builder): patch them through `PrefabUtility.LoadPrefabContents` and diff `prefabId` / `GlobalObjectIdHash` / `confinedToSurfaces` / `RigidbodySaveable` against git")
 - Modify: `docs/superpowers/specs/2026-09-07-faction-system-design.md` §3.8 (one line: "Superseded by 2026-10-06 phase 5 design; `DuneOrnithopter` has an `AgentController`")

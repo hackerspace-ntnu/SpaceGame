@@ -25,7 +25,8 @@ updated: 2026-10-06
 # Objectives
 
 The start-of-game loop: an ordered chain of steps the whole crew works through after the crash —
-try the basic controls, carry the oxygen plant the crash threw out back into the ship and solder its cracks, read the damage at the terminal, recover and fit a module, try an artifact,
+try the basic controls, carry the oxygen plant the crash threw out back into the ship and solder its cracks, fill a bottle
+and seat it before the suit reserve runs out, read the damage at the terminal, recover and fit a module, try an artifact,
 get the long-range transmitter working, answer the signal it hears, repair the ship. The lander's computer briefs each step; the visor names it, lists its status and
 points at it.
 
@@ -72,7 +73,8 @@ visor layer is [Visor](Visor.md).
 | `ObjectiveNetwork` | On `NetworkGameManager.prefab`, beside `ChatNetwork`. One server-write `NetworkVariable<ObjectiveProgress>`, read on spawn for late joiners; `ReportFinishedRpc(step)` client → server, sender taken from `RpcParams` |
 | [`ObjectiveSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs) | Global saver, key `objectives`: step **id**, `complete`, `begun` |
 | `LearnControlsStep` | Checklist of `lessons` (move, sprint, jump, crouch) in `Status`; only counts input while out of the seat and every cutscene; met when every player has finished |
-| `RecoverOxygenPlantStep` | Second step (`recover-oxygen-plant`). Met by `OxygenPlantMount.Running` (in its mount, soldered, powered). Status: `Thrown out of the back door. Lift it by the handle` / `Carrying: n m to its mount` / `Damaged: solder the seams k/3` / `Fit a power cell`. Waypoint and beacon: the loose plant, the mount while it is carried, the glowing seam while cracked, the mount for the cell; focus: the burst door |
+| `RecoverOxygenPlantStep` | Second step (`recover-oxygen-plant`). Met by `OxygenPlantMount.Running` (in its mount, soldered, powered). Status: `Thrown out of the back door. Lift it by the handle` / `Carrying: n m to its mount` / `Damaged: solder the seams k/3` / `Fit a power cell`. Waypoint and beacon: the loose plant, the mount while it is carried; cracked, the gear wall's torch while no crew member carries one (`CrewGear`), then the glowing seam; the mount for the cell; focus: the burst door. **Remark 0** (2026-10-06): the torch tutorial ("on the gear wall… RMB… hold LMB on the glowing seam"), due the first time the plant stands in its mount cracked |
+| `RefillAirStep` | Third step (`refill-air`, 2026-10-06, `09_RefillAir.asset`). The crash vented every crew bottle (Oxygen.md): take an empty bottle off the gear wall (RMB), fill it at the plant's collar, press **B** (the `Backpack` action) and seat it. Status walks THIS machine's player through it from their hotbar, pack and socket (take / fill / seat / done); waypoint: the gear wall, then the plant. **Met when ANY crew member has a filled bottle seated** (`OxygenPlantMount.AirRefilled`), so a late joiner, an idle or a dead player never blocks it. Remark 0: "reserve running low", due when any suit on reserve is under 35 % |
 | `UseTerminalStep` | The hull's `TerminalConsole.Occupied`; focus = first empty socket |
 | `RecoverModuleStep` | Drops `SmallMotor` 90–130 m out; met by any socket fitted beyond `AuthoredMask`; waypoint = loose module, else the empty socket |
 | `TryArtifactStep` | Drops `JumpingRod` 22 m off the nose; met on `UseChannel.UsedOnServer` for that asset |

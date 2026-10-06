@@ -565,6 +565,7 @@ namespace SpaceGame.EditorTools
             if (!design.Wild) AttachRider(root);
 
             AgentGroundConformWiring.Ensure(root);
+            DistanceDormancyWiring.Ensure(root);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, design.PrefabPath);
             Object.DestroyImmediate(root);

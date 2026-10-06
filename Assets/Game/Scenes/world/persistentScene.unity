@@ -272,6 +272,7 @@ GameObject:
   - component: {fileID: 114649347}
   - component: {fileID: 114649349}
   - component: {fileID: 114649348}
+  - component: {fileID: 114649350}
   m_Layer: 0
   m_Name: NpcWorldSim
   m_TagString: Untagged
@@ -597,6 +598,132 @@ MonoBehaviour:
     startNearSite: 1
     useStartPosition: 1
     startPosition: {x: 3700, y: 100, z: 1560}
+    initialStaySeconds: 0
+    bountyHunters: 0
+    showFromAfar: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+    formation:
+      Lanes: 2
+      RowSpacing: 3.5
+      LaneSpacing: 2.4
+      LateralJitter: 1
+      LongitudinalJitter: 1.3
+      DriftAmplitude: 0.8
+      DriftRate: 0.07
+  - id: sky-wing
+    displayName: Sky Wing
+    tribe: {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 0}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 0}
+      role: 0
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    tasks:
+    - label: looking over a ruin
+      targetSite: 2
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Saw this from the city. Worth a look.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 12
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: picking through a scrap field
+      targetSite: 3
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Light pieces only. We have to fly it home.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 12
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    - label: visiting a camp
+      targetSite: 1
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 180}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter:
+      - Ground folk. Keep your wings folded and your hands empty.
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 12
+      travelSpeedMultiplier: 1
+      levelGround:
+        footprintRadius: 0
+        maxSlopeDegrees: 0
+        searchRadius: 0
+        searchStep: 0
+        attempts: 0
+        sampleReach: 0
+        sampleTolerance: 0
+    travelSpeed: 22
+    startNearSite: 2
+    useStartPosition: 1
+    startPosition: {x: 3350, y: 110.3, z: 1400}
     initialStaySeconds: 0
     bountyHunters: 0
     showFromAfar: 0
@@ -1900,6 +2027,9 @@ MonoBehaviour:
   spawnRadius: 250
   despawnRadius: 360
   spawnSampleDistance: 25
+  groundProbe:
+    castReach: 300
+    surfaceSkin: 0.5
   tickInterval: 1
   playerRefreshInterval: 2
   transportRetryDelay: 15
@@ -2009,6 +2139,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionDirector
   simulateStepMinutes: 10
+--- !u!114 &114649350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 114649341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1068654c57c12ed4c9a661c5b831b88a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.SimulationRange
+  cellSize: 125
+  tickInterval: 0.5
+  woundedWakeSeconds: 30
 --- !u!1 &118567313
 GameObject:
   m_ObjectHideFlags: 0

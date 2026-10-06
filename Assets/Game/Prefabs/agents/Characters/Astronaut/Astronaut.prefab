@@ -1852,6 +1852,7 @@ GameObject:
   - component: {fileID: 389920818126981875}
   - component: {fileID: 2823846218482738107}
   - component: {fileID: -6237145473055005482}
+  - component: {fileID: 7076298197136034819}
   m_Layer: 0
   m_Name: Astronaut
   m_TagString: Untagged
@@ -3124,6 +3125,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &7076298197136034819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &2581286100790949836
 GameObject:
   m_ObjectHideFlags: 0

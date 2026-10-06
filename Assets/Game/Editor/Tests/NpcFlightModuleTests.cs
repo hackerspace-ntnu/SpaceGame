@@ -9,6 +9,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Core;
@@ -209,6 +210,69 @@ namespace SpaceGame.Tests
         {
             Assert.IsFalse(flight.Tick(Context(), 0.02f).HasValue, "a hop or a step off a ledge deployed the craft");
             Assert.IsEmpty(world.Spawned);
+        }
+
+        [Test]
+        public void ALandingShortOfAGoalThatNeverLoaded_DropsTheGoal_SoItDoesNotFlyBack()
+        {
+            FlyFar();
+            typeof(NpcAviator).GetMethod("GiveUpGoal", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(flight.Aviator, null);
+            Land();
+
+            Assert.IsFalse(goal.HasGoal, "the nomad kept the goal it gave up on, and will fly back to circle it again");
+        }
+
+        [Test]
+        public void AnOrdinaryLanding_KeepsTheGoal_ForTheLastMetresOnFoot()
+        {
+            FlyFar();
+            Land();
+
+            Assert.IsTrue(goal.HasGoal);
+        }
+
+        [Test]
+        public void ANomadWalkingOnTheNavMesh_WithNoColliderUnderItsFeet_IsNotFalling()
+        {
+            // A dune crest: the NavMesh the root stands on lies under a one-sided surface the ground ray
+            // never hits — here, no collider at all. It must never read as a fall and deploy.
+            NavMeshDataInstance mesh = NavMesh.AddNavMeshData(NavMeshAt(FarAway));
+            try
+            {
+                nomad.AddComponent<NavMeshAgent>();
+                flight.Tick(Context(), 1f);
+                Assert.IsFalse(flight.Tick(Context(), 1f).HasValue, "a nomad standing on the NavMesh deployed its craft");
+                Assert.IsEmpty(world.Spawned);
+                Assert.IsFalse(flight.IsAirborne);
+            }
+            finally
+            {
+                NavMesh.RemoveNavMeshData(mesh);
+            }
+        }
+
+        [Test]
+        public void ANomadOffTheNavMesh_WithAnAgent_StillFalls()
+        {
+            NavMeshDataInstance mesh = NavMesh.AddNavMeshData(NavMeshAt(FarAway + Vector3.down * 50f));
+            try
+            {
+                nomad.AddComponent<NavMeshAgent>();
+                flight.Tick(Context(), 0.02f);
+                Assert.IsTrue(flight.Tick(Context(), 1f).HasValue, "a nomad fallen off the NavMesh never deployed");
+                Assert.AreEqual(1, world.Spawned.Count);
+            }
+            finally
+            {
+                NavMesh.RemoveNavMeshData(mesh);
+            }
+        }
+
+        private NavMeshData NavMeshAt(Vector3 top)
+        {
+            NavMeshData data = NpcAviatorTests.BuildSlabNavMesh(top, 40f);
+            junk.Add(data);
+            return data;
         }
 
         [Test]

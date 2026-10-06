@@ -9,7 +9,8 @@
 // within FlareDistance, or the descent to it has become ApproachSlope, it approaches: straight at the
 // touchdown point, slowing to FlareSpeed inside FlareDistance. If that line would be steeper than
 // MaxApproachSlope it spirals down around the landing first. A wreck spirals down at WreckSlope around
-// the point where its pilot died.
+// the point where its pilot died. While the ground at the landing is not known (not streamed in),
+// Hold flies there at cruise and circles it at SpiralRadius instead — it never approaches or lands.
 using System;
 using UnityEngine;
 
@@ -98,9 +99,13 @@ namespace SpaceGame.Vehicles.Ornithopter
 
         public NpcFlightPhase Phase { get; private set; }
 
+        /// <summary>The last Hold step was circling its centre (within LookAhead of it), not still flying there.</summary>
+        public bool Holding { get; private set; }
+
         public void Begin()
         {
             airborne = false;
+            Holding = false;
             Phase = NpcFlightPhase.EnRoute;
         }
 
@@ -118,10 +123,8 @@ namespace SpaceGame.Vehicles.Ornithopter
             if (Phase == NpcFlightPhase.Idle || Phase == NpcFlightPhase.Landed)
                 return new NpcFlightStep(position, 0f, false);
 
-            float aboveGround = position.y - groundBelow;
-            float touchdownBand = s.TouchdownHeight + s.TouchdownTolerance;
-            bool down = aboveGround <= touchdownBand;
-            airborne |= aboveGround > touchdownBand + s.TakeOffClearance;
+            Holding = false;
+            bool down = LatchAirborne(position, groundBelow);
 
             if (Phase == NpcFlightPhase.Wreck)
                 return down ? Land(position) : new NpcFlightStep(Spiral(wreckCentre, position, s.WreckSlope), 1f, false);
@@ -141,9 +144,7 @@ namespace SpaceGame.Vehicles.Ornithopter
                 Vector3 ahead = flat > s.LookAhead
                     ? position + toLanding / flat * s.LookAhead
                     : new Vector3(touchdown.x, position.y, touchdown.z);
-                float rise = groundBelow + cruiseHeight - position.y;
-                ahead.y = position.y + Mathf.Clamp(rise, -Tan(s.DescentSlope) * s.LookAhead, Tan(s.ClimbSlope) * s.LookAhead);
-                return new NpcFlightStep(ahead, 1f, false);
+                return new NpcFlightStep(AtCruise(ahead, position, groundBelow, cruiseHeight), 1f, false);
             }
 
             if (down || (above <= s.TouchdownTolerance && flat <= s.LandingTolerance))
@@ -155,6 +156,44 @@ namespace SpaceGame.Vehicles.Ornithopter
 
             float distance = Vector3.Distance(position, touchdown);
             return new NpcFlightStep(touchdown, distance <= s.FlareDistance ? s.FlareSpeed : 1f, false);
+        }
+
+        /// <summary>
+        /// En route to <paramref name="centre"/> with nowhere known to land: fly there at cruise, then circle
+        /// it at SpiralRadius. Never approaches or lands; Step takes over once the landing ground is known.
+        /// </summary>
+        public NpcFlightStep Hold(Vector3 position, float groundBelow, Vector3 centre, float cruiseHeight)
+        {
+            if (Phase != NpcFlightPhase.EnRoute)
+                return new NpcFlightStep(position, 0f, false);
+
+            LatchAirborne(position, groundBelow);
+
+            Vector3 toCentre = centre - position;
+            toCentre.y = 0f;
+            float flat = toCentre.magnitude;
+            Holding = flat <= s.LookAhead;
+            Vector3 ahead = Holding
+                ? Spiral(centre, position, 0f)
+                : position + toCentre / flat * s.LookAhead;
+            return new NpcFlightStep(AtCruise(ahead, position, groundBelow, cruiseHeight), 1f, false);
+        }
+
+        /// <summary>Latch <c>airborne</c> once TakeOffClearance above the touchdown band; true while inside the band (down).</summary>
+        private bool LatchAirborne(Vector3 position, float groundBelow)
+        {
+            float aboveGround = position.y - groundBelow;
+            float touchdownBand = s.TouchdownHeight + s.TouchdownTolerance;
+            airborne |= aboveGround > touchdownBand + s.TakeOffClearance;
+            return aboveGround <= touchdownBand;
+        }
+
+        /// <summary><paramref name="ahead"/> raised or lowered toward cruiseHeight over the ground, within the climb and descent slopes.</summary>
+        private Vector3 AtCruise(Vector3 ahead, Vector3 position, float groundBelow, float cruiseHeight)
+        {
+            float rise = groundBelow + cruiseHeight - position.y;
+            ahead.y = position.y + Mathf.Clamp(rise, -Tan(s.DescentSlope) * s.LookAhead, Tan(s.ClimbSlope) * s.LookAhead);
+            return ahead;
         }
 
         private NpcFlightStep Land(Vector3 position)

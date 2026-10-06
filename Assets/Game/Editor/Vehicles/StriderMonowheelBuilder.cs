@@ -213,7 +213,7 @@ namespace SpaceGame.EditorTools
             }
 
             // Before Finish: its colliders measure renderers under Body only, and the far dust hangs off the root.
-            VehicleDustWiring.AddFarDust(root, body.GetComponent<MonowheelPresentation>().DustAtFullSpeed, StriderCityBuilder.CityLeaderSpeed);
+            VehicleDustWiring.AddFarDust(root, body.GetComponent<MonowheelPresentation>().DustAtFullSpeed);
             return Finish(root, body, path, offsets.Strider);
         }
 

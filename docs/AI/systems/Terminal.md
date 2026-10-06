@@ -18,7 +18,7 @@ symptoms:
   - "the terminal stands on the deck but pressing a tab does nothing"
   - "the terminal stands in the cockpit instead of beside the gear wall"
 reads_with: [ShipSchematic, InteractionSystem, PlayerShip, Multiplayer, Backpack, Oxygen]
-updated: 2026-09-12
+updated: 2026-10-05
 ---
 
 # Terminal
@@ -67,7 +67,7 @@ right mouse again, or reaching for WASD hands everything back.
 
 | Type | File | Role |
 | --- | --- | --- |
-| `TerminalConsole` | [Gameplay/Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | `NetworkBehaviour`, `IInteractable`, `IContextualInteractable`, `IInteractionReadout`. `NetworkVariable<int>` page, `NetworkVariable<ulong>` operator; `RequestPage`, `Release`; server RPCs via `InteractorRelay`. `PageNames` is the page list. |
+| `TerminalConsole` | [Gameplay/Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | [`ClaimableConsole`](Assets/Game/Scripts/Gameplay/Interaction/Core/ClaimableConsole.cs) (the operator claim, shared with the satellite dish's lectern — [SatelliteDish.md](SatelliteDish.md)), `IInteractable`, `IInteractionReadout`. `NetworkVariable<int>` page; `RequestPage`, `Release`; server RPCs via `InteractorRelay`. `PageNames` is the page list. |
 | `TerminalFocusSession` | [Gameplay/Terminal/TerminalFocusSession.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalFocusSession.cs) | Per-machine zoom-in: `GameplayMenuScope.Enter(freezeTime: false, hideHud: true)`, spawns the camera, wires the canvas's event camera, reads exits and 1-3 raw. Static `Active`, at most one. |
 | `TerminalFocusCamera` | [Gameplay/Terminal/TerminalFocusCamera.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalFocusCamera.cs) | `FocusCamera` subclass; the shot from `TerminalShot` off a `ScreenAnchor` transform read live. `Shot` (FOV 40, fill 0.8, fly-in 0.35 s) serialized on the session. |
 | `TerminalShot` / `ScreenPlane` | [TerminalShot.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalShot.cs), [ScreenPlane.cs](Assets/Game/Scripts/Gameplay/Terminal/ScreenPlane.cs) | Pure: lens distance/yaw/pitch for a plane; a plane from vertices and triangles. Tested. |

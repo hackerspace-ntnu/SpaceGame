@@ -2013,7 +2013,7 @@ Variations / collections: `Coll_Backpack_Field`
 
 ### `components/props/field_bench.blend`
 
-Variations / collections: `Coll_FieldBench_Generator`, `Coll_FieldBench_Reel`, `Coll_FieldBench_Sawhorse`, `Coll_FieldBench_Table`, `Coll_FieldBench_ToolRack`
+Variations / collections: `Coll_FieldBench_Generator`, `Coll_FieldBench_Reel`, `Coll_FieldBench_Sawhorse`, `Coll_FieldBench_Table`, `Coll_FieldBench_TableStools`, `Coll_FieldBench_ToolRack`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -2021,6 +2021,7 @@ Variations / collections: `Coll_FieldBench_Generator`, `Coll_FieldBench_Reel`, `
 | `Mesh_FieldBench_Reel` | 2.3493 x 0.96 x 1.1339 | 2426 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Wood_Ply_Worn, Mat_Metal_Rust_Heavy, Mat_Paint_Roof_Green, Mat_Paint_Safety_Orange, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Neutral_Black_Matte, Mat_Plastic_Cream_Aged, Mat_Emissive_Amber |
 | `Mesh_FieldBench_Sawhorse` | 1.8633 x 0.7082 x 0.9513 | 880 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Wood_Ply_Worn, Mat_Metal_Rust_Heavy, Mat_Paint_Roof_Green, Mat_Paint_Safety_Orange, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Neutral_Black_Matte, Mat_Plastic_Cream_Aged, Mat_Emissive_Amber |
 | `Mesh_FieldBench_Table` | 2.04 x 0.78 x 1.1603 | 2130 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Wood_Ply_Worn, Mat_Metal_Rust_Heavy, Mat_Paint_Roof_Green, Mat_Paint_Safety_Orange, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Neutral_Black_Matte, Mat_Plastic_Cream_Aged, Mat_Emissive_Amber |
+| `Mesh_FieldBench_TableStools` | 2.3523 x 3.1491 x 1.42 | 88 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_Cable, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Paper, MAT_SatTower_Int_StoveGlow |
 | `Mesh_FieldBench_ToolRack` | 1.4 x 0.5862 x 1.72 | 2088 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Wood_Ply_Worn, Mat_Metal_Rust_Heavy, Mat_Paint_Roof_Green, Mat_Paint_Safety_Orange, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Neutral_Black_Matte, Mat_Plastic_Cream_Aged, Mat_Emissive_Amber |
 
 ### `components/props/flask_body.blend`
@@ -2433,7 +2434,7 @@ Variations / collections: `Coll_ProneCradle_GripBar`, `Coll_ProneCradle_Pad`, `C
 
 ### `components/props/repair_bench.blend`
 
-Variations / collections: `Coll_RepairBench_Bulkhead`, `Coll_RepairBench_Compact`, `Coll_RepairBench_Island`
+Variations / collections: `Coll_RepairBench_Bulkhead`, `Coll_RepairBench_Compact`, `Coll_RepairBench_Island`, `Coll_RepairBench_ScrapWorkshop`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
@@ -2442,6 +2443,7 @@ Variations / collections: `Coll_RepairBench_Bulkhead`, `Coll_RepairBench_Compact
 | `Mesh_RepairBench_Cabinet_Island` | 1.2 x 0.804 x 0.87 | 712 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Cream_Aged, Mat_Paint_Warn_Red, Mat_Paint_Blue_Station, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Emissive_Green_CRT, Mat_Neutral_Panel_Grey, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn |
 | `Mesh_RepairBench_Console_Island` | 1.135 x 0.3445 x 0.355 | 582 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Cream_Aged, Mat_Paint_Warn_Red, Mat_Paint_Blue_Station, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Emissive_Green_CRT, Mat_Neutral_Panel_Grey, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn |
 | `Mesh_RepairBench_Leaf_Compact` | 0.72 x 0.454 x 0.314 | 228 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Cream_Aged, Mat_Paint_Warn_Red, Mat_Paint_Blue_Station, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Emissive_Green_CRT, Mat_Neutral_Panel_Grey, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn |
+| `Mesh_RepairBench_ScrapWorkshop` | 5.9679 x 2.8247 x 3.7138 | 268 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_Cable, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Paper, MAT_SatTower_Int_StoveGlow |
 | `Mesh_RepairBench_Spindle_Bulkhead` | 0.122 x 0.2 x 0.2 | 64 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Cream_Aged, Mat_Paint_Warn_Red, Mat_Paint_Blue_Station, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Emissive_Green_CRT, Mat_Neutral_Panel_Grey, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn |
 | `Mesh_RepairBench_Spindle_Island` | 0.122 x 0.2 x 0.2 | 64 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Cream_Aged, Mat_Paint_Warn_Red, Mat_Paint_Blue_Station, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Emissive_Green_CRT, Mat_Neutral_Panel_Grey, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn |
 | `Mesh_RepairBench_SpindleHousing_Bulkhead` | 0.34 x 0.26 x 0.279 | 790 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Cream_Aged, Mat_Paint_Warn_Red, Mat_Paint_Blue_Station, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Emissive_Green_CRT, Mat_Neutral_Panel_Grey, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn |
@@ -2478,7 +2480,7 @@ Variations / collections: `Coll_ScrapDebris_ConsoleJunk`, `Coll_ScrapDebris_Dish
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
 | `Mesh_ScrapDebris_ConsoleJunk` | 2.4339 x 2.1853 x 0.6469 | 60 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige |
-| `Mesh_ScrapDebris_DishFall` | 22.5741 x 9.101 x 0.2 | 54 | MAT_SatTower_DarkMetal |
+| `Mesh_ScrapDebris_DishFall` | 40.6333 x 16.3818 x 0.36 | 54 | MAT_SatTower_DarkMetal |
 
 ### `components/props/scrap_hopper.blend`
 
@@ -2624,13 +2626,14 @@ Variations / collections: `Coll_Staff_Cane`, `Coll_Staff_Gnarled`, `Coll_Staff_N
 
 ### `components/props/wall_locker.blend`
 
-Variations / collections: `Coll_WallLocker_Bank`, `Coll_WallLocker_Dented`, `Coll_WallLocker_OpenShelf`, `Coll_WallLocker_Tall`
+Variations / collections: `Coll_WallLocker_Bank`, `Coll_WallLocker_Dented`, `Coll_WallLocker_OpenShelf`, `Coll_WallLocker_ScrapRack`, `Coll_WallLocker_Tall`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
 | `Mesh_WallLocker_Bank` | 0.755 x 1.44 x 1.14 | 1223 | Mat_Neutral_Panel_Grey, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Fabric_Canvas_Faded, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Wood_Ply_Worn |
 | `Mesh_WallLocker_Dented` | 0.8785 x 1.0245 x 1.25 | 956 | Mat_Neutral_Panel_Grey, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Fabric_Canvas_Faded, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Wood_Ply_Worn |
 | `Mesh_WallLocker_OpenShelf` | 0.3812 x 1.1 x 1.55 | 2241 | Mat_Neutral_Panel_Grey, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Fabric_Canvas_Faded, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Wood_Ply_Worn |
+| `Mesh_WallLocker_ScrapRack` | 1.9593 x 2.8798 x 3.3 | 144 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_Cable, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Paper, MAT_SatTower_Int_StoveGlow |
 | `Mesh_WallLocker_Tall` | 0.5325 x 0.9 x 1.93 | 1104 | Mat_Neutral_Panel_Grey, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Fabric_Canvas_Faded, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Wood_Ply_Worn |
 
 ### `components/props/weather_station_device.blend`
@@ -2737,9 +2740,9 @@ Variations / collections: `Coll_DishFeed_Cabin`, `Coll_DishFeed_Leg`, `Coll_Dish
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `Mesh_DishFeed_Cabin` | 3.2585 x 3.2217 x 6.7544 | 70 | MAT_SatTower_DishPaint, MAT_SatTower_DarkMetal |
-| `Mesh_DishFeed_Leg` | 10.3528 x 1.5698 x 13.4091 | 564 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
-| `Mesh_DishFeed_LegSnapped` | 5.1178 x 1.3973 x 6.0479 | 258 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
+| `Mesh_DishFeed_Cabin` | 5.8653 x 5.7991 x 12.158 | 70 | MAT_SatTower_DishPaint, MAT_SatTower_DarkMetal |
+| `Mesh_DishFeed_Leg` | 18.635 x 2.8256 x 24.1364 | 564 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
+| `Mesh_DishFeed_LegSnapped` | 9.212 x 2.5151 x 10.8861 | 258 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
 
 ### `components/structural/dish_panel.blend`
 
@@ -2747,12 +2750,12 @@ Variations / collections: `Coll_DishPanel_Askew`, `Coll_DishPanel_Fallen`, `Coll
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `Mesh_DishPanel_Askew` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_DishPanel_Fallen` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_DishPanel_Hanging_Panel` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_DishPanel_Hanging_Straps` | 0.55 x 0.55 x 0.81 | 28 | MAT_SatTower_RailRust |
-| `Mesh_DishPanel_Intact` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_DishPanel_Patched` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_ScrapRust |
+| `Mesh_DishPanel_Askew` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_DishPanel_Fallen` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_DishPanel_Hanging_Panel` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_DishPanel_Hanging_Straps` | 0.99 x 0.99 x 1.458 | 28 | MAT_SatTower_RailRust |
+| `Mesh_DishPanel_Intact` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_DishPanel_Patched` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_ScrapRust |
 
 ### `components/structural/dish_pedestal.blend`
 
@@ -2760,10 +2763,10 @@ Variations / collections: `Coll_DishPedestal_Catwalk`, `Coll_DishPedestal_Yoke`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `Mesh_DishPedestal_Catwalk` | 11.2 x 11.2 x 7.68 | 560 | MAT_SatTower_DarkMetal, MAT_SatTower_RailRust |
-| `Mesh_DishPedestal_Yoke_Bearing` | 9.01 x 9.01 x 1.4 | 372 | MAT_SatTower_DarkMetal |
-| `Mesh_DishPedestal_Yoke_Column` | 9.5425 x 9.5425 x 7.8 | 176 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
-| `Mesh_DishPedestal_Yoke_HeadYoke` | 13.2 x 7.0 x 13.4 | 334 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `Mesh_DishPedestal_Catwalk` | 21.6 x 21.6 x 11.6 | 1200 | MAT_SatTower_DarkMetal, MAT_SatTower_RailRust |
+| `Mesh_DishPedestal_Yoke_Bearing` | 16.218 x 16.218 x 2.52 | 372 | MAT_SatTower_DarkMetal |
+| `Mesh_DishPedestal_Yoke_Column` | 17.1764 x 17.1764 x 14.04 | 176 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `Mesh_DishPedestal_Yoke_HeadYoke` | 23.76 x 12.6 x 24.12 | 334 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
 
 ### `components/structural/facade_awning.blend`
 
@@ -2843,7 +2846,7 @@ Variations / collections: `Coll_Handrail_Corner`, `Coll_Handrail_Gate`, `Coll_Ha
 | `Mesh_Handrail_Corner` | 2.24 x 2.24 x 1.105 | 1106 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Handrail_Gate` | 0.24 x 2.24 x 1.11 | 1028 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Handrail_Ladder` | 0.78 x 0.853 x 3.3865 | 1686 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
-| `Mesh_Handrail_RustyBay` | 2.2934 x 0.6557 x 1.64 | 30 | MAT_SatTower_RailRust |
+| `Mesh_Handrail_RustyBay` | 2.0731 x 0.4572 x 1.662 | 30 | MAT_SatTower_RailRust |
 | `Mesh_Handrail_Stair` | 1.019 x 2.0406 x 2.4668 | 1008 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Handrail_Straight` | 0.24 x 2.24 x 1.105 | 692 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 
@@ -2969,67 +2972,67 @@ Variations / collections: `Coll_SatelliteDish_Broken`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `Mesh_SatelliteDish_Broken_Damage_HangStraps` | 0.55 x 0.55 x 0.81 | 28 | MAT_SatTower_RailRust |
-| `Mesh_SatelliteDish_Broken_Dish_Hub` | 9.4 x 7.0 x 5.525 | 56 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_01` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_02` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_04` | 2.9454 x 3.9833 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_05` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_06` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_07` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_08` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_09` | 2.9454 x 3.9833 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_10` | 2.9454 x 3.9833 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_11` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_12` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_13` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_14` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_15` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_16` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_17` | 3.5348 x 4.7315 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_18` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_19` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_20` | 3.5348 x 4.7315 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_22` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_23` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_24` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_25` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_26` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_27` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_28` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_29` | 3.5348 x 4.7315 x 1.6062 | 9 | Material |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_30` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_31` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_32` | 3.5348 x 4.7315 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_33` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_34` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_35` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_36` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_37` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_38` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_39` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_40` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_43` | 3.7402 x 4.6667 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_44` | 4.6038 x 5.1862 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_45` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_46` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_ScrapRust |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_47` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_48` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_49` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_51` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_52` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_53` | 4.6038 x 5.1862 x 2.3804 | 12 | Material |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_54` | 3.7402 x 4.6667 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_55` | 4.6038 x 5.1862 x 2.3804 | 12 | MAT_SatTower_DishPaint.001 |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_56` | 4.6038 x 5.1862 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_57` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_58` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_59` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Panel_60` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `Mesh_SatelliteDish_Broken_Dish_Truss` | 30.3193 x 30.3193 x 9.3512 | 4416 | MAT_SatTower_DarkMetal |
-| `Mesh_SatelliteDish_Broken_Dish_Truss_Broken` | 3.9964 x 6.2969 x 4.0905 | 48 | MAT_SatTower_DarkMetal |
-| `Mesh_SatelliteDish_Broken_Feed_Cabin` | 3.2585 x 3.2217 x 6.7544 | 70 | MAT_SatTower_DishPaint, MAT_SatTower_DarkMetal |
-| `Mesh_SatelliteDish_Broken_Feed_Quadrupod` | 22.2032 x 22.2031 x 9.1317 | 2184 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
+| `Mesh_SatelliteDish_Broken_Damage_HangStraps` | 0.99 x 0.99 x 1.458 | 28 | MAT_SatTower_RailRust |
+| `Mesh_SatelliteDish_Broken_Dish_Hub` | 16.92 x 12.6 x 9.945 | 56 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_01` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_02` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_04` | 5.3017 x 7.1699 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_05` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_06` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_07` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_08` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_09` | 5.3017 x 7.1699 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_10` | 5.3017 x 7.1699 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_11` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_12` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_13` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_14` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_15` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_16` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_17` | 6.3626 x 8.5167 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_18` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_19` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_20` | 6.3626 x 8.5167 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_22` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_23` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_24` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_25` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_26` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_27` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_28` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_29` | 6.3626 x 8.5167 x 2.8912 | 9 | Material |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_30` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_31` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_32` | 6.3626 x 8.5167 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_33` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_34` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_35` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_36` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_37` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_38` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_39` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_40` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_43` | 6.7323 x 8.4 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_44` | 8.2868 x 9.3352 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_45` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_46` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_ScrapRust |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_47` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_48` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_49` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_51` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_52` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_53` | 8.2868 x 9.3352 x 4.2848 | 12 | Material |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_54` | 6.7323 x 8.4 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_55` | 8.2868 x 9.3352 x 4.2848 | 12 | MAT_SatTower_DishPaint.001 |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_56` | 8.2868 x 9.3352 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_57` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_58` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_59` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Panel_60` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `Mesh_SatelliteDish_Broken_Dish_Truss` | 54.5748 x 54.5748 x 16.8321 | 4416 | MAT_SatTower_DarkMetal |
+| `Mesh_SatelliteDish_Broken_Dish_Truss_Broken` | 7.1935 x 11.3344 x 7.3628 | 48 | MAT_SatTower_DarkMetal |
+| `Mesh_SatelliteDish_Broken_Feed_Cabin` | 5.8653 x 5.7991 x 12.158 | 70 | MAT_SatTower_DishPaint, MAT_SatTower_DarkMetal |
+| `Mesh_SatelliteDish_Broken_Feed_Quadrupod` | 39.9657 x 39.9657 x 16.437 | 2184 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
 
 ### `components/structural/scaffold_bay.blend`
 
@@ -3131,19 +3134,35 @@ Variations / collections: `Coll_SensorCupola_Dish`, `Coll_SensorCupola_Dome`, `C
 
 ### `components/structural/shanty_addon.blend`
 
-Variations / collections: `Coll_Shanty_Awning`, `Coll_Shanty_Box`, `Coll_Shanty_LeanTo`, `Coll_Shanty_ScrapHut`, `Coll_Shanty_Stack`, `Coll_Shanty_Water`
+Variations / collections: `Coll_Shanty_Awning`, `Coll_Shanty_Box`, `Coll_Shanty_DeckHut`, `Coll_Shanty_LeanTo`, `Coll_Shanty_PlinthLeanTo`, `Coll_Shanty_ScrapHut`, `Coll_Shanty_ScrapHutAnnex`, `Coll_Shanty_Stack`, `Coll_Shanty_Water`, `Coll_Shanty_WaterTank`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
 | `Mesh_Shanty_Awning` | 5.3091 x 4.6167 x 4.239 | 797 | Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Heavy, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Fabric_Canvas_Faded, Mat_Fabric_Flag_Bleached, Mat_Wood_Ply_Worn, Mat_Emissive_Cabin_Warm, Mat_Plastic_Rubber_Black |
 | `Mesh_Shanty_Box` | 4.81 x 4.02 x 5.9321 | 1190 | Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Heavy, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Fabric_Canvas_Faded, Mat_Fabric_Flag_Bleached, Mat_Wood_Ply_Worn, Mat_Emissive_Cabin_Warm, Mat_Plastic_Rubber_Black |
+| `Mesh_Shanty_DeckHut_Details` | 9.1413 x 18.4037 x 6.69 | 484 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `Mesh_Shanty_DeckHut_Frame` | 10.059 x 11.7126 x 13.0714 | 750 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `Mesh_Shanty_DeckHut_Sheets` | 8.6311 x 11.6664 x 5.0752 | 322 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `Mesh_Shanty_DeckHut_Tarp` | 6.8104 x 9.7547 x 3.7504 | 10 | MAT_SatTower_Tarp |
 | `Mesh_Shanty_LeanTo` | 3.5626 x 4.685 x 4.325 | 1370 | Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Heavy, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Fabric_Canvas_Faded, Mat_Fabric_Flag_Bleached, Mat_Wood_Ply_Worn, Mat_Emissive_Cabin_Warm, Mat_Plastic_Rubber_Black |
-| `Mesh_Shanty_ScrapHut_Details` | 5.326 x 5.0342 x 6.5102 | 421 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp |
-| `Mesh_Shanty_ScrapHut_Frame` | 5.128 x 5.0 x 9.3652 | 436 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
-| `Mesh_Shanty_ScrapHut_Sheets` | 5.4122 x 6.5364 x 5.2181 | 316 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
-| `Mesh_Shanty_ScrapHut_Tarp` | 2.5232 x 2.5117 x 3.8879 | 63 | MAT_SatTower_Tarp |
+| `Mesh_Shanty_PlinthLeanTo_Details` | 9.0731 x 10.3889 x 6.5997 | 422 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `Mesh_Shanty_PlinthLeanTo_Frame` | 10.8658 x 12.4055 x 4.8128 | 310 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `Mesh_Shanty_PlinthLeanTo_Sheets` | 11.1869 x 12.5141 x 4.8963 | 385 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `Mesh_Shanty_PlinthLeanTo_Tarp` | 5.7329 x 4.924 x 1.8958 | 19 | MAT_SatTower_Tarp |
+| `Mesh_Shanty_ScrapHut_Details` | 7.7498 x 7.337 x 7.8122 | 421 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp |
+| `Mesh_Shanty_ScrapHut_Frame` | 7.692 x 7.5 x 13.9382 | 436 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `Mesh_Shanty_ScrapHut_Sheets` | 8.1168 x 9.8015 x 6.3948 | 316 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `Mesh_Shanty_ScrapHut_Tarp` | 3.7804 x 3.7639 x 4.6658 | 63 | MAT_SatTower_Tarp |
+| `Mesh_Shanty_ScrapHutAnnex_Details` | 11.7633 x 12.7016 x 6.175 | 362 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `Mesh_Shanty_ScrapHutAnnex_Frame` | 11.5888 x 13.763 x 12.5181 | 564 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `Mesh_Shanty_ScrapHutAnnex_Sheets` | 12.9353 x 13.4796 x 4.5232 | 200 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `Mesh_Shanty_ScrapHutAnnex_Tarp` | 2.0183 x 1.4398 x 2.035 | 6 | MAT_SatTower_Tarp |
 | `Mesh_Shanty_Stack` | 3.685 x 4.4 x 8.9321 | 2124 | Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Heavy, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Fabric_Canvas_Faded, Mat_Fabric_Flag_Bleached, Mat_Wood_Ply_Worn, Mat_Emissive_Cabin_Warm, Mat_Plastic_Rubber_Black |
 | `Mesh_Shanty_Water` | 2.31 x 3.4 x 4.73 | 1560 | Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Heavy, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Fabric_Canvas_Faded, Mat_Fabric_Flag_Bleached, Mat_Wood_Ply_Worn, Mat_Emissive_Cabin_Warm, Mat_Plastic_Rubber_Black |
+| `Mesh_Shanty_WaterTank_Details` | 8.5821 x 8.9394 x 13.9475 | 778 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `Mesh_Shanty_WaterTank_Frame` | 9.1489 x 8.5452 x 12.1167 | 934 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `Mesh_Shanty_WaterTank_Sheets` | 8.718 x 7.2011 x 12.2295 | 376 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `Mesh_Shanty_WaterTank_Tarp` | 0.6651 x 1.1597 x 2.0501 | 4 | MAT_SatTower_Tarp |
 
 ### `components/structural/slab_block.blend`
 
@@ -3159,16 +3178,17 @@ Variations / collections: `Coll_SlabBlock_Breached`, `Coll_SlabBlock_Buttressed`
 
 ### `components/structural/stair_flight.blend`
 
-Variations / collections: `Coll_Stair_CagedLadder`, `Coll_Stair_Grating`, `Coll_Stair_Ladder`, `Coll_Stair_Landing`, `Coll_Stair_Plate`, `Coll_Stair_RustyFlight`
+Variations / collections: `Coll_Stair_CagedLadder`, `Coll_Stair_Grating`, `Coll_Stair_Ladder`, `Coll_Stair_Landing`, `Coll_Stair_Plate`, `Coll_Stair_RustyDogleg`, `Coll_Stair_RustyFlight`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `Mesh_Stair_CagedLadder` | 1.0335 x 1.0335 x 8.2 | 474 | MAT_SatTower_DarkMetal, MAT_SatTower_RailRust |
+| `Mesh_Stair_CagedLadder` | 1.856 x 1.837 x 13.7 | 480 | MAT_SatTower_DarkMetal, MAT_SatTower_RailRust |
 | `Mesh_Stair_Grating` | 1.6 x 3.2491 x 2.2623 | 168 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Deep, Mat_Metal_Rust_Pale |
 | `Mesh_Stair_Ladder` | 0.96 x 1.6398 x 3.9 | 92 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Deep, Mat_Metal_Rust_Pale |
 | `Mesh_Stair_Landing` | 1.94 x 1.94 x 2.1 | 120 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Deep, Mat_Metal_Rust_Pale |
 | `Mesh_Stair_Plate` | 1.6 x 3.2491 x 2.25 | 134 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_HullRust_Orange, Mat_Metal_Rust_Deep, Mat_Metal_Rust_Pale |
-| `Mesh_Stair_RustyFlight` | 6.1267 x 2.562 x 4.775 | 162 | MAT_SatTower_RailRust |
+| `Mesh_Stair_RustyDogleg` | 6.7052 x 15.1284 x 9.75 | 578 | MAT_SatTower_RailRust |
+| `Mesh_Stair_RustyFlight` | 11.0517 x 3.6759 x 7.05 | 319 | MAT_SatTower_RailRust |
 
 ### `components/structural/station_tower.blend`
 
@@ -3230,7 +3250,7 @@ Variations / collections: `Coll_Truss_Beam`, `Coll_Truss_Brace`, `Coll_Truss_Col
 | `Mesh_Truss_Column` | 4.6 x 4.6 x 14.2439 | 2158 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte |
 | `Mesh_Truss_Deck` | 20.2441 x 16.442 x 2.85 | 2146 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte |
 | `Mesh_Truss_Portal` | 18.5 x 3.0 x 12.9946 | 1846 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte |
-| `Mesh_Truss_SnappedStubs` | 3.9964 x 6.2969 x 4.0905 | 48 | MAT_SatTower_DarkMetal |
+| `Mesh_Truss_SnappedStubs` | 7.1935 x 11.3344 x 7.3628 | 48 | MAT_SatTower_DarkMetal |
 
 ### `components/structural/window_bank.blend`
 
@@ -18947,108 +18967,127 @@ Variations / collections: `Model_RuinEntrance`
 
 ### `models/buildings/satellite_tower.blend`
 
-Variations / collections: `Coll_SatelliteTower`
+Variations / collections: `Coll_SatelliteTower`, `Model_SatelliteTower`
 
 | Object | Dimensions (m) | Polys | Materials |
 |---|---|---|---|
-| `SatTower_Base_CabinFrames` | 13.177 x 13.52 x 2.7 | 174 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
-| `SatTower_Base_CabinWindows` | 12.4655 x 12.4655 x 1.24 | 84 | MAT_SatTower_Glass |
-| `SatTower_Base_Concrete` | 22.2 x 22.2 x 7.2 | 1234 | MAT_SatTower_Concrete |
-| `SatTower_Base_Deck2` | 15.2 x 15.2 x 1.9575 | 226 | MAT_SatTower_DarkMetal |
-| `SatTower_Base_Railings` | 21.1526 x 21.1013 x 6.14 | 1098 | MAT_SatTower_RailRust |
-| `SatTower_Base_Stairs` | 13.7017 x 14.162 x 9.2707 | 354 | MAT_SatTower_RailRust |
-| `SatTower_Damage_Debris` | 22.5741 x 9.101 x 3.14 | 60 | MAT_SatTower_DarkMetal |
-| `SatTower_Damage_HangStraps` | 0.55 x 0.55 x 0.81 | 28 | MAT_SatTower_RailRust |
-| `SatTower_Dish_Hub` | 9.4 x 7.0 x 5.525 | 56 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
-| `SatTower_Dish_Panel_01` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_02` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_04` | 2.9454 x 3.9833 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_05` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_06` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_07` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_08` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_09` | 2.9454 x 3.9833 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_10` | 2.9454 x 3.9833 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_11` | 4.0003 x 4.0003 x 0.7748 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_12` | 3.9833 x 2.9454 x 0.7748 | 9 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_13` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_14` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_15` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_16` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_17` | 3.5348 x 4.7315 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_18` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_19` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_20` | 3.5348 x 4.7315 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_22` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_23` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_24` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_25` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_26` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_27` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_28` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_29` | 3.5348 x 4.7315 x 1.6062 | 9 | Material |
-| `SatTower_Dish_Panel_30` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_31` | 2.5973 x 4.5011 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_32` | 3.5348 x 4.7315 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_33` | 4.2313 x 4.6395 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_34` | 4.6395 x 4.2313 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_35` | 4.7315 x 3.5348 x 1.6062 | 9 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_36` | 4.5011 x 2.5973 x 1.6062 | 9 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_37` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_38` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_39` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_40` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_43` | 3.7402 x 4.6667 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_44` | 4.6038 x 5.1862 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_45` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_46` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_ScrapRust |
-| `SatTower_Dish_Panel_47` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_48` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_49` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_51` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_52` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_53` | 4.6038 x 5.1862 x 2.3804 | 12 | Material |
-| `SatTower_Dish_Panel_54` | 3.7402 x 4.6667 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_55` | 4.6038 x 5.1862 x 2.3804 | 12 | MAT_SatTower_DishPaint.001 |
-| `SatTower_Dish_Panel_56` | 4.6038 x 5.1862 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_57` | 5.1537 x 5.3523 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_58` | 5.3523 x 5.1537 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_59` | 5.1862 x 4.6038 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_60` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Panel_Fallen` | 4.6667 x 3.7402 x 2.3804 | 12 | MAT_SatTower_DishPaint |
-| `SatTower_Dish_Truss` | 30.3193 x 30.3193 x 9.3512 | 4416 | MAT_SatTower_DarkMetal |
-| `SatTower_Dish_Truss_Broken` | 3.9964 x 6.2969 x 4.0905 | 48 | MAT_SatTower_DarkMetal |
-| `SatTower_Feed_Cabin` | 3.2585 x 3.2217 x 6.7544 | 70 | MAT_SatTower_DishPaint, MAT_SatTower_DarkMetal |
-| `SatTower_Feed_Quadrupod` | 22.2032 x 22.2031 x 9.1317 | 2184 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
-| `SatTower_Int_BarrelStove` | 1.4296 x 2.4036 x 3.0286 | 102 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate, MAT_SatTower_Int_StoveGlow |
-| `SatTower_Int_Bedrolls` | 4.698 x 5.4577 x 0.53 | 96 | MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_ClothRed |
-| `SatTower_Int_CeilingCables` | 10.3152 x 9.5771 x 1.904 | 816 | MAT_SatTower_Int_Cable |
-| `SatTower_Int_CeilingFrame` | 11.7922 x 11.7922 x 0.63 | 432 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate |
-| `SatTower_Int_CentralColumn` | 1.8524 x 1.9 x 4.605 | 86 | MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_RustSteel |
-| `SatTower_Int_ClothDividers` | 3.6862 x 4.6604 x 3.7933 | 226 | MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Cable |
-| `SatTower_Int_ColumnLadder` | 1.64 x 1.7371 x 4.62 | 108 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Void, MAT_SatTower_Int_FloorPlate |
-| `SatTower_Int_Consoles` | 11.4998 x 11.8095 x 2.15 | 714 | MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Void |
-| `SatTower_Int_Crates` | 6.6488 x 10.9183 x 1.92 | 426 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_Timber |
+| `SatTower_Base_CabinFrames` | 23.7186 x 23.7478 x 4.0698 | 174 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `SatTower_Base_CabinWindows` | 22.4379 x 22.4379 x 1.8 | 84 | MAT_SatTower_Glass |
+| `SatTower_Base_Concrete` | 39.96 x 39.96 x 12.96 | 1225 | MAT_SatTower_Concrete |
+| `SatTower_Base_Deck2` | 27.36 x 27.36 x 3.5235 | 226 | MAT_SatTower_DarkMetal |
+| `SatTower_Base_Railings` | 38.1162 x 38.1193 x 9.7822 | 1992 | MAT_SatTower_RailRust |
+| `SatTower_Base_Stairs` | 24.8567 x 24.015 x 15.15 | 915 | MAT_SatTower_RailRust |
+| `SatTower_Damage_Debris` | 40.6333 x 16.3818 x 5.652 | 60 | MAT_SatTower_DarkMetal |
+| `SatTower_Damage_HangStraps` | 0.99 x 0.99 x 1.458 | 28 | MAT_SatTower_RailRust |
+| `SatTower_Dish_Hub` | 16.92 x 12.6 x 9.945 | 56 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `SatTower_Dish_Panel_01` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_02` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_04` | 5.3017 x 7.1699 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_05` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_06` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_07` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_08` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_09` | 5.3017 x 7.1699 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_10` | 5.3017 x 7.1699 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_11` | 7.2005 x 7.2005 x 1.3946 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_12` | 7.1699 x 5.3017 x 1.3946 | 9 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_13` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_14` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_15` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_16` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_17` | 6.3626 x 8.5167 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_18` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_19` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_20` | 6.3626 x 8.5167 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_22` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_23` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_24` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_25` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_26` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_27` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_28` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_29` | 6.3626 x 8.5167 x 2.8912 | 9 | Material |
+| `SatTower_Dish_Panel_30` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_31` | 4.6752 x 8.102 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_32` | 6.3626 x 8.5167 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_33` | 7.6164 x 8.3511 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_34` | 8.3511 x 7.6164 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_35` | 8.5167 x 6.3626 x 2.8912 | 9 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_36` | 8.102 x 4.6752 x 2.8912 | 9 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_37` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_38` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_39` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_40` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_43` | 6.7323 x 8.4 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_44` | 8.2868 x 9.3352 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_45` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_46` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_ScrapRust |
+| `SatTower_Dish_Panel_47` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_48` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_49` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_51` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_52` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_53` | 8.2868 x 9.3352 x 4.2848 | 12 | Material |
+| `SatTower_Dish_Panel_54` | 6.7323 x 8.4 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_55` | 8.2868 x 9.3352 x 4.2848 | 12 | MAT_SatTower_DishPaint.001 |
+| `SatTower_Dish_Panel_56` | 8.2868 x 9.3352 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_57` | 9.2766 x 9.6341 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_58` | 9.6341 x 9.2766 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_59` | 9.3352 x 8.2868 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_60` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Panel_Fallen` | 8.4 x 6.7323 x 4.2848 | 12 | MAT_SatTower_DishPaint |
+| `SatTower_Dish_Truss` | 54.5748 x 54.5748 x 16.8321 | 4416 | MAT_SatTower_DarkMetal |
+| `SatTower_Dish_Truss_Broken` | 7.1935 x 11.3344 x 7.3628 | 48 | MAT_SatTower_DarkMetal |
+| `SatTower_Feed_Cabin` | 5.8653 x 5.7991 x 12.158 | 70 | MAT_SatTower_DishPaint, MAT_SatTower_DarkMetal |
+| `SatTower_Feed_Quadrupod` | 39.9657 x 39.9657 x 16.437 | 2184 | MAT_SatTower_DarkMetal, MAT_SatTower_TealSteel |
+| `SatTower_Int_BarrelStove` | 1.4323 x 2.4958 x 7.15 | 112 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate, MAT_SatTower_Int_StoveGlow |
+| `SatTower_Int_Bedrolls` | 5.426 x 11.0139 x 0.53 | 192 | MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_ClothRed |
+| `SatTower_Int_CeilingCables` | 18.5674 x 17.2387 x 3.4272 | 816 | MAT_SatTower_Int_Cable |
+| `SatTower_Int_CeilingFrame` | 21.226 x 21.226 x 1.134 | 432 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate |
+| `SatTower_Int_CentralColumn` | 3.3343 x 3.42 x 8.289 | 86 | MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_RustSteel |
+| `SatTower_Int_ClothDividers` | 6.6352 x 8.3887 x 6.8279 | 226 | MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Cable |
+| `SatTower_Int_ColumnLadder` | 1.8 x 1.79 x 8.29 | 294 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Void, MAT_SatTower_Int_FloorPlate |
+| `SatTower_Int_Consoles` | 20.8609 x 21.5479 x 2.15 | 978 | MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Void |
+| `SatTower_Int_Crates` | 11.3369 x 20.2185 x 1.92 | 426 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_Timber |
 | `SatTower_Int_DoorFrame` | 2.6 x 0.63 x 3.85 | 144 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate |
 | `SatTower_Int_DoorLeaf` | 1.745 x 0.385 x 3.595 | 144 | MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_RustSteel |
-| `SatTower_Int_EntryStairs` | 2.8 x 1.91 x 2.4293 | 104 | MAT_SatTower_Int_FloorPlate, MAT_SatTower_Int_RustSteel |
-| `SatTower_Int_FloorHatches` | 7.6041 x 2.5 x 1.8431 | 108 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate |
-| `SatTower_Int_FloorTrunks` | 4.3804 x 7.6845 x 0.2 | 72 | MAT_SatTower_Int_RustSteel |
+| `SatTower_Int_EntryStairs` | 2.8 x 3.9269 x 3.0683 | 186 | MAT_SatTower_Int_FloorPlate, MAT_SatTower_Int_RustSteel |
+| `SatTower_Int_FloorHatches` | 14.851 x 4.7433 x 3.1616 | 108 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_FloorPlate |
+| `SatTower_Int_FloorTrunks` | 7.8847 x 13.8322 x 0.36 | 72 | MAT_SatTower_Int_RustSteel |
+| `SatTower_Int_Living` | 6.7412 x 7.2549 x 7.15 | 186 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_Cable, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Paper, MAT_SatTower_Int_StoveGlow |
 | `SatTower_Int_PlotterLectern` | 0.8489 x 1.8 x 1.61 | 24 | MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ScreenAmber |
-| `SatTower_Int_PlotterWall` | 0.59 x 3.34 x 3.94 | 684 | MAT_SatTower_Int_PlotterBoard, MAT_SatTower_Int_PlotterGrid, MAT_SatTower_Int_PlotterTrace, MAT_SatTower_Int_MarkerRed, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Paper |
-| `SatTower_Int_RaisedFloor` | 12.2376 x 12.2376 x 0.06 | 676 | MAT_SatTower_Int_FloorPlate |
-| `SatTower_Int_SalvagedWiring` | 10.278 x 4.5562 x 2.5376 | 124 | MAT_SatTower_Int_Cable |
-| `SatTower_Int_ScrapPile` | 2.4339 x 2.1853 x 0.6469 | 60 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige |
-| `SatTower_Int_UnderfloorCables` | 8.9821 x 5.5065 x 0.2999 | 98 | MAT_SatTower_Int_Cable |
-| `SatTower_Int_WorkLights` | 9.1572 x 8.1885 x 1.2222 | 314 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Cable |
-| `SatTower_Pedestal_AzimuthBearing` | 9.01 x 9.01 x 1.4 | 372 | MAT_SatTower_DarkMetal |
-| `SatTower_Pedestal_Catwalk` | 11.2 x 11.2 x 8.64 | 1034 | MAT_SatTower_DarkMetal, MAT_SatTower_RailRust |
-| `SatTower_Pedestal_Column` | 9.5425 x 9.5425 x 7.8 | 176 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
-| `SatTower_Pedestal_HeadYoke` | 13.2 x 7.0 x 13.4 | 334 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
-| `SatTower_Shack_Details` | 5.326 x 5.0342 x 6.5102 | 421 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp |
-| `SatTower_Shack_Frame` | 5.128 x 5.0 x 9.3652 | 436 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
-| `SatTower_Shack_Sheets` | 5.4122 x 6.5364 x 5.2181 | 316 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
-| `SatTower_Shack_Tarp` | 2.5232 x 2.5117 x 3.8879 | 63 | MAT_SatTower_Tarp |
+| `SatTower_Int_PlotterWall` | 1.062 x 6.012 x 7.092 | 684 | MAT_SatTower_Int_PlotterBoard, MAT_SatTower_Int_PlotterGrid, MAT_SatTower_Int_PlotterTrace, MAT_SatTower_Int_MarkerRed, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Paper |
+| `SatTower_Int_RaisedFloor` | 22.0277 x 22.0277 x 0.1079 | 676 | MAT_SatTower_Int_FloorPlate |
+| `SatTower_Int_SalvagedWiring` | 18.8488 x 6.6877 x 3.9464 | 124 | MAT_SatTower_Int_Cable |
+| `SatTower_Int_ScrapPile` | 2.8598 x 3.6011 x 0.6843 | 60 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige |
+| `SatTower_Int_Storage` | 8.8775 x 7.5239 x 7.15 | 212 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_Cable, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Paper, MAT_SatTower_Int_StoveGlow |
+| `SatTower_Int_UnderfloorCables` | 16.1678 x 9.9117 x 0.5397 | 98 | MAT_SatTower_Int_Cable |
+| `SatTower_Int_WorkLights` | 16.6689 x 14.974 x 1.2226 | 314 | MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Cable |
+| `SatTower_Int_Workshop` | 5.9679 x 2.8247 x 7.15 | 294 | MAT_SatTower_Int_Timber, MAT_SatTower_Int_RustSteel, MAT_SatTower_Int_PaintTeal, MAT_SatTower_Int_ConsoleBeige, MAT_SatTower_Int_ScreenGreen, MAT_SatTower_Int_ScreenAmber, MAT_SatTower_Int_ScreenDead, MAT_SatTower_Int_ClothRed, MAT_SatTower_Int_ClothOchre, MAT_SatTower_Int_Bedroll, MAT_SatTower_Int_Cable, MAT_SatTower_Int_Bulb, MAT_SatTower_Int_Paper, MAT_SatTower_Int_StoveGlow |
+| `SatTower_Pedestal_AzimuthBearing` | 16.218 x 16.218 x 2.52 | 372 | MAT_SatTower_DarkMetal |
+| `SatTower_Pedestal_Catwalk` | 21.6 x 22.4945 x 14.26 | 1680 | MAT_SatTower_DarkMetal, MAT_SatTower_RailRust |
+| `SatTower_Pedestal_Column` | 17.1764 x 17.1764 x 14.04 | 176 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `SatTower_Pedestal_HeadYoke` | 23.76 x 12.6 x 24.12 | 334 | MAT_SatTower_TealSteel, MAT_SatTower_DarkMetal |
+| `SatTower_Shack_Annex_Details` | 11.7633 x 12.7016 x 6.175 | 362 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `SatTower_Shack_Annex_Frame` | 11.5888 x 13.763 x 12.5181 | 564 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `SatTower_Shack_Annex_Sheets` | 12.9353 x 13.4796 x 4.5232 | 200 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `SatTower_Shack_Annex_Tarp` | 2.0183 x 1.4398 x 2.035 | 6 | MAT_SatTower_Tarp |
+| `SatTower_Shack_Details` | 7.7498 x 7.337 x 7.8122 | 421 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp |
+| `SatTower_Shack_Frame` | 7.692 x 7.5 x 13.9382 | 436 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `SatTower_Shack_Sheets` | 8.1168 x 9.8015 x 6.3948 | 316 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `SatTower_Shack_Tarp` | 3.7804 x 3.7639 x 4.6658 | 63 | MAT_SatTower_Tarp |
+| `SatTower_Shanty_DeckHut_Details` | 9.1413 x 18.4037 x 6.69 | 484 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `SatTower_Shanty_DeckHut_Frame` | 10.059 x 11.7126 x 13.0714 | 750 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `SatTower_Shanty_DeckHut_Sheets` | 8.6311 x 11.6664 x 5.0752 | 322 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `SatTower_Shanty_DeckHut_Tarp` | 6.8104 x 9.7547 x 3.7504 | 10 | MAT_SatTower_Tarp |
+| `SatTower_Shanty_PlinthLeanTo_Details` | 9.0731 x 10.3889 x 6.5997 | 422 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `SatTower_Shanty_PlinthLeanTo_Frame` | 10.8658 x 12.4055 x 4.8128 | 310 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `SatTower_Shanty_PlinthLeanTo_Sheets` | 11.1869 x 12.5141 x 4.8963 | 385 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `SatTower_Shanty_PlinthLeanTo_Tarp` | 5.7329 x 4.924 x 1.8958 | 19 | MAT_SatTower_Tarp |
+| `SatTower_Shanty_WaterTank_Details` | 8.5821 x 8.9394 x 13.9475 | 778 | MAT_SatTower_Stone, MAT_SatTower_Cable, MAT_SatTower_DarkMetal, MAT_SatTower_Lamp, MAT_SatTower_Timber, MAT_SatTower_SheetRed, MAT_SatTower_Tarp, MAT_SatTower_ScrapRust |
+| `SatTower_Shanty_WaterTank_Frame` | 9.1489 x 8.5452 x 12.1167 | 934 | MAT_SatTower_Timber, MAT_SatTower_RailRust |
+| `SatTower_Shanty_WaterTank_Sheets` | 8.718 x 7.2011 x 12.2295 | 376 | MAT_SatTower_ScrapRust, MAT_SatTower_SheetRed, MAT_SatTower_SheetGalv |
+| `SatTower_Shanty_WaterTank_Tarp` | 0.6651 x 1.1597 x 2.0501 | 4 | MAT_SatTower_Tarp |
 
 ### `models/buildings/scavenger_outpost.blend`
 

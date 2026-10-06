@@ -5424,7 +5424,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 1}
+      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 0.6}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -5805,7 +5805,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 65
+    maxNumParticles: 39
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -10059,10 +10059,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.FarDust
   cloud: {fileID: 6070995163388110216}
-  fullSpeed: 2.6999998
-  speedSmoothing: 0.3
-  maxPlausibleSpeed: 50
-  rateAtFullSpeed: 3.6000001
+  rate: 2.1599998
   fadeNear: 80
   fadeFar: 200
   cullDistance: 1500
@@ -10150,6 +10147,14 @@ PrefabInstance:
     - target: {fileID: 489823318830370799, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3400086020
+      objectReference: {fileID: 0}
+    - target: {fileID: 489823318830370799, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 489823318830370799, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1198895910
       objectReference: {fileID: 0}
     - target: {fileID: 2337666143241054709, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       propertyPath: m_LocalPosition.x
@@ -10259,10 +10264,10 @@ PrefabInstance:
       addedObject: {fileID: 6222169517509019527}
     - targetCorrespondingSourceObject: {fileID: 3114823854941761195, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8080259823197251101}
+      addedObject: {fileID: -5236244754720908501}
     - targetCorrespondingSourceObject: {fileID: 3114823854941761195, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -5806977502177361014}
+      addedObject: {fileID: 3245460428329843019}
   m_SourcePrefab: {fileID: 100100000, guid: 5e1f25d318a3f4a06b37857d08d622ca, type: 3}
 --- !u!23 &7732208522974485 stripped
 MeshRenderer:
@@ -13552,7 +13557,7 @@ MonoBehaviour:
   group: {fileID: 6621765080951588935}
   mergedFilter: {fileID: 2263177176891670691}
   mergedRenderer: {fileID: 8147600153793317407}
---- !u!114 &8080259823197251101
+--- !u!114 &-5236244754720908501
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -13564,7 +13569,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba2f0d7b595cb434f9f10161a0e8b395, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.NpcTaskSaveable
---- !u!114 &-5806977502177361014
+--- !u!114 &3245460428329843019
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

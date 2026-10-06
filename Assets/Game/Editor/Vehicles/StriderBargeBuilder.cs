@@ -139,7 +139,7 @@ namespace SpaceGame.EditorTools
                 Transform[] markers = AddTrackContacts(root, contacts, names, rideHeight);
                 AddBrain(root, variant, contacts, rideHeight);
                 VehicleDustWiring.AddRollingDust(root, markers, root.GetComponent<TrackedHullMotor>().TopSpeed, TrackDustPerContact);
-                VehicleDustWiring.AddFarDust(root, markers.Length * TrackDustPerContact, StriderCityBuilder.CityLeaderSpeed);
+                VehicleDustWiring.AddFarDust(root, markers.Length * TrackDustPerContact);
                 if (TrackBeltWiring.AddTrackBelts(root, markers) == null) return false;
                 var gangway = new Vector3(HullHalfWidth(root) + GangwayStandoff, -rideHeight, contacts.Average(c => c.z));
                 CrewDeckWiring.AddCrewDeck(root, posts, roofCentre, gangway, GangwayNavMeshReach);

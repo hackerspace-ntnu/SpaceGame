@@ -24,8 +24,10 @@ symptoms:
   - "the Strider city is invisible until I am right next to it"
   - "the walking city pops in or jumps sideways when I walk up to it"
   - "the walking city swings round to face north when it stops"
+  - "the distant Strider city and its dust vanish while I ride a vehicle"
+  - "a parked Strider city has no far dust and its frozen far level shows"
 reads_with: [VehicleDust, Striders, SkyTribe, ArtPipeline, Multiplayer, AgentSystem]
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # Settlement LODs
@@ -56,7 +58,7 @@ The Strider city's vehicles and the Sky fleet cost **draw calls**, not triangles
 ## Flows
 
 - **Builders:** each Strider builder adds far dust ([VehicleDust.md](VehicleDust.md)) and bakes right before `SaveAsPrefabAsset`; `SkyCityBuilder` after setting the root's 1.5 scale; `SkyFleetBuilder.BuildVessel` in place of the old single-level cull group. The Sky prefabs were baked in place, one per editor call (rebuilding them re-places the fleet in `persistentScene`).
-- **Hand-over:** a player within spawnRadius → the server spawns the live city into the same places (`GroupColumnLayout`) → `Spawned` replicates → renderers off, the far dust copies stop moving and their clouds settle around the live city, which at 250 m is drawing its own merged level.
+- **Hand-over:** a player within spawnRadius → the server spawns the live city into the same places (`GroupColumnLayout`) → `Spawned` replicates → renderers and the far dust copies off, so their clouds settle around the live city, which at 250 m is drawing its own merged level.
 - **Bake:** refuse a `LODGroup` below the root → delete the old `LOD1_Merged` → merge → generate Mesh LODs → save over the old asset → new child → `LODGroup` (the root's own, reused) with LOD0/LOD1 → heights from the profile → `MergedLod.Configure`.
 
 ## Multiplayer
@@ -73,6 +75,8 @@ Nothing new is saved. The distant city is rebuilt from the group record, whose `
 
 - **A stopped city keeps facing the way it walked — until a reload.** `NpcGroup.Heading` is the goal direction while the group has a goal, and the last one it had once it stops (remembered in `AdvanceToward` and on every read; runtime only, never saved). The live spawn and the silhouette both face it, so neither swings round at a stop. A group reloaded without a goal, or one that never had one, faces +Z until it next sets off — the silhouette glides round to its first goal then.
 - **Hidden by `Spawned` alone, never by distance.** The server spawns the live city on its next sim tick (`tickInterval` 1 s) from player positions refreshed every `playerRefreshInterval` 2 s, plus network latency, so hiding the silhouette when the camera crossed `spawnRadius` left 1–3 s of dust with nothing in it — the pop-in. Kept drawn until `Spawned` replicates, it overlaps the live city's identical merged meshes in the same slots for at most one publish (0.5 s), inside the dust.
+- **Distance from `ViewCamera`, never `Camera.main`.** `DistantGroupSilhouette` measured from `Camera.main`, which is null while the player rides anything (the orbit camera is Untagged, the player's own is off), so the whole silhouette hid and every far-dust copy threw nothing for the length of the ride. It and `FarDust` now read `ViewCamera` ([CoreServices.md](CoreServices.md)). The `LODGroup`s themselves were never affected: Unity picks a level per rendering camera.
+- **A parked city throws its far dust too** (user decision 2026-10-06). The far dust used to follow ground speed, so for a new world's first 600 s (the city parks) the merged levels stood bare; it is now distance-only ([VehicleDust.md](VehicleDust.md)). A hidden silhouette disables its copies, or they would keep throwing where the live city now stands.
 - **Seen from at most the loaded ground** (3×3 chunks of 500 m round each player): a slot with no terrain under it is not drawn, so the city appears at the edge of the loaded ground inside its dust, never over the void.
 - **A screen height above 1 is never reached.** A large prefab (the Sky city) can need a "height" over 1 at its merge distance; the baker clamps it to 0.999, which merges it a little *farther* out than asked, never nearer.
 - **Never rewind a mirrored part yourself.** In Unity 6000.3 `Mesh.CombineMeshes` already reverses the winding of an instance whose matrix has a negative determinant (and transforms its normals), so a negative-scale part comes out the right way round as is; reversing its triangles first double-flips it inside out (`AMirroredPart_IsNotTurnedInsideOut` pins this).
@@ -94,7 +98,7 @@ Nothing new is saved. The distant city is rebuilt from the group record, whose `
 7. Save, quit to menu, load: the distant city is where it was, in the same column order (same `rosterSeed` in the save JSON before and after).
 8. Sky fleet: fly/teleport 1-3 km away; it stays visible and its engine smoke runs at every distance.
 9. **Mesh LOD inside a LODGroup.** With the Profiler or Frame Debugger, check that a merged level's MeshRenderer drops to coarser Mesh LODs as it recedes (a 700 m render was pixel-identical to `forceMeshLod=0`). If not, the merged level only saves draw calls, not triangles.
-10. **Far-dust look.** A moving city at 300 m and 700 m should hide the vehicles' frozen legs and lower bodies in tall dust. Barges are almost fully veiled; a single house's front legs may show.
+10. **Far-dust look.** A moving and a parked city at 300 m and 700 m — also while riding a vehicle — should hide the vehicles' frozen legs and lower bodies in tall dust. Barges are almost fully veiled; a single house's front legs may show.
 11. **Hand-over.** Walking up to the folded city, the silhouette stays until the live city spawns (up to ~0.5 s overlap of identical meshes in the same slots, inside the dust): no gap, no jump.
 12. **A stopped city** keeps facing its last march direction (silhouette and live spawn) until a reload.
 13. **Draw calls** at 300 m from the city and from the Sky fleet, before and after (Profiler), only if the machine has RAM to spare.

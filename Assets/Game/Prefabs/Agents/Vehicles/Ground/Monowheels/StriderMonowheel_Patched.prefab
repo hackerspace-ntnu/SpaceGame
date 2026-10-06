@@ -1022,7 +1022,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 1}
+      maxColor: {r: 0.78, g: 0.66, b: 0.47, a: 0.6}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -1403,7 +1403,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 72
+    maxNumParticles: 44
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -5657,10 +5657,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.FarDust
   cloud: {fileID: 1841157237798978538}
-  fullSpeed: 2.6999998
-  speedSmoothing: 0.3
-  maxPlausibleSpeed: 50
-  rateAtFullSpeed: 4
+  rate: 2.3999999
   fadeNear: 60
   fadeFar: 150
   cullDistance: 1500
@@ -5994,17 +5991,17 @@ GameObject:
   - component: {fileID: 9005369233863368058}
   - component: {fileID: 7090611912458023436}
   - component: {fileID: 5258284543188939529}
-  - component: {fileID: 2006029153073154349}
-  - component: {fileID: 8961405193588466058}
-  - component: {fileID: -5765270251890306519}
-  - component: {fileID: 3510766028688017181}
-  - component: {fileID: 5678699638909578886}
-  - component: {fileID: 7629928827936137426}
-  - component: {fileID: 2223380015502869974}
-  - component: {fileID: -4812079871922658409}
-  - component: {fileID: -7124932397727459235}
-  - component: {fileID: -77587661005172290}
-  - component: {fileID: -5163020648159688386}
+  - component: {fileID: 5816917711096836597}
+  - component: {fileID: 2041024643310139895}
+  - component: {fileID: -6304677538841173467}
+  - component: {fileID: -5248691079681617625}
+  - component: {fileID: -9172288586930346511}
+  - component: {fileID: 2333469014678191572}
+  - component: {fileID: -3681382963446532226}
+  - component: {fileID: 2957667670147443487}
+  - component: {fileID: -5563454926270021211}
+  - component: {fileID: -3113937253956964277}
+  - component: {fileID: 423467740790823284}
   m_Layer: 0
   m_Name: StriderMonowheel_Patched
   m_TagString: Untagged
@@ -6726,7 +6723,7 @@ MonoBehaviour:
   group: {fileID: 7090611912458023436}
   mergedFilter: {fileID: 4837230167527086746}
   mergedRenderer: {fileID: 4246584663055112123}
---- !u!114 &2006029153073154349
+--- !u!114 &5816917711096836597
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6738,7 +6735,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
---- !u!114 &8961405193588466058
+--- !u!114 &2041024643310139895
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6750,7 +6747,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
---- !u!114 &-5765270251890306519
+--- !u!114 &-6304677538841173467
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6762,7 +6759,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
---- !u!114 &3510766028688017181
+--- !u!114 &-5248691079681617625
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6774,7 +6771,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29154b1ccc6444e649bf651e558f5b84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MountSaveable
---- !u!114 &5678699638909578886
+--- !u!114 &-9172288586930346511
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6786,7 +6783,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dba9c324820a2d3438abb638878e91eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CrewSaveable
---- !u!114 &7629928827936137426
+--- !u!114 &2333469014678191572
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6798,7 +6795,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85fbbb8ee0af2284a8714c454c38c09d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AbandonedVehicleSaveable
---- !u!114 &2223380015502869974
+--- !u!114 &-3681382963446532226
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6810,7 +6807,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
---- !u!114 &-4812079871922658409
+--- !u!114 &2957667670147443487
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6823,7 +6820,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
   drawGizmos: 1
---- !u!114 &-7124932397727459235
+--- !u!114 &-5563454926270021211
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6835,7 +6832,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
---- !u!114 &-77587661005172290
+--- !u!114 &-3113937253956964277
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6847,7 +6844,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
---- !u!114 &-5163020648159688386
+--- !u!114 &423467740790823284
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

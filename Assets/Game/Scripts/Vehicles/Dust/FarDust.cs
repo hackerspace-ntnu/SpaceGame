@@ -1,15 +1,18 @@
 // The Strider city's dust seen from afar: a second, huge and sparse DustCloudRecipe cloud per vehicle,
-// puffs ~4x the near ones and a fifth the rate, rising round the hull while the vehicle moves. It fades
-// in over exactly the band the vehicle's near dust fades out (IDustLodBand) and stays on to the
-// vehicle's cull distance, so a merged far level (SettlementLods.md) -- whose legs and wheels are frozen
-// -- marches inside a cloud.
+// puffs ~4x the near ones and a fifth the rate, rising round the hull. It fades in over exactly the band
+// the vehicle's near dust fades out (IDustLodBand) and stays on to the vehicle's cull distance, so a
+// merged far level (SettlementLods.md) -- whose legs and wheels are frozen -- stands inside a cloud.
 //
-// The rate follows how fast this transform is seen to move (GroundSpeedGauge), so the host, a client
-// watching a replicated hull and the distant silhouette (DistantGroupSilhouette, which instantiates a
-// copy of this GameObject) all present alike, with nothing sent or saved (GDC-L1-FEEL-0004). Overdraw is
-// paid per covered pixel, and these clouds are, by construction, far (GDC-L1-TECH-0002).
+// Driven by camera distance alone, moving or parked: the cloud is what hides the frozen far level, and a
+// new world parks the city for its first ten minutes (user decision 2026-10-06; it used to follow ground
+// speed and left a parked city bare). Every machine reads only its own view camera (ViewCamera), so the
+// host, a client and the distant silhouette (DistantGroupSilhouette, which instantiates a copy of this
+// GameObject) present alike, with nothing sent or saved. Overdraw is paid per covered pixel, and these
+// clouds are, by construction, far (GDC-L1-TECH-0002).
+using SpaceGame.Core;
 using SpaceGame.Vehicles.Monowheel;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SpaceGame.Vehicles
 {
@@ -18,16 +21,9 @@ namespace SpaceGame.Vehicles
         [Tooltip("The huge, sparse cloud, on this GameObject. World space, emission driven here.")]
         [SerializeField] private ParticleSystem cloud;
 
-        [Header("Speed")]
-        [Tooltip("Ground speed (m/s) at which the far dust reaches its full rate: the city's march.")]
-        [SerializeField] private float fullSpeed = 2.7f;
-        [Tooltip("Seconds over which the speed is smoothed, so a replicated or stepped pose does not flicker it.")]
-        [SerializeField] private float speedSmoothing = 0.3f;
-        [Tooltip("A frame's move implying more than this speed (m/s) is a snap (a load, a refold), not motion.")]
-        [SerializeField] private float maxPlausibleSpeed = 50f;
-
-        [Header("Emission (puffs/s)")]
-        [SerializeField] private float rateAtFullSpeed = 4f;
+        [Tooltip("Puffs/s wherever the far dust is fully faded in.")]
+        [FormerlySerializedAs("rateAtFullSpeed")]
+        [SerializeField] private float rate = 4f;
 
         [Header("Distance crossfade")]
         [Tooltip("The near dust is full up to this camera distance (m), so the far dust is off.")]
@@ -37,21 +33,17 @@ namespace SpaceGame.Vehicles
         [Tooltip("No far dust beyond this camera distance (m): where the vehicle itself is culled.")]
         [SerializeField] private float cullDistance = 1500f;
 
-        private GroundSpeedGauge gauge;
-
         public ParticleSystem Cloud => cloud;
-        public float FullSpeed => fullSpeed;
-        public float RateAtFullSpeed => rateAtFullSpeed;
+        public float Rate => rate;
         public float FadeNear => fadeNear;
         public float FadeFar => fadeFar;
         public float CullDistance => cullDistance;
 
-        /// <summary>Builder only: the cloud, the speed and rate it peaks at, the near dust it crossfades with, and its cull.</summary>
-        public void Configure(ParticleSystem puffs, float cruiseSpeed, float peakRate, IDustLodBand nearBand, float cull)
+        /// <summary>Builder only: the cloud, its full rate, the near dust it crossfades with, and its cull.</summary>
+        public void Configure(ParticleSystem puffs, float peakRate, IDustLodBand nearBand, float cull)
         {
             cloud = puffs;
-            fullSpeed = cruiseSpeed;
-            rateAtFullSpeed = peakRate;
+            rate = peakRate;
             fadeNear = nearBand.LodNear;
             fadeFar = nearBand.LodFar;
             cullDistance = cull;
@@ -67,39 +59,32 @@ namespace SpaceGame.Vehicles
             return 1f - MonowheelPresentationMath.LodFactor(cameraDistance, near, far);
         }
 
-        /// <summary>Forget where this was: after a spawn, a load or any snap into place.</summary>
-        public void ResetBaseline() => gauge.Reset(transform.position);
-
-        private void OnEnable() => ResetBaseline();
-
         private void OnValidate()
         {
-            fullSpeed = Mathf.Max(0.01f, fullSpeed);
-            speedSmoothing = Mathf.Max(0f, speedSmoothing);
-            rateAtFullSpeed = Mathf.Max(0f, rateAtFullSpeed);
+            rate = Mathf.Max(0f, rate);
             fadeFar = Mathf.Max(fadeNear + 1f, fadeFar);
             cullDistance = Mathf.Max(fadeFar, cullDistance);
         }
 
-        private void Update()
-        {
-            Camera cam = Camera.main;
-            Present(Time.deltaTime, cam == null ? float.NaN : Vector3.Distance(cam.transform.position, transform.position));
-        }
+        private void Update() => Present(ViewCamera.DistanceTo(transform.position));
+
+        // Switched off (a hidden silhouette): stop throwing, and let what is up settle out.
+        private void OnDisable() => SetRate(0f);
 
         /// <summary>One frame at a given camera distance (NaN = no camera: none). Returns the rate set (puffs/s).</summary>
-        public float Present(float dt, float cameraDistance)
+        public float Present(float cameraDistance)
         {
-            if (dt <= 0f) return cloud.emission.rateOverTime.constant;
-
-            float speed = gauge.MeasureAlongStep(transform.position, dt, speedSmoothing, maxPlausibleSpeed);
-            float rate = MonowheelPresentationMath.Rate(0f, rateAtFullSpeed, MonowheelPresentationMath.SpeedFraction(speed, fullSpeed))
-                         * Fade(cameraDistance, fadeNear, fadeFar, cullDistance);
-            ParticleSystem.EmissionModule emission = cloud.emission;
-            emission.rateOverTime = rate;
+            float now = rate * Fade(cameraDistance, fadeNear, fadeFar, cullDistance);
+            SetRate(now);
             // A stopped system ignores its rate: one never played (a preview scene, an edit-mode test).
-            if (rate > 0f && !cloud.isPlaying) cloud.Play();
-            return rate;
+            if (now > 0f && !cloud.isPlaying) cloud.Play();
+            return now;
+        }
+
+        private void SetRate(float puffsPerSecond)
+        {
+            ParticleSystem.EmissionModule emission = cloud.emission;
+            emission.rateOverTime = puffsPerSecond;
         }
     }
 }

@@ -43,7 +43,7 @@ symptoms:
   - "sky nomads hang in mid-air where the city used to be"
   - "the sky ships' engine smoke is an inky ball at the engines instead of a trail behind them"
 reads_with: [AgentSystem, Vehicles, NavMeshSystem, Persistence, TerrainGeneration, Striders]
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # Sky Tribe
@@ -72,7 +72,7 @@ The second tribe on the existing faction stack (no new faction machinery), plus 
 | `DriftRouteModule` | SkyVessel/DriftRouteModule.cs | `route` (world, looped), `arriveRadius` 40, `mooredBelowSpeed` 0.2, `mooredSeconds` 120; moors only inside the radius **and** slowed down; `UnderWay`/`Leg`/`MooredRemaining`, `RestoreDrift` |
 | `FleetEscortModule` | SkyVessel/FleetEscortModule.cs | `flagship`, `station`, `wanderAmplitude`/`Period`/`Phase`, `catchUpGain` 0.25, `leadSeconds` 4; `MoveTo(station point + flagship velocity × lead)` at a speed proportional to distance, `WithFacing` the flagship's heading |
 | `SettlementDeck` | SkyVessel/SettlementDeck.cs | Parking is server only (`Network.Decides`); `RefreshPresented` parks the ground conform of NPCs parented under the hull on every machine. Polls `route.UnderWay`: depart = park everyone in the deck volume + NavMesh off + `SpawningSuspended`; under way = re-park every `parkScanInterval` (0.5 s), site refresh every 5 s; moor = re-lay NavMesh, unpark (`Detach` + `Restore`), resume. `OnTeleported` re-lays the NavMesh when moored |
-| `EngineSmoke` | SkyVessel/EngineSmoke.cs | Every machine: `MonowheelPresentationMath.StepSpeed` off the transform → `rateOverTime` = lerp(`idleRate`, `fullRate`) × distance LOD |
+| `EngineSmoke` | SkyVessel/EngineSmoke.cs | Every machine: `MonowheelPresentationMath.StepSpeed` off the transform → `rateOverTime` = lerp(`idleRate`, `fullRate`) × distance LOD from `ViewCamera` (not `Camera.main`, null while riding) |
 | `DriftRouteSaveable` | Persistence/Adapters/DriftRouteSaveable.cs | Key `driftRoute`: `leg`, `underWay`, `mooredRemaining`; auto-added by `SaveablePolicy` for a `DriftRouteModule` |
 | `SettlementPopulation` (Sky options) | [SettlementPopulation.cs](Assets/Game/Scripts/agents/Faction/SettlementPopulation.cs) | Generic type in [AgentSystem.md](AgentSystem.md); the city sets `inhabitants` = the four `SkyNomad_*`, cap 16 / 45 s / 4 per wave, ring 0–90 m, `initialWaves` 4 (1 s apart), `reachableFrom` = `PromenadeAnchor`, `keepGroundChunksLoaded` |
 | `NpcGroupTransport` | [NpcGroup.cs](Assets/Game/Scripts/agents/World/NpcGroup.cs) | `smallVessel`/`largeVessel`, `travelSpeed` (28), `homeSiteName` (`WorldSite.SkyCityName`), `dockSpacing` (45 m); `VesselFor(riders)`, `IsDelivered`, `ShouldRelaunch`, `DockPoint(home, slot, spacing)` — rings of 6/12/18… slots, each ≥`spacing` from every other |

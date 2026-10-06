@@ -172,7 +172,7 @@ namespace SpaceGame.EditorTools
 
             WireLocomotion(root, armature, carry);
             VehicleDustWiring.AddFootfallDust(root, PuffsPerFootfall, PeakFootfallsPerSecond);
-            VehicleDustWiring.AddFarDust(root, PeakFootfallsPerSecond * PuffsPerFootfall, StriderCityBuilder.CityLeaderSpeed);
+            VehicleDustWiring.AddFarDust(root, PeakFootfallsPerSecond * PuffsPerFootfall);
             WireNetworkAndPersistence(root, instance.transform);
 
             // Read anything wanted for the report BEFORE the scratch hierarchy goes away: `armature`

@@ -76,7 +76,7 @@ namespace SpaceGame.EditorTools
             // After the seat: AttachRider measures the shell from every Renderer, and a particle
             // system's renderer is one -- added first, it lifted the rider 11 m into the air.
             VehicleDustWiring.AddFootfallDust(root, PuffsPerFootfall, PeakFootfallsPerSecond);
-            VehicleDustWiring.AddFarDust(root, PeakFootfallsPerSecond * PuffsPerFootfall, StriderCityBuilder.CityLeaderSpeed);
+            VehicleDustWiring.AddFarDust(root, PeakFootfallsPerSecond * PuffsPerFootfall);
 
             var tracked = root.AddComponent<SpaceGame.World.SceneTracked>();
             SerializedFields.Edit(tracked, so => SerializedFields.SetEnumByName(so, "policy", nameof(SpaceGame.World.SceneTracked.UnloadPolicy.Migrate)));

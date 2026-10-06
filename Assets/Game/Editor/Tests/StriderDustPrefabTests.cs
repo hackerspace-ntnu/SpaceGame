@@ -92,8 +92,7 @@ namespace SpaceGame.EditorTools
             IDustLodBand band = prefab.GetComponentInChildren<IDustLodBand>(true);
             Assert.AreEqual(band.LodNear, far.FadeNear, "fades in where the near dust starts fading out");
             Assert.AreEqual(band.LodFar, far.FadeFar);
-            Assert.AreEqual(NearPeak(prefab, leggedPeak) * VehicleDustWiring.FarDustRateFraction, far.RateAtFullSpeed, 1e-4f);
-            Assert.AreEqual(StriderCityBuilder.CityLeaderSpeed, far.FullSpeed, 1e-4f, "full while marching with the city");
+            Assert.AreEqual(NearPeak(prefab, leggedPeak) * VehicleDustWiring.FarDustRateFraction, far.Rate, 1e-4f);
             Assert.AreEqual(VehicleDustWiring.FarDustCullDistance, far.CullDistance);
             Assert.AreEqual(DustCloudRecipe.MinSize * VehicleDustWiring.FarDustSizeMultiplier, far.Cloud.main.startSize.constantMin, 1e-4f);
             Assert.AreEqual(ParticleSystemShapeType.Box, far.Cloud.shape.shapeType, "born up the hull, not on the sand: rebuild it");

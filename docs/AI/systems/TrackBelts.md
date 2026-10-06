@@ -11,7 +11,7 @@ symptoms:
   - "a barge's track links slide over the sand, or run the wrong way round"
   - "a track link swings round the middle of the barge when it moves"
 reads_with: [Vehicles, Striders, DuneBarge, VehicleDust]
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # Track belts
@@ -25,7 +25,7 @@ The three Strider dune barges ([Striders.md](Striders.md)) show their tracks wor
 - **Speed** of a belt = the smoothed hull-forward speed of the midpoint of its `TrackContact_<key>_Front/Rear` markers (the dust's contacts, [VehicleDust.md](VehicleDust.md)), read by `GroundSpeedGauge`, the same per-point reading `RollingDust` uses. Smoothed over 0.3 s; a step implying over 50 m/s is a snap and keeps the old speed.
 - **Links**: the phase advances by speed·dt / pitch slots; the link baked into slot *i* is placed at slot *i* + phase, lerped/slerped between the two slot frames it lies between. Grousers, pads and chevrons keep their order as they circulate.
 - **Wheels**: each bone turns speed / radius about the hull's x axis (`AngleAxis(angle, axle) * rest`). A spin bone that is no disc (reaches under 0.85× as far one way across its axle as the other: the return rollers, which carry their bracket) stays still.
-- **LOD**: nothing is written beyond `animateDistance` (120 m) from the camera or below `stillSpeed` (0.02 m/s); the speed is still measured, so a belt is already at speed when the camera comes near. Near cost: ~165 link and ~25 wheel transforms per full barge per frame (GDC-L1-TECH-0002).
+- **LOD**: nothing is written beyond `animateDistance` (120 m) from this machine's `ViewCamera` (not `Camera.main`, which is null while riding, so belts once animated at every range) or below `stillSpeed` (0.02 m/s); the speed is still measured, so a belt is already at speed when the camera comes near. Near cost: ~165 link and ~25 wheel transforms per full barge per frame (GDC-L1-TECH-0002).
 
 ## Key types
 

@@ -10660,9 +10660,9 @@
         "name": "Curve_PipeRun_CableDrop",
         "type": "CURVE",
         "location": [
-          1.4936,
-          11.8076,
-          -34.8686
+          2.6884,
+          21.2537,
+          -62.7636
         ],
         "scale": [
           1.0,
@@ -52967,6 +52967,13 @@
         "children": []
       },
       {
+        "name": "Coll_FieldBench_TableStools",
+        "objects": [
+          "Mesh_FieldBench_TableStools"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_FieldBench_ToolRack",
         "objects": [
           "Mesh_FieldBench_ToolRack"
@@ -53128,6 +53135,47 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_FieldBench_TableStools",
+        "type": "MESH",
+        "location": [
+          4.0416,
+          -2.1042,
+          -4.59
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_FieldBench_TableStools"
+        ],
+        "dimensions": [
+          2.3523,
+          3.1491,
+          1.42
+        ],
+        "vertices": 128,
+        "polygons": 88,
+        "materials": [
+          "MAT_SatTower_Int_Timber",
+          "MAT_SatTower_Int_RustSteel",
+          "MAT_SatTower_Int_PaintTeal",
+          "MAT_SatTower_Int_ConsoleBeige",
+          "MAT_SatTower_Int_ScreenGreen",
+          "MAT_SatTower_Int_ScreenAmber",
+          "MAT_SatTower_Int_ScreenDead",
+          "MAT_SatTower_Int_ClothRed",
+          "MAT_SatTower_Int_ClothOchre",
+          "MAT_SatTower_Int_Bedroll",
+          "MAT_SatTower_Int_Cable",
+          "MAT_SatTower_Int_Bulb",
+          "MAT_SatTower_Int_Paper",
+          "MAT_SatTower_Int_StoveGlow"
+        ],
+        "modifiers": []
+      },
+      {
         "name": "Mesh_FieldBench_ToolRack",
         "type": "MESH",
         "location": [
@@ -53167,6 +53215,20 @@
       }
     ],
     "materials": [
+      "MAT_SatTower_Int_Bedroll",
+      "MAT_SatTower_Int_Bulb",
+      "MAT_SatTower_Int_Cable",
+      "MAT_SatTower_Int_ClothOchre",
+      "MAT_SatTower_Int_ClothRed",
+      "MAT_SatTower_Int_ConsoleBeige",
+      "MAT_SatTower_Int_PaintTeal",
+      "MAT_SatTower_Int_Paper",
+      "MAT_SatTower_Int_RustSteel",
+      "MAT_SatTower_Int_ScreenAmber",
+      "MAT_SatTower_Int_ScreenDead",
+      "MAT_SatTower_Int_ScreenGreen",
+      "MAT_SatTower_Int_StoveGlow",
+      "MAT_SatTower_Int_Timber",
       "Mat_Emissive_Amber",
       "Mat_Metal_Chrome_Scuffed",
       "Mat_Metal_Rust_Heavy",
@@ -63134,6 +63196,13 @@
           "Mesh_RepairBench_Vice_Island"
         ],
         "children": []
+      },
+      {
+        "name": "Coll_RepairBench_ScrapWorkshop",
+        "objects": [
+          "Mesh_RepairBench_ScrapWorkshop"
+        ],
+        "children": []
       }
     ],
     "objects": [
@@ -63339,6 +63408,47 @@
           "Mat_Paint_Safety_Orange",
           "Mat_Paint_White_Arctic",
           "Mat_Emissive_Red_Warn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_RepairBench_ScrapWorkshop",
+        "type": "MESH",
+        "location": [
+          0.0596,
+          -9.6582,
+          -4.59
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_RepairBench_ScrapWorkshop"
+        ],
+        "dimensions": [
+          5.9679,
+          2.8247,
+          3.7138
+        ],
+        "vertices": 368,
+        "polygons": 268,
+        "materials": [
+          "MAT_SatTower_Int_Timber",
+          "MAT_SatTower_Int_RustSteel",
+          "MAT_SatTower_Int_PaintTeal",
+          "MAT_SatTower_Int_ConsoleBeige",
+          "MAT_SatTower_Int_ScreenGreen",
+          "MAT_SatTower_Int_ScreenAmber",
+          "MAT_SatTower_Int_ScreenDead",
+          "MAT_SatTower_Int_ClothRed",
+          "MAT_SatTower_Int_ClothOchre",
+          "MAT_SatTower_Int_Bedroll",
+          "MAT_SatTower_Int_Cable",
+          "MAT_SatTower_Int_Bulb",
+          "MAT_SatTower_Int_Paper",
+          "MAT_SatTower_Int_StoveGlow"
         ],
         "modifiers": []
       },
@@ -63754,6 +63864,20 @@
       }
     ],
     "materials": [
+      "MAT_SatTower_Int_Bedroll",
+      "MAT_SatTower_Int_Bulb",
+      "MAT_SatTower_Int_Cable",
+      "MAT_SatTower_Int_ClothOchre",
+      "MAT_SatTower_Int_ClothRed",
+      "MAT_SatTower_Int_ConsoleBeige",
+      "MAT_SatTower_Int_PaintTeal",
+      "MAT_SatTower_Int_Paper",
+      "MAT_SatTower_Int_RustSteel",
+      "MAT_SatTower_Int_ScreenAmber",
+      "MAT_SatTower_Int_ScreenDead",
+      "MAT_SatTower_Int_ScreenGreen",
+      "MAT_SatTower_Int_StoveGlow",
+      "MAT_SatTower_Int_Timber",
       "Mat_Emissive_Amber",
       "Mat_Emissive_Green_CRT",
       "Mat_Emissive_Red_Warn",
@@ -64209,8 +64333,8 @@
         "name": "Mesh_ScrapDebris_DishFall",
         "type": "MESH",
         "location": [
-          3.3577,
-          10.4254,
+          6.0438,
+          18.7657,
           0.0
         ],
         "scale": [
@@ -64222,9 +64346,9 @@
           "Coll_ScrapDebris_DishFall"
         ],
         "dimensions": [
-          22.5741,
-          9.101,
-          0.2
+          40.6333,
+          16.3818,
+          0.36
         ],
         "vertices": 72,
         "polygons": 54,
@@ -68370,6 +68494,13 @@
         "children": []
       },
       {
+        "name": "Coll_WallLocker_ScrapRack",
+        "objects": [
+          "Mesh_WallLocker_ScrapRack"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_WallLocker_Tall",
         "objects": [
           "Mesh_WallLocker_Tall"
@@ -68484,6 +68615,47 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_WallLocker_ScrapRack",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -10.475,
+          -4.59
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_WallLocker_ScrapRack"
+        ],
+        "dimensions": [
+          1.9593,
+          2.8798,
+          3.3
+        ],
+        "vertices": 204,
+        "polygons": 144,
+        "materials": [
+          "MAT_SatTower_Int_Timber",
+          "MAT_SatTower_Int_RustSteel",
+          "MAT_SatTower_Int_PaintTeal",
+          "MAT_SatTower_Int_ConsoleBeige",
+          "MAT_SatTower_Int_ScreenGreen",
+          "MAT_SatTower_Int_ScreenAmber",
+          "MAT_SatTower_Int_ScreenDead",
+          "MAT_SatTower_Int_ClothRed",
+          "MAT_SatTower_Int_ClothOchre",
+          "MAT_SatTower_Int_Bedroll",
+          "MAT_SatTower_Int_Cable",
+          "MAT_SatTower_Int_Bulb",
+          "MAT_SatTower_Int_Paper",
+          "MAT_SatTower_Int_StoveGlow"
+        ],
+        "modifiers": []
+      },
+      {
         "name": "Mesh_WallLocker_Tall",
         "type": "MESH",
         "location": [
@@ -68520,6 +68692,20 @@
       }
     ],
     "materials": [
+      "MAT_SatTower_Int_Bedroll",
+      "MAT_SatTower_Int_Bulb",
+      "MAT_SatTower_Int_Cable",
+      "MAT_SatTower_Int_ClothOchre",
+      "MAT_SatTower_Int_ClothRed",
+      "MAT_SatTower_Int_ConsoleBeige",
+      "MAT_SatTower_Int_PaintTeal",
+      "MAT_SatTower_Int_Paper",
+      "MAT_SatTower_Int_RustSteel",
+      "MAT_SatTower_Int_ScreenAmber",
+      "MAT_SatTower_Int_ScreenDead",
+      "MAT_SatTower_Int_ScreenGreen",
+      "MAT_SatTower_Int_StoveGlow",
+      "MAT_SatTower_Int_Timber",
       "Mat_Emissive_Amber",
       "Mat_Fabric_Canvas_Faded",
       "Mat_Metal_Rust_Heavy",
@@ -70473,9 +70659,9 @@
         "name": "Mesh_DishFeed_Cabin",
         "type": "MESH",
         "location": [
-          -0.0292,
-          0.1116,
-          -13.3125
+          -0.0526,
+          0.2009,
+          -23.9625
         ],
         "scale": [
           1.0,
@@ -70486,9 +70672,9 @@
           "Coll_DishFeed_Cabin"
         ],
         "dimensions": [
-          3.2585,
-          3.2217,
-          6.7544
+          5.8653,
+          5.7991,
+          12.158
         ],
         "vertices": 116,
         "polygons": 70,
@@ -70502,9 +70688,9 @@
         "name": "Mesh_DishFeed_Leg",
         "type": "MESH",
         "location": [
-          -20.9274,
-          12.7477,
-          -12.8981
+          -37.6693,
+          22.9459,
+          -23.2166
         ],
         "scale": [
           1.0,
@@ -70515,9 +70701,9 @@
           "Coll_DishFeed_Leg"
         ],
         "dimensions": [
-          10.3528,
-          1.5698,
-          13.4091
+          18.635,
+          2.8256,
+          24.1364
         ],
         "vertices": 752,
         "polygons": 564,
@@ -70531,9 +70717,9 @@
         "name": "Mesh_DishFeed_LegSnapped",
         "type": "MESH",
         "location": [
-          20.9387,
-          12.3309,
-          -13.292
+          37.6897,
+          22.1957,
+          -23.9256
         ],
         "scale": [
           1.0,
@@ -70544,9 +70730,9 @@
           "Coll_DishFeed_LegSnapped"
         ],
         "dimensions": [
-          5.1178,
-          1.3973,
-          6.0479
+          9.212,
+          2.5151,
+          10.8861
         ],
         "vertices": 344,
         "polygons": 258,
@@ -70609,9 +70795,9 @@
         "name": "Mesh_DishPanel_Askew",
         "type": "MESH",
         "location": [
-          0.0724,
-          -0.2271,
-          1.9685
+          0.1304,
+          -0.4087,
+          3.5432
         ],
         "scale": [
           1.0,
@@ -70622,9 +70808,9 @@
           "Coll_DishPanel_Askew"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -70639,9 +70825,9 @@
         "name": "Mesh_DishPanel_Fallen",
         "type": "MESH",
         "location": [
-          0.1624,
-          0.2147,
-          2.2308
+          0.2923,
+          0.3864,
+          4.0154
         ],
         "scale": [
           1.0,
@@ -70652,9 +70838,9 @@
           "Coll_DishPanel_Fallen"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -70669,9 +70855,9 @@
         "name": "Mesh_DishPanel_Hanging_Panel",
         "type": "MESH",
         "location": [
-          -0.8515,
-          -2.211,
-          -2.1641
+          -1.5327,
+          -3.9798,
+          -3.8953
         ],
         "scale": [
           1.0,
@@ -70682,9 +70868,9 @@
           "Coll_DishPanel_Hanging"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -70699,9 +70885,9 @@
         "name": "Mesh_DishPanel_Hanging_Straps",
         "type": "MESH",
         "location": [
-          -7.8096,
-          8.0857,
-          -23.2671
+          -14.0573,
+          14.5542,
+          -41.8808
         ],
         "scale": [
           1.0,
@@ -70712,9 +70898,9 @@
           "Coll_DishPanel_Hanging"
         ],
         "dimensions": [
-          0.55,
-          0.55,
-          0.81
+          0.99,
+          0.99,
+          1.458
         ],
         "vertices": 40,
         "polygons": 28,
@@ -70727,9 +70913,9 @@
         "name": "Mesh_DishPanel_Intact",
         "type": "MESH",
         "location": [
-          0.1986,
-          -0.1285,
-          1.1499
+          0.3575,
+          -0.2314,
+          2.0698
         ],
         "scale": [
           1.0,
@@ -70740,9 +70926,9 @@
           "Coll_DishPanel_Intact"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -70757,9 +70943,9 @@
         "name": "Mesh_DishPanel_Patched",
         "type": "MESH",
         "location": [
-          0.0727,
-          -0.2012,
-          1.1499
+          0.1309,
+          -0.3622,
+          2.0698
         ],
         "scale": [
           1.0,
@@ -70770,9 +70956,9 @@
           "Coll_DishPanel_Patched"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -70818,7 +71004,7 @@
         "location": [
           0.0,
           0.0,
-          -8.46
+          -16.16
         ],
         "scale": [
           1.0,
@@ -70829,12 +71015,12 @@
           "Coll_DishPedestal_Catwalk"
         ],
         "dimensions": [
-          11.2,
-          11.2,
-          7.68
+          21.6,
+          21.6,
+          11.6
         ],
-        "vertices": 704,
-        "polygons": 560,
+        "vertices": 1508,
+        "polygons": 1200,
         "materials": [
           "MAT_SatTower_DarkMetal",
           "MAT_SatTower_RailRust"
@@ -70845,9 +71031,9 @@
         "name": "Mesh_DishPedestal_Yoke_Bearing",
         "type": "MESH",
         "location": [
-          -0.65,
+          -1.17,
           0.0,
-          -7.3
+          -13.14
         ],
         "scale": [
           1.0,
@@ -70858,9 +71044,9 @@
           "Coll_DishPedestal_Yoke"
         ],
         "dimensions": [
-          9.01,
-          9.01,
-          1.4
+          16.218,
+          16.218,
+          2.52
         ],
         "vertices": 544,
         "polygons": 372,
@@ -70873,9 +71059,9 @@
         "name": "Mesh_DishPedestal_Yoke_Column",
         "type": "MESH",
         "location": [
-          -0.65,
+          -1.17,
           0.0,
-          -7.3
+          -13.14
         ],
         "scale": [
           1.0,
@@ -70886,9 +71072,9 @@
           "Coll_DishPedestal_Yoke"
         ],
         "dimensions": [
-          9.5425,
-          9.5425,
-          7.8
+          17.1764,
+          17.1764,
+          14.04
         ],
         "vertices": 248,
         "polygons": 176,
@@ -70902,9 +71088,9 @@
         "name": "Mesh_DishPedestal_Yoke_HeadYoke",
         "type": "MESH",
         "location": [
-          -0.65,
+          -1.17,
           0.0,
-          -7.3
+          -13.14
         ],
         "scale": [
           1.0,
@@ -70915,9 +71101,9 @@
           "Coll_DishPedestal_Yoke"
         ],
         "dimensions": [
-          13.2,
-          7.0,
-          13.4
+          23.76,
+          12.6,
+          24.12
         ],
         "vertices": 544,
         "polygons": 334,
@@ -72843,9 +73029,9 @@
         "name": "Mesh_Handrail_RustyBay",
         "type": "MESH",
         "location": [
-          -10.4894,
-          -0.0262,
-          -3.0
+          -18.976,
+          -0.0115,
+          -5.379
         ],
         "scale": [
           1.0,
@@ -72856,9 +73042,9 @@
           "Coll_Handrail_RustyBay"
         ],
         "dimensions": [
-          2.2934,
-          0.6557,
-          1.64
+          2.0731,
+          0.4572,
+          1.662
         ],
         "vertices": 40,
         "polygons": 30,
@@ -75369,8 +75555,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.787,
-          -26.787
+          1.4166,
+          -48.2166
         ],
         "scale": [
           1.0,
@@ -75381,9 +75567,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          0.55,
-          0.55,
-          0.81
+          0.99,
+          0.99,
+          1.458
         ],
         "vertices": 40,
         "polygons": 28,
@@ -75409,9 +75595,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          9.4,
-          7.0,
-          5.525
+          16.92,
+          12.6,
+          9.945
         ],
         "vertices": 96,
         "polygons": 56,
@@ -75425,9 +75611,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_01",
         "type": "MESH",
         "location": [
-          4.1535,
-          -1.1424,
-          2.4114
+          7.4763,
+          -2.0564,
+          4.3406
         ],
         "scale": [
           1.0,
@@ -75438,9 +75624,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75455,9 +75641,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_02",
         "type": "MESH",
         "location": [
-          3.0406,
-          0.1273,
-          3.8624
+          5.473,
+          0.2291,
+          6.9523
         ],
         "scale": [
           1.0,
@@ -75468,9 +75654,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75485,9 +75671,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_04",
         "type": "MESH",
         "location": [
-          -1.1129,
-          0.8426,
-          4.7149
+          -2.0033,
+          1.5167,
+          8.4869
         ],
         "scale": [
           1.0,
@@ -75498,9 +75684,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.9454,
-          3.9833,
-          0.7748
+          5.3017,
+          7.1699,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75515,9 +75701,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_05",
         "type": "MESH",
         "location": [
-          -3.0406,
-          0.1273,
-          3.8624
+          -5.473,
+          0.2291,
+          6.9523
         ],
         "scale": [
           1.0,
@@ -75528,9 +75714,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75545,9 +75731,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_06",
         "type": "MESH",
         "location": [
-          -4.1535,
-          -1.1118,
-          2.3857
+          -7.4763,
+          -2.0012,
+          4.2943
         ],
         "scale": [
           1.0,
@@ -75558,9 +75744,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75575,9 +75761,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_07",
         "type": "MESH",
         "location": [
-          -4.1535,
-          -2.5425,
-          0.6806
+          -7.4763,
+          -4.5766,
+          1.2251
         ],
         "scale": [
           1.0,
@@ -75588,9 +75774,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75605,9 +75791,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_08",
         "type": "MESH",
         "location": [
-          -3.0406,
-          -3.7816,
-          -0.796
+          -5.473,
+          -6.8069,
+          -1.4328
         ],
         "scale": [
           1.0,
@@ -75618,9 +75804,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75635,9 +75821,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_09",
         "type": "MESH",
         "location": [
-          -1.1129,
-          -4.497,
-          -1.6486
+          -2.0033,
+          -8.0946,
+          -2.9674
         ],
         "scale": [
           1.0,
@@ -75648,9 +75834,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.9454,
-          3.9833,
-          0.7748
+          5.3017,
+          7.1699,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75665,9 +75851,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_10",
         "type": "MESH",
         "location": [
-          1.1129,
-          -4.497,
-          -1.6486
+          2.0033,
+          -8.0946,
+          -2.9674
         ],
         "scale": [
           1.0,
@@ -75678,9 +75864,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.9454,
-          3.9833,
-          0.7748
+          5.3017,
+          7.1699,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75695,9 +75881,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_11",
         "type": "MESH",
         "location": [
-          3.0406,
-          -3.7816,
-          -0.796
+          5.473,
+          -6.8069,
+          -1.4328
         ],
         "scale": [
           1.0,
@@ -75708,9 +75894,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75725,9 +75911,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_12",
         "type": "MESH",
         "location": [
-          4.1535,
-          -2.5732,
-          0.7063
+          7.4763,
+          -4.6317,
+          1.2714
         ],
         "scale": [
           1.0,
@@ -75738,9 +75924,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75755,9 +75941,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_13",
         "type": "MESH",
         "location": [
-          8.3281,
-          -1.9841,
-          3.0961
+          14.9906,
+          -3.5713,
+          5.573
         ],
         "scale": [
           1.0,
@@ -75768,9 +75954,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75785,9 +75971,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_14",
         "type": "MESH",
         "location": [
-          7.7606,
-          -0.5919,
-          4.693
+          13.9691,
+          -1.0654,
+          8.4473
         ],
         "scale": [
           1.0,
@@ -75798,9 +75984,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75815,9 +76001,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_15",
         "type": "MESH",
         "location": [
-          6.6642,
-          0.6288,
-          6.1477
+          11.9955,
+          1.1318,
+          11.0659
         ],
         "scale": [
           1.0,
@@ -75828,9 +76014,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75845,9 +76031,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_16",
         "type": "MESH",
         "location": [
-          5.1136,
-          1.6255,
-          7.3355
+          9.2045,
+          2.9258,
+          13.2039
         ],
         "scale": [
           1.0,
@@ -75858,9 +76044,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75875,9 +76061,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_17",
         "type": "MESH",
         "location": [
-          3.2145,
-          2.3302,
-          8.1754
+          5.7862,
+          4.1944,
+          14.7158
         ],
         "scale": [
           1.0,
@@ -75888,9 +76074,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75905,9 +76091,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_18",
         "type": "MESH",
         "location": [
-          1.0964,
-          2.695,
-          8.6102
+          1.9736,
+          4.8511,
+          15.4984
         ],
         "scale": [
           1.0,
@@ -75918,9 +76104,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75935,9 +76121,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_19",
         "type": "MESH",
         "location": [
-          -1.0964,
-          2.6644,
-          8.6359
+          -1.9736,
+          4.7959,
+          15.5446
         ],
         "scale": [
           1.0,
@@ -75948,9 +76134,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75965,9 +76151,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_20",
         "type": "MESH",
         "location": [
-          -3.2145,
-          2.3302,
-          8.1754
+          -5.7862,
+          4.1944,
+          14.7158
         ],
         "scale": [
           1.0,
@@ -75978,9 +76164,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -75995,9 +76181,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_22",
         "type": "MESH",
         "location": [
-          -6.6642,
-          0.6288,
-          6.1477
+          -11.9955,
+          1.1318,
+          11.0659
         ],
         "scale": [
           1.0,
@@ -76008,9 +76194,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76025,9 +76211,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_23",
         "type": "MESH",
         "location": [
-          -7.7606,
-          -0.5919,
-          4.693
+          -13.9691,
+          -1.0654,
+          8.4473
         ],
         "scale": [
           1.0,
@@ -76038,9 +76224,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76055,9 +76241,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_24",
         "type": "MESH",
         "location": [
-          -8.3281,
-          -1.9534,
-          3.0704
+          -14.9906,
+          -3.5161,
+          5.5267
         ],
         "scale": [
           1.0,
@@ -76068,9 +76254,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76085,9 +76271,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_25",
         "type": "MESH",
         "location": [
-          -8.3281,
-          -3.3629,
-          1.3906
+          -14.9906,
+          -6.0533,
+          2.503
         ],
         "scale": [
           1.0,
@@ -76098,9 +76284,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76115,9 +76301,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_26",
         "type": "MESH",
         "location": [
-          -7.7606,
-          -4.7244,
-          -0.232
+          -13.9691,
+          -8.504,
+          -0.4176
         ],
         "scale": [
           1.0,
@@ -76128,9 +76314,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76145,9 +76331,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_27",
         "type": "MESH",
         "location": [
-          -6.6642,
-          -5.9451,
-          -1.6868
+          -11.9955,
+          -10.7012,
+          -3.0362
         ],
         "scale": [
           1.0,
@@ -76158,9 +76344,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76175,9 +76361,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_28",
         "type": "MESH",
         "location": [
-          -5.1136,
-          -6.9418,
-          -2.8746
+          -9.2045,
+          -12.4953,
+          -5.1742
         ],
         "scale": [
           1.0,
@@ -76188,9 +76374,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76205,9 +76391,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_29",
         "type": "MESH",
         "location": [
-          -3.2145,
-          -7.6466,
-          -3.7145
+          -5.7862,
+          -13.7638,
+          -6.6861
         ],
         "scale": [
           1.0,
@@ -76218,9 +76404,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76235,9 +76421,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_30",
         "type": "MESH",
         "location": [
-          -1.0964,
-          -8.0114,
-          -4.1493
+          -1.9736,
+          -14.4205,
+          -7.4687
         ],
         "scale": [
           1.0,
@@ -76248,9 +76434,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76265,9 +76451,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_31",
         "type": "MESH",
         "location": [
-          1.0964,
-          -8.0114,
-          -4.1493
+          1.9736,
+          -14.4205,
+          -7.4687
         ],
         "scale": [
           1.0,
@@ -76278,9 +76464,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76295,9 +76481,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_32",
         "type": "MESH",
         "location": [
-          3.2145,
-          -7.6466,
-          -3.7145
+          5.7862,
+          -13.7638,
+          -6.6861
         ],
         "scale": [
           1.0,
@@ -76308,9 +76494,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76325,9 +76511,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_33",
         "type": "MESH",
         "location": [
-          5.1663,
-          -6.3021,
-          -3.5011
+          9.2994,
+          -11.3438,
+          -6.3019
         ],
         "scale": [
           1.0,
@@ -76338,9 +76524,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76355,9 +76541,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_34",
         "type": "MESH",
         "location": [
-          6.6642,
-          -5.9451,
-          -1.6868
+          11.9955,
+          -10.7012,
+          -3.0362
         ],
         "scale": [
           1.0,
@@ -76368,9 +76554,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76385,9 +76571,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_35",
         "type": "MESH",
         "location": [
-          7.7606,
-          -4.7551,
-          -0.2063
+          13.9691,
+          -8.5591,
+          -0.3713
         ],
         "scale": [
           1.0,
@@ -76398,9 +76584,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76415,9 +76601,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_36",
         "type": "MESH",
         "location": [
-          8.3281,
-          -3.3629,
-          1.3906
+          14.9906,
+          -6.0533,
+          2.503
         ],
         "scale": [
           1.0,
@@ -76428,9 +76614,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -76445,9 +76631,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_37",
         "type": "MESH",
         "location": [
-          12.6905,
-          -3.0729,
-          4.7595
+          22.8429,
+          -5.5313,
+          8.5671
         ],
         "scale": [
           1.0,
@@ -76458,9 +76644,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76475,9 +76661,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_38",
         "type": "MESH",
         "location": [
-          11.8257,
-          -0.9983,
-          7.232
+          21.2862,
+          -1.7969,
+          13.0176
         ],
         "scale": [
           1.0,
@@ -76488,9 +76674,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76505,9 +76691,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_39",
         "type": "MESH",
         "location": [
-          10.1549,
-          0.8618,
-          9.4488
+          18.2789,
+          1.5513,
+          17.0078
         ],
         "scale": [
           1.0,
@@ -76518,9 +76704,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76535,9 +76721,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_40",
         "type": "MESH",
         "location": [
-          7.7921,
-          2.3806,
-          11.2587
+          14.0259,
+          4.2851,
+          20.2657
         ],
         "scale": [
           1.0,
@@ -76548,9 +76734,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76565,9 +76751,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_43",
         "type": "MESH",
         "location": [
-          -1.6707,
-          4.0104,
-          13.2011
+          -3.0073,
+          7.2188,
+          23.762
         ],
         "scale": [
           1.0,
@@ -76578,9 +76764,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.7402,
-          4.6667,
-          2.3804
+          6.7323,
+          8.4,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76595,9 +76781,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_44",
         "type": "MESH",
         "location": [
-          -4.8983,
-          3.4545,
-          12.5386
+          -8.817,
+          6.2182,
+          22.5695
         ],
         "scale": [
           1.0,
@@ -76608,9 +76794,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76625,9 +76811,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_45",
         "type": "MESH",
         "location": [
-          -7.7921,
-          2.35,
-          11.2845
+          -14.0259,
+          4.2299,
+          20.312
         ],
         "scale": [
           1.0,
@@ -76638,9 +76824,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76655,9 +76841,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_46",
         "type": "MESH",
         "location": [
-          -10.1549,
-          0.8312,
-          9.4745
+          -18.2789,
+          1.4962,
+          17.054
         ],
         "scale": [
           1.0,
@@ -76668,9 +76854,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76685,9 +76871,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_47",
         "type": "MESH",
         "location": [
-          -11.8257,
-          -0.9983,
-          7.232
+          -21.2862,
+          -1.7969,
+          13.0176
         ],
         "scale": [
           1.0,
@@ -76698,9 +76884,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76715,9 +76901,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_48",
         "type": "MESH",
         "location": [
-          -12.6905,
-          -3.0729,
-          4.7595
+          -22.8429,
+          -5.5313,
+          8.5671
         ],
         "scale": [
           1.0,
@@ -76728,9 +76914,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76745,9 +76931,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_49",
         "type": "MESH",
         "location": [
-          -12.6905,
-          -5.2208,
-          2.1998
+          -22.8429,
+          -9.3974,
+          3.9596
         ],
         "scale": [
           1.0,
@@ -76758,9 +76944,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76775,9 +76961,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_51",
         "type": "MESH",
         "location": [
-          -10.1549,
-          -9.1555,
-          -2.4895
+          -18.2789,
+          -16.48,
+          -4.4811
         ],
         "scale": [
           1.0,
@@ -76788,9 +76974,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76805,9 +76991,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_52",
         "type": "MESH",
         "location": [
-          -7.7921,
-          -10.6743,
-          -4.2995
+          -14.0259,
+          -19.2138,
+          -7.7391
         ],
         "scale": [
           1.0,
@@ -76818,9 +77004,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76835,9 +77021,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_53",
         "type": "MESH",
         "location": [
-          -4.8983,
-          -11.7482,
-          -5.5794
+          -8.817,
+          -21.1468,
+          -10.0428
         ],
         "scale": [
           1.0,
@@ -76848,9 +77034,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76865,9 +77051,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_54",
         "type": "MESH",
         "location": [
-          -1.6707,
-          -12.3041,
-          -6.2419
+          -3.0073,
+          -22.1475,
+          -11.2353
         ],
         "scale": [
           1.0,
@@ -76878,9 +77064,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.7402,
-          4.6667,
-          2.3804
+          6.7323,
+          8.4,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76895,9 +77081,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_55",
         "type": "MESH",
         "location": [
-          2.9483,
-          -10.8565,
-          -7.5168
+          5.3069,
+          -19.5417,
+          -13.5302
         ],
         "scale": [
           1.0,
@@ -76908,9 +77094,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76925,9 +77111,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_56",
         "type": "MESH",
         "location": [
-          4.8983,
-          -11.7482,
-          -5.5794
+          8.817,
+          -21.1468,
+          -10.0428
         ],
         "scale": [
           1.0,
@@ -76938,9 +77124,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76955,9 +77141,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_57",
         "type": "MESH",
         "location": [
-          6.9582,
-          -9.5097,
-          -5.684
+          12.5247,
+          -17.1174,
+          -10.2312
         ],
         "scale": [
           1.0,
@@ -76968,9 +77154,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -76985,9 +77171,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_58",
         "type": "MESH",
         "location": [
-          10.1549,
-          -9.1555,
-          -2.4895
+          18.2789,
+          -16.48,
+          -4.4811
         ],
         "scale": [
           1.0,
@@ -76998,9 +77184,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -77015,9 +77201,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_59",
         "type": "MESH",
         "location": [
-          11.8257,
-          -7.2955,
-          -0.2727
+          21.2862,
+          -13.1318,
+          -0.4909
         ],
         "scale": [
           1.0,
@@ -77028,9 +77214,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -77045,9 +77231,9 @@
         "name": "Mesh_SatelliteDish_Broken_Dish_Panel_60",
         "type": "MESH",
         "location": [
-          12.6905,
-          -5.2208,
-          2.1998
+          22.8429,
+          -9.3974,
+          3.9596
         ],
         "scale": [
           1.0,
@@ -77058,9 +77244,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -77088,9 +77274,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          30.3193,
-          30.3193,
-          9.3512
+          54.5748,
+          54.5748,
+          16.8321
         ],
         "vertices": 5888,
         "polygons": 4416,
@@ -77116,9 +77302,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.9964,
-          6.2969,
-          4.0905
+          7.1935,
+          11.3344,
+          7.3628
         ],
         "vertices": 64,
         "polygons": 48,
@@ -77144,9 +77330,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          3.2585,
-          3.2217,
-          6.7544
+          5.8653,
+          5.7991,
+          12.158
         ],
         "vertices": 116,
         "polygons": 70,
@@ -77173,9 +77359,9 @@
           "Coll_SatelliteDish_Broken"
         ],
         "dimensions": [
-          22.2032,
-          22.2031,
-          9.1317
+          39.9657,
+          39.9657,
+          16.437
         ],
         "vertices": 2912,
         "polygons": 2184,
@@ -80265,9 +80451,29 @@
         "children": []
       },
       {
+        "name": "Coll_Shanty_DeckHut",
+        "objects": [
+          "Mesh_Shanty_DeckHut_Frame",
+          "Mesh_Shanty_DeckHut_Sheets",
+          "Mesh_Shanty_DeckHut_Tarp",
+          "Mesh_Shanty_DeckHut_Details"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_Shanty_LeanTo",
         "objects": [
           "Mesh_Shanty_LeanTo"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Shanty_PlinthLeanTo",
+        "objects": [
+          "Mesh_Shanty_PlinthLeanTo_Frame",
+          "Mesh_Shanty_PlinthLeanTo_Sheets",
+          "Mesh_Shanty_PlinthLeanTo_Tarp",
+          "Mesh_Shanty_PlinthLeanTo_Details"
         ],
         "children": []
       },
@@ -80285,6 +80491,16 @@
         "children": []
       },
       {
+        "name": "Coll_Shanty_ScrapHutAnnex",
+        "objects": [
+          "Mesh_Shanty_ScrapHutAnnex_Details",
+          "Mesh_Shanty_ScrapHutAnnex_Frame",
+          "Mesh_Shanty_ScrapHutAnnex_Sheets",
+          "Mesh_Shanty_ScrapHutAnnex_Tarp"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_Shanty_Stack",
         "objects": [
           "Mesh_Shanty_Stack"
@@ -80297,6 +80513,16 @@
           "Mesh_Shanty_Water"
         ],
         "children": []
+      },
+      {
+        "name": "Coll_Shanty_WaterTank",
+        "objects": [
+          "Mesh_Shanty_WaterTank_Frame",
+          "Mesh_Shanty_WaterTank_Sheets",
+          "Mesh_Shanty_WaterTank_Tarp",
+          "Mesh_Shanty_WaterTank_Details"
+        ],
+        "children": []
       }
     ],
     "objects": [
@@ -80304,9 +80530,9 @@
         "name": "Curve_Shanty_ScrapHut_Cable_01",
         "type": "CURVE",
         "location": [
-          6.3692,
-          -4.0803,
-          -3.0
+          11.5098,
+          -7.4305,
+          -5.4
         ],
         "scale": [
           1.0,
@@ -80321,9 +80547,9 @@
         "name": "Curve_Shanty_ScrapHut_Cable_02",
         "type": "CURVE",
         "location": [
-          6.3692,
-          -4.0803,
-          -3.0
+          11.5098,
+          -7.4305,
+          -5.4
         ],
         "scale": [
           1.0,
@@ -80338,9 +80564,9 @@
         "name": "Curve_Shanty_ScrapHut_Rope_01",
         "type": "CURVE",
         "location": [
-          6.3692,
-          -4.0803,
-          -3.0
+          11.5098,
+          -7.4305,
+          -5.4
         ],
         "scale": [
           1.0,
@@ -80426,6 +80652,132 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_Shanty_DeckHut_Details",
+        "type": "MESH",
+        "location": [
+          13.7625,
+          3.1331,
+          -5.3989
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          9.1413,
+          18.4037,
+          6.69
+        ],
+        "vertices": 686,
+        "polygons": 484,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_DeckHut_Frame",
+        "type": "MESH",
+        "location": [
+          13.7625,
+          3.1331,
+          -5.3989
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          10.059,
+          11.7126,
+          13.0714
+        ],
+        "vertices": 1028,
+        "polygons": 750,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_DeckHut_Sheets",
+        "type": "MESH",
+        "location": [
+          13.7625,
+          3.1331,
+          -5.3989
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          8.6311,
+          11.6664,
+          5.0752
+        ],
+        "vertices": 750,
+        "polygons": 322,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "Mesh_Shanty_DeckHut_Tarp",
+        "type": "MESH",
+        "location": [
+          13.7625,
+          3.1331,
+          -5.3989
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          6.8104,
+          9.7547,
+          3.7504
+        ],
+        "vertices": 21,
+        "polygons": 10,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
         "name": "Mesh_Shanty_LeanTo",
         "type": "MESH",
         "location": [
@@ -80463,12 +80815,138 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_Shanty_PlinthLeanTo_Details",
+        "type": "MESH",
+        "location": [
+          12.4854,
+          -21.3213,
+          0.0897
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          9.0731,
+          10.3889,
+          6.5997
+        ],
+        "vertices": 588,
+        "polygons": 422,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_PlinthLeanTo_Frame",
+        "type": "MESH",
+        "location": [
+          12.4854,
+          -21.3213,
+          0.0897
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          10.8658,
+          12.4055,
+          4.8128
+        ],
+        "vertices": 424,
+        "polygons": 310,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_PlinthLeanTo_Sheets",
+        "type": "MESH",
+        "location": [
+          12.4854,
+          -21.3213,
+          0.0897
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          11.1869,
+          12.5141,
+          4.8963
+        ],
+        "vertices": 908,
+        "polygons": 385,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "Mesh_Shanty_PlinthLeanTo_Tarp",
+        "type": "MESH",
+        "location": [
+          12.4854,
+          -21.3213,
+          0.0897
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          5.7329,
+          4.924,
+          1.8958
+        ],
+        "vertices": 33,
+        "polygons": 19,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
         "name": "Mesh_Shanty_ScrapHut_Details",
         "type": "MESH",
         "location": [
-          0.4989,
-          0.1101,
-          4.5
+          0.9433,
+          0.1122,
+          8.1
         ],
         "scale": [
           1.0,
@@ -80479,9 +80957,9 @@
           "Coll_Shanty_ScrapHut"
         ],
         "dimensions": [
-          5.326,
-          5.0342,
-          6.5102
+          7.7498,
+          7.337,
+          7.8122
         ],
         "vertices": 442,
         "polygons": 421,
@@ -80500,9 +80978,9 @@
         "name": "Mesh_Shanty_ScrapHut_Frame",
         "type": "MESH",
         "location": [
-          0.1436,
-          0.2789,
-          4.5
+          0.3038,
+          0.416,
+          8.1
         ],
         "scale": [
           1.0,
@@ -80513,9 +80991,9 @@
           "Coll_Shanty_ScrapHut"
         ],
         "dimensions": [
-          5.128,
-          5.0,
-          9.3652
+          7.692,
+          7.5,
+          13.9382
         ],
         "vertices": 608,
         "polygons": 436,
@@ -80529,9 +81007,9 @@
         "name": "Mesh_Shanty_ScrapHut_Sheets",
         "type": "MESH",
         "location": [
-          0.1436,
-          0.2789,
-          4.5
+          0.3038,
+          0.416,
+          8.1
         ],
         "scale": [
           1.0,
@@ -80542,9 +81020,9 @@
           "Coll_Shanty_ScrapHut"
         ],
         "dimensions": [
-          5.4122,
-          6.5364,
-          5.2181
+          8.1168,
+          9.8015,
+          6.3948
         ],
         "vertices": 706,
         "polygons": 316,
@@ -80561,9 +81039,9 @@
         "name": "Mesh_Shanty_ScrapHut_Tarp",
         "type": "MESH",
         "location": [
-          0.1436,
-          0.2789,
-          4.5
+          0.3038,
+          0.416,
+          8.1
         ],
         "scale": [
           1.0,
@@ -80574,12 +81052,138 @@
           "Coll_Shanty_ScrapHut"
         ],
         "dimensions": [
-          2.5232,
-          2.5117,
-          3.8879
+          3.7804,
+          3.7639,
+          4.6658
         ],
         "vertices": 87,
         "polygons": 63,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "Mesh_Shanty_ScrapHutAnnex_Details",
+        "type": "MESH",
+        "location": [
+          11.5098,
+          -7.4305,
+          -5.4
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_ScrapHutAnnex"
+        ],
+        "dimensions": [
+          11.7633,
+          12.7016,
+          6.175
+        ],
+        "vertices": 506,
+        "polygons": 362,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_ScrapHutAnnex_Frame",
+        "type": "MESH",
+        "location": [
+          11.5098,
+          -7.4305,
+          -5.4
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_ScrapHutAnnex"
+        ],
+        "dimensions": [
+          11.5888,
+          13.763,
+          12.5181
+        ],
+        "vertices": 768,
+        "polygons": 564,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_ScrapHutAnnex_Sheets",
+        "type": "MESH",
+        "location": [
+          11.5098,
+          -7.4305,
+          -5.4
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_ScrapHutAnnex"
+        ],
+        "dimensions": [
+          12.9353,
+          13.4796,
+          4.5232
+        ],
+        "vertices": 470,
+        "polygons": 200,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "Mesh_Shanty_ScrapHutAnnex_Tarp",
+        "type": "MESH",
+        "location": [
+          11.5098,
+          -7.4305,
+          -5.4
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_ScrapHutAnnex"
+        ],
+        "dimensions": [
+          2.0183,
+          1.4398,
+          2.035
+        ],
+        "vertices": 12,
+        "polygons": 6,
         "materials": [
           "MAT_SatTower_Tarp"
         ],
@@ -80660,6 +81264,132 @@
           "Mat_Plastic_Rubber_Black"
         ],
         "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_WaterTank_Details",
+        "type": "MESH",
+        "location": [
+          -9.341,
+          -14.8497,
+          -5.399
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          8.5821,
+          8.9394,
+          13.9475
+        ],
+        "vertices": 1102,
+        "polygons": 778,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_WaterTank_Frame",
+        "type": "MESH",
+        "location": [
+          -9.341,
+          -14.8497,
+          -5.399
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          9.1489,
+          8.5452,
+          12.1167
+        ],
+        "vertices": 1276,
+        "polygons": 934,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Shanty_WaterTank_Sheets",
+        "type": "MESH",
+        "location": [
+          -9.341,
+          -14.8497,
+          -5.399
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          8.718,
+          7.2011,
+          12.2295
+        ],
+        "vertices": 886,
+        "polygons": 376,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "Mesh_Shanty_WaterTank_Tarp",
+        "type": "MESH",
+        "location": [
+          -9.341,
+          -14.8497,
+          -5.399
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          0.6651,
+          1.1597,
+          2.0501
+        ],
+        "vertices": 9,
+        "polygons": 4,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
       }
     ],
     "materials": [
@@ -80951,6 +81681,13 @@
         "children": []
       },
       {
+        "name": "Coll_Stair_RustyDogleg",
+        "objects": [
+          "Mesh_Stair_RustyDogleg"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_Stair_RustyFlight",
         "objects": [
           "Mesh_Stair_RustyFlight"
@@ -80963,9 +81700,9 @@
         "name": "Mesh_Stair_CagedLadder",
         "type": "MESH",
         "location": [
-          0.0,
-          5.4068,
-          -7.5
+          -0.3116,
+          11.7065,
+          -13.5
         ],
         "scale": [
           1.0,
@@ -80976,12 +81713,12 @@
           "Coll_Stair_CagedLadder"
         ],
         "dimensions": [
-          1.0335,
-          1.0335,
-          8.2
+          1.856,
+          1.837,
+          13.7
         ],
-        "vertices": 632,
-        "polygons": 474,
+        "vertices": 640,
+        "polygons": 480,
         "materials": [
           "MAT_SatTower_DarkMetal",
           "MAT_SatTower_RailRust"
@@ -81117,12 +81854,40 @@
         "modifiers": []
       },
       {
+        "name": "Mesh_Stair_RustyDogleg",
+        "type": "MESH",
+        "location": [
+          -13.0674,
+          6.3492,
+          -5.4
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Stair_RustyDogleg"
+        ],
+        "dimensions": [
+          6.7052,
+          15.1284,
+          9.75
+        ],
+        "vertices": 772,
+        "polygons": 578,
+        "materials": [
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
         "name": "Mesh_Stair_RustyFlight",
         "type": "MESH",
         "location": [
-          -11.081,
-          1.2384,
-          0.1993
+          -20.962,
+          2.9108,
+          0.0
         ],
         "scale": [
           1.0,
@@ -81133,12 +81898,12 @@
           "Coll_Stair_RustyFlight"
         ],
         "dimensions": [
-          6.1267,
-          2.562,
-          4.775
+          11.0517,
+          3.6759,
+          7.05
         ],
-        "vertices": 216,
-        "polygons": 162,
+        "vertices": 426,
+        "polygons": 319,
         "materials": [
           "MAT_SatTower_RailRust"
         ],
@@ -82343,9 +83108,9 @@
         "name": "Mesh_Truss_SnappedStubs",
         "type": "MESH",
         "location": [
-          -1.9402,
-          13.3593,
-          -2.474
+          -3.4924,
+          24.0467,
+          -4.4532
         ],
         "scale": [
           1.0,
@@ -82356,9 +83121,9 @@
           "Coll_Truss_SnappedStubs"
         ],
         "dimensions": [
-          3.9964,
-          6.2969,
-          4.0905
+          7.1935,
+          11.3344,
+          7.3628
         ],
         "vertices": 64,
         "polygons": 48,
@@ -568577,7 +569342,10 @@
           "Coll_SatTower_Damage",
           "Coll_SatTower_Shack",
           "Coll_SatTower_Interior",
-          "Coll_SatTower_Rig"
+          "Coll_SatTower_Rig",
+          "Coll_SatTower_Shanty_PlinthLeanTo",
+          "Coll_SatTower_Shanty_WaterTank",
+          "Coll_SatTower_Shanty_DeckHut"
         ]
       },
       {
@@ -568711,7 +569479,14 @@
           "SatTower_Int_WorkLights",
           "SatTower_Int_DoorHinge",
           "SatTower_Int_DoorFrame",
-          "SatTower_Int_DoorLeaf"
+          "SatTower_Int_DoorLeaf",
+          "SatTower_Int_Workshop",
+          "SatTower_Int_Storage",
+          "SatTower_Int_Living",
+          "SatTower_Int_Light_Workshop",
+          "SatTower_Int_Light_Storage",
+          "SatTower_Int_Light_Living",
+          "SatTower_Int_Light_Island"
         ],
         "children": []
       },
@@ -568743,8 +569518,47 @@
           "SatTower_Shack_Details",
           "SatTower_Shack_Cable_01",
           "SatTower_Shack_Cable_02",
-          "SatTower_Shack_Rope_01"
+          "SatTower_Shack_Rope_01",
+          "SatTower_Shack_Annex_Frame",
+          "SatTower_Shack_Annex_Sheets",
+          "SatTower_Shack_Annex_Tarp",
+          "SatTower_Shack_Annex_Details"
         ],
+        "children": []
+      },
+      {
+        "name": "Coll_SatTower_Shanty_DeckHut",
+        "objects": [
+          "SatTower_Shanty_DeckHut_Frame",
+          "SatTower_Shanty_DeckHut_Sheets",
+          "SatTower_Shanty_DeckHut_Tarp",
+          "SatTower_Shanty_DeckHut_Details"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_SatTower_Shanty_PlinthLeanTo",
+        "objects": [
+          "SatTower_Shanty_PlinthLeanTo_Frame",
+          "SatTower_Shanty_PlinthLeanTo_Sheets",
+          "SatTower_Shanty_PlinthLeanTo_Tarp",
+          "SatTower_Shanty_PlinthLeanTo_Details"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_SatTower_Shanty_WaterTank",
+        "objects": [
+          "SatTower_Shanty_WaterTank_Frame",
+          "SatTower_Shanty_WaterTank_Sheets",
+          "SatTower_Shanty_WaterTank_Details",
+          "SatTower_Shanty_WaterTank_Tarp"
+        ],
+        "children": []
+      },
+      {
+        "name": "Model_SatelliteTower",
+        "objects": [],
         "children": []
       }
     ],
@@ -568766,9 +569580,9 @@
           "Coll_SatTower_Base"
         ],
         "dimensions": [
-          13.177,
-          13.52,
-          2.7
+          23.7186,
+          23.7478,
+          4.0698
         ],
         "vertices": 232,
         "polygons": 174,
@@ -568795,9 +569609,9 @@
           "Coll_SatTower_Base"
         ],
         "dimensions": [
-          12.4655,
-          12.4655,
-          1.24
+          22.4379,
+          22.4379,
+          1.8
         ],
         "vertices": 112,
         "polygons": 84,
@@ -568823,12 +569637,12 @@
           "Coll_SatTower_Base"
         ],
         "dimensions": [
-          22.2,
-          22.2,
-          7.2
+          39.96,
+          39.96,
+          12.96
         ],
-        "vertices": 1372,
-        "polygons": 1234,
+        "vertices": 1322,
+        "polygons": 1225,
         "materials": [
           "MAT_SatTower_Concrete"
         ],
@@ -568851,9 +569665,9 @@
           "Coll_SatTower_Base"
         ],
         "dimensions": [
-          15.2,
-          15.2,
-          1.9575
+          27.36,
+          27.36,
+          3.5235
         ],
         "vertices": 320,
         "polygons": 226,
@@ -568879,12 +569693,12 @@
           "Coll_SatTower_Base"
         ],
         "dimensions": [
-          21.1526,
-          21.1013,
-          6.14
+          38.1162,
+          38.1193,
+          9.7822
         ],
-        "vertices": 1464,
-        "polygons": 1098,
+        "vertices": 2656,
+        "polygons": 1992,
         "materials": [
           "MAT_SatTower_RailRust"
         ],
@@ -568896,7 +569710,7 @@
         "location": [
           0.0,
           0.0,
-          -0.0569
+          0.0
         ],
         "scale": [
           1.0,
@@ -568907,12 +569721,12 @@
           "Coll_SatTower_Base"
         ],
         "dimensions": [
-          13.7017,
-          14.162,
-          9.2707
+          24.8567,
+          24.015,
+          15.15
         ],
-        "vertices": 472,
-        "polygons": 354,
+        "vertices": 1222,
+        "polygons": 915,
         "materials": [
           "MAT_SatTower_RailRust"
         ],
@@ -568923,8 +569737,8 @@
         "type": "CURVE",
         "location": [
           -0.0,
-          -20.0142,
-          -17.8212
+          -36.0255,
+          -32.0782
         ],
         "scale": [
           1.0,
@@ -568940,8 +569754,8 @@
         "type": "CURVE",
         "location": [
           -0.0,
-          -20.0142,
-          -17.8212
+          -36.0255,
+          -32.0782
         ],
         "scale": [
           1.0,
@@ -568958,7 +569772,7 @@
         "location": [
           -0.0,
           0.0,
-          -16.0
+          -28.8
         ],
         "scale": [
           1.0,
@@ -568975,7 +569789,7 @@
         "location": [
           -0.0,
           0.0,
-          -16.0
+          -28.8
         ],
         "scale": [
           1.0,
@@ -568992,7 +569806,7 @@
         "location": [
           -0.0,
           0.0,
-          -16.0
+          -28.8
         ],
         "scale": [
           1.0,
@@ -569009,7 +569823,7 @@
         "location": [
           -0.0,
           0.0,
-          -16.0
+          -28.8
         ],
         "scale": [
           1.0,
@@ -569025,8 +569839,8 @@
         "type": "CURVE",
         "location": [
           -0.0,
-          -20.0142,
-          -17.8212
+          -36.0255,
+          -32.0782
         ],
         "scale": [
           1.0,
@@ -569054,9 +569868,9 @@
           "Coll_SatTower_Damage"
         ],
         "dimensions": [
-          22.5741,
-          9.101,
-          3.14
+          40.6333,
+          16.3818,
+          5.652
         ],
         "vertices": 80,
         "polygons": 60,
@@ -569070,8 +569884,8 @@
         "type": "MESH",
         "location": [
           -0.0,
-          -20.0142,
-          -17.8212
+          -36.0255,
+          -32.0782
         ],
         "scale": [
           1.0,
@@ -569082,9 +569896,9 @@
           "Coll_SatTower_Damage"
         ],
         "dimensions": [
-          0.55,
-          0.55,
-          0.81
+          0.99,
+          0.99,
+          1.458
         ],
         "vertices": 40,
         "polygons": 28,
@@ -569110,9 +569924,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          9.4,
-          7.0,
-          5.525
+          16.92,
+          12.6,
+          9.945
         ],
         "vertices": 96,
         "polygons": 56,
@@ -569126,9 +569940,9 @@
         "name": "SatTower_Dish_Panel_01",
         "type": "MESH",
         "location": [
-          4.1535,
-          1.1129,
-          2.4252
+          7.4763,
+          2.0033,
+          4.3654
         ],
         "scale": [
           1.0,
@@ -569139,9 +569953,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569156,9 +569970,9 @@
         "name": "SatTower_Dish_Panel_02",
         "type": "MESH",
         "location": [
-          3.0406,
-          3.0406,
-          2.3852
+          5.473,
+          5.473,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569169,9 +569983,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569186,9 +570000,9 @@
         "name": "SatTower_Dish_Panel_04",
         "type": "MESH",
         "location": [
-          -1.1129,
-          4.1535,
-          2.3852
+          -2.0033,
+          7.4763,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569199,9 +570013,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.9454,
-          3.9833,
-          0.7748
+          5.3017,
+          7.1699,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569216,9 +570030,9 @@
         "name": "SatTower_Dish_Panel_05",
         "type": "MESH",
         "location": [
-          -3.0406,
-          3.0406,
-          2.3852
+          -5.473,
+          5.473,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569229,9 +570043,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569246,9 +570060,9 @@
         "name": "SatTower_Dish_Panel_06",
         "type": "MESH",
         "location": [
-          -4.1535,
-          1.1129,
-          2.3852
+          -7.4763,
+          2.0033,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569259,9 +570073,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569276,9 +570090,9 @@
         "name": "SatTower_Dish_Panel_07",
         "type": "MESH",
         "location": [
-          -4.1535,
-          -1.1129,
-          2.3852
+          -7.4763,
+          -2.0033,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569289,9 +570103,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569306,9 +570120,9 @@
         "name": "SatTower_Dish_Panel_08",
         "type": "MESH",
         "location": [
-          -3.0406,
-          -3.0406,
-          2.3852
+          -5.473,
+          -5.473,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569319,9 +570133,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569336,9 +570150,9 @@
         "name": "SatTower_Dish_Panel_09",
         "type": "MESH",
         "location": [
-          -1.1129,
-          -4.1535,
-          2.3852
+          -2.0033,
+          -7.4763,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569349,9 +570163,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.9454,
-          3.9833,
-          0.7748
+          5.3017,
+          7.1699,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569366,9 +570180,9 @@
         "name": "SatTower_Dish_Panel_10",
         "type": "MESH",
         "location": [
-          1.1129,
-          -4.1535,
-          2.3852
+          2.0033,
+          -7.4763,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569379,9 +570193,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.9454,
-          3.9833,
-          0.7748
+          5.3017,
+          7.1699,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569396,9 +570210,9 @@
         "name": "SatTower_Dish_Panel_11",
         "type": "MESH",
         "location": [
-          3.0406,
-          -3.0406,
-          2.3852
+          5.473,
+          -5.473,
+          4.2934
         ],
         "scale": [
           1.0,
@@ -569409,9 +570223,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.0003,
-          4.0003,
-          0.7748
+          7.2005,
+          7.2005,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569426,9 +570240,9 @@
         "name": "SatTower_Dish_Panel_12",
         "type": "MESH",
         "location": [
-          4.1535,
-          -1.1129,
-          2.4252
+          7.4763,
+          -2.0033,
+          4.3654
         ],
         "scale": [
           1.0,
@@ -569439,9 +570253,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.9833,
-          2.9454,
-          0.7748
+          7.1699,
+          5.3017,
+          1.3946
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569456,9 +570270,9 @@
         "name": "SatTower_Dish_Panel_13",
         "type": "MESH",
         "location": [
-          8.3281,
-          1.0964,
-          3.51
+          14.9906,
+          1.9736,
+          6.318
         ],
         "scale": [
           1.0,
@@ -569469,9 +570283,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569486,9 +570300,9 @@
         "name": "SatTower_Dish_Panel_14",
         "type": "MESH",
         "location": [
-          7.7606,
-          3.2145,
-          3.47
+          13.9691,
+          5.7862,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569499,9 +570313,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569516,9 +570330,9 @@
         "name": "SatTower_Dish_Panel_15",
         "type": "MESH",
         "location": [
-          6.6642,
-          5.1136,
-          3.47
+          11.9955,
+          9.2045,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569529,9 +570343,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569546,9 +570360,9 @@
         "name": "SatTower_Dish_Panel_16",
         "type": "MESH",
         "location": [
-          5.1136,
-          6.6642,
-          3.47
+          9.2045,
+          11.9955,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569559,9 +570373,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569576,9 +570390,9 @@
         "name": "SatTower_Dish_Panel_17",
         "type": "MESH",
         "location": [
-          3.2145,
-          7.7606,
-          3.47
+          5.7862,
+          13.9691,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569589,9 +570403,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569606,9 +570420,9 @@
         "name": "SatTower_Dish_Panel_18",
         "type": "MESH",
         "location": [
-          1.0964,
-          8.3281,
-          3.47
+          1.9736,
+          14.9906,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569619,9 +570433,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569636,9 +570450,9 @@
         "name": "SatTower_Dish_Panel_19",
         "type": "MESH",
         "location": [
-          -1.0964,
-          8.3281,
-          3.51
+          -1.9736,
+          14.9906,
+          6.318
         ],
         "scale": [
           1.0,
@@ -569649,9 +570463,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569666,9 +570480,9 @@
         "name": "SatTower_Dish_Panel_20",
         "type": "MESH",
         "location": [
-          -3.2145,
-          7.7606,
-          3.47
+          -5.7862,
+          13.9691,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569679,9 +570493,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569696,9 +570510,9 @@
         "name": "SatTower_Dish_Panel_22",
         "type": "MESH",
         "location": [
-          -6.6642,
-          5.1136,
-          3.47
+          -11.9955,
+          9.2045,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569709,9 +570523,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569726,9 +570540,9 @@
         "name": "SatTower_Dish_Panel_23",
         "type": "MESH",
         "location": [
-          -7.7606,
-          3.2145,
-          3.47
+          -13.9691,
+          5.7862,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569739,9 +570553,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569756,9 +570570,9 @@
         "name": "SatTower_Dish_Panel_24",
         "type": "MESH",
         "location": [
-          -8.3281,
-          1.0964,
-          3.47
+          -14.9906,
+          1.9736,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569769,9 +570583,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569786,9 +570600,9 @@
         "name": "SatTower_Dish_Panel_25",
         "type": "MESH",
         "location": [
-          -8.3281,
-          -1.0964,
-          3.47
+          -14.9906,
+          -1.9736,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569799,9 +570613,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569816,9 +570630,9 @@
         "name": "SatTower_Dish_Panel_26",
         "type": "MESH",
         "location": [
-          -7.7606,
-          -3.2145,
-          3.47
+          -13.9691,
+          -5.7862,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569829,9 +570643,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569846,9 +570660,9 @@
         "name": "SatTower_Dish_Panel_27",
         "type": "MESH",
         "location": [
-          -6.6642,
-          -5.1136,
-          3.47
+          -11.9955,
+          -9.2045,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569859,9 +570673,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569876,9 +570690,9 @@
         "name": "SatTower_Dish_Panel_28",
         "type": "MESH",
         "location": [
-          -5.1136,
-          -6.6642,
-          3.47
+          -9.2045,
+          -11.9955,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569889,9 +570703,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569906,9 +570720,9 @@
         "name": "SatTower_Dish_Panel_29",
         "type": "MESH",
         "location": [
-          -3.2145,
-          -7.7606,
-          3.47
+          -5.7862,
+          -13.9691,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569919,9 +570733,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569936,9 +570750,9 @@
         "name": "SatTower_Dish_Panel_30",
         "type": "MESH",
         "location": [
-          -1.0964,
-          -8.3281,
-          3.47
+          -1.9736,
+          -14.9906,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569949,9 +570763,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569966,9 +570780,9 @@
         "name": "SatTower_Dish_Panel_31",
         "type": "MESH",
         "location": [
-          1.0964,
-          -8.3281,
-          3.47
+          1.9736,
+          -14.9906,
+          6.246
         ],
         "scale": [
           1.0,
@@ -569979,9 +570793,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          2.5973,
-          4.5011,
-          1.6062
+          4.6752,
+          8.102,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -569996,9 +570810,9 @@
         "name": "SatTower_Dish_Panel_32",
         "type": "MESH",
         "location": [
-          3.2145,
-          -7.7606,
-          3.47
+          5.7862,
+          -13.9691,
+          6.246
         ],
         "scale": [
           1.0,
@@ -570009,9 +570823,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.5348,
-          4.7315,
-          1.6062
+          6.3626,
+          8.5167,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -570026,9 +570840,9 @@
         "name": "SatTower_Dish_Panel_33",
         "type": "MESH",
         "location": [
-          5.1663,
-          -6.7329,
-          2.5773
+          9.2994,
+          -12.1192,
+          4.6391
         ],
         "scale": [
           1.0,
@@ -570039,9 +570853,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.2313,
-          4.6395,
-          1.6062
+          7.6164,
+          8.3511,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -570056,9 +570870,9 @@
         "name": "SatTower_Dish_Panel_34",
         "type": "MESH",
         "location": [
-          6.6642,
-          -5.1136,
-          3.47
+          11.9955,
+          -9.2045,
+          6.246
         ],
         "scale": [
           1.0,
@@ -570069,9 +570883,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6395,
-          4.2313,
-          1.6062
+          8.3511,
+          7.6164,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -570086,9 +570900,9 @@
         "name": "SatTower_Dish_Panel_35",
         "type": "MESH",
         "location": [
-          7.7606,
-          -3.2145,
-          3.51
+          13.9691,
+          -5.7862,
+          6.318
         ],
         "scale": [
           1.0,
@@ -570099,9 +570913,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.7315,
-          3.5348,
-          1.6062
+          8.5167,
+          6.3626,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -570116,9 +570930,9 @@
         "name": "SatTower_Dish_Panel_36",
         "type": "MESH",
         "location": [
-          8.3281,
-          -1.0964,
-          3.47
+          14.9906,
+          -1.9736,
+          6.246
         ],
         "scale": [
           1.0,
@@ -570129,9 +570943,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.5011,
-          2.5973,
-          1.6062
+          8.102,
+          4.6752,
+          2.8912
         ],
         "vertices": 16,
         "polygons": 9,
@@ -570146,9 +570960,9 @@
         "name": "SatTower_Dish_Panel_37",
         "type": "MESH",
         "location": [
-          12.6905,
-          1.6707,
-          5.4133
+          22.8429,
+          3.0073,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570159,9 +570973,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570176,9 +570990,9 @@
         "name": "SatTower_Dish_Panel_38",
         "type": "MESH",
         "location": [
-          11.8257,
-          4.8983,
-          5.4133
+          21.2862,
+          8.817,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570189,9 +571003,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570206,9 +571020,9 @@
         "name": "SatTower_Dish_Panel_39",
         "type": "MESH",
         "location": [
-          10.1549,
-          7.7921,
-          5.4133
+          18.2789,
+          14.0259,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570219,9 +571033,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570236,9 +571050,9 @@
         "name": "SatTower_Dish_Panel_40",
         "type": "MESH",
         "location": [
-          7.7921,
-          10.1549,
-          5.4133
+          14.0259,
+          18.2789,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570249,9 +571063,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570266,9 +571080,9 @@
         "name": "SatTower_Dish_Panel_43",
         "type": "MESH",
         "location": [
-          -1.6707,
-          12.6905,
-          5.4133
+          -3.0073,
+          22.8429,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570279,9 +571093,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.7402,
-          4.6667,
-          2.3804
+          6.7323,
+          8.4,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570296,9 +571110,9 @@
         "name": "SatTower_Dish_Panel_44",
         "type": "MESH",
         "location": [
-          -4.8983,
-          11.8257,
-          5.4133
+          -8.817,
+          21.2862,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570309,9 +571123,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570326,9 +571140,9 @@
         "name": "SatTower_Dish_Panel_45",
         "type": "MESH",
         "location": [
-          -7.7921,
-          10.1549,
-          5.4533
+          -14.0259,
+          18.2789,
+          9.816
         ],
         "scale": [
           1.0,
@@ -570339,9 +571153,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570356,9 +571170,9 @@
         "name": "SatTower_Dish_Panel_46",
         "type": "MESH",
         "location": [
-          -10.1549,
-          7.7921,
-          5.4533
+          -18.2789,
+          14.0259,
+          9.816
         ],
         "scale": [
           1.0,
@@ -570369,9 +571183,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570386,9 +571200,9 @@
         "name": "SatTower_Dish_Panel_47",
         "type": "MESH",
         "location": [
-          -11.8257,
-          4.8983,
-          5.4133
+          -21.2862,
+          8.817,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570399,9 +571213,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570416,9 +571230,9 @@
         "name": "SatTower_Dish_Panel_48",
         "type": "MESH",
         "location": [
-          -12.6905,
-          1.6707,
-          5.4133
+          -22.8429,
+          3.0073,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570429,9 +571243,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570446,9 +571260,9 @@
         "name": "SatTower_Dish_Panel_49",
         "type": "MESH",
         "location": [
-          -12.6905,
-          -1.6707,
-          5.4133
+          -22.8429,
+          -3.0073,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570459,9 +571273,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570476,9 +571290,9 @@
         "name": "SatTower_Dish_Panel_51",
         "type": "MESH",
         "location": [
-          -10.1549,
-          -7.7921,
-          5.4133
+          -18.2789,
+          -14.0259,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570489,9 +571303,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570506,9 +571320,9 @@
         "name": "SatTower_Dish_Panel_52",
         "type": "MESH",
         "location": [
-          -7.7921,
-          -10.1549,
-          5.4133
+          -14.0259,
+          -18.2789,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570519,9 +571333,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570536,9 +571350,9 @@
         "name": "SatTower_Dish_Panel_53",
         "type": "MESH",
         "location": [
-          -4.8983,
-          -11.8257,
-          5.4133
+          -8.817,
+          -21.2862,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570549,9 +571363,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570566,9 +571380,9 @@
         "name": "SatTower_Dish_Panel_54",
         "type": "MESH",
         "location": [
-          -1.6707,
-          -12.6905,
-          5.4133
+          -3.0073,
+          -22.8429,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570579,9 +571393,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.7402,
-          4.6667,
-          2.3804
+          6.7323,
+          8.4,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570596,9 +571410,9 @@
         "name": "SatTower_Dish_Panel_55",
         "type": "MESH",
         "location": [
-          2.9483,
-          -12.7366,
-          3.4849
+          5.3069,
+          -22.926,
+          6.2728
         ],
         "scale": [
           1.0,
@@ -570609,9 +571423,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570626,9 +571440,9 @@
         "name": "SatTower_Dish_Panel_56",
         "type": "MESH",
         "location": [
-          4.8983,
-          -11.8257,
-          5.4133
+          8.817,
+          -21.2862,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570639,9 +571453,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6038,
-          5.1862,
-          2.3804
+          8.2868,
+          9.3352,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570656,9 +571470,9 @@
         "name": "SatTower_Dish_Panel_57",
         "type": "MESH",
         "location": [
-          6.9582,
-          -10.4669,
-          3.6312
+          12.5247,
+          -18.8404,
+          6.5362
         ],
         "scale": [
           1.0,
@@ -570669,9 +571483,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1537,
-          5.3523,
-          2.3804
+          9.2766,
+          9.6341,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570686,9 +571500,9 @@
         "name": "SatTower_Dish_Panel_58",
         "type": "MESH",
         "location": [
-          10.1549,
-          -7.7921,
-          5.4133
+          18.2789,
+          -14.0259,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570699,9 +571513,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.3523,
-          5.1537,
-          2.3804
+          9.6341,
+          9.2766,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570716,9 +571530,9 @@
         "name": "SatTower_Dish_Panel_59",
         "type": "MESH",
         "location": [
-          11.8257,
-          -4.8983,
-          5.4133
+          21.2862,
+          -8.817,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570729,9 +571543,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          5.1862,
-          4.6038,
-          2.3804
+          9.3352,
+          8.2868,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570746,9 +571560,9 @@
         "name": "SatTower_Dish_Panel_60",
         "type": "MESH",
         "location": [
-          12.6905,
-          -1.6707,
-          5.4133
+          22.8429,
+          -3.0073,
+          9.744
         ],
         "scale": [
           1.0,
@@ -570759,9 +571573,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570776,9 +571590,9 @@
         "name": "SatTower_Dish_Panel_Fallen",
         "type": "MESH",
         "location": [
-          -12.6,
-          -8.6,
-          0.2511
+          -22.68,
+          -15.48,
+          0.452
         ],
         "scale": [
           1.0,
@@ -570789,9 +571603,9 @@
           "Coll_SatTower_Damage"
         ],
         "dimensions": [
-          4.6667,
-          3.7402,
-          2.3804
+          8.4,
+          6.7323,
+          4.2848
         ],
         "vertices": 20,
         "polygons": 12,
@@ -570819,9 +571633,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          30.3193,
-          30.3193,
-          9.3512
+          54.5748,
+          54.5748,
+          16.8321
         ],
         "vertices": 5888,
         "polygons": 4416,
@@ -570847,9 +571661,9 @@
           "Coll_SatTower_Dish"
         ],
         "dimensions": [
-          3.9964,
-          6.2969,
-          4.0905
+          7.1935,
+          11.3344,
+          7.3628
         ],
         "vertices": 64,
         "polygons": 48,
@@ -570875,9 +571689,9 @@
           "Coll_SatTower_Feed"
         ],
         "dimensions": [
-          3.2585,
-          3.2217,
-          6.7544
+          5.8653,
+          5.7991,
+          12.158
         ],
         "vertices": 116,
         "polygons": 70,
@@ -570904,9 +571718,9 @@
           "Coll_SatTower_Feed"
         ],
         "dimensions": [
-          22.2032,
-          22.2031,
-          9.1317
+          39.9657,
+          39.9657,
+          16.437
         ],
         "vertices": 2912,
         "polygons": 2184,
@@ -570933,12 +571747,12 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          1.4296,
-          2.4036,
-          3.0286
+          1.4323,
+          2.4958,
+          7.15
         ],
-        "vertices": 152,
-        "polygons": 102,
+        "vertices": 168,
+        "polygons": 112,
         "materials": [
           "MAT_SatTower_Int_RustSteel",
           "MAT_SatTower_Int_FloorPlate",
@@ -570963,12 +571777,12 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          4.698,
-          5.4577,
+          5.426,
+          11.0139,
           0.53
         ],
-        "vertices": 144,
-        "polygons": 96,
+        "vertices": 288,
+        "polygons": 192,
         "materials": [
           "MAT_SatTower_Int_Bedroll",
           "MAT_SatTower_Int_ClothOchre",
@@ -570993,9 +571807,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          10.3152,
-          9.5771,
-          1.904
+          18.5674,
+          17.2387,
+          3.4272
         ],
         "vertices": 840,
         "polygons": 816,
@@ -571021,9 +571835,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          11.7922,
-          11.7922,
-          0.63
+          21.226,
+          21.226,
+          1.134
         ],
         "vertices": 576,
         "polygons": 432,
@@ -571050,9 +571864,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          1.8524,
-          1.9,
-          4.605
+          3.3343,
+          3.42,
+          8.289
         ],
         "vertices": 148,
         "polygons": 86,
@@ -571079,9 +571893,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          3.6862,
-          4.6604,
-          3.7933
+          6.6352,
+          8.3887,
+          6.8279
         ],
         "vertices": 282,
         "polygons": 226,
@@ -571109,12 +571923,12 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          1.64,
-          1.7371,
-          4.62
+          1.8,
+          1.79,
+          8.29
         ],
-        "vertices": 144,
-        "polygons": 108,
+        "vertices": 392,
+        "polygons": 294,
         "materials": [
           "MAT_SatTower_Int_RustSteel",
           "MAT_SatTower_Int_Void",
@@ -571139,12 +571953,12 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          11.4998,
-          11.8095,
+          20.8609,
+          21.5479,
           2.15
         ],
-        "vertices": 952,
-        "polygons": 714,
+        "vertices": 1304,
+        "polygons": 978,
         "materials": [
           "MAT_SatTower_Int_ConsoleBeige",
           "MAT_SatTower_Int_PaintTeal",
@@ -571160,9 +571974,9 @@
         "name": "SatTower_Int_Crates",
         "type": "MESH",
         "location": [
-          0.2223,
-          -0.1759,
-          -0.0454
+          0.4001,
+          -0.3167,
+          -0.0817
         ],
         "scale": [
           1.0,
@@ -571173,8 +571987,8 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          6.6488,
-          10.9183,
+          11.3369,
+          20.2185,
           1.92
         ],
         "vertices": 568,
@@ -571219,8 +572033,8 @@
         "type": "EMPTY",
         "location": [
           0.845,
-          -6.4,
-          3.36
+          -11.2,
+          6.032
         ],
         "scale": [
           1.0,
@@ -571278,11 +572092,11 @@
         ],
         "dimensions": [
           2.8,
-          1.91,
-          2.4293
+          3.9269,
+          3.0683
         ],
-        "vertices": 144,
-        "polygons": 104,
+        "vertices": 248,
+        "polygons": 186,
         "materials": [
           "MAT_SatTower_Int_FloorPlate",
           "MAT_SatTower_Int_RustSteel"
@@ -571306,9 +572120,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          7.6041,
-          2.5,
-          1.8431
+          14.851,
+          4.7433,
+          3.1616
         ],
         "vertices": 144,
         "polygons": 108,
@@ -571335,9 +572149,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          4.3804,
-          7.6845,
-          0.2
+          7.8847,
+          13.8322,
+          0.36
         ],
         "vertices": 96,
         "polygons": 72,
@@ -571350,9 +572164,9 @@
         "name": "SatTower_Int_Light_Beds",
         "type": "LIGHT",
         "location": [
-          -3.4773,
-          0.9317,
-          5.65
+          -6.2592,
+          1.6771,
+          10.17
         ],
         "scale": [
           1.0,
@@ -571367,9 +572181,9 @@
         "name": "SatTower_Int_Light_Consoles",
         "type": "LIGHT",
         "location": [
-          2.9726,
-          -2.6765,
-          5.6
+          5.3506,
+          -4.8177,
+          10.08
         ],
         "scale": [
           1.0,
@@ -571384,9 +572198,26 @@
         "name": "SatTower_Int_Light_Entry",
         "type": "LIGHT",
         "location": [
-          0.4,
-          -3.7,
-          5.8
+          0.72,
+          -6.66,
+          10.44
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ]
+      },
+      {
+        "name": "SatTower_Int_Light_Island",
+        "type": "LIGHT",
+        "location": [
+          4.3264,
+          2.3004,
+          7.99
         ],
         "scale": [
           1.0,
@@ -571401,9 +572232,26 @@
         "name": "SatTower_Int_Light_Kitchen",
         "type": "LIGHT",
         "location": [
-          -1.4466,
-          2.966,
-          5.4
+          -2.6039,
+          5.3388,
+          9.72
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ]
+      },
+      {
+        "name": "SatTower_Int_Light_Living",
+        "type": "LIGHT",
+        "location": [
+          -4.0616,
+          2.1596,
+          11.59
         ],
         "scale": [
           1.0,
@@ -571418,9 +572266,9 @@
         "name": "SatTower_Int_Light_Plotter",
         "type": "LIGHT",
         "location": [
-          4.0,
+          7.2,
           0.0,
-          5.55
+          9.99
         ],
         "scale": [
           1.0,
@@ -571435,9 +572283,26 @@
         "name": "SatTower_Int_Light_Screens",
         "type": "LIGHT",
         "location": [
-          3.1449,
-          3.4928,
-          4.45
+          5.6608,
+          6.287,
+          8.01
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ]
+      },
+      {
+        "name": "SatTower_Int_Light_Storage",
+        "type": "LIGHT",
+        "location": [
+          8.4392,
+          -4.0253,
+          11.39
         ],
         "scale": [
           1.0,
@@ -571452,9 +572317,9 @@
         "name": "SatTower_Int_Light_Stove",
         "type": "LIGHT",
         "location": [
-          -1.3111,
-          3.2451,
-          3.45
+          -2.36,
+          5.8413,
+          6.21
         ],
         "scale": [
           1.0,
@@ -571464,6 +572329,64 @@
         "collections": [
           "Coll_SatTower_Interior"
         ]
+      },
+      {
+        "name": "SatTower_Int_Light_Workshop",
+        "type": "LIGHT",
+        "location": [
+          1.5565,
+          9.8275,
+          10.99
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ]
+      },
+      {
+        "name": "SatTower_Int_Living",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ],
+        "dimensions": [
+          6.7412,
+          7.2549,
+          7.15
+        ],
+        "vertices": 264,
+        "polygons": 186,
+        "materials": [
+          "MAT_SatTower_Int_Timber",
+          "MAT_SatTower_Int_RustSteel",
+          "MAT_SatTower_Int_PaintTeal",
+          "MAT_SatTower_Int_ConsoleBeige",
+          "MAT_SatTower_Int_ScreenGreen",
+          "MAT_SatTower_Int_ScreenAmber",
+          "MAT_SatTower_Int_ScreenDead",
+          "MAT_SatTower_Int_ClothRed",
+          "MAT_SatTower_Int_ClothOchre",
+          "MAT_SatTower_Int_Bedroll",
+          "MAT_SatTower_Int_Cable",
+          "MAT_SatTower_Int_Bulb",
+          "MAT_SatTower_Int_Paper",
+          "MAT_SatTower_Int_StoveGlow"
+        ],
+        "modifiers": []
       },
       {
         "name": "SatTower_Int_PlotterLectern",
@@ -571512,9 +572435,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          0.59,
-          3.34,
-          3.94
+          1.062,
+          6.012,
+          7.092
         ],
         "vertices": 912,
         "polygons": 684,
@@ -571545,9 +572468,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          12.2376,
-          12.2376,
-          0.06
+          22.0277,
+          22.0277,
+          0.1079
         ],
         "vertices": 920,
         "polygons": 676,
@@ -571573,9 +572496,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          10.278,
-          4.5562,
-          2.5376
+          18.8488,
+          6.6877,
+          3.9464
         ],
         "vertices": 210,
         "polygons": 124,
@@ -571601,9 +572524,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          2.4339,
-          2.1853,
-          0.6469
+          2.8598,
+          3.6011,
+          0.6843
         ],
         "vertices": 80,
         "polygons": 60,
@@ -571611,6 +572534,47 @@
           "MAT_SatTower_Int_RustSteel",
           "MAT_SatTower_Int_PaintTeal",
           "MAT_SatTower_Int_ConsoleBeige"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Int_Storage",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ],
+        "dimensions": [
+          8.8775,
+          7.5239,
+          7.15
+        ],
+        "vertices": 312,
+        "polygons": 212,
+        "materials": [
+          "MAT_SatTower_Int_Timber",
+          "MAT_SatTower_Int_RustSteel",
+          "MAT_SatTower_Int_PaintTeal",
+          "MAT_SatTower_Int_ConsoleBeige",
+          "MAT_SatTower_Int_ScreenGreen",
+          "MAT_SatTower_Int_ScreenAmber",
+          "MAT_SatTower_Int_ScreenDead",
+          "MAT_SatTower_Int_ClothRed",
+          "MAT_SatTower_Int_ClothOchre",
+          "MAT_SatTower_Int_Bedroll",
+          "MAT_SatTower_Int_Cable",
+          "MAT_SatTower_Int_Bulb",
+          "MAT_SatTower_Int_Paper",
+          "MAT_SatTower_Int_StoveGlow"
         ],
         "modifiers": []
       },
@@ -571631,9 +572595,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          8.9821,
-          5.5065,
-          0.2999
+          16.1678,
+          9.9117,
+          0.5397
         ],
         "vertices": 126,
         "polygons": 98,
@@ -571659,9 +572623,9 @@
           "Coll_SatTower_Interior"
         ],
         "dimensions": [
-          9.1572,
-          8.1885,
-          1.2222
+          16.6689,
+          14.974,
+          1.2226
         ],
         "vertices": 408,
         "polygons": 314,
@@ -571669,6 +572633,47 @@
           "MAT_SatTower_Int_RustSteel",
           "MAT_SatTower_Int_Bulb",
           "MAT_SatTower_Int_Cable"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Int_Workshop",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Interior"
+        ],
+        "dimensions": [
+          5.9679,
+          2.8247,
+          7.15
+        ],
+        "vertices": 408,
+        "polygons": 294,
+        "materials": [
+          "MAT_SatTower_Int_Timber",
+          "MAT_SatTower_Int_RustSteel",
+          "MAT_SatTower_Int_PaintTeal",
+          "MAT_SatTower_Int_ConsoleBeige",
+          "MAT_SatTower_Int_ScreenGreen",
+          "MAT_SatTower_Int_ScreenAmber",
+          "MAT_SatTower_Int_ScreenDead",
+          "MAT_SatTower_Int_ClothRed",
+          "MAT_SatTower_Int_ClothOchre",
+          "MAT_SatTower_Int_Bedroll",
+          "MAT_SatTower_Int_Cable",
+          "MAT_SatTower_Int_Bulb",
+          "MAT_SatTower_Int_Paper",
+          "MAT_SatTower_Int_StoveGlow"
         ],
         "modifiers": []
       },
@@ -571689,9 +572694,9 @@
           "Coll_SatTower_Pedestal"
         ],
         "dimensions": [
-          9.01,
-          9.01,
-          1.4
+          16.218,
+          16.218,
+          2.52
         ],
         "vertices": 544,
         "polygons": 372,
@@ -571717,12 +572722,12 @@
           "Coll_SatTower_Pedestal"
         ],
         "dimensions": [
-          11.2,
-          11.2,
-          8.64
+          21.6,
+          22.4945,
+          14.26
         ],
-        "vertices": 1336,
-        "polygons": 1034,
+        "vertices": 2148,
+        "polygons": 1680,
         "materials": [
           "MAT_SatTower_DarkMetal",
           "MAT_SatTower_RailRust"
@@ -571746,9 +572751,9 @@
           "Coll_SatTower_Pedestal"
         ],
         "dimensions": [
-          9.5425,
-          9.5425,
-          7.8
+          17.1764,
+          17.1764,
+          14.04
         ],
         "vertices": 248,
         "polygons": 176,
@@ -571764,7 +572769,7 @@
         "location": [
           -0.0,
           0.0,
-          -16.0
+          -28.8
         ],
         "scale": [
           1.0,
@@ -571775,9 +572780,9 @@
           "Coll_SatTower_Pedestal"
         ],
         "dimensions": [
-          13.2,
-          7.0,
-          13.4
+          23.76,
+          12.6,
+          24.12
         ],
         "vertices": 544,
         "polygons": 334,
@@ -571793,7 +572798,7 @@
         "location": [
           0.0,
           0.0,
-          16.0
+          28.8
         ],
         "scale": [
           1.0,
@@ -571809,8 +572814,8 @@
         "type": "EMPTY",
         "location": [
           0.0,
-          -14.0,
-          0.5
+          -25.2,
+          0.9
         ],
         "scale": [
           1.0,
@@ -571826,8 +572831,8 @@
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.787,
-          10.787
+          -1.4166,
+          19.4166
         ],
         "scale": [
           1.0,
@@ -571853,6 +572858,132 @@
         ],
         "collections": [
           "Coll_SatelliteTower"
+        ]
+      },
+      {
+        "name": "SatTower_Shack_Annex_Details",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shack"
+        ],
+        "dimensions": [
+          11.7633,
+          12.7016,
+          6.175
+        ],
+        "vertices": 506,
+        "polygons": 362,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shack_Annex_Frame",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shack"
+        ],
+        "dimensions": [
+          11.5888,
+          13.763,
+          12.5181
+        ],
+        "vertices": 768,
+        "polygons": 564,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shack_Annex_Sheets",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shack"
+        ],
+        "dimensions": [
+          12.9353,
+          13.4796,
+          4.5232
+        ],
+        "vertices": 470,
+        "polygons": 200,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shack_Annex_Tarp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shack"
+        ],
+        "dimensions": [
+          2.0183,
+          1.4398,
+          2.035
+        ],
+        "vertices": 12,
+        "polygons": 6,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
         ]
       },
       {
@@ -571893,9 +573024,9 @@
         "name": "SatTower_Shack_Details",
         "type": "MESH",
         "location": [
-          -5.8703,
-          4.1904,
-          7.5
+          -10.5665,
+          7.5428,
+          13.5
         ],
         "scale": [
           1.0,
@@ -571906,9 +573037,9 @@
           "Coll_SatTower_Shack"
         ],
         "dimensions": [
-          5.326,
-          5.0342,
-          6.5102
+          7.7498,
+          7.337,
+          7.8122
         ],
         "vertices": 442,
         "polygons": 421,
@@ -571927,9 +573058,9 @@
         "name": "SatTower_Shack_Frame",
         "type": "MESH",
         "location": [
-          -6.2256,
-          4.3592,
-          7.5
+          -11.206,
+          7.8465,
+          13.5
         ],
         "scale": [
           1.0,
@@ -571940,9 +573071,9 @@
           "Coll_SatTower_Shack"
         ],
         "dimensions": [
-          5.128,
-          5.0,
-          9.3652
+          7.692,
+          7.5,
+          13.9382
         ],
         "vertices": 608,
         "polygons": 436,
@@ -571973,9 +573104,9 @@
         "name": "SatTower_Shack_Sheets",
         "type": "MESH",
         "location": [
-          -6.2256,
-          4.3592,
-          7.5
+          -11.206,
+          7.8465,
+          13.5
         ],
         "scale": [
           1.0,
@@ -571986,9 +573117,9 @@
           "Coll_SatTower_Shack"
         ],
         "dimensions": [
-          5.4122,
-          6.5364,
-          5.2181
+          8.1168,
+          9.8015,
+          6.3948
         ],
         "vertices": 706,
         "polygons": 316,
@@ -572005,9 +573136,9 @@
         "name": "SatTower_Shack_Tarp",
         "type": "MESH",
         "location": [
-          -6.2256,
-          4.3592,
-          7.5
+          -11.206,
+          7.8465,
+          13.5
         ],
         "scale": [
           1.0,
@@ -572018,12 +573149,390 @@
           "Coll_SatTower_Shack"
         ],
         "dimensions": [
-          2.5232,
-          2.5117,
-          3.8879
+          3.7804,
+          3.7639,
+          4.6658
         ],
         "vertices": 87,
         "polygons": 63,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shanty_DeckHut_Details",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          9.1413,
+          18.4037,
+          6.69
+        ],
+        "vertices": 686,
+        "polygons": 484,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shanty_DeckHut_Frame",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          10.059,
+          11.7126,
+          13.0714
+        ],
+        "vertices": 1028,
+        "polygons": 750,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shanty_DeckHut_Sheets",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          8.6311,
+          11.6664,
+          5.0752
+        ],
+        "vertices": 750,
+        "polygons": 322,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shanty_DeckHut_Tarp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_DeckHut"
+        ],
+        "dimensions": [
+          6.8104,
+          9.7547,
+          3.7504
+        ],
+        "vertices": 21,
+        "polygons": 10,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shanty_PlinthLeanTo_Details",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          9.0731,
+          10.3889,
+          6.5997
+        ],
+        "vertices": 588,
+        "polygons": 422,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shanty_PlinthLeanTo_Frame",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          10.8658,
+          12.4055,
+          4.8128
+        ],
+        "vertices": 424,
+        "polygons": 310,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shanty_PlinthLeanTo_Sheets",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          11.1869,
+          12.5141,
+          4.8963
+        ],
+        "vertices": 908,
+        "polygons": 385,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shanty_PlinthLeanTo_Tarp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_PlinthLeanTo"
+        ],
+        "dimensions": [
+          5.7329,
+          4.924,
+          1.8958
+        ],
+        "vertices": 33,
+        "polygons": 19,
+        "materials": [
+          "MAT_SatTower_Tarp"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shanty_WaterTank_Details",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          8.5821,
+          8.9394,
+          13.9475
+        ],
+        "vertices": 1102,
+        "polygons": 778,
+        "materials": [
+          "MAT_SatTower_Stone",
+          "MAT_SatTower_Cable",
+          "MAT_SatTower_DarkMetal",
+          "MAT_SatTower_Lamp",
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_Tarp",
+          "MAT_SatTower_ScrapRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shanty_WaterTank_Frame",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          9.1489,
+          8.5452,
+          12.1167
+        ],
+        "vertices": 1276,
+        "polygons": 934,
+        "materials": [
+          "MAT_SatTower_Timber",
+          "MAT_SatTower_RailRust"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SatTower_Shanty_WaterTank_Sheets",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          8.718,
+          7.2011,
+          12.2295
+        ],
+        "vertices": 886,
+        "polygons": 376,
+        "materials": [
+          "MAT_SatTower_ScrapRust",
+          "MAT_SatTower_SheetRed",
+          "MAT_SatTower_SheetGalv"
+        ],
+        "modifiers": [
+          "Solidify"
+        ]
+      },
+      {
+        "name": "SatTower_Shanty_WaterTank_Tarp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SatTower_Shanty_WaterTank"
+        ],
+        "dimensions": [
+          0.6651,
+          1.1597,
+          2.0501
+        ],
+        "vertices": 9,
+        "polygons": 4,
         "materials": [
           "MAT_SatTower_Tarp"
         ],

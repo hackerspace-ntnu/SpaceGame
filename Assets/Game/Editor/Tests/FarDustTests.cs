@@ -1,6 +1,7 @@
-// The far dust: a huge, sparse cloud that fades in exactly as a vehicle's near dust fades out, billows
-// while the vehicle moves and settles when it parks. Driven by hand; nothing here is networked or saved.
+// The far dust: a huge, sparse cloud that fades in exactly as a vehicle's near dust fades out, driven by
+// camera distance alone, moving or parked. Driven by hand; nothing here is networked or saved.
 using System;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using SpaceGame.Vehicles;
@@ -12,7 +13,6 @@ namespace SpaceGame.EditorTools
     public class FarDustTests
     {
         private const float Near = 80f, Far = 200f, Cull = 1500f;
-        private const float Dt = 1f / 60f;
 
         private sealed class Band : IDustLodBand
         {
@@ -54,29 +54,38 @@ namespace SpaceGame.EditorTools
                                                          new Material(Shader.Find(DustCloudRecipe.Shader)), Color.white,
                                                          cap: 500, shapeOffset: Vector3.zero);
             var dust = cloud.gameObject.AddComponent<FarDust>();
-            dust.Configure(cloud, cruiseSpeed: 2.7f, peakRate: 4f, nearBand: new Band(), cull: Cull);
-            dust.ResetBaseline();
+            dust.Configure(cloud, peakRate: 4f, nearBand: new Band(), cull: Cull);
             return dust;
         }
 
-        private static float Drive(FarDust dust, float speed, float distance, int frames)
+        [Test]
+        public void AtRange_ItThrowsItsFullRate_CloseUpNone_AndHalfwayInTheBandHalf()
         {
-            float rate = 0f;
-            for (int i = 0; i < frames; i++)
-            {
-                dust.transform.position += Vector3.forward * (speed * Dt);
-                rate = dust.Present(Dt, distance);
-            }
-            return rate;
+            FarDust dust = Rig();
+            Assert.AreEqual(4f, dust.Present(300f), 1e-4f, "300 m away");
+            Assert.AreEqual(2f, dust.Present(140f), 1e-4f, "halfway through the band");
+            Assert.AreEqual(0f, dust.Present(50f), "close up the near dust has it");
+            Assert.AreEqual(0f, dust.Present(float.NaN), "no camera");
         }
 
         [Test]
-        public void AMarchingVehicle_BillowsAtRange_AndAParkedOneSettles()
+        public void SwitchedOff_ItStopsThrowing()
         {
             FarDust dust = Rig();
-            Assert.Greater(Drive(dust, 2.7f, 300f, 120), 3.6f, "marching at the city's pace, 300 m away");
-            Assert.Less(Drive(dust, 0f, 300f, 120), 0.1f, "parked");
-            Assert.AreEqual(0f, Drive(dust, 2.7f, 50f, 60), "close up the near dust has it");
+            dust.Present(300f);
+            // Edit mode calls no OnDisable on a plain MonoBehaviour; in play, disabling it does.
+            typeof(FarDust).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(dust, null);
+            Assert.AreEqual(0f, dust.Cloud.emission.rateOverTime.constant,
+                            "a hidden silhouette's far dust kept throwing where the live city now stands");
+        }
+
+        [Test]
+        public void AParkedVehicle_AtRange_ThrowsItsFullFarDust()
+        {
+            // A new world parks the city for its first ten minutes; far dust that waited for motion
+            // left the merged level bare exactly then (user decision 2026-10-06).
+            FarDust dust = Rig();
+            Assert.AreEqual(dust.Rate, dust.Present(700f), 1e-4f, "parked, 700 m away");
         }
 
         [Test]
@@ -91,15 +100,14 @@ namespace SpaceGame.EditorTools
             contact.transform.SetParent(subject.transform, false);
             RollingDust rolling = VehicleDustWiring.AddRollingDust(subject, new[] { contact.transform }, 4f, 3f);
 
-            FarDust far = VehicleDustWiring.AddFarDust(subject, nearPeakRate: 6f, cruiseSpeed: 2.7f);
+            FarDust far = VehicleDustWiring.AddFarDust(subject, nearPeakRate: 6f);
 
             Assert.AreEqual(VehicleDustWiring.FarCloudName, far.name);
             Assert.AreSame(subject.transform, far.transform.parent);
             Assert.AreSame(far.GetComponent<ParticleSystem>(), far.Cloud);
             Assert.AreEqual(rolling.LodNear, far.FadeNear);
             Assert.AreEqual(rolling.LodFar, far.FadeFar);
-            Assert.AreEqual(6f * VehicleDustWiring.FarDustRateFraction, far.RateAtFullSpeed, 1e-5f);
-            Assert.AreEqual(2.7f, far.FullSpeed, 1e-5f);
+            Assert.AreEqual(6f * VehicleDustWiring.FarDustRateFraction, far.Rate, 1e-5f);
             Assert.AreEqual(VehicleDustWiring.FarDustCullDistance, far.CullDistance);
 
             ParticleSystem.MainModule main = far.Cloud.main;
@@ -107,7 +115,7 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(DustCloudRecipe.MaxSize * VehicleDustWiring.FarDustSizeMultiplier, main.startSize.constantMax, 1e-4f);
             Assert.AreEqual(DustCloudRecipe.MinLife * VehicleDustWiring.FarDustLifeMultiplier, main.startLifetime.constantMin, 1e-4f);
             Assert.AreEqual(DustCloudRecipe.MaxLife * VehicleDustWiring.FarDustLifeMultiplier, main.startLifetime.constantMax, 1e-4f);
-            Assert.AreEqual(Mathf.CeilToInt(far.RateAtFullSpeed * DustCloudRecipe.MaxLife * VehicleDustWiring.FarDustLifeMultiplier),
+            Assert.AreEqual(Mathf.CeilToInt(far.Rate * DustCloudRecipe.MaxLife * VehicleDustWiring.FarDustLifeMultiplier),
                             main.maxParticles);
             Assert.AreEqual(ParticleSystemSimulationSpace.World, main.simulationSpace);
             ParticleSystem.ShapeModule shape = far.Cloud.shape;
@@ -135,7 +143,7 @@ namespace SpaceGame.EditorTools
             var contact = new GameObject("Contact");
             contact.transform.SetParent(subject.transform, false);
             VehicleDustWiring.AddRollingDust(subject, new[] { contact.transform }, 4f, 3f);
-            FarDust far = VehicleDustWiring.AddFarDust(subject, nearPeakRate: 6f, cruiseSpeed: 2.7f);
+            FarDust far = VehicleDustWiring.AddFarDust(subject, nearPeakRate: 6f);
 
             far.Cloud.Emit(1);
             far.Cloud.Simulate(6f, true, false, false);
@@ -149,7 +157,7 @@ namespace SpaceGame.EditorTools
         public void AddFarDust_RefusesAMachineWithNoNearDust()
         {
             subject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Assert.Throws<InvalidOperationException>(() => VehicleDustWiring.AddFarDust(subject, 6f, 2.7f));
+            Assert.Throws<InvalidOperationException>(() => VehicleDustWiring.AddFarDust(subject, 6f));
         }
     }
 }

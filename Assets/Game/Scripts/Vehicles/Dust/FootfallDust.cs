@@ -9,6 +9,7 @@
 //
 // Overdraw is paid per covered pixel, so the cloud's cap is fixed at build time from the machine's
 // fastest footfall rate, and the burst thins out with camera distance (GDC-L1-TECH-0002).
+using SpaceGame.Core;
 using SpaceGame.Locomotion;
 using SpaceGame.Vehicles.Monowheel;
 using UnityEngine;
@@ -75,8 +76,7 @@ namespace SpaceGame.Vehicles
 
         private void LateUpdate()
         {
-            Camera cam = Camera.main;
-            Present(cam == null ? float.NaN : Vector3.Distance(cam.transform.position, transform.position));
+            Present(ViewCamera.DistanceTo(transform.position));
         }
 
         /// <summary>

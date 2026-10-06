@@ -11,6 +11,7 @@
 // the void. Not hidden by distance: the server spawns a second or more after a player crosses spawnRadius
 // (its sim tick and player refresh), and hiding at the crossing left only dust standing there meanwhile. When the group spawns the renderers go and the dust stays to
 // settle: the live city arrives inside the cloud, in the same slots, drawing its own merged level.
+using SpaceGame.Core;
 using System.Collections.Generic;
 using SpaceGame.Vehicles;
 using SpaceGame.World;
@@ -112,7 +113,7 @@ namespace SpaceGame.Agents
             NpcWorldSim sim = NpcWorldSim.Instance;
             if (sim == null) return;
 
-            Camera cam = Camera.main;
+            Camera cam = ViewCamera.Current;
             Terrain[] terrains = Terrain.activeTerrains;
             published.Clear();
             for (int i = 0; i < source.Count; i++)
@@ -120,12 +121,12 @@ namespace SpaceGame.Agents
                 DistantGroupState state = source[i];
                 published.Add(state.GroupHash);
                 View view = ViewFor(state, sim);
-                bool snapped = Follow(view, state, Time.deltaTime);
+                Follow(view, state, Time.deltaTime);
                 float distance = cam == null
                     ? float.NaN
                     : Vector2.Distance(new Vector2(cam.transform.position.x, cam.transform.position.z),
                                        new Vector2(view.ShownPosition.x, view.ShownPosition.z));
-                Pose(view, terrains, ShouldShow(state.Spawned, distance), snapped);
+                Pose(view, terrains, ShouldShow(state.Spawned, distance));
             }
 
             gone.Clear();
@@ -198,27 +199,27 @@ namespace SpaceGame.Agents
             return view;
         }
 
-        /// <summary>Glides the shown pose toward the published one; snaps on the first pose and on a jump. True when it snapped.</summary>
-        private bool Follow(View view, DistantGroupState state, float dt)
+        /// <summary>Glides the shown pose toward the published one; snaps on the first pose and on a jump.</summary>
+        private void Follow(View view, DistantGroupState state, float dt)
         {
             if (!view.Posed || Vector3.Distance(view.ShownPosition, state.Position) > snapDistance)
             {
                 view.ShownPosition = state.Position;
                 view.ShownYaw = state.Yaw;
                 view.Posed = true;
-                return true;
+                return;
             }
 
             view.ShownPosition = FollowPosition(view.ShownPosition, state.Position, dt, positionLag);
             view.ShownYaw = FollowYaw(view.ShownYaw, state.Yaw, dt, positionLag);
-            return false;
         }
 
         /// <summary>
-        /// Stands every vehicle on the ground under its slot. A hidden one keeps its last place, so its far
-        /// dust reads no motion and the cloud it left settles where the city was drawn.
+        /// Stands every vehicle on the ground under its slot. A hidden one keeps its last place with its far
+        /// dust switched off, so the cloud it left settles where the city was drawn instead of doubling the
+        /// live city's.
         /// </summary>
-        private static void Pose(View view, Terrain[] terrains, bool show, bool snapped)
+        private static void Pose(View view, Terrain[] terrains, bool show)
         {
             Quaternion facing = Quaternion.Euler(0f, view.ShownYaw, 0f);
             foreach (Vehicle vehicle in view.Vehicles)
@@ -227,10 +228,10 @@ namespace SpaceGame.Agents
                 float ground = GroundUnder(terrains, at);
                 bool drawn = show && !float.IsNaN(ground);
                 vehicle.Renderer.enabled = drawn;
+                if (vehicle.Dust != null) vehicle.Dust.enabled = drawn;
                 if (!drawn) continue;
 
                 vehicle.Body.SetPositionAndRotation(new Vector3(at.x, ground - vehicle.Sole, at.z), facing);
-                if (snapped && vehicle.Dust != null) vehicle.Dust.ResetBaseline();
             }
         }
     }

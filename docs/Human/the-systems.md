@@ -88,6 +88,12 @@ A hand-built camp — tents, scaffold walkways, bell towers, a fire ring, a dril
 
 **Worth knowing:** an outpost has no beds, so exactly the characters you list move in, and they sleep where they stand; and rebuilding the prefabs from the Blender layout wipes any hand edits made to them.
 
+### The broken satellite tower *(SatelliteDish)*
+
+A rusted radar station you place by hand: a concrete base with a control room behind a steel door, stairs up to a deck and a shack, a caged ladder to the catwalk round the dish's pedestal, and a 30-metre dish with a panel torn out of it that a grappling hook can catch on. In the control room a lectern takes over the dish: right-click it and the view cuts to a camera looking at the dish, and the movement keys swing it round and tilt it up and down on a slow, heavy motor while a readout shows where it points.
+
+**Worth knowing:** everyone sees the same dish — the server turns it, one person at a time may drive it, and where it was left pointing is saved with the world. It will not tilt below 15 degrees, because lower than that its hanging beams would hit the shack roof.
+
 ### Where characters can walk *(NavMeshSystem)*
 
 One single walkable-surface map is baked for the entire world at author time and simply switched on when the game starts — nothing is calculated at runtime. All 48 tiles are opened at once to bake it, which means editing any one tile invalidates the whole thing and there is no per-tile shortcut. Caves are excluded and carry their own separate bake.

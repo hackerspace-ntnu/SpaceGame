@@ -31,7 +31,7 @@ namespace SpaceGame.EditorTools
         /// <summary>And live this many times as long (12-18 s), so a slow march leaves a standing wall.</summary>
         public const float FarDustLifeMultiplier = 1.5f;
         /// <summary>At this fraction of the machine's near dust's peak rate.</summary>
-        public const float FarDustRateFraction = 0.2f;
+        public const float FarDustRateFraction = 0.12f;
         /// <summary>No far dust past the Strider vehicles' cull (SettlementLodSettings.strider.cullBeyondMetres; SettlementLodPrefabTests pins the two).</summary>
         public const float FarDustCullDistance = 1500f;
         /// <summary>Far puffs are born from the hull's lowest point up to this fraction of its height, so the cloud stands up the legs rather than lying on the sand.</summary>
@@ -40,8 +40,8 @@ namespace SpaceGame.EditorTools
         public const float FarDustFootprintSpread = 2f;
         /// <summary>The birth box leads the hull by this fraction of its length, so a marching vehicle walks into its puffs as they swell: seen head-on, a trail alone lies behind its legs.</summary>
         public const float FarDustLead = 0.5f;
-        /// <summary>A far puff's alpha at birth (the recipe's is 0.6): few puffs, so each must veil.</summary>
-        public const float FarDustOpacity = 1f;
+        /// <summary>A far puff's alpha at birth: veils the legs but leaves the hull readable (1 hid the settlement, 2026-10-06).</summary>
+        public const float FarDustOpacity = 0.6f;
         /// <summary>Once drag has spent its throw a far puff climbs at this speed (m/s), so the trail behind a marching vehicle stands up into a wall.</summary>
         public const float FarDustRiseSpeed = 0.8f;
 
@@ -101,10 +101,10 @@ namespace SpaceGame.EditorTools
         /// Far dust for the machine at <paramref name="root"/>: one huge, sparse cloud on its own child
         /// (<see cref="FarCloudName"/>), born round and ahead of the lower part of the hull, thrown up and
         /// climbing, fading in over the band its near dust fades out. <paramref name="nearPeakRate"/> is that near
-        /// dust's peak (puffs/s); <paramref name="cruiseSpeed"/> the speed at which the far dust is full.
+        /// dust's peak (puffs/s).
         /// Call after the near dust and after anything that measures renderer bounds.
         /// </summary>
-        public static FarDust AddFarDust(GameObject root, float nearPeakRate, float cruiseSpeed)
+        public static FarDust AddFarDust(GameObject root, float nearPeakRate)
         {
             var band = root.GetComponentInChildren<IDustLodBand>(true);
             if (band == null)
@@ -130,7 +130,7 @@ namespace SpaceGame.EditorTools
             shape.position = new Vector3(0f, hull.size.z * FarDustLead, birthHeight * 0.5f);
 
             var dust = cloud.gameObject.AddComponent<FarDust>();
-            dust.Configure(cloud, cruiseSpeed, rate, band, FarDustCullDistance);
+            dust.Configure(cloud, rate, band, FarDustCullDistance);
             return dust;
         }
 

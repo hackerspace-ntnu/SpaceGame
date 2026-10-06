@@ -28,7 +28,9 @@ model has no UVs at all, so nothing about its look survives an FBX on its own. T
      `_exportlib` writes with `path_mode='COPY'`, which would copy the PNGs a second time beside the FBX.
 """
 import os
+import struct
 import sys
+import zlib
 
 import bmesh
 import bpy
@@ -43,7 +45,17 @@ SRC = os.path.join(HERE, "satellite_tower.blend")
 DST = _exportlib.unity_path("Environment", "Structures", "SatelliteTower", "satellite_tower.fbx")
 TEXTURES = os.path.join(_exportlib.REPO_ROOT, "Assets", "Game", "Art", "Textures", "Environment", "SatelliteTower")
 
-ATLAS_SIZE = 2048
+# Atlas edge in pixels, per atlas: 4096 where 2048 would fall under ~40 px/m on the 1.8x tower.
+ATLAS_SIZE = {
+    "BaseConcrete": 4096,
+    "BaseMetal": 2048,
+    "Pedestal": 4096,
+    "DishPanels": 4096,
+    "DishFrame": 4096,
+    "Shack": 2048,
+    "Shanties": 2048,
+    "Interior": 4096,
+}
 BAKE_SAMPLES = 4
 BAKE_MARGIN_PX = 8
 BAKE_TILE_PX = 1024
@@ -63,6 +75,7 @@ ATLASES = [
     ("SatTower_Cable_", "DishFrame"),
     ("SatTower_Damage_HangStraps", "DishFrame"),
     ("SatTower_Shack_", "Shack"),
+    ("SatTower_Shanty_", "Shanties"),
     ("SatTower_Int_", "Interior"),
 ]
 
@@ -268,10 +281,15 @@ def set_uvs(objs, uvs):
         o.data.update()
 
 
-def bake_tiled(mats, objs, name, colour, bake):
-    """One atlas-sized pixel array, baked tile by tile through `bake()`."""
-    tiles = ATLAS_SIZE // BAKE_TILE_PX
-    whole = np.zeros((ATLAS_SIZE, ATLAS_SIZE, 4), dtype=np.float32)
+def bake_tiled(mats, objs, name, colour, size, bake):
+    """One atlas-sized RGBA8 array, baked tile by tile through `bake()`.
+
+    Bytes, not floats: a 4096 float atlas is 268 MB per map, and this runs beside Unity with little
+    commit to spare. The tile is a byte image, so its pixels are already the encoded values a PNG
+    stores; nothing is lost by quantising them here.
+    """
+    tiles = size // BAKE_TILE_PX
+    whole = np.zeros((size, size, 4), dtype=np.uint8)
     original = uvs_of(objs)
     tile = new_image(name + "_tile", BAKE_TILE_PX, colour)
     target(mats, tile)
@@ -286,14 +304,14 @@ def bake_tiled(mats, objs, name, colour, bake):
                 set_uvs(objs, shifted)
                 bake()
                 y0, x0 = ty * BAKE_TILE_PX, tx * BAKE_TILE_PX
-                whole[y0:y0 + BAKE_TILE_PX, x0:x0 + BAKE_TILE_PX] = pixels(tile, BAKE_TILE_PX)
+                whole[y0:y0 + BAKE_TILE_PX, x0:x0 + BAKE_TILE_PX] = to_bytes(pixels(tile, BAKE_TILE_PX))
     finally:
         set_uvs(objs, original)
         bpy.data.images.remove(tile)
     return whole
 
 
-def bake_input(mats, objs, input_name, name, colour):
+def bake_input(mats, objs, input_name, name, colour, size):
     """Bake one Principled input as emission: the input's own source, never lit, never darkened by metallic."""
     rewired = []
     for mat in mats:
@@ -313,7 +331,7 @@ def bake_input(mats, objs, input_name, name, colour):
         tree.links.new(emit.outputs["Emission"], surface)
         rewired.append((tree, emit, surface, previous))
     try:
-        return bake_tiled(mats, objs, name, colour,
+        return bake_tiled(mats, objs, name, colour, size,
                           lambda: bpy.ops.object.bake(type="EMIT", margin=BAKE_MARGIN_PX, use_clear=True))
     finally:
         for tree, emit, surface, previous in rewired:
@@ -322,20 +340,40 @@ def bake_input(mats, objs, input_name, name, colour):
                 tree.links.new(previous, surface)
 
 
-def bake_normal(mats, objs, name):
-    return bake_tiled(mats, objs, name, False,
+def bake_normal(mats, objs, name, size):
+    return bake_tiled(mats, objs, name, False, size,
                       lambda: bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT",
                                                   margin=BAKE_MARGIN_PX, use_clear=True))
 
 
-def save(name, data, colour):
+PNG_SIGNATURE = bytes((0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A))
+
+
+def to_bytes(rgba):
+    return (np.clip(rgba, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
+
+
+def save(name, data):
+    """Write an RGBA8 array (bottom row first, as Blender stores pixels) as a PNG, with the stdlib.
+
+    Written directly rather than through a Blender image, which would hold a float copy of the
+    whole atlas in memory a second time.
+    """
     path = os.path.join(TEXTURES, name + ".png")
-    img = new_image(name, ATLAS_SIZE, colour)
-    img.pixels.foreach_set(data.ravel())
-    img.filepath_raw = path
-    img.file_format = "PNG"
-    img.save()
-    bpy.data.images.remove(img)
+    height, width = data.shape[:2]
+    rows = np.empty((height, 1 + width * 4), dtype=np.uint8)
+    rows[:, 0] = 0                                    # filter type: none
+    rows[:, 1:] = data[::-1].reshape(height, width * 4)
+
+    def chunk(kind, body):
+        return (struct.pack(">I", len(body)) + kind + body
+                + struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF))
+
+    with open(path, "wb") as f:
+        f.write(PNG_SIGNATURE)
+        f.write(chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)))
+        f.write(chunk(b"IDAT", zlib.compress(rows.tobytes(), 6)))
+        f.write(chunk(b"IEND", b""))
     print("  wrote %s" % os.path.relpath(path, _exportlib.REPO_ROOT))
 
 
@@ -343,21 +381,21 @@ def bake_atlas(atlas, objs):
     mats = sorted({s.material for o in objs for s in o.material_slots if s.material is not None},
                   key=lambda m: m.name)
     area = world_area(objs)
-    print("  atlas %s: %d object(s), %d material(s), %.0f m2, %.0f px/m"
-          % (atlas, len(objs), len(mats), area, ATLAS_SIZE / np.sqrt(max(area, 1e-6))))
+    size = ATLAS_SIZE[atlas]
+    print("  atlas %s: %d object(s), %d material(s), %.0f m2, %d px, %.0f px/m"
+          % (atlas, len(objs), len(mats), area, size, size / np.sqrt(max(area, 1e-6))))
     unwrap(objs)
 
     prefix = "SatTower_%s_" % atlas
-    save(prefix + "BaseColor", bake_input(mats, objs, "Base Color", prefix + "BaseColor", True), True)
+    save(prefix + "BaseColor", bake_input(mats, objs, "Base Color", prefix + "BaseColor", True, size))
 
-    metal = bake_input(mats, objs, "Metallic", prefix + "Metallic", False)[..., 0]
-    rough = bake_input(mats, objs, "Roughness", prefix + "Roughness", False)[..., 0]
-    packed = np.empty((ATLAS_SIZE, ATLAS_SIZE, 4), dtype=np.float32)
-    packed[..., 0] = packed[..., 1] = packed[..., 2] = metal
-    packed[..., 3] = 1.0 - rough
-    save(prefix + "MetallicSmoothness", packed, False)
+    packed = bake_input(mats, objs, "Metallic", prefix + "Metallic", False, size)
+    packed[..., 1] = packed[..., 2] = packed[..., 0]
+    packed[..., 3] = 255 - bake_input(mats, objs, "Roughness", prefix + "Roughness", False, size)[..., 0]
+    save(prefix + "MetallicSmoothness", packed)
+    del packed
 
-    save(prefix + "Normal", bake_normal(mats, objs, prefix + "Normal"), False)
+    save(prefix + "Normal", bake_normal(mats, objs, prefix + "Normal", size))
 
 
 # ── 6: one material per atlas ─────────────────────────────────────────────────────────────────────

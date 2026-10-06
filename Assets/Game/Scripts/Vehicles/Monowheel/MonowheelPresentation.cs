@@ -1,4 +1,5 @@
 // Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentation.cs
+using SpaceGame.Core;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -98,12 +99,12 @@ namespace SpaceGame.Vehicles.Monowheel
 
         private void Update() => Present(Time.deltaTime);
 
-        /// <summary>One frame of presentation, LOD'd against the main camera.</summary>
-        public void Present(float dt) => Present(dt, CameraDistance(transform.position));
+        /// <summary>One frame of presentation, LOD'd against the camera drawing this machine's view.</summary>
+        public void Present(float dt) => Present(dt, ViewCamera.DistanceTo(transform.position));
 
         /// <summary>
         /// One frame at a given camera distance (<c>float.NaN</c> = no camera, full effect). The
-        /// builder's self-check passes NaN: in the editor, Camera.main may be a scene camera far
+        /// builder's self-check passes NaN: in the editor, the view camera may be a game camera far
         /// away, and the LOD would silence the very effects the check is looking for.
         /// </summary>
         public void Present(float dt, float cameraDistance)
@@ -132,11 +133,6 @@ namespace SpaceGame.Vehicles.Monowheel
             }
         }
 
-        private float CameraDistance(Vector3 position)
-        {
-            Camera cam = Camera.main;
-            return cam == null ? float.NaN : Vector3.Distance(cam.transform.position, position);
-        }
 
         private bool Touching(Vector3 contact)
         {

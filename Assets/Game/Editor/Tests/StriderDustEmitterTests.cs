@@ -1,6 +1,8 @@
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.Crawler;
 
@@ -117,6 +119,39 @@ namespace SpaceGame.EditorTools
             (int footfalls, int puffs) = Walk(legs, dust, 10000f, 240);
             Assert.Greater(footfalls, 0);
             Assert.AreEqual(0, puffs);
+        }
+
+        [Test]
+        public void WhileRiding_TheDustThinsForTheCameraDrawingTheFrame_NotForCameraMain()
+        {
+            // Riding draws through an Untagged orbit camera with the player's own switched off, so
+            // Camera.main is null; measured from it, the dust read "no camera" and never thinned.
+            (DesertCrawlerLocomotion legs, FootfallDust dust) = Walker(puffs: 4);
+            var orbit = new GameObject("OrbitCamera") { tag = "Untagged" };
+            orbit.transform.SetParent(subject.transform, false);
+            orbit.transform.position = subject.transform.position + new Vector3(0f, 0f, -10000f);
+            // Drawn to the screen, as the orbit camera is: URP's UI-overlay blit then logs a size
+            // mismatch in edit mode (see ViewCameraTests), which is the harness, not the dust.
+            LogAssert.ignoreFailingMessages = true;
+            orbit.AddComponent<Camera>().Render();
+            Camera main = Camera.main;
+            Assume.That(main == null || Vector3.Distance(main.transform.position, subject.transform.position) < dust.LodFar,
+                        "the open scene's MainCamera is already far from the walker, so this cannot tell the two apart");
+
+            MethodInfo lateUpdate = typeof(FootfallDust).GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic);
+            int footfalls = 0;
+            for (int i = 0; i < 240; i++)
+            {
+                legs.SetTwist(legs.MaxSpeed * 0.5f, 0f);
+                legs.Step(Dt);
+                Physics.SyncTransforms();
+                footfalls += legs.Footfalls.Count;
+                lateUpdate.Invoke(dust, null);
+            }
+            int puffs = dust.Cloud.particleCount;
+
+            Assert.Greater(footfalls, 0);
+            Assert.AreEqual(0, puffs, "a walker 10 km from the camera drawing the frame still threw dust");
         }
 
         [Test]

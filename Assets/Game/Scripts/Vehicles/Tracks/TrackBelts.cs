@@ -10,6 +10,7 @@
 // a link is moved by the rigid step from its own slot to the slot it has travelled to, so grousers,
 // pads and chevrons keep their order as they circulate. Nothing is written beyond `animateDistance`
 // from the camera (GDC-L1-TECH-0002). Built by TrackBeltWiring.
+using SpaceGame.Core;
 using System;
 using SpaceGame.Vehicles.Monowheel;
 using UnityEngine;
@@ -100,8 +101,7 @@ namespace SpaceGame.Vehicles
 
         private void LateUpdate()
         {
-            Camera cam = Camera.main;
-            Present(Time.deltaTime, cam == null ? float.NaN : Vector3.Distance(cam.transform.position, transform.position));
+            Present(Time.deltaTime, ViewCamera.DistanceTo(transform.position));
         }
 
         /// <summary>One frame at a given camera distance (NaN = no camera: animate).</summary>

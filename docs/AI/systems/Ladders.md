@@ -22,7 +22,7 @@ symptoms:
   - "[Ladder] found no NavMesh within 1 m of its foot or exit"
   - "the project has no 'Ladder' NavMesh area"
 reads_with: [PlayerCharacter, ArtPipeline, Wingsuit, NavMeshSystem, AgentSystem]
-updated: 2026-10-02
+updated: 2026-10-05
 ---
 
 # Ladders
@@ -38,6 +38,7 @@ on the player does the player's climbing; `NavMeshAgentMotor` (its `.Links.cs` p
 **Where ladders come from:**
 - the Sky City's seven `LAD_SkyCity_##` markers
 - the [dune barge](DuneBarge.md)'s five `LAD_*` markers
+- the satellite tower prefab's `Ladders/CatwalkLadder`: roof deck (13.5 m) to the pedestal catwalk (26.1 m), caged, climbed from outside, exit inward on the catwalk; its control-room column ladder is scenery, ending at a closed plate ([SatelliteDish.md](SatelliteDish.md))
 - the three `Decorations/Watchtowers/Deco_Watchtower_{Wood,MetalLattice,MetalScaffold}` prefabs carry one each: foot on the ground, `Top` 6 m up, `Exit` 0.9 m inside the deck edge through the rail gap (checked 2026-10-02 against their colliders: the exit is on the deck, the foot clear of the brace colliders)
 
 The Sky City and barge builders call [`ModelMarkerImport.GatherLadders`](Assets/Game/Editor/Support/ModelMarkerImport.cs), which adds a `Ladder` to each marker, wired to its `_Top` and `_Exit` children (see [ArtPipeline.md](ArtPipeline.md) and `sky_city_BUILD.md`).

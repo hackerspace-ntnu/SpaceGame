@@ -228,5 +228,12 @@ namespace SpaceGame.EditorTools
                 })
                 .AssertSurvivesRoundTrip();
         }
+
+        /// <summary>The satellite dish comes back pointing where a player slewed it, not at its authored rest.</summary>
+        [Test]
+        public void SatelliteTower_KeepsWhereTheDishWasPointed() =>
+            PersistenceProbe.For("Assets/Game/Prefabs/Environment/Structures/SatelliteTower/SatelliteTower.prefab")
+                .Mutate(go => go.GetComponent<DishRig>().RestoreAngles(212f, 71f))
+                .AssertSurvivesRoundTrip();
     }
 }

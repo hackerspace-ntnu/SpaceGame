@@ -2,8 +2,8 @@
 //
 // The model comes out of Blender via
 // Assets/Game/Art/Models/_Source~/models/vehicles/sky_city_export.py. Everything
-// below that -- import settings, the collider set, the ladder markers, the cull
-// LODGroup, static flags and the prefab -- is generated here rather than
+// below that -- import settings, the collider set, the ladder markers, the
+// generated LODs (SettlementLodBaker), static flags and the prefab -- is generated here rather than
 // hand-authored, because a prefab wired by hand is a prefab nobody can rebuild
 // after the model changes.
 //
@@ -85,10 +85,6 @@ namespace SpaceGame.EditorTools
 
         /// <summary>Uniform scale on the prefab root. See SCALE above for its upper bound.</summary>
         public const float Scale = 1.5f;
-
-        // One cull level, as on the buildings -- there are no decimated meshes
-        // to hang a real chain off. See StaticPropBuilder.BuildLodGroup.
-        private const float LodCullRatio = 0.02f;
 
         // -------------------------------------------------------------------
         // Per-renderer rules. Ordered: the FIRST prefix match wins. Every
@@ -177,11 +173,12 @@ namespace SpaceGame.EditorTools
                 StaticPropBuilder.FitCounts rules = StaticPropBuilder.ApplyFits(root, Rules);
 
                 Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
-                StaticPropBuilder.BuildLodGroup(root, renderers, LodCullRatio);
                 root.transform.localScale = Vector3.one * Scale;
 
                 StaticPropBuilder.EnsureFolder(
                     System.IO.Path.GetDirectoryName(PrefabPath).Replace('\\', '/'));
+                // After the root's scale: the transition heights are worked out from the size it is drawn at.
+                SettlementLodBaker.Bake(root, PrefabPath, SettlementLodSettings.Load().sky);
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
 
                 int tris = renderers

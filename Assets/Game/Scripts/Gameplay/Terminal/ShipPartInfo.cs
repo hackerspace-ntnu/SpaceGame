@@ -32,6 +32,7 @@ namespace SpaceGame.Gameplay
             ShipPartKind.AirIntake => "NOSE INTAKE",
             ShipPartKind.LongTurbine => "FLANK TURBINE",
             ShipPartKind.Gun => "DECK GUN",
+            ShipPartKind.Transmitter => "TRANSMITTER",
             _ => kind.ToString().ToUpperInvariant(),
         };
 
@@ -58,6 +59,9 @@ namespace SpaceGame.Gameplay
             ShipPartKind.Gun =>
                 "Starboard mount. Not needed to fly, and badly missed when something follows you "
                 + "home.",
+            ShipPartKind.Transmitter =>
+                "Long-range comms, plugged in at the cockpit. Without it nothing aboard reaches "
+                + "past the horizon.",
             _ => "No entry. Add this kind to ShipPartInfo.",
         };
 

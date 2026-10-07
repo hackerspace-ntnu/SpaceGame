@@ -13,6 +13,11 @@
 // itself (the same ramps, the same facing) and moves the body by it with MovePosition/MoveRotation on
 // the physics clock. Gravity, damping and angular velocity mean nothing to such a body and are left
 // alone.
+//
+// Attitude is opt-in: a craft that should bank into its turns and pitch along its climb (the NPC
+// ornithopter) sets `bankPerTurnRate`/`pitchAlongPath`; with both off — every Sky fleet hull — the
+// rotation is the old upright yaw slerp, unchanged. A craft with attitude on that steers nowhere in a
+// tick levels its bank and pitch out at faceRotateSpeed, keeping its yaw.
 using UnityEngine;
 using SpaceGame.World;
 
@@ -37,6 +42,25 @@ namespace SpaceGame.Agents
         [SerializeField] private float faceRotateSpeed = 2.5f;
         [Tooltip("Tank-steer yaw rate in degrees/sec while rider is driving.")]
         [SerializeField] private float riderTurnSpeed = 45f;
+
+        [Header("Attitude (opt-in; a blimp leaves these at zero)")]
+        [Tooltip("Degrees of bank per degree/second of turn, on a dynamic body. 0 keeps the craft upright.")]
+        [SerializeField, Min(0f)] private float bankPerTurnRate;
+
+        [Tooltip("Steepest bank, degrees.")]
+        [SerializeField, Range(0f, 80f)] private float maxBank;
+
+        [Tooltip("Point the nose along the climb or descent, on a dynamic body.")]
+        [SerializeField] private bool pitchAlongPath;
+
+        [Tooltip("Steepest nose up or down when pitching along the path, degrees.")]
+        [SerializeField, Range(0f, 80f)] private float maxPitch = 45f;
+
+        // Below this horizontal speed there is no path to pitch along.
+        private const float MinPitchSpeed = 1f;
+
+        // Set when FaceDirection wrote this tick's attitude; a tick that steers nowhere levels out instead.
+        private bool attitudeSteered;
 
         [Header("Hull")]
         [Tooltip("Fly a kinematic body by moving it: the motor keeps its own velocity and applies it " +
@@ -227,6 +251,7 @@ namespace SpaceGame.Agents
             riderYawValid = false;
             riderVelocityValid = false;
             hasPendingRiderInput = false;
+            attitudeSteered = false;
 
             switch (intent.Type)
             {
@@ -244,6 +269,9 @@ namespace SpaceGame.Agents
                     IdleHover(deltaTime);
                     break;
             }
+
+            if (AttitudeEnabled && !kinematicHull && !attitudeSteered)
+                LevelOut(deltaTime);
         }
 
         // Rider input is latched on the render loop and consumed on the physics loop below.
@@ -472,7 +500,49 @@ namespace SpaceGame.Agents
             }
 
             // MoveRotation rather than transform.rotation for the interpolation reason in ApplyRiderInput.
-            body.MoveRotation(Quaternion.Slerp(body.rotation, target, rotateSpeed * deltaTime));
+            body.MoveRotation(AttitudeEnabled
+                ? Attitude(target, rotateSpeed, deltaTime)
+                : Quaternion.Slerp(body.rotation, target, rotateSpeed * deltaTime));
+            attitudeSteered = true;
+        }
+
+        private bool AttitudeEnabled => bankPerTurnRate > 0f || pitchAlongPath;
+
+        /// <summary>
+        /// The same yaw slerp toward <paramref name="targetYaw"/>, plus a bank into the turn that slerp
+        /// makes and a pitch along the climb. Yaw is slerped on its own so the roll and pitch written last
+        /// step are not slerped back out.
+        /// </summary>
+        private Quaternion Attitude(Quaternion targetYaw, float rotateSpeed, float deltaTime)
+        {
+            float yaw = body.rotation.eulerAngles.y;
+            float newYaw = Quaternion.Slerp(Quaternion.Euler(0f, yaw, 0f), targetYaw, rotateSpeed * deltaTime).eulerAngles.y;
+            float turnRate = deltaTime > 0f ? Mathf.DeltaAngle(yaw, newYaw) / deltaTime : 0f;
+            float bank = Mathf.Clamp(turnRate * bankPerTurnRate, -maxBank, maxBank);
+
+            float pitch = 0f;
+            Vector3 v = LinearVelocity;
+            float horizontal = new Vector2(v.x, v.z).magnitude;
+            if (pitchAlongPath && horizontal >= MinPitchSpeed)
+                pitch = Mathf.Clamp(Mathf.Atan2(v.y, horizontal) * Mathf.Rad2Deg, -maxPitch, maxPitch);
+
+            // Unity's signs (OrnithopterFlightMotor.ApplyPose documents them): -X raises the nose, -Z
+            // drops the right wing — a right turn banks right.
+            return Quaternion.Euler(-pitch, newYaw, -bank);
+        }
+
+        /// <summary>
+        /// No steering this tick (holding station, idle, or a target straight above or below): ease the
+        /// bank and pitch out at the facing rate and keep the yaw, rather than freezing the last attitude —
+        /// a craft would otherwise hover or touch down nose-down or banked.
+        /// </summary>
+        private void LevelOut(float deltaTime)
+        {
+            // Per Euler axis, the same decomposition Attitude writes: slerping the whole quaternion toward
+            // upright would drag the yaw along with it.
+            Vector3 euler = body.rotation.eulerAngles;
+            float t = faceRotateSpeed * deltaTime;
+            body.MoveRotation(Quaternion.Euler(Mathf.LerpAngle(euler.x, 0f, t), euler.y, Mathf.LerpAngle(euler.z, 0f, t)));
         }
 
         private void OnValidate()
@@ -484,6 +554,7 @@ namespace SpaceGame.Agents
             faceRotateSpeed = Mathf.Max(0.01f, faceRotateSpeed);
             riderTurnSpeed = Mathf.Max(1f, riderTurnSpeed);
             altitudeHoldGain = Mathf.Max(0f, altitudeHoldGain);
+            maxBank = Mathf.Max(0f, maxBank);
         }
     }
 }

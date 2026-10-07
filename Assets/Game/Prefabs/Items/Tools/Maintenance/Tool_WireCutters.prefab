@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 8588876953367457829}
   - component: {fileID: 7573791548938999784}
   - component: {fileID: 4937505587984964353}
+  - component: {fileID: 4083523572199087692}
   m_Layer: 0
   m_Name: Tool_WireCutters
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &4083523572199087692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7350007267286265691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &7936212482734287285
 PrefabInstance:
   m_ObjectHideFlags: 0

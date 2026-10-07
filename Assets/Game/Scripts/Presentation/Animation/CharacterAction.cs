@@ -68,7 +68,10 @@ namespace SpaceGame.Presentation
             Contact,
 
             /// <summary>The frame a thrown thing leaves the hand.</summary>
-            Release
+            Release,
+
+            /// <summary>The frame the hands take hold of an edge — a ledge climb's pull-up ends here.</summary>
+            Grab
         }
 
         [Serializable]

@@ -22,6 +22,10 @@ namespace SpaceGame.Agents
         [SerializeField] private MonoBehaviour MotorComponent;
         [SerializeField] private AgentAnimatorDriver animatorDriver;
 
+        [Tooltip("Off for a body that never picks a target of its own — the NPC craft, whose pilot does the " +
+                 "fighting. No AgentTargeting is added, so its modules see no target and it needs no EntityFaction.")]
+        [SerializeField] private bool acquiresTargets = true;
+
 
         [Header("Speed Variation")]
         [Tooltip("How much the agent's speed can drift above and below its base. 0.1 = ±10%.")]
@@ -84,8 +88,27 @@ namespace SpaceGame.Agents
         /// <see cref="NpcPassenger"/> re-derives it the moment it seats anybody. See the note on
         /// <c>simulating</c> above for the same argument.
         /// </para>
+        /// <para>
+        /// While it is set, seating owns the motor: <see cref="Dormant"/> and <see cref="Offstage"/>
+        /// still starve the modules but leave the motor alone (NpcSeating recorded what it switched
+        /// off, and a resume under a moving hull would put the agent off the mesh). Clearing it hands
+        /// the motor back in the state the park reasons now ask for (SimulationDistance.md).
+        /// </para>
         /// </summary>
-        public bool RidesAsPassenger { get; set; }
+        public bool RidesAsPassenger
+        {
+            get => ridesAsPassenger;
+            set
+            {
+                if (ridesAsPassenger == value)
+                    return;
+
+                ridesAsPassenger = value;
+                if (!ridesAsPassenger) ReconcileMotorWithPark();
+            }
+        }
+
+        private bool ridesAsPassenger;
 
         /// <summary>
         /// Present but not acting: indoors, asleep, a cutscene extra. No module ticks — the same
@@ -108,18 +131,63 @@ namespace SpaceGame.Agents
                 if (offstage == value)
                     return;
 
+                bool wasParked = IsParked;
                 offstage = value;
-
-                // A watcher's motor is already parked; authority returning resumes it unless offstage.
-                if (!simulating)
-                    return;
-
-                if (offstage) ParkMotor();
-                else UnparkMotor();
+                RefreshPark(wasParked);
             }
         }
 
         private bool offstage;
+
+        /// <summary>
+        /// Parked because no player is near: the second reason beside <see cref="Offstage"/>, written
+        /// only by <c>SimulationRange</c> (SimulationDistance.md). Same starvation, same parked
+        /// motor; kept apart from Offstage so the residents' routine and the range can never release
+        /// each other's park. Server-side, not saved, not replicated — the range re-derives it every tick.
+        /// </summary>
+        public bool Dormant
+        {
+            get => dormant;
+            set
+            {
+                if (dormant == value)
+                    return;
+
+                bool wasParked = IsParked;
+                dormant = value;
+                RefreshPark(wasParked);
+            }
+        }
+
+        private bool dormant;
+
+        /// <summary>Not acting for any reason: <see cref="Offstage"/> or <see cref="Dormant"/>.</summary>
+        public bool IsParked => offstage || dormant;
+
+        // What the motor was last told, so a passenger set down can be handed the motor the park
+        // reasons now ask for: they may have changed while seating held it.
+        private bool motorParked;
+
+        // The motor parks on the first reason and unparks only when the last one clears. A watcher's
+        // motor is already parked; authority returning resumes it unless still parked. A passenger's
+        // motor belongs to its seating until it is put down.
+        private void RefreshPark(bool wasParked)
+        {
+            if (IsParked == wasParked || !simulating || ridesAsPassenger)
+                return;
+
+            if (IsParked) ParkMotor();
+            else UnparkMotor();
+        }
+
+        private void ReconcileMotorWithPark()
+        {
+            if (!simulating || IsParked == motorParked)
+                return;
+
+            if (IsParked) ParkMotor();
+            else UnparkMotor();
+        }
 
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
@@ -189,9 +257,9 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            // Not in the scene's action at all. The motor was parked when the flag went up, so
+            // Not in the scene's action at all (offstage or dormant). The motor was parked when the flag went up, so
             // there is nothing to tick but the animator, which settles to idle.
-            if (offstage)
+            if (IsParked)
             {
                 if (animatorDriver)
                     animatorDriver.Tick(Vector3.zero, true, false);
@@ -291,15 +359,15 @@ namespace SpaceGame.Agents
             return simulating;
         }
 
-        // Handing the body over to whoever does own it. An offstage body's motor is parked already.
+        // Handing the body over to whoever does own it. An offstage or dormant body's motor is parked already.
         private void SuspendSimulation()
         {
-            if (!offstage) ParkMotor();
+            if (!IsParked) ParkMotor();
         }
 
         private void ResumeSimulation()
         {
-            if (!offstage) UnparkMotor();
+            if (!IsParked) UnparkMotor();
         }
 
         // Stopping the motor is not the same as ceasing to tick it: a NavMeshAgent keeps walking
@@ -312,6 +380,8 @@ namespace SpaceGame.Agents
         // stays enabled there.
         private void ParkMotor()
         {
+            motorParked = true;
+
             if (MotorComponent is Behaviour { isActiveAndEnabled: true })
                 Motor?.ForceStop();
 
@@ -321,6 +391,8 @@ namespace SpaceGame.Agents
 
         private void UnparkMotor()
         {
+            motorParked = false;
+
             if (Motor is ISelfDrivingMotor selfDriving)
                 selfDriving.ResumeSelfDrive();
         }
@@ -609,7 +681,7 @@ namespace SpaceGame.Agents
             presentationModules = presentation.ToArray();
             // Auto-added rather than required, so prefabs that predate the component still get one
             // shared target decision instead of every combat module resolving its own.
-            targeting = AgentTargeting.GetOrAdd(gameObject);
+            targeting = acquiresTargets ? AgentTargeting.GetOrAdd(gameObject) : null;
 
             // Same reasoning for travel: one destination per agent, written by whoever decides and
             // read by whoever moves. Auto-added so a prefab needs no extra step to be sendable.

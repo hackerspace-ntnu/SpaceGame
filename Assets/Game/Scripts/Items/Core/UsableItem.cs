@@ -85,6 +85,27 @@ namespace SpaceGame.Items
             owner != null ? owner.GetComponent<AimProvider>() : null;
 
         /// <summary>
+        /// Where the holder is pointing, whoever the holder is: a player's AimProvider, else an NPC's
+        /// INpcAim (EntityBodyEquipment aims its gauntlets), else this item's own forward — the old
+        /// fallback, which for a worn gauntlet is the line of a dangling forearm.
+        /// </summary>
+        protected Ray HolderAimRay()
+        {
+            if (aimProvider != null) return aimProvider.GetAimRay();
+
+            if (owner != null && owner.TryGetComponent(out INpcAim npc) && npc.HasAimPoint)
+            {
+                Vector3 toAim = npc.AimPoint - transform.position;
+                if (toAim.sqrMagnitude > MinAimDistanceSqr) return new Ray(transform.position, toAim.normalized);
+            }
+
+            return new Ray(transform.position, transform.forward);
+        }
+
+        /// <summary>An aim point closer than this (squared; a centimetre) names no direction.</summary>
+        public const float MinAimDistanceSqr = 1e-4f;
+
+        /// <summary>
         /// What the owner reported about this use — chiefly where they were aiming.
         ///
         /// A remote machine cannot recompute that: it has neither the owner's camera nor their

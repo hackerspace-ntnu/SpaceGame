@@ -56,6 +56,12 @@ namespace SpaceGame.Agents
                  "animals — only a tribe fields caravans and war parties from a roster.")]
         public FactionRoster roster;
 
+        [Tooltip("This faction's towns move: the Striders' walking city, the Sky Tribe's flying city " +
+                 "and its caravans. Anything that sends the player to a fixed place (the lander's " +
+                 "intercepted signal, ShipSignal) skips a wandering faction's settlements, because a " +
+                 "town that has walked off is not there when they arrive.")]
+        public bool wandering;
+
         /// <summary>
         /// Self-registration, so the save system can look a faction up by the id it stored. Runs when
         /// the asset is loaded, which is whenever anything referencing it is.

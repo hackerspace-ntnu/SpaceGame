@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 5815550325992651934}
   - component: {fileID: 2659313132257731815}
   - component: {fileID: 3846898572565488096}
+  - component: {fileID: 3718256989960919910}
   m_Layer: 0
   m_Name: Tool_RockHammer
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &3718256989960919910
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8215732918603408820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &2740691687454871539
 PrefabInstance:
   m_ObjectHideFlags: 0

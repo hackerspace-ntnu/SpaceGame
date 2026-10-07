@@ -3,6 +3,7 @@
 // A hold pose is baked data, so it can only put the hands where one rig's proportions put them: the old Push pose raised a
 // Raxy's hands above its head, and a cart held there floats. Reaching for the real handle puts the hand on it whatever the
 // rig's size, which is why a pusher reaches instead of posing.
+using SpaceGame.Items;
 using UnityEngine;
 
 namespace SpaceGame.Presentation
@@ -57,7 +58,26 @@ namespace SpaceGame.Presentation
             this.palm = palm;
         }
 
+        /// <summary>
+        /// One humanoid arm of <paramref name="animator"/>, its fist closing at the grip frame (found the same way for every
+        /// rig). Null when the rig lacks the bones.
+        /// </summary>
+        public static ReachingArm Of(Animator animator, bool right)
+        {
+            if (animator == null || !animator.isHuman) return null;
+
+            Transform shoulder = animator.GetBoneTransform(right ? HumanBodyBones.RightUpperArm : HumanBodyBones.LeftUpperArm);
+            Transform elbow = animator.GetBoneTransform(right ? HumanBodyBones.RightLowerArm : HumanBodyBones.LeftLowerArm);
+            Transform wrist = animator.GetBoneTransform(right ? HumanBodyBones.RightHand : HumanBodyBones.LeftHand);
+            if (shoulder == null || elbow == null || wrist == null) return null;
+
+            return new ReachingArm(shoulder, elbow, wrist, HandGripFrame.Derive(animator, wrist, right).LocalPosition);
+        }
+
         public Vector3 Shoulder => upper.position;
+
+        /// <summary>Where the fist closes right now, in world space: the animation's hand until <see cref="Reach"/> moves it.</summary>
+        public Vector3 Palm => hand.TransformPoint(palm);
 
         /// <summary>Straight-line length of the arm as the rig is posed now: shoulder to elbow plus elbow to hand.</summary>
         public float Length => Vector3.Distance(upper.position, lower.position) + Vector3.Distance(lower.position, hand.position);

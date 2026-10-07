@@ -51,6 +51,12 @@
     {"take": "Wiping Sweat", "name": "Wipe Sweat", "start": 0.0, "end": 2.63, "loop": false},
     {"take": "Working On Device", "name": "Kneel Work Enter", "start": 0.0, "end": 1.7, "loop": false},
     {"take": "Working On Device", "name": "Kneel Work Loop", "start": 1.4, "end": 5.3, "loop": true},
-    {"take": "Working On Device", "name": "Kneel Work Exit", "start": 5.4, "end": 6.43, "loop": false}
+    {"take": "Working On Device", "name": "Kneel Work Exit", "start": 5.4, "end": 6.43, "loop": false},
+    {"take": "Ledge Climb Low", "name": "Ledge Climb Low", "start": 1.633, "end": 3.067, "loop": false, "travelsVertically": true},
+    {"take": "Ledge Climb Mid", "name": "Ledge Climb Mid", "start": 1.633, "end": 3.233, "loop": false, "travelsVertically": true},
+    {"take": "Ledge Climb High", "name": "Ledge Climb High", "start": 0.0, "end": 1.134, "loop": false, "travelsVertically": true},
+    {"take": "Ledge Climb Running", "name": "Ledge Climb Running", "start": 0.0, "end": 1.8, "loop": false, "travelsVertically": true},
+    {"take": "Lifting Object", "name": "Heave Load Up", "start": 0.55, "end": 3.4, "loop": false},
+    {"take": "Lifting Object", "name": "Set Load Down", "start": 6.8, "end": 10.0, "loop": false}
   ]
 }

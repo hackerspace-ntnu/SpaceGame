@@ -63,6 +63,10 @@ namespace SpaceGame.Characters
         {
             if (IsCrawling || waypoints == null || waypoints.Length == 0 || !Network.Owns(this)) return false;
 
+            // Refused while a ladder or a ledge has the body, as the ladder refuses a hold: two owners
+            // of SetClimbing each banking useGravity hand back a weightless player.
+            if (movement.IsClimbing) return false;
+
             path = waypoints;
             next = 0;
             startedAt = Time.time;

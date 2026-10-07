@@ -25,6 +25,9 @@ namespace SpaceGame.Agents
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
 
+        // Goodwill exactly on AtWar's exit is still AtWar, so a war-ending credit must carry it past.
+        private const float MinPeaceMargin = 0.1f;
+
         [SerializeField] private WarPartySettings settings = WarPartySettings.Default;
 
         [Tooltip("Seconds between decisions. Independent of the world sim's tick: a party the sim marks " +
@@ -65,6 +68,9 @@ namespace SpaceGame.Agents
         private float timer;
 
         public WarBook Book => book;
+
+        // A scene saved before peaceMargin existed may read it as 0, which lands exactly on AtWar's exit.
+        private float PeaceMargin => Mathf.Max(MinPeaceMargin, settings.peaceMargin);
 
         private float Staging => WarPartyRules.StagingDistance(sim.SpawnRadius, settings.stagingMargin);
 
@@ -374,12 +380,17 @@ namespace SpaceGame.Agents
             sim.ReleaseGroup(war.PartyGroupId);
 
             int maxTier = war.Tribe.roster != null ? war.Tribe.roster.MaxTier : 0;
+            bool endsWar = WarPartyRules.EndsWar(outcome, war.Tier, maxTier);
             book.Resolve(war, outcome, maxTier, settings.partyCooldown);
 
             // After the book: a credit that ends the war closes it through BandChanged, which must find
-            // the party already settled.
+            // the party already settled. Beating the last tier always ends it, by lifting goodwill out of
+            // AtWar rather than closing the book here — a war closed under an AtWar band is reopened by
+            // Reconcile on the next step.
             FactionGoodwillLedger ledger = FactionGoodwillLedger.Instance;
-            if (ledger != null) ledger.Credit(war.Tribe, war.ProfileId, WarPartyRules.CreditFor(outcome, settings));
+            float credit = WarPartyRules.CreditFor(outcome, settings);
+            if (ledger != null && endsWar) ledger.CreditOutOfWar(war.Tribe, war.ProfileId, credit, PeaceMargin);
+            else if (ledger != null) ledger.Credit(war.Tribe, war.ProfileId, credit);
 
             if (outcome == Reckoning.Defeated && book.Find(war.Tribe, war.ProfileId) == war)
                 Notify(war, WarNotice.Weakening);
@@ -457,6 +468,7 @@ namespace SpaceGame.Agents
             settings.fallbackExtra = Mathf.Max(0f, settings.fallbackExtra);
             settings.caughtCredit = Mathf.Max(0f, settings.caughtCredit);
             settings.defeatedCredit = Mathf.Max(0f, settings.defeatedCredit);
+            settings.peaceMargin = Mathf.Max(MinPeaceMargin, settings.peaceMargin);
             settings.maxPursuitDistance = Mathf.Max(settings.campSearchRadius, settings.maxPursuitDistance);
             settings.trailInterval = Mathf.Max(1f, settings.trailInterval);
             settings.trailFuzz = Mathf.Max(0f, settings.trailFuzz);

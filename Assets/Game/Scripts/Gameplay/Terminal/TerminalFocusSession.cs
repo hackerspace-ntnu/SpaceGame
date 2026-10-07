@@ -9,7 +9,7 @@ namespace SpaceGame.Gameplay
 {
     /// <summary>
     /// The zoom-in: a camera flown from the player's eye to a seat in front of the glass, the
-    /// cursor freed so the tabs can be clicked, the keys 1-3 flipping pages, and any of the usual
+    /// cursor freed so the tabs can be clicked, the keys 1-4 flipping pages, and any of the usual
     /// ways out — Esc, right mouse again, reaching for WASD — handing everything back.
     ///
     /// <para>
@@ -179,7 +179,7 @@ namespace SpaceGame.Gameplay
             return false;
         }
 
-        /// <summary>1, 2, 3 on either row of the keyboard, as a page index; -1 for none.</summary>
+        /// <summary>1-4 on either row of the keyboard, as a page index; -1 for none.</summary>
         private static int PageKey()
         {
             Keyboard keys = Keyboard.current;
@@ -188,6 +188,7 @@ namespace SpaceGame.Gameplay
             if (keys.digit1Key.wasPressedThisFrame || keys.numpad1Key.wasPressedThisFrame) return 0;
             if (keys.digit2Key.wasPressedThisFrame || keys.numpad2Key.wasPressedThisFrame) return 1;
             if (keys.digit3Key.wasPressedThisFrame || keys.numpad3Key.wasPressedThisFrame) return 2;
+            if (keys.digit4Key.wasPressedThisFrame || keys.numpad4Key.wasPressedThisFrame) return 3;
             return -1;
         }
     }

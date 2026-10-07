@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 8912207953952163134}
   - component: {fileID: 244719727709743514}
   - component: {fileID: 8641885656509090772}
+  - component: {fileID: -4026899520277598387}
   m_Layer: 0
   m_Name: Tool_HandDrill
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-4026899520277598387
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9184137582699711877}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &2306642093849935217
 PrefabInstance:
   m_ObjectHideFlags: 0

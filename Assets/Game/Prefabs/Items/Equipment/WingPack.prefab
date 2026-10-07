@@ -64,6 +64,9 @@ MonoBehaviour:
   localEuler: {x: 0, y: 0, z: 0}
   size: 2.64
   inspectSize: 5.51
+  foldedLocalPosition: {x: 0, y: 0.4, z: -0.65}
+  foldedLocalEuler: {x: -90, y: 0, z: 0}
+  foldedSize: 2.64
   anchorToBone: 0
   holdsArmsOut: 0
 --- !u!114 &3609440273465784372
@@ -133,7 +136,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
-  item: {fileID: 0}
+  item: {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
   pickupId: 503
   pickupSound:
     Guid:

@@ -40,8 +40,8 @@ namespace SpaceGame.EditorTools
         public void SetUp()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CraftPath);
-            Assert.IsNotNull(prefab, $"Ornithopter prefab missing at {CraftPath} — run " +
-                                     "Tools ▸ Vehicles ▸ Build Dune Ornithopter Prefab.");
+            Assert.IsNotNull(prefab, $"Ornithopter prefab missing at {CraftPath} — it is hand-owned, " +
+                                     "with no builder: restore it from git (Ornithopter.md Gotchas).");
 
             craft = Object.Instantiate(prefab);
             animator = craft.GetComponent<OrnithopterWingAnimator>();

@@ -9,6 +9,7 @@
 //
 // Overdraw is paid per covered pixel, so the cloud's cap is fixed at build time from the machine's
 // fastest footfall rate, and the burst thins out with camera distance (GDC-L1-TECH-0002).
+using SpaceGame.Core;
 using SpaceGame.Locomotion;
 using SpaceGame.Vehicles.Monowheel;
 using UnityEngine;
@@ -17,7 +18,7 @@ namespace SpaceGame.Vehicles
 {
     // After LeggedLocomotion (100), so the footfalls read are this frame's.
     [DefaultExecutionOrder(150)]
-    public sealed class FootfallDust : MonoBehaviour
+    public sealed class FootfallDust : MonoBehaviour, IDustLodBand
     {
         [Tooltip("The legs whose landings throw dust.")]
         [SerializeField] private LeggedLocomotion locomotion;
@@ -54,6 +55,8 @@ namespace SpaceGame.Vehicles
         public LeggedLocomotion Locomotion => locomotion;
         public int PuffsPerFootfall => puffsPerFootfall;
         public float SizePerFootRadius => sizePerFootRadius;
+        public float LodNear => lodNear;
+        public float LodFar => lodFar;
 
         /// <summary>Builder only: the legs to watch, the cloud to fill and how many puffs a footfall throws.</summary>
         public void Configure(LeggedLocomotion legs, ParticleSystem puffs, int puffsPerLanding)
@@ -73,8 +76,7 @@ namespace SpaceGame.Vehicles
 
         private void LateUpdate()
         {
-            Camera cam = Camera.main;
-            Present(cam == null ? float.NaN : Vector3.Distance(cam.transform.position, transform.position));
+            Present(ViewCamera.DistanceTo(transform.position));
         }
 
         /// <summary>

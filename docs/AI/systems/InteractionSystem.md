@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation, Pushables]
-updated: 2026-10-03
+updated: 2026-10-05
 ---
 
 # Interaction
@@ -73,10 +73,10 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 
 | Interactable | File | Right-clicking it |
 | --- | --- | --- |
-| `DoorInteraction` | [Interactions/DoorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DoorInteraction.cs) | Toggles a `NetLatch`; two leaves swing ±90° from their authored **local** pose. `IsOpen` is read by `SandstormShelter`. |
+| `DoorInteraction` | [Interactions/DoorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DoorInteraction.cs) | Toggles a `NetLatch`; two leaves swing ±`swingDegrees` (default 90) about the **local** `swingAxis` (default up) from their authored pose; a single-leaf door leaves `_rightDoor` empty. A leaf hung off an FBX empty needs `swingAxis` set to whichever local axis is vertical (the satellite tower's is measured, [SatelliteDish.md](SatelliteDish.md)). `IsOpen` is read by `SandstormShelter`. |
 | `LeverInteraction` | [Interactions/LeverInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/LeverInteraction.cs) | Swings the handle, fires `onPulled` on **every** machine once per pull. `oneShot` ⇒ one-way latch; `replayOnJoin` decides whether joiners/loads re-run the event. |
 | `OxygenGeneratorDock` | [Interactions/OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs) | Fits or takes back a power cell / an oxygen bottle at one of the ship plant's two receptacles. Owns nothing: `OxygenGenerator` decides, over one `NetworkVariable`. Its collider is a **trigger standing proud of the machine's own body box** — the one arrangement that lets a receptacle inside a solid fixture be aimed at. See [Oxygen.md](Oxygen.md). |
-| `TerminalConsole` | [Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | Opens the standing terminal's zoom-in on the presser's machine and claims the keyboard on the server (`NetworkVariable` operator, `IContextualInteractable` refuses everyone else while it is held). Its pages replicate the same way; the camera does not. On the `StandingTerminal` prefab nested in the lander's cockpit at scale 1. See [Terminal.md](Terminal.md). |
+| `TerminalConsole` | [Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | Opens the standing terminal's zoom-in on the presser's machine and claims the keyboard on the server (`NetworkVariable` operator, `IContextualInteractable` refuses everyone else while it is held). Its pages replicate the same way; the camera does not. On the `StandingTerminal` prefab nested in the lander's cockpit at scale 1. See [Terminal.md](Terminal.md). The one-operator claim is [`ClaimableConsole`](Assets/Game/Scripts/Gameplay/Interaction/Core/ClaimableConsole.cs), shared with `DishConsole`, the satellite dish's lectern ([SatelliteDish.md](SatelliteDish.md)). |
 | `DialogInteraction` | [Interactions/DialogInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogInteraction.cs) | Speaks the next line (sequence / random pool / [`DialogPool`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogPool.cs) / branching Y-N). Contextual: silent while `AgentTargeting`/`ProvocationModule` says it is fighting **you**. Purely local, no netcode. |
 | `HoloProjectorInteraction` | [Interactions/HoloProjectorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/HoloProjectorInteraction.cs) | Powers a fixed `MapHologramTerrain` (its `projectorAnchor` mode) on/off via a `NetLatch`. On the `HoloProjector` prefab ([Environment/Structures](Assets/Game/Prefabs/Environment/Structures)), rebuilt by `Tools > SpaceGame > Build Holo Projector Prefab`. Ships nested on `PlayerShip.prefab` (placed by `PlayerShipBuilder.BuildHoloProjector`), where the ship's NetworkObject makes the switch replicate. As a plain chunk prop the latch is local-per-machine — coherent, since the hologram's content (fog of war) is per-viewer anyway. |
 | `AirlockHatch` | [World/Colony/AirlockHatch.cs](Assets/Game/Scripts/World/Colony/AirlockHatch.cs) | Toggles its hatch through the `AirlockChamber` that bound it: server-decided, interlocked, cycles the chamber's air before opening the far side. A refusal ("Close the outer hatch first") is a visor message on the presser's machine, so `CanInteract` stays true and the readout's prompt names what the press will do. See [ColonyInterior.md](ColonyInterior.md). |
@@ -139,7 +139,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | Projector powered | [`ProjectorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ProjectorSaveable.cs) → `RestorePowered` | `projector` |
 | Trader stock + decline cooldown (remaining seconds, not a deadline) | [`TraderSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TraderSaveable.cs) → `RestoreOffers` | `trader` |
 
-All five are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
+All five, and the satellite dish's `DishRigSaveable` (`dishRig`), are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
 
 ## Gotchas
 

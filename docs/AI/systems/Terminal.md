@@ -1,7 +1,7 @@
 ---
 system: Terminal
 layer: items
-summary: "The lander's standing CRT console: right-click zooms onto its glass; three replicated pages"
+summary: "The lander's CRT console: right-click zooms onto its glass; four pages, deaf until the transmitter works"
 paths:
   - Assets/Game/Scripts/Gameplay/Terminal
   - Assets/Game/Scripts/Presentation/UI/World/Terminal
@@ -17,20 +17,24 @@ symptoms:
   - "the key strip on the terminal renders pink"
   - "the terminal stands on the deck but pressing a tab does nothing"
   - "the terminal stands in the cockpit instead of beside the gear wall"
-reads_with: [ShipSchematic, InteractionSystem, PlayerShip, Multiplayer, Backpack, Oxygen]
-updated: 2026-09-12
+  - "every terminal page but the ship drawing is snow saying NO CARRIER"
+  - "there is no COMMS tab on the terminal"
+reads_with: [ShipSchematic, ShipSignal, InteractionSystem, PlayerShip, Multiplayer, Backpack, Oxygen]
+updated: 2026-10-06
 ---
 
 # Terminal
 
 The standing terminal on the lander's main deck, in line with the gear wall: a leaning
 cassette-futurism CRT cabinet the crew walk up to and **right-click**. A camera flies from their eye
-to a seat in front of the glass, the cursor comes free, and the glass shows one of three pages — a
+to a seat in front of the glass, the cursor comes free, and the glass shows one of four pages — a
 live 3D drawing of the hull whose missing modules glow red and can be turned, zoomed and pointed at;
-a status readout; a GPS readout with a crew radar — flipped with the tabs or the keys 1-3. Esc,
+a status readout; a GPS readout with a crew radar; COMMS, the intercepted signal — flipped with the tabs or the keys 1-4.
+**Until a working long-range transmitter is fitted only the SHIP page works**: the other three are
+animated snow and `NO CARRIER: LONG-RANGE TRANSMITTER OFFLINE`, and the COMMS tab is hidden. Esc,
 right mouse again, or reaching for WASD hands everything back.
 
-**Scope:** [`Gameplay/Terminal/`](Assets/Game/Scripts/Gameplay/Terminal) (console, session, camera, telemetry, the pure geometry and text), [`Presentation/UI/World/Terminal/`](Assets/Game/Scripts/Presentation/UI/World/Terminal) (the screen), `StandingTerminalBuilder`. The SHIP page's 3D hull is its own system: [ShipSchematic.md](ShipSchematic.md).
+**Scope:** [`Gameplay/Terminal/`](Assets/Game/Scripts/Gameplay/Terminal) (console, session, camera, telemetry, the pure geometry and text), [`Presentation/UI/World/Terminal/`](Assets/Game/Scripts/Presentation/UI/World/Terminal) (the screen). The SHIP page's 3D hull is its own system: [ShipSchematic.md](ShipSchematic.md).
 **Related:** [InteractionSystem.md](InteractionSystem.md) (the press), [PlayerShip.md](PlayerShip.md) (where it stands), [Backpack.md](Backpack.md) (the `FocusCamera` base it shares with the pack and body screens), [ArtPipeline.md](ArtPipeline.md) (the model).
 
 ## Model
@@ -57,6 +61,11 @@ right mouse again, or reaching for WASD hands everything back.
   `GraphicRaycaster` is on only while a session is open and its event camera is the focus camera
   for exactly that long, so the tabs are clickable by the operator and nobody else. The one thing
   on it that is not text or a flat panel is the SHIP page's viewport.
+- **Deaf until the transmitter works.** `ShipTelemetry.TransmitterOnline` = a `Transmitter` socket in the rack's
+  FITTED mask (never the burnt-out unit). Offline, `ShowsStatic` puts `NoCarrier` (glass, `TerminalStatic` snow,
+  the line) over every page but SHIP and `TabCOMMS` is hidden; SHIP and its strip are the internal computer. COMMS
+  ([ShipSignal.md](ShipSignal.md)) is a NEW page, not a replaced one: STATUS and GPS keep their jobs (the crew
+  radar has no other home), and a tab arriving is itself the news.
 - **The SHIP page is a live 3D drawing of the hull** ([ShipSchematic.md](ShipSchematic.md)); all this
   system owns of it is the viewport on the canvas and the Esc that backs it out.
 - **One operator at a time.** `IContextualInteractable.CanInteract(interactor)` refuses while
@@ -67,15 +76,14 @@ right mouse again, or reaching for WASD hands everything back.
 
 | Type | File | Role |
 | --- | --- | --- |
-| `TerminalConsole` | [Gameplay/Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | `NetworkBehaviour`, `IInteractable`, `IContextualInteractable`, `IInteractionReadout`. `NetworkVariable<int>` page, `NetworkVariable<ulong>` operator; `RequestPage`, `Release`; server RPCs via `InteractorRelay`. `PageNames` is the page list. |
-| `TerminalFocusSession` | [Gameplay/Terminal/TerminalFocusSession.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalFocusSession.cs) | Per-machine zoom-in: `GameplayMenuScope.Enter(freezeTime: false, hideHud: true)`, spawns the camera, wires the canvas's event camera, reads exits and 1-3 raw. Static `Active`, at most one. |
+| `TerminalConsole` | [Gameplay/Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | [`ClaimableConsole`](Assets/Game/Scripts/Gameplay/Interaction/Core/ClaimableConsole.cs) (the operator claim, shared with the satellite dish's lectern — [SatelliteDish.md](SatelliteDish.md)), `IInteractable`, `IInteractionReadout`. `NetworkVariable<int>` page; `RequestPage`, `Release`; server RPCs via `InteractorRelay`. `PageNames` is the page list. |
+| `TerminalFocusSession` | [Gameplay/Terminal/TerminalFocusSession.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalFocusSession.cs) | Per-machine zoom-in: `GameplayMenuScope.Enter(freezeTime: false, hideHud: true)`, spawns the camera, wires the canvas's event camera, reads exits and 1-4 raw. Static `Active`, at most one. |
 | `TerminalFocusCamera` | [Gameplay/Terminal/TerminalFocusCamera.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalFocusCamera.cs) | `FocusCamera` subclass; the shot from `TerminalShot` off a `ScreenAnchor` transform read live. `Shot` (FOV 40, fill 0.8, fly-in 0.35 s) serialized on the session. |
 | `TerminalShot` / `ScreenPlane` | [TerminalShot.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalShot.cs), [ScreenPlane.cs](Assets/Game/Scripts/Gameplay/Terminal/ScreenPlane.cs) | Pure: lens distance/yaw/pitch for a plane; a plane from vertices and triangles. Tested. |
 | `ShipTelemetry` / `TelemetrySnapshot` / `ShipTelemetrySource` | [ShipTelemetry.cs](Assets/Game/Scripts/Gameplay/Terminal/ShipTelemetry.cs), [ShipTelemetrySource.cs](Assets/Game/Scripts/Gameplay/Terminal/ShipTelemetrySource.cs) | Snapshot struct, page text and pip states (pure, tested); the reader on the fixture. |
-| `TerminalScreen` | [Presentation/UI/World/Terminal/TerminalScreen.cs](Assets/Game/Scripts/Presentation/UI/World/Terminal/TerminalScreen.cs) | Tabs, pages, clock, cursor blink, the coloured subsystem strip, crew radar dots. `ShowPage` off the console's `PageChanged`; `Present(snapshot)`; `TryStepBack()` spends an Esc on the schematic. |
-| `ShipSchematicStage` / `ShipSchematicView` | [Presentation/UI/World/Terminal/](Assets/Game/Scripts/Presentation/UI/World/Terminal) | The SHIP page's 3D hull and its cursor — [ShipSchematic.md](ShipSchematic.md). Built onto the prefab by `StandingTerminalBuilder.BuildSchematicStage`. |
-| `StandingTerminalBuilder` | Editor/Environment/StandingTerminalBuilder.cs | **Tools ▸ SpaceGame ▸ Build Standing Terminal Prefab**: stands the model on its lowest point, patches material-less renderers, measures the glass, builds collider, components, `ScreenAnchor` and the whole canvas. |
-| `WorldCanvasBuilder` | Editor/Support/WorldCanvasBuilder.cs | The millimetre world-space canvas, panel and label primitives. |
+| `TerminalScreen` | [Presentation/UI/World/Terminal/TerminalScreen.cs](Assets/Game/Scripts/Presentation/UI/World/Terminal/TerminalScreen.cs) | Tabs, pages, clock, cursor blink, the coloured subsystem strip, crew radar dots, COMMS text, the `NoCarrier` overlay and the hidden COMMS tab. `ShowPage` off the console's `PageChanged`; `Present(snapshot)`; `TryStepBack()` spends an Esc on the schematic. |
+| `TerminalStatic` | [Presentation/UI/World/Terminal/TerminalStatic.cs](Assets/Game/Scripts/Presentation/UI/World/Terminal/TerminalStatic.cs) | The snow: one runtime noise texture (point, repeat), a new random `uvRect` window 24 times a second, a `rollBand` sliding down. No per-frame upload. |
+| `ShipSchematicStage` / `ShipSchematicView` | [Presentation/UI/World/Terminal/](Assets/Game/Scripts/Presentation/UI/World/Terminal) | The SHIP page's 3D hull and its cursor — [ShipSchematic.md](ShipSchematic.md). |
 
 ## Flows
 
@@ -86,7 +94,7 @@ enables the raycaster, points the canvas at the camera. The claim then goes to t
 (`Network.Execute` → `ClaimServerRpc` via `InteractorRelay`); the operator `NetworkVariable` lands
 on every machine.
 
-**Page.** A tab click or 1/2/3 → `TerminalConsole.RequestPage` → server clamps and writes the
+**Page.** A tab click or 1-4 → `TerminalConsole.RequestPage` → server clamps and writes the
 `NetworkVariable` → every machine's `PageChanged` → `TerminalScreen.ShowPage` (the host takes the
 same path). Showing the SHIP page starts its lens — [ShipSchematic.md](ShipSchematic.md).
 
@@ -94,11 +102,6 @@ same path). Showing the SHIP page starts its lens — [ShipSchematic.md](ShipSch
 only an Esc nothing spent closes the session. RMB / WASD / Space / gamepad B, death, or the
 component disabling go straight to `TerminalFocusSession.Exit`: raycaster off, event camera
 cleared, `Release` to the server, camera home (`FlyOut` 0.25 s), scope released.
-
-**Build.** Re-export (`standing_terminal_export.py`) → **Build Standing Terminal Prefab** (it calls
-`ShipSchematicBuilder.EnsureBuilt`) → **Tools ▸ Vehicles ▸ Build PlayerShip Prefab**
-(`BuildStandingTerminal` nests it; `Verify()` fails without exactly one wired terminal). A **ship**
-re-export needs **Build Ship Schematic Prefab** run explicitly.
 
 ## Multiplayer
 
@@ -128,6 +131,8 @@ derived — what the SHIP page shows is saved by the ship's rack. The prefab car
 
 ## Gotchas
 
+- **The builders are gone: edit `StandingTerminal.prefab` itself** (COMMS was added in place, 2026-10-06).
+  `PlayerShip.prefab` nests it overriding only the root pose, so edits propagate. Key 4 offline shows static.
 - **The schematic has gotchas of its own** (a layer, a per-camera hide, model-space measurement,
   name-not-index sockets, and Esc's layering) — read [ShipSchematic.md](ShipSchematic.md) before
   touching the SHIP page.
@@ -140,16 +145,11 @@ derived — what the SHIP page shows is saved by the ship's rack. The prefab car
 - **Its back is inside the hull skin on purpose**, in the fill the wall's back is tucked into: flush
   with that face, it is the deeper of the two. So `…StandsClearOfTheShipsFittings` excludes the
   ship's `Collision` child and guards only what a crew walks into.
-- **The screen plate is the one thing the builder finds by name** (`Mesh_CrtMonitor_Kiosk_Screen`).
-  Rename it in Blender and the build stops, loudly. Everything else is measured.
-- **The model's origin is not its floor** — the `.blend` has it mid-cabinet, so the builder lifts
-  the model until its lowest renderer point is y = 0.
 - **A world-space canvas's tabs are only clickable through its event camera.** With
   `canvas.worldCamera` null `GraphicRaycaster` finds nothing; the session sets it to the focus camera and
   clears it on exit — leaving it on would let a free cursor click a terminal nobody is at.
-- **The key strip left Blender with no material**, and a submesh with none imports drawing pink.
-  `PatchMissingMaterials` gives such renderers `Mat_Metal_Steel_Dark (DoubleSided)` and logs the count —
-  expect 1 until the strip gets a palette material.
+- **The key strip left Blender with no material** and draws pink without the `Mat_Metal_Steel_Dark (DoubleSided)`
+  the prefab gives it; a model re-import must keep that.
 - **The exits are read raw** (`Keyboard.current`, `Mouse.current`), like the pack's: entering the
   scope disables `PlayerInputManager`, so no action fires. The entry frame is skipped, or the
   right-click that opened it would close it in the same gesture.
@@ -159,13 +159,12 @@ derived — what the SHIP page shows is saved by the ship's rack. The prefab car
 ## Extending
 
 1. **A new hull module** on the SHIP page: [ShipSchematic.md](ShipSchematic.md).
-2. **A new page**: add its name to `TerminalConsole.PageNames` and bump `PageCount`; build its root
-   and widgets in `StandingTerminalBuilder.BuildScreen`; add the fields to `TerminalScreen` and fill
+2. **A new page**: add its name to `TerminalConsole.PageNames` and bump `PageCount`; add its root
+   and widgets to `StandingTerminal.prefab`; add the fields to `TerminalScreen` and fill
    them in `Present`; add a key in `TerminalFocusSession.PageKey`. Compose its text in `ShipTelemetry`.
 3. **A new readout**: add the field to `TelemetrySnapshot`, read it in `ShipTelemetrySource.Read` from something already replicated, compose it in `ShipTelemetry`.
 4. **Another screen prop** (a desk monitor, the scanner's wrist display — `ItemScannerScreenBuilder`,
-   [Artifacts.md](Artifacts.md)): a builder reusing `ScreenPlane`, `WorldCanvasBuilder` (the phosphor
-   palette every screen shares) and `TerminalScreen`; `TerminalConsole` only if shared.
+   [Artifacts.md](Artifacts.md)): reuse `ScreenPlane`, the phosphor palette every screen shares and `TerminalScreen`; `TerminalConsole` only if shared.
 5. **Verify on a client and after a reload**: the page must follow the operator on the other machine,
    "In use" must clear when they leave, and the fixture must stand where it was built after a load
    (the hull's record places it; nothing of its own is saved).

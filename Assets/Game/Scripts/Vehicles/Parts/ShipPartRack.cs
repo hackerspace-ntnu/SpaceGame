@@ -36,10 +36,19 @@ namespace SpaceGame.Vehicles
                  "wrecked with every module missing, which is the point of the salvage loop.")]
         [SerializeField] private int authoredInstalledMask;
 
-        private readonly NetworkVariable<int> networkMask = new(0);
+        [Tooltip("Which sockets hold a burnt-out unit when this ship is first placed. A broken unit " +
+                 "occupies its socket without working: it does not count as fitted, and nothing " +
+                 "can be fitted until a player takes it off (BrokenShipPart). A bit here is ignored " +
+                 "for a socket that is also in the installed mask.")]
+        [SerializeField] private int authoredBrokenMask;
 
-        // Mirrors networkMask, and is the sole source of truth when there is no session at all.
+        private readonly NetworkVariable<int> networkMask = new(0);
+        private readonly NetworkVariable<int> networkBroken = new(0);
+
+        // Mirror networkMask and networkBroken, and are the sole source of truth when there is no
+        // session at all.
         private int mask;
+        private int broken;
         private bool spawned;
         private bool applied;
 
@@ -65,6 +74,19 @@ namespace SpaceGame.Vehicles
         public bool IsInstalled(int socketIndex) =>
             socketIndex >= 0 && socketIndex < Resolved().Count && (mask & (1 << socketIndex)) != 0;
 
+        /// <summary>The burnt-out units this ship was authored with.</summary>
+        public int AuthoredBrokenMask => authoredBrokenMask;
+
+        /// <summary>The sockets holding a burnt-out unit, as a bitmask over <see cref="Sockets"/>.</summary>
+        public int BrokenMask => broken;
+
+        /// <summary>
+        /// Does this socket hold a burnt-out unit? It is occupied — nothing fits — but it is not
+        /// fitted, so it never counts toward <see cref="IsComplete"/>.
+        /// </summary>
+        public bool IsBroken(int socketIndex) =>
+            socketIndex >= 0 && socketIndex < Resolved().Count && (broken & (1 << socketIndex)) != 0;
+
         /// <summary>True when every socket on this hull is filled.</summary>
         public bool IsComplete => Resolved().Count > 0 && mask == FullMask;
 
@@ -80,6 +102,7 @@ namespace SpaceGame.Vehicles
         private void Awake()
         {
             mask = authoredInstalledMask;
+            broken = authoredBrokenMask & ~mask;
             ApplyToSockets();
         }
 
@@ -91,15 +114,24 @@ namespace SpaceGame.Vehicles
         {
             spawned = true;
             networkMask.OnValueChanged += OnNetworkMaskChanged;
+            networkBroken.OnValueChanged += OnNetworkBrokenChanged;
 
-            if (IsServer) networkMask.Value = mask;
-            else SetMaskLocal(networkMask.Value);
+            if (IsServer)
+            {
+                networkMask.Value = mask;
+                networkBroken.Value = broken;
+                return;
+            }
+
+            // A late joiner reads both now: OnValueChanged never replays.
+            SetLocal(networkMask.Value, networkBroken.Value);
         }
 
         public override void OnNetworkDespawn()
         {
             spawned = false;
             networkMask.OnValueChanged -= OnNetworkMaskChanged;
+            networkBroken.OnValueChanged -= OnNetworkBrokenChanged;
         }
 
         /// <summary>
@@ -133,7 +165,21 @@ namespace SpaceGame.Vehicles
             if (socketIndex < 0 || socketIndex >= all.Count) return false;
             if (all[socketIndex] == null || all[socketIndex].Kind != kind) return false;
 
-            return !IsInstalled(socketIndex);
+            return !IsInstalled(socketIndex) && !IsBroken(socketIndex);
+        }
+
+        /// <summary>
+        /// Take the burnt-out unit out of a socket, freeing it for a working module. Authority
+        /// only, idempotent: the second of two players reaching for the same unit is refused.
+        /// </summary>
+        /// <returns>True when this call is what emptied the socket.</returns>
+        public bool TryRemoveBroken(int socketIndex)
+        {
+            if (!Network.Simulates(this)) return false;
+            if (!IsBroken(socketIndex)) return false;
+
+            SetAuthoritative(mask, broken & ~(1 << socketIndex));
+            return true;
         }
 
         /// <summary>Index of a socket in the mask, or -1 when it is not on this rack.</summary>
@@ -152,28 +198,44 @@ namespace SpaceGame.Vehicles
         /// and for nothing else — gameplay fits one module at a time through
         /// <see cref="TryInstall"/>.
         /// </summary>
-        public void RestoreMask(int value) => SetMaskAuthoritative(value & FullMask);
+        public void RestoreMask(int value) => RestoreMasks(value, broken);
 
-        private void SetMaskAuthoritative(int value)
+        /// <summary>
+        /// Overwrite both sets at once, for the save system. A socket in both is fitted: a unit
+        /// cannot be burnt out in a mount that holds a working one.
+        /// </summary>
+        public void RestoreMasks(int installed, int brokenUnits)
+        {
+            int fitted = installed & FullMask;
+            SetAuthoritative(fitted, brokenUnits & FullMask & ~fitted);
+        }
+
+        private void SetMaskAuthoritative(int value) => SetAuthoritative(value, broken & ~value);
+
+        private void SetAuthoritative(int installed, int brokenUnits)
         {
             if (spawned && IsServer)
             {
-                // The NetworkVariable callback drives SetMaskLocal on the host too, so the host
-                // does not get a second, different path through the same change.
-                networkMask.Value = value;
+                // The NetworkVariable callbacks drive SetLocal on the host too, so the host does
+                // not get a second, different path through the same change.
+                networkMask.Value = installed;
+                networkBroken.Value = brokenUnits;
                 return;
             }
 
-            SetMaskLocal(value);
+            SetLocal(installed, brokenUnits);
         }
 
-        private void OnNetworkMaskChanged(int previous, int current) => SetMaskLocal(current);
+        private void OnNetworkMaskChanged(int previous, int current) => SetLocal(current, broken);
 
-        private void SetMaskLocal(int value)
+        private void OnNetworkBrokenChanged(int previous, int current) => SetLocal(mask, current);
+
+        private void SetLocal(int installed, int brokenUnits)
         {
-            if (mask == value && applied) return;
+            if (mask == installed && broken == brokenUnits && applied) return;
 
-            mask = value;
+            mask = installed;
+            broken = brokenUnits;
             ApplyToSockets();
             Changed?.Invoke();
         }
@@ -184,7 +246,7 @@ namespace SpaceGame.Vehicles
 
             for (int i = 0; i < all.Count; i++)
                 if (all[i] != null)
-                    all[i].SetInstalled((mask & (1 << i)) != 0);
+                    all[i].SetState((mask & (1 << i)) != 0, (broken & (1 << i)) != 0);
 
             applied = true;
         }

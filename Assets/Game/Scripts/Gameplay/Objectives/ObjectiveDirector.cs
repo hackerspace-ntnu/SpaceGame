@@ -125,6 +125,8 @@ namespace SpaceGame.Gameplay.Objectives
 
             // Read after TryBeginCurrent, which may have skipped an empty slot.
             ObjectiveStep step = Current;
+            if (step != null && progress.Begun && SayDueRemarks(step)) changed = true;
+
             if (step != null && progress.Begun && step.IsMet(World))
             {
                 SetProgress(new ObjectiveProgress { Step = progress.Step + 1 });
@@ -160,8 +162,23 @@ namespace SpaceGame.Gameplay.Objectives
             return true;
         }
 
-        private static bool CrewHasLanded =>
-            ArrivalDirector.Instance == null || ArrivalDirector.Instance.HasArrived;
+        /// <summary>SERVER: marks every remark of <paramref name="step"/> that has come due as said. True when any did.</summary>
+        private bool SayDueRemarks(ObjectiveStep step)
+        {
+            int count = Mathf.Min(step.RemarkCount, ObjectiveStep.MaxRemarks);
+            int said = progress.Remarks;
+
+            for (int i = 0; i < count; i++)
+                if ((said & (1 << i)) == 0 && step.IsRemarkDue(World, i))
+                    said |= 1 << i;
+
+            if (said == progress.Remarks) return false;
+
+            progress.Remarks = said;
+            return true;
+        }
+
+        private static bool CrewHasLanded => ArrivalDirector.CrewHasLanded;
 
         /// <summary>SERVER: the player on <paramref name="clientId"/> has done their part of step <paramref name="step"/>.</summary>
         public void RecordFinished(ulong clientId, int step)
@@ -193,12 +210,12 @@ namespace SpaceGame.Gameplay.Objectives
         /// Restore-only. Called by <c>ObjectiveSaveable</c>; do not call from gameplay. Puts the
         /// crew back where the record says, without replaying anything that happened to get there.
         /// </summary>
-        public void Restore(string stepId, bool complete, bool begun)
+        public void Restore(string stepId, bool complete, bool begun, int remarks = 0)
         {
             if (chain == null) return;
 
             ForgetStep();
-            SetProgress(Resolve(chain, stepId, complete, begun));
+            SetProgress(Resolve(chain, stepId, complete, begun, remarks));
             Changed?.Invoke(false);
         }
 
@@ -207,7 +224,8 @@ namespace SpaceGame.Gameplay.Objectives
         /// steps can be inserted and reordered under existing saves. An id the chain no longer has
         /// restarts the chain — noisily, because it means a step was renamed or deleted.
         /// </summary>
-        public static ObjectiveProgress Resolve(ObjectiveChain chain, string stepId, bool complete, bool begun)
+        public static ObjectiveProgress Resolve(ObjectiveChain chain, string stepId, bool complete, bool begun,
+                                                int remarks = 0)
         {
             if (complete) return new ObjectiveProgress { Step = chain.Steps.Count };
 
@@ -219,7 +237,7 @@ namespace SpaceGame.Gameplay.Objectives
                 return default;
             }
 
-            return new ObjectiveProgress { Step = step, Begun = begun };
+            return new ObjectiveProgress { Step = step, Begun = begun, Remarks = remarks };
         }
 
         private void SetProgress(ObjectiveProgress value)

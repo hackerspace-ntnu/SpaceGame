@@ -17,6 +17,13 @@ namespace SpaceGame.EditorTools
         [MenuItem("Tools/SpaceGame/Player/Wire Hatch Crawler")]
         public static void WireHatchCrawler() => Ensure<HatchCrawler>();
 
+        [MenuItem("Tools/SpaceGame/Player/Wire Ledge Climbing")]
+        public static void WireLedgeClimbing()
+        {
+            Ensure<LedgeClimber>();
+            Ensure<LedgeAirGrab>();
+        }
+
         /// <summary>Adds a T beside PlayerMovement on the player prefab if it has none. True if added.</summary>
         public static bool Ensure<T>() where T : Component
         {

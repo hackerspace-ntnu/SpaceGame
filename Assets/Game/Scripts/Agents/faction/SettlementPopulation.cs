@@ -124,12 +124,25 @@ namespace SpaceGame.Agents
 
         public int Population { get; private set; }
 
+        /// <summary>Whose settlement this is.</summary>
+        public FactionDefinition Owner => owner;
+
+        /// <summary>Metres from this object inside which the owner's people count as living here.</summary>
+        public float CountRadius => countRadius;
+
         /// <summary>
         /// Hold the clock, as a raised alarm does. Set by whatever knows the settlement cannot take
         /// new people right now (SettlementDeck, while a moving settlement is under way). Runtime
         /// only: the owner re-derives it every session.
         /// </summary>
         public bool SpawningSuspended { get; set; }
+
+        /// <summary>
+        /// The owner's people out beyond countRadius on the settlement's own business — residents circling an airborne
+        /// city (SettlementLoiterFlights) — counted toward the cap, so they are not replaced while away and the town is
+        /// not over full when they land. Set by whoever sent them, at each of its looks.
+        /// </summary>
+        public int AwayResidents { get; set; }
 
         private SettlementPopulationLogic.State state;
         private SettlementAlarm alarm;
@@ -214,7 +227,7 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            Population = CountInhabitants();
+            Population = CountInhabitants() + AwayResidents;
 
             bool hold = SpawningSuspended || (holdWhileAlarmRaised && alarm != null && alarm.IsRaised);
             int wanted = SettlementPopulationLogic.Step(ref state, Population, maxPopulation, spawnsPerWave,

@@ -144,7 +144,8 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// The Sky Tribe roster: the four sky nomads as scouts and warriors, and no Rider role —
         /// Sky parties fly in vessels, so a mount has nowhere to go. The top tier's seven people fit
-        /// the freighter, not the skiff.
+        /// the freighter, not the skiff. Each tier also brings escort fliers on their own wings (SkyEscortFliers),
+        /// who take no seat (RoleCount.ownWings).
         ///
         /// Run after Build Sky Nomad NPCs (validation reads the members' baked faction), then build
         /// again so the prefabs bake this roster's hand items.
@@ -162,11 +163,17 @@ namespace SpaceGame.EditorTools
             AuthorRoster("Sky", SkyFactionPath, SkyRosterPath, SkyHostileLinesPath, SkyHostileLines, members,
                 NomadHandItemPaths, new[]
                 {
-                    Tier((RosterRole.Scout, 2)),
-                    Tier((RosterRole.Warrior, 3), (RosterRole.Scout, 1)),
-                    Tier((RosterRole.Warrior, 5), (RosterRole.Scout, 2)),
+                    WithFliers(Tier((RosterRole.Scout, 2)), RosterRole.Warrior, SkyEscortFliers[0]),
+                    WithFliers(Tier((RosterRole.Warrior, 3), (RosterRole.Scout, 1)), RosterRole.Warrior, SkyEscortFliers[1]),
+                    WithFliers(Tier((RosterRole.Warrior, 5), (RosterRole.Scout, 2)), RosterRole.Warrior, SkyEscortFliers[2]),
                 });
         }
+
+        /// <summary>
+        /// Fliers per Sky war-party tier, on top of the seated riders: they escort the vessel on their own wings and
+        /// land beside its drop (user decision 2026-10-07).
+        /// </summary>
+        internal static readonly int[] SkyEscortFliers = { 2, 4, 6 };
 
         /// <summary>
         /// The Striders' roster: the four Strider nomads as scouts and warriors, and the five
@@ -643,34 +650,16 @@ namespace SpaceGame.EditorTools
             WithWorldSim(sim =>
             {
                 var so = new SerializedObject(sim);
-                SerializedProperty templates = so.FindProperty("templates");
+                SerializedProperty t = FindOrCopySandNomads(so.FindProperty("templates"), StriderCityTemplateId);
+                if (t == null) return;
 
-                int city = -1, source = -1;
-                for (int i = 0; i < templates.arraySize; i++)
-                {
-                    string id = templates.GetArrayElementAtIndex(i).FindPropertyRelative("id").stringValue;
-                    if (id == StriderCityTemplateId) city = i;
-                    if (id == "sand-nomads") source = i;
-                }
-
-                if (city < 0)
-                {
-                    if (source < 0)
-                    {
-                        Debug.LogError("[RosterAuthoring] No 'sand-nomads' template to copy.");
-                        return;
-                    }
-
-                    templates.GetArrayElementAtIndex(source).DuplicateCommand();
-                    city = source + 1;
-                }
-
-                SerializedProperty t = templates.GetArrayElementAtIndex(city);
                 t.FindPropertyRelative("id").stringValue = StriderCityTemplateId;
                 t.FindPropertyRelative("displayName").stringValue = "Strider City";
                 t.FindPropertyRelative("tribe").objectReferenceValue = striders;
                 t.FindPropertyRelative("runtimeOnly").boolValue = false;
                 t.FindPropertyRelative("bountyHunters").boolValue = false;
+                // Seen marching from the edge of the loaded ground (DistantGroupSilhouette, SettlementLods.md).
+                t.FindPropertyRelative("showFromAfar").boolValue = true;
                 t.FindPropertyRelative("useStartPosition").boolValue = true;
                 t.FindPropertyRelative("startPosition").vector3Value = start;
                 t.FindPropertyRelative("initialStaySeconds").floatValue = StriderCityInitialStay;
@@ -705,28 +694,215 @@ namespace SpaceGame.EditorTools
                 for (int i = 0; i < StriderCityStops.Length; i++)
                 {
                     SerializedProperty task = tasks.GetArrayElementAtIndex(i);
-                    task.FindPropertyRelative("label").stringValue = StriderCityStops[i].label;
-                    task.FindPropertyRelative("targetSite").enumValueIndex = (int)StriderCityStops[i].site;
-                    task.FindPropertyRelative("searchRadius").floatValue = StriderCityBuilder.CitySearchRadius;
-                    task.FindPropertyRelative("searchFromHome").boolValue = false;
-                    task.FindPropertyRelative("dwellSeconds").vector2Value = StriderCityDwell;
-                    task.FindPropertyRelative("yields").objectReferenceValue = null;
-                    task.FindPropertyRelative("yieldChance").floatValue = 1f;
-                    task.FindPropertyRelative("dwellFlag").stringValue = string.Empty;
-                    task.FindPropertyRelative("weight").floatValue = 1f;
-                    task.FindPropertyRelative("arriveRadius").floatValue = StriderCityArriveRadius;
-                    task.FindPropertyRelative("travelSpeedMultiplier").floatValue = StriderCityBuilder.CityTravelMultiplier;
+                    WriteStop(task, StriderCityStops[i], StriderCityBuilder.CitySearchRadius, StriderCityDwell,
+                              StriderCityArriveRadius, StriderCityBuilder.CityTravelMultiplier);
                     WriteLevelGround(task.FindPropertyRelative("levelGround"), StriderCityBuilder.CityLevelGround);
-                    SerializedProperty chatter = task.FindPropertyRelative("chatter");
-                    chatter.arraySize = StriderCityStops[i].chatter.Length;
-                    for (int c = 0; c < chatter.arraySize; c++)
-                        chatter.GetArrayElementAtIndex(c).stringValue = StriderCityStops[i].chatter[c];
                 }
 
                 WriteShape(t.FindPropertyRelative("formation"), CityShape);
 
                 so.ApplyModifiedPropertiesWithoutUndo();
             });
+        }
+
+        public const string SkyWingTemplateId = "sky-wing";
+
+        // Folded, the record travels at the craft's cruise ground speed: Spike 5.2a E4 cruised 22.7-28.3 m/s.
+        private const float SkyWingFoldedSpeed = 22f;
+        private const float SkyWingSearchRadius = 700f;
+        private const float SkyWingArriveRadius = 12f;
+        private const float SkyWingTravelMultiplier = 1f;
+
+        // Where the wing is seeded: the ground NavMesh under the Sky City's first mooring (route[0],
+        // 3350/1400). No Ruin, ScrapField or Camp site exists to seed it at, and startNearSite with
+        // none falls back to the sim's own origin, under the terrain. Verified 2026-10-06 against
+        // WorldNavMesh.asset: terrain 110.1, NavMesh 110.3.
+        internal static readonly Vector3 SkyWingStart = new Vector3(3350f, 110.3f, 1400f);
+        private static readonly Vector2 SkyWingDwell = new Vector2(20f, 45f);
+        private static readonly (string label, SiteKind site, string[] chatter)[] SkyWingStops =
+        {
+            ("looking over a ruin", SiteKind.Ruin, new[] { "Saw this from the city. Worth a look." }),
+            ("picking through a scrap field", SiteKind.ScrapField, new[] { "Light pieces only. We have to fly it home." }),
+            ("visiting a camp", SiteKind.Camp, new[] { "Ground folk. Keep your wings folded and your hands empty." }),
+        };
+
+        /// <summary>
+        /// A pair of Sky scouts that hop between ground sites on their wing packs: the ground-to-ground
+        /// flights of D2. Seeded at startup at <see cref="SkyWingStart"/>; a stop whose site kind does
+        /// not exist is a roam point instead (NpcTaskPlanner). Each leg too long to walk is flown
+        /// (NpcFlightModule), each pilot alone to the shared goal (D5). Idempotent: rewrites its template by id.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Wire Sky Wing")]
+        public static void WireSkyWing()
+        {
+            var sky = Load<FactionDefinition>(SkyFactionPath);
+            if (sky == null) return;
+
+            WithWorldSim(sim =>
+            {
+                var so = new SerializedObject(sim);
+                SerializedProperty t = FindOrCopySandNomads(so.FindProperty("templates"), SkyWingTemplateId);
+                if (t == null) return;
+
+                t.FindPropertyRelative("id").stringValue = SkyWingTemplateId;
+                t.FindPropertyRelative("displayName").stringValue = "Sky Wing";
+                t.FindPropertyRelative("tribe").objectReferenceValue = sky;
+                t.FindPropertyRelative("runtimeOnly").boolValue = false;
+                t.FindPropertyRelative("bountyHunters").boolValue = false;
+                t.FindPropertyRelative("showFromAfar").boolValue = false;
+                t.FindPropertyRelative("useStartPosition").boolValue = true;
+                t.FindPropertyRelative("startPosition").vector3Value = SkyWingStart;
+                t.FindPropertyRelative("initialStaySeconds").floatValue = 0f;
+                t.FindPropertyRelative("travelSpeed").floatValue = SkyWingFoldedSpeed;
+
+                // It flies on wing packs: no vessel, whatever the copied template carried.
+                SerializedProperty transport = t.FindPropertyRelative("transport");
+                transport.FindPropertyRelative("smallVessel").objectReferenceValue = null;
+                transport.FindPropertyRelative("largeVessel").objectReferenceValue = null;
+
+                SerializedProperty members = t.FindPropertyRelative("members");
+                members.arraySize = 0;
+                AddMember(members, null, RosterRole.Scout, 1, leader: true, crew: false);
+                AddMember(members, null, RosterRole.Scout, 1, leader: false, crew: false);
+
+                SerializedProperty tasks = t.FindPropertyRelative("tasks");
+                tasks.arraySize = SkyWingStops.Length;
+                for (int i = 0; i < SkyWingStops.Length; i++)
+                    WriteStop(tasks.GetArrayElementAtIndex(i), SkyWingStops[i], SkyWingSearchRadius, SkyWingDwell,
+                              SkyWingArriveRadius, SkyWingTravelMultiplier);
+
+                so.ApplyModifiedPropertiesWithoutUndo();
+            });
+        }
+
+        public const string SkyPatrolTemplateId = "sky-patrol";
+
+        /// <summary>
+        /// The patrol's loop: a ~5 km figure through the low basin — the western lobe the player spawns in (passing
+        /// the spawn point at (2610, 880) about 130 m off, twice a lap), the southern flats, and the eastern lobe
+        /// towards the Sand camps — threading round the rock spires (x≈2900 and x≈3750 near z≈1150) and the ridge
+        /// at x 3100–3250, z 1250–2000. On the plain (y 110); NpcAirPatrol takes the real ground under the record
+        /// when it spawns. Measured 2026-10-07 against the world NavMesh: no leg's corridor rises above 125 m
+        /// (SkyPatrolContentTests holds it under 150).
+        /// </summary>
+        internal static readonly Vector3[] SkyPatrolRoute =
+        {
+            new Vector3(2600f, 110f, 1600f),
+            new Vector3(2450f, 110f, 1050f),
+            new Vector3(2550f, 110f, 450f),
+            new Vector3(3150f, 110f, 400f),
+            new Vector3(3450f, 110f, 750f),
+            new Vector3(3450f, 110f, 1450f),   // the nearest it comes to the Sand camps
+            new Vector3(3200f, 110f, 850f),
+            new Vector3(2650f, 110f, 800f),
+        };
+
+        /// <summary>Wingmen behind the leader: two to four, so a patrol is three to five fliers.</summary>
+        internal static readonly WeightedCount[] SkyPatrolWingmen =
+        {
+            new WeightedCount { count = 2, weight = 0.35f },
+            new WeightedCount { count = 3, weight = 0.40f },
+            new WeightedCount { count = 4, weight = 0.25f },
+        };
+
+        // The leader cruises at this share of the craft's top speed; folded, the record moves at the same speed.
+        internal const float SkyPatrolLeaderSpeed = 0.7f;
+
+        /// <summary>
+        /// A Sky patrol: three to five fliers in a chevron, always in the air, flying a loop over the basin — the
+        /// airborne twin of the Sand riders' caravans (user, 2026-10-07: "I want to sometimes see flyers flying idle
+        /// through the sky in formation"). Seeded at the loop's first point; never lands (NpcAirPatrol).
+        /// Idempotent: rewrites its template by id.
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Agents/Wire Sky Patrol")]
+        public static void WireSkyPatrol()
+        {
+            var sky = Load<FactionDefinition>(SkyFactionPath);
+            if (sky == null) return;
+
+            WithWorldSim(sim =>
+            {
+                var so = new SerializedObject(sim);
+                SerializedProperty t = FindOrCopySandNomads(so.FindProperty("templates"), SkyPatrolTemplateId);
+                if (t == null) return;
+
+                t.FindPropertyRelative("id").stringValue = SkyPatrolTemplateId;
+                t.FindPropertyRelative("displayName").stringValue = "Sky Patrol";
+                t.FindPropertyRelative("tribe").objectReferenceValue = sky;
+                t.FindPropertyRelative("runtimeOnly").boolValue = false;
+                t.FindPropertyRelative("bountyHunters").boolValue = false;
+                t.FindPropertyRelative("showFromAfar").boolValue = false;
+                t.FindPropertyRelative("useStartPosition").boolValue = true;
+                t.FindPropertyRelative("startPosition").vector3Value = SkyPatrolRoute[0];
+                t.FindPropertyRelative("initialStaySeconds").floatValue = 0f;
+                t.FindPropertyRelative("travelSpeed").floatValue = SkyPatrolLeaderSpeed * NpcOrnithopterBuilder.CruiseSpeed;
+                t.FindPropertyRelative("tasks").arraySize = 0;
+
+                // It flies its own craft: no vessel, whatever the copied template carried.
+                SerializedProperty transport = t.FindPropertyRelative("transport");
+                transport.FindPropertyRelative("smallVessel").objectReferenceValue = null;
+                transport.FindPropertyRelative("largeVessel").objectReferenceValue = null;
+
+                SerializedProperty patrol = t.FindPropertyRelative("airPatrol");
+                SerializedProperty route = patrol.FindPropertyRelative("route");
+                route.arraySize = SkyPatrolRoute.Length;
+                for (int i = 0; i < SkyPatrolRoute.Length; i++)
+                    route.GetArrayElementAtIndex(i).vector3Value = SkyPatrolRoute[i];
+                patrol.FindPropertyRelative("leaderSpeed").floatValue = SkyPatrolLeaderSpeed;
+
+                SerializedProperty members = t.FindPropertyRelative("members");
+                members.arraySize = 0;
+                AddMember(members, null, RosterRole.Scout, 1, leader: true, crew: false);
+                AddMember(members, null, RosterRole.Warrior, 1, leader: false, crew: false);
+                WriteCountWeights(members.GetArrayElementAtIndex(1), SkyPatrolWingmen);
+
+                so.ApplyModifiedPropertiesWithoutUndo();
+            });
+        }
+
+        /// <summary>
+        /// The template with <paramref name="id"/>, or a fresh copy of 'sand-nomads' right after it (the
+        /// caller renames it). Null, logged, when neither exists.
+        /// </summary>
+        private static SerializedProperty FindOrCopySandNomads(SerializedProperty templates, string id)
+        {
+            int found = -1, source = -1;
+            for (int i = 0; i < templates.arraySize; i++)
+            {
+                string each = templates.GetArrayElementAtIndex(i).FindPropertyRelative("id").stringValue;
+                if (each == id) found = i;
+                if (each == "sand-nomads") source = i;
+            }
+            if (found >= 0) return templates.GetArrayElementAtIndex(found);
+
+            if (source < 0)
+            {
+                Debug.LogError($"[RosterAuthoring] No 'sand-nomads' template to copy for '{id}'.");
+                return null;
+            }
+            templates.GetArrayElementAtIndex(source).DuplicateCommand();
+            return templates.GetArrayElementAtIndex(source + 1);
+        }
+
+        /// <summary>One stop of a group's errand list: every NpcTask field but the level-ground rule.</summary>
+        private static void WriteStop(SerializedProperty task, (string label, SiteKind site, string[] chatter) stop,
+                                      float searchRadius, Vector2 dwell, float arriveRadius, float travelMultiplier)
+        {
+            task.FindPropertyRelative("label").stringValue = stop.label;
+            task.FindPropertyRelative("targetSite").enumValueIndex = (int)stop.site;
+            task.FindPropertyRelative("searchRadius").floatValue = searchRadius;
+            task.FindPropertyRelative("searchFromHome").boolValue = false;
+            task.FindPropertyRelative("dwellSeconds").vector2Value = dwell;
+            task.FindPropertyRelative("yields").objectReferenceValue = null;
+            task.FindPropertyRelative("yieldChance").floatValue = 1f;
+            task.FindPropertyRelative("dwellFlag").stringValue = string.Empty;
+            task.FindPropertyRelative("weight").floatValue = 1f;
+            task.FindPropertyRelative("arriveRadius").floatValue = arriveRadius;
+            task.FindPropertyRelative("travelSpeedMultiplier").floatValue = travelMultiplier;
+            SerializedProperty chatter = task.FindPropertyRelative("chatter");
+            chatter.arraySize = stop.chatter.Length;
+            for (int c = 0; c < chatter.arraySize; c++)
+                chatter.GetArrayElementAtIndex(c).stringValue = stop.chatter[c];
         }
 
         private static void WriteLevelGround(SerializedProperty rule, LevelGroundRule r)
@@ -853,6 +1029,12 @@ namespace SpaceGame.EditorTools
         private static WarPartyTier Tier(params (RosterRole role, int count)[] roles) => new WarPartyTier
         {
             roles = roles.Select(r => new RoleCount { role = r.role, count = r.count }).ToArray(),
+        };
+
+        /// <summary><paramref name="tier"/> plus <paramref name="count"/> of <paramref name="role"/> flying on their own wings.</summary>
+        private static WarPartyTier WithFliers(WarPartyTier tier, RosterRole role, int count) => new WarPartyTier
+        {
+            roles = tier.roles.Append(new RoleCount { role = role, count = count, ownWings = true }).ToArray(),
         };
 
         private static T Load<T>(string path) where T : Object

@@ -110,6 +110,15 @@ namespace SpaceGame.EditorTools
                                "never more elders than standing posts: a spare one would walk beside the houses");
         }
 
+        [Test]
+        public void OnlyTheCity_IsSeenFromAfar()
+        {
+            NpcGroupTemplate[] templates = ReadTemplates();
+            Assert.IsTrue(templates.Single(t => t.id == RosterAuthoring.StriderCityTemplateId).showFromAfar,
+                          "the walking city is drawn beyond spawnRadius (re-run Wire Strider City)");
+            CollectionAssert.IsEmpty(templates.Where(t => t.id != RosterAuthoring.StriderCityTemplateId && t.showFromAfar).Select(t => t.id));
+        }
+
         /// FormationModule measures regroupDistance from the leader: a follower whose slot is farther
         /// out than that counts as separated at its own slot and rides for the leader instead. The
         /// column is dealt anew in every world, so any vehicle may draw the farthest slot.

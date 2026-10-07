@@ -220,6 +220,12 @@ namespace SpaceGame.Items
             foreach (InventoryItem item in startingMainItems) StowAuthored(item);
 
             rebuilding = false;
+
+            // Once, now that it is all down. The events were muted above, so nothing else draws
+            // this gear: a host with no save record for the container (a new world, a save older
+            // than the container) would otherwise hold it invisible, and untakeable, until some
+            // unrelated change redrew the display.
+            RebuildVisuals();
         }
 
         /// <summary>Release the display and the meshes it owns. Call from the subclass's OnDestroy.</summary>

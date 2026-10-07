@@ -123,9 +123,21 @@ namespace SpaceGame.EditorTools
         /// <see cref="HasDrivenSkeleton"/>, and they live under <c>Prefabs/Vehicles</c> rather than
         /// the folder <see cref="IsVehicle"/> reads. A hull falls as a wreck, never limp.
         /// </para>
+        ///
+        /// <para>
+        /// A <see cref="WalkerPlatformCarrier"/> says "machine" too: it is a deck people stand on and
+        /// get carried by, and no creature has one. The Sky City fleet's hulls are flown through an
+        /// AgentController, which passes <see cref="HasDrivenSkeleton"/>, and live under
+        /// <c>Environment/Structures/SkyFleet</c>, which neither vehicle folder covers — so without
+        /// this rule a blast could make the whole city go limp, and the ledge probe read every deck
+        /// as a character it must not climb.
+        /// </para>
         /// </summary>
         internal static bool IsBody(GameObject root, string path) =>
-            !IsVehicle(path) && root.GetComponent<VesselPilot>() == null && HasDrivenSkeleton(root);
+            !IsVehicle(path)
+            && root.GetComponent<VesselPilot>() == null
+            && root.GetComponent<WalkerPlatformCarrier>() == null
+            && HasDrivenSkeleton(root);
 
         /// <summary>
         /// Is this prefab a vehicle rather than a creature?

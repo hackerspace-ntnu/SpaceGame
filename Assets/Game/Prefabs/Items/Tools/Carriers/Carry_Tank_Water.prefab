@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 451396538849799424}
   - component: {fileID: 7584189351226646443}
   - component: {fileID: 350598814563605232}
+  - component: {fileID: -5023743945136955213}
   m_Layer: 0
   m_Name: Carry_Tank_Water
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-5023743945136955213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6930645808647365560}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &2740203774754305965
 PrefabInstance:
   m_ObjectHideFlags: 0

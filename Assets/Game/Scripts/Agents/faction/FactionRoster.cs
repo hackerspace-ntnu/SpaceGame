@@ -40,6 +40,10 @@ namespace SpaceGame.Agents
 
         [Min(1)]
         public int count = 1;
+
+        [Tooltip("These fly on their own wings instead of taking a vessel seat: a flying party's escort, flying " +
+                 "station round its vessel and landing beside its drop. They never lead.")]
+        public bool ownWings;
     }
 
     [Serializable]

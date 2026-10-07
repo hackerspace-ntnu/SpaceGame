@@ -53,8 +53,17 @@ namespace SpaceGame.Agents
                  "in and out while a player walks along the boundary.")]
         [SerializeField] private float despawnRadius = 350f;
 
+        [Tooltip("A spawned group with a member in the air (an NPC craft's pilot) is not folded until it " +
+                 "lands — folding retires the craft mid-flight in front of the player — unless every player " +
+                 "is beyond this, so a flight cannot keep a group real for ever. Above despawnRadius.")]
+        [SerializeField] private float airborneFoldRadius = 750f;
+
         [Tooltip("How far the spawner may search for walkable ground under a member's slot.")]
         [SerializeField] private float spawnSampleDistance = 25f;
+
+        [Tooltip("Finds the ground under a group whose members were in the air when it was read back (a Sky " +
+                 "wing folded mid-flight), so it comes back on foot (D4).")]
+        [SerializeField] private PhysicsGroundProbe groundProbe = new PhysicsGroundProbe();
 
         [Header("Simulation")]
         [Tooltip("Seconds between virtual ticks. A record has nothing to interpolate, so this can " +
@@ -73,6 +82,19 @@ namespace SpaceGame.Agents
         [Tooltip("A vessel parked empty at its dock within this distance of a group about to fly out is " +
                  "boarded instead of a new one being spawned beside it.")]
         [SerializeField] private float dockReuseRadius = 150f;
+
+        // Cruise height for an air patrol whose members carry no NpcFlightModule — which then cannot fly and are
+        // taken away loudly (GroupFlight); only where to make them is decided by it (metres).
+        private const float DefaultAirCruiseHeight = 60f;
+
+        [Header("War parties")]
+        [Tooltip("A war-party member further than this from every standing groupmate is straying.")]
+        [SerializeField] private float strayDistance = 200f;
+
+        [Tooltip("Seconds a war-party member may stray -- that far from its groupmates, or aloft -- before the " +
+                 "party gives up on it. A stray circling overhead or stuck aboard otherwise kept a beaten " +
+                 "party from being wiped out, and held its fold.")]
+        [SerializeField] private float strayTimeout = 60f;
 
         [Header("Bounty hunters")]
         [Tooltip("Seconds before a lead on the player goes cold and the squad returns to roaming.")]
@@ -325,8 +347,9 @@ namespace SpaceGame.Agents
 
         /// <summary>
         /// Stop a group being anyone's war party. Folded with no vessel still out: removed at once.
-        /// Otherwise its quarry is cleared and it is removed once it has folded and its vessel is gone,
-        /// so players never watch either vanish.
+        /// Otherwise it is marked <see cref="NpcGroup.Released"/> and removed once it has folded and its
+        /// vessel is gone, so players never watch either vanish. Its quarry is kept: the bodies still
+        /// standing stay self-defence for that player until then.
         /// </summary>
         public void ReleaseGroup(string groupId)
         {
@@ -339,7 +362,7 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            group.QuarryProfileId = string.Empty;
+            group.Released = true;
             group.DisbandWhenFolded = true;
         }
 
@@ -358,6 +381,13 @@ namespace SpaceGame.Agents
         /// <summary>The template in this sim's list with <paramref name="templateId"/>; null when there is none.</summary>
         public NpcGroupTemplate FindTemplate(string templateId) =>
             templateId != null && templatesById.TryGetValue(templateId, out NpcGroupTemplate template) ? template : null;
+
+        /// <summary>
+        /// The template whose id hashes to <paramref name="idHash"/> (<see cref="NpcGroupTemplate.IdHash"/>);
+        /// null when none. Every machine holds the templates -- they are scene data -- so a client resolves a
+        /// replicated group's template here (DistantGroupSilhouette).
+        /// </summary>
+        public NpcGroupTemplate FindTemplateByHash(int idHash) => NpcGroupTemplate.FindByIdHash(templatesById.Values, idHash);
 
         /// <summary>
         /// Make a folded group real now rather than on the next tick, at its <see cref="NpcGroup.SpawnPoses"/> when set:
@@ -412,9 +442,16 @@ namespace SpaceGame.Agents
 
             TickVirtual(group, template, delta);
 
-            if (NearestPlayerDistance(group.Position) <= spawnRadius)
+            if (NearestPlayerDistance(group.Position) <= SpawnRadiusFor(template))
                 Spawn(group, template);
         }
+
+        /// <summary>
+        /// How near a player spawns <paramref name="template"/>'s folded group: an air patrol's own radius (it pops
+        /// into an open sky, so further out), never past <see cref="airborneFoldRadius"/>, where it would fold again.
+        /// </summary>
+        private float SpawnRadiusFor(NpcGroupTemplate template) =>
+            template.airPatrol.IsSet ? Mathf.Min(template.airPatrol.spawnRadius, airborneFoldRadius) : spawnRadius;
 
         private void TickSpawned(NpcGroup group, NpcGroupTemplate template, float delta)
         {
@@ -437,14 +474,121 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            if (!string.IsNullOrEmpty(group.QuarryProfileId) && !InFlight(group, template))
+                GiveUpOnStrays(group, delta);
+
+            WarPartyEscorts.Steer(group, template.transport);
+
             group.Position = CurrentPosition(group);
-            HandGoalToSteeringLeader(group);
+
+            // An air patrol's record is its route: the patrol steers its pilots from it and nothing reads a
+            // pilot's own goal back.
+            if (template.airPatrol.IsSet) NpcAirPatrol.Steer(group, template.airPatrol, delta);
+            else HandGoalToSteeringLeader(group);
 
             if (group.IsWarParty) RefreshQuarryLead(group, delta);
             else if (template.bountyHunters) RefreshLead(group, delta);
 
-            if (NearestPlayerDistance(group.Position) > despawnRadius)
+            float nearest = NearestPlayerDistance(group.Position);
+            if (nearest > despawnRadius && (nearest > airborneFoldRadius || !AnyMemberAloft(group)))
                 Despawn(group, template);
+        }
+
+        /// <summary>Is any member flying — launched, or seated in an <see cref="IAirborneCarrier"/>?</summary>
+        private static bool AnyMemberAloft(NpcGroup group)
+        {
+            foreach (GameObject member in group.Live)
+                if (IsAloft(member)) return true;
+            return false;
+        }
+
+        private static bool IsAloft(GameObject member) =>
+            member != null &&
+            (AirborneSeat.IsSeatedAloft(member.transform) ||
+             (member.TryGetComponent(out NpcFlightModule flight) && flight.InFlight));
+
+        /// <summary>
+        /// A war party's members that have strayed for longer than <see cref="strayTimeout"/> -- aloft, or
+        /// further than <see cref="strayDistance"/> from every standing groupmate on the ground -- are given
+        /// up on once no player is near enough to see them go: one circling unstreamed ground, stuck aboard
+        /// a vessel that flew home, or lost far away otherwise stood between a beaten party and its wipe,
+        /// and held its fold. Never the last one standing of a party that has lost nobody: an empty party
+        /// reads as wiped out, and a defeat nobody fought would be credited.
+        /// </summary>
+        private void GiveUpOnStrays(NpcGroup group, float delta)
+        {
+            List<GameObject> standing = StandingBodies(group);
+            int remaining = standing.Count;
+            bool lostAnyone = group.FightersDead > 0 || group.Fallen.Count > 0;
+
+            foreach (GameObject member in standing)
+            {
+                if (!IsStraying(member, standing))
+                {
+                    group.StrayFor.Remove(member);
+                    continue;
+                }
+
+                group.StrayFor.TryGetValue(member, out float strayed);
+                strayed += delta;
+                group.StrayFor[member] = strayed;
+
+                if (strayed <= strayTimeout || (remaining <= 1 && !lostAnyone)) continue;
+                if (NearestPlayerDistance(member.transform.position) <= despawnRadius) continue;   // never in view
+
+                GiveUpOnStray(group, member);
+                remaining--;
+            }
+        }
+
+        /// <summary>Aloft, or on the ground with standing groupmates there and none of them within <see cref="strayDistance"/>.</summary>
+        private bool IsStraying(GameObject member, List<GameObject> standing)
+        {
+            if (IsAloft(member)) return true;
+
+            bool anyGroupmate = false;
+            foreach (GameObject other in standing)
+            {
+                if (other == member || IsAloft(other)) continue;
+                if (FlatDistance(member.transform.position, other.transform.position) <= strayDistance) return false;
+                anyGroupmate = true;
+            }
+
+            return anyGroupmate;
+        }
+
+        /// <summary>
+        /// Out of the party and out of the world. A rider seated on a given-up mount goes with it
+        /// (NpcPassenger.OnDestroy) and out of the party's fighters here. Not fallen: nobody beat it.
+        /// </summary>
+        private void GiveUpOnStray(NpcGroup group, GameObject member)
+        {
+            GameObject rider = GroupMembership.FighterOf(member);
+            if (rider != member && group.Fighters.Remove(rider)) group.FightersSpawned--;
+
+            group.Live.Remove(member);
+            if (group.Fighters.Remove(member)) group.FightersSpawned--;
+            group.StrayFor.Remove(member);
+            Log($"'{member.name}' left '{group.Id}': given up as a stray");
+            NpcSpawn.Remove(member);
+        }
+
+        /// <summary>
+        /// Every standing body of the group: its spawned members, and fighters in no member's saddle (a
+        /// rider who dismounted). A seated rider is where its mount is.
+        /// </summary>
+        private static List<GameObject> StandingBodies(NpcGroup group)
+        {
+            var standing = new List<GameObject>();
+
+            foreach (GameObject member in group.Live)
+                if (GroupMembership.IsStanding(member)) standing.Add(member);
+
+            foreach (GameObject fighter in group.Fighters)
+                if (GroupMembership.IsStanding(fighter) && !group.Live.Contains(fighter) && !IsSeatedInGroup(group, fighter))
+                    standing.Add(fighter);
+
+            return standing;
         }
 
         private void TickVirtual(NpcGroup group, NpcGroupTemplate template, float delta)
@@ -454,6 +598,12 @@ namespace SpaceGame.Agents
             if (group.Owner == NpcGroup.OwnerExpedition)
             {
                 if (group.HasGoal) group.AdvanceToward(FoldedSpeed(group, template), delta);
+                return;
+            }
+
+            if (template.airPatrol.IsSet)
+            {
+                NpcAirPatrol.TickVirtual(group, template.airPatrol, template.travelSpeed, delta);
                 return;
             }
 
@@ -617,14 +767,24 @@ namespace SpaceGame.Agents
                                $"GroupMembership.GunnerIndexStride ({GroupMembership.GunnerIndexStride}): a gunner " +
                                "can share another member's rider's loadout roll. Raise the stride.", this);
 
+            // A war party comes back with its losses: whoever fell in an earlier spawn stays fallen.
+            if (Enumerable.Range(0, plan.Count).All(group.HasFallen))
+            {
+                group.WipedOut = true;
+                Log($"{template.displayName} has nobody left to spawn: wiped out");
+                return;
+            }
+
             group.Live.Clear();
             group.Fighters.Clear();
+            group.StrayFor.Clear();
+            group.Escorts.Clear();
             group.FightersSpawned = 0;
             group.FightersDead = 0;
             group.QuarrySeenThisSpawn = false;
 
             // The riders are counted before anyone is spawned, because the count chooses the vessel.
-            int riderCount = plan.Count(NpcGroupComposition.Rides);
+            int riderCount = plan.Where((_, index) => !group.HasFallen(index)).Count(NpcGroupComposition.Rides);
             GameObject vessel = InFlight(group, template) && riderCount > 0
                 ? BoardTransport(group, template, riderCount)
                 : null;
@@ -641,22 +801,31 @@ namespace SpaceGame.Agents
                 : group.Position;
             Vector3 heading = group.Heading;
             Quaternion facing = FacingAlong(heading);
-            int followerIndex = 0;
             bool leaderTaken = false;
 
-            for (int index = 0; index < plan.Count; index++)
+            // Members with their own wings escort the vessel: made seated in mid-air round the hull, they take
+            // off once it is launched (WarPartyEscorts). Without a vessel they simply walk with the party.
+            List<GameObject> fliers = vessel != null ? new List<GameObject>() : null;
+            int flierCount = vessel != null
+                ? plan.Where((member, index) => member.OwnWings && member.Prefab != null && !group.HasFallen(index)).Count()
+                : 0;
+
+            // An air patrol is made in the air: every member seated at cruise height over the record, the
+            // leader at its centre and the rest on its chevron, all taking off at once (NpcAirPatrol).
+            bool airborne = template.airPatrol.IsSet;
+            Vector3 ground = airborne && groundProbe.TryGround(group.Position, out Vector3 under, out _) ? under : group.Position;
+            Vector3 airOrigin = ground + Vector3.up * AirCruiseHeight(plan);
+            int wingIndex = 0;
+
+            // The same places the distant silhouette draws the folded group in (GroupColumnLayout).
+            foreach (ColumnPlace place in GroupColumnLayout.Places(plan, origin, heading, template.formation))
             {
+                int index = place.PlanIndex;
+                if (group.HasFallen(index)) continue;
+
                 PlannedMember planned = plan[index];
-                if (planned.Prefab == null) continue;
-
-                bool leads = planned.Leads && !leaderTaken;
-
-                Vector3 slot = leads
-                    ? origin
-                    : FormationMath.SlotPosition(followerIndex, origin, heading,
-                                                 template.formation, followerIndex * 7919, 0f);
-
-                if (!leads) followerIndex++;
+                bool leads = place.Leads;
+                Vector3 slot = place.Position;
 
                 // Crew ride a carrier already spawned earlier in the plan (templates list carriers
                 // first). Marching, they wake seated; stopped, they wake on foot at its gangway.
@@ -664,11 +833,16 @@ namespace SpaceGame.Agents
                 bool crewAboard = carrier != null && !group.CrewAshore;
                 if (carrier != null) slot = crewAboard ? carrier.transform.position : carrier.GangwayPoint;
 
+                bool escorts = fliers != null && planned.OwnWings;
+                if (escorts) slot = WarPartyEscorts.SpawnPoint(vessel.transform, template.transport, fliers.Count, flierCount);
+                if (airborne) slot = NpcAirPatrol.SpawnPoint(airOrigin, heading, leads, leads ? 0 : wingIndex++, template.airPatrol);
+
                 Pose pose = poses != null && index < poses.Count ? poses[index] : new Pose(slot, facing);
 
                 // Known before the spawn, so a rider is made with its NavMeshAgent already off. Crew
-                // never take a vessel seat (Rides), even one left over when their carriers are full.
-                bool seated = crewAboard ||
+                // never take a vessel seat (Rides), even one left over when their carriers are full; an
+                // escort flier is made in mid-air with its agent off too, and boards its own craft.
+                bool seated = crewAboard || escorts || airborne ||
                               (riders != null && NpcGroupComposition.Rides(planned) && riders.Count < seats);
 
                 // Stamped before the network spawn, so the loadout roll in OnNetworkSpawn is seeded, and
@@ -683,7 +857,11 @@ namespace SpaceGame.Agents
 
                 leaderTaken |= leads;
                 group.Live.Add(member);
-                if (seated && !planned.Crew) riders.Add(member);
+                if (escorts) fliers.Add(member);
+                else if (seated && !planned.Crew) riders.Add(member);
+
+                if (planned.OwnWings && member.TryGetComponent(out EntityLootTable loot))
+                    loot.MarkWarFlier(template.transport.flierWeaponDropChance);
 
                 // Both are network-spawned by now (NpcSpawn.Create), so the seating replicates.
                 if (carrier != null) carrier.Take(member, crewAboard);
@@ -694,7 +872,14 @@ namespace SpaceGame.Agents
                 Configure(member, group, template, leads);
             }
 
-            if (vessel != null) Launch(vessel, group, template, riders);
+            if (vessel != null)
+            {
+                Launch(vessel, group, template, riders);
+                if (fliers.Count > 0)
+                    WarPartyEscorts.TakeOff(group, vessel.transform, template.transport, fliers, GroundUnder(vessel.transform.position, group));
+            }
+
+            if (airborne) NpcAirPatrol.TakeOff(group, template.airPatrol, ground);
 
             if (group.Live.Count == 0)
             {
@@ -837,8 +1022,9 @@ namespace SpaceGame.Agents
 
             // Only the leader gets the task list. A follower with its own tasks would set its own
             // goal, and GoalTravelModule sits below the formation — so it would spend the journey
-            // being pulled two ways and arrive at neither.
-            if (leads && member.TryGetComponent(out NpcTaskModule tasks))
+            // being pulled two ways and arrive at neither. An air patrol's pilots get neither: the
+            // record's route is their errand (NpcAirPatrol).
+            if (leads && !template.airPatrol.IsSet && member.TryGetComponent(out NpcTaskModule tasks))
             {
                 tasks.SetHome(group.Position);
 
@@ -957,10 +1143,29 @@ namespace SpaceGame.Agents
         {
             group.Position = CurrentPosition(group);
 
-            // Read the leader's live goal back into the record, so a caravan that chose a new
-            // destination while it was real does not forget it the moment it folds away. The goal
-            // from whoever is routing the column now; the task index from the flagged leader, the
-            // only member given the task list.
+            // An air patrol's record already holds its errand (NpcAirPatrol steers from it); nothing to read back.
+            if (!template.airPatrol.IsSet) ReadErrandBack(group);
+
+            // Still aboard: the vessel folds with its riders, and the record flies on from where it was.
+            // Dropped off: the empty vessel is TickTransport's, unless it is already out of sight too.
+            if (group.Transport != null &&
+                (!group.Delivered || NearestPlayerDistance(group.Transport.transform.position) > despawnRadius))
+                DespawnTransport(group);
+
+            ReadMembersBack(group);
+            DespawnMembers(group);
+            group.Spawned = false;
+            Log($"{template.displayName} folded back to a record");
+        }
+
+        /// <summary>
+        /// Read the leader's live goal back into the record, so a caravan that chose a new
+        /// destination while it was real does not forget it the moment it folds away. The goal
+        /// from whoever is routing the column now; the task index from the flagged leader, the
+        /// only member given the task list.
+        /// </summary>
+        private static void ReadErrandBack(NpcGroup group)
+        {
             GameObject steering = SteeringLeader(group);
             if (steering != null && steering.TryGetComponent(out AgentGoal goal) && goal.HasGoal)
             {
@@ -974,17 +1179,6 @@ namespace SpaceGame.Agents
                 ReadTaskBack(group, tasks);
 
             ReadBackCrew(group);
-
-            // Still aboard: the vessel folds with its riders, and the record flies on from where it was.
-            // Dropped off: the empty vessel is TickTransport's, unless it is already out of sight too.
-            if (group.Transport != null &&
-                (!group.Delivered || NearestPlayerDistance(group.Transport.transform.position) > despawnRadius))
-                DespawnTransport(group);
-
-            ReadMembersBack(group);
-            DespawnMembers(group);
-            group.Spawned = false;
-            Log($"{template.displayName} folded back to a record");
         }
 
         /// <summary>
@@ -1140,9 +1334,37 @@ namespace SpaceGame.Agents
             group.TransportParkedFor = 0f;
         }
 
-        /// <summary>A spawned group's position: its vessel's while aboard, else its members' centroid.</summary>
-        private static Vector3 CurrentPosition(NpcGroup group) =>
-            !group.Delivered && group.Transport != null ? group.Transport.transform.position : Centroid(group);
+        /// <summary>
+        /// A spawned group's position: its vessel's while aboard, else its members' centroid put back on
+        /// the ground — the centroid is mid-air while its members fly.
+        /// </summary>
+        private Vector3 CurrentPosition(NpcGroup group) =>
+            !group.Delivered && group.Transport != null
+                ? group.Transport.transform.position
+                : GroundedPosition(Centroid(group), spawnSampleDistance, groundProbe);
+
+        /// <summary>The cruise height an air patrol is made at: its first flier's own (NpcFlightModule.cruiseHeight).</summary>
+        private static float AirCruiseHeight(List<PlannedMember> plan)
+        {
+            foreach (PlannedMember member in plan)
+                if (member.Prefab != null && member.Prefab.TryGetComponent(out NpcFlightModule flight))
+                    return flight.CruiseHeight;
+            return DefaultAirCruiseHeight;
+        }
+
+        /// <summary>The ground under <paramref name="point"/>, else the group's own (ground-projected) position.</summary>
+        private Vector3 GroundUnder(Vector3 point, NpcGroup group) =>
+            groundProbe.TryGroundBelow(point, out Vector3 ground) ? ground : group.Position;
+
+        /// <summary>
+        /// The NavMesh nearest <paramref name="point"/> within <paramref name="navMeshReach"/>, else the
+        /// ground straight under it — the members' centroid is mid-air while they fly.
+        /// </summary>
+        public static Vector3 GroundedPosition(Vector3 point, float navMeshReach, PhysicsGroundProbe probe)
+        {
+            if (NavMesh.SamplePosition(point, out NavMeshHit hit, navMeshReach, NavMesh.AllAreas)) return hit.position;
+            return probe != null && probe.TryGroundBelow(point, out Vector3 ground) ? ground : point;
+        }
 
         /// <summary>
         /// Take a group's bodies out of the world: its spawned members, and every fighter that is no
@@ -1162,6 +1384,8 @@ namespace SpaceGame.Agents
 
             group.Live.Clear();
             group.Fighters.Clear();
+            group.StrayFor.Clear();
+            group.Escorts.Clear();
         }
 
         private static bool IsSeatedInGroup(NpcGroup group, GameObject rider)
@@ -1179,21 +1403,18 @@ namespace SpaceGame.Agents
                 if (group.Live[i] == null) group.Live.RemoveAt(i);
         }
 
+        /// <summary>
+        /// Where the group's standing bodies are (<see cref="StandingBodies"/>). Not its corpses: a body lies
+        /// for minutes where it fell, and counting it dragged the fold and abandon checks back to the fight.
+        /// </summary>
         private static Vector3 Centroid(NpcGroup group)
         {
-            if (group.Live.Count == 0) return group.Position;
+            List<GameObject> standing = StandingBodies(group);
+            if (standing.Count == 0) return group.Position;
 
             Vector3 sum = Vector3.zero;
-            int count = 0;
-
-            foreach (GameObject member in group.Live)
-            {
-                if (member == null) continue;
-                sum += member.transform.position;
-                count++;
-            }
-
-            return count > 0 ? sum / count : group.Position;
+            foreach (GameObject member in standing) sum += member.transform.position;
+            return sum / standing.Count;
         }
 
         // ── Bounty hunter leads ──────────────────────────────────────────────────
@@ -1447,6 +1668,7 @@ namespace SpaceGame.Agents
         {
             spawnRadius = Mathf.Max(20f, spawnRadius);
             despawnRadius = Mathf.Max(spawnRadius + 50f, despawnRadius);
+            airborneFoldRadius = Mathf.Max(despawnRadius, airborneFoldRadius);
             spawnSampleDistance = Mathf.Max(1f, spawnSampleDistance);
             transportRetryDelay = Mathf.Max(0f, transportRetryDelay);
             dockReuseRadius = Mathf.Max(0f, dockReuseRadius);

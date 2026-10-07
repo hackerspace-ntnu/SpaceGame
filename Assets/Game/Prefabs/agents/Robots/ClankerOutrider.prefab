@@ -1273,6 +1273,7 @@ GameObject:
   - component: {fileID: 8053404926183458829}
   - component: {fileID: -2223607601577834730}
   - component: {fileID: -7582973309246487615}
+  - component: {fileID: 2939641563216368641}
   m_Layer: 0
   m_Name: ClankerOutrider
   m_TagString: Untagged
@@ -1546,18 +1547,6 @@ MonoBehaviour:
   headAimHeight: 1.6
   headInset: 0.15
   sightRecheckInterval: 0.2
-  memoryDuration: 12
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
 --- !u!114 &6699909686328855906
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2376,3 +2365,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &2939641563216368641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9222632965478916354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant

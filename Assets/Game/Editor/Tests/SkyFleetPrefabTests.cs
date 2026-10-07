@@ -114,6 +114,28 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(manager.NetworkConfig.Prefabs.NetworkPrefabsLists.Any(l => l != null && l.Contains(hull)));
         }
 
+        // A hull is driven by an AgentController, which alone makes a prefab a body to RagdollWiring,
+        // and SkyFleet sits outside both vehicle folders. A wired hull goes limp under a blast and
+        // reads as a character to the ledge probe, so the deck could never be climbed onto.
+        [TestCaseSource(nameof(HullPaths))]
+        public void Hull_IsNotARagdollBody(string path)
+        {
+            Assert.IsFalse(RagdollWiring.IsBody(Load(path), path), "a moving deck is a machine, not a body");
+
+            const string nomadPath = "Assets/Game/Prefabs/Agents/Characters/Nomad.prefab";
+            Assert.IsTrue(RagdollWiring.IsBody(Load(nomadPath), nomadPath), "counter-case: a nomad still falls limp");
+        }
+
+        private static string[] FleetPrefabPaths => HullPaths.Append(SkyCityBuilder.PrefabPath).ToArray();
+
+        [TestCaseSource(nameof(FleetPrefabPaths))]
+        public void FleetPrefab_CarriesNoRagdoll(string path)
+        {
+            GameObject prefab = Load(path);
+            Assert.IsEmpty(prefab.GetComponentsInChildren<SpaceGame.Gameplay.Ragdoll.AgentRagdoll>(true));
+            Assert.IsEmpty(prefab.GetComponentsInChildren<SpaceGame.Gameplay.Ragdoll.RagdollRig>(true));
+        }
+
         [Test]
         public void Flagship_IsASettlementDeckWithItsPartsWired()
         {

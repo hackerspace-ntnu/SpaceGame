@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Locomotion;
 using SpaceGame.Vehicles;
+using SpaceGame.Vehicles.Monowheel;
 
 namespace SpaceGame.EditorTools
 {
@@ -23,6 +25,26 @@ namespace SpaceGame.EditorTools
                                           DesertCrawlerBuilder.PeakFootfallsPerSecond);
             yield return new TestCaseData(StriderCrabOutriderBuilder.PrefabPath, StriderCrabOutriderBuilder.PuffsPerFootfall,
                                           StriderCrabOutriderBuilder.PeakFootfallsPerSecond);
+        }
+
+        /// Every vehicle in the city and, for the legged ones, its near dust's peak (puffs/s); NaN: read off the prefab.
+        public static IEnumerable<TestCaseData> CityVehicles()
+        {
+            yield return new TestCaseData(StriderCityBuilder.HabitatPath, StriderCityBuilder.PeakFootfallsPerSecond * StriderCityBuilder.PuffsPerFootfall);
+            yield return new TestCaseData(DesertCrawlerBuilder.PrefabPath, DesertCrawlerBuilder.PeakFootfallsPerSecond * DesertCrawlerBuilder.PuffsPerFootfall);
+            yield return new TestCaseData(StriderCrabOutriderBuilder.PrefabPath,
+                                          StriderCrabOutriderBuilder.PeakFootfallsPerSecond * StriderCrabOutriderBuilder.PuffsPerFootfall);
+            foreach ((string _, string variant) in StriderBargeBuilder.Barges)
+                yield return new TestCaseData(StriderBargeBuilder.PrefabPath(variant), float.NaN);
+            foreach (string variant in StriderMonowheelBuilder.Singles.Concat(StriderMonowheelBuilder.Doubles))
+                yield return new TestCaseData(StriderMonowheelBuilder.PrefabPath(variant), float.NaN);
+        }
+
+        private static float NearPeak(GameObject prefab, float leggedPeak)
+        {
+            if (!float.IsNaN(leggedPeak)) return leggedPeak;
+            if (prefab.TryGetComponent(out RollingDust rolling)) return rolling.ContactCount * rolling.RateAtFullSpeed;
+            return prefab.GetComponentInChildren<MonowheelPresentation>(true).DustAtFullSpeed;
         }
 
         private static GameObject Load(string path)
@@ -55,6 +77,27 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(VehicleDustWiring.FootfallCap(peak, puffs), dust.Cloud.main.maxParticles,
                             "the cloud's cap is not the one its peak footfall rate needs");
             AssertSharedSand(dust.Cloud);
+        }
+
+        [TestCaseSource(nameof(CityVehicles))]
+        public void ACityVehicle_ThrowsFarDust_InItsNearDustsBand(string path, float leggedPeak)
+        {
+            GameObject prefab = Load(path);
+            FarDust far = prefab.GetComponentInChildren<FarDust>(true);
+            Assert.IsNotNull(far, $"{prefab.name} has no far dust: rebuild it");
+            Assert.AreEqual(VehicleDustWiring.FarCloudName, far.name);
+            Assert.AreSame(prefab.transform, far.transform.parent);
+            Assert.AreSame(far.GetComponent<ParticleSystem>(), far.Cloud);
+
+            IDustLodBand band = prefab.GetComponentInChildren<IDustLodBand>(true);
+            Assert.AreEqual(band.LodNear, far.FadeNear, "fades in where the near dust starts fading out");
+            Assert.AreEqual(band.LodFar, far.FadeFar);
+            Assert.AreEqual(NearPeak(prefab, leggedPeak) * VehicleDustWiring.FarDustRateFraction, far.Rate, 1e-4f);
+            Assert.AreEqual(VehicleDustWiring.FarDustCullDistance, far.CullDistance);
+            Assert.AreEqual(DustCloudRecipe.MinSize * VehicleDustWiring.FarDustSizeMultiplier, far.Cloud.main.startSize.constantMin, 1e-4f);
+            Assert.AreEqual(ParticleSystemShapeType.Box, far.Cloud.shape.shapeType, "born up the hull, not on the sand: rebuild it");
+            Assert.AreEqual(VehicleDustWiring.FarDustRiseGravity(), far.Cloud.main.gravityModifier.constant, 1e-5f, "rises: rebuild it");
+            AssertSharedSand(far.Cloud);
         }
 
         /// The cap was sized for `peak` feet landing a second. Walk the real machine flat out, then

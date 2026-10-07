@@ -730,5 +730,20 @@ namespace SpaceGame.Core
         // Server → everyone, on the PLAYER's relay: stand this knocked-down player up now. Every
         // machine runs its own copy of the ragdoll, so every machine has to be told.
         public const ushort GotUp = 128; // server → everyone, on the PLAYER's relay
+
+        // ── Burnt-out ship modules ──
+        // Taker → server, on the SHIP's channel: "pull the burnt-out unit out of this socket".
+        // A = the socket's index in ShipPartRack.Sockets. The server re-checks that the unit is
+        // still there and has burned and been put out, pops a FizzlingHusk onto the floor and
+        // clears the rack's broken bit, which reaches everyone through the rack's replicated mask.
+        // Handled by BrokenShipPart.
+        public const ushort ShipPartTakeBroken = 129; // taker → server, on the SHIP's channel
+
+        // ── Lifted loads ──
+        // Carrier → server, on the LOAD's channel. Subject = the carrier's body. A = 1: "lift it" — the
+        // server checks reach and that nobody holds it and writes Liftable's replicated state. A = 0:
+        // "I put it down here" — P/R = the rest pose the carrier's machine is lowering it onto, which the
+        // server takes unless its own view of the load disagrees. Handled by Liftable.
+        public const ushort LiftRequest = 130; // carrier → server, on the LOAD's channel
     }
 }

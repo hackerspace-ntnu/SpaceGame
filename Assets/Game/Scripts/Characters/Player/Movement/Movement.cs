@@ -72,6 +72,7 @@ namespace SpaceGame.Characters
         [SerializeField] private Animator animator;
         [SerializeField] private CapsuleCollider playerCollider;
         private PlayerStance stance;
+        private LedgeClimber ledgeClimber;
         private Vector2 moveInput;
         private float jumpCooldownTimer;
         private bool jumpOnCooldown;
@@ -114,6 +115,9 @@ namespace SpaceGame.Characters
         /// it haul" half of a pull strength — so it is the authored ceiling, not the current speed.
         /// </summary>
         public float SprintSpeed => sprintSpeed;
+
+        /// <summary>The ordinary walk, in m/s: what a carried load slows the player down from.</summary>
+        public float WalkSpeed => moveSpeed;
 
         /// <summary>
         /// Where the player is asking to go, in world space, normalised — zero when they are not
@@ -246,6 +250,7 @@ namespace SpaceGame.Characters
         private void Awake()
         {
             stance = GetComponent<PlayerStance>();
+            ledgeClimber = GetComponent<LedgeClimber>();
         }
 
         private void Start()
@@ -713,6 +718,14 @@ namespace SpaceGame.Characters
             // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
             // a smaller number and the player would go lower for having timed it well.
             if (bouncing || climbing || HaulingBlocksActions)
+            {
+                return;
+            }
+
+            // A wall too tall to jump onto is climbed instead. Asked here, before the leg jump, rather
+            // than by a second Jump subscriber: two subscribers fire in no defined order, and the jump
+            // would leave the ground in the same step the climb took the body.
+            if (ledgeClimber != null && ledgeClimber.TryClimb())
             {
                 return;
             }

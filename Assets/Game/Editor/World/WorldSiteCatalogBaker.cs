@@ -18,7 +18,9 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents.Expeditions;
+using SpaceGame.Agents;
 using SpaceGame.Agents.Residents;
+using SpaceGame.Core.Persistence;
 using SpaceGame.World;
 
 namespace SpaceGame.EditorTools
@@ -76,12 +78,13 @@ namespace SpaceGame.EditorTools
         {
             var sites = new List<WorldSiteCatalog.SiteEntry>();
             var settlements = new List<WorldSiteCatalog.SettlementEntry>();
+            var towns = new List<WorldSiteCatalog.TownEntry>();
             List<string> scenes = WorldChunkScenes.ScenePaths(config, bake.Problem);
 
             for (int i = 0; i < scenes.Count; i++)
             {
                 EditorUtility.DisplayProgressBar("Bake Site Catalog", $"{config.name}: {Path.GetFileName(scenes[i])}", (float)i / scenes.Count);
-                ReadChunkScene(scenes[i], scene => Collect(scene, sites, settlements, bake));
+                ReadChunkScene(scenes[i], scene => Collect(scene, sites, settlements, towns, bake));
             }
 
             ReportSharedIds(config, sites, bake);
@@ -91,6 +94,7 @@ namespace SpaceGame.EditorTools
 
             catalog.sites = sites.ToArray();
             catalog.settlements = settlements.ToArray();
+            catalog.towns = towns.ToArray();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssetIfDirty(catalog);
 
@@ -102,7 +106,7 @@ namespace SpaceGame.EditorTools
             }
 
             int rows = settlements.Sum(s => s.roster.Length);
-            bake.report.Append($"  {config.name}: {sites.Count} site(s), {settlements.Count} settlement(s) ({rows} roster row(s)) " +
+            bake.report.Append($"  {config.name}: {sites.Count} site(s), {settlements.Count} settlement(s) ({rows} roster row(s)), {towns.Count} town(s) " +
                                $"from {scenes.Count} chunk scene(s) → {AssetDatabase.GetAssetPath(catalog)}\n");
         }
 
@@ -128,7 +132,8 @@ namespace SpaceGame.EditorTools
         }
 
         private static void Collect(Scene scene, List<WorldSiteCatalog.SiteEntry> sites,
-                                    List<WorldSiteCatalog.SettlementEntry> settlements, Bake bake)
+                                    List<WorldSiteCatalog.SettlementEntry> settlements,
+                                    List<WorldSiteCatalog.TownEntry> towns, Bake bake)
         {
             foreach (GameObject root in scene.GetRootGameObjects())
             {
@@ -146,7 +151,85 @@ namespace SpaceGame.EditorTools
                 foreach (Settlement settlement in root.GetComponentsInChildren<Settlement>(true))
                     if (settlement.Culture != null && settlement.Culture.expeditions != null)
                         settlements.Add(EntryFor(settlement, bake));
+
+                foreach (Settlement settlement in root.GetComponentsInChildren<Settlement>(true))
+                    towns.Add(TownFor(settlement, bake));
+
+                foreach (SettlementPopulation population in root.GetComponentsInChildren<SettlementPopulation>(true))
+                    if (population.GetComponent<Settlement>() == null)
+                        towns.Add(TownFor(population, bake));
             }
+        }
+
+        // ── towns ────────────────────────────────────────────────────────────────────────────────
+
+        /// <summary>A generated settlement: whose it is comes from its population's owner, else from its people.</summary>
+        private static WorldSiteCatalog.TownEntry TownFor(Settlement settlement, Bake bake)
+        {
+            var population = settlement.GetComponent<SettlementPopulation>();
+            FactionDefinition faction = population != null && population.Owner != null
+                ? population.Owner
+                : MostCommonFaction(settlement.CharacterPrefabs());
+
+            if (faction == null)
+                bake.Problem($"{settlement.gameObject.scene.name}/{settlement.name}: none of its people has a faction, " +
+                             "so the lander's signal can never lead to it.");
+
+            return new WorldSiteCatalog.TownEntry
+            {
+                id = TownId(settlement.gameObject),
+                name = settlement.name,
+                position = settlement.transform.position,
+                radius = settlement.GeneratedExtent,
+                faction = faction,
+            };
+        }
+
+        /// <summary>A town with no generated layout (the Clankers'), whose owner is its population's.</summary>
+        private static WorldSiteCatalog.TownEntry TownFor(SettlementPopulation population, Bake bake)
+        {
+            if (population.Owner == null)
+                bake.Problem($"{population.gameObject.scene.name}/{population.name}: a SettlementPopulation with no owner.");
+
+            return new WorldSiteCatalog.TownEntry
+            {
+                id = TownId(population.gameObject),
+                name = population.name,
+                position = population.transform.position,
+                radius = population.CountRadius,
+                faction = population.Owner,
+            };
+        }
+
+        /// <summary>
+        /// The settlement's authored identity when it has one (what <see cref="Settlement.SettlementId"/> reads),
+        /// else the id derived from its scene and hierarchy, which an unchanged scene reproduces on every bake.
+        /// </summary>
+        private static string TownId(GameObject town)
+        {
+            var identity = town.GetComponent<SaveableEntity>();
+            return identity != null && identity.IsAuthored && !string.IsNullOrEmpty(identity.InstanceId)
+                ? identity.InstanceId
+                : SaveableEntity.DeriveAuthoredId(town);
+        }
+
+        /// <summary>The faction most of <paramref name="people"/> belong to; a tie goes to the first one met. Null for none.</summary>
+        private static FactionDefinition MostCommonFaction(IEnumerable<GameObject> people)
+        {
+            var counts = new Dictionary<FactionDefinition, int>();
+            FactionDefinition best = null;
+
+            foreach (GameObject person in people)
+            {
+                EntityFaction member = person.GetComponentInChildren<EntityFaction>(true);
+                if (member == null || member.Faction == null) continue;
+
+                counts.TryGetValue(member.Faction, out int count);
+                counts[member.Faction] = ++count;
+                if (best == null || count > counts[best]) best = member.Faction;
+            }
+
+            return best;
         }
 
         // ── settlements ──────────────────────────────────────────────────────────────────────────
@@ -306,6 +389,8 @@ namespace SpaceGame.EditorTools
 
             if (sitesWritten != catalog.sites.Length) return $"{sitesWritten} site(s) in the file, {catalog.sites.Length} baked";
             if (settlementsWritten != catalog.settlements.Length) return $"{settlementsWritten} settlement(s) in the file, {catalog.settlements.Length} baked";
+            int townsWritten = Occurrences(text, "faction: ");
+            if (townsWritten != catalog.towns.Length) return $"{townsWritten} town(s) in the file, {catalog.towns.Length} baked";
             if (rowsWritten != rows) return $"{rowsWritten} roster row(s) in the file, {rows} baked";
 
             List<string> missing = catalog.settlements.Select(s => s.settlementId)

@@ -89,20 +89,9 @@ namespace SpaceGame.Items
         /// Air-only, in the two senses that matter: already falling, or standing at the top of a drop
         /// worth jumping into.
         /// </summary>
-        private bool HasLaunchRoom(Transform player)
-        {
-            Vector3 origin = player.position + Vector3.up * 0.1f;
-
-            bool airborne = !Physics.Raycast(origin, Vector3.down, groundClearance,
-                                             groundMask, QueryTriggerInteraction.Ignore);
-            if (airborne)
-                return true;
-
-            Vector3 ahead = origin + player.forward * ledgeProbeForward;
-            bool dropAhead = !Physics.Raycast(ahead, Vector3.down, minLaunchClearance,
-                                              groundMask, QueryTriggerInteraction.Ignore);
-            return dropAhead;
-        }
+        private bool HasLaunchRoom(Transform player) =>
+            FlightLaunch.HasLaunchRoom(player.position, player.forward, groundClearance, minLaunchClearance,
+                                       ledgeProbeForward, groundMask);
 
         /// <summary>
         /// Owner-side: record the heading and the speed being carried into the launch.
@@ -125,6 +114,10 @@ namespace SpaceGame.Items
             // doing and the airframe decides what it will take — see OrnithopterFlightMotor.Launch.
             arg.P = new Vector3(carry.Speed, carry.ClimbDegrees, 0f);
         }
+
+        /// <summary>Is <paramref name="item"/> a wing pack — what flies a Sky nomad and what its corpse may drop?</summary>
+        public static bool IsWingPack(InventoryItem item) =>
+            item != null && item.itemPrefab != null && item.itemPrefab.GetComponent<WingPackItem>() != null;
 
         /// <summary>
         /// Turn how the pilot was moving into how the craft starts flying.
@@ -266,24 +259,13 @@ namespace SpaceGame.Items
         public static Vector3 LaunchPosition(GameObject craftPrefab, Vector3 pilotPosition,
                                              Quaternion facing, float lift)
         {
-            Vector3 lifted = pilotPosition + Vector3.up * lift;
-
-            if (craftPrefab == null)
-                return lifted;
-
-            var prefabMount = craftPrefab.GetComponent<MountModule>();
+            var prefabMount = craftPrefab != null ? craftPrefab.GetComponent<MountModule>() : null;
             Transform seat = prefabMount != null ? prefabMount.ActiveSeatPoint : null;
             if (seat == null)
-                return lifted;
+                return pilotPosition + Vector3.up * lift;
 
-            // The seat marker in the prefab root's own space, then turned to face the launch
-            // heading — the craft is spawned rotated, and an offset measured in the prefab's frame
-            // has to be rotated with it or the correction points the wrong way for every heading
-            // but north.
-            Vector3 seatLocal = craftPrefab.transform.InverseTransformPoint(
-                seat.TransformPoint(prefabMount.SeatOffset));
-
-            return lifted - facing * seatLocal;
+            return CraftDeployment.LaunchPosition(craftPrefab.transform, seat.TransformPoint(prefabMount.SeatOffset),
+                                                  pilotPosition, facing, lift);
         }
 
         /// <summary>
@@ -398,17 +380,8 @@ namespace SpaceGame.Items
             craftMount = null;
             craftMotor = null;
 
-            // Despawn through the world service so the craft disappears for every player, not just
-            // whoever was flying it. Only the server may retire a networked object; on a client the
-            // authoritative despawn arrives from the server, so don't destroy it out from under that.
-            if (Network.IsNetworked && !Network.Server &&
-                doomed.TryGetComponent(out NetworkObject doomedNetObj) && doomedNetObj.IsSpawned)
-            {
-                SetHeldVisible(true);
-                return;
-            }
-
-            GameServices.World.Despawn(doomed);
+            // For every player, not just whoever was flying it; a client leaves it to the server.
+            CraftDeployment.Retire(doomed);
             SetHeldVisible(true);
         }
 

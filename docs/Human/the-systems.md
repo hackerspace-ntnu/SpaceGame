@@ -88,6 +88,12 @@ A hand-built camp — tents, scaffold walkways, bell towers, a fire ring, a dril
 
 **Worth knowing:** an outpost has no beds, so exactly the characters you list move in, and they sleep where they stand; and rebuilding the prefabs from the Blender layout wipes any hand edits made to them.
 
+### The broken satellite tower *(SatelliteDish)*
+
+A rusted radar station you place by hand: a concrete base with a control room behind a steel door, stairs up to a deck and a shack, a caged ladder to the catwalk round the dish's pedestal, and a 30-metre dish with a panel torn out of it that a grappling hook can catch on. In the control room a lectern takes over the dish: right-click it and the view cuts to a camera looking at the dish, and the movement keys swing it round and tilt it up and down on a slow, heavy motor while a readout shows where it points.
+
+**Worth knowing:** everyone sees the same dish — the server turns it, one person at a time may drive it, and where it was left pointing is saved with the world. It will not tilt below 15 degrees, because lower than that its hanging beams would hit the shack roof.
+
 ### Where characters can walk *(NavMeshSystem)*
 
 One single walkable-surface map is baked for the entire world at author time and simply switched on when the game starts — nothing is calculated at runtime. All 48 tiles are opened at once to bake it, which means editing any one tile invalidates the whole thing and there is no per-tile shortcut. Caves are excluded and carry their own separate bake.
@@ -158,6 +164,12 @@ Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump h
 
 **Worth knowing:** the player is 3 m tall, so their head reaches the floor at the top of a ladder a whole body height before their feet do — the climb steps you over that lip rather than stopping you under it.
 
+### Climbing ledges *(LedgeClimbing)*
+
+Press Space in front of something too tall to jump onto and you climb it — up onto the top if there is room to stand there, over it if it is only a fence or a thin wall. It reaches about a jump plus an arm's length, roughly four and a half metres. The grappling hook finishes the same way: reel yourself to a hook near an edge and you hang just under it until you press Space to pull yourself up. Hold Space while jumping or falling past an edge and you catch it on the way. There are no climbing animations yet, so the climb runs on a fixed timer until they are made.
+
+**Worth knowing:** a double tap of Space always opens the wings, even if its first tap had started a climb — the climb is cancelled.
+
 ### Creatures, NPCs and turrets *(AgentSystem)*
 
 Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.
@@ -181,6 +193,12 @@ Sitting used to be a trick: a villager was lifted to whatever height was under i
 A cart used to be a prop glued to a pair of hands, held up over the head with its wheels in the air. Now it is a real object standing on the ground: walk up, right-click, and your hands close on its handlebar; the cart comes round in front of you, wheels on the sand, and follows wherever you walk, turning when you turn. Shafts lift as your hands do. Let go (right-click again, jump, or draw something) and it stays where it stands. A villager whose job calls for a cart does the same.
 
 **Worth knowing:** nothing is sent while a cart moves, because it simply follows the body that pushes it; only where it was left is remembered, for everyone and in the save. Carts do not yet bump into walls, and no settlement has a cart beside the drover's post yet, so the drover still works empty-handed.
+
+### Lifting something heavy by one end *(Lifting)*
+
+The oxygen plant the crash throws out of the ship is too heavy to pick up, so you lift one end of it. Right-click its handle and your character squats, takes hold and heaves the near end up to the waist; the far end stays on the sand and slides after you, swinging round when you turn and riding up ramps and over bumps. You walk a little slower than usual, cannot sprint or jump, and Esc or right-click puts it down again where you stand; carry it to the empty frame on the ship's wall and right-click there to set it back in its mount.
+
+**Worth knowing:** the lifted end is drawn from your own body on your own screen, so it never lags your hands; everyone else sees it follow your character. Only one person can carry it at a time, and a world saved mid-carry reloads with the plant lying where you were carrying it.
 
 ### Work stations: the right motion at the right prop *(Stations)*
 
@@ -230,11 +248,19 @@ A second neutral tribe, living in a city that drifts slowly across the sky 280 m
 
 **Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
 
+The sky people also fly on their own. Each wears a folded wing pack on their back — the same aircraft you can fly. Now and then one steps off the moored city and flies down to the desert, and a pair of scouts hops from place to place by air, landing and walking the last stretch. They shoot from the cradle while they fly. Now and then a patrol of three to five passes overhead in a V, flying a long loop over the desert and never landing; and while the city is moored, a few of its people go up and circle it before landing back on the deck. When the tribe goes to war, fliers escort its airship and come down beside it where it drops its warriors. Shoot a flier down and its body and its pack fall to the ground together, and the pack is yours to fly — someone killed on foot keeps theirs on, unless they came with a war party's escort. A flight in progress is not saved: after a reload the flier is gone, or back on its feet, and a patrol simply appears in the air again.
+
 ### The tribe that lives on walking machines *(Striders)*
 
 A third neutral tribe of masked, long-coated wanderers, whose home is a city that walks: two six-legged houses with a crew of six on each deck, three tracked dune barges with four lookouts on each roof, two digging crawlers, two crab riders scouting alongside, and a column of one-wheeled monowheels — some ridden two-up with a gunner riding pillion — a pair of which are always off sweeping wide of the city and riding back in, all marching together from one salvage site to the next. One to three elders ride with it — old Striders whose bodies now walk on four robot legs — each standing on the front of a house's deck. At every stop the crew and the elders climb down one by one and work the ground while the crawlers spread out and dig; when the stay is over they are called back, and the city does not move off until the last of them is back aboard. Its war parties are convoys of those same monowheels, who dismount to fight on foot like every rider does.
 
 **Worth knowing:** the houses are the player's own walking rig with the helm taken out — you can climb onto a deck and ride along, but nobody can steer a Strider house except the city itself; the barges are the same — you can walk aboard and go inside, but only the city drives them — and in this first version the machines cannot be destroyed.
+
+### Standing still when nobody is near *(SimulationDistance)*
+
+People and animals that no player is near simply stop: they stand where they were, still visible, until someone comes within about 250 metres, and they only settle again once everyone is beyond roughly 360. This keeps tribes, Clanker towns and wildlife from fighting each other where nobody can see. Machines and travelling groups never stop, so the sky city still drifts in the distance, and anything hunting a player keeps coming.
+
+**Worth knowing:** a shot from far away wakes its target for half a minute, so a sniped creature fights back or flees instead of standing there as a dummy.
 
 ### Picking a creature up off the ground *(CarriedAgent)*
 
@@ -305,6 +331,18 @@ Tallest includes you. The storm has no idea who threw it, and that is the whole 
 You can walk into it, and it is meant to be worth doing. The cloud and the rain are both real volumes rather than pictures painted on a surface, so the cloud boils and turns over as you watch it, and the rain has depth — curtains of it crossing in front of each other, gusts sweeping through, and the far side of the storm eleven metres away through the weather. When a bolt goes, it lights the cloud from the inside, from the place it actually left.
 
 **Worth knowing:** the cloud is drawn no wider than the circle the lightning can reach, so what you can see is what can hit you. There is a limit on how many storms can stand at once; uncork past it and the oldest one blows out.
+
+### The lander's burnt-out transmitter *(ShipTransmitterFire)*
+
+The ship lands with its long-range transmitter dead: a scorched box jammed in a cradle on the cabin wall, spitting sparks. The crash also burst the back door open and threw the oxygen plant out onto the sand, so there is no air in the cabin until the crew drag it back by its handle — slowly, scraping, faster with two — and give it a power cell. A little after the plant is running again, the dead transmitter catches fire. A fire extinguisher hangs in a bracket nearby: grab it and hold the trigger on the flames until they die. Only then does the unit come loose; pulled out, it drops on the floor, fizzles and is gone, and the working transmitter from the old satellite dish can go in its place. The ship cannot count as airworthy until it has.
+
+**Worth knowing:** the fire happens exactly once per world. Everyone sees the same fire, and a save remembers whether it is burning, how strongly, or that it has already been put out.
+
+### The signal the new transmitter hears *(ShipSignal)*
+
+The moment the working transmitter goes in, the ship picks up a voice: a looped call on the open band from someone out in the desert, telling whoever came down in the fireball to walk to them. The terminal grows a COMMS page that prints the call with a bearing and a distance, the map table marks the place, and a new objective, "Answer the signal", points the crew there with a light column on the horizon. The place is the nearest settlement that stays put and will not shoot at you: never the walking Strider city, the flying Sky City or the Clanker town, and never the settlement the wreck came down beside (anything within 300 m is skipped).
+
+**Worth knowing:** the destination is picked once per world, by the host, from where the ship actually landed, and then saved, so it never changes on reload and every player is sent to the same place. Today that is the Mars colony, about 390 m south-east of the crash site.
 
 ### Burning the ground *(Flamethrower)*
 
@@ -380,6 +418,8 @@ Your suit holds one minute of air. That is not the supply — it is the alarm. T
 
 You can carry as many tanks as fit on the pack, but only the one in the socket is plugged into you: a tank in your hand or lying on the mat is luggage. Swapping means opening the pack and dragging a fresh one into the socket, which is exactly what the suit's last minute is for.
 
+The crash landing vents every bottle and leaves the crew on an emergency suit reserve of about four minutes ("O2 RESERVE"): bring the oxygen plant home, fill an empty bottle from the gear wall at its collar, press B and seat it in the pack's socket.
+
 **Worth knowing:** the tank is where the number lives, so two tanks on your mat can read 12% and 87% and you pick. There is no way to breathe a tank without the pack — set out without one and you have sixty seconds, full stop.
 
 ### The oxygen plant *(Oxygen)*
@@ -390,7 +430,7 @@ A wall-mounted machine on the lander's main deck with two receptacles that can o
 
 ### The ship's terminal *(Terminal)*
 
-A leaning, cream-cased CRT console standing on the starboard side of the cockpit. Right-click it and the camera glides from your eyes to a seat in front of the glass, the cursor comes free, and the screen shows one of three pages: the lander itself in 3D with its missing parts glowing red (see below), a status readout in words plus who is aboard and the ship's clock, and a GPS page with the ship's position and heading and a radar of where the crew are standing. Click the tabs or press 1, 2, 3 to flip pages; Esc, right-click again, or simply walking off puts the camera back in your head.
+A leaning, cream-cased CRT console standing on the starboard side of the cockpit. Right-click it and the camera glides from your eyes to a seat in front of the glass, the cursor comes free, and the screen shows one of its pages: the lander itself in 3D with its missing parts glowing red (see below), a status readout in words plus who is aboard and the ship's clock, a GPS page with the ship's position and heading and a radar of where the crew are standing, and, once the ship can hear the outside world, a COMMS page. Until a working long-range transmitter is fitted only the 3D drawing works: every other page is snow and "NO CARRIER", and there is no COMMS tab at all. Click the tabs or press 1 to 4 to flip pages; Esc, right-click again, or simply walking off puts the camera back in your head.
 
 **Worth knowing:** the page you pick is the page everyone sees — it is a real screen in the world, so a crewmate looking over your shoulder reads what you read — and while you are at it the terminal says "In use" to anyone else. Nothing it shows is stored anywhere; every line is read off systems that already save and replicate themselves. It stands at its author's own size rather than the 1.7x the other fixtures use, because its screen leans back to face an eye above it.
 ### The ship's schematic *(ShipSchematic)*
@@ -437,6 +477,12 @@ A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; 
 
 **Worth knowing:** Crash damage is measured on how fast you close on the surface, not how fast you were travelling — gliding onto sand at 20 m/s costs nothing and a scraped wingtip costs nothing, while a held dive into a cliff is instantly fatal.
 
+### NPCs flying ornithopters *(NpcFlight)*
+
+NPCs can fly the same ornithopter you do, but not the same way: their craft is a copy of yours with the hard flight model taken out, so it simply flies where it is told — climbs to a cruising height, heads for its goal, circles down if it arrives too high, and sets its pilot down within a few metres of where it was going. Nobody can climb into an NPC's craft and take it, and it is never saved: after a load the NPC is back, not its flight.
+
+**Worth knowing:** shoot the pilot and the body drops straight down while the empty craft spirals into the ground nearby.
+
 ### The wingsuit *(Wingsuit)*
 
 A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about five metres forward for every metre down, pointing where you look — the mouse steers at exactly the sensitivity it turns your head on foot, so aiming the wing feels like aiming anything else, and the wing visibly rolls into the turn. A and D bank harder on top; Ctrl pulls your arms in and dives. Tap Space twice again to fold, and touching the ground folds it for you.
@@ -468,6 +514,12 @@ The desert monowheels are tall iron rings with wooden paddles, which a rider sit
 Everything in the Strider city kicks up the same sand clouds the monowheels do. Each time a foot of a walking house, a digging crawler or a crab outrider comes down, a ring of dust bursts out from under it, sized to the foot, and hangs in the air for several seconds; the barges leave a wall of it behind their tracks. Every computer works this out from what it already sees the machines doing, so nothing extra is sent over the network.
 
 **Worth knowing:** A dust cloud counts as something drawn, so anything that measures a machine by everything it draws sees the cloud too: the first build sat the crab outrider's rider eleven metres up in the air.
+
+### Settlements seen from afar *(SettlementLods)*
+
+The walking city's machines and the sky fleet each carry a second, cheap version of themselves that the game draws once they are far away: every piece of the machine fused into one mesh per kind of paint, which then simplifies itself further as it recedes. Nobody models these by hand; a tool makes them every time a machine is rebuilt. Far away the moving parts freeze in place. The walking city can also be seen marching in its dust from the edge of the loaded ground, long before it is close enough to come to life; when you reach it, the real city takes over in the same places.
+
+**Worth knowing:** Smoke and dust are never part of the cheap version, so they keep running at every distance.
 
 ### Tracks that turn *(TrackBelts)*
 
@@ -523,9 +575,9 @@ Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 t
 
 ### The opening objectives *(Objectives)*
 
-After the crash the crew share one short chain of objectives: try the basic controls, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
+After the crash the crew share one short chain of objectives: try the basic controls, haul the oxygen plant back in, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, get the long-range transmitter working (put out its fire, pull it, fetch a working one from the radar dish tower), answer the signal it picks up by walking to the settlement calling, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
 
-**Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, repair ship) decides what finishes it. A new kind of step, such as following a lead to a settlement, is a new small class; the chain itself does not change.
+**Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, fit transmitter, answer signal, repair ship) decides what finishes it. A new kind of step is a new small class; the chain itself does not change.
 
 ## How the game gets made
 

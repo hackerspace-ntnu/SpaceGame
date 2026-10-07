@@ -10,6 +10,7 @@
 // Clouds are the expensive part (overdraw per covered pixel), so the cap per engine is fixed at build
 // time and the rate fades out with camera distance (GDC-L1-TECH-0002). The fade starts far out: a sky
 // fleet is mostly seen from the ground, hundreds of metres off, and that is where its smoke has to read.
+using SpaceGame.Core;
 using UnityEngine;
 using SpaceGame.Vehicles.Monowheel;
 
@@ -68,8 +69,7 @@ namespace SpaceGame.Vehicles
 
         private void Update()
         {
-            Camera cam = Camera.main;
-            Present(Time.deltaTime, cam == null ? float.NaN : Vector3.Distance(cam.transform.position, transform.position));
+            Present(Time.deltaTime, ViewCamera.DistanceTo(transform.position));
         }
 
         /// <summary>One frame at a given camera distance (NaN = no camera: full smoke).</summary>

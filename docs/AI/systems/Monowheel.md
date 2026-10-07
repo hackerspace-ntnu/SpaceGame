@@ -31,7 +31,7 @@ symptoms:
   - "the monowheel dust is a row of separate blobs floating over the sand"
   - "a big dust puff cuts a hard straight line where it meets the ground"
 reads_with: [Vehicles, Jetpack, AgentSystem]
-updated: 2026-10-04
+updated: 2026-10-06
 ---
 
 # Monowheel presentation
@@ -69,7 +69,7 @@ The five desert monowheels (Runner, Hauler, Patched, Double, DoubleWide) spin th
 |---|---|---|
 | `MonowheelPresentationMath` | [MonowheelPresentationMath.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentationMath.cs) | Pure: speed step (snap detection by implied speed), spin degrees, speed fraction, rate lerp, LOD factor, ring plane normal (power iteration). |
 | `MonowheelWheel` | [MonowheelWheel.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelWheel.cs) | Serialized per-wheel measurement: ring bone, signed local axle, paddle radius, root-local contact and hub, the wheel's three systems. |
-| `MonowheelPresentation` | [MonowheelPresentation.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentation.cs) | The per-frame component. `Present(dt)` (LOD'd against `Camera.main`), `Present(dt, cameraDistance)` (NaN = no camera), `ResetBaseline()`. |
+| `MonowheelPresentation` | [MonowheelPresentation.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentation.cs) | The per-frame component. `Present(dt)` (LOD'd against `ViewCamera`, [CoreServices.md](CoreServices.md)), `Present(dt, cameraDistance)` (NaN = no camera), `ResetBaseline()`. |
 | `MonowheelPoseMath` | [MonowheelPoseMath.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPoseMath.cs) | Pure: the ground line under the hub from two samples (`GroundUnderHub`) and the nose-down pitch that puts the ski on it (`SkiPitch`). |
 | `MonowheelGround` | [MonowheelGround.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelGround.cs) | The one ground probe the presentation and `MonowheelLean` share: own physics scene, own colliders skipped by hierarchy, nearest hit. |
 | `MonowheelChassis` | [MonowheelChassis.cs](Assets/Game/Scripts/Vehicles/Monowheel/MonowheelChassis.cs) | On the kinematic `Chassis` body under Body (Strider builder): suspends its contacts with the vehicle's own colliders (`RiderCollisionIgnore`) in `Awake`; `IgnoreOwnWheel()` is public for EditMode tests. |
@@ -139,7 +139,7 @@ N/A: **no state worth persisting.** Speed, spin angle and particles are re-deriv
 - **A snap is judged by implied speed (`maxPlausibleSpeed`, 50 m/s), not distance.** A save restore, a streaming migrate or a NetworkTransform correction keeps the previous speed. A 250 ms frame hitch at top speed (5 m) still reads as driving, which a fixed 5 m threshold got wrong (caught by the Strider session).
 - **A script-created particle system with no material draws nothing, silently** ([Jetpack.md](Jetpack.md)). The builder creates both materials, throws if the shader is missing, and the self-check asserts particles exist.
 - **The ground probe uses `gameObject.scene.GetPhysicsScene()`,** so the builder's preview-scene check and a live world take the same code path. Plain `Physics.Raycast` would see nothing in the preview scene.
-- **The self-check passes `float.NaN` as camera distance.** In the editor, `Camera.main` may be a scene camera far away, and the LOD would silence the very effects being checked.
+- **The self-check passes `float.NaN` as camera distance.** In the editor, the view camera may be a game camera far away, and the LOD would silence the very effects being checked.
 - **The FBX's own root is the armature node, not a clean frame.** It's rotated (286°, 180°, 180°) by the rig tilt and the axis conversion, and scaled ×100, so its +Z is not forward. The art prefab therefore has a clean identity root with the model nested under it at identity, and speed is read along that clean root's +Z. The builder refuses a model whose front cowl isn't ahead of the hubs in that frame. The Strider "Body" child must not be yawed.
 
 ## Extending

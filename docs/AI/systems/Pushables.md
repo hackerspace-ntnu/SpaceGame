@@ -25,8 +25,8 @@ symptoms:
   - "the pusher's hands float short of the handles, or the cart is rotated a quarter turn from the way I face"
   - "a pushed cart stands in a wall, or a resident works at a pen with empty hands although a cart stands beside it"
   - "[Pushable] 'X' and 'Y' derive the same id"
-reads_with: [Seats, Residents, InteractionSystem, Multiplayer, Persistence, HandTools, PlayerCharacter]
-updated: 2026-10-04
+reads_with: [Seats, Residents, InteractionSystem, Multiplayer, Persistence, HandTools, PlayerCharacter, Lifting]
+updated: 2026-10-06
 ---
 
 # Pushables
@@ -44,6 +44,12 @@ A cart used to be a *held item*: `Carry_Cart_Hand` scaled to 3.5 m and parented 
 | The hands | placed from the body, not a pose: `armReach` of the arm's own length from the shoulders; a tilting cart gets `handsBelowShoulder`, a fixed one the height its model gives its handles (clamped to what an arm reaches). [`ReachingArm`](Assets/Game/Scripts/Presentation/Animation/ArmReach.cs) then turns the shoulder and elbow bones (pure `ArmReach.Solve`) so the **grip-frame palm** lands on the grip. Replaces the `Push` hold pose, which raised a Raxy's hands above its head |
 | Where an unheld cart stands | [`PushableLedger`](Assets/Game/Scripts/World/Pushables/PushableLedger.cs): one entry per cart **not at its authored pose**. `Release` rests the cart (wheels stay, shafts come down) and the server records it. Eased into place on every machine |
 | Identity | `Pushable.Id` = FNV-1a of `SaveableEntity.DeriveAuthoredId` ([`SceneryId`](Assets/Game/Scripts/World/SceneryId.cs), shared with `Seat`), never 0; `Find(id)`, `NearestFree(point, reach)` |
+
+### Not for heavy loads
+
+The oxygen plant thrown out in the crash is not a cart: it is runtime-spawned with its own save identity and is lifted by one
+end, not pushed. That is [Lifting.md](Lifting.md), which reuses this system's arm reach (`ReachingArm.Of`) and its
+derive-the-pose-from-the-body rule. (The 2026-10-06 server-driven drag, `Haulable`, is gone.)
 
 ## Key types
 

@@ -147,6 +147,15 @@ namespace SpaceGame.Agents
             };
         }
 
+        /// <summary>
+        /// How much amends carry <paramref name="value"/> <paramref name="margin"/> past the edge where
+        /// AtWar is left (<c>atWar + hysteresis</c>, the sticky side); 0 when it is already past it. A war
+        /// ended by an outcome rather than by the meter (WarPartyRules.EndsWar) is ended this way, through
+        /// the meter, so the band and the war can never disagree.
+        /// </summary>
+        public static float CreditToLeaveWar(float value, in GoodwillThresholds t, float margin) =>
+            Mathf.Max(0f, t.atWar + Mathf.Max(0f, t.hysteresis) + Mathf.Max(0f, margin) - value);
+
         /// <summary>Add <paramref name="delta"/>, clamped to the meter's range.</summary>
         public static float Apply(float value, float delta) => Mathf.Clamp(value + delta, Min, Max);
 

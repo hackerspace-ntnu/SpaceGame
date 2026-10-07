@@ -1,4 +1,5 @@
 // Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentation.cs
+using SpaceGame.Core;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -16,7 +17,7 @@ namespace SpaceGame.Vehicles.Monowheel
     /// expensive part, so every wheel is capped and the effect fades with camera distance
     /// (GDC-L1-TECH-0002, GDC-L1-PERF-0004).</para>
     /// </summary>
-    public sealed class MonowheelPresentation : MonoBehaviour
+    public sealed class MonowheelPresentation : MonoBehaviour, IDustLodBand
     {
         [Tooltip("Measured by MonowheelPresentationBuilder. One entry per ring.")]
         [SerializeField] private MonowheelWheel[] wheels = new MonowheelWheel[0];
@@ -71,6 +72,8 @@ namespace SpaceGame.Vehicles.Monowheel
         public Vector3 HelmHinge => helmHinge;
         public Vector3 HelmAxis => helmAxis;
         public float DustAtFullSpeed => dustAtFullSpeed;
+        public float LodNear => lodNear;
+        public float LodFar => lodFar;
         public LayerMask GroundLayers => groundLayers;
 
         /// <summary>Builder only: install the measured wheels and parts. <paramref name="ski"/> is null on a variant without one.</summary>
@@ -96,12 +99,12 @@ namespace SpaceGame.Vehicles.Monowheel
 
         private void Update() => Present(Time.deltaTime);
 
-        /// <summary>One frame of presentation, LOD'd against the main camera.</summary>
-        public void Present(float dt) => Present(dt, CameraDistance(transform.position));
+        /// <summary>One frame of presentation, LOD'd against the camera drawing this machine's view.</summary>
+        public void Present(float dt) => Present(dt, ViewCamera.DistanceTo(transform.position));
 
         /// <summary>
         /// One frame at a given camera distance (<c>float.NaN</c> = no camera, full effect). The
-        /// builder's self-check passes NaN: in the editor, Camera.main may be a scene camera far
+        /// builder's self-check passes NaN: in the editor, the view camera may be a game camera far
         /// away, and the LOD would silence the very effects the check is looking for.
         /// </summary>
         public void Present(float dt, float cameraDistance)
@@ -130,11 +133,6 @@ namespace SpaceGame.Vehicles.Monowheel
             }
         }
 
-        private float CameraDistance(Vector3 position)
-        {
-            Camera cam = Camera.main;
-            return cam == null ? float.NaN : Vector3.Distance(cam.transform.position, position);
-        }
 
         private bool Touching(Vector3 contact)
         {

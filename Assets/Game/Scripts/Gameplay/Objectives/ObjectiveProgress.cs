@@ -19,20 +19,28 @@ namespace SpaceGame.Gameplay.Objectives
         /// </summary>
         public bool Begun;
 
+        /// <summary>
+        /// Which of the current step's remarks (<see cref="ObjectiveStep.IsRemarkDue"/>) have been said,
+        /// one bit per remark index. Cleared with every new step; saved, so none is said twice.
+        /// </summary>
+        public int Remarks;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref Step);
             serializer.SerializeValue(ref Begun);
+            serializer.SerializeValue(ref Remarks);
         }
 
         /// <summary>
         /// Netcode compares old and new before marking the variable dirty, so re-stating the same
         /// progress costs nothing on the wire.
         /// </summary>
-        public bool Equals(ObjectiveProgress other) => Step == other.Step && Begun == other.Begun;
+        public bool Equals(ObjectiveProgress other) =>
+            Step == other.Step && Begun == other.Begun && Remarks == other.Remarks;
 
         public override bool Equals(object obj) => obj is ObjectiveProgress other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(Step, Begun);
+        public override int GetHashCode() => HashCode.Combine(Step, Begun, Remarks);
     }
 }

@@ -156,6 +156,7 @@ namespace SpaceGame.EditorTools
                     SerializedFields.SetFloat(so, "wanderRadius", GrazeWanderRadius);
                 });
 
+                DistanceDormancyWiring.Ensure(root);
                 PrefabUtility.SaveAsPrefabAsset(root, AppaPath, out bool saved);
                 if (!saved) Debug.LogError($"[AppaHerdAuthoring] Could not save {AppaPath}.");
                 return saved;
@@ -231,6 +232,7 @@ namespace SpaceGame.EditorTools
                 root.name = System.IO.Path.GetFileNameWithoutExtension(path);
                 configure(root);
 
+                DistanceDormancyWiring.Ensure(root);
                 PrefabUtility.SaveAsPrefabAsset(root, path, out bool saved);
                 if (!saved) Debug.LogError($"[AppaHerdAuthoring] Could not save {path}.");
                 return saved;

@@ -144,6 +144,8 @@ namespace SpaceGame.EditorTools
                 if (!RemoveHelm(instance) || !AddCrew(instance)) return;
                 AddBrain(instance);
                 VehicleDustWiring.AddFootfallDust(instance, PuffsPerFootfall, PeakFootfallsPerSecond);
+                VehicleDustWiring.AddFarDust(instance, PeakFootfallsPerSecond * PuffsPerFootfall);
+                SettlementLodBaker.Bake(instance, HabitatPath, SettlementLodSettings.Load().strider);
                 PrefabUtility.SaveAsPrefabAsset(instance, HabitatPath);
             }
             finally

@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 2967659512554277401}
   - component: {fileID: 8427077822756735096}
   - component: {fileID: 2117231612522954837}
+  - component: {fileID: -1269531545212159202}
   m_Layer: 0
   m_Name: Tool_Ladle
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-1269531545212159202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8735396079308199118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &8660815618452475477
 PrefabInstance:
   m_ObjectHideFlags: 0

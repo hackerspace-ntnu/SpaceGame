@@ -10,12 +10,13 @@
 //
 // The cap per cloud is fixed at build time and the rate fades out with camera distance
 // (GDC-L1-TECH-0002).
+using SpaceGame.Core;
 using SpaceGame.Vehicles.Monowheel;
 using UnityEngine;
 
 namespace SpaceGame.Vehicles
 {
-    public sealed class RollingDust : MonoBehaviour
+    public sealed class RollingDust : MonoBehaviour, IDustLodBand
     {
         [Tooltip("Where the machine meets the ground, at ground level. One per cloud.")]
         [SerializeField] private Transform[] contacts = new Transform[0];
@@ -52,6 +53,8 @@ namespace SpaceGame.Vehicles
         public Transform Contact(int i) => contacts[i];
         public ParticleSystem CloudAt(int i) => clouds[i];
         public float RateAtFullSpeed => rateAtFullSpeed;
+        public float LodNear => lodNear;
+        public float LodFar => lodFar;
 
         /// <summary>Builder only: the contacts, their clouds, and the speed and rate at which they peak.</summary>
         public void Configure(Transform[] groundContacts, ParticleSystem[] contactClouds, float cruiseSpeed, float peakRate)
@@ -82,8 +85,7 @@ namespace SpaceGame.Vehicles
 
         private void Update()
         {
-            Camera cam = Camera.main;
-            Present(Time.deltaTime, cam == null ? float.NaN : Vector3.Distance(cam.transform.position, transform.position));
+            Present(Time.deltaTime, ViewCamera.DistanceTo(transform.position));
         }
 
         /// <summary>One frame at a given camera distance (NaN = no camera: full dust).</summary>

@@ -58,6 +58,7 @@ namespace SpaceGame.EditorTools
             try
             {
                 Tune(contents, fauna);
+                DistanceDormancyWiring.Ensure(contents);
                 PrefabUtility.SaveAsPrefabAsset(contents, VariantPath);
             }
             finally
@@ -74,6 +75,7 @@ namespace SpaceGame.EditorTools
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(baseRat);
             try
             {
+                DistanceDormancyWiring.Ensure(instance);
                 PrefabUtility.SaveAsPrefabAsset(instance, VariantPath);
             }
             finally

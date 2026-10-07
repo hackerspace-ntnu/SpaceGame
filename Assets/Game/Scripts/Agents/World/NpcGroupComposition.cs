@@ -16,11 +16,15 @@ namespace SpaceGame.Agents
         /// <summary>Rides one of the group's carriers instead of walking (NpcGroupMemberSpec.crew).</summary>
         public readonly bool Crew;
 
-        public PlannedMember(GameObject prefab, bool leads, bool crew = false)
+        /// <summary>Flies on its own wings beside the group's vessel instead of taking a seat (RoleCount.ownWings).</summary>
+        public readonly bool OwnWings;
+
+        public PlannedMember(GameObject prefab, bool leads, bool crew = false, bool ownWings = false)
         {
             Prefab = prefab;
             Leads = leads;
             Crew = crew;
+            OwnWings = ownWings;
         }
     }
 
@@ -28,10 +32,10 @@ namespace SpaceGame.Agents
     {
         /// <summary>
         /// Whether a planned member boards the group's vessel. Every drawn member does except crew,
-        /// who ride one of the group's own carriers; one that travels another way is left out here,
-        /// and so is neither counted for the vessel nor seated.
+        /// who ride one of the group's own carriers, and fliers, who escort it on their own wings; one that
+        /// travels another way is left out here, and so is neither counted for the vessel nor seated.
         /// </summary>
-        public static bool Rides(PlannedMember member) => member.Prefab != null && !member.Crew;
+        public static bool Rides(PlannedMember member) => member.Prefab != null && !member.Crew && !member.OwnWings;
 
         public static List<PlannedMember> Resolve(NpcGroup group, NpcGroupTemplate template)
         {
@@ -61,12 +65,19 @@ namespace SpaceGame.Agents
                     return plan;
                 }
 
+                // The first member that does not fly on its own wings leads: a flier never does, since it
+                // spends the journey keeping station on the vessel rather than steering the party.
+                bool led = false;
                 foreach (RoleCount wanted in tier.roles)
                 {
                     if (wanted == null) continue;
 
                     for (int i = 0; i < Mathf.Max(1, wanted.count); i++)
-                        plan.Add(new PlannedMember(Deal(wanted.role), plan.Count == 0));
+                    {
+                        bool leads = !led && !wanted.ownWings;
+                        led |= leads;
+                        plan.Add(new PlannedMember(Deal(wanted.role), leads, ownWings: wanted.ownWings));
+                    }
                 }
 
                 return plan;

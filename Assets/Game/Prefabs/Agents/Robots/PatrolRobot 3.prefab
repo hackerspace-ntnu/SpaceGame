@@ -73,6 +73,7 @@ GameObject:
   - component: {fileID: 3463260705106906780}
   - component: {fileID: 2289859480996573943}
   - component: {fileID: 6307647465483150813}
+  - component: {fileID: 6361811110946897400}
   m_Layer: 0
   m_Name: PatrolRobot 3
   m_TagString: Untagged
@@ -184,6 +185,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 7520083281846648822}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.45
@@ -329,18 +339,6 @@ MonoBehaviour:
   headAimHeight: 1.6
   headInset: 0.15
   sightRecheckInterval: 0.2
-  memoryDuration: 12
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
 --- !u!114 &5497320303562779923
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -513,8 +511,6 @@ MonoBehaviour:
   - hand.R
   - mixamorig:RightHand
   startingSlot: 0
-  autoUse: 0
-  autoUseInterval: 1
   aimHeldItem: 1
   aimTurnSpeed: 540
   holdScaleMultiplier: 1
@@ -591,8 +587,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NpcItemUseModule
   priority: 22
   active: 1
-  slotIndex: 0
-  equipBeforeUse: 1
   trigger: 0
   minRange: 4
   maxRange: 28
@@ -610,6 +604,8 @@ MonoBehaviour:
     m_Bits: 4294967295
   claimFacing: 1
   facingPriority: 22
+  slotIndex: 0
+  equipBeforeUse: 1
 --- !u!114 &7903389983572529390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -625,6 +621,8 @@ MonoBehaviour:
   lootEntries: []
   dropInventoryContents: 1
   lootLifetime: 180
+  landedHeight: 1.5
+  groundSearchDepth: 600
 --- !u!114 &5862119722122546759
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -657,6 +655,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertBroadcaster
   alertRadius: 60
   announceSightings: 1
+  callForHelpEvery: 0
 --- !u!114 &5908861010385855324
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -698,6 +697,8 @@ MonoBehaviour:
     trespassGainPerSecond: 10
     calmRate: 10
     attackAt: 100
+    jostlesToFight: 0
+    settleSeconds: 0
   drawGizmos: 1
 --- !u!114 &443577289899592234
 MonoBehaviour:
@@ -1311,6 +1312,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &6361811110946897400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1001 &7701083713306462597
 PrefabInstance:
   m_ObjectHideFlags: 0

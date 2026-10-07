@@ -2483,12 +2483,12 @@ GameObject:
   - component: {fileID: 9055287708705993959}
   - component: {fileID: 7806746657832778882}
   - component: {fileID: -1813530525320717116}
-  - component: {fileID: -2440512409998819527}
   - component: {fileID: 8027523584336991421}
   - component: {fileID: -8163250723500356229}
   - component: {fileID: 2926021974169398701}
   - component: {fileID: 7672810720090239529}
   - component: {fileID: 7288563912723275494}
+  - component: {fileID: 6498296902669848184}
   m_Layer: 0
   m_Name: StriderElder
   m_TagString: Untagged
@@ -2738,6 +2738,12 @@ MonoBehaviour:
   speedMultiplier: 1
   run: 0
   stopDistanceMargin: 0.5
+  holdReleaseMargin: 2
+  holdLookAhead: 2
+  alignStopDistance: 0.02
+  alignSpeedMultiplier: 0.5
+  alignReleaseMargin: 0.3
+  alignGiveUpSeconds: 4
 --- !u!114 &883965571221153970
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2991,18 +2997,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
---- !u!114 &-2440512409998819527
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4513809822329001233}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &8027523584336991421
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3106,6 +3100,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &6498296902669848184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4513809822329001233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!1 &4792496048807206506
 GameObject:
   m_ObjectHideFlags: 0

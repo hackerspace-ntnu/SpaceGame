@@ -172,6 +172,7 @@ namespace SpaceGame.EditorTools
 
             WireLocomotion(root, armature, carry);
             VehicleDustWiring.AddFootfallDust(root, PuffsPerFootfall, PeakFootfallsPerSecond);
+            VehicleDustWiring.AddFarDust(root, PeakFootfallsPerSecond * PuffsPerFootfall);
             WireNetworkAndPersistence(root, instance.transform);
 
             // Read anything wanted for the report BEFORE the scratch hierarchy goes away: `armature`
@@ -186,6 +187,7 @@ namespace SpaceGame.EditorTools
             AgentNetworkWiring.Ensure(root);
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
+            SettlementLodBaker.Bake(root, PrefabPath, SettlementLodSettings.Load().strider);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             AssetDatabase.SaveAssets();

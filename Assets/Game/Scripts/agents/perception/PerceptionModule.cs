@@ -54,7 +54,7 @@ namespace SpaceGame.Agents
         public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
         public float SightRecheckInterval => sightRecheckInterval;
 
-        // Read for AgentController.Offstage (an agent out of the scene's action does not move) and
+        // Read for AgentController.IsParked (an agent out of the scene's action does not move) and
         // RidesAsPassenger (seated cargo sees out through its carrier). Resolved on first use rather
         // than in Awake, which EditMode tests never run.
         private AgentController controller;
@@ -122,9 +122,9 @@ namespace SpaceGame.Agents
         {
             TickSightRecheck(Time.deltaTime);
 
-            // Offstage: a body being placed is not "moving".
+            // Parked: a body being placed is not "moving".
             AgentController agent = Controller;
-            if (agent != null && agent.Offstage)
+            if (agent != null && agent.IsParked)
             {
                 isMoving = false;
                 prevPosition = transform.position;
@@ -330,7 +330,18 @@ namespace SpaceGame.Agents
             return agent != null && agent.RidesAsPassenger;
         }
 
-        private Vector3 GetForward() => transform.forward;
+        /// <summary>
+        /// The way the body faces: its forward, or — when that is the more horizontal of the two — the
+        /// way its head points. A prone body (an ornithopter pilot lying in its cradle, banking and
+        /// diving with the craft) has its forward pointing at the ground and its head along the craft's
+        /// nose; nose-up, the head is -up. Flattened by the callers.
+        /// </summary>
+        private Vector3 GetForward()
+        {
+            Vector3 forward = transform.forward;
+            Vector3 head = forward.y < 0f ? transform.up : -transform.up;
+            return FlattenHorizontal(head).sqrMagnitude > FlattenHorizontal(forward).sqrMagnitude ? head : forward;
+        }
 
         private static Vector3 FlattenHorizontal(Vector3 v)
         {

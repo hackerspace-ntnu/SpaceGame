@@ -101,11 +101,15 @@ namespace SpaceGame.Agents
             int standing = 0;
 
             foreach (GameObject fighter in fighters)
-                if (fighter != null && (!fighter.TryGetComponent(out HealthComponent health) || health.Alive))
+                if (IsStanding(fighter))
                     standing++;
 
             return standing;
         }
+
+        /// <summary>Exists and is not dead. No health counts as standing: a walking city's house never falls.</summary>
+        public static bool IsStanding(GameObject member) =>
+            member != null && (!member.TryGetComponent(out HealthComponent health) || health.Alive);
 
         private void Enlist()
         {
@@ -158,7 +162,10 @@ namespace SpaceGame.Agents
         {
             // A restore replaying a death is not a death in this fight.
             if (health != null && health.IsRestoring) return;
-            if (Group != null) Group.FightersDead++;
+            if (Group == null) return;
+
+            Group.FightersDead++;
+            Group.NoteFallen(MemberIndex);
         }
 
         private void OnDestroy()

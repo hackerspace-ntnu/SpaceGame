@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: MotorComponent
       value: 
       objectReference: {fileID: 1999671220052644999}
+    - target: {fileID: 1330686208677846921, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+      propertyPath: acquiresTargets
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
       propertyPath: m_Name
       value: NpcOrnithopter
@@ -120,7 +124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FlyingRigidbodyMotor
   body: {fileID: 4333122766593290807}
   maxSpeed: 25
-  maxVerticalSpeed: 3
+  maxVerticalSpeed: 8
   acceleration: 8
   deceleration: 8
   faceRotateSpeed: 1.5
@@ -223,6 +227,7 @@ MonoBehaviour:
     castReach: 300
     surfaceSkin: 0.5
   siteCheckInterval: 1
+  groundWaitSeconds: 60
   crash:
     SafeClosingSpeed: 8
     LethalClosingSpeed: 32

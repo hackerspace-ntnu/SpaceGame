@@ -83,34 +83,46 @@ namespace SpaceGame.Agents
                                               out string siteId, out string siteName)
         {
             using ProfilerMarker.AutoScope sample = ResolveMarker.Auto();
+            if (TryResolveSite(task, origin, excludeSiteId, out destination, out arriveRadius, out siteId, out siteName))
+                return true;
+            if (task == null) return false;
+
+            LevelGroundRule level = task.levelGround;
+            return level.Enabled
+                ? TryLevelRoamPoint(origin, task.searchRadius, level, out destination)
+                : TryRoamPoint(origin, task.searchRadius, out destination);
+        }
+
+        /// <summary>
+        /// The site half of <see cref="ResolveDestination"/>: a site of the task's kind within its search
+        /// radius (on level ground, when the task asks for it), and false — no roam point — when none is.
+        /// </summary>
+        public static bool TryResolveSite(NpcTask task, Vector3 origin, string excludeSiteId,
+                                          out Vector3 destination, out float arriveRadius,
+                                          out string siteId, out string siteName)
+        {
             destination = origin;
             arriveRadius = task != null ? task.arriveRadius : 6f;
             siteId = string.Empty;
             siteName = string.Empty;
-
             if (task == null) return false;
 
             LevelGroundRule level = task.levelGround;
+            if (!WorldSiteRegistry.TryFindRandom(task.targetSite, origin, task.searchRadius,
+                                                 out WorldSite site, excludeSiteId))
+                return false;
 
-            if (WorldSiteRegistry.TryFindRandom(task.targetSite, origin, task.searchRadius,
-                                                out WorldSite site, excludeSiteId))
-            {
-                // A site on a slope is passed over for level open ground rather than visited: the
-                // group needs somewhere to stand more than it needs that particular heap.
-                Vector3 stop = site.Position;
-                if (!level.Enabled || TryLevelStop(site.Position, level, NavMeshSampler(site.Position.y, level), out stop))
-                {
-                    destination = stop;
-                    arriveRadius = site.Radius;
-                    siteId = site.Id;
-                    siteName = site.Name;
-                    return true;
-                }
-            }
+            // A site on a slope is passed over for level open ground rather than visited: the
+            // group needs somewhere to stand more than it needs that particular heap.
+            Vector3 stop = site.Position;
+            if (level.Enabled && !TryLevelStop(site.Position, level, NavMeshSampler(site.Position.y, level), out stop))
+                return false;
 
-            return level.Enabled
-                ? TryLevelRoamPoint(origin, task.searchRadius, level, out destination)
-                : TryRoamPoint(origin, task.searchRadius, out destination);
+            destination = stop;
+            arriveRadius = site.Radius;
+            siteId = site.Id;
+            siteName = site.Name;
+            return true;
         }
 
         /// <summary>
@@ -170,19 +182,30 @@ namespace SpaceGame.Agents
         /// </summary>
         public static bool TryRoamPoint(Vector3 origin, float radius, out Vector3 point)
         {
+            // Sample generously — the world is a heightmap, so a point picked on the flat is
+            // routinely tens of metres above or below the ground it lands on.
             float min = Mathf.Max(8f, radius * 0.33f);
-            float max = Mathf.Max(min + 1f, radius);
+            return TryRoamPoint(origin, min, radius, Mathf.Max(30f, radius * 0.25f), null, out point);
+        }
+
+        /// <summary>
+        /// A NavMesh point on a random bearing <paramref name="minDistance"/> to <paramref name="maxDistance"/>
+        /// out (flat, before the snap), found within <paramref name="sampleReach"/> of it and passing
+        /// <paramref name="accept"/> when one is given; false after eight misses.
+        /// </summary>
+        public static bool TryRoamPoint(Vector3 origin, float minDistance, float maxDistance, float sampleReach,
+                                        System.Predicate<Vector3> accept, out Vector3 point)
+        {
+            float max = Mathf.Max(minDistance + 1f, maxDistance);
 
             for (int attempt = 0; attempt < 8; attempt++)
             {
                 float angle = UnityEngine.Random.value * Mathf.PI * 2f;
-                float distance = UnityEngine.Random.Range(min, max);
+                float distance = UnityEngine.Random.Range(minDistance, max);
                 Vector3 candidate = origin + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * distance;
 
-                // Sample generously — the world is a heightmap, so a point picked on the flat is
-                // routinely tens of metres above or below the ground it lands on.
-                if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, Mathf.Max(30f, radius * 0.25f),
-                                           NavMesh.AllAreas))
+                if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, sampleReach, NavMesh.AllAreas) &&
+                    (accept == null || accept(hit.position)))
                 {
                     point = hit.position;
                     return true;

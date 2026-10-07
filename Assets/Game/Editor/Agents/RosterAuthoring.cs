@@ -702,7 +702,7 @@ namespace SpaceGame.EditorTools
 
         // Folded, the record travels at the craft's cruise ground speed: Spike 5.2a E4 cruised 22.7-28.3 m/s.
         private const float SkyWingFoldedSpeed = 22f;
-        private const float SkyWingSearchRadius = 1500f;
+        private const float SkyWingSearchRadius = 700f;
         private const float SkyWingArriveRadius = 12f;
         private const float SkyWingTravelMultiplier = 1f;
 
@@ -711,7 +711,7 @@ namespace SpaceGame.EditorTools
         // none falls back to the sim's own origin, under the terrain. Verified 2026-10-06 against
         // WorldNavMesh.asset: terrain 110.1, NavMesh 110.3.
         internal static readonly Vector3 SkyWingStart = new Vector3(3350f, 110.3f, 1400f);
-        private static readonly Vector2 SkyWingDwell = new Vector2(60f, 180f);
+        private static readonly Vector2 SkyWingDwell = new Vector2(20f, 45f);
         private static readonly (string label, SiteKind site, string[] chatter)[] SkyWingStops =
         {
             ("looking over a ruin", SiteKind.Ruin, new[] { "Saw this from the city. Worth a look." }),

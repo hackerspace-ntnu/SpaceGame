@@ -439,22 +439,146 @@ namespace SpaceGame.Tests
             Assert.IsEmpty(world.Spawned);
         }
 
+        /// <summary>A low roof over the resident: no room to launch until it is taken away.</summary>
+        private GameObject Roof()
+        {
+            var roof = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            junk.Add(roof);
+            roof.transform.position = FarAway + Vector3.up * 5f;
+            roof.transform.localScale = new Vector3(6f, 1f, 6f);
+            Physics.SyncTransforms();
+            return roof;
+        }
+
+        private static void RemoveRoof(GameObject roof)
+        {
+            Object.DestroyImmediate(roof);
+            Physics.SyncTransforms();
+        }
+
+        // EditMode never advances Time.time, so the passing of time is a deadline moved into the past.
+        private void Elapse(string deadlineField) =>
+            typeof(NpcFlightModule).GetField(deadlineField, BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(flight, Time.time - 0.01f);
+
         [Test]
         public void ASortieWithNoRoomToLaunch_LeavesTheResidentHome()
         {
             SkyCityWithARuin(out _);
             Ground();
-            var roof = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            junk.Add(roof);
-            roof.transform.position = FarAway + Vector3.up * 8f;
-            roof.transform.localScale = new Vector3(6f, 1f, 6f);
-            Physics.SyncTransforms();
+            Roof();
 
             flight.Tick(Context(), 0.02f);
 
             Assert.IsEmpty(world.Spawned, "launched through a roof");
             Assert.IsFalse(flight.OnSortie, "counted as on a sortie without ever taking off");
             Assert.IsFalse(goal.HasGoal, "sent toward a ground site it cannot walk to");
+        }
+
+        [Test]
+        public void ASortieWhoseLaunchWasBlocked_FliesOnceTheSkyClears()
+        {
+            SkyCityWithARuin(out Vector3 ruin);
+            Ground();
+            GameObject roof = Roof();
+            flight.Tick(Context(), 0.02f);
+            Assume.That(world.Spawned, Is.Empty, "the fixture's roof did not block the launch");
+
+            RemoveRoof(roof);
+            Elapse("nextAttempt");
+            flight.Tick(Context(), 0.02f);
+
+            Assert.AreEqual(1, world.Spawned.Count, "the won sortie roll was forgotten after one blocked launch");
+            Assert.IsTrue(flight.OnSortie);
+            Assert.Less(Vector2.Distance(new Vector2(goal.Position.x, goal.Position.z), new Vector2(ruin.x, ruin.z)), 25f);
+        }
+
+        [Test]
+        public void ABlockedSortie_IsGivenUp_OnceItsPendingWindowHasPassed()
+        {
+            SkyCityWithARuin(out _);
+            Ground();
+            GameObject roof = Roof();
+            flight.Tick(Context(), 0.02f);
+            Assume.That(world.Spawned, Is.Empty, "the fixture's roof did not block the launch");
+
+            RemoveRoof(roof);
+            Elapse("nextAttempt");
+            Elapse("sortiePendingUntil");
+            flight.Tick(Context(), 0.02f);
+
+            Assert.IsEmpty(world.Spawned, "a sortie launched after its pending window had passed");
+            Assert.IsFalse(flight.OnSortie);
+            Assert.IsFalse(goal.HasGoal);
+        }
+
+        /// <summary>A NavMesh over a wide slab, built coarse: a fine build of a kilometre-wide slab costs seconds.</summary>
+        private NavMeshData CoarseSlab(Vector3 top, float size)
+        {
+            NavMeshBuildSettings settings = NavMesh.GetSettingsByID(0);
+            settings.overrideVoxelSize = true;
+            settings.voxelSize = 2f;
+            var source = new NavMeshBuildSource
+            {
+                shape = NavMeshBuildSourceShape.Box,
+                transform = Matrix4x4.Translate(top + Vector3.down * 0.5f),
+                size = new Vector3(size, 1f, size),
+            };
+            NavMeshData data = NavMeshBuilder.BuildNavMeshData(settings, new List<NavMeshBuildSource> { source },
+                                                               new Bounds(top, new Vector3(size + 20f, 30f, size + 20f)),
+                                                               Vector3.zero, Quaternion.identity);
+            junk.Add(data);
+            return data;
+        }
+
+        [Test]
+        public void ASortieWithNoGroundSite_FliesToGroundWithinItsRoamBandOfTheCity()
+        {
+            sites.Add(WorldSiteRegistry.Register(SiteKind.Home, FarAway, 100f, WorldSite.SkyCityName, airborne: true));
+            var so = new SerializedObject(flight);
+            so.FindProperty("sortieTask").FindPropertyRelative("targetSite").enumValueIndex = (int)SiteKind.Ruin;
+            so.FindProperty("sortieTask").FindPropertyRelative("searchRadius").floatValue = 1500f;   // the Sky prefabs'
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Vector3 groundTop = FarAway + Vector3.down * 170f;   // the moored city's deck stands ~170 m over the desert
+            NavMeshDataInstance ground = NavMesh.AddNavMeshData(CoarseSlab(groundTop, 1400f));
+            NavMeshDataInstance deck = NavMesh.AddNavMeshData(CoarseSlab(FarAway, 200f));
+            try
+            {
+                flight.Tick(Context(), 0.02f);
+
+                Assert.IsTrue(flight.OnSortie, "no sortie was flown");
+                float off = Vector2.Distance(new Vector2(goal.Position.x, goal.Position.z), new Vector2(FarAway.x, FarAway.z));
+                Assert.That(off, Is.InRange(245f, 605f), "a sortie flew out of sight of the city (sortieRoamBand 250-600 m)");
+                Assert.AreEqual(groundTop.y, goal.Position.y, 2f, "the sortie picked the city's own deck, not the ground");
+            }
+            finally
+            {
+                NavMesh.RemoveNavMeshData(ground);
+                NavMesh.RemoveNavMeshData(deck);
+            }
+        }
+
+        [Test]
+        public void ANomadJustSpawned_StandsAMomentBeforeItTakesOff()
+        {
+            Invoke(flight, "OnEnable");
+            goal.Set(FarAway + Vector3.right * 2000f, 10f);
+
+            flight.Tick(Context(), 0.02f);
+            Assert.IsFalse(flight.InFlight, "took off on the tick it spawned: nobody sees it stand, then launch");
+
+            Elapse("launchReadyAt");
+            flight.Tick(Context(), 0.02f);
+            Assert.IsTrue(flight.InFlight, "never took off once its launch delay was up");
+        }
+
+        [Test]
+        public void ANomadJustSpawned_InMidAir_StillDeploysToLand()
+        {
+            Invoke(flight, "OnEnable");
+
+            Assert.IsTrue(flight.Tick(Context(), 1f).HasValue, "a falling nomad waited out the launch delay");
+            Assert.IsTrue(flight.InFlight);
         }
     }
 

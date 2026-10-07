@@ -100,6 +100,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a city that unfolds or reloads mid-stop walks away while its crew chase the gangway | [Striders](systems/Striders.md) |
 | a Clanker body stands floating a hand's width over the sand or sunk into it | [AgentSystem](systems/AgentSystem.md) |
 | a Clanker loses sight of me and goes straight back to wandering instead of searching where it last saw me | [AgentSystem](systems/AgentSystem.md) |
+| a Clanker outrider far away keeps shooting while the rest of its town sleeps | [SimulationDistance](systems/SimulationDistance.md) |
 | a Clanker rides up to me on its horse and then just sits there | [AgentSystem](systems/AgentSystem.md) |
 | a clash check comes back clean and the part is visibly buried in the model | [ArtPipeline](systems/ArtPipeline.md) |
 | a clash checker reports hundreds of overlaps against the hull, decks or cage | [ArtPipeline](systems/ArtPipeline.md) |
@@ -468,8 +469,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a Sky nomad saved mid-flight is back on the ground where it took off after loading | [NpcFlight](systems/NpcFlight.md) |
 | a Sky nomad shot down in flight drops its wing pack in mid-air, far from where its body lands | [NpcFlight](systems/NpcFlight.md) |
 | a Sky nomad standing on a dune crest deploys its craft again and again | [NpcFlight](systems/NpcFlight.md) |
+| a Sky nomad takes off the instant it appears, before I can see it stand | [NpcFlight](systems/NpcFlight.md) |
 | a Sky nomad walks a two-kilometre leg instead of flying | [AgentSystem](systems/AgentSystem.md) |
 | a Sky nomad walks a two-kilometre leg instead of flying | [NpcFlight](systems/NpcFlight.md) |
+| a Sky nomad's wing pack is hidden inside the sack and pouches on its back | [BodyEquipment](systems/BodyEquipment.md) |
 | a sky transport flies stern-first, its cockpit house trailing instead of leading | [SkyTribe](systems/SkyTribe.md) |
 | a sky transport flies stern-first, its cockpit house trailing instead of leading | [Vehicles](systems/Vehicles.md) |
 | a Sky transport prefab carries a SaveableEntity and savers after a merge | [EntitySystem](systems/EntitySystem.md) |
@@ -735,6 +738,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every module on the schematic reads MISSING on a ship that is clearly whole | [ShipSchematic](systems/ShipSchematic.md) |
 | every new world's Strider city has the same column | [Striders](systems/Striders.md) |
 | every NPC of one prefab stands in the same idle and steps off on the same foot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| every NPC ornithopter logs 'AgentTargeting needs an EntityFaction | [NpcFlight](systems/NpcFlight.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
 | every NPC throws the same jab and cross | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | every piece of clothing wears the character's skin texture | [CharacterClothes](systems/CharacterClothes.md) |
@@ -1062,11 +1066,15 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | shots at a monowheel rider hit the wheel instead | [Striders](systems/Striders.md) |
 | shrinking an item on the backpack also shrank it where it lies in the sand | [Backpack](systems/Backpack.md) |
 | sky city NPCs stand on roofs or gas bags they can never leave | [NavMeshSystem](systems/NavMeshSystem.md) |
+| Sky nomads almost never fly off the Sky City | [NpcFlight](systems/NpcFlight.md) |
 | sky nomads hang in mid-air where the city used to be | [SkyTribe](systems/SkyTribe.md) |
 | Sky nomads pile up on the ground under the city | [AgentSystem](systems/AgentSystem.md) |
 | Sky nomads pile up on the ground under the city | [NpcFlight](systems/NpcFlight.md) |
 | sky nomads walk to a railing and stand there staring up at a roof | [NavMeshSystem](systems/NavMeshSystem.md) |
 | sky nomads walk to a railing and stand there staring up at a roof | [SkyTribe](systems/SkyTribe.md) |
+| Sky Wing craft vanish in mid-air / I see a flier for a few seconds and it disappears | [AgentSystem](systems/AgentSystem.md) |
+| Sky Wing craft vanish in mid-air / I see a flier for a few seconds and it disappears | [NpcFlight](systems/NpcFlight.md) |
+| Sky Wing craft vanish in mid-air / I see a flier for a few seconds and it disappears | [SkyTribe](systems/SkyTribe.md) |
 | some players could look around during the intro descent and others could not, or kept their HUD through it | [Cutscenes](systems/Cutscenes.md) |
 | someone else's compile error makes my own unrelated test change invisible | [Testing](systems/Testing.md) |
 | something invisible shoves me around inside the ship as soon as I step off the middle of the aisle | [PlayerShip](systems/PlayerShip.md) |
@@ -1556,8 +1564,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the signal's destination changed after a reload, or differs between host and client | [ShipSignal](systems/ShipSignal.md) |
 | the singularity eats things but they never go anywhere | [BottledSingularity](systems/BottledSingularity.md) |
 | the singularity is invisible — no sphere, no ring, just the bottle | [BottledSingularity](systems/BottledSingularity.md) |
+| the sky city drifts and tumbles away after a pellet-gun shot hits the deck | [Combat](systems/Combat.md) |
 | the sky city moves but its houses and decks stay behind | [SkyTribe](systems/SkyTribe.md) |
 | the sky city or a Strider house stopped moving in the distance | [SimulationDistance](systems/SimulationDistance.md) |
+| the Sky City sank / I fell through the deck after someone shot it | [Combat](systems/Combat.md) |
 | the Sky City stands inside a rock spire south of the spawn | [SkyTribe](systems/SkyTribe.md) |
 | the Sky roster only ever has four people even though a fifth recipe exists | [SkyTribe](systems/SkyTribe.md) |
 | the sky ships can't be ledge-climbed; the ledge probe treats the deck as a character | [SkyTribe](systems/SkyTribe.md) |
@@ -2460,4 +2470,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1734 symptoms, 700 paths, 93 docs -->
+<!-- 1744 symptoms, 700 paths, 93 docs -->

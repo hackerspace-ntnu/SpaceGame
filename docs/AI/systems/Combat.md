@@ -8,6 +8,8 @@ paths:
   - Assets/Game/Scripts/Gameplay/Ragdoll/
   - Assets/Game/Scripts/Presentation/UI/World/
 symptoms:
+  - "the Sky City sank / I fell through the deck after someone shot it"
+  - "the sky city drifts and tumbles away after a pellet-gun shot hits the deck"
   - "everything that ragdolls spasms around"
   - "the ragdoll shakes uncontrollably, and it gets worse with every knockdown"
   - "Destroying components immediately is not permitted during physics trigger/contact, from RagdollRig.RebuildJoints"
@@ -59,7 +61,7 @@ symptoms:
   - "NPC corpses vanish instantly on clients while the host still sees them fall"
   - "NPCs never block or dodge each other's melee blows, only the player's"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence, HumanoidAnimation]
-updated: 2026-10-06
+updated: 2026-10-07
 ---
 
 # Combat
@@ -168,6 +170,7 @@ Ordering on load: the record lands → `LoadHealth` → `RestoreHealth` clamps t
 
 ## Gotchas
 - **`RagdollWiring.IsBody` decides who gets an `AgentRagdoll`, and its "is a body" signal is loose on purpose** (`AgentController`, `LeggedLocomotion` or a root `HealthComponent`). Machines are refused by three rules, any one enough: a vehicle folder (`Prefabs/Agents/Vehicles/`, `Prefabs/Vehicles/`), a root `VesselPilot`, or a root `WalkerPlatformCarrier`. A new machine outside those folders that is flown or walked through an `AgentController` needs one of the components or it is wired as a creature — the Sky City fleet was ([SkyTribe](SkyTribe.md)).
+- **A shot at a hull's deck used to turn the whole hull dynamic.** `PelletShotTrace` hands the collider's own GameObject as the target when nothing up the tree has a `HealthComponent` — e.g. `SkyCity/Mesh_SkyCity_Decks` — and `BlastPush.Apply`'s agent check looks *down* from that (`GetComponentInChildren<AgentController>`), so it missed the fleet's `AgentController` on the parent, took `collider.attachedRigidbody` (the fleet's kinematic hull) and set `isKinematic = false`: a 1 kg dynamic city on concave MeshColliders (PhysX "illegal collision shapes") that drifted, tumbled and dropped the player through the deck. `BlastPush` now asks the **body**, upward (`IsDrivenHull`: `AgentController`, `WalkerPlatformCarrier` or `VesselPilot` in its parents) and never wakes such a kinematic body. Dynamic bodies (ragdoll bones, loose props) and ownerless kinematic props are pushed exactly as before. Covers every `BlastPush` caller (pellet guns, repulsor, sucker puncher, dragon rocket, singularity, close combat). Pinned by `BlastPushHullTests`.
 - **The settle grace must outlast a fall.** Cutting it to 0.15 s with the down-times (2026-09-24) stood every knockdown up mid-fall (about 0.4 s to drop from the hips): bodies half-collapsed and snapped back, which reads as spasming. It is 1.5 s, and `KnockdownPolicyTests` refuses a prefab that overrides it below a fall. A prefab whose ragdoll predates the field holds no value and takes the code default; an editor that loaded it earlier keeps the old default until it is reimported.
 
 - **A humanoid body's flinch is decided on the server from the damage it dealt.** `HealthComponent.OnDamage` fires only where `Damage()` ran; every other machine learns the new health through `RestoreHealth`, which cannot tell a hit from a heal, so a flinch raised by `HealthReactionModule` alone was host-only. [`HurtReaction`](Assets/Game/Scripts/Presentation/Animation/HurtReaction.cs) picks it (full body standing, upper body moving or seated, cooldown-limited) and sends it with `NetMsg.CharacterActed`. Creatures still use `hurtAnimTrigger` plus the weapons' per-machine `TriggerHurt` ([HumanoidAnimation.md](HumanoidAnimation.md)).

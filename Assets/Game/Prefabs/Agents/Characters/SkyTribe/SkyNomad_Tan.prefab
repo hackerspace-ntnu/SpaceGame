@@ -7241,7 +7241,7 @@ MonoBehaviour:
   priority: 30
   active: 1
   craftPrefab: {fileID: 7166074244684907727, guid: 81a2ae76a8d33fe4cb7f6171f9806628, type: 3}
-  minFlightDistance: 250
+  minFlightDistance: 150
   relaunchCooldown: 20
   fallDeploySeconds: 0.5
   retryInterval: 2
@@ -7251,8 +7251,8 @@ MonoBehaviour:
   fallProbeLift: 1
   navMeshStandTolerance: 1
   takeoffLift: 3
-  minLaunchClearance: 12
-  takeoffClearRadius: 6
+  minLaunchClearance: 6
+  takeoffClearRadius: 4
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -7280,8 +7280,8 @@ MonoBehaviour:
       attempts: 0
       sampleReach: 0
       sampleTolerance: 0
-  sortieChance: 0.05
-  sortieCheckInterval: 30
+  sortieChance: 0.2
+  sortieCheckInterval: 20
   sortieLifetime: 300
   sortieUnseenDistance: 350
   airborneSiteSearch: 300

@@ -1613,6 +1613,16 @@ namespace SpaceGame.EditorTools
         private const float SortieSearchRadius = 1500f;
         private const float SortieArriveRadius = 12f;
 
+        // How often a Sky person flies (playtest 2026-10-07, second pass: fliers off the moored city were
+        // still too rare to be seen). Chance per SortieCheckInterval that a resident with nothing to do sorties.
+        private const float SortieChance = 0.2f;
+        private const float SortieCheckInterval = 20f;
+        // Goals nearer than this, flat metres, are walked.
+        private const float MinFlightDistance = 150f;
+        // The empty sky a ground take-off needs, metres: height above takeoffLift, and half-width.
+        private const float MinLaunchClearance = 6f;
+        private const float TakeoffClearRadius = 4f;
+
         /// <summary>
         /// Lead or follow an NpcWorldSim group. Priorities by hand: AddComponent does not run Reset.
         /// </summary>
@@ -1653,6 +1663,11 @@ namespace SpaceGame.EditorTools
             var flight = new SerializedObject(FindComponent(root, "SpaceGame.Agents.NpcFlightModule"));
             SetInt(flight, "priority", ModulePriority.Override);
             SetObject(flight, "craftPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(NpcOrnithopterBuilder.PrefabPath));
+            SetFloat(flight, "sortieChance", SortieChance);
+            SetFloat(flight, "sortieCheckInterval", SortieCheckInterval);
+            SetFloat(flight, "minFlightDistance", MinFlightDistance);
+            SetFloat(flight, "minLaunchClearance", MinLaunchClearance);
+            SetFloat(flight, "takeoffClearRadius", TakeoffClearRadius);
             SerializedProperty task = flight.FindProperty("sortieTask");
             task.FindPropertyRelative("label").stringValue = "flying down to look around";
             task.FindPropertyRelative("targetSite").enumValueIndex = (int)SortieSite;

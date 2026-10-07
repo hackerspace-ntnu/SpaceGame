@@ -35,7 +35,7 @@ namespace SpaceGame.Vehicles
         [SerializeField] private float mooredBelowSpeed = 0.2f;
 
         [Tooltip("Seconds moored at each waypoint before sailing for the next.")]
-        [SerializeField] private float mooredSeconds = 120f;
+        [SerializeField] private float mooredSeconds = 240f;
 
         [Tooltip("Fraction of the motor's top speed to sail at.")]
         [SerializeField] private float speedMultiplier = 1f;

@@ -99,7 +99,7 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void APassengerKeepsWhateverItWasWhenSeated()
+        public void APassengerFollowsDistanceLikeEveryoneElse()
         {
             DistanceDormant asleep = NewSubject(new Vector3(800f, 0f, 0f));
             DistanceDormant awake = NewSubject(new Vector3(100f, 0f, 0f));
@@ -112,8 +112,21 @@ namespace SpaceGame.EditorTools
             asleep.transform.position = new Vector3(1990f, 0f, 0f); // the hull carried the sleeper to the player
             range.Tick(new[] { player }, 0.5f);
 
-            Assert.IsTrue(asleep.Agent.Dormant);
-            Assert.IsFalse(awake.Agent.Dormant);
+            Assert.IsFalse(asleep.Agent.Dormant, "carried up to a player, it wakes");
+            Assert.IsTrue(awake.Agent.Dormant, "a rider far from every player sleeps like everyone else");
+        }
+
+        [Test]
+        public void AFarPassengerSleepsWithoutItsMotorBeingTouched()
+        {
+            // A Clanker outrider is seated the frame it spawns, before the first tick.
+            DistanceDormant rider = NewSubject(new Vector3(800f, 0f, 0f));
+            rider.Agent.RidesAsPassenger = true;
+
+            range.Tick(new[] { NewObject("player").transform }, 0f);
+
+            Assert.IsTrue(rider.Agent.Dormant);
+            Assert.AreEqual(0, rider.GetComponent<FakeMotor>().SuspendCalls, "seating owns the motor while it rides");
         }
 
         [Test]
@@ -158,7 +171,9 @@ namespace SpaceGame.EditorTools
 
             public void Tick(in MoveIntent intent, float deltaTime) { }
             public void ForceStop() { }
-            public void SuspendSelfDrive() { }
+            public int SuspendCalls { get; private set; }
+
+            public void SuspendSelfDrive() => SuspendCalls++;
             public void ResumeSelfDrive() { }
         }
     }

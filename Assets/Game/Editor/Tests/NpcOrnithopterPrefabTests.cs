@@ -44,6 +44,24 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void TheNpcCraft_PicksNoTargetsOfItsOwn_SoItNeedsNoFaction()
+        {
+            GameObject craft = Load(NpcOrnithopterBuilder.PrefabPath);
+            SerializedProperty acquires = new SerializedObject(craft.GetComponent<AgentController>()).FindProperty("acquiresTargets");
+
+            Assert.IsFalse(acquires?.boolValue ?? true,
+                           "the craft's controller adds an AgentTargeting, which warns that it has no EntityFaction on every launch");
+            Assert.IsNull(craft.GetComponent<AgentTargeting>());
+        }
+
+        [Test]
+        public void TheNpcCraft_ClimbsBriskly_UnderVerticalInput()
+        {
+            var motor = new SerializedObject(Load(NpcOrnithopterBuilder.PrefabPath).GetComponent<FlyingRigidbodyMotor>());
+            Assert.AreEqual(NpcOrnithopterBuilder.MaxVerticalSpeed, motor.FindProperty("maxVerticalSpeed").floatValue, 0.001f);
+        }
+
+        [Test]
         public void TheNpcCraftsWings_AreFedByThePresenter()
         {
             GameObject craft = Load(NpcOrnithopterBuilder.PrefabPath);

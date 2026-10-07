@@ -25,6 +25,9 @@ namespace SpaceGame.EditorTools
         // The NPC craft's flight (NpcFlightPlanTests fly the plan against exactly these two).
         public const float CruiseSpeed = 25f;     // Spike 5.2a E4 cruised the player's craft at 22-28 m/s
         public const float Acceleration = 8f;
+        // Climb/sink rate under vertical input (the motor's rider path); NpcFlightPlan's MoveTo steps are
+        // capped by ClimbSlope instead. Was the motor default 3 (a 7-degree climb at cruise speed).
+        public const float MaxVerticalSpeed = 8f;
         private const float FaceRotateSpeed = 1.5f;
         private const float BankPerTurnRate = 0.5f;
         private const float MaxBank = 35f;
@@ -65,6 +68,7 @@ namespace SpaceGame.EditorTools
                 AddSeat(instance);
                 AddAviator(instance);
                 PointControllerAtMotor(instance);
+                LeaveTargetingToThePilot(instance);
 
                 PrefabUtility.SaveAsPrefabAsset(instance, PrefabPath);
             }
@@ -86,6 +90,7 @@ namespace SpaceGame.EditorTools
             var so = new SerializedObject(motor);
             SerializedFields.Set(so, "body", craft.GetComponent<Rigidbody>());
             SerializedFields.SetFloat(so, "maxSpeed", CruiseSpeed);
+            SerializedFields.SetFloat(so, "maxVerticalSpeed", MaxVerticalSpeed);
             SerializedFields.SetFloat(so, "acceleration", Acceleration);
             SerializedFields.SetFloat(so, "deceleration", Acceleration);
             SerializedFields.SetFloat(so, "faceRotateSpeed", FaceRotateSpeed);
@@ -130,6 +135,15 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // The pilot fights from the cradle; the craft itself picks no targets, so it gets no AgentTargeting
+        // (which would warn on every launch that the craft has no EntityFaction).
+        private static void LeaveTargetingToThePilot(GameObject craft)
+        {
+            var so = new SerializedObject(craft.GetComponent<AgentController>());
+            SerializedFields.SetBool(so, "acquiresTargets", false);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         /// <summary>Read the written prefab back off disk and fail loudly on anything the build did not stick.</summary>
         public static void Verify()
         {
@@ -144,6 +158,8 @@ namespace SpaceGame.EditorTools
                 throw new InvalidOperationException($"{PrefabPath} is missing its motor, wings presenter, aviator or its one seat.");
             if (new SerializedObject(prefab.GetComponent<NpcAviator>()).FindProperty("crashMask").intValue == ~0)
                 throw new InvalidOperationException($"{PrefabPath}'s NpcAviator crashMask was never written: every layer would end a flight.");
+            if (new SerializedObject(prefab.GetComponent<AgentController>()).FindProperty("acquiresTargets").boolValue)
+                throw new InvalidOperationException($"{PrefabPath}'s AgentController still acquires targets: it would add an AgentTargeting with no faction.");
             if (!NetworkPrefabRegistrar.IsRegistered(PrefabPath))
                 throw new InvalidOperationException($"{PrefabPath} is not in the network prefab list.");
         }

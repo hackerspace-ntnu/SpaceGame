@@ -90,6 +90,36 @@ namespace SpaceGame.Tests
             Assert.AreEqual(health.GetMaxHealth, health.GetHealth, "the landing hurt the pilot");
         }
 
+        [Test]
+        public void TheRealCraft_ClimbsVisiblyAfterTakeOff()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcOrnithopterBuilder.PrefabPath);
+            Assert.IsNotNull(prefab, "build the NPC craft first");
+            var craft = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            junk.Add(craft);
+            Vector3 start = Ground0 + Vector3.up * 3f;
+            craft.transform.position = start;
+            var motor = craft.GetComponent<FlyingRigidbodyMotor>();
+            typeof(FlyingRigidbodyMotor).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(motor, null);
+            var aviator = craft.GetComponent<NpcAviator>();
+            GameObject pilot = NpcAviatorTests.Pilot(junk);
+            pilot.transform.position = start;
+            Assert.IsTrue(aviator.Fly(pilot, Ground0 + Vector3.right * 2000f, 60f, 6f));
+
+            PhysicsScene physics = scene.GetPhysicsScene();
+            const float Out = 100f;
+            for (int i = 0; i < 5000 && Vector3.ProjectOnPlane(craft.transform.position - start, Vector3.up).magnitude < Out; i++)
+            {
+                MoveIntent applied = aviator.Tick(new AgentContext { Self = craft.transform, Position = craft.transform.position }, Dt) ?? MoveIntent.Idle();
+                motor.Tick(in applied, Dt);
+                motor.StepPhysics(Dt);
+                physics.Simulate(Dt);
+            }
+
+            float climb = Mathf.Atan2(craft.transform.position.y - start.y, Out) * Mathf.Rad2Deg;
+            Assert.Greater(climb, 15f, $"climbed only {climb:F1} degrees over its first {Out} m: a low skim nobody reads as taking off");
+        }
+
         // pitch: craft nose up (+) / down (-), degrees; roll: bank, degrees. The craft banks to 35 and pitches to 40.
         [TestCase(1f, true, 0f, 0f)]
         [TestCase(-1f, false, 0f, 0f)]

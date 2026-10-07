@@ -166,5 +166,112 @@ namespace SpaceGame.EditorTools
 
             Assert.Greater(group.ArriveRadius, 0f, "a zero radius from an old save must be replaced");
         }
+
+        // ── A group is not folded under a member in flight ─────────────────────────
+
+        private sealed class TestAirborneCarrier : MonoBehaviour, IAirborneCarrier { }
+
+        private const System.Reflection.BindingFlags Private =
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+
+        private readonly System.Collections.Generic.List<Object> junk = new();
+
+        private GameObject Junk(string name, Vector3 at)
+        {
+            var go = new GameObject(name);
+            go.transform.position = at;
+            junk.Add(go);
+            return go;
+        }
+
+        private static void Call(NpcWorldSim sim, string method, params object[] args) =>
+            typeof(NpcWorldSim).GetMethod(method, Private).Invoke(sim, args);
+
+        /// <summary>A sim with one player at the origin and one spawned group whose one member is at <paramref name="memberAt"/>.</summary>
+        private NpcWorldSim SpawnedGroupWithAPlayer(Vector3 memberAt, out NpcGroup group, out GameObject member)
+        {
+            var template = new NpcGroupTemplate { id = "fold-test", useStartPosition = true };
+            var sim = Junk("Sim", Vector3.zero).AddComponent<NpcWorldSim>();
+            typeof(NpcWorldSim).GetField("templates", Private).SetValue(sim, new[] { template });
+            Call(sim, "Awake");
+            Call(sim, "Start");
+            var players = (System.Collections.Generic.List<Transform>)typeof(NpcWorldSim).GetField("players", Private).GetValue(sim);
+            players.Add(Junk("Player", Vector3.zero).transform);
+
+            group = sim.FindGroup("fold-test");
+            member = Junk("Member", memberAt);
+            group.Live.Add(member);
+            group.Spawned = true;
+            return sim;
+        }
+
+        private GameObject InTheAir(GameObject member)
+        {
+            GameObject craft = Junk("Craft", member.transform.position + Vector3.up * 60f);
+            craft.AddComponent<TestAirborneCarrier>();
+            member.transform.SetParent(craft.transform, worldPositionStays: true);
+            return craft;
+        }
+
+        private void CleanUpSim()
+        {
+            foreach (Object o in junk) if (o != null) Object.DestroyImmediate(o);
+            junk.Clear();
+        }
+
+        // NpcSpawn.Remove destroys a folded member with Object.Destroy, which edit mode refuses (and logs).
+        private static void ExpectFoldedMemberDestroy() =>
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Destroy may not be called from edit mode"));
+
+        [Test]
+        public void ASpawnedGroupBeyondTheDespawnRadius_IsNotFolded_WhileAMemberIsInFlight()
+        {
+            try
+            {
+                NpcWorldSim sim = SpawnedGroupWithAPlayer(new Vector3(500f, 0f, 0f), out NpcGroup group, out GameObject member);
+                Assume.That(500f, Is.GreaterThan(sim.DespawnRadius));
+                InTheAir(member);
+
+                Call(sim, "TickGroup", group, 1f);
+
+                Assert.IsTrue(group.Spawned, "folded with a member in the air: its craft is retired mid-flight in front of the player");
+            }
+            finally { CleanUpSim(); }
+        }
+
+        [Test]
+        public void ASpawnedGroupHeldByAFlight_FoldsOnceItHasLanded()
+        {
+            try
+            {
+                NpcWorldSim sim = SpawnedGroupWithAPlayer(new Vector3(500f, 0f, 0f), out NpcGroup group, out GameObject member);
+                InTheAir(member);
+                Call(sim, "TickGroup", group, 1f);
+                Assume.That(group.Spawned, "the flight did not hold the fold");
+
+                member.transform.SetParent(null, worldPositionStays: true);
+                ExpectFoldedMemberDestroy();
+                Call(sim, "TickGroup", group, 1f);
+
+                Assert.IsFalse(group.Spawned, "a landed group beyond the despawn radius stayed real");
+            }
+            finally { CleanUpSim(); }
+        }
+
+        [Test]
+        public void ASpawnedGroupInFlight_StillFolds_PastTheAirborneFoldRadius()
+        {
+            try
+            {
+                NpcWorldSim sim = SpawnedGroupWithAPlayer(new Vector3(5000f, 0f, 0f), out NpcGroup group, out GameObject member);
+                InTheAir(member);
+
+                ExpectFoldedMemberDestroy();
+                Call(sim, "TickGroup", group, 1f);
+
+                Assert.IsFalse(group.Spawned, "a flight far past every player kept its group real for ever");
+            }
+            finally { CleanUpSim(); }
+        }
     }
 }

@@ -659,9 +659,9 @@ MonoBehaviour:
     tasks:
     - label: looking over a ruin
       targetSite: 2
-      searchRadius: 1500
+      searchRadius: 700
       searchFromHome: 0
-      dwellSeconds: {x: 60, y: 180}
+      dwellSeconds: {x: 20, y: 45}
       yields: {fileID: 0}
       yieldChance: 1
       chatter:
@@ -680,9 +680,9 @@ MonoBehaviour:
         sampleTolerance: 0
     - label: picking through a scrap field
       targetSite: 3
-      searchRadius: 1500
+      searchRadius: 700
       searchFromHome: 0
-      dwellSeconds: {x: 60, y: 180}
+      dwellSeconds: {x: 20, y: 45}
       yields: {fileID: 0}
       yieldChance: 1
       chatter:
@@ -701,9 +701,9 @@ MonoBehaviour:
         sampleTolerance: 0
     - label: visiting a camp
       targetSite: 1
-      searchRadius: 1500
+      searchRadius: 700
       searchFromHome: 0
-      dwellSeconds: {x: 60, y: 180}
+      dwellSeconds: {x: 20, y: 45}
       yields: {fileID: 0}
       yieldChance: 1
       chatter:

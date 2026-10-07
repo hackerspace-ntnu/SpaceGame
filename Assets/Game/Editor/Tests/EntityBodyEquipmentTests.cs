@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Items;
 
@@ -110,6 +112,128 @@ namespace SpaceGame.Tests
             Bounds bounds = ItemBounds.Measure(worn, null);
             float longest = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * worn.transform.lossyScale.x;
             Assert.AreEqual(fit.FoldedSize, longest, 0.02f, "the folded pack is not drawn at its folded size");
+        }
+
+        private const string SkyPeople = "Assets/Game/Prefabs/Agents/Characters/SkyTribe/";
+
+        // Anything wholly further behind the spine than this, in the body's root space, hangs on its back.
+        private const float BehindTheSpine = -0.05f;
+
+        /// <summary>
+        /// The Sky people's own baked back gear (pack, pouches, scarves) used to swallow most of the folded
+        /// wing pack: on the REAL prefabs, the pack's middle must lie behind the deepest of that gear.
+        /// </summary>
+        [TestCase("SkyNomad_Tan")]
+        [TestCase("SkyNomad_Umber")]
+        [TestCase("SkyNomad_Maroon")]
+        [TestCase("SkyNomad_StrawHat")]
+        [TestCase("SkySoldier")]
+        public void TheFoldedWingPack_SitsOutsideTheWearersBakedBackGear(string person)
+        {
+            Scene preview = EditorSceneManager.NewPreviewScene();
+            var mesh = new Mesh();
+            try
+            {
+                var prefab = Asset<GameObject>(SkyPeople + person + ".prefab");
+                var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab, preview);
+                var wearer = root.GetComponent<EntityBodyEquipment>();
+                typeof(EntityBodyEquipment).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(wearer, null);
+                GameObject pack = wearer.InstanceIn(BodySlot.Torso);
+                Assume.That(pack, Is.Not.Null, $"{person} does not start wearing the wing pack");
+
+                float packZ = 0f;
+                int packVertices = 0;
+                float deepestGear = 0f;
+                foreach (Renderer r in root.GetComponentsInChildren<Renderer>())
+                {
+                    if (!r.enabled) continue;
+                    List<Vector3> vertices = RootSpaceVertices(r, root.transform, mesh);
+                    if (r.transform.IsChildOf(pack.transform))
+                    {
+                        foreach (Vector3 v in vertices) packZ += v.z;
+                        packVertices += vertices.Count;
+                    }
+                    else if (vertices.Count > 0 && vertices.TrueForAll(v => v.z < BehindTheSpine))
+                    {
+                        foreach (Vector3 v in vertices) deepestGear = Mathf.Min(deepestGear, v.z);
+                    }
+                }
+
+                Assume.That(packVertices, Is.GreaterThan(0), "the folded pack draws nothing");
+                Assume.That(deepestGear, Is.LessThan(BehindTheSpine), $"{person} wears no back gear to measure against");
+                Assert.Less(packZ / packVertices, deepestGear,
+                            $"{person}'s folded wing pack sits inside its own back gear: move WornFit.foldedLocalPosition back");
+            }
+            finally
+            {
+                Object.DestroyImmediate(mesh);
+                EditorSceneManager.ClosePreviewScene(preview);
+            }
+        }
+
+        private const string PlayerPrefab = "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";
+
+        /// <summary>
+        /// A Sky person's folded pack is drawn as big, in the world, as the player's own worn pack: at
+        /// 1.26 m it read as a toy on the back of a man who flies it. Both sides are measured on the real
+        /// prefabs through their own seating paths, so a rescaled body or a retuned fit on either breaks it.
+        /// </summary>
+        [TestCase("SkyNomad_Tan")]
+        [TestCase("SkyNomad_StrawHat")]
+        [TestCase("SkySoldier")]
+        public void TheFoldedWingPack_IsAsBigAsThePlayersWornOne(string person)
+        {
+            float players = WorldSpan(PlayerWornPack);
+            float npcs = WorldSpan(root =>
+            {
+                var wearer = root.GetComponent<EntityBodyEquipment>();
+                typeof(EntityBodyEquipment).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(wearer, null);
+                return wearer.InstanceIn(BodySlot.Torso);
+            }, SkyPeople + person + ".prefab");
+
+            Assert.AreEqual(players, npcs, 0.1f * players,
+                            $"{person}'s folded pack is {npcs:F2} m against the player's worn {players:F2} m: retune WornFit.foldedSize");
+        }
+
+        /// <summary>The player's worn pack, seated the way <c>BodyEquipmentController.WearOnTorso</c> seats it.</summary>
+        private static GameObject PlayerWornPack(GameObject player)
+        {
+            Transform spine = BoneResolver.Resolve(player.GetComponentInChildren<Animator>(true), player.transform,
+                                                   HumanBodyBones.Spine, WornBones.BackHints);
+            GameObject pack = Object.Instantiate(Asset<InventoryItem>(WingPackPath).itemPrefab, spine);
+            EquipItemSocket.Sanitize(pack);
+            WornSeat.Apply(pack, spine, pack.GetComponent<WornFit>());
+            return pack;
+        }
+
+        /// <summary>The longest world-space axis of the pack <paramref name="wear"/> puts on a fresh copy of a prefab.</summary>
+        private static float WorldSpan(System.Func<GameObject, GameObject> wear, string prefabPath = PlayerPrefab)
+        {
+            Scene preview = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                var root = (GameObject)PrefabUtility.InstantiatePrefab(Asset<GameObject>(prefabPath), preview);
+                GameObject pack = wear(root);
+                Assume.That(pack, Is.Not.Null, $"{prefabPath} wears no wing pack");
+                Bounds bounds = ItemBounds.Measure(pack, null);
+                return Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * pack.transform.lossyScale.x;
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(preview);
+            }
+        }
+
+        private static List<Vector3> RootSpaceVertices(Renderer renderer, Transform root, Mesh scratch)
+        {
+            var vertices = new List<Vector3>();
+            if (renderer is SkinnedMeshRenderer skinned) skinned.BakeMesh(scratch, true);
+            else if (renderer.TryGetComponent(out MeshFilter filter) && filter.sharedMesh != null) scratch = filter.sharedMesh;
+            else return vertices;
+
+            Matrix4x4 toRoot = root.worldToLocalMatrix * renderer.transform.localToWorldMatrix;
+            foreach (Vector3 v in scratch.vertices) vertices.Add(toRoot.MultiplyPoint3x4(v));
+            return vertices;
         }
 
         [Test]

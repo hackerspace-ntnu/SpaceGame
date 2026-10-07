@@ -81,12 +81,11 @@ namespace SpaceGame.Agents
             {
                 DistanceDormant subject = subjects[i];
 
-                // Left as it is while something else holds the body. NavMeshAgentMotor's suspend is one
-                // latch shared with the ragdoll, the lasso and the seating, and counts no holders: waking
-                // a dead or knocked-down sleeper (controller disabled) would resume its NavMeshAgent under
-                // the ragdoll, and waking a passenger dormant at departure would resume one off the mesh
-                // under a moving hull, because NpcSeating only recorded the behaviours that were enabled.
-                if (!subject.Agent.enabled || subject.Agent.RidesAsPassenger)
+                // Left as it is while its controller is off. NavMeshAgentMotor's suspend is one latch
+                // shared with the ragdoll, the lasso and the seating, and counts no holders: waking a dead
+                // or knocked-down sleeper would resume its NavMeshAgent under the ragdoll. A passenger is
+                // decided like anyone else; the controller keeps its motor out of it until it is put down.
+                if (!subject.Agent.enabled)
                     continue;
 
                 bool cellAwake = awake.Contains(SimulationRules.CellOf(subject.transform.position, origin, cellSize));

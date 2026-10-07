@@ -128,6 +128,38 @@ namespace SpaceGame.Tests
                             "a reload dropped the pack a second time");
         }
 
+        /// <summary>
+        /// What a dead wearer sheds is a pickup like any other: a player's interact takes it into a hotbar.
+        /// The wing pack once lay beside every dead Sky nomad answering "RMB: pick up" and then refusing,
+        /// because its prefab's PickupableItem named no item — TryAddItem(null) — with a clean console.
+        /// </summary>
+        [Test]
+        public void ADeadWearer_DropsGearAPlayerCanPickUp()
+        {
+            InventoryItem repulsor = EntityBodyEquipmentTests.Asset<InventoryItem>(EntityBodyEquipmentTests.RepulsorPath);
+            GameObject npc = EntityBodyEquipmentTests.Npc(junk);
+            var health = npc.AddComponent<HealthComponent>();
+            var loot = npc.AddComponent<EntityLootTable>();
+            Invoke(loot, "Awake");
+            Invoke(loot, "OnEnable");
+            var body = npc.GetComponent<EntityBodyEquipment>();
+            Assert.IsTrue(body.TryWear(Pack));
+            Assert.IsTrue(body.TryWear(repulsor));
+
+            health.Damage(999);
+
+            foreach (InventoryItem worn in new[] { Pack, repulsor })
+            {
+                GameObject dropped = world.Spawned.Single(go => go.name.StartsWith(worn.itemPrefab.name));
+                var pickup = dropped.GetComponent<PickupableItem>();
+                Assert.IsNotNull(pickup, $"the dropped {worn.itemName} has no PickupableItem");
+                Assert.IsTrue(pickup.isActiveAndEnabled, $"the dropped {worn.itemName} is not an active pickup");
+                Assert.AreEqual(worn, pickup.Item, $"the dropped {worn.itemName} would hand a player the wrong item");
+                Assert.IsTrue(dropped.GetComponentsInChildren<Collider>().Any(c => c.enabled && !c.isTrigger),
+                              $"the dropped {worn.itemName} has no solid collider for the interact ray to hit");
+            }
+        }
+
         private int PacksDropped => world.Spawned.Count(go => go.name.StartsWith(Pack.itemPrefab.name));
 
         private static void Invoke(Component c, string method) =>

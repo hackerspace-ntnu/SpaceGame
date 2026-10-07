@@ -53,6 +53,11 @@ namespace SpaceGame.Agents
                  "in and out while a player walks along the boundary.")]
         [SerializeField] private float despawnRadius = 350f;
 
+        [Tooltip("A spawned group with a member in the air (an NPC craft's pilot) is not folded until it " +
+                 "lands — folding retires the craft mid-flight in front of the player — unless every player " +
+                 "is beyond this, so a flight cannot keep a group real for ever. Above despawnRadius.")]
+        [SerializeField] private float airborneFoldRadius = 750f;
+
         [Tooltip("How far the spawner may search for walkable ground under a member's slot.")]
         [SerializeField] private float spawnSampleDistance = 25f;
 
@@ -454,8 +459,21 @@ namespace SpaceGame.Agents
             if (group.IsWarParty) RefreshQuarryLead(group, delta);
             else if (template.bountyHunters) RefreshLead(group, delta);
 
-            if (NearestPlayerDistance(group.Position) > despawnRadius)
+            float nearest = NearestPlayerDistance(group.Position);
+            if (nearest > despawnRadius && (nearest > airborneFoldRadius || !AnyMemberAloft(group)))
                 Despawn(group, template);
+        }
+
+        /// <summary>Is any member flying — launched, or seated in an <see cref="IAirborneCarrier"/>?</summary>
+        private static bool AnyMemberAloft(NpcGroup group)
+        {
+            foreach (GameObject member in group.Live)
+            {
+                if (member == null) continue;
+                if (AirborneSeat.IsSeatedAloft(member.transform)) return true;
+                if (member.TryGetComponent(out NpcFlightModule flight) && flight.InFlight) return true;
+            }
+            return false;
         }
 
         private void TickVirtual(NpcGroup group, NpcGroupTemplate template, float delta)
@@ -1466,6 +1484,7 @@ namespace SpaceGame.Agents
         {
             spawnRadius = Mathf.Max(20f, spawnRadius);
             despawnRadius = Mathf.Max(spawnRadius + 50f, despawnRadius);
+            airborneFoldRadius = Mathf.Max(despawnRadius, airborneFoldRadius);
             spawnSampleDistance = Mathf.Max(1f, spawnSampleDistance);
             transportRetryDelay = Mathf.Max(0f, transportRetryDelay);
             dockReuseRadius = Mathf.Max(0f, dockReuseRadius);

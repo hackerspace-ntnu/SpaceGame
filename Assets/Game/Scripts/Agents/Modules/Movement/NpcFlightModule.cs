@@ -7,13 +7,16 @@
 //
 // When (D2): a goal further than minFlightDistance, a wing pack worn, and room to launch — already in the
 // air, or minLaunchClearance of empty sky above it (the NPC craft just climbs away: NpcFlightPlan, no
-// energy model, so no ledge is needed). Never in a fight: a nomad with a target fights on foot. A nomad
+// energy model, so no ledge is needed), and launchDelayAfterSpawn since it was spawned, so it is seen to stand
+// before it takes off. Never in a fight: a nomad with a target fights on foot. A nomad
 // that has been falling for fallDeploySeconds deploys to land, fight or not: that is saving itself, not
 // taking off. Falling means off the NavMesh (its NavMeshAgent off, or no NavMesh at its feet) AND no
 // ground under a ray cast from fallProbeLift above them: a nomad's root stands on the NavMesh, which can
 // lie under a one-sided terrain or mesh surface (a dune crest) that a short ray from the feet never hits.
 // Off the Sky City (an airborne site) a resident with nowhere to be now and then flies a SORTIE to a
-// ground site; it counts as one only once it is in the air. A sortie flier is never saved and is taken
+// ground site (else a NavMesh point within sortieRoamBand, near enough to watch); it counts as one only
+// once it is in the air (a won roll whose launch is refused stays
+// pending for sortiePendingSeconds, retried every retryInterval). A sortie flier is never saved and is taken
 // away once unseen after sortieLifetime (UnseenRemoval), so the city's refills cannot pile people up on
 // the ground.
 //
@@ -41,10 +44,14 @@ namespace SpaceGame.Agents
 
         [Header("When to fly")]
         [Tooltip("Goals nearer than this, flat metres, are walked.")]
-        [SerializeField, Min(10f)] private float minFlightDistance = 250f;
+        [SerializeField, Min(10f)] private float minFlightDistance = 150f;
 
         [Tooltip("Seconds after stepping off (or a refused launch) before flying again.")]
         [SerializeField, Min(0f)] private float relaunchCooldown = 20f;
+
+        [Tooltip("Seconds after the nomad is spawned (or switched back on) before it may take off: it stands a " +
+                 "moment first, so a player who meets it sees it launch. A fall never waits.")]
+        [SerializeField, Min(0f)] private float launchDelayAfterSpawn = 4f;
 
         [Tooltip("Seconds in the air before a nomad counts as falling and deploys to land — a hop or a " +
                  "step off a ledge is not a fall.")]
@@ -75,10 +82,10 @@ namespace SpaceGame.Agents
         [SerializeField, Min(0f)] private float takeoffLift = 3f;
 
         [Tooltip("Height of the empty sky needed above a take-off from the ground, metres.")]
-        [SerializeField, Min(1f)] private float minLaunchClearance = 12f;
+        [SerializeField, Min(1f)] private float minLaunchClearance = 6f;
 
         [Tooltip("Half-width of that empty sky, metres — about half the craft's 10 m span.")]
-        [SerializeField, Min(1f)] private float takeoffClearRadius = 6f;
+        [SerializeField, Min(1f)] private float takeoffClearRadius = 4f;
 
         [SerializeField] private LayerMask groundMask = ~0;
         [SerializeField] private PhysicsGroundProbe takeoffProbe = new PhysicsGroundProbe();
@@ -88,9 +95,21 @@ namespace SpaceGame.Agents
         [SerializeField] private NpcTask sortieTask = new NpcTask();
 
         [Tooltip("Chance per check that a resident standing on an airborne site flies a sortie.")]
-        [SerializeField, Range(0f, 1f)] private float sortieChance = 0.05f;
+        [SerializeField, Range(0f, 1f)] private float sortieChance = 0.2f;
 
-        [SerializeField, Min(1f)] private float sortieCheckInterval = 30f;
+        [SerializeField, Min(1f)] private float sortieCheckInterval = 20f;
+
+        [Tooltip("With no ground site of sortieTask's kind in reach, a sortie flies to a NavMesh point this far " +
+                 "from the resident, flat metres (min, max): near enough that a player at the city watches it land.")]
+        [SerializeField] private Vector2 sortieRoamBand = new Vector2(250f, 600f);
+
+        [Tooltip("How far from a sortie roam point to look for the ground's NavMesh, metres — more than the " +
+                 "moored city's height over the desert. The city's own deck is never picked.")]
+        [SerializeField, Min(1f)] private float sortieGroundReach = 300f;
+
+        [Tooltip("Seconds a won sortie roll whose launch was refused (no room) stays pending, retried every " +
+                 "retryInterval, before it is given up.")]
+        [SerializeField, Min(0f)] private float sortiePendingSeconds = 10f;
 
         [Tooltip("Seconds a landed sortie flier stays before it may be taken away unseen.")]
         [SerializeField, Min(0f)] private float sortieLifetime = 300f;
@@ -106,8 +125,11 @@ namespace SpaceGame.Agents
         private EntityBodyEquipment body;
         private NavMeshAgent navAgent;
         private float nextAttempt;
+        private float launchReadyAt;
         private float airborneFor;
         private float nextSortieCheck;
+        private PendingSortie? pendingSortie;
+        private float sortiePendingUntil;
         private bool landedFromSortie;
         private float sortieRemaining;
 
@@ -127,6 +149,8 @@ namespace SpaceGame.Agents
         private EntityBodyEquipment Body => body != null ? body : body = GetComponent<EntityBodyEquipment>();
         private NavMeshAgent NavAgent => navAgent != null ? navAgent : navAgent = GetComponent<NavMeshAgent>();
 
+        private void OnEnable() => launchReadyAt = Time.time + launchDelayAfterSpawn;
+
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
             if (landedFromSortie && TickSortieExpiry(deltaTime)) return null;
@@ -141,6 +165,7 @@ namespace SpaceGame.Agents
             airborneFor = airborne ? airborneFor + deltaTime : 0f;
             bool falling = airborneFor >= fallDeploySeconds;
             if (Time.time < nextAttempt) return null;
+            if (!falling && Time.time < launchReadyAt) return null;
             if (!falling && context.Targeting != null && context.Targeting.Target != null) return null;   // D2: fights on foot
 
             AgentGoal goal = GoalOf(context.Goal);
@@ -158,9 +183,15 @@ namespace SpaceGame.Agents
             if (!TryLaunch(feet, heading, airborne, destination))
             {
                 nextAttempt = Time.time + retryInterval;
+                if (sortie && pendingSortie == null)
+                {
+                    pendingSortie = new PendingSortie(destination, sortieArrive, sortieSite);
+                    sortiePendingUntil = Time.time + sortiePendingSeconds;
+                }
                 return null;
             }
 
+            pendingSortie = null;
             if (sortie)
             {
                 context.Goal.Set(destination, sortieArrive, sortieTask.label, sortieSite);
@@ -262,23 +293,55 @@ namespace SpaceGame.Agents
         /// <summary>
         /// A sortie for a resident of an airborne site with nowhere else to be: where to, never yet set as
         /// its goal — that waits for the launch, so a sortie that cannot take off sends nobody walking off
-        /// the edge of the city.
+        /// the edge of the city. A won roll whose launch was refused stays pending for sortiePendingSeconds
+        /// and is handed back here until then, so a crowded deck delays a sortie rather than wasting it.
         /// </summary>
         private bool TryPickSortie(AgentGoal own, out Vector3 destination, out float arriveRadius, out string siteId)
         {
             destination = transform.position;
             arriveRadius = 0f;
             siteId = null;
-            if (OnSortie || own == null || own.HasGoal || Time.time < nextSortieCheck) return false;
+            if (OnSortie || own == null || own.HasGoal)
+            {
+                pendingSortie = null;
+                return false;
+            }
+
+            if (pendingSortie is PendingSortie pending)
+            {
+                if (Time.time <= sortiePendingUntil)
+                {
+                    destination = pending.Destination;
+                    arriveRadius = pending.ArriveRadius;
+                    siteId = pending.SiteId;
+                    return true;
+                }
+                pendingSortie = null;
+            }
+
+            if (Time.time < nextSortieCheck) return false;
 
             nextSortieCheck = Time.time + sortieCheckInterval;
-            return OnAirborneSite() && Random.value <= sortieChance &&
-                   NpcTaskPlanner.ResolveDestination(sortieTask, transform.position, null,
-                                                     out destination, out arriveRadius, out siteId, out _);
+            return TryFindAirborneHome(out WorldSite home) && Random.value <= sortieChance &&
+                   TryPickSortieDestination(home, out destination, out arriveRadius, out siteId);
         }
 
-        private bool OnAirborneSite() =>
-            WorldSiteRegistry.TryFindNearest(SiteKind.Home, transform.position, airborneSiteSearch, out WorldSite site,
+        /// <summary>
+        /// A ground site of <see cref="sortieTask"/>'s kind within its search radius, else a NavMesh point within
+        /// <see cref="sortieRoamBand"/> of the resident — off <paramref name="home"/>'s own deck.
+        /// </summary>
+        private bool TryPickSortieDestination(WorldSite home, out Vector3 destination, out float arriveRadius, out string siteId)
+        {
+            Vector3 origin = transform.position;
+            if (NpcTaskPlanner.TryResolveSite(sortieTask, origin, null, out destination, out arriveRadius, out siteId, out _))
+                return true;
+
+            return NpcTaskPlanner.TryRoamPoint(origin, sortieRoamBand.x, sortieRoamBand.y, sortieGroundReach,
+                                               point => home.FlatDistanceTo(point) > home.Radius, out destination);
+        }
+
+        private bool TryFindAirborneHome(out WorldSite site) =>
+            WorldSiteRegistry.TryFindNearest(SiteKind.Home, transform.position, airborneSiteSearch, out site,
                                              includeAirborne: true) &&
             site.Airborne && site.FlatDistanceTo(transform.position) <= site.Radius;
 
@@ -298,6 +361,21 @@ namespace SpaceGame.Agents
             if (direction.sqrMagnitude > MinHeadingSqr) return direction.normalized;
             fallback.y = 0f;
             return fallback.sqrMagnitude > MinHeadingSqr ? fallback.normalized : Vector3.forward;
+        }
+
+        /// <summary>Where a won sortie roll goes, kept while its launch waits for room.</summary>
+        private readonly struct PendingSortie
+        {
+            public readonly Vector3 Destination;
+            public readonly float ArriveRadius;
+            public readonly string SiteId;
+
+            public PendingSortie(Vector3 destination, float arriveRadius, string siteId)
+            {
+                Destination = destination;
+                ArriveRadius = arriveRadius;
+                SiteId = siteId;
+            }
         }
 
         // Below this a flat vector names no heading.

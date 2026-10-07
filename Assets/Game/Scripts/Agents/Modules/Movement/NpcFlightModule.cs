@@ -100,9 +100,9 @@ namespace SpaceGame.Agents
         [SerializeField] private NpcTask sortieTask = new NpcTask();
 
         [Tooltip("Chance per check that a resident standing on an airborne site flies a sortie.")]
-        [SerializeField, Range(0f, 1f)] private float sortieChance = 0.2f;
+        [SerializeField, Range(0f, 1f)] private float sortieChance = 0.05f;
 
-        [SerializeField, Min(1f)] private float sortieCheckInterval = 20f;
+        [SerializeField, Min(1f)] private float sortieCheckInterval = 30f;
 
         [Tooltip("With no ground site of sortieTask's kind in reach, a sortie flies to a NavMesh point this far " +
                  "from the resident, flat metres (min, max): near enough that a player at the city watches it land.")]
@@ -257,15 +257,16 @@ namespace SpaceGame.Agents
         /// <summary>
         /// Already in the air — spawned seated at cruise height by its group: the craft is made around it where
         /// it is, flying, with no take-off at all. <paramref name="groundBelow"/> is the ground under it, which
-        /// the craft cannot read off a pilot in mid-air. Server only.
+        /// the craft cannot read off a pilot in mid-air. <paramref name="cruise"/> is the owner's cruise height, metres
+        /// over the ground; null flies this nomad's own <see cref="CruiseHeight"/>. Server only.
         /// </summary>
-        public bool TakeOffInAir(Vector3 heading, Vector3 groundBelow, out NpcAviator aviator)
+        public bool TakeOffInAir(Vector3 heading, Vector3 groundBelow, out NpcAviator aviator, float? cruise = null)
         {
             aviator = null;
             if (InFlight || !WearsWingPack()) return false;
 
             Quaternion facing = Quaternion.LookRotation(Flat(heading, transform.forward), Vector3.up);
-            return TryDeploy(CraftPositionFor(transform.position, facing, 0f), facing, groundBelow, out aviator);
+            return TryDeploy(CraftPositionFor(transform.position, facing, 0f), facing, groundBelow, cruise ?? cruiseHeight, out aviator);
         }
 
         /// <summary>Room to launch (unless already falling), then the craft, with this nomad boarded and no order given.</summary>
@@ -279,7 +280,7 @@ namespace SpaceGame.Agents
             }
 
             Quaternion facing = Quaternion.LookRotation(heading, Vector3.up);
-            return TryDeploy(CraftPositionFor(feet, facing, takeoffLift), facing, null, out aviator);
+            return TryDeploy(CraftPositionFor(feet, facing, takeoffLift), facing, null, cruiseHeight, out aviator);
         }
 
         /// <summary>Where the craft's root goes so that its cradle is <paramref name="lift"/> above <paramref name="feet"/>.</summary>
@@ -290,7 +291,7 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>Spawn the craft, hold this nomad out of the save and board it. Undone in full on any refusal.</summary>
-        private bool TryDeploy(Vector3 at, Quaternion facing, Vector3? groundHint, out NpcAviator aviator)
+        private bool TryDeploy(Vector3 at, Quaternion facing, Vector3? groundHint, float cruise, out NpcAviator aviator)
         {
             aviator = null;
             GameObject craft = GameServices.World.Spawn(craftPrefab, at, facing);
@@ -303,7 +304,7 @@ namespace SpaceGame.Agents
             }
 
             saveHold.Hold(gameObject);
-            if (!spawned.Board(gameObject, cruiseHeight, landingSampleDistance, groundHint))
+            if (!spawned.Board(gameObject, cruise, landingSampleDistance, groundHint))
             {
                 saveHold.Release();
                 CraftDeployment.Retire(craft);

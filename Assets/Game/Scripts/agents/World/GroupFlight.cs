@@ -11,12 +11,13 @@ namespace SpaceGame.Agents
         /// <summary>
         /// <paramref name="flier"/>'s craft, made around it where it hangs, flying, boarded and with no order yet;
         /// false (and the flier removed from <paramref name="group"/> and the world) when it cannot fly.
+        /// <paramref name="cruise"/> is the group's cruise height, metres; null flies the flier's own.
         /// </summary>
         public static bool TakeOffOrDrop(NpcGroup group, GameObject flier, Vector3 heading, Vector3 groundBelow,
-                                         out NpcAviator aviator)
+                                         out NpcAviator aviator, float? cruise = null)
         {
             aviator = null;
-            if (flier.TryGetComponent(out NpcFlightModule flight) && flight.TakeOffInAir(heading, groundBelow, out aviator))
+            if (flier.TryGetComponent(out NpcFlightModule flight) && flight.TakeOffInAir(heading, groundBelow, out aviator, cruise))
                 return true;
 
             Debug.LogError($"[GroupFlight] '{group.Id}': '{flier.name}' was spawned in the air but could not take off " +

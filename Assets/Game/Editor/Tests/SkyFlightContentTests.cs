@@ -60,6 +60,25 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void EverySkyPerson_SortiesRarely_SoTheSkeinIsTheSkysMainSight()
+        {
+            // User, 2026-10-07: "now there are way too many flyers ... They should just fly through the sky, and
+            // not land." A sortie is a flight down to the ground and a landing; at most one roll in 600 s per idle
+            // resident (0.05 every 30 s), sixteen residents give one every ~37 s at most.
+            const float MostSortiesPerSecond = 0.05f / 30f;
+            foreach (NomadPrefabBuilder.NomadRecipe recipe in NomadPrefabBuilder.SkyTribePeople)
+            {
+                var so = new SerializedObject(Load(recipe.PrefabPath).GetComponent<NpcFlightModule>());
+                float chance = so.FindProperty("sortieChance").floatValue;
+                float interval = so.FindProperty("sortieCheckInterval").floatValue;
+
+                Assert.AreEqual(NomadPrefabBuilder.SortieChance, chance, 1e-4f, $"{recipe.Name}: re-run the nomad builder");
+                Assert.AreEqual(NomadPrefabBuilder.SortieCheckInterval, interval, 1e-4f, $"{recipe.Name}: re-run the nomad builder");
+                Assert.LessOrEqual(chance / interval, MostSortiesPerSecond + 1e-7f, $"{recipe.Name} sorties too often");
+            }
+        }
+
+        [Test]
         public void TheSkySoldier_IsFieldedByTheSkyRoster()
         {
             var roster = AssetDatabase.LoadAssetAtPath<FactionRoster>(RosterAuthoring.SkyRosterPath);

@@ -158,6 +158,9 @@ namespace SpaceGame.Vehicles
         /// <summary>Flying with a living pilot aboard (neither retired nor a wreck).</summary>
         public bool Aloft => flying && !Wrecked;
 
+        /// <summary>Metres over the ground the craft cruises at, as boarded.</summary>
+        public float CruiseHeight => cruiseHeight;
+
         // Lazy, not cached in Awake: EditMode tests run no Awake.
         private VesselSeats Seats => seats != null ? seats : seats = GetComponent<VesselSeats>();
         private FlyingRigidbodyMotor Motor => motor != null ? motor : motor = GetComponent<FlyingRigidbodyMotor>();

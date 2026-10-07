@@ -449,6 +449,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -627,6 +628,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -670,11 +672,11 @@ MonoBehaviour:
       crew: 0
       count: 1
       countWeights:
-      - count: 2
+      - count: 5
         weight: 0.35
-      - count: 3
+      - count: 6
         weight: 0.4
-      - count: 4
+      - count: 7
         weight: 0.25
       column:
         shuffled: 0
@@ -717,9 +719,10 @@ MonoBehaviour:
       - {x: 3200, y: 110, z: 850}
       - {x: 2650, y: 110, z: 800}
       leaderSpeed: 0.7
-      waypointDwell: {x: 0, y: 40}
+      cruiseHeight: 180
+      waypointDwell: {x: 0, y: 0}
       arriveRadius: 80
-      spawnRadius: 550
+      spawnRadius: 600
       wingLateral: 16
       wingBehind: 14
       wingStepUp: 2.5
@@ -856,6 +859,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1214,6 +1218,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1500,6 +1505,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1540,6 +1546,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1580,6 +1587,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1620,6 +1628,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1696,6 +1705,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1832,6 +1842,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -1968,6 +1979,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -2104,6 +2116,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -2242,6 +2255,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -2282,6 +2296,7 @@ MonoBehaviour:
     airPatrol:
       route: []
       leaderSpeed: 0.7
+      cruiseHeight: 180
       waypointDwell: {x: 0, y: 40}
       arriveRadius: 80
       spawnRadius: 550
@@ -2298,7 +2313,7 @@ MonoBehaviour:
       DriftRate: 0.1
   spawnRadius: 250
   despawnRadius: 360
-  airborneFoldRadius: 750
+  airborneFoldRadius: 900
   spawnSampleDistance: 25
   groundProbe:
     castReach: 300

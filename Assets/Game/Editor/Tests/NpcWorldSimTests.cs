@@ -317,6 +317,48 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void AnAirPatrol_IsMadeOnceAtItsOwnCruiseHeight_AndItsSpawnRunsToTheEnd()
+        {
+            // Playtest 2026-10-07: an air patrol has no vessel, so no rider list, and Spawn threw on its first
+            // flier, every sim tick it was in range. Each throw left one more flier hanging in the sky, never
+            // ordered: it read a fall, deployed and landed — "way too many flyers ... close to the ground".
+            // These bare fliers cannot fly, so GroupFlight takes them away (logged, and refused in edit mode).
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
+            try
+            {
+                Vector3 far = new Vector3(150000f, 0f, 150000f);
+                GameObject flier = Junk("PatrolFlier", far + Vector3.down * 5000f);
+                NpcGroupTemplate template = AirPatrol(550f);
+                template.startPosition = far;
+                template.airPatrol.route = new[] { far, far + new Vector3(1000f, 0f, 0f) };
+                template.airPatrol.cruiseHeight = 180f;
+                template.members = new[]
+                {
+                    new NpcGroupMemberSpec { prefab = flier, isLeader = true, count = 1 },
+                    new NpcGroupMemberSpec { prefab = flier, count = 2 },
+                };
+                NpcWorldSim sim = SimWith(template);
+                NpcGroup group = sim.FindGroup("air-patrol-test");
+
+                Call(sim, "Spawn", group, template);
+
+                var made = new System.Collections.Generic.List<Transform>();
+                foreach (Transform each in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    if (each.name == "PatrolFlier(Clone)") made.Add(each);
+                foreach (Transform each in made) junk.Add(each.root.gameObject);
+
+                Assert.AreEqual(3, made.Count, "every planned flier is made, and each only once");
+                foreach (Transform each in made)
+                    Assert.AreEqual(far.y + 180f, each.position.y, 3f, $"'{each.name}' was not made at the patrol's cruise height");
+            }
+            finally
+            {
+                UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
+                CleanUpSim();
+            }
+        }
+
+        [Test]
         public void AFoldedAirPatrol_FliesItsLoop_NotAnErrand()
         {
             try

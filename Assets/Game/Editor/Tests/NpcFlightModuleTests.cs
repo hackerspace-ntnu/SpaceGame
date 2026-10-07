@@ -600,6 +600,25 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void TakeOffInAir_CruisesAtTheOwnersHeight_WhenGivenOne()
+        {
+            // The sky patrol flies high (NpcGroupAirPatrol.cruiseHeight), far above a nomad's own 60 m.
+            nomad.transform.position = FarAway + Vector3.up * 180f;
+
+            Assert.IsTrue(flight.TakeOffInAir(Vector3.right, FarAway, out NpcAviator high, 180f));
+            Assert.AreEqual(180f, high.CruiseHeight, 0.001f, "the owner's cruise height was ignored");
+        }
+
+        [Test]
+        public void TakeOffInAir_WithNoCruiseGiven_FliesTheNomadsOwn()
+        {
+            nomad.transform.position = FarAway + Vector3.up * 60f;
+
+            Assert.IsTrue(flight.TakeOffInAir(Vector3.right, FarAway, out NpcAviator own));
+            Assert.AreEqual(flight.CruiseHeight, own.CruiseHeight, 0.001f);
+        }
+
+        [Test]
         public void TakeOffInAir_IsRefused_WithoutAWingPack()
         {
             nomad.GetComponent<EntityBodyEquipment>().Remove(BodySlot.Torso);

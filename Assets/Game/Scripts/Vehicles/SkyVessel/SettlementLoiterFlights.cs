@@ -2,15 +2,17 @@
 // back on its deck — the city's own swarm (user, 2026-10-07: "the flyers in the sky cities can also swarm
 // around the sky cities").
 //
-// While the city is moored, a player is near enough to see it, and fewer than maxAloft are up, every
-// checkInterval a roll sends an idle resident up (NpcFlightModule.TakeOffNow — an order, so no launch delay,
-// no flight distance; idle means no target, no goal, not parked). It flies an orbit station on the city itself
-// (NpcAviator.Escort, anchor = this transform), so the orbit follows the hull if the city sets off while it is
-// up: that is the swarm under way. Now and then a second resident goes up as its wingman. When its time is out
-// and the city is moored, it flies out to an approach fix and lands on a deck pad: a point on the promenade
-// NavMesh reachable from reachableFrom with clear sky above, chosen once in the hull's own frame. It never lands
-// under way — the deck's NavMesh is withdrawn then — and one stuck aloft past maxLoiterSeconds is put down on the
-// ground below, said once.
+// Any time the city is moored (not only early in the mooring), while a player is near enough to see it and
+// fewer than maxAloft are up, every checkInterval a roll sends an idle resident up (NpcFlightModule.TakeOffNow
+// — an order, so no launch delay, no flight distance; idle means no target, no goal, not offstage — a resident
+// asleep only for distance (SimulationRange) still goes, and its flight wakes it). It flies an orbit station on
+// the city itself (NpcAviator.Escort, anchor = this transform), so the orbit follows the hull if the city sets
+// off while it is up: that is the swarm under way (nobody takes off under way: SettlementDeck has parked the
+// residents aboard). Now and then a second resident goes up as its wingman. Once its time is out and the city
+// is moored, it flies out to an approach fix and lands on a deck pad: a point on the promenade NavMesh
+// reachable from reachableFrom with clear sky above, chosen once in the hull's own frame. It never lands under
+// way — the deck's NavMesh is withdrawn then — it circles on until the next mooring; one that is due, moored,
+// past maxLoiterSeconds and still finds no clear pad is put down on the ground below, said once.
 //
 // Server only (Network.Decides); holds no saved state. A resident in the air is withheld from the save for the
 // flight and given back when it lands alive (NpcFlightModule's SaveScopeHold) — saved mid-flight, it is gone after
@@ -34,7 +36,7 @@ namespace SpaceGame.Vehicles
 
         [Header("Launch")]
         [Tooltip("Seconds between looks for someone to send up.")]
-        [SerializeField, Min(1f)] private float checkInterval = 20f;
+        [SerializeField, Min(1f)] private float checkInterval = 10f;
 
         [Tooltip("Chance a look sends someone up.")]
         [SerializeField, Range(0f, 1f)] private float launchChance = 0.5f;
@@ -47,9 +49,6 @@ namespace SpaceGame.Vehicles
 
         [Tooltip("Only with a player this close (flat), metres: a swarm nobody sees is waste.")]
         [SerializeField, Min(1f)] private float audienceDistance = 900f;
-
-        [Tooltip("Seconds of mooring kept in hand for the landing: no take-off unless loiterSeconds.y plus this is left.")]
-        [SerializeField, Min(0f)] private float landingBudget = 60f;
 
         [Tooltip("Chance a take-off brings a wingman up with it.")]
         [SerializeField, Range(0f, 1f)] private float pairChance = 0.35f;
@@ -70,7 +69,7 @@ namespace SpaceGame.Vehicles
         [Tooltip("Seconds a flier circles before it heads in to land, rolled per flier.")]
         [SerializeField] private Vector2 loiterSeconds = new Vector2(60f, 150f);
 
-        [Tooltip("Seconds aloft after which a flier that has found no pad is put down on the ground below instead.")]
+        [Tooltip("Seconds aloft after which a flier due to land at a moored city that finds no clear pad is put down on the ground below instead.")]
         [SerializeField, Min(1f)] private float maxLoiterSeconds = 600f;
 
         [Tooltip("A wingman's station on its lead's craft, in its heading frame (x right, y up, z ahead), metres.")]
@@ -160,9 +159,7 @@ namespace SpaceGame.Vehicles
 
             SessionPlayers.Collect(players);
             bool audience = LoiterRules.AnyWithin(transform.position, players, audienceDistance);
-            if (!LoiterRules.MayLaunch(route.UnderWay, route.MooredRemaining, loiterSeconds.y + landingBudget,
-                                       aloft.Count, maxAloft, audience))
-                return;
+            if (!LoiterRules.MayLaunch(route.UnderWay, aloft.Count, maxAloft, audience)) return;
             if (Random.value > launchChance) return;
 
             Loiterer lead = TryLaunch(now, null);
@@ -199,18 +196,19 @@ namespace SpaceGame.Vehicles
             switch (flier.Leg)
             {
                 case Leg.Orbit:
-                    if (now >= flier.GiveUpAt)
+                    // Under way it circles on: launched during a passage, it lands at the next mooring.
+                    if (now < flier.LandAfter || route.UnderWay) return;
+                    if (TryChoosePad(flier, out Vector3 fix))
                     {
-                        Debug.LogWarning($"[SettlementLoiterFlights] '{flier.Flight.name}' found no clear deck pad on " +
-                                         $"'{name}' in {maxLoiterSeconds} s; putting it down on the ground below.", this);
-                        aviator.LandAt(aviator.transform.position);
-                        flier.Leg = Leg.Landing;
+                        aviator.CruiseTo(fix, 1f);
+                        flier.Leg = Leg.Final;
                         return;
                     }
-                    if (now < flier.LandAfter || route.UnderWay) return;
-                    if (!TryChoosePad(flier, out Vector3 fix)) return;
-                    aviator.CruiseTo(fix, 1f);
-                    flier.Leg = Leg.Final;
+                    if (now < flier.GiveUpAt) return;
+                    Debug.LogWarning($"[SettlementLoiterFlights] '{flier.Flight.name}' found no clear deck pad on " +
+                                     $"'{name}' in {maxLoiterSeconds} s; putting it down on the ground below.", this);
+                    aviator.LandAt(aviator.transform.position);
+                    flier.Leg = Leg.Landing;
                     return;
 
                 case Leg.Final:
@@ -299,12 +297,16 @@ namespace SpaceGame.Vehicles
         private FlightStation WingmanStation(Loiterer lead, NpcFlightModule flight) =>
             FlightStation.Fixed(lead.Flight.Aviator.transform, wingmanOffset, flight.GetInstanceID());
 
-        /// <summary>On deck, doing nothing: not parked or dormant, no target, no goal, not flying or on a sortie.</summary>
+        /// <summary>
+        /// On deck, doing nothing: not offstage, no target, no goal, not flying or on a sortie. Asleep only for distance
+        /// (Dormant) still counts: the swarm is for a player watching from up to audienceDistance, far past the range
+        /// that keeps residents awake, and a resident in flight is never dormant (DistanceDormant), so it wakes.
+        /// </summary>
         private static bool IsIdle(EntityFaction person, out NpcFlightModule flight)
         {
             flight = null;
             if (person == null || !person.TryGetComponent(out flight) || flight.InFlight || flight.OnSortie) return false;
-            if (person.TryGetComponent(out AgentController controller) && (controller.IsParked || controller.RidesAsPassenger)) return false;
+            if (person.TryGetComponent(out AgentController controller) && (controller.Offstage || controller.RidesAsPassenger)) return false;
             if (person.TryGetComponent(out AgentTargeting targeting) && targeting.HasTarget) return false;
             return !person.TryGetComponent(out AgentGoal goal) || !goal.HasGoal;
         }
@@ -339,10 +341,12 @@ namespace SpaceGame.Vehicles
     /// <summary>The pure rules of <see cref="SettlementLoiterFlights"/>.</summary>
     public static class LoiterRules
     {
-        /// <summary>Moored with time in hand, room for another, and someone to see it.</summary>
-        public static bool MayLaunch(bool underWay, float mooredRemaining, float timeNeeded, int aloft, int maxAloft,
-                                     bool audience) =>
-            !underWay && mooredRemaining >= timeNeeded && aloft < maxAloft && audience;
+        /// <summary>
+        /// Moored (at any point of the mooring: a flier still up when the city sets off circles on and lands at the
+        /// next one), room for another, and someone to see it.
+        /// </summary>
+        public static bool MayLaunch(bool underWay, int aloft, int maxAloft, bool audience) =>
+            !underWay && aloft < maxAloft && audience;
 
         /// <summary>Is any of <paramref name="players"/> within <paramref name="distance"/> (flat) of <paramref name="centre"/>?</summary>
         public static bool AnyWithin(Vector3 centre, IReadOnlyList<Transform> players, float distance)

@@ -55,8 +55,9 @@ namespace SpaceGame.Agents
 
         [Tooltip("A spawned group with a member in the air (an NPC craft's pilot) is not folded until it " +
                  "lands — folding retires the craft mid-flight in front of the player — unless every player " +
-                 "is beyond this, so a flight cannot keep a group real for ever. Above despawnRadius.")]
-        [SerializeField] private float airborneFoldRadius = 750f;
+                 "is beyond this, so a flight cannot keep a group real for ever. Above despawnRadius, and " +
+                 "well above an air patrol's spawn radius (a skein high in the sky is seen from far off).")]
+        [SerializeField] private float airborneFoldRadius = 900f;
 
         [Tooltip("How far the spawner may search for walkable ground under a member's slot.")]
         [SerializeField] private float spawnSampleDistance = 25f;
@@ -82,10 +83,6 @@ namespace SpaceGame.Agents
         [Tooltip("A vessel parked empty at its dock within this distance of a group about to fly out is " +
                  "boarded instead of a new one being spawned beside it.")]
         [SerializeField] private float dockReuseRadius = 150f;
-
-        // Cruise height for an air patrol whose members carry no NpcFlightModule — which then cannot fly and are
-        // taken away loudly (GroupFlight); only where to make them is decided by it (metres).
-        private const float DefaultAirCruiseHeight = 60f;
 
         [Header("War parties")]
         [Tooltip("A war-party member further than this from every standing groupmate is straying.")]
@@ -814,7 +811,7 @@ namespace SpaceGame.Agents
             // leader at its centre and the rest on its chevron, all taking off at once (NpcAirPatrol).
             bool airborne = template.airPatrol.IsSet;
             Vector3 ground = airborne && groundProbe.TryGround(group.Position, out Vector3 under, out _) ? under : group.Position;
-            Vector3 airOrigin = ground + Vector3.up * AirCruiseHeight(plan);
+            Vector3 airOrigin = ground + Vector3.up * template.airPatrol.cruiseHeight;
             int wingIndex = 0;
 
             // The same places the distant silhouette draws the folded group in (GroupColumnLayout).
@@ -857,8 +854,9 @@ namespace SpaceGame.Agents
 
                 leaderTaken |= leads;
                 group.Live.Add(member);
+                // An air patrol's fliers are seated too, but ride no vessel: there is no rider list to join.
                 if (escorts) fliers.Add(member);
-                else if (seated && !planned.Crew) riders.Add(member);
+                else if (riders != null && seated && !planned.Crew) riders.Add(member);
 
                 if (planned.OwnWings && member.TryGetComponent(out EntityLootTable loot))
                     loot.MarkWarFlier(template.transport.flierWeaponDropChance);
@@ -1342,15 +1340,6 @@ namespace SpaceGame.Agents
             !group.Delivered && group.Transport != null
                 ? group.Transport.transform.position
                 : GroundedPosition(Centroid(group), spawnSampleDistance, groundProbe);
-
-        /// <summary>The cruise height an air patrol is made at: its first flier's own (NpcFlightModule.cruiseHeight).</summary>
-        private static float AirCruiseHeight(List<PlannedMember> plan)
-        {
-            foreach (PlannedMember member in plan)
-                if (member.Prefab != null && member.Prefab.TryGetComponent(out NpcFlightModule flight))
-                    return flight.CruiseHeight;
-            return DefaultAirCruiseHeight;
-        }
 
         /// <summary>The ground under <paramref name="point"/>, else the group's own (ground-projected) position.</summary>
         private Vector3 GroundUnder(Vector3 point, NpcGroup group) =>

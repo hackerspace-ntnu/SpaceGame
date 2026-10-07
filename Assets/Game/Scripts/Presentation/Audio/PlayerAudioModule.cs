@@ -1,9 +1,8 @@
 // Gives the player character its own voice: footsteps paced by actual speed, jumps, landings
 // weighted by impact, dashes, and the hurt/death reactions.
 //
-// The entity equivalent is EntityAudioModule; this is deliberately a separate component rather than
-// a shared one, because the player's sounds come from concrete events on PlayerMovement and
-// HealthComponent while an entity's are inferred from a motor interface.
+// Player-only on purpose: the sounds come from concrete events on PlayerMovement and
+// HealthComponent, which no NPC has.
 using FMODUnity;
 using UnityEngine;
 using SpaceGame.Audio;

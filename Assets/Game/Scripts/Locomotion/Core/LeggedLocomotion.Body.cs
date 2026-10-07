@@ -10,6 +10,7 @@
 // Gravity lives here rather than in a robot's own file because EVERY legged machine needs it. Any
 // of them spawned above its terrain in a streamed world hangs in the sky otherwise; that was found
 // and fixed on the ostrich only, and the six-legged machine still had the bug.
+using SpaceGame.Gameplay;
 using UnityEngine;
 
 namespace SpaceGame.Locomotion
@@ -46,6 +47,22 @@ namespace SpaceGame.Locomotion
         private const float ReachCorrectionFraction = 0.95f;
 
         /// Ceiling on one frame's reach correction, as a fraction of leg reach.
+        ///
+        /// It looks far too generous on a big machine -- half a leg is 5.93 m on the conjurer -- and
+        /// capping it at the machine's own STEP HEIGHT was tried, on the reasoning that a body which
+        /// would have to drop further than it can lift a foot should be stepping rather than
+        /// crouching. It does bound the deceleration dive, from 2.84 m to 1.00 m. It is still wrong:
+        /// this correction is also what lets a body follow a cross-slope far enough to keep its
+        /// DOWNHILL legs in reach, and that drop is set by stance width against the slope, not by
+        /// step height. Capping it stranded them -- SyntheticMachineTests.ALevelBodyStrandsItsDown
+        /// hillLegsOnACrossSlope caught it at a reach fraction of 1.21, with CrabLocomotionTests and
+        /// LateralTravelTests just over the line as well.
+        ///
+        /// So the ceiling stays where it was, and the deceleration dive is fixed where it is
+        /// actually caused: in how long the driver takes to shed speed -- LeggedDriver sheds it
+        /// as exp(-acceleration * dt), so a low `acceleration` is a long coast onto a leg that is
+        /// already near full stretch. The measurements behind that came from the conjurer, whose
+        /// legs are no longer procedural; the ostrich's value of 4 is the one to copy.
         private const float MaxReachCorrection = 0.5f;
 
         /// Feet in the machine's own yaw frame, for the support-plane fit. Allocated once at
@@ -73,6 +90,19 @@ namespace SpaceGame.Locomotion
             smoothedHeight = body.position.y;
             heightPrimed = false;
             commandedWorldVelocity = Vector3.zero;
+            grippedVelocity = Vector2.zero;
+        }
+
+        /// Take the body back after something carried it with this component switched off — a
+        /// standing post on a walking house. The path and the feet are still wherever the machine
+        /// was picked up, so resume from where it was set down: the transform, standing on the
+        /// ground under it. A followed copy only regrounds its feet; its body is the wire's.
+        public void ResumeFromCarry()
+        {
+            if (!ready) return;
+            ResetBodyState();
+            if (externallyPosed) GroundFeet();
+            else SnapToGround();
         }
 
         /// Drop the machine so the legs start within reach of the ground.
@@ -114,11 +144,15 @@ namespace SpaceGame.Locomotion
             Vector3 forward = heading * Vector3.forward;
             Vector3 right = heading * Vector3.right;
 
-            // The gate runs HERE, once, on the raw request, and everything downstream reads the
-            // result through CommandedVelocity. It is deliberately the first thing the frame does
-            // with the command: the clock, the foot drift and the foothold clamp all derive from
-            // this vector, and they have to derive from the same one.
-            Vector2 request = commandedVelocity;
+            // The ground has its say and then the gate does, HERE, once, and everything downstream
+            // reads the result through CommandedVelocity. This is deliberately the first thing the
+            // frame does with the command: the clock, the foot drift and the foothold clamp all
+            // derive from this vector, and they have to derive from the same one.
+            //
+            // Grip first, because it is a fact about the surface the machine is standing on and the
+            // gate is a fact about the slope ahead of it — a machine sliding on ice is still refused
+            // a wall, and one refused by a wall is still sliding.
+            Vector2 request = ApplyGroundGrip(commandedVelocity, dt);
             travelVelocity = ApplyClimbGate(request, forward * request.y + right * request.x);
 
             Vector2 v = travelVelocity;
@@ -193,11 +227,60 @@ namespace SpaceGame.Locomotion
             travelVelocity = new Vector2(local.x, local.z);
             commandedVelocity = travelVelocity;
 
+            // Kept in step with the pose that arrived, so a machine that changes hands mid-slide
+            // carries on from where it actually is rather than lerping out of a stale command.
+            grippedVelocity = travelVelocity;
+
             gait.Advance(Pace * dt, WalkerGait.CycleDistance(cycleStride, CurrentDuty));
 
             diagnostics.AchievedSpeed = travelVelocity.y < 0f
                 ? -worldVelocity.magnitude
                 : worldVelocity.magnitude;
+        }
+
+        /// What the legs have actually managed, as opposed to what the driver asked for. Equal to
+        /// the command on any ground that holds them, which is all of it until somebody sprays.
+        private Vector2 grippedVelocity;
+
+        /// Let the ground have its say about how fast the command can change.
+        ///
+        /// A machine on a frictionless film cannot push against it, so what it was already doing
+        /// survives and what it has just been told arrives slowly. Grip is asked of `GroundGrip`,
+        /// which is the same question the player's own movement asks and the same one a wheeled
+        /// craft asks -- so a slicked ramp is slick for everything that crosses it, and a mover
+        /// never learns whether the reason is a coat on the ground or a film on its own body.
+        ///
+        /// ASKED ONLY WHILE THERE IS GROUND. A machine mid-fall is not standing on the patch under
+        /// it, and one that read it anyway would skid through the air over a pool it had jumped.
+        ///
+        /// It cannot latch, and I1 is why that had to be checked: the lag is over the COMMAND, not
+        /// over anything the machine achieved, the yaw channel is untouched, and the blend is
+        /// strictly positive because no coat may leave zero grip. A machine can always turn, and
+        /// always eventually goes where it was told.
+        private Vector2 ApplyGroundGrip(Vector2 request, float dt)
+        {
+            if (IsFalling)
+            {
+                grippedVelocity = request;
+                return request;
+            }
+
+            // The sole plane under the body. `Survey` derives the same figure the same way when its
+            // own probe misses, so the two cannot describe different ground.
+            float grip = GroundGrip.For(gameObject, pathPos - Vector3.up * rideHeight);
+            if (grip >= GroundGrip.Full)
+            {
+                grippedVelocity = request;
+                return request;
+            }
+
+            // Grip is a share of the gap the feet close in ONE PHYSICS TICK -- which is exactly what
+            // PlayerMovement applies it as -- compounded over however long this frame was. Written
+            // this way rather than as a plain lerp so a walker and the player standing beside it
+            // slide the same distance on the same film whatever rate either is being stepped at.
+            float blend = 1f - Mathf.Pow(1f - grip, dt / Mathf.Max(Time.fixedDeltaTime, 1e-4f));
+            grippedVelocity = Vector2.Lerp(grippedVelocity, request, blend);
+            return grippedVelocity;
         }
 
         /// Cut the commanded travel down to what the ground ahead will actually let the legs walk

@@ -5,16 +5,21 @@ description: Use when adding netcode to an existing single-player system in Spac
 
 # SpaceGame multiplayer wiring
 
+> **Design check:** when the question is what players should experience together, not just how
+> bytes move, read the `MP`, `ARCH` and `PROG` principles in
+> `docs/game-development-constitution/INDEX.md` and cite their IDs.
+
 ## Overview
 
 **The bar: every gameplay system works fully online.** Anything a player can change has to reach
 every other machine, including players who join later. A system that is still local is unfinished
 work, not a system that was scoped that way.
 
-One generic message channel carries every gameplay message in the project:
-`Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs` (the `NetArg` payload, the `NetMsg` id
-catalog, the extension-method API), `NetChannel.cs` (per-entity handler table, a plain
-MonoBehaviour added on demand) and `NetRelay.cs` (the three RPCs, needs a `NetworkObject`).
+One generic message channel carries every gameplay message in the project, in
+`Assets/Game/Scripts/Core/Multiplayer/Messaging/`: `NetMessaging.cs` (the extension-method
+API), `NetArg.cs` (the payload), `NetMsg.cs` (the id catalog), `NetChannel.cs` (per-entity
+handler table, a plain MonoBehaviour added on demand) and `NetRelay.cs` (the three RPCs, needs
+a `NetworkObject`).
 Per-feature `XNetworkSync` classes are gone. Every send degrades to a **local dispatch** when there
 is no relay, no spawn, or no session — so a system that is not networked yet, and single-player,
 keep working exactly as before instead of throwing.
@@ -113,7 +118,7 @@ consults the list, so an unregistered prefab is a host that works and clients th
 | Tier | Rule | Members |
 |---|---|---|
 | 1 | **MUST** have a root `NetworkObject` **and** a prefab-list entry | Anything `GameServices.World.Spawn` can be handed — including **every `InventoryItem.itemPrefab`** (dropping a hotbar slot routes through `World.Spawn`), deployables such as `RocketSpawn`, vehicles, the networked player prefab |
-| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`, `AgentProjectile`. Every machine instantiates its own; only the authority's applies damage (`Weapon.ShotDealsDamage`) |
+| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`. Every machine instantiates its own; only the authority's applies damage (`Weapon.ShotDealsDamage`) |
 | 3 | **MUST NOT** be networked: equipped visuals | `EquipItemSocket.Equip` plain-`Instantiate`s onto a bone and rebuilds locally from the replicated hotbar. A `NetworkObject` cannot parent to a plain transform anyway |
 
 Register with `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`. The live list is
@@ -134,7 +139,7 @@ Nested `NetworkObject`s are a warning, not an error; a `NetworkBehaviour` on a p
 | Handlers must be **idempotent** and re-entrancy-safe | On the host, a request handler that answers with a broadcast re-enters `Dispatch` on the same channel inline (`SendTo.ClientsAndHost`), so state is applied twice. `NetLatch.Apply` shows the shape: act only when the new state differs. |
 | `UsableItem.Use()` runs on the **authority only**; `Present()` runs everywhere | A client pulling the trigger runs only `Present()`. Put the aim in `NetArg.P`/`R` from `OnRequestUse` — `Camera.main` on the server is the *host's* camera. |
 | Local feedback for a client comes from a broadcast, not from the local call | `NetMsg.Damaged` is broadcast on the victim's channel and republished as `NetworkedHealthComponent.DamageAnnounced(victim, amount, attacker)`. Filter with `NetworkObject.IsOwner` on the attacker. |
-| Anything a **suppressed driver** would have drawn must be broadcast explicitly | `NetAuthority` disables `AgentController`, `IMovementMotor` and `NavMeshAgent` on remote copies, so a remote turret/NPC never runs the code that spawns its muzzle flash or projectile. Motion arrives through the NetworkTransform; discrete effects need a `NetToOthers` of their own — which is exactly what `EntityEquipmentController` does with `NetMsg.ItemUsed`. |
+| Anything a **suppressed driver** would have drawn must be broadcast explicitly | `NetAuthority` disables `IMovementMotor` and `NavMeshAgent` on remote copies, and `AgentController` runs only its `IPresentationModule`s there, so a remote turret/NPC never runs the code that spawns its muzzle flash or projectile. Motion arrives through the NetworkTransform; discrete effects need a `NetToOthers` of their own — which is exactly what `EntityEquipmentController` does with `NetMsg.ItemUsed`. |
 | `NetAuthority` keys on ownership, is idempotent, and stops at the `NetworkObject` boundary | `Start` and `OnNetworkSpawn` race; a ran-once flag left every client simulating its own copy. A rider is parented *into* its mount, so crossing the boundary would switch off the player sitting on it. |
 
 ## Verification recipe
@@ -190,8 +195,9 @@ nothing**. Work down this list.
 | Health/state correct for everyone except a late joiner | `NetworkVariable.OnValueChanged` never replays | Read the current value in `OnNetworkSpawn` (see `PlayerInventoryNetwork.AdoptCurrentState`) |
 | NRE inside `Unity.Collections` when writing a `NetworkList<FixedString…>` | `cond ? item.ID : default` — both arms are `string`, so the ternary converts `null` | `cond ? new FixedString64Bytes(item.ID) : default(FixedString64Bytes)` |
 | Client join fails: `Scene Hash N does not exist in the HashToBuildIndex table` | NGO identifies scenes as `XXHash32(full scene path)`, case-sensitively, resolved from each machine's **on-disk** casing; git/disk folder-casing drift is invisible under `core.ignorecase` | Compare `git ls-files 'Assets/Game/Scenes/*'` against `ls` on both machines — world scenes are lowercase `Assets/Game/Scenes/world/` here (see the comment in `MultiplayerTestPlayerBuilder.cs`). Identify the culprit by brute-forcing XXH32 (seed 0, UTF-8) over every `.unity` path in `git rev-list --all --objects`, then fix index-only with `git rm -r --cached` + `git add` |
-| 409 `player is already a member of the lobby` | Ghost membership from a session never handed back; anonymous auth reuses the PlayerId | `LobbySession.JoinWithConflictRecoveryAsync` |
+| 409 `player is already a member of the lobby` | Ghost membership from a session never handed back; anonymous auth reuses the PlayerId | `LobbyJoinRecovery.JoinAsync` (`Core/Multiplayer/Lobby/`) |
 | `Failed to bind UDP socket … address already in use` in the editor | Native socket leaks on every play-mode `StartHost` | Bump `ConnectionData.Port` in `Assets/Game/Prefabs/Systems/NetworkManager.prefab`. Never route singleplayer through `HostDirect` (it calls `SetConnectionData` and overrides the port) |
+| A client joining in progress throws `NullReferenceException` in `NetworkObject.Serialize` on the host, and gets no world | A destroyed `NetworkObject` left in NGO's spawn table: synchronisation walks `SpawnedObjectsList` and the first entry that throws aborts the whole message | `SpawnSyncGuard` (`Core/Multiplayer/Joining/`) sweeps them out once a second and logs the `NetworkObjectId`. Despawn before destroying. If the guard reports nothing, grep the host log for NGO's `NetworkManagerOwner should not be null!` |
 | `SceneEventInProgress` | `NetworkSceneManager` has one **global** busy flag | Wait on `OnLoadEventCompleted`, or treat the status as "retry me" |
 | `InvalidParentException` when parenting a networked rider | NGO forbids parenting a `NetworkObject` under a plain transform | `NetworkObject.TrySetParent` / `TryRemoveParent`, folding the seat offset into the root's local space |
 | Sync component wired in code, still nothing visible | Its serialized prefab fields are `{fileID: 0}` (this killed `GrappleNetworkSync`) | Check the prefab, not just the script |
@@ -205,7 +211,7 @@ only, and on a client is refused outright by `WorldService`.
 ```csharp
 // NetMsg.cs — append two ids after the current highest, and never reuse a retired one.
 // The catalog grows most weeks, so read the tail before allocating:
-//   grep -n "public const ushort" Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs | tail -3
+//   grep -n "public const ushort" Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs | tail -3
 public const ushort DrillRun = /* next free */; // owner → server, DRILL's channel. P = muzzle point
 public const ushort DrillRan = /* next free */; // server → peers, on the DRILL's channel
 

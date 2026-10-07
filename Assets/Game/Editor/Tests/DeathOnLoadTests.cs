@@ -111,9 +111,10 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The refusal PlayerRespawn actually implements: it is asked to bring someone back, and
-        /// there is no spawn position to bring them back to — in the world, because the chunk under
-        /// the spawn point has not finished streaming, which is most likely immediately after a
-        /// load, which is exactly when a player who died last session is pressing the button.
+        /// there is nowhere to bring them back to — no ship with a seat to stand them up in, and no
+        /// spawn position in the world, because the chunk under the spawn point has not finished
+        /// streaming — which is most likely immediately after a load, which is exactly when a
+        /// player who died last session is pressing the button.
         /// </summary>
         [Test]
         public void ARefusedRespawn_LeavesTheScreenUp()
@@ -129,7 +130,7 @@ namespace SpaceGame.EditorTools
             screen.Present();
             controller.EnablePlayer();
 
-            LogAssert.Expect(LogType.Error, new Regex("No valid spawn position"));
+            LogAssert.Expect(LogType.Error, new Regex("No ship, no valid spawn position"));
             screen.Respawn();
 
             Assert.IsTrue(controller.IsDead, "The server had nowhere to put them, so they stay down.");

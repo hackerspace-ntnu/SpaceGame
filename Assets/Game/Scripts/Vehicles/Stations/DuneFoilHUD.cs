@@ -87,8 +87,8 @@ namespace SpaceGame.Vehicles
         /// answer to "which of these bodies is mine" — the parameterless overload, because this HUD
         /// lives on the craft rather than on a player and has no owner to read off its own parents.
         ///
-        /// It used to be <c>FindFirstObjectByType&lt;Interactor&gt;</c>, copied from
-        /// <c>InteractionPromptUI</c>. Alone in a session that is indistinguishable from correct,
+        /// It used to be <c>FindFirstObjectByType&lt;Interactor&gt;</c>, copied from what is now
+        /// <c>VisorReticle</c>. Alone in a session that is indistinguishable from correct,
         /// and in a crew it is a coin toss: every remote player carries an Interactor on an active
         /// GameObject too, so whichever of them happened to spawn first decided whose deck this dial
         /// answered to. A player left standing in the sand would watch the craft sail away with its
@@ -161,7 +161,7 @@ namespace SpaceGame.Vehicles
         }
 
         // ----------------------------------------------------------------------
-        // Built in code, like InteractionPromptUI, and for the same reason: there is no authored
+        // Built in code, like VisorReticle, and for the same reason: there is no authored
         // canvas to hang it under, because the player is spawned rather than placed.
 
         private void BuildWidget()
@@ -174,10 +174,7 @@ namespace SpaceGame.Vehicles
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 49;   // just under the interaction prompt
 
-            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            UIScale.Configure(canvasObject.GetComponent<CanvasScaler>());
 
             group = canvasObject.GetComponent<CanvasGroup>();
             group.alpha = 0f;

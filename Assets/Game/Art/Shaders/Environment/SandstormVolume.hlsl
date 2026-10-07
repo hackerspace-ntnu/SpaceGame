@@ -15,6 +15,10 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 
+// The physics — phase function, multi-scatter transmittance, powder, the coverage remap and the ray
+// tests — is shared with the fog volumes and the cloud layer. Only the storm's SHAPE lives here.
+#include "VolumetricCore.hlsl"
+
 TEXTURE3D(_SandstormNoise);
 SAMPLER(sampler_SandstormNoise);
 
@@ -115,7 +119,7 @@ float StormDensityAt(StormVolume v, StormLook look, float3 p)
     float4 base = SAMPLE_TEXTURE3D_LOD(_SandstormNoise, sampler_SandstormNoise, uvw, 0);
     float lowFrequency = saturate(base.r * 0.6 + base.g * 0.3 + base.b * 0.1);
 
-    float density = saturate((lowFrequency - (1.0 - coverage)) / max(0.001, coverage));
+    float density = VolCoverageRemap(lowFrequency, coverage);
     if (density <= 0.001)
         return 0.0;
 
@@ -124,8 +128,7 @@ float StormDensityAt(StormVolume v, StormLook look, float3 p)
     float4 fine = SAMPLE_TEXTURE3D_LOD(_SandstormNoise, sampler_SandstormNoise, uvw * 4.1 + 0.37, 0);
     float detail = saturate(fine.g * 0.6 + fine.b * 0.3 + fine.a * 0.1);
 
-    float carve = (1.0 - detail) * look.erosion;
-    density = saturate((density - carve) / max(0.001, 1.0 - carve));
+    density = VolErode(density, detail, look.erosion);
 
     // Sand is not a cloud: it is lifted off the ground, so a storm is heavier at the bottom and
     // wisps at the top. Applied to the density AFTER the remap and never to the coverage — scaling
@@ -145,8 +148,7 @@ float StormDensityAt(StormVolume v, StormLook look, float3 p)
 // sun behind you is a dull brown wall.
 float StormPhase(float g, float cosAngle)
 {
-    float gg = g * g;
-    return (1.0 - gg) / pow(abs(1.0 + gg - 2.0 * g * cosAngle), 1.5);
+    return VolPhaseHG(g, cosAngle);
 }
 
 // How much sun reaches a point inside the storm.
@@ -177,38 +179,7 @@ float StormLightMarch(StormVolume v, StormLook look, float3 p, float3 sunDirecti
         optical += StormDensityAt(v, look, q) * stepLength;
     }
 
-    float depth = optical * look.extinction;
-    float transmittance = 0.0;
-    float weight = 1.0;
-    float scale = 1.0;
-
-    for (int octave = 0; octave < 3; octave++)
-    {
-        transmittance += weight * exp(-depth * scale);
-        weight *= 0.55;
-        scale *= 0.28;
-    }
-
-    return transmittance;
-}
-
-// Clips a ray interval against one pair of parallel planes, given the plane normal in 2D. Used for
-// a wall's thickness and its lateral ends; a cell needs neither.
-bool StormSlab(float2 origin, float2 direction, float2 normal, float halfWidth,
-               inout float tNear, inout float tFar)
-{
-    float along = dot(direction, normal);
-    float offset = dot(origin, normal);
-
-    if (abs(along) < 1e-6)
-        return abs(offset) <= halfWidth;   // parallel: either always inside or never
-
-    float t0 = (-halfWidth - offset) / along;
-    float t1 = (halfWidth - offset) / along;
-
-    tNear = max(tNear, min(t0, t1));
-    tFar = min(tFar, max(t0, t1));
-    return tFar > tNear;
+    return VolMultiScatter(optical * look.extinction);
 }
 
 // Ray against the storm's bounding shape. Returns false when the ray misses it entirely, so a
@@ -241,11 +212,11 @@ bool StormRayBounds(StormVolume v, float3 ro, float3 rd, out float tNear, out fl
         float2 heading = normalize(v.heading);
         float2 across = float2(-heading.y, heading.x);
 
-        if (!StormSlab(ro.xz - v.center.xz, rd.xz, heading, outerRadius, tNear, tFar))
+        if (!VolSlab2D(ro.xz - v.center.xz, rd.xz, heading, outerRadius, tNear, tFar))
             return false;
 
         if (v.lateralExtent > 0.0 &&
-            !StormSlab(ro.xz - v.center.xz, rd.xz, across, v.lateralExtent + v.edgeFeather, tNear, tFar))
+            !VolSlab2D(ro.xz - v.center.xz, rd.xz, across, v.lateralExtent + v.edgeFeather, tNear, tFar))
             return false;
     }
     else
@@ -312,7 +283,7 @@ float4 StormRaymarch(StormVolume v, StormLook look, float3 ro, float3 rd,
             // The powder term: without it the side of a billow facing the sun reads as flat and
             // washed out, because a single scattering model has no idea light has to get INTO the
             // dust before it can come back out.
-            float powder = 1.0 - exp(-density * 6.0);
+            float powder = VolPowder(density, 6.0);
 
             // Sky light falls on the storm from above, so the top of a column is lit and the base
             // is in its own shadow. Without this the whole body shades uniformly and a

@@ -67,8 +67,8 @@ namespace SpaceGame.Items
     ///
     /// <para>
     /// A registry rather than a <c>Physics.OverlapSphere</c>, and the reason is the radius. At the
-    /// scanner's 100 m a sphere cast sweeps up terrain, buildings, every chunk of set dressing
-    /// inside a 4 million cubic metre ball, and then throws nearly all of it away — and it still
+    /// scanner's 50 m a sphere cast sweeps up terrain, buildings, every chunk of set dressing
+    /// inside half a million cubic metres, and then throws nearly all of it away — and it still
     /// misses anything whose collider is smaller than its icon or absent altogether. Registration
     /// is O(things that want finding), needs no collider, and cannot be defeated by a layer mask
     /// somebody retunes for a different reason.

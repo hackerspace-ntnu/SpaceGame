@@ -13,10 +13,12 @@ the root carries all three sets of components.
 | --- | --- | --- |
 | `Transform` | — | Local position/rotation zero. |
 | `NetworkObject` | `Unity.Netcode` | `SynchronizeTransform: 1`. Must be on the **root**. |
-| A `Collider` | — | `SphereCollider`, radius ≈ the item's half-size (0.13–0.16 m for a hand tool). Disabled automatically while held unless `ItemGrip.keepColliders`. |
-| `Rigidbody` | — | `isKinematic: true`, `useGravity: true`. `DropItemPhysics` un-kinematics it on a throw and re-kinematics it on landing. |
+| `NetworkTransform` | `Unity.Netcode.Components` | Server authority, `Interpolate: true`. Without it the item's *spawn pose* replicates and nothing after: it rolls, is shoved and is dragged only on the machine simulating it. |
+| `NetAuthority` | `SpaceGame.Core` | `freezePhysicsOnRemote: true`, drivers left empty. Makes the copies on machines that do not simulate the item kinematic, so the replicated pose is not fought by local physics. |
+| A `Collider` | — | A `BoxCollider` **fitted to the item's own mesh** (`ItemBounds.Measure`), never a hand-picked sphere — a sphere on a rifle is a marble that rolls, and a ray aimed at the visible barrel misses it. Disabled automatically while held unless `ItemGrip.keepColliders`. |
+| `Rigidbody` | — | `isKinematic: false`, `useGravity: true`. `WorldItem` tunes mass and damping at runtime; `EquipItemSocket.Sanitize` makes the held copy kinematic. |
+| `WorldItem` | `SpaceGame.Items` (`Scripts/Items/Core/WorldItem.cs`) | Sizes the world instance (`ItemWorldScale` — the size the ship's gear wall draws it at), tunes the body, adds a grab volume for small items. Leave the defaults. |
 | `PickupableItem` | `SpaceGame.Items` (`Scripts/Items/Core/PickupableItem.cs`) | `item` → the `InventoryItem` asset. `pickupId` → `SfxId.InteractPickup` (503) or `InteractPickupMetal` (504). Also registers the object with `ScannerRegistry`, which is how the Item Scanner finds loose salvage. |
-| `DropItemPhysics` | `SpaceGame.Items` | `rb` → the Rigidbody above. `groundLayer` → mask `128`. |
 | `NetRelay` | `SpaceGame.Core` | No fields. Required for `NetMessaging` on this object. |
 | `SaveableEntity` | `SpaceGame.Core.Persistence` | Leave `prefabId`/`instanceId` empty — `OnValidate` stamps them. `scope: World`. |
 | `TransformSaveable` | `SpaceGame.Core.Persistence` | Where it came to rest. |
@@ -86,9 +88,6 @@ namespace SpaceGame.EditorTools
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
-
         [MenuItem("Tools/Build Smoke Bomb Artifact")]
         public static void Build()
         {
@@ -108,18 +107,13 @@ namespace SpaceGame.EditorTools
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = 0.09f;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            SetPrivate(drop, "rb", body);
-            SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
+            // The body, a collider fitted to the item's own mesh, the world sizing and the netcode
+            // that lets another machine watch it be shoved about. NEVER write this block by hand —
+            // nine builders each had their own copy, and every one of them was wrong in a
+            // different way. Call this AFTER the model is parented; it measures the meshes.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<SpaceGame.Core.NetRelay>();
             root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();

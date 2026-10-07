@@ -1,0 +1,179 @@
+# Colony settlement lines: dry, technical, a crew far from anywhere. One row per line; empty cell = any. stance: friendly/neutral/wary/hostile or one Stance.
+# speaker: a resident's name (+8) or an archetype asset name (+4). Each other filled criterion +1.
+# Whole sentences, at most two tokens, no article before a token. {place} is what the speaker's spot is called. The key is the wire id: never rename a shipped key.
+key	speaker	topic	stance	observation	activity	repliesTo	register	text
+# -- Greetings --
+greet.friendly.1		Greeting	friendly				Statement	Good to see a face that is not on a screen.
+greet.friendly.2		Greeting	friendly				Statement	Come in, sit. The air is fresh today. I checked.
+greet.warm.name		Greeting	Warm				Statement	I'm {name}. You're welcome on this station.
+greet.neutral.1		Greeting	neutral				Question	New arrival. What brings you out here?
+greet.neutral.2		Greeting	neutral				Statement	Mind the airlocks. They cycle when they cycle.
+greet.curious.1		Greeting	Curious				Question	You're not on the crew list. Where from?
+greet.asking.1		Greeting	Asking				Question	Have you got supplies? Anything at all?
+greet.wary.1		Greeting	wary				Question	Who cleared you to be here?
+greet.wary.2		Greeting	wary				Statement	Keep your hands where I can see them.
+greet.afraid.1		Greeting	Afraid				Statement	I have nothing you want. Honestly.
+greet.hostile.1		Greeting	hostile				Statement	Turn around. The airlock is that way.
+greet.hostile.2		Greeting	hostile				Statement	You're not wanted in here.
+greet.sleep.1		Greeting			Sleep		Statement	Mmh. Lights off, please.
+greet.sleep.2		Greeting			Sleep		Complaint	Is it morning already? It cannot be morning.
+# -- Farewells --
+bye.friendly.1		Farewell	friendly				Statement	Check your seals on the way out. Come back whole.
+bye.neutral.1		Farewell	neutral				Statement	Right. Carry on.
+bye.wary.1		Farewell	wary				Statement	Keep moving.
+bye.hostile.1		Farewell	hostile				Exclamation	And stay out!
+depart.friendly.1		Farewell	friendly		Expedition		Statement	Keep the lights on. We'll be back before the oxygen runs low.
+depart.neutral.1		Farewell	neutral		Expedition		Statement	We're out. Watch the tanks while we're gone.
+depart.wary.1		Farewell	wary		Expedition		Statement	Stay close. Eyes on the ridgeline.
+depart.hostile.1		Farewell	hostile		Expedition		Exclamation	Move out. Nobody stops until I say!
+# -- Remarks: what a resident notices --
+remark.generic.hostile		Remark	hostile				Statement	You've done enough here. Leave.
+remark.armed.neutral		Remark	neutral	ArmedHeld			Statement	We don't carry those loose inside the hull.
+remark.armed.friendly		Remark	friendly	ArmedHeld			Statement	Planning to shoot something? Aim at the rocks.
+remark.armed.protective		Remark	Protective	ArmedHeld			Statement	Holster that. Now.
+remark.armed.afraid		Remark	Afraid	ArmedHeld			Statement	Please. Put it away.
+remark.armed.cold		Remark	Cold	ArmedHeld			Question	Why is that out?
+remark.gauntlet.neutral		Remark	neutral	Gauntlet			Question	What's that on your forearm?
+remark.gauntlet.wary		Remark	wary	Gauntlet			Statement	Unlisted hardware. Keep it quiet.
+remark.curio.curious		Remark	Curious	Curio			Question	Where did you find that?
+remark.curio.asking		Remark	Asking	Curio			Question	Would you part with that?
+remark.curio.neutral		Remark	neutral	Curio			Statement	Odd piece of kit you've got there.
+remark.curio.friendly		Remark	friendly	Curio			Statement	Never seen the like. Look after it.
+remark.sprint.neutral		Remark	neutral	Sprinting			Statement	Slow down. You'll kick up dust in the filters.
+remark.sprint.friendly		Remark	friendly	Sprinting			Exclamation	Easy! Nothing is venting.
+remark.sprint.wary		Remark	wary	Sprinting			Question	What are you running from?
+remark.approach.neutral		Remark	neutral	Approaching			Statement	Mind your step. Cables everywhere.
+remark.approach.friendly		Remark	friendly	Approaching			Statement	Good to see you about.
+remark.approach.wary		Remark	wary	Approaching			Statement	That's near enough.
+remark.defended		Remark		Defending			Exclamation	You covered for me. I won't forget that.
+# -- Warnings --
+warn.hit.neutral		Warning	neutral	Hitting			Exclamation	Watch it. You hit me.
+warn.hit.friendly		Warning	friendly	Hitting			Exclamation	Hey! That hurt. Enough.
+warn.hit.cold		Warning	Cold	Hitting			Exclamation	Last warning. You hit me.
+warn.hit.afraid		Warning	Afraid	Hitting			Exclamation	Stop! Please, stop hitting me!
+warn.menace.neutral		Warning	neutral	Menacing			Statement	Point that somewhere else.
+warn.menace.cold		Warning	Cold	Menacing			Exclamation	Lower it, or I'll have you restrained.
+warn.menace.afraid		Warning	Afraid	Menacing			Exclamation	Don't! I've done nothing!
+warn.shot.neutral		Warning	neutral	ArmedHeld			Statement	No firing inside the pressure hull.
+warn.shot.cold		Warning	Cold	ArmedHeld			Exclamation	Fire that again and we're done talking.
+warn.shot.afraid		Warning	Afraid	ArmedHeld			Exclamation	Stop shooting! You'll breach the wall!
+warn.near.neutral		Warning	neutral	Approaching			Statement	That's close enough.
+warn.near.cold		Warning	Cold	Approaching			Statement	Back off. Last time I say it.
+warn.near.afraid		Warning	Afraid	Approaching			Exclamation	Stay back!
+warn.jostle.neutral		Warning	neutral	Jostling			Statement	Watch where you walk.
+warn.jostle.friendly		Warning	friendly	Jostling			Exclamation	Easy! The tube is wide enough for two.
+warn.jostle.wary		Warning	wary	Jostling			Statement	Hands off me.
+warn.jostle.cold		Warning	Cold	Jostling			Exclamation	Shove me again and see what happens.
+warn.jostle.afraid		Warning	Afraid	Jostling			Exclamation	Don't push me! Please!
+warn.jostle.hostile		Warning	hostile	Jostling			Exclamation	One more shove and you'll regret it.
+warn.kin.wary		Warning	wary	KinHarmed			Statement	You hurt {kin}. Keep away from me.
+warn.kin.hostile		Warning	hostile	KinHarmed			Exclamation	I saw what you did to {kin}.
+warn.any.friendly		Warning	friendly				Statement	Hey. Easy now.
+warn.any.neutral		Warning	neutral				Statement	Don't.
+warn.any.wary		Warning	wary				Statement	Careful.
+warn.any.hostile		Warning	hostile				Exclamation	You've worn out your welcome.
+# -- Alarms, grief, refusals --
+alarm.hit		Alarm		Hitting			Exclamation	That's it. You asked for this!
+alarm.kin		Alarm		KinHarmed			Exclamation	This is for {kin}!
+alarm.jostle		Alarm		Jostling			Exclamation	You wanted a fight. Now you have one!
+alarm.any		Alarm					Exclamation	Enough talk!
+grief.kin		Grief					Complaint	We lost {kin} out there. Too early.
+grief.hearth		Grief			Hearth		Complaint	I keep looking for {kin} at the projector.
+grief.friend		Grief					Statement	{friend} should still be here.
+refuse.any		Refusal					Statement	No.
+refuse.wary		Refusal	wary				Statement	Not now. Back off.
+refuse.afraid		Refusal	Afraid				Exclamation	Get away from me!
+refuse.hostile		Refusal	hostile				Statement	I've nothing to say to you.
+# -- Replies, gossip, rumours --
+reply.any		Reply					Statement	Mm.
+reply.q.neutral		Reply	neutral			Question	Statement	Couldn't say.
+reply.q.friendly		Reply	friendly			Question	Statement	Ask {friend}. They'd know.
+reply.q.wary		Reply	wary			Question	Question	Why do you want to know?
+reply.s.neutral		Reply	neutral			Statement	Statement	Hm. Maybe.
+reply.s.friendly		Reply	friendly			Statement	Statement	True enough.
+reply.s.curious		Reply	Curious			Statement	Question	And then what?
+reply.c.neutral		Reply	neutral			Complaint	Statement	Everyone has a gripe. Supply is still supply.
+reply.c.friendly		Reply	friendly			Complaint	Statement	It'll pass. Rotations do.
+reply.c.wary		Reply	wary			Complaint	Complaint	Don't put that on me.
+reply.e.any		Reply				Exclamation	Statement	Keep your voice down.
+gossip.any		Gossip					Statement	{friend} says the supply run is late again.
+gossip.stranger		Gossip					Question	Heard about the new arrival?
+gossip.wary		Gossip	wary				Complaint	Too many unlogged visitors this rotation.
+gossip.water		Gossip	friendly				Statement	{friend} says the reclaimer is running above spec.
+gossip.hit		Gossip		Hitting			Statement	That outsider hit {name}. Saw it myself.
+gossip.menace		Gossip		Menacing			Statement	Outsider waved a weapon at {name}.
+gossip.kin		Gossip		KinHarmed			Complaint	The outsider hurt {name}. Nobody did anything.
+gossip.defended		Gossip		Defending			Statement	The outsider stood up for {name}. Not many would.
+gossip.hearth		Gossip			Hearth		Question	Did you hear the wind on the hull last night?
+rumour.hit		Rumour		Hitting			Exclamation	The outsider just hit {name}!
+rumour.kin		Rumour		KinHarmed			Exclamation	The outsider attacked {name}!
+rumour.menace		Rumour		Menacing			Exclamation	The outsider drew a weapon on {name}!
+rumour.defended		Rumour		Defending			Exclamation	The outsider just saved {name}!
+rumour.any		Rumour					Exclamation	Watch the outsider! They went for {name}!
+ambition.any		Ambition					Statement	One day I'll have {ambition}.
+ambition.friendly		Ambition	friendly				Statement	Before the contract ends I want {ambition}.
+ambition.hearth		Ambition			Hearth		Question	Ever think about {ambition}?
+need.any		Need					Statement	We're short on {need}.
+need.asking		Need	Asking				Question	You wouldn't have {need} to spare?
+need.complaint		Need	wary				Complaint	No {need} this rotation. Again.
+# -- Between jobs: ambles, chores, breaks --
+chore.reply.q		Reply			Chore	Question	Statement	Busy. Ask me later.
+chore.reply.s		Reply			Chore	Statement	Statement	Mm. The work does not carry itself.
+amble.gossip.1		Gossip			Amble		Statement	Did you see the new readings on the board?
+amble.gossip.2		Gossip			Amble		Statement	Somebody keeps leaving the tube hatch open. I'd not say who.
+amble.ambition.1		Ambition			Amble		Statement	One day I'll walk the whole ridge.
+amble.reply.q		Reply			Amble	Question	Statement	Busy enough. Walk with me, I'll show you.
+amble.reply.s		Reply			Amble	Statement	Statement	Is that so. Well, walk with me.
+amble.reply.c		Reply			Amble	Complaint	Statement	It always is. Come, the walk helps.
+break.gossip.1		Gossip			Break		Statement	Fifteen minutes. Don't tell the rota.
+hearth.gossip.1		Gossip			Hearth		Statement	Best seat on the station, this stool.
+# -- Engineer --
+engineer.work.1	Engineer	Work			Work		Statement	Recalibrating the {place} again. It drifts.
+engineer.work.2	Engineer	Work			Work		Complaint	Whoever wired the {place} never labelled a thing.
+engineer.greet	Engineer	Greeting					Question	Anything beeping? It's probably my fault.
+engineer.need	Engineer	Need					Complaint	We're short on {need}. The seals hate me.
+# -- Operator --
+operator.work.1	Operator	Work			Work		Statement	Telemetry's clean. Suspiciously clean.
+operator.work.2	Operator	Work			Work		Statement	Logging it at the {place}. Eleven thousand entries today.
+operator.greet	Operator	Greeting					Statement	I'm on the console. Talk to me, I'm bored.
+# -- Geologist --
+geologist.work.1	Geologist	Work			Work		Statement	Iron in the ridge sample. And something else.
+geologist.work.2	Geologist	Work			Work		Statement	Three hours at the {place} and the core still says no.
+geologist.chore.1	Geologist	Work			Chore		Statement	Cores to the store before the dust gets into them.
+geologist.greet	Geologist	Greeting					Statement	Careful with that rock. It's older than you.
+# -- RoverTech --
+rovertech.work.1	RoverTech	Work			Work		Statement	That wheel's got a flat spot. They always do.
+rovertech.work.2	RoverTech	Work			Work		Complaint	Every rover I fix, the dust fixes right back.
+rovertech.greet	RoverTech	Greeting					Statement	Stand clear of the rovers. They don't look both ways.
+# -- Botanist --
+botanist.work.1	Botanist	Work			Work		Statement	The {place} is green again. Small victories.
+botanist.work.2	Botanist	Work			Work		Statement	Lettuce on Mars. Don't laugh.
+botanist.chore.1	Botanist	Work			Chore		Statement	Water rations for the plants. Mine are smaller.
+botanist.greet	Botanist	Greeting	friendly				Question	Hungry? There's a tomato. One tomato.
+# -- Chef --
+chef.work.1	Chef	Work			Work		Statement	Rehydrated again. I call it stew.
+chef.work.2	Chef	Work			Work		Complaint	Forty meals a day from three kinds of powder.
+chef.greet	Chef	Greeting	friendly				Question	Is it mealtime? It's always mealtime.
+# -- Medic --
+medic.work.1	Medic	Work			Work		Statement	Everyone's fine until they're not. I wait.
+medic.work.2	Medic	Work			Work		Statement	Restocking the {place}. Three bandages. Always three.
+medic.greet	Medic	Greeting					Question	Dizzy? Short of breath? Be honest.
+# -- Surveyor --
+surveyor.trip.1	Surveyor	Work			Trip		Statement	Another set of readings. The ridge keeps its secrets.
+surveyor.trip.2	Surveyor	Work			Trip		Statement	Wind's up. Scans will be noisy.
+surveyor.greet	Surveyor	Greeting					Statement	I'm out until dusk. Don't wait up.
+# -- EvaGuard --
+evaguard.patrol.1	EvaGuard	Gossip			Patrol		Statement	Perimeter's quiet. I don't trust quiet.
+evaguard.patrol.2	EvaGuard	Gossip			Patrol		Statement	Boots on the regolith, eyes on the horizon.
+evaguard.patrol.3	EvaGuard	Ambition			Patrol		Statement	One shift without a dust devil. That's all I want.
+evaguard.greet	EvaGuard	Greeting	neutral				Question	Visitor. State your business.
+evaguard.armed	EvaGuard	Remark		ArmedHeld			Statement	Inside the wall, that stays holstered.
+evaguard.challenge.armed	EvaGuard	Warning	wary	ArmedHeld			Exclamation	Stand down. That's a weapon.
+evaguard.challenge.sprint	EvaGuard	Warning	wary	Sprinting			Exclamation	Walk! Nobody runs in the airlocks.
+evaguard.challenge.halt	EvaGuard	Warning	wary				Question	Halt. What's your authorisation?
+evaguard.standdown	EvaGuard	Warning	Cold	ArmedHeld			Exclamation	Weapon down. Last call.
+# -- Crew --
+crew.greet	Crew	Greeting	neutral				Question	Off shift. Need something?
+crew.stroll	Crew	Remark		Approaching	Stroll		Statement	Stretching my legs. Three hundred metres of tube.
+crew.gossip	Crew	Gossip					Statement	The rota changed again. Nobody told us.
+crew.reply	Crew	Reply				Question	Statement	Ask whoever's on the console.

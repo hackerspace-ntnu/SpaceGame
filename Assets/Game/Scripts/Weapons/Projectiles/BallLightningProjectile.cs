@@ -46,6 +46,10 @@ namespace SpaceGame.Weapons
         [SerializeField] private float impactSpotIntensity = 35f;
         [SerializeField] private float impactSpotLifetime = 0.25f;
 
+        [Header("Discharge")]
+        [Tooltip("The gimmick: earthing itself through everything damageable that comes near. Left empty it is found on this object or below. Without it the orb is inert and only hurts what it physically runs into.")]
+        [SerializeField] private BallLightningDischarge discharge;
+
         [Header("Charging")]
         [SerializeField] private float chargeMinScale = 0.2f; // Starting scale while charging
         [SerializeField] private float chargeMaxScale = 1f; // Final scale after charging
@@ -75,6 +79,11 @@ namespace SpaceGame.Weapons
             if (colorSourceRenderer == null)
             {
                 colorSourceRenderer = GetComponentInChildren<Renderer>();
+            }
+
+            if (discharge == null)
+            {
+                discharge = GetComponentInChildren<BallLightningDischarge>();
             }
 
             if (syncLightColorFromShader)
@@ -123,6 +132,27 @@ namespace SpaceGame.Weapons
             if (!initialized)
             {
                 return;
+            }
+
+            // Only once it is loose in the world. An orb still charging is sitting in the barrel,
+            // and a discharge there would earth through whoever the holder is standing next to.
+            if (isLaunched && discharge != null)
+            {
+                discharge.Tick(ownerRoot, !Cosmetic);
+
+                if (discharge.Spent)
+                {
+                    DestroyProjectile();
+                    return;
+                }
+
+                // Emptying itself: it stops dead and pours everything into the arc. Movement would
+                // also drag the bolt off the bodies it is being drawn to.
+                if (discharge.IsDischarging)
+                {
+                    UpdateProjectileLight(GetElapsedTime());
+                    return;
+                }
             }
 
             UpdateMovement();

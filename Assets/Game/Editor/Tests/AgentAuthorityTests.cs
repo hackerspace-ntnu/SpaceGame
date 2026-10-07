@@ -1,4 +1,4 @@
-// Tests for the rule that decides which machine an NPC actually runs on.
+﻿// Tests for the rule that decides which machine an NPC actually runs on.
 //
 // Same constraint as NetMessagingTests and NetAuthorityAndDamageTests: there is no session here, so
 // what can be tested is the shape of the decision rather than a live handshake. That is enough,
@@ -281,6 +281,39 @@ namespace SpaceGame.Tests
         public void AFrameWithNoTimeInItMeasuresNothing()
         {
             Assert.AreEqual(Vector3.zero, AgentAnimatorDriver.MeasureVelocity(Vector3.forward, 0f));
+        }
+
+        // ─────────── Where a stop is allowed to put the walk down ───────────
+        //
+        // The conjurer's walk plants a foot a quarter and three quarters of the way through
+        // its cycle, so these are the phases a held stride releases on. Getting this wrong
+        // is not a rounding error -- it is the blend into the standing pose starting from a
+        // foot in mid-air, which is the whole bug the hold exists to fix.
+
+        private static readonly float[] FootPlants = { 0.25f, 0.75f };
+
+        [Test]
+        public void AStrideEndsAtTheNextFootfall()
+        {
+            Assert.AreEqual(3.75f, AgentAnimatorDriver.NextStrideEnd(3.4f, FootPlants), 1e-4f,
+                "Four passes in and 40% through the fifth: the next foot down is the one at " +
+                "three quarters of THIS cycle, not the end of it.");
+        }
+
+        [Test]
+        public void AStrideCaughtPastItsLastFootfallWaitsForTheNextCycle()
+        {
+            Assert.AreEqual(4.25f, AgentAnimatorDriver.NextStrideEnd(3.9f, FootPlants), 1e-4f,
+                "Past the last plant of the cycle, so the answer is the first plant of the " +
+                "next one. Releasing at the cycle boundary instead - 4.0, which sits between " +
+                "the two - would put the foot down in mid-air.");
+        }
+
+        [Test]
+        public void WithNoFootfallsGivenAStrideRunsToTheEndOfItsCycle()
+        {
+            Assert.AreEqual(4f, AgentAnimatorDriver.NextStrideEnd(3.4f, null), 1e-4f,
+                "The honest answer for a clip nobody has told us anything about.");
         }
     }
 }

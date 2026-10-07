@@ -11,6 +11,7 @@
 //   DWELLING  — clear the goal so wander takes the frame, and count down. Yield on finish.
 using UnityEngine;
 using SpaceGame.Items;
+using SpaceGame.Presentation;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -47,6 +48,15 @@ namespace SpaceGame.Agents
         [Header("Debug")]
         [SerializeField] private bool logTransitions = false;
 
+        [Tooltip("Optional. Drives NpcTask.dwellFlag while the NPC is working a site — how a " +
+                 "grazing animal gets its head down. Found on this object or a child when unset.")]
+        [SerializeField] private AgentAnimatorDriver animatorDriver;
+
+        // The flag currently held true, so it can be cleared on the way out even if the task has
+        // already been swapped for the next one. Leaving it set is how an animal ends up grazing
+        // its way across the desert.
+        private string heldDwellFlag;
+
         // Side-effect only. See the file header — this is the contract, not an optimisation.
         public override bool ClaimsMovement => false;
 
@@ -75,6 +85,22 @@ namespace SpaceGame.Agents
         private float travelElapsed;
         private bool homeResolved;
         private int forcedTaskIndex = -1;
+
+        // Who else must agree before this NPC sets off. A walking city's leader waits here for
+        // its crew to be back aboard (CrewShift); null means nobody else has a say.
+        private System.Func<bool> departureGate;
+
+        /// <summary>Dwelling with time left on the stay. False once the stay is over, even while a
+        /// departure gate is still holding the NPC where it is.</summary>
+        public bool AtStop => CurrentPhase == Phase.Dwelling && phaseTimer > 0f;
+
+        /// <summary>
+        /// Something outside the task loop that can hold this NPC in place: consulted when a stay
+        /// ends and before a new destination is chosen. Server-side state, like the rest of the loop.
+        /// </summary>
+        public void SetDepartureGate(System.Func<bool> mayDepart) => departureGate = mayDepart;
+
+        private bool MayDepart => departureGate == null || departureGate();
 
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
@@ -194,6 +220,8 @@ namespace SpaceGame.Agents
 
         private void TickChoosing(float deltaTime)
         {
+            if (!MayDepart) return;
+
             if (phaseTimer > 0f)
             {
                 phaseTimer -= deltaTime;
@@ -267,20 +295,48 @@ namespace SpaceGame.Agents
 
             CurrentPhase = Phase.Dwelling;
             phaseTimer = CurrentTask != null ? CurrentTask.RollDwell() : 10f;
+            SetDwellFlag(CurrentTask != null ? CurrentTask.dwellFlag : null);
             Log($"arrived, working for {phaseTimer:F0}s");
         }
 
         private void TickDwelling(float deltaTime)
         {
-            phaseTimer -= deltaTime;
-            if (phaseTimer > 0f) return;
+            phaseTimer = Mathf.Max(0f, phaseTimer - deltaTime);
+            if (phaseTimer > 0f || !MayDepart) return;
 
             CollectYield();
+            SetDwellFlag(null);
+            BodyLanguage.ReactEverywhere(this, CharacterMoment.TaskFinished);
             CurrentPhase = Phase.Choosing;
             phaseTimer = 0f;
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Hold one animator bool for the duration of a dwell, and never more than one.
+        ///
+        /// Clearing the previous flag before setting the new one is the whole of it: the two tasks
+        /// either side of a transition can name different flags, and setting without clearing
+        /// leaves an animal grazing and drinking at once.
+        /// </summary>
+        private void SetDwellFlag(string flag)
+        {
+            if (heldDwellFlag == flag) return;
+
+            if (animatorDriver == null)
+                animatorDriver = GetComponentInChildren<AgentAnimatorDriver>();
+
+            if (animatorDriver != null)
+            {
+                if (!string.IsNullOrEmpty(heldDwellFlag))
+                    animatorDriver.SetBoolByName(heldDwellFlag, false);
+                if (!string.IsNullOrEmpty(flag))
+                    animatorDriver.SetBoolByName(flag, true);
+            }
+
+            heldDwellFlag = flag;
+        }
 
         private void CollectYield()
         {
@@ -313,16 +369,44 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// Replace the task list at runtime. Used by NpcWorldSim when it spawns a group member, so
-        /// the live NPC continues the job its virtual record was already doing.
+        /// Take over the job a virtual group record was doing. Used by NpcWorldSim when it spawns a
+        /// group's leader, after it has written the record's goal into <see cref="AgentGoal"/>.
+        ///
+        /// Resumed in the phase the record was in, never in Choosing: the planner avoids the current
+        /// index, so a leader that starts by choosing picks a DIFFERENT task on its first tick and
+        /// overwrites the goal it was spawned with — a caravan that turns round every time a player
+        /// walks into range. A dwelling record finishes its dwell rather than re-rolling.
+        ///
+        /// The record keeps only the site's id, so its name is looked up: the two always travel
+        /// together when this module picks a site itself, and the {destination} token reads the
+        /// name. A site whose marker is not loaded has no name to give.
         /// </summary>
-        public void SetTasks(NpcTask[] newTasks, int startIndex = -1)
+        public void ResumeTask(NpcTask[] newTasks, int index, bool travelling, float dwellRemaining,
+                               string siteId)
         {
             tasks = newTasks;
-            CurrentTaskIndex = startIndex;
-            CurrentPhase = Phase.Choosing;
-            phaseTimer = 0f;
+            CurrentTaskIndex = HasTasks ? Mathf.Clamp(index, -1, tasks.Length - 1) : -1;
+            lastSiteId = siteId ?? string.Empty;
+            CurrentDestinationName = WorldSiteRegistry.TryGet(lastSiteId, out WorldSite site)
+                ? site.Name ?? string.Empty
+                : string.Empty;
             travelElapsed = 0f;
+            phaseTimer = 0f;
+
+            if (travelling)
+            {
+                CurrentPhase = Phase.Travelling;
+            }
+            else if (dwellRemaining > 0f)
+            {
+                CurrentPhase = Phase.Dwelling;
+                phaseTimer = dwellRemaining;
+                SetDwellFlag(CurrentTask != null ? CurrentTask.dwellFlag : null);
+            }
+            else
+            {
+                CurrentPhase = Phase.Choosing;
+            }
         }
 
         /// <summary>

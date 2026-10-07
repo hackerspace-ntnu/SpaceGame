@@ -24,6 +24,20 @@ namespace SpaceGame.Items
         [SerializeField] private bool damagesCaster;
 
         /// <summary>
+        /// The rod is held, not aimed, so it takes no upper-body pose.
+        ///
+        /// <para>
+        /// Every hold style on the Upper Body layer is a firearm clip — <c>Relaxed</c>, despite
+        /// the name, is <c>HumanM@Gun_Aim02</c>. On a rod that calls a bolt out of the sky that
+        /// read as the character holding an invisible pistol up in the air, which is both odd to
+        /// look at and a lie about what the item does: the pose said "taking aim with a gun" while
+        /// the strike lands wherever the CROSSHAIR is, from any posture. Dropping it leaves the
+        /// arms on the Base Layer, where they idle and walk with the rod in hand.
+        /// </para>
+        /// </summary>
+        protected override bool UsesHoldPose => false;
+
+        /// <summary>
         /// Where the bolt lands, decided by the player who cast it.
         ///
         /// Every machine has to strike the same spot, and only the caster's machine can work out
@@ -33,11 +47,13 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(raycastDistance) : null;
+            RaycastHit hit = default;
+            bool struck = aimProvider != null
+                          && aimProvider.TryGetAimHit(raycastDistance, out hit);
 
             // Zero means "aimed at open sky" — see Present. `?? Vector3.zero` used to be read as a
             // position, so aiming at nothing struck the world origin.
-            arg.P = hit.HasValue ? hit.Value.point + Vector3.up * spawnHeightOffset : Vector3.zero;
+            arg.P = struck ? hit.point + Vector3.up * spawnHeightOffset : Vector3.zero;
         }
 
         /// <summary>
@@ -57,35 +73,12 @@ namespace SpaceGame.Items
         protected override void Use()
         {
             Vector3 strike = UseArg.P;
-            if (strike == Vector3.zero || damage <= 0 || damageRadius <= 0f) return;
+            if (strike == Vector3.zero) return;
 
-            Vector3 ground = strike - Vector3.up * spawnHeightOffset;
-
-            Collider[] caught = Physics.OverlapSphere(ground, damageRadius, damageMask,
-                                                      QueryTriggerInteraction.Ignore);
-
-            // Colliders, not creatures: a body is several of them, and billing each would multiply
-            // the damage by however many limbs happened to be inside the radius.
-            var billed = new System.Collections.Generic.HashSet<GameObject>();
-
-            foreach (Collider collider in caught)
-            {
-                if (collider == null) continue;
-
-                if (!damagesCaster && owner != null && collider.transform.IsChildOf(owner.transform))
-                    continue;
-
-                HealthComponent health = collider.GetComponentInParent<HealthComponent>();
-
-                // Not everything hurtable owns a HealthComponent — destructible props implement
-                // IDamageable directly — so fall back to the collider itself and let NetDamage
-                // work out which of the two it is looking at.
-                GameObject target = health != null ? health.gameObject : collider.gameObject;
-
-                if (!billed.Add(target)) continue;
-
-                NetDamage.Apply(target, damage, owner != null ? owner.transform : transform);
-            }
+            LightningStrike.Damage(strike - Vector3.up * spawnHeightOffset,
+                                   damage, damageRadius, damageMask,
+                                   owner != null ? owner.gameObject : gameObject,
+                                   damagesCaster);
         }
 
         protected override void Present()
@@ -99,7 +92,8 @@ namespace SpaceGame.Items
                 return;
             }
 
-            Instantiate(lightningVFXPrefab, strike, Quaternion.Euler(90f, 0f, 0f));
+            LightningStrike.Present(lightningVFXPrefab, strike,
+                                    strike - Vector3.up * spawnHeightOffset);
         }
 
         private void OnValidate()

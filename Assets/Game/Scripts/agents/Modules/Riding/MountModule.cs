@@ -15,6 +15,7 @@ using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
@@ -25,8 +26,12 @@ namespace SpaceGame.Agents
     // Ostrich has a kinematic Rigidbody, no NavMeshAgent and no HealthComponent, so before this it
     // was invisible to the save system entirely. MountSaveable is added from here by SaveablePolicy.
     [DefaultExecutionOrder(1000)]
-    public partial class MountModule : BehaviourModuleBase, IInteractable, IPersistentEntity
+    public partial class MountModule : BehaviourModuleBase, IInteractable, IInteractionMoment, IContextualInteractable,
+                                       IPersistentEntity
     {
+        /// <summary>Nothing on the body: mounting seats the rider at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         public enum CameraPerspective
         {
             FirstPerson,
@@ -35,6 +40,12 @@ namespace SpaceGame.Agents
 
         [Header("Mount Points")]
         [SerializeField] private Transform seatPoint;
+        [Tooltip("Optional. Name of a bone under this entity to seat the rider on, resolved at " +
+                 "Awake and written into seatPoint. Use it when the seat is a place on the RIG — a " +
+                 "shoulder, a back, a howdah strapped to an animated spine — because a serialized " +
+                 "Transform cannot point inside an imported model's own hierarchy. Leave empty and " +
+                 "seatPoint is used as authored.")]
+        [SerializeField] private string seatBone;
         [Tooltip("How deep the rider sits into the seat point, in the seat point's local space. " +
                  "A player's transform origin is at their FEET, so with the default zero the feet " +
                  "land on the seat and the body stands above it — fine for a deck, wrong for a " +
@@ -50,6 +61,15 @@ namespace SpaceGame.Agents
                  "IInteractable by walking up from the collider it hit, so otherwise every hull collider " +
                  "becomes a mount point. Use a MountStation on the cockpit control instead.")]
         [SerializeField] private bool mountableByDirectInteraction = true;
+        [Tooltip("How close the player has to stand to the SEAT before mounting is offered, in " +
+                 "metres, measured on the ground plane — horizontal only, height ignored. 0 means " +
+                 "no limit: any collider the look ray reaches offers the seat, which is the old " +
+                 "behaviour and is right for a mount whose whole body is roughly the seat. Set it " +
+                 "on anything large enough that its far side is nowhere near where the rider ends " +
+                 "up. Height is ignored on purpose — a seat on a tall machine's shoulder is metres " +
+                 "above every place a player could ever stand to climb on, so a true 3D distance " +
+                 "could only be satisfied by someone already up there.")]
+        [SerializeField] private float maxMountDistance = 0f;
 
         [Header("Player Components To Toggle")]
         [SerializeField] private bool disablePlayerMovement = true;
@@ -99,6 +119,13 @@ namespace SpaceGame.Agents
         [SerializeField] private float lookSensitivity = 20f;
         [Tooltip("Pitch limit for the FIRST-PERSON head. The third-person boom has its own, below.")]
         [SerializeField] private float lookPitchClamp = 75f;
+        [Tooltip("How far the FIRST-PERSON view may turn from the seat's own forward, in degrees " +
+                 "each way. 180 is the whole circle and the default: somebody sitting in a seat " +
+                 "with no controls to work has nothing to do but look, and a passenger who cannot " +
+                 "turn their head is a passenger staring at a bulkhead for the whole journey. " +
+                 "Lower it for a seat whose fantasy is a fixed station facing one way. The " +
+                 "third-person orbit ignores this — it is unbounded by design.")]
+        [SerializeField] private float firstPersonYawClamp = 180f;
         [SerializeField] private float defaultMountedPitch = -15f;
         [Tooltip("Lowest the third-person boom swings, in degrees. Negative drops the camera and " +
                  "looks up at the mount; going much past this digs it into the ground.")]
@@ -167,9 +194,10 @@ namespace SpaceGame.Agents
         /// </summary>
         private Vector3 lastDismountPosition;
         private bool hasLastDismountPosition;
-        private bool playerRigidbodyWasKinematic;
-        private bool playerRigidbodyHadGravity;
-        private RigidbodyInterpolation playerRigidbodyInterpolation;
+
+        // The rider's Rigidbody state is deliberately NOT cached here. It belongs to CarriedBody,
+        // because a body can be held by this module and by SeatedRider at once and a private cache
+        // per carrier hands back a state the body was never in — see CarriedBody for the failure.
 
         // The rider's own control components as they were the moment they sat down, so the dismount
         // hands back what it took rather than switching everything on.
@@ -190,8 +218,15 @@ namespace SpaceGame.Agents
         private Transform activeSeatPoint;
         private Camera mountedFirstPersonCamera;
         private Transform mountedFirstPersonCameraRoot;
+        private AimProvider mountedAimProvider;
 
         private MonoBehaviour[] suppressibleModules;
+
+        /// Exactly the modules THIS mount switched off, so a dismount can switch exactly those back
+        /// on and nothing else. See <see cref="RestoreModuleSuppression"/> for why that distinction
+        /// is not pedantry.
+        private readonly ModuleSuppression suppressedModules = new ModuleSuppression();
+        private bool riderDrives;
 
         // Animator state captured at mount time so root-motion-driven drift is suppressed while
         // ridden and restored on dismount.
@@ -204,9 +239,12 @@ namespace SpaceGame.Agents
         private RigidbodyConstraints ownRigidbodyConstraints;
         private bool ownRigidbodyConstraintsCaptured;
 
-        // Rider<->mount collider pairs ignored while mounted so the rider's kinematic collider
-        // doesn't push the mount around. Restored on dismount.
-        private (Collider a, Collider b)[] ignoredCollisionPairs;
+        // Rider/mount collider pairs ignored while mounted so the rider's kinematic collider
+        // doesn't push the mount around. Restored on dismount. The pairs live in a shared helper
+        // because NpcPassenger seats a different kind of rider in this same saddle and needs the
+        // identical suspension — and, just as importantly, must not reach for the other tool that
+        // stops a rider shoving its mount, which is switching the rider's colliders off.
+        private readonly RiderCollisionIgnore riderCollisions = new RiderCollisionIgnore();
 
         public event Action<PlayerMovement> Mounted;
         public event Action<PlayerMovement> Dismounted;
@@ -234,23 +272,43 @@ namespace SpaceGame.Agents
         /// </para>
         /// </summary>
         public bool RiderIsLocal => mountedPlayer != null && Network.Owns(mountedPlayer);
+        /// <summary>
+        /// Does taking this seat put the rider in control, or only along for the ride?
+        ///
+        /// <para>
+        /// Answered by whether a <see cref="SteerModule"/> is present, because that module IS the
+        /// rider's controls — without one there is no input path from the seat to the motor at all.
+        /// </para>
+        /// <para>
+        /// What reads it is the netcode. Mounting normally hands the mount's NetworkObject to the
+        /// rider's client so their steering replicates outward from them; for a passenger that
+        /// transfer hands a client an AI it has no business running, and the machine's own decisions
+        /// — who it chases, who it fires on — start being made on the passenger's PC. So a seat with
+        /// no controls attached to it leaves ownership where it was. See MountNetworkSync.
+        /// </para>
+        /// </summary>
+        public bool RiderDrives => riderDrives;
         public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
         public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
+        public bool MountableByDirectInteraction => mountableByDirectInteraction;
         public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
         public Transform MountedPlayerTransform => mountedPlayer;
         public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
-        public PlayerLook MountedPlayerLook => mountedPlayerLook;
-        public Interactor MountedInteractor => mountedInteractor;
-        public Rigidbody MountedPlayerRigidbody => mountedPlayerRigidbody;
-        public Camera MountedFirstPersonCamera => mountedFirstPersonCamera;
-        public Transform MountedFirstPersonCameraRoot => mountedFirstPersonCameraRoot;
         public Camera MountedThirdPersonCamera => runtimeThirdPersonCamera;
-        public CameraPerspective ActivePerspective => activePerspective;
-        public float CameraYaw => cameraYaw;
-        public float CameraYawOffset => cameraYawOffset;
-        public float MountedPitch => mountedPitch;
-        public float OrbitPitch => orbitPitch;
         public Vector3 SeatOffset => seatOffset;
+
+        /// <summary>
+        /// Where this mount stands its rider up, or null when it has none authored.
+        ///
+        /// <para>
+        /// Exposed so the other way a body ends up in one of this vehicle's chairs — the arrival's
+        /// <c>SeatedRider</c>, which deliberately does not go through a mount — can put people down
+        /// in the same place rather than inventing a second one. Two components disagreeing about
+        /// where the door is on the same ship is exactly the kind of drift this project pays for
+        /// later.
+        /// </para>
+        /// </summary>
+        public Transform DismountPoint => dismountPoint;
 
         /// <summary>Where the last dismount left the rider. Only meaningful with <see cref="HasLastDismountPosition"/>.</summary>
         public Vector3 LastDismountPosition => lastDismountPosition;
@@ -261,6 +319,8 @@ namespace SpaceGame.Agents
         public override string ModuleDescription =>
             "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +
             "• Implements IInteractable — players mount by interacting.\n" +
+            "• maxMountDistance > 0 only offers the seat to a rider standing within that " +
+            "many metres of it, measured on the ground plane.\n" +
             "• Fires Mounted/Dismounted events.\n" +
             "• When allowAISelfMovementWhenMounted = false, disables non-mount IBehaviourModules for the duration.";
 
@@ -269,10 +329,39 @@ namespace SpaceGame.Agents
         // ─────────── Lifecycle ───────────
         private void Awake()
         {
+            ResolveSeatBone();
             if (!seatPoint)
                 seatPoint = transform;
             activeSeatPoint = seatPoint;
             CacheSuppressibleModules();
+
+            // Asked once, here, rather than per query: nothing adds a SteerModule to a live mount,
+            // and MountNetworkSync reads this on every seating.
+            riderDrives = GetComponent<SteerModule>() != null;
+        }
+
+        /// <summary>
+        /// Point <see cref="seatPoint"/> at the bone named by <see cref="seatBone"/>.
+        ///
+        /// By name, for the same reason <c>ConjurerCastModule</c> resolves its muzzle that way: the
+        /// model is a nested prefab instance, and a serialized Transform cannot reach into one.
+        /// </summary>
+        private void ResolveSeatBone()
+        {
+            if (string.IsNullOrEmpty(seatBone))
+                return;
+
+            foreach (Transform t in GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name != seatBone)
+                    continue;
+                seatPoint = t;
+                return;
+            }
+
+            Debug.LogWarning($"{name}: MountModule found no bone '{seatBone}'. The rider will be " +
+                             "seated on whatever seatPoint holds instead — on this entity's own " +
+                             "origin if that is empty, which puts them at its feet.", this);
         }
 
         private void OnEnable()
@@ -307,6 +396,20 @@ namespace SpaceGame.Agents
                 lookAction.Disable();
                 forcedLookActionEnabled = false;
             }
+
+            // Unconditionally, and NOT only in the IsMounted branch above. The third-person camera
+            // is created by SetThirdPersonCameraEnabled, which runs off the perspective rather than
+            // off the rider, so it can exist while nothing is mounted -- and then nothing above
+            // would take it down. It is unparented, so no hierarchy takes it down either.
+            ReleaseRuntimeThirdPersonCamera();
+        }
+
+        // OnDisable already covers the ordinary teardown, and Unity raises it before OnDestroy for
+        // an active object. This is for the object that was ALREADY disabled when it was destroyed:
+        // OnDisable does not fire a second time, and the camera would outlive its mount.
+        private void OnDestroy()
+        {
+            ReleaseRuntimeThirdPersonCamera();
         }
 
         private void Update()
@@ -320,15 +423,51 @@ namespace SpaceGame.Agents
 
             EnsureLookActionEnabled();
             HandleLookInput(Time.deltaTime);
+
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                RequestDismount();
+        }
+
+        /// <summary>
+        /// Get up out of the seat.
+        ///
+        /// <para>
+        /// Here rather than in SteerModule, where it used to live, because standing up belongs to
+        /// the SEAT and not to the controls: only the helm has a SteerModule, so a passenger chair
+        /// — every non-helm chair on the PlayerShip is its own MountModule with no steering — had
+        /// nothing reading the key at all. It went unnoticed while a mount request reached every
+        /// module on the hull, because sitting anywhere also mounted the helm, which then answered
+        /// for everybody. See MountNetworkSync.MountIndex for the half of that this is the other
+        /// side of.
+        /// </para>
+        /// <para>
+        /// Through the sync when this mount is networked, or the rider stands up on their own
+        /// screen and stays welded to the saddle on everyone else's.
+        /// </para>
+        /// </summary>
+        private void RequestDismount()
+        {
+            if (TryGetComponent(out MountNetworkSync sync))
+            {
+                sync.RequestDismount();
+                return;
+            }
+
+            Dismount();
         }
 
         protected override void OnValidate()
         {
             base.OnValidate();
             mountCooldown = Mathf.Max(0f, mountCooldown);
+            maxMountDistance = Mathf.Max(0f, maxMountDistance);
             fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
             lookSensitivity = Mathf.Max(0f, lookSensitivity);
             lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
+            // Past 180 is not a wider view, it is the same circle counted twice: the offset is
+            // wrapped into (-180, 180] before it is ever clamped, so a larger number here would
+            // read as a limit and do nothing.
+            firstPersonYawClamp = Mathf.Clamp(firstPersonYawClamp, 0f, 180f);
             orbitPitchMin = Mathf.Clamp(orbitPitchMin, -89f, 0f);
             orbitPitchMax = Mathf.Clamp(orbitPitchMax, 0f, 89f);
             thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
@@ -359,7 +498,116 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            TryMount(interactor, transform);
+            // null, not `transform`. The override exists for a MountStation seating a rider at a
+            // cockpit control somewhere else on the hull; passing this entity's own root through it
+            // means "the seat is my origin", which overwrites the authored seatPoint with the
+            // mount's feet in ActiveSeatPoint. Everything that reads that — the camera pivot
+            // fallback, PassengerSeat holding a rider on a bone — then works off the wrong place,
+            // while ParentRiderToMount goes on using seatPoint and the two disagree. The networked
+            // path (MountNetworkSync.ApplyMount) already passes null, so this is also what makes
+            // the offline and session paths seat a rider identically.
+            TryMount(interactor, null);
+        }
+
+        // ─────────── IContextualInteractable ───────────
+        /// <summary>
+        /// Whether THIS player is standing close enough to the seat to be offered it.
+        ///
+        /// <para>
+        /// Split from <see cref="CanInteract()"/> because the two questions have different answers:
+        /// the mount is free to be ridden (a fact about the world) while a particular player is
+        /// still half a body-length away from the place they would end up (a fact about them). The
+        /// <see cref="Interactor"/> asks both before it lights the crosshair, so a refusal here
+        /// takes the prompt away as well as blocking the press.
+        /// </para>
+        /// <para>
+        /// What this closes: <see cref="Interactor"/> resolves an interactable by walking up from
+        /// whatever collider the look ray hit, so on a large entity EVERY collider offers the seat
+        /// from the full length of that ray. On an eighteen-metre machine with one body column
+        /// that put the prompt on screen from any side, several metres out, and pressing it fired
+        /// the rider up onto a shoulder they were nowhere near.
+        /// </para>
+        /// </summary>
+        public bool CanInteract(Interactor interactor) => IsWithinMountRange(interactor);
+
+        /// <summary>
+        /// Horizontal distance from a would-be rider to the seat, against
+        /// <see cref="maxMountDistance"/>. Public so a station or a test can ask the same question
+        /// the crosshair does.
+        ///
+        /// <para>
+        /// HORIZONTAL, and that is the whole design of it. A seat can be metres above every place
+        /// a player could stand — the conjurer's shoulder is sixteen up — so a true 3D distance
+        /// would be unsatisfiable from the ground and the only riders it admitted would be ones
+        /// already aboard. Dropping the vertical leaves the question that actually means
+        /// something: are they standing under it.
+        /// </para>
+        /// <para>
+        /// A null interactor is not refused. Nobody was named, so there is no one to be too far
+        /// away — the same answer <c>DeckBoarding</c> gives, and what keeps a scripted or
+        /// restored mount from being blocked by a rule written for a player at a crosshair.
+        /// </para>
+        /// </summary>
+        public bool IsWithinMountRange(Interactor interactor)
+        {
+            if (maxMountDistance <= 0f || interactor == null)
+                return true;
+
+            Vector3 offset = SeatWorldPosition - RiderPosition(interactor);
+            offset.y = 0f;
+            return offset.sqrMagnitude <= maxMountDistance * maxMountDistance;
+        }
+
+        /// <summary>
+        /// Where a rider taking this seat right now would land — the seat marker with
+        /// <see cref="seatOffset"/> folded in, which is the pose <c>ParentRiderToMount</c> writes.
+        /// </summary>
+        public Vector3 SeatWorldPosition
+        {
+            get
+            {
+                Transform seat = ActiveSeatPoint;
+                return seat ? seat.TransformPoint(seatOffset) : transform.position;
+            }
+        }
+
+        /// <summary>
+        /// The body the interactor belongs to, not the interactor itself: on the player prefab the
+        /// Interactor sits on the root, but a rig that hangs it off the camera would otherwise be
+        /// measured from wherever the head happens to be leaning.
+        /// </summary>
+        private static Vector3 RiderPosition(Interactor interactor)
+        {
+            PlayerMovement body = interactor.GetComponentInParent<PlayerMovement>();
+            return body ? body.transform.position : interactor.transform.position;
+        }
+
+        /// <summary>
+        /// The ring a rider has to stand inside, drawn at their feet rather than at the seat — the
+        /// seat can be sixteen metres over the player's head, and a circle up there tells nobody
+        /// where to walk. Only drawn when the range is limited; an unlimited mount has no ring.
+        /// </summary>
+        private void OnDrawGizmosSelected()
+        {
+            if (maxMountDistance <= 0f)
+                return;
+
+            Vector3 centre = SeatWorldPosition;
+            centre.y = transform.position.y;
+
+            Gizmos.color = new Color(0.3f, 0.9f, 1f, 0.9f);
+            const int segments = 48;
+            Vector3 previous = centre + new Vector3(maxMountDistance, 0f, 0f);
+            for (int i = 1; i <= segments; i++)
+            {
+                float angle = i * Mathf.PI * 2f / segments;
+                Vector3 next = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * maxMountDistance;
+                Gizmos.DrawLine(previous, next);
+                previous = next;
+            }
+
+            // The column the ring is measured from, so a seat out on a shoulder reads as one.
+            Gizmos.DrawLine(centre, SeatWorldPosition);
         }
 
         // ─────────── Suppressor ───────────
@@ -372,10 +620,10 @@ namespace SpaceGame.Agents
             foreach (MonoBehaviour mb in all)
             {
                 // Suppress anything that could produce movement or a MoveIntent while mounted:
-                // IBehaviourModule (except Mount/Steer themselves) and legacy IAgentBrain fallbacks.
-                // Without this, e.g. a legacy NpcBrain/EnemyBrain would keep feeding intents to the
+                // IBehaviourModule except Mount/Steer themselves.
+                // Without this, a wander or chase module would keep feeding intents to the
                 // motor and make the mount drift/circle while the rider is idle.
-                if ((mb is IBehaviourModule || mb is IAgentBrain) && !IsMountAware(mb))
+                if (mb is IBehaviourModule && !IsMountAware(mb))
                     list.Add(mb);
             }
             suppressibleModules = list.ToArray();
@@ -389,18 +637,39 @@ namespace SpaceGame.Agents
 
         private void ApplyModuleSuppression()
         {
-            if (allowAISelfMovementWhenMounted || suppressibleModules == null)
+            suppressedModules.Forget();
+
+            if (allowAISelfMovementWhenMounted)
                 return;
-            foreach (MonoBehaviour mb in suppressibleModules)
-                if (mb) mb.enabled = false;
+
+            // Only what is on: a module already off is not ours to give back (ModuleSuppression).
+            suppressedModules.Suppress(suppressibleModules);
         }
 
-        private void RestoreModuleSuppression()
-        {
-            if (suppressibleModules == null)
-                return;
-            foreach (MonoBehaviour mb in suppressibleModules)
-                if (mb) mb.enabled = true;
-        }
+        /// <summary>
+        /// Give back what the mount took, and only that.
+        ///
+        /// <para>
+        /// This used to switch every behaviour module ON, which is a far stronger claim than a
+        /// dismount is entitled to make: that the mount knows every module on the creature ought to
+        /// be running. It does not. A module is allowed to switch ITSELF off, and
+        /// <c>DormantModule</c> does exactly that the instant its wake animation finishes — that is
+        /// how it hands the ladder down to chase and wander for good.
+        /// </para>
+        /// <para>
+        /// Switching it back on put a module whose phase was already Done at the top of the ladder
+        /// (Scripted, 100) returning <c>MoveIntent.Idle()</c> every frame, which starves everything
+        /// beneath it. The conjurer stood frozen the moment its passenger stepped off, ignoring the
+        /// player it had just been carrying — indistinguishable, from outside, from the rider's
+        /// concealment having stuck, which is exactly how it was reported.
+        /// </para>
+        /// <para>
+        /// The rider's own components have always worked this way — see
+        /// <c>riderMovementWasEnabled</c> and the note beside it. The mount's side simply never got
+        /// the same treatment, and the rule is the same on both: "what was it before" is the only
+        /// question a restore may ask.
+        /// </para>
+        /// </summary>
+        private void RestoreModuleSuppression() => suppressedModules.Restore();
     }
 }

@@ -9,7 +9,7 @@
 //
 // The two sources exist because the world scene and every other scene answer differently. In the
 // streamed world only the loaded chunk knows its terrain, and asking a chunk that has not loaded
-// must fail rather than guess. In MinigameArena, CaveTest and the personal test scenes there is no
+// must fail rather than guess. In CaveTest and the personal test scenes there is no
 // streamer at all, but there may still be a plain Terrain in the scene worth measuring against.
 //
 // Failing is a real answer, not an error. No terrain under a position means there is no surface to

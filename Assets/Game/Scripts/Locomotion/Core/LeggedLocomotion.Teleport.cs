@@ -55,6 +55,46 @@ namespace SpaceGame.Locomotion
         }
 
         /// <summary>
+        /// Where the machine is, as the locomotion understands it.
+        ///
+        /// Read from the path rather than from the transform, because the path is the authority:
+        /// <c>body.position</c> is written FROM this every frame, so anything measuring against the
+        /// transform is measuring the locomotion's last output rather than its state. Falls back to
+        /// the transform before the rig has been measured, when there is no path yet.
+        /// </summary>
+        public Vector3 BodyPosition => ready ? pathPos : transform.position;
+
+        /// <summary>
+        /// Haul the machine a short distance it did not ask to travel — a rope towing it.
+        ///
+        /// <para>
+        /// Same reason <see cref="OnTeleported"/> exists: Invariant I4 makes this class the only
+        /// author of the body's transform, so a rope writing <c>MovePosition</c> on the Rigidbody is
+        /// overwritten from <c>pathPos</c> on the very next <c>LateUpdate</c>. A towed ostrich did
+        /// not resist — it never moved at all, with nothing in the console.
+        /// </para>
+        /// <para>
+        /// The feet are deliberately NOT rebased, which is the whole difference from a teleport. A
+        /// transfer must carry the footholds so the machine arrives standing in the stance it left;
+        /// a tow must leave them where they are, because they are still on the ground it is being
+        /// dragged across. Leaving them puts the legs over-reach, and the gait answers that the way
+        /// it answers it anywhere else — by stepping. That is what being pulled along looks like.
+        /// </para>
+        /// </summary>
+        public void Drag(Vector3 worldDelta)
+        {
+            // Before Initialise there is no path to move; the machine is measured against wherever
+            // it then is, so a drag now would be silently discarded rather than merely useless.
+            if (!ready) return;
+
+            pathPos += worldDelta;
+
+            // pathPos.y IS smoothedHeight — Body.cs writes one from the other every frame — so the
+            // two have to be put back in step here or the next settle fights the drag.
+            smoothedHeight = pathPos.y;
+        }
+
+        /// <summary>
         /// Bring the path, the feet and the arms through the move with the body.
         ///
         /// Runs for a followed machine as well as an owning one. A remote copy derives this frame's

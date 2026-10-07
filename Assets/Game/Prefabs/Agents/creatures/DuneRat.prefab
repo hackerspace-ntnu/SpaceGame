@@ -112,9 +112,6 @@ PrefabInstance:
       addedObject: {fileID: 1959888865734284470}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 9068026834982329181}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 2455015873825896318}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
@@ -166,11 +163,34 @@ PrefabInstance:
       addedObject: {fileID: 4754462582280630209}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6105412718947477083}
+      addedObject: {fileID: 6345000896566801122}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6345000896566801122}
+      addedObject: {fileID: 7906705051617186316}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3381072259645718227}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5558904162206321970}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4093305773647497827}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1841014291172686441}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5801440665267903765}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 246417985241167322}
   m_SourcePrefab: {fileID: 100100000, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+--- !u!4 &810097992514676371 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8929324545226619115, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+  m_PrefabInstance: {fileID: 8130508641694424696}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &2431885669563376617 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
@@ -210,7 +230,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8940832018371814185}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 40
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -263,12 +283,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 7729365641785085112}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.2413493
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 9
+  minGripAcceleration: 0.02
   enableMountedJump: 1
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
@@ -278,6 +312,7 @@ MonoBehaviour:
   mountedLeapSampleRadius: 6
   riderTurnSpeed: 120
   riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
 --- !u!114 &8239612881747668733
@@ -297,6 +332,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 3.5
+  strideEndPhases: []
 --- !u!114 &8549947225533376528
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -311,10 +347,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 2804872818588554921}
   animatorDriver: {fileID: 8239612881747668733}
-  nearbyAgentScanRadius: 0
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &6740200465252419601
@@ -331,8 +363,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
   profile: {fileID: 0}
   relationship: 2
-  acquisitionRange: 35
-  loseRange: 45
+  acquisitionRange: 80
+  loseRange: 110
   requireLineOfSightToAcquire: 1
   proximityAcquireRange: 4
   drawGizmos: 1
@@ -388,8 +420,9 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
+  logDamage: 0
 --- !u!114 &6203367197017369867
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,18 +442,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 641
   eyeHeight: 0.97
-  memoryDuration: 5
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+  targetAimHeight: 1
+  headAimHeight: 1.6
+  headInset: 0.15
+  sightRecheckInterval: 0.2
 --- !u!114 &1871007485397459893
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -433,7 +458,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd9dee46351a74db99007706d23b6644, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
-  priority: 0
+  priority: 20
   active: 1
   chaseStopDistance: 1.4
   chaseSpeedMultiplier: 1
@@ -456,7 +481,17 @@ MonoBehaviour:
   attackCooldown: 1.2
   attackDamage: 12
   attackCommitDuration: 0.5
+  knockbackSpeed: 0
+  knockbackLift: 0.3
+  knockbackLeapDistance: 4
+  knockbackLeapHeight: 1.6
+  knockbackLeapDuration: 0.55
+  knockbackMassReference: 80
+  knockbackMassScale: {x: 0.4, y: 2.5}
+  attackCue: {fileID: 0}
+  attackAction: {fileID: 0}
   attackAnimTrigger: Meele
+  contactGrace: 0.25
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
@@ -488,6 +523,7 @@ MonoBehaviour:
   sampleDistance: 6
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 1.5
   maxWaitTime: 6
   stopDistance: 0.2
@@ -506,25 +542,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
   faction: {fileID: 11400000, guid: 2ee6e7c9c668f4169a98d2307a4d4b0b, type: 2}
   relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
---- !u!114 &9068026834982329181
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8940832018371814185}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d098cb41a70441c8bc8c7fd711068b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
-  profile: {fileID: 0}
-  relationship: 2
-  acquisitionRange: 35
-  loseRange: 45
-  requireLineOfSightToAcquire: 1
-  proximityAcquireRange: 4
-  drawGizmos: 1
 --- !u!114 &2455015873825896318
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -590,7 +607,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 0
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -600,12 +617,12 @@ MonoBehaviour:
   SyncScaleX: 1
   SyncScaleY: 1
   SyncScaleZ: 1
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
   InLocalSpace: 0
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
@@ -796,18 +813,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &6105412718947477083
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8940832018371814185}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &6345000896566801122
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -820,3 +825,176 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &7906705051617186316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
+  minBoneWeightFraction: 0.015
+  maxBones: 20
+  minimumUsefulBones: 4
+  limbAspect: 0.3
+  minRadius: 0.04
+  totalMass: 70
+  minBoneMass: 0.6
+  maxJointMassRatio: 8
+  angularDamping: 0.6
+  linearDamping: 0.05
+  solverIterations: 14
+  sleepWhenSettled: 1
+  boneSleepThreshold: 0.05
+  selfCollision: 0
+  swingLimit: 45
+  twistLimit: 25
+  projectionDistance: 0.05
+  projectionAngle: 10
+  settleLinearSpeed: 0.35
+  settleAngularSpeed: 1.2
+  settleSeconds: 0.45
+  maxLimpSeconds: 4
+  recoverBlendSeconds: 0.35
+  groundProbeHeight: 3
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxConcurrentRagdolls: 12
+--- !u!114 &3381072259645718227
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  knockdown:
+    fallSeconds: 0.1
+    minSeconds: 0.1
+    maxSeconds: 0.2
+    threshold: 0.35
+    fullSeverity: 1
+    damageWeight: 1
+    lowHealthWeight: 0.5
+    knockbackWeight: 1
+    knockbackReferenceSpeed: 20
+    settleGraceSeconds: 1.5
+    reknockImmunitySeconds: 1
+  hitImpulse: 3
+  deathImpulse: 2.5
+  deathImpulseLift: 0.35
+--- !u!114 &5558904162206321970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.35
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
+--- !u!114 &4093305773647497827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+    reigniteDelay: 3
+  frozen:
+    seconds: 10
+  slick:
+    seconds: 20
+    grip: 0.03
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  swallowed:
+    seconds: 6
+  inflationTarget: {fileID: 810097992514676371}
+--- !u!114 &1841014291172686441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69eae6986bef940a180aa26bee3169a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StatusReactionModule
+  priority: 100
+  active: 1
+  reactions:
+  - Kind: 0
+    Response: 1
+  - Kind: 1
+    Response: 2
+  - Kind: 4
+    Response: 2
+--- !u!114 &5801440665267903765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &246417985241167322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant

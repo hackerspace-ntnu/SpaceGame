@@ -8,6 +8,12 @@ using UnityEditor;
 namespace SpaceGame.Items
 {
     /// <summary>
+    /// How strange an item looks to a settlement resident — what makes them stop and ask about it.
+    /// Ordered by how much it draws the eye.
+    /// </summary>
+    public enum Curiosity : byte { None, Odd, Precious, Alien }
+
+    /// <summary>
     /// ScriptableObject representing an item that can be stored in the inventory. Contains data about the item such as its name, prefab, and icon.
     /// </summary>
     [CreateAssetMenu(menuName = "Items/Item")]
@@ -47,6 +53,49 @@ namespace SpaceGame.Items
 
         [Tooltip("Optional icon for UI display.")]
         public Sprite icon;
+
+        [Tooltip("Optional prefab to render the icon from instead of itemPrefab, for items whose "
+            + "held form is not what the player thinks of as the item — e.g. the Wing Pack's icon "
+            + "shows the unfurled ornithopter, not the furled pack in the hand.")]
+        public GameObject iconPrefab;
+
+        [Tooltip("Where this item is equipped. Hand items go into the palm from a hotbar slot; a " +
+                 "Gauntlet is worn on a forearm and fired on that arm's key; a Back item is worn " +
+                 "on the back and deployed on a double tap of jump. Worn kinds are inert in the hotbar.")]
+        public EquipKind equipKind = EquipKind.Hand;
+
+        [Tooltip("Does holding this read as a threat to an NPC?\n\n" +
+                 "Tick it for things that are unmistakably a weapon when they are pointed at you — " +
+                 "guns, staves, the bazooka, the flamethrower. Leave it off for everything else, " +
+                 "which is most of the item list: tools, placeables, ship parts, potions and " +
+                 "supplies.\n\n" +
+                 "GAUNTLETS ARE NEVER MENACING, whatever they do. A gauntlet is gear you are " +
+                 "wearing rather than something you have drawn, so a wrist blade and a grappling " +
+                 "hook are no more threatening than a torch.\n\n" +
+                 "Read by MenaceSensor, which needs this AND a shot fired in the last few seconds " +
+                 "before it reports anything: holding a gun is not a threat, having just fired one " +
+                 "while squared up at somebody is.")]
+        public bool menacing;
+
+        [Tooltip("An NPC wearing this gauntlet fires it at its target (NpcGauntletUseModule). Off by default: " +
+                 "most gadgets assume a player's camera, so each one opts in after it has been checked to " +
+                 "work from an NPC's aim (UsableItem.HolderAimRay).")]
+        public bool npcUsable;
+
+        [Tooltip("How strange this item looks to a settlement resident when you hold it in front " +
+                 "of them.\n\n" +
+                 "None — ordinary gear nobody remarks on (most of the list).\n" +
+                 "Odd — clearly not from around here: they ask what it is.\n" +
+                 "Precious — valuable or rare: they eye it, and traders want it.\n" +
+                 "Alien — nothing they have a word for: they stare, and the timid back away.")]
+        public Curiosity curiosity;
+
+        [Tooltip("List this item in the developer artifact browser (O)?\n\n" +
+                 "Leave it on for anything a developer might want to hand themselves. Turn it off " +
+                 "for props that exist for a character to carry and that mean nothing in the " +
+                 "player's hotbar — the hand tools and vessels residents hold. The item still " +
+                 "registers, saves, drops and picks up like any other.")]
+        public bool showInDevBrowser = true;
 
 #if UNITY_EDITOR
         private void OnValidate()

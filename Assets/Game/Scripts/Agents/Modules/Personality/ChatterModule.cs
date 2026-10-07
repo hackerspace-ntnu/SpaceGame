@@ -11,22 +11,24 @@ using FMODUnity;
 using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Presentation;
+using SpaceGame.Presentation.Speech;
 
 namespace SpaceGame.Agents
 {
     // IPresentationModule: this keeps ticking on machines that only watch the NPC. It has to. The
-    // line is shown in a screen-space popup on THIS machine, to THIS machine's player, chosen by
-    // how close THEY are standing — none of which the server can answer on their behalf. Running it
+    // line is shown as a speech bubble on THIS machine, to THIS machine's player, chosen by how
+    // close THEY are standing — none of which the server can answer on their behalf. Running it
     // only where the NPC is simulated would mean the host hears the camp talking and nobody else
-    // ever does. It qualifies because it writes nothing anyone else can observe: a local popup and
-    // a local sound, and a static cooldown that is per-machine by nature.
+    // ever does. It qualifies because it writes nothing anyone else can observe: a local Speaker
+    // line and a local sound, and a static cooldown that is per-machine by nature.
     public class ChatterModule : BehaviourModuleBase, IPresentationModule
     {
         [Header("Audience")]
-        [Tooltip("How close a player must be before this NPC says anything. The popup is a " +
-                 "screen-space singleton with no position of its own, so this radius is the only " +
-                 "thing tying a line to the person who said it — keep it short.")]
+        [Tooltip("How close a player must be before this NPC says anything. The line floats over " +
+                 "the NPC as a speech bubble; keep this inside the bubbles' earshot or it is said " +
+                 "unseen.")]
         [SerializeField] private float hearingRadius = 12f;
 
         [Tooltip("Require line of sight to the player. Off by default: a voice from behind a rock " +
@@ -40,10 +42,10 @@ namespace SpaceGame.Agents
         [SerializeField] private Vector2 interval = new Vector2(20f, 50f);
 
         [Tooltip("Seconds after ANY NPC speaks before another may. Shared across every NPC in the " +
-                 "game, because they all write to the same popup — without it, walking into a camp " +
-                 "of six produces six lines fighting over one text box.")]
+                 "game — without it, walking into a camp of six produces six lines at once.")]
         [SerializeField] private float globalCooldown = 6f;
 
+        [Tooltip("Seconds a line stays up at least; longer lines stay as long as they take to read.")]
         [SerializeField] private float popupDuration = 2.6f;
 
         [Header("Lines")]
@@ -79,16 +81,31 @@ namespace SpaceGame.Agents
 
         private void Reset() => SetPriorityDefault(ModulePriority.Personality);
 
-        private void Awake() => taskModule = GetComponent<NpcTaskModule>();
+        private AgentAuthority authority;
 
-        private void OnEnable() => speakTimer = RollInterval();
+        private void Awake()
+        {
+            taskModule = GetComponent<NpcTaskModule>();
+            authority = new AgentAuthority(this);
+        }
+
+        // A rider is re-parented onto its mount, which can change who simulates it.
+        private void OnTransformParentChanged() => authority?.Invalidate();
+
+        private void OnEnable()
+        {
+            speakTimer = RollInterval();
+            this.NetOn(NetMsg.AgentActed, OnAgentActed);
+        }
+
+        private void OnDisable() => this.NetOff(NetMsg.AgentActed, OnAgentActed);
 
         public override string ModuleDescription =>
             "Speaks a line about the current task when a player is within hearing range.\n\n" +
             "• Pulls lines from NpcTaskModule's current task, so the NPC talks about what it is doing\n" +
             "• idleChatter — fallback lines when there is no task\n" +
             "• hearingRadius — how close the player must be\n" +
-            "• globalCooldown — shared across ALL NPCs, since they share one popup\n" +
+            "• globalCooldown — shared across ALL NPCs, so a camp does not talk at once\n" +
             "• silentWhileFighting — no small talk mid-combat";
 
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
@@ -106,7 +123,7 @@ namespace SpaceGame.Agents
             string line = PickLine();
             if (string.IsNullOrWhiteSpace(line)) return null;
 
-            Speak(line);
+            Speak(line, SpeechChannel.Ambient);
             return null;
         }
 
@@ -117,10 +134,8 @@ namespace SpaceGame.Agents
             if (silentWhileFighting && context.Targeting != null && context.Targeting.HasTarget)
                 return false;
 
-            // Never talk over a conversation the player is actually having. The popup is one object
-            // and a chatter line would replace a dialog line mid-sentence.
-            NpcDialogPopupUI popup = NpcDialogPopupUI.Instance;
-            if (popup == null || popup.IsVisible || popup.IsQuestionActive) return false;
+            // Never talk over a conversation the player is actually having.
+            if (InConversation()) return false;
 
             Transform listener = ResolveListener();
             if (listener == null) return false;
@@ -169,16 +184,94 @@ namespace SpaceGame.Agents
         /// </summary>
         private string Resolve(string line) => NpcSpeechTokens.Resolve(line, taskModule);
 
-        private void Speak(string line)
+        /// <summary>
+        /// Say <paramref name="line"/> now, outside the idle rotation. Answers whether it was said.
+        ///
+        /// <para>
+        /// For a line the world has a REASON for at this instant — the aggression telegraph's
+        /// warning, which is worthless three seconds late. It therefore skips the interval and the
+        /// silent-while-fighting rule, both of which exist to stop ambient chatter being annoying,
+        /// and keeps the two that stop lines colliding: the global cooldown, so six nomads warning
+        /// you at once produce one line rather than six, and never talking over a conversation the
+        /// player is actually having.
+        /// </para>
+        /// <para>
+        /// Deliberately not "say this no matter what". A warning that overwrites the dialogue box
+        /// mid-sentence is a worse bug than a warning that is missed.
+        /// </para>
+        /// </summary>
+        public bool TrySayNow(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            if (Time.time < nextGlobalSpeakTime) return false;
+            if (InConversation()) return false;
+
+            Speak(Resolve(line), SpeechChannel.Warning);
+            return true;
+        }
+
+        private static bool InConversation()
+        {
+            NpcDialogPopupUI popup = NpcDialogPopupUI.Instance;
+            return popup != null && (popup.IsVisible || popup.IsQuestionActive);
+        }
+
+        /// <summary>
+        /// Server side. Shout line <paramref name="lineIndex"/> of this agent's tribe's hostile lines,
+        /// here and on every watching machine. Called by WarPartyDirector on a party's first sight.
+        /// </summary>
+        public void WarCry(int lineIndex)
+        {
+            PresentWarCry(lineIndex);
+
+            if (Network.Server)
+                AgentActionRelay.Broadcast(this, AgentAction.WarCry, transform.position, transform.forward, lineIndex);
+        }
+
+        private void OnAgentActed(in NetArg arg, ulong sender)
+        {
+            if (arg.A != AgentAction.WarCry) return;
+
+            // The deciding machine already shouted while deciding to.
+            if (authority == null || authority.SimulatedHere) return;
+
+            PresentWarCry(arg.B);
+        }
+
+        private void PresentWarCry(int lineIndex)
+        {
+            FactionRoster roster = TryGetComponent(out EntityFaction faction) && faction.Faction != null
+                ? faction.Faction.roster
+                : null;
+
+            string[] lines = roster != null && roster.hostileLines != null ? roster.hostileLines.lines : null;
+            if (lines == null || lineIndex < 0 || lineIndex >= lines.Length) return;
+
+            // The body shouts even when the popup is busy with someone else's line: the war cry is
+            // the party's tell that it has seen you (GDC-L1-ANIM-0003).
+            BodyLanguage.React(this, CharacterMoment.WarCry);
+            TrySayNow(lines[lineIndex]);
+        }
+
+        private void Speak(string line, SpeechChannel channel)
         {
             nextGlobalSpeakTime = Time.time + Mathf.Max(0f, globalCooldown);
 
-            NpcDialogPopupUI.Instance.Show(line, popupDuration);
+            // A bubble over this NPC, not the popup: the popup is the conversation the player is
+            // having, and chatter is said to whoever is in earshot.
+            Speaker.Of(transform).Say(line, channel, showPopup: false, popupDuration);
 
+<<<<<<< HEAD
             // At this transform, not through the popup: the popup is screen-space and has no
             // position, so a mumble emitted there would come from nowhere and would not fall off as
             // the player walks away — the same reason DialogInteraction.SpeakLine does it here.
             Sfx.Play(voiceSound, transform.position);
+=======
+            // At this transform: a mumble from the screen-space UI would come from nowhere and
+            // would not fall off as the player walks away — the same reason
+            // DialogInteraction.SpeakLine does it here.
+            Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
+>>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
         }
 
         private float RollInterval() =>

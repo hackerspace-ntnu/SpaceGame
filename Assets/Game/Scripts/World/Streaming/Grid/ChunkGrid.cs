@@ -15,6 +15,7 @@
 //
 // Distance from the grid's edge separates them. Strict containment cannot: it puts a metre
 // past the beach in the same bucket as another map.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.World.Streaming
@@ -65,6 +66,58 @@ namespace SpaceGame.World.Streaming
 
             return new Vector2Int(Mathf.Clamp(cx, 0, Dimensions.x - 1),
                                   Mathf.Clamp(cy, 0, Dimensions.y - 1));
+        }
+
+        /// <summary>
+        /// Every chunk a view <paramref name="size"/> metres across and centred on
+        /// <paramref name="worldPos"/> touches. <paramref name="min"/> is inclusive,
+        /// <paramref name="max"/> exclusive, and neither is clamped to the grid — a view near the
+        /// edge of the world overhangs it, and the caller decides what that means.
+        ///
+        /// This is not <see cref="ToCoord"/> ± a radius. That window is symmetric about the
+        /// CHUNK, so it reaches up to half a chunk further on one side of the position than the
+        /// other and swaps which side as the position crosses a boundary — invisible when the
+        /// window is used to decide what to LOAD, and plainly visible when it decides what to
+        /// DRAW: it hangs the map hologram's terrain off the centre it is supposed to be
+        /// centred on.
+        /// </summary>
+        public void WindowAround(Vector3 worldPos, Vector2 size, out Vector2Int min, out Vector2Int max)
+        {
+            if (!IsUsable)
+            {
+                min = Vector2Int.zero;
+                max = Vector2Int.zero;
+                return;
+            }
+
+            float relX = worldPos.x - Origin.x;
+            float relZ = worldPos.z - Origin.z;
+            float halfX = size.x * 0.5f;
+            float halfZ = size.y * 0.5f;
+
+            min = new Vector2Int(Mathf.FloorToInt((relX - halfX) / ChunkSize.x),
+                                 Mathf.FloorToInt((relZ - halfZ) / ChunkSize.y));
+            max = new Vector2Int(Mathf.CeilToInt((relX + halfX) / ChunkSize.x),
+                                 Mathf.CeilToInt((relZ + halfZ) / ChunkSize.y));
+        }
+
+        /// <summary>
+        /// Every chunk of the grid within <paramref name="radius"/> metres of
+        /// <paramref name="worldPos"/> on either axis: the chunks whose ground something working
+        /// that far out could need. <see cref="WindowAround"/> clipped to the grid, so a position
+        /// near the edge of the world names only the chunks that exist. Fills
+        /// <paramref name="into"/>, cleared first.
+        /// </summary>
+        public void CoordsAround(Vector3 worldPos, float radius, List<Vector2Int> into)
+        {
+            into.Clear();
+
+            float size = Mathf.Max(0f, radius) * 2f;
+            WindowAround(worldPos, new Vector2(size, size), out Vector2Int min, out Vector2Int max);
+
+            for (int x = Mathf.Max(min.x, 0); x < Mathf.Min(max.x, Dimensions.x); x++)
+            for (int y = Mathf.Max(min.y, 0); y < Mathf.Min(max.y, Dimensions.y); y++)
+                into.Add(new Vector2Int(x, y));
         }
 
         public bool IsValidCoord(Vector2Int coord)

@@ -9,6 +9,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Core.Lobbies;
 
 namespace SpaceGame.Tests
 {

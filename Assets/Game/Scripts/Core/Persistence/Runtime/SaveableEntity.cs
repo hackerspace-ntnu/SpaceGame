@@ -70,6 +70,34 @@ namespace SpaceGame.Core.Persistence
         public bool BelongsToWorld => scope == SaveScope.World;
 
         /// <summary>
+        /// Whether nothing has yet given this object an identity it owns — not baked at edit time,
+        /// not derived from the hierarchy, not adopted from a record, and not claimed by a runtime
+        /// spawn. What is left is the placeholder GUID <see cref="Awake"/> invents.
+        ///
+        /// It is what lets <c>SaveablePolicy.EnsureScene</c> tell apart the two things that reach it
+        /// looking identical: an instance of a saveable prefab that a designer PLACED in a scene —
+        /// which brings a SaveableEntity in from the prefab, unstamped, and is authored — and an
+        /// object genuinely spawned during play, for which a fresh GUID is the right answer. Both
+        /// are non-authored entities standing in a loaded scene; only the first may be promoted,
+        /// and promoting the second would give a dropped item an authored record, which nothing
+        /// ever drops.
+        ///
+        /// Deliberately NOT serialized, and it starts true: it describes what this session knows
+        /// about the object, not anything about the asset. Starting true is what makes the answer
+        /// right in edit mode too, where Unity delivers no <c>Awake</c> to a plain MonoBehaviour —
+        /// a component that has never run still has no identity of its own, which is exactly what
+        /// this says.
+        /// </summary>
+        public bool IdentityIsProvisional { get; private set; } = true;
+
+        /// <summary>
+        /// Declares that this object really was created during play, so its invented GUID is its
+        /// identity and no scene pass should replace it. Called by <c>SaveablePolicy.EnsureSpawned</c>
+        /// on every runtime spawn.
+        /// </summary>
+        public void MarkIdentityFinal() => IdentityIsProvisional = false;
+
+        /// <summary>
         /// Hand this object's record to whoever spawned it, at runtime.
         ///
         /// <para>
@@ -82,9 +110,9 @@ namespace SpaceGame.Core.Persistence
         /// for the player, arriving by a different route.
         /// </para>
         /// <para>
-        /// Runtime-only and deliberately one-way: an object whose record belongs to another system
-        /// never goes back to belonging to the world, and a prefab has no business shipping with an
-        /// opinion about which system spawned it.
+        /// Runtime-only, and a prefab has no business shipping with an opinion about which system
+        /// spawned it. The one way back is <see cref="ReclaimForWorld"/>, for an object the owning
+        /// system has let go of for good.
         /// </para>
         /// </summary>
         public void DisownToExternal()
@@ -104,6 +132,21 @@ namespace SpaceGame.Core.Persistence
 #endif
             scope = SaveScope.External;
         }
+
+        /// <summary>
+        /// The reverse of <see cref="DisownToExternal"/>: the system that owned this object's record
+        /// has given the object up, so the world store saves it like anything else again. The case it
+        /// was added for is a war party's monowheel a player drove off with — no longer rebuilt by its
+        /// group's record, so without this it would simply be gone after a load.
+        ///
+        /// <para>
+        /// Only for an object that was disowned at runtime (NpcSpawn); never for one authored
+        /// External, like a player, whose record another system owns by design. Not guarded against
+        /// edit mode like its counterpart: it puts back the serialized default rather than writing a
+        /// new opinion, and the tests that prove the round trip run in edit mode.
+        /// </para>
+        /// </summary>
+        public void ReclaimForWorld() => scope = SaveScope.World;
 
         /// <summary>
         /// Every live entity, so a save can find them without a scene-wide component search per
@@ -148,6 +191,17 @@ namespace SpaceGame.Core.Persistence
                 // through the save system. Give it an identity anyway so its state is not silently
                 // dropped from every save for the rest of the session.
                 instanceId = FallbackIdentity();
+
+                // Only the non-authored branch of FallbackIdentity invents a GUID; the authored one
+                // derives a stable id from the hierarchy, which is a real identity and not a
+                // placeholder waiting to be replaced.
+                if (authored) IdentityIsProvisional = false;
+            }
+            else
+            {
+                // Baked at edit time. This is the identity, and the wiring pass must not re-key it
+                // to a hierarchy-derived one — a GUID survives renaming and re-parenting.
+                IdentityIsProvisional = false;
             }
 
             if (Live.TryGetValue(instanceId, out SaveableEntity existing) && existing != null && existing != this)
@@ -241,6 +295,10 @@ namespace SpaceGame.Core.Persistence
 
             entity.authored = false;
 
+            // The caller has declared this a runtime spawn, so whatever id it ends up with is the
+            // one it keeps — no scene pass may mistake it for a placed object and re-key it.
+            entity.IdentityIsProvisional = false;
+
             if (string.IsNullOrEmpty(entity.instanceId))
             {
                 // No isActiveAndEnabled gate: registration is scoped to the object's lifetime, and a
@@ -321,6 +379,7 @@ namespace SpaceGame.Core.Persistence
 
             instanceId = derivedId;
             authored = true;
+            IdentityIsProvisional = false;
             Live[instanceId] = this;
         }
 
@@ -336,6 +395,7 @@ namespace SpaceGame.Core.Persistence
             if (!string.IsNullOrEmpty(savedPrefabId)) prefabId = savedPrefabId;
             if (!string.IsNullOrEmpty(savedInstanceId)) instanceId = savedInstanceId;
             authored = false;
+            IdentityIsProvisional = false;
 
             if (!string.IsNullOrEmpty(instanceId)) Live[instanceId] = this;
         }
@@ -353,7 +413,7 @@ namespace SpaceGame.Core.Persistence
             if (!saversGathered)
             {
                 savers.Clear();
-                Collect(transform, savers);
+                CollectSavers(transform, savers);
                 saversGathered = true;
             }
 
@@ -366,7 +426,16 @@ namespace SpaceGame.Core.Persistence
         /// <summary>Forces the next <see cref="Savers"/> call to re-scan. Call after adding a saver at runtime.</summary>
         public void InvalidateSavers() => saversGathered = false;
 
-        private void Collect(Transform node, List<ISaveable> into)
+        /// <summary>
+        /// The savers an entity rooted at <paramref name="node"/> speaks for, in capture order: the
+        /// node's own first, then each child's, depth-first, stopping at any nested entity.
+        ///
+        /// Public and static because the order is a contract the editor tooling has to share. Two
+        /// savers under one entity with the same key overwrite each other in this order — the
+        /// later wins — so the wiring pass and the prefab sweeps walk exactly this list to find and
+        /// remove the clash before a save ever does.
+        /// </summary>
+        public static void CollectSavers(Transform node, List<ISaveable> into)
         {
             foreach (ISaveable saver in node.GetComponents<ISaveable>())
                 into.Add(saver);
@@ -375,7 +444,7 @@ namespace SpaceGame.Core.Persistence
             {
                 Transform child = node.GetChild(i);
                 if (child.GetComponent<SaveableEntity>() != null) continue;
-                Collect(child, into);
+                CollectSavers(child, into);
             }
         }
 
@@ -489,6 +558,18 @@ namespace SpaceGame.Core.Persistence
                 // be copied into every instance of the prefab, giving them all the same identity.
                 string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(this));
 
+                // A second entity nested inside another prefab asset is a bug, not a configuration:
+                // the guid below is the OUTER asset's, so this record would instantiate a second copy
+                // of the outer prefab on every load, and the outer entity never collects the savers
+                // under here. The builder that nests the prefab has to remove this component.
+                if (transform.parent != null &&
+                    transform.parent.GetComponentInParent<SaveableEntity>(true) != null)
+                {
+                    Debug.LogWarning($"[Save] '{name}' carries a SaveableEntity nested inside " +
+                                     $"'{transform.root.name}', which already has one. Remove it from " +
+                                     "the nested instance — one entity per prefab, on the root.", this);
+                }
+
                 // Never blank a good id because the path could not be resolved.
                 //
                 // This unguarded assignment is why the field could not be written to disk at all.
@@ -504,29 +585,46 @@ namespace SpaceGame.Core.Persistence
                 return;
             }
 
-            if (gameObject.scene.IsValid() && !string.IsNullOrEmpty(gameObject.scene.path))
-            {
-                // Placed in a scene at edit time: authored. Its state is a delta on top of what the
-                // scene file already contains, and it must never be re-instantiated on load.
-                AssignIfChanged(ref authored, true);
+            StampSceneIdentity();
+        }
 
-                string prefabGuid = ResolveSourcePrefabGuid();
-                if (!string.IsNullOrEmpty(prefabGuid)) AssignIfChanged(ref prefabId, prefabGuid);
+        /// <summary>
+        /// Bakes the identity of an object placed in a scene at edit time — authored, its source
+        /// prefab's id and a GUID of its own — and reports whether any of it changed. Does nothing
+        /// for a prefab asset, in Play mode, or outside a saved scene.
+        ///
+        /// What <see cref="OnValidate"/> does for every scene object, public so an editor tool that
+        /// adds this component can stamp it there and then and know whether the scene needs saving,
+        /// rather than depending on when Unity next validates it.
+        /// </summary>
+        public bool StampSceneIdentity()
+        {
+            if (Application.isPlaying || PrefabUtility.IsPartOfPrefabAsset(this) || EditorUtility.IsPersistent(this))
+                return false;
+            if (!gameObject.scene.IsValid() || string.IsNullOrEmpty(gameObject.scene.path)) return false;
 
-                if (string.IsNullOrEmpty(instanceId) || IsIdTakenBySomeoneElseInScene())
-                    AssignIfChanged(ref instanceId, Guid.NewGuid().ToString("N"));
+            // Placed in a scene at edit time: authored. Its state is a delta on top of what the
+            // scene file already contains, and it must never be re-instantiated on load.
+            bool changed = AssignIfChanged(ref authored, true);
 
-                // On a PREFAB INSTANCE the assignments above are not enough. Writing the field and
-                // calling SetDirty leaves the value matching the prefab's own, so Unity records no
-                // override and writes nothing into the scene file — the identity is regenerated,
-                // differently, every single time the scene is opened, and no saved record can ever
-                // be matched back to the object it belongs to.
-                //
-                // Registering the values through SerializedObject is what makes them overrides, and
-                // therefore what makes them survive in the scene at all.
-                if (PrefabUtility.IsPartOfPrefabInstance(this))
-                    RecordAsPrefabOverrides();
-            }
+            string prefabGuid = ResolveSourcePrefabGuid();
+            if (!string.IsNullOrEmpty(prefabGuid)) changed |= AssignIfChanged(ref prefabId, prefabGuid);
+
+            if (string.IsNullOrEmpty(instanceId) || IsIdTakenBySomeoneElseInScene())
+                changed |= AssignIfChanged(ref instanceId, Guid.NewGuid().ToString("N"));
+
+            // On a PREFAB INSTANCE the assignments above are not enough. Writing the field and
+            // calling SetDirty leaves the value matching the prefab's own, so Unity records no
+            // override and writes nothing into the scene file — the identity is regenerated,
+            // differently, every single time the scene is opened, and no saved record can ever
+            // be matched back to the object it belongs to.
+            //
+            // Registering the values through SerializedObject is what makes them overrides, and
+            // therefore what makes them survive in the scene at all.
+            if (PrefabUtility.IsPartOfPrefabInstance(this))
+                RecordAsPrefabOverrides();
+
+            return changed;
         }
 
         /// <summary>
@@ -604,18 +702,20 @@ namespace SpaceGame.Core.Persistence
             return false;
         }
 
-        private void AssignIfChanged(ref string field, string value)
+        private bool AssignIfChanged(ref string field, string value)
         {
-            if (field == value) return;
+            if (field == value) return false;
             field = value;
             EditorUtility.SetDirty(this);
+            return true;
         }
 
-        private void AssignIfChanged(ref bool field, bool value)
+        private bool AssignIfChanged(ref bool field, bool value)
         {
-            if (field == value) return;
+            if (field == value) return false;
             field = value;
             EditorUtility.SetDirty(this);
+            return true;
         }
 #endif
     }

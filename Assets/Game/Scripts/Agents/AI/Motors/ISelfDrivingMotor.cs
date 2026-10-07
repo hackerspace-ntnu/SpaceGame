@@ -1,8 +1,7 @@
 // Opt-in for the motors that keep moving after nobody ticks them.
 //
-// Most motors are inert the moment AgentController stops calling Tick: a RigidbodyMotor only
-// writes the body from a rider input it was handed, a LeggedDriver notices the missing command
-// and idles. A NavMeshAgent does not. It owns transform.position for as long as it is enabled and
+// Most motors are inert the moment AgentController stops calling Tick: a LeggedDriver notices
+// the missing command and idles. A NavMeshAgent does not. It owns transform.position for as long as it is enabled and
 // keeps walking the path it was last given, so a client that merely stops deciding still has a
 // creature striding off across the sand while the server's NetworkTransform yanks it back every
 // tick — which is precisely the desync jitter that switching the brain off was meant to end. It

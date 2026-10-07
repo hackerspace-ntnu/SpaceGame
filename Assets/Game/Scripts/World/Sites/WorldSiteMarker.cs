@@ -28,14 +28,30 @@ namespace SpaceGame.World
                  "they can find. Requires a MapPOI component on this object.")]
         [SerializeField] private bool mirrorToMap = false;
 
+        [Tooltip("Nothing can walk here — the Sky City, say. Ground errands (NpcTaskModule's home " +
+                 "search, NpcTaskPlanner's task destinations) skip this site as if it did not exist; " +
+                 "it is still findable by id or by WorldSiteRegistry.TryFindByName.")]
+        [SerializeField] private bool airborne = false;
+
         [Tooltip("Stable unique id. Auto-generated on first add — don't edit unless you know what " +
                  "you're doing. Changing it orphans the old record for the rest of the session.")]
         [HideInInspector]
         [SerializeField] private string id;
 
         public SiteKind Kind => kind;
-        public string SiteId => id;
         public string SiteName => siteName;
+        public float Radius => radius;
+        public bool Airborne => airborne;
+
+        /// <summary>The id this marker registers under, derived first if it has none yet (see <see cref="EnsureId"/>).</summary>
+        public string SiteId
+        {
+            get
+            {
+                EnsureId();
+                return id;
+            }
+        }
 
         private void Reset()      => EnsureId();
         private void OnValidate()
@@ -81,7 +97,7 @@ namespace SpaceGame.World
 
             // Position is read now rather than cached at bake time, so a marker parented to
             // something that moves (a caravan's own camp, a ship) reports where it actually is.
-            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id);
+            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id, airborne);
 
             if (mirrorToMap && TryGetComponent(out MapPOI poi))
                 poi.Refresh();
@@ -99,7 +115,7 @@ namespace SpaceGame.World
         public void Refresh()
         {
             EnsureId();
-            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id);
+            WorldSiteRegistry.Register(kind, transform.position, radius, siteName, id, airborne);
         }
 
         private void OnDrawGizmosSelected()
@@ -117,6 +133,8 @@ namespace SpaceGame.World
             SiteKind.WaterHole    => new Color(0.3f, 0.7f, 1f),
             SiteKind.TradePost    => new Color(1f, 0.9f, 0.3f),
             SiteKind.AnimalGround => new Color(1f, 0.5f, 0.5f),
+            SiteKind.Outpost      => new Color(0.75f, 0.55f, 0.35f),
+            SiteKind.AntennaSite  => new Color(0.5f, 1f, 0.95f),
             _                     => Color.gray,
         };
     }

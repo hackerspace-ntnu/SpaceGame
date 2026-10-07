@@ -1,9 +1,13 @@
 ---
 name: spacegame-artifact
-description: Use when adding or fixing a usable item in this Unity project — a new artifact, gadget, spell, scanner, throwable, potion, deployable, hand tool or weapon-like equippable that occupies a hotbar slot and fires on the Use button. Also use when an existing artifact works for the host but does nothing for a client, is invisible to other players, logs "[WorldService] Prefab 'X' has no NetworkObject" when dropped, cannot be picked back up, never appears in the dev item browser (I), has a blank or wrong inventory icon, floats in the wrong place in the hand, or stands in the idle pose instead of the hold pose. Covers UsableItem / ToolItem / EffectItem subclasses, InventoryItem assets under Assets/Game/Resources/Items, prefabs under Assets/Game/Prefabs/Items/Artifacts/Gadgets, and their network-prefab registration.
+description: Use when adding or fixing a usable item in this Unity project — a new artifact, gadget, spell, scanner, throwable, potion, deployable, hand tool or weapon-like equippable that occupies a hotbar slot and fires on the Use button. Also use when an existing artifact works for the host but does nothing for a client, is invisible to other players, logs "[WorldService] Prefab 'X' has no NetworkObject" when dropped, cannot be picked back up, never appears in the dev item browser (O), has a blank or wrong inventory icon, floats in the wrong place in the hand, or stands in the idle pose instead of the hold pose. Covers UsableItem / ToolItem / EffectItem subclasses, InventoryItem assets under Assets/Game/Resources/Items, prefabs under Assets/Game/Prefabs/Items/Artifacts/Gadgets, and their network-prefab registration.
 ---
 
 # SpaceGame Artifacts
+
+> **Design check:** before deciding how an artifact *feels* or what it costs the player, read the
+> relevant `FEEL`, `SYS` and `BAL` principles in `docs/game-development-constitution/INDEX.md` and
+> cite their IDs.
 
 ## Overview
 
@@ -28,7 +32,7 @@ New or changed **player-held** item: artifact, gadget, potion, scanner, throwabl
 
 **Not** for: NPC-only guns driven by weapon-profile ScriptableObjects (`SpaceGame.Weapons.Weapon`,
 `Assets/Game/Scripts/Weapons/Core/Weapon.cs`), rideable vehicles/mounts, world interactables
-(`IInteractable`), or authoring the 3D mesh — that is the `blender-model` skill.
+(`IInteractable`), or authoring the 3D mesh — see `docs/AI/systems/ArtPipeline.md`.
 
 ## Build order
 
@@ -40,7 +44,7 @@ Item scripts compile into `Assembly-CSharp`; there is no asmdef under `Scripts/I
 not be one, because these types reach Assembly-CSharp code. Editor tests for them therefore go in
 `Assets/Game/Editor/`, not beside the asmdef'd EditMode tests.
 
-1. **Mesh** — `blender-model` skill; export to `Assets/Game/Art/Models/Items/<name>.fbx`
+1. **Mesh** — author the `.blend` and export to `Assets/Game/Art/Models/Items/<name>.fbx`
    (or `Assets/Game/Art/Models/Weapons/<Name>/`). Skip if reusing an existing FBX.
 2. **Script** — `Assets/Game/Scripts/Items/Artifacts/Gadgets/<Name>Artifact.cs`, namespace
    `SpaceGame.Items`, subclass of `ToolItem` (aimed/instant) or `EffectItem` (timed change to the
@@ -104,11 +108,11 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(range) : null;
+            bool aimed = aimProvider != null && aimProvider.TryGetAimHit(range, out RaycastHit hit);
 
-            // Zero means "aimed at open sky". Without this, `?? Vector3.zero` reads as a position
-            // and the throw lands at the world origin.
-            arg.P = hit.HasValue ? hit.Value.point : Vector3.zero;
+            // Zero means "aimed at open sky". Without this, a miss reads as a position and the
+            // throw lands at the world origin.
+            arg.P = aimed ? hit.point : Vector3.zero;
         }
 
         /// <summary>Authority only — the server, or the single machine when offline.</summary>
@@ -139,7 +143,7 @@ namespace SpaceGame.Items
 | Timed change to the holder's body | `EffectItem` — override `ApplyEffect()`, **not** `Use()` (sealed) |
 | Acts while the button is held | `override bool IsContinuous => true` + `OnRequestHold`/`Hold`/`PresentHold` |
 | Owner's aim, per press / per tick | `OnRequestUse(ref NetArg)` / `OnRequestHold(ref NetArg, bool)`; read it back as `UseArg` |
-| Payload fields | `NetArg.P` (Vector3), `.R` (Quaternion), `.A` (int, already the hotbar slot), `.B` (int), `.With(go)` for a subject |
+| Payload fields | `NetArg.P` (Vector3), `.R` (Quaternion), `.A` (int, already the slot code — bare hotbar index, or `UseSlotCode` for a worn slot), `.B` (int), `.With(go)` for a subject |
 | Consumable | `maxUses` on `UsableItem`; depletion removes the slot automatically |
 | Equip / unequip hooks | `OnEquipped(GameObject holder)` / `OnUnequipped` — always call `base` |
 | Worn, not gripped | `override bool UsesHoldPose => false` |
@@ -148,6 +152,34 @@ namespace SpaceGame.Items
 | Damage | `NetDamage.Apply(GameObject target, int amount, Transform source)` |
 | Spawn into the world | `GameServices.World.Spawn(prefab, pos, rot)` |
 | Sound | `SfxId` + `Sfx.Play(id, position, overrideRef, sourceKey)` |
+| Does an NPC read it as a weapon | `InventoryItem.menacing` — see below |
+
+## Is the new item a weapon? Tick `menacing`
+
+`InventoryItem.menacing` is what tells an NPC that the thing in your hand is a weapon. Tick it if
+the item is **unmistakably a weapon when it is pointed at you** — guns, staves, the bazooka, the
+flamethrower, the cryo sprayer. Leave it off for everything else, which is most of the list: tools,
+placeables, ship parts, potions, supplies, ship modules.
+
+**A gauntlet is never menacing, whatever it does.** A gauntlet is gear you are wearing rather than
+something you have drawn, so the wrist blade and the flame gauntlet read no differently from a
+torch. Same for anything worn on the back.
+
+There is no way to derive this, which is why it is authored: **"weapon" is not a C# class here.**
+Only one of the seven guns an NPC can roll (`BallLightningWeapon`) is a `Weapon`
+subclass — the rest are ordinary `UsableItem` artifacts — so `held is Weapon` calls a bazooka
+harmless. Add the item to the list in
+[`MenacingItemTests`](Assets/Game/Editor/Tests/MenacingItemTests.cs) with a one-line reason, or the
+test fails; that list is the review surface an authored flag needs so it does not drift one prefab
+at a time.
+
+**What reads it.** `MenaceSensor` on a tribe member, which needs the flag **and** a shot fired
+nearby in the last few seconds before it feeds the aggression meter. Holding a gun near somebody is
+not a threat; having just fired one while squared up at them is. That second condition exists
+because **this game has no aim button** — the verbs are Move, Look, Jump, Crouch, Dash, Interact,
+Drop and the hotbar — so "pointing a weapon at someone" has to be built out of verbs that exist.
+Without it, the trigger would be "holds anything and looks at you", which is exactly what you do to
+*talk* to somebody.
 
 ## Common mistakes
 
@@ -181,7 +213,7 @@ namespace SpaceGame.Items
 
 ## Related skills
 
-- `blender-model` — authoring the FBX and the shared material palette.
+- `docs/AI/systems/ArtPipeline.md` — authoring the FBX and the shared material palette.
 - `spacegame-multiplayer` — `NetRelay`/`NetChannel`/`NetMsg`, authority rules, prefab registration
   in depth.
 - `spacegame-persistence` — `SaveableEntity`, `SaveScope`, the saveable prefab registry.

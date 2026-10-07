@@ -2,12 +2,13 @@ using System.Collections.Generic;
 using FMODUnity;
 using UnityEngine;
 using SpaceGame.Audio;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Item Scanner — a forearm-mounted set that finds loose salvage inside 100 m and draws it on
+    /// Item Scanner — a forearm-mounted set that finds loose salvage inside 50 m and draws it on
     /// a phosphor display.
     ///
     /// <para>
@@ -35,7 +36,7 @@ namespace SpaceGame.Items
     {
         [Header("Scan")]
         [Tooltip("Detection radius in metres.")]
-        [SerializeField] private float range = 100f;
+        [SerializeField] private float range = 50f;
 
         [Tooltip("Seconds between scans. The display interpolates between them, so this can be " +
                  "slow without the screen looking slow.")]
@@ -68,6 +69,13 @@ namespace SpaceGame.Items
         [Tooltip("Degrees the antenna tip sways through.")]
         [SerializeField] private float antennaSway = 7f;
 
+        [Header("Pose")]
+        [Tooltip("The pose the body takes while the set is POWERED. The same held-item pose the " +
+                 "Flashlight Gauntlet asks for: forearm up and forward, so the wearer has the " +
+                 "screen in front of them instead of face-down at their hip. OneHanded is the " +
+                 "ordinary item pose; Relaxed carries it lower; None leaves the arm alone.")]
+        [SerializeField] private ItemGrip.HoldStyle poweredPose = ItemGrip.HoldStyle.OneHanded;
+
         [Header("Audio")]
         [Tooltip("Click when the set is switched on or off.")]
         [SerializeField] private EventReference toggleSound;
@@ -82,6 +90,15 @@ namespace SpaceGame.Items
         [SerializeField] private float pingIntervalFar = 2.0f;
 
         private readonly List<ScanContact> contacts = new();
+
+        // The pose each animated part was modelled in. Both are driven as OFFSETS from these
+        // rather than as absolute local rotations: the parts are placed by the .blend's own object
+        // transforms, which the export ships unbaked, so assigning localRotation outright snapped
+        // whatever the model was authored with back to identity the moment the set was switched on.
+        private Quaternion dialRest = Quaternion.identity;
+        private Quaternion antennaRest = Quaternion.identity;
+
+        private PlayerAimRig aimRig;
 
         private bool powered;
         private float nextScanTime;
@@ -99,6 +116,12 @@ namespace SpaceGame.Items
         /// <summary>The whole effect is local and cosmetic. See the class summary.</summary>
         public override UseAuthority Authority => UseAuthority.Owner;
 
+        private void Awake()
+        {
+            if (dial != null) dialRest = dial.localRotation;
+            if (antenna != null) antennaRest = antenna.localRotation;
+        }
+
         protected override void Use()
         {
             // Nothing. Scanning changes nothing another machine could disagree about, so there is
@@ -111,7 +134,12 @@ namespace SpaceGame.Items
             powered = !powered;
 
             if (screen != null) screen.SetOn(powered);
+<<<<<<< HEAD
             Sfx.Play(toggleSound, transform.position);
+=======
+            PoseArm(powered);
+            Sfx.Play(toggleId, transform.position, toggleSound, GetInstanceID());
+>>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
 
             if (powered)
             {
@@ -129,10 +157,14 @@ namespace SpaceGame.Items
         public override void OnEquipped(GameObject holder)
         {
             base.OnEquipped(holder);
+
+            aimRig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
+
             // Deliberately off on equip. A scanner that wakes up lit means a player who never
             // chose to scan is still broadcasting a lit screen and a ping every two seconds.
             powered = false;
             if (screen != null) screen.Blackout();
+            PoseArm(false);
         }
 
         public override void OnUnequipped(GameObject holder)
@@ -141,6 +173,36 @@ namespace SpaceGame.Items
             powered = false;
             contacts.Clear();
             if (screen != null) screen.Blackout();
+
+            // Put the arm down on the way out, or a set taken off while powered leaves the body
+            // holding a pose for a screen that is no longer on the wrist.
+            PoseArm(false);
+            aimRig = null;
+        }
+
+        /// <summary>
+        /// Raise the forearm while the set works, and let it drop when it is switched off.
+        ///
+        /// <para>
+        /// The screen faces the wearer across the top of the forearm, so an arm hanging at the
+        /// side points the display at the ground — the pose is what makes the readout usable, the
+        /// same bargain the Flashlight Gauntlet makes for its beam. It is the body's ordinary
+        /// held-item pose rather than one of its own; see
+        /// <see cref="PlayerAimRig.SetWornStyle"/>.
+        /// </para>
+        /// <para>
+        /// Called from <see cref="Present"/> and the equip hooks, so it runs on EVERY machine and
+        /// a peer sees a scanning player standing like one — which is the arm doing the job
+        /// animation is for, reporting a state the screen is too small to report at that distance
+        /// (GDC-L1-ANIM-0003, GDC-L1-FEEL-0004). Nothing extra crosses the wire: the toggle
+        /// already does.
+        /// </para>
+        /// </summary>
+        private void PoseArm(bool on)
+        {
+            if (aimRig == null) return;
+
+            aimRig.SetWornStyle(WornOn, on ? poweredPose : ItemGrip.HoldStyle.None);
         }
 
         // ── Per-instance state ─────────────────────────────────────────────────
@@ -183,6 +245,7 @@ namespace SpaceGame.Items
                 totalFound = 0;
                 nearest = 0f;
                 if (screen != null) screen.Blackout();
+                PoseArm(false);
                 return;
             }
 
@@ -195,6 +258,7 @@ namespace SpaceGame.Items
             // a second ago, and the next Scan() replaces it wholesale. Lighting the tube is what the
             // player actually notices.
             if (screen != null) screen.SetOn(true);
+            PoseArm(true);
         }
 
         private void Update()
@@ -299,15 +363,16 @@ namespace SpaceGame.Items
                 dialAngle += dialSpeed * load * lit * Time.deltaTime;
                 // Local Z, because the knob's axis is its own -Y in Blender, which the FBX
                 // conversion lands on local Z. Its origin is on that axis, so a local rotation
-                // spins it in place.
-                dial.localRotation = Quaternion.Euler(0f, 0f, dialAngle);
+                // spins it in place. Post-multiplied, so the axle stays the axle however the
+                // model happens to have been seated on the arm.
+                dial.localRotation = dialRest * Quaternion.Euler(0f, 0f, dialAngle);
             }
 
             if (antenna != null)
             {
                 float t = Time.time;
                 float sway = antennaSway * lit;
-                antenna.localRotation = Quaternion.Euler(
+                antenna.localRotation = antennaRest * Quaternion.Euler(
                     Mathf.Sin(t * 2.3f) * sway * 0.6f,
                     0f,
                     Mathf.Sin(t * 1.7f + 1.1f) * sway);

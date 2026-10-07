@@ -1,4 +1,6 @@
-// Red "-25" floating up from whatever the local player just hit.
+// Red "-25" floating up from whatever the local player just hit — or a pale "BLOCKED" / "DODGED"
+// when the victim stopped the blow (GDC-L1-FEEL-0004: the attacker's own screen must say the hit
+// was answered, not leave a stopped blow looking like a miss).
 //
 // Only the local player's own hits are drawn. The signal for that cannot come from the shooter's
 // machine: Weapon.Use() runs on the authority alone, so a client pulling the trigger runs only the
@@ -17,6 +19,17 @@ namespace SpaceGame.Presentation
     {
         [Header("Look")]
         [SerializeField] private Color damageColor = new(1f, 0.27f, 0.22f);
+
+        [Tooltip("Colour of a hit the victim blocked or dodged. Pale rather than red: the red says " +
+                 "\"that hurt\", and a stopped blow must not read as one that landed.")]
+        [SerializeField] private Color defendedColor = new(0.86f, 0.88f, 0.92f);
+
+        [Tooltip("Word shown for a blow the victim caught on its guard, ahead of any damage that got through.")]
+        [SerializeField] private string blockedWord = "BLOCKED";
+
+        [Tooltip("Word shown for a blow the victim got out of the way of.")]
+        [SerializeField] private string dodgedWord = "DODGED";
+
         [SerializeField] private float fontSize = 34f;
 
         [Tooltip("Canvas units left of, and above, the victim's head. Negative x is left.")]
@@ -112,6 +125,7 @@ namespace SpaceGame.Presentation
             if (!ReferenceEquals(subscribed, null)) subscribed.Unbind();
 
             HealthComponent.AnyDamaged += OnDamagedHere;
+            HealthComponent.AnyDefended += OnDefendedHere;
             NetworkedHealthComponent.DamageAnnounced += OnDamageAnnounced;
             subscribed = this;
         }
@@ -126,6 +140,7 @@ namespace SpaceGame.Presentation
             if (!ReferenceEquals(subscribed, this)) return;
 
             HealthComponent.AnyDamaged -= OnDamagedHere;
+            HealthComponent.AnyDefended -= OnDefendedHere;
             NetworkedHealthComponent.DamageAnnounced -= OnDamageAnnounced;
             subscribed = null;
         }
@@ -141,21 +156,50 @@ namespace SpaceGame.Presentation
             Transform source = victim.LastDamageSource;
             if (source == null) return;   // a fall, a cactus — nobody to credit
 
-            Show(victim, amount, source.gameObject);
+            // A block that let part of the blow through still names the block beside the number.
+            Show(victim, amount, victim.LastDefense, source.gameObject);
+        }
+
+        /// <summary>
+        /// A blow stopped whole on this machine — it raised no damage, so without this the
+        /// attacker would see nothing where the number should be, and read the block as a miss.
+        /// A partial block is drawn by <see cref="OnDamagedHere"/> instead, once.
+        /// </summary>
+        private void OnDefendedHere(HealthComponent victim, DamageHit hit)
+        {
+            if (victim == null || hit.Amount > 0 || hit.Source == null) return;
+
+            Show(victim, 0, hit.Defense, hit.Source.gameObject);
         }
 
         /// <summary>A player-dealt hit resolved on another machine — see <see cref="NetMsg.Damaged"/>.</summary>
-        private void OnDamageAnnounced(HealthComponent victim, int amount, GameObject attacker)
-            => Show(victim, amount, attacker);
+        private void OnDamageAnnounced(HealthComponent victim, int amount, DamageDefense defense, GameObject attacker)
+            => Show(victim, amount, defense, attacker);
 
         /// <summary>Draw it only if this machine is the one that fired.</summary>
-        private void Show(HealthComponent victim, int amount, GameObject attacker)
+        private void Show(HealthComponent victim, int amount, DamageDefense defense, GameObject attacker)
         {
-            if (victim == null || amount <= 0 || attacker == null) return;
+            if (victim == null || attacker == null) return;
+            if (amount <= 0 && defense == DamageDefense.None) return;
             if (!IsLocalPlayer(attacker)) return;
 
-            Spawn(amount, WorldOverlay.HeadOffset(victim.gameObject) + victim.transform.position.y,
+            Spawn(Label(amount, defense), defense == DamageDefense.None ? damageColor : defendedColor,
+                  WorldOverlay.HeadOffset(victim.gameObject) + victim.transform.position.y,
                   victim.transform.position);
+        }
+
+        /// <summary>"-25" for a hit taken; the defence's word, and whatever still got through, for one met.</summary>
+        private string Label(int amount, DamageDefense defense)
+        {
+            string word = defense switch
+            {
+                DamageDefense.Blocked => blockedWord,
+                DamageDefense.Dodged => dodgedWord,
+                _ => null
+            };
+
+            if (word == null) return $"-{amount}";
+            return amount > 0 ? $"{word} -{amount}" : word;
         }
 
         /// <summary>
@@ -183,7 +227,7 @@ namespace SpaceGame.Presentation
             return false;
         }
 
-        private void Spawn(int amount, float headWorldY, Vector3 footPosition)
+        private void Spawn(string label, Color color, float headWorldY, Vector3 footPosition)
         {
             WorldOverlay overlay = WorldOverlay.Instance;
             if (overlay == null) return;
@@ -210,8 +254,8 @@ namespace SpaceGame.Presentation
             popup.Age = 0f;
             popup.Active = true;
 
-            popup.Text.text = $"-{amount}";
-            popup.Text.color = damageColor;
+            popup.Text.text = label;
+            popup.Text.color = color;
             // Reset explicitly: a recycled popup may have been culled mid-flight for being
             // off-screen, and would otherwise start its new life invisible.
             popup.Text.enabled = true;

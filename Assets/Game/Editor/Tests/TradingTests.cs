@@ -82,7 +82,7 @@ namespace SpaceGame.EditorTools
 
             public event Action<InventorySlot> OnSlotSelected;
             public event Action<int, InventorySlot> OnSlotChanged;
-            public event Action<InventoryItem> OnItemDropped;
+            public event Action<InventoryItem, ItemState> OnItemDropped;
 
             public bool TryAddItem(InventoryItem item)
             {
@@ -113,6 +113,15 @@ namespace SpaceGame.EditorTools
                 OnSlotSelected?.Invoke(GetSelectedSlot());
             }
 
+            public bool TrySetSlot(int index, InventoryItem item)
+            {
+                if (index < 0 || index >= slots.Length) return false;
+
+                slots[index].Item = item;
+                OnSlotChanged?.Invoke(index, slots[index]);
+                return true;
+            }
+
             public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot)
             {
                 for (int i = 0; i < slots.Length; i++)
@@ -126,7 +135,7 @@ namespace SpaceGame.EditorTools
             public InventorySlot GetSelectedSlot() => GetSlot(SelectedSlotIndex);
             public InventoryItem GetSelectedItem() => GetSelectedSlot()?.Item;
 
-            public void Drop(InventoryItem item) => OnItemDropped?.Invoke(item);
+            public void Drop(InventoryItem item) => OnItemDropped?.Invoke(item, null);
         }
 
         [Test]

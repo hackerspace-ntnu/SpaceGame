@@ -1,8 +1,7 @@
 // The single place an agent decides who it is fighting.
 //
-// Before this existed, ChaseModule, CloseCombatModule, AgentRangedCombatModule, HuntModule and
-// KeepDistanceModule each ran their own EntityTargetRegistry query on their own schedule with
-// their own staleness rules. Three consequences, all visible in play:
+// Before this existed, the chase, melee, ranged and keep-distance modules each ran their own
+// EntityTargetRegistry query on their own schedule with their own staleness rules. Three consequences, all visible in play:
 //   * One agent could chase A, shoot B and back away from C in the same frame.
 //   * Most of them held their first-resolved target until it died, so an agent would walk past
 //     an enemy standing next to it to reach whoever happened to be nearest at spawn.
@@ -14,6 +13,7 @@
 // Runs ahead of AgentController (execution order 0) so the decision is already current when
 // modules tick. Optional: agents without it fall back to their own per-module resolution.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Gameplay;
 using SpaceGame.World.Weather;
@@ -31,10 +31,10 @@ namespace SpaceGame.Agents
         [SerializeField] private FactionRelationship relationship = FactionRelationship.Hostile;
         [Tooltip("Candidates beyond this are never scored. Automatically widened at Awake to cover " +
                  "the agent's own longest weapon range.")]
-        [SerializeField] private float acquisitionRange = 35f;
+        [SerializeField] private float acquisitionRange = VisionBaseline.MinAcquisitionRange;
         [Tooltip("An acquired target is dropped past this distance. Kept above acquisitionRange so " +
                  "targets don't flicker at the boundary.")]
-        [SerializeField] private float loseRange = 45f;
+        [SerializeField] private float loseRange = VisionBaseline.MinLoseRange;
         [Tooltip("Require field-of-view + line-of-sight to acquire. Turn off for arena modes where " +
                  "everyone is expected to know where everyone else is.")]
         [SerializeField] private bool requireLineOfSightToAcquire = true;
@@ -48,6 +48,20 @@ namespace SpaceGame.Agents
         // ── Published state ───────────────────────────────────────────────────────
         public Transform Target { get; private set; }
         public bool HasTarget => Target != null;
+
+        /// <summary>
+        /// Raised on the deciding machine when this agent takes a NEW target. The bool is whether
+        /// the agent found it by itself (scored and seen in <c>Reevaluate</c>) or was handed it
+        /// (<see cref="ForceTarget"/>: an ally's alert, a heard noise, a provocation).
+        ///
+        /// <para>
+        /// <see cref="AlertBroadcaster"/> is the listener that matters, and the bool is why it
+        /// exists: an alert is passed on only for a target the agent spotted itself. Re-announcing
+        /// a target that arrived by alert would make every receiver a broadcaster and one sighting
+        /// wake the whole map.
+        /// </para>
+        /// </summary>
+        public event System.Action<Transform, bool> TargetAcquired;
 
         // Distance from this agent to the target, refreshed every frame. Modules should read this
         // rather than recomputing it — five modules each calling Vector3.Distance on the same pair
@@ -102,7 +116,7 @@ namespace SpaceGame.Agents
         }
 
         // Matches TargetingProfile.memoryDuration's own default.
-        private const float FallbackMemoryDuration = 6f;
+        private const float FallbackMemoryDuration = VisionBaseline.MinMemory;
 
         // ── Internals ─────────────────────────────────────────────────────────────
         private TargetingProfile settings;
@@ -177,7 +191,16 @@ namespace SpaceGame.Agents
         // inside a single synchronous call, so no other agent can observe it mid-use.
         private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ReevaluateMarkerName = "SpaceGame.Targeting.Reevaluate";
+        private static readonly ProfilerMarker ReevaluateMarker = new(ReevaluateMarkerName);
+        private const string RefreshMarkerName = "SpaceGame.Targeting.Refresh";
+        private static readonly ProfilerMarker RefreshMarker = new(RefreshMarkerName);
+
         private AgentAuthority authority;
+
+        // Read for AgentController.IsParked: an agent that is not in the scene's action acquires no one.
+        private AgentController controller;
 
         /// <summary>
         /// Is this machine the one deciding this agent's target? See <see cref="AgentAuthority"/>.
@@ -193,6 +216,7 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             authority = new AgentAuthority(this);
+            controller = GetComponent<AgentController>();
             selfFaction = GetComponent<EntityFaction>();
             perception = GetComponent<PerceptionModule>();
             health = GetComponent<HealthComponent>();
@@ -223,15 +247,13 @@ namespace SpaceGame.Agents
         private void RecomputeEffectiveRanges()
         {
             float weaponRange = 0f;
-            foreach (AgentRangedCombatModule ranged in GetComponents<AgentRangedCombatModule>())
-                weaponRange = Mathf.Max(weaponRange, ranged.MaxRange);
             foreach (CloseCombatModule melee in GetComponents<CloseCombatModule>())
                 weaponRange = Mathf.Max(weaponRange, melee.AttackRange);
 
-            // Artifacts the agent is actually carrying count too. An NPC holding a looted rifle
-            // that reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to
-            // join — the same failure this method already exists to prevent for profile weapons.
-            foreach (NpcItemUseModule item in GetComponents<NpcItemUseModule>())
+            // The artifacts the agent is actually carrying or wearing: an NPC holding a looted rifle that
+            // reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to join.
+            // A module with nothing to fire reads 0 (ItemUseModuleBase.MaxRange): a bare forearm widens nothing.
+            foreach (ItemUseModuleBase item in GetComponents<ItemUseModuleBase>())
                 weaponRange = Mathf.Max(weaponRange, item.MaxRange);
 
             effectiveAcquisitionRange = Mathf.Max(settings.acquisitionRange, weaponRange + WeaponRangeMargin);
@@ -251,16 +273,35 @@ namespace SpaceGame.Agents
             HasLastKnownPosition = false;
             TimeSinceSeen = 0f;
             LastAttacker = null;
-            reevaluateTimer = 0f;
+
+            // Random phases, so a crowd enabled on one frame (a city unfolding) does not re-score and
+            // re-sample the weather on one frame every interval: the AgentController
+            // speedVariationPhase precedent. Not saved, for the reason that one is not.
+            EnsureSettings();
+            PhaseTimers();
             if (health != null)
                 health.OnDamage += HandleDamaged;
+
+            // Worn gear goes on after Awake (Start, the server's spawn) and comes off when looted, so
+            // the reach is re-read whenever a module's changes rather than only at startup.
+            itemUseModules = GetComponents<ItemUseModuleBase>();
+            foreach (ItemUseModuleBase item in itemUseModules)
+                item.ReachChanged += RecomputeEffectiveRanges;
+            RecomputeEffectiveRanges();
         }
 
         private void OnDisable()
         {
             if (health != null)
                 health.OnDamage -= HandleDamaged;
+
+            if (itemUseModules != null)
+                foreach (ItemUseModuleBase item in itemUseModules)
+                    if (item != null) item.ReachChanged -= RecomputeEffectiveRanges;
         }
+
+        // The modules subscribed to in OnEnable, so OnDisable unsubscribes from exactly those.
+        private ItemUseModuleBase[] itemUseModules;
 
         // The cached authority lookup walks up to the nearest NetworkObject, and reparenting is the
         // only thing that changes which one that is. See AgentAuthority.Invalidate.
@@ -272,7 +313,7 @@ namespace SpaceGame.Agents
                 Destroy(runtimeDefaults);
         }
 
-        // Swap tuning at runtime — MatchManager uses this to give arena bots a more aggressive
+        // Swap tuning at runtime — a spawner can use this to give its bots a more aggressive
         // profile than the same prefab runs with in the open world.
         public void ApplyProfile(TargetingProfile newProfile)
         {
@@ -282,7 +323,13 @@ namespace SpaceGame.Agents
             profile = newProfile;
             settings = newProfile;
             RecomputeEffectiveRanges();
-            reevaluateTimer = 0f;
+            PhaseTimers();
+        }
+
+        private void PhaseTimers()
+        {
+            reevaluateTimer = Random.Range(0f, settings.reevaluateInterval);
+            stormSampleTimer = Random.Range(0f, StormSampleInterval);
         }
 
         // Forced acquisition from outside the scoring loop — ally alerts and heard noises.
@@ -292,13 +339,23 @@ namespace SpaceGame.Agents
             if (!TargetResolution.IsViable(target))
                 return;
 
+            // An ally shouting about somebody, or a noise heard through a wall, is still a route to
+            // a target and has to obey the same exemption the scoring loop does. Without this, a
+            // conjurer carrying a passenger acquires them the moment another robot calls them out —
+            // through a path that deliberately bypasses line of sight.
+            if (IsIgnored(target))
+                return;
+
             EnsureSettings();
 
+            Transform previous = Target;
             Target = target;
             DistanceToTarget = Vector3.Distance(transform.position, target.position);
             LastKnownPosition = target.position;
             HasLastKnownPosition = true;
             TimeSinceSeen = 0f;
+            if (previous != target)
+                TargetAcquired?.Invoke(target, false);
 
             // Hold the forced target for a full interval before re-scoring, so an alert isn't
             // immediately overruled by whoever happens to be marginally nearer.
@@ -321,11 +378,69 @@ namespace SpaceGame.Agents
             return Target.root == other.root;
         }
 
+        /// <summary>
+        /// How many times this agent has let go of a target it was holding. Readers compare it with
+        /// the count they last handled instead of watching <see cref="HasTarget"/> fall: a module is
+        /// only ticked on the frames nothing above it claims movement, so the frame a target is
+        /// dropped is exactly the frame it never sees. <see cref="SearchModule"/> started on that
+        /// falling edge and therefore never searched at all.
+        /// </summary>
+        public int LostCount { get; private set; }
+
+        /// <summary>
+        /// Lets go of the target, counting it in <see cref="LostCount"/>. A held target that has
+        /// been DESTROYED counts too: Unity's null would say nothing is held, but a target that
+        /// despawned, logged out or streamed away was lost exactly as much as one that walked off.
+        /// </summary>
         public void ClearTarget()
         {
+            if (!ReferenceEquals(Target, null))
+                LostCount++;
+
             Target = null;
             CanSeeTarget = false;
             DistanceToTarget = float.MaxValue;
+        }
+
+        /// <summary>
+        /// Let go of a target this agent has since been told to overlook.
+        ///
+        /// <para>
+        /// <see cref="EntityFaction.Ignore"/> keeps an entity out of future queries; it says nothing
+        /// about the one already held. Called on the re-evaluation interval, that gap is up to
+        /// <c>reevaluateInterval</c> seconds long — long enough for a conjurer to put a bolt on the
+        /// player who has just climbed onto its shoulder. So whoever grants the exemption calls this
+        /// too, and the seat is empty of a target on the same frame it is filled with a rider.
+        /// </para>
+        /// <para>
+        /// The remembered position goes with it. A target that is no longer perceivable is not
+        /// somewhere to go and look, and leaving it standing sends SearchModule walking toward a
+        /// player the agent is carrying.
+        /// </para>
+        /// </summary>
+        public void ForgetIgnored()
+        {
+            if (Target != null && IsIgnored(Target))
+            {
+                ClearTarget();
+                HasLastKnownPosition = false;
+            }
+
+            if (LastAttacker != null && IsIgnored(LastAttacker))
+                LastAttacker = null;
+        }
+
+        /// <summary>
+        /// Is <paramref name="candidate"/> exempt for this agent? Walks up to the entity that
+        /// carries the faction, because callers hold anything from a limb collider to an entity root.
+        /// </summary>
+        private bool IsIgnored(Transform candidate)
+        {
+            if (selfFaction == null || candidate == null)
+                return false;
+
+            EntityFaction candidateFaction = candidate.GetComponentInParent<EntityFaction>();
+            return candidateFaction != null && selfFaction.Ignores(candidateFaction);
         }
 
         // Puts back what this agent remembered, for a save being loaded.
@@ -338,13 +453,21 @@ namespace SpaceGame.Agents
         //
         // The target is set directly rather than through ForceTarget for that reason, and viability is
         // still checked — a saved target that has since died must not be re-acquired.
-        public void RestoreMemory(Transform target, Vector3 lastKnownPosition, bool hasLastKnownPosition,
-                                  float timeSinceSeen, Transform lastAttacker)
+        //
+        // targetWasHeld is whether the save recorded a target at all. One that was held but cannot be
+        // had back (died, logged out, never streamed in) counts as a loss, exactly as if the agent had
+        // dropped it this frame — so a SearchModule goes to look instead of standing on a memory.
+        public void RestoreMemory(Transform target, bool targetWasHeld, Vector3 lastKnownPosition,
+                                  bool hasLastKnownPosition, float timeSinceSeen, Transform lastAttacker)
         {
             if (TargetResolution.IsViable(target))
             {
                 Target = target;
                 DistanceToTarget = Vector3.Distance(transform.position, target.position);
+            }
+            else if (targetWasHeld)
+            {
+                LostCount++;
             }
 
             LastKnownPosition = lastKnownPosition;
@@ -362,10 +485,17 @@ namespace SpaceGame.Agents
             if (source == null)
                 return;
 
-            // Attribute the hit to the entity, not to whichever child collider or projectile
-            // carried the reference, so the bias actually matches a scoring candidate.
-            EntityFaction attacker = source.GetComponentInParent<EntityFaction>();
-            LastAttacker = attacker != null ? attacker.transform : source;
+            // Attribute the hit to the entity, so the bias actually matches a scoring candidate.
+            Transform entity = TargetResolution.EntityOf(source);
+            EntityFaction attacker = entity.GetComponent<EntityFaction>();
+
+            // A passenger who shoots the machine they are riding is still a passenger. Recording
+            // them here would not acquire them on its own — an exempt entity is never scored — but
+            // it would leave a stale bias pointing at somebody this agent cannot see.
+            if (attacker != null && selfFaction != null && selfFaction.Ignores(attacker))
+                return;
+
+            LastAttacker = entity;
         }
 
         private void Update()
@@ -379,16 +509,27 @@ namespace SpaceGame.Agents
             if (!SimulatesHere)
                 return;
 
+            // Parked (indoors, asleep, out of range): nobody to acquire and nothing to score — the same as the
+            // controller starving its modules. The current target, if any, is left as it was.
+            if (controller != null && controller.IsParked)
+                return;
+
             float deltaTime = Time.deltaTime;
 
-            if (Target != null && !TargetResolution.IsViable(Target))
+            if (!ReferenceEquals(Target, null) && !TargetResolution.IsViable(Target))
             {
+                // Destroyed rather than dead: it despawned, logged out or streamed away, which from
+                // here looks like it vanished where it was last seen. That is a loss like losing
+                // sight — the memory stays and SearchModule goes to look — and the same answer
+                // RestoreMemory gives for a saved target a load cannot bring back.
+                bool vanished = Target == null;
                 ClearTarget();
 
                 // A target that died is not worth investigating. Dropping the memory here is what
                 // stops SearchModule from walking over to sniff the corpse of something the agent
                 // just killed — losing sight of a live target still leaves the memory intact.
-                HasLastKnownPosition = false;
+                if (!vanished)
+                    HasLastKnownPosition = false;
             }
 
             stormSampleTimer -= deltaTime;
@@ -416,6 +557,8 @@ namespace SpaceGame.Agents
         // the held target's state is.
         private void RefreshTargetState(float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = RefreshMarker.Auto();
+
             if (!HasTarget)
             {
                 if (HasLastKnownPosition)
@@ -435,9 +578,11 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // Cached: the held target's sight line is re-cast on PerceptionModule's interval, not
+            // every frame (CanSeeCached).
             CanSeeTarget = perception == null
                            || DistanceToTarget <= settings.proximityAcquireRange
-                           || perception.CanSee(Target);
+                           || perception.CanSeeCached(Target);
 
             if (CanSeeTarget)
             {
@@ -460,8 +605,15 @@ namespace SpaceGame.Agents
         // stays in metres and the numbers on the profile mean something readable.
         private void Reevaluate()
         {
+            using ProfilerMarker.AutoScope sample = ReevaluateMarker.Auto();
+
             if (selfFaction == null)
                 return;
+
+            // The backstop. ForgetIgnored is called by whoever grants an exemption so the drop is
+            // immediate; running it again here means an exemption granted by anything that does not
+            // know to is still honoured, one interval later, rather than held forever.
+            ForgetIgnored();
 
             // Sight range, not the raw acquisition range: in a sandstorm an agent scores only what
             // it could actually see. proximityAcquireRange below is deliberately left alone — a
@@ -503,7 +655,12 @@ namespace SpaceGame.Agents
             }
 
             if (best != null)
+            {
+                Transform previous = Target;
                 Target = best;
+                if (previous != best)
+                    TargetAcquired?.Invoke(best, true);
+            }
         }
 
         private bool IsCandidateVisible(Transform candidate, float distance)
@@ -513,8 +670,8 @@ namespace SpaceGame.Agents
             if (distance <= settings.proximityAcquireRange)
                 return true;
 
-            // IsVisible, not CanSee: scoring a crowd with the memory-writing variant would
-            // overwrite LastKnownPosition with whichever candidate happened to be checked last.
+            // IsVisible, not CanSeeCached: the cache holds one slot, for the held target, so scoring a
+            // crowd through it would re-cast every call and evict the held target's answer.
             return perception.IsVisible(candidate);
         }
 

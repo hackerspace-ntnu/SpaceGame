@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 5542489317871698407}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.15, y: 0.12, z: 0.5}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -111,7 +111,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a68c2d069abf40c6b38bbf359fe80a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  toggleKey: 26
   flashlightReach: 200
   longThrowIntensity: 12
   longThrowFalloff: 0.008
@@ -125,7 +124,7 @@ MonoBehaviour:
     m_Bits: 951
   beamProbeRays: 6
   beamLengthSmoothing: 1
-  debugDrawRays: 1
+  debugDrawRays: 0
   dbgLastShortestHit: 0
   dbgCenterRayHit: 0
 --- !u!114 &4408580070886759424

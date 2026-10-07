@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Gameplay
@@ -25,14 +26,44 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public static event Action<HealthComponent, int> AnyDamaged;
 
+        /// <summary>
+        /// As <see cref="AnyDamaged"/>, but carrying WHERE the hit came from, so a listener can
+        /// point at it. The bool says whether there was a source at all: a fall, suffocation and
+        /// sand all arrive with none, and a position of zero is a real place in the world rather
+        /// than a usable "nowhere".
+        /// <para>
+        /// The position rather than the Transform, because this is also raised from a replicated
+        /// message on a machine where the attacker may not exist as an object at all.
+        /// </para>
+        /// </summary>
+        public static event Action<HealthComponent, int, Vector3, bool> AnyDamagedFrom;
+
+        /// <summary>
+        /// Any health anywhere defending against a hit (a block, a dodge), on the machine that
+        /// decided it — the static twin of <see cref="OnDefended"/>, for the one screen-wide overlay
+        /// that tells an attacker their blow was stopped. Static for the reason
+        /// <see cref="AnyDamaged"/> is.
+        /// </summary>
+        public static event Action<HealthComponent, DamageHit> AnyDefended;
+
         public event Action<int> OnDamage;
+
+        /// <summary>
+        /// A filter defended against a hit, raised where the damage was decided, before any health
+        /// changes. <see cref="DamageHit.Amount"/> is what still lands — 0 for a hit stopped whole,
+        /// which raises this and nothing else: no <see cref="OnDamage"/>, so no flinch, no
+        /// provocation and no hurt noise — the body was not hurt.
+        /// </summary>
+        public event Action<DamageHit> OnDefended;
+
         public event Action<int> OnHeal;
         public event Action OnDeath;
         public event Action OnRevive;
 
         /// <summary>
-        /// Raised when health is assigned rather than changed by gameplay — currently only by a
-        /// save being loaded. Replication listens to this; damage feedback deliberately does not,
+        /// Raised when health is assigned rather than changed by gameplay — by a save being loaded,
+        /// or by the server's value reaching a client. Replication listens to this; damage feedback
+        /// deliberately does not,
         /// because loading at half health should not flash the screen red as though you were just
         /// hit.
         /// </summary>
@@ -47,8 +78,9 @@ namespace SpaceGame.Gameplay
         public bool Alive => currentHealth > 0;
 
         /// <summary>
-        /// True only while <see cref="RestoreHealth"/> is applying a saved value, so a listener can
-        /// tell "this just died" from "this was already dead when the world loaded".
+        /// True only while <see cref="RestoreHealth"/> is assigning a value this machine did not
+        /// decide — a saved value, or the server's value arriving on a client — so a listener can
+        /// tell "this just died here" from "this death was decided somewhere else".
         ///
         /// It has to be askable, because <see cref="OnDeath"/> fires in both cases and the
         /// consequences of death are not repeatable: <c>HealthReactionModule</c> plays the death
@@ -57,23 +89,117 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public bool IsRestoring { get; private set; }
 
+        /// <summary>
+        /// True only while <see cref="LoadHealth"/> is applying a value read from a SAVE — a narrower
+        /// question than <see cref="IsRestoring"/>, which is also true on a client whenever the
+        /// server's value arrives through <c>NetworkedHealthComponent</c>.
+        ///
+        /// <para>
+        /// Most listeners want the broad answer: loot, a death sound and a despawn timer belong to
+        /// the machine that decided the death, so a client must not repeat them either. What only
+        /// this one answers is whether the death is OLD. A corpse arriving from a save is already
+        /// lying where it fell and must not be thrown again; a death arriving over the wire happened
+        /// a moment ago, and a client that treated it as a load froze its own player standing and
+        /// dropped every creature it watched as a stiff plank.
+        /// </para>
+        /// </summary>
+        public bool IsLoading { get; private set; }
+
+        /// <summary>
+        /// True only while <see cref="RestoreHealth"/> is applying a LIVE change replicated from the
+        /// server — never a save, and never the snapshot a late joiner reads on spawn. Always read
+        /// together with <see cref="IsRestoring"/>, which is also true then.
+        ///
+        /// It separates the two kinds of restored death that look the same from inside
+        /// <see cref="OnDeath"/> and must not be treated the same. A save (or a late joiner's
+        /// snapshot) meets a body that has been dead for a while, so the corpse goes at once. A
+        /// replicated change is a death happening right now on the server, so a client must show
+        /// it — the fall, the despawn countdown — exactly as the host does. Treating it as a load
+        /// switched every NPC corpse off on clients the frame it died.
+        /// </summary>
+        public bool IsReplicating { get; private set; }
+
         public Transform LastDamageSource { get; private set; }
+
+        /// <summary>
+        /// How the last hit decided here was met. Readable from inside <see cref="OnDamage"/> and
+        /// <see cref="AnyDamaged"/>, the way <see cref="LastDamageSource"/> is: a block that let
+        /// part of a blow through still raises them, and a listener that shows the hit its own way
+        /// (the flinch) must know the guard already did.
+        /// </summary>
+        public DamageDefense LastDefense { get; private set; }
+
+        /// <summary>
+        /// The filters that get a say in every hit before it lands, in the order they registered.
+        /// A list on the victim rather than a lookup per hit: a hit is frequent, a guard being
+        /// switched on or off is not.
+        /// </summary>
+        private readonly List<IDamageFilter> filters = new List<IDamageFilter>();
+
+        /// <summary>Give <paramref name="filter"/> a say in every hit. Call from OnEnable; adding twice is harmless.</summary>
+        public void AddFilter(IDamageFilter filter)
+        {
+            if (filter != null && !filters.Contains(filter)) filters.Add(filter);
+        }
+
+        /// <summary>Take back what <see cref="AddFilter"/> gave. Call from OnDisable.</summary>
+        public void RemoveFilter(IDamageFilter filter) => filters.Remove(filter);
+
+        /// <summary>
+        /// Announces a hit this machine did NOT resolve, for
+        /// <see cref="AnyDamagedFrom"/>'s listeners only.
+        ///
+        /// <para>
+        /// The replication layer's seam. A client never runs <see cref="Damage"/> — the server
+        /// does — so without this its own visor could never learn which way to point. It changes
+        /// no health: the value arrives separately through the health NetworkVariable, and
+        /// applying it here as well would subtract the same hit twice.
+        /// </para>
+        /// </summary>
+        public void ReportDamageDirection(int amount, Vector3 sourcePosition, bool hasSource)
+        {
+            if (amount <= 0) return;
+
+            AnyDamagedFrom?.Invoke(this, amount, sourcePosition, hasSource);
+        }
 
         public void Damage(int amount) => Damage(amount, null);
 
-        public void Damage(int amount, Transform source)
+        /// <summary>
+        /// Hurt this body, after every <see cref="IDamageFilter"/> has had its say. How the hit was
+        /// met comes back — <see cref="DamageDefense.None"/> for one taken in full — so a weapon
+        /// whose blow also shoves can leave a body that blocked or dodged it standing.
+        /// </summary>
+        public DamageDefense Damage(int amount, Transform source, DamageKind kind = DamageKind.Unspecified)
         {
-            if (amount <= 0 || !Alive) return;
+            if (amount <= 0 || !Alive) return DamageDefense.None;
+
+            var hit = new DamageHit(amount, source, kind);
+            // By index, not foreach: a filter whose reaction disables a component that unregisters
+            // must not invalidate an enumerator halfway through a hit.
+            for (int i = 0; i < filters.Count; i++) filters[i].Filter(this, ref hit);
+
+            LastDefense = hit.Defense;
+            if (hit.Defense != DamageDefense.None)
+            {
+                OnDefended?.Invoke(hit);
+                AnyDefended?.Invoke(this, hit);
+            }
+
+            if (hit.Amount <= 0) return hit.Defense;
 
             LastDamageSource = source;
-            currentHealth -= amount;
+            currentHealth -= hit.Amount;
 
-            OnDamage?.Invoke(amount);
+            OnDamage?.Invoke(hit.Amount);
 
             // After OnDamage and before the death check, so a killing blow still shows its number.
-            AnyDamaged?.Invoke(this, amount);
+            AnyDamaged?.Invoke(this, hit.Amount);
+            AnyDamagedFrom?.Invoke(this, hit.Amount, source != null ? source.position : Vector3.zero,
+                                   source != null);
 
             if (currentHealth <= 0) OnDeath?.Invoke();
+            return hit.Defense;
         }
     
         // Full restore for respawns. Heal() can't be used for this: overkill damage
@@ -105,15 +231,19 @@ namespace SpaceGame.Gameplay
         /// answer.
         ///
         /// Listeners that act on death rather than merely observing it must check
-        /// <see cref="IsRestoring"/> — see that property.
+        /// <see cref="IsRestoring"/> — see that property — and, if a death seen live on a client
+        /// should look different from a loaded corpse, <see cref="IsReplicating"/>.
         /// </summary>
-        public void RestoreHealth(int value)
+        /// <param name="replicated">The server's live value reaching a client. Not a save, and not
+        /// the snapshot read on network spawn: both of those meet a death that is already over.</param>
+        public void RestoreHealth(int value, bool replicated = false)
         {
             int clamped = Math.Clamp(value, 0, maxHealth);
             bool wasAlive = Alive;
             bool changed = clamped != currentHealth;
 
             IsRestoring = true;
+            IsReplicating = replicated;
 
             try
             {
@@ -136,6 +266,27 @@ namespace SpaceGame.Gameplay
                 // In a finally block because a listener throwing must not leave every later death in
                 // the session looking like a restore — which would silently stop all loot dropping.
                 IsRestoring = false;
+                IsReplicating = false;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="RestoreHealth"/> for a value read from a save — the one caller that is a
+        /// load rather than a replication. See <see cref="IsLoading"/>.
+        /// </summary>
+        public void LoadHealth(int value)
+        {
+            IsLoading = true;
+
+            // In a finally block for RestoreHealth's own reason: a throwing listener must not leave
+            // every later replicated death looking like a load.
+            try
+            {
+                RestoreHealth(value);
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 

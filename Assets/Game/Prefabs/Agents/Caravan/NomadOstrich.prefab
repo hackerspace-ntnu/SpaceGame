@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: prefabId
       value: f7d4cf6b779214121888a8c5e9171f01
       objectReference: {fileID: 0}
+    - target: {fileID: 613497110962547155, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: inflationTarget
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -81,19 +85,13 @@ PrefabInstance:
       addedObject: {fileID: 989872338144656192}
     - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6082589952182902171}
-    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 5634349938114829079}
-    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 7059438903585196936}
     - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2152796702223863194}
     - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4907140462652658823}
+      addedObject: {fileID: -5080952189463028379}
   m_SourcePrefab: {fileID: 100100000, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
 --- !u!1 &3760312103620484764 stripped
 GameObject:
@@ -117,6 +115,7 @@ MonoBehaviour:
   seatOffset: {x: 0, y: -0.85, z: 0}
   seatEuler: {x: 0, y: 0, z: 0}
   spawnOnStart: 1
+  seatedAnimatorBool: IsSeated
   dismountSideOffset: 1.6
   dismountSampleDistance: 6
 --- !u!114 &5273917283761924889
@@ -149,6 +148,7 @@ MonoBehaviour:
   maxSpeedMultiplier: 1.35
   leaderMovingSpeed: 0.4
   restRadius: 6
+  holdSlotAtRest: 0
   regroupDistance: 40
   navSampleDistance: 6
 --- !u!114 &1005919395237431434
@@ -168,6 +168,12 @@ MonoBehaviour:
   speedMultiplier: 1
   run: 0
   stopDistanceMargin: 0.5
+  holdReleaseMargin: 2
+  holdLookAhead: 2
+  alignStopDistance: 0.02
+  alignSpeedMultiplier: 0.5
+  alignReleaseMargin: 0.3
+  alignGiveUpSeconds: 4
 --- !u!114 &941007473242535700
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -188,6 +194,7 @@ MonoBehaviour:
   retryDelay: 5
   travelTimeout: 240
   logTransitions: 0
+  animatorDriver: {fileID: 0}
 --- !u!114 &989872338144656192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -224,34 +231,6 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
---- !u!114 &6082589952182902171
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3760312103620484764}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
-  faction: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
-  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
---- !u!114 &5634349938114829079
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3760312103620484764}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
-  keepChunksLoaded: 0
-  policy: 1
 --- !u!114 &7059438903585196936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -276,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
---- !u!114 &4907140462652658823
+--- !u!114 &-5080952189463028379
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -285,9 +264,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 3760312103620484764}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Script: {fileID: 11500000, guid: dba9c324820a2d3438abb638878e91eb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CrewSaveable
 --- !u!4 &8750788233840712177 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3987795919156751077, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}

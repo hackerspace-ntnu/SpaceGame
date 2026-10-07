@@ -50,6 +50,36 @@ namespace SpaceGame.World.NavMeshTools
         private static bool CanBake() => !EditorApplication.isPlaying;
 
         /// <summary>
+        /// Replaces the asset's link list with the links its current mesh edges allow. Derived data:
+        /// whatever was there is discarded, so a link never outlives the geometry it crossed. Only the
+        /// bake can call it, because ruling out the links that cross a wall needs the chunk scenes open.
+        /// </summary>
+        private static string StoreAutoLinks(WorldNavMeshAsset asset)
+        {
+            var found = NavMeshAutoLinker.FindOnBakedData(asset.bakedData, asset.linkSettings,
+                                                          (from, to) => IsWalledOff(from, to, asset));
+            asset.autoLinks = found.links.ToArray();
+
+            return $"auto links: {found.links.Count} ({found.drops} one-way drops, {found.gaps} gaps)" +
+                   (found.truncated ? $" — STOPPED at the {asset.linkSettings.maxLinks} cap" : "");
+        }
+
+        /// <summary>
+        /// Whether a solid the bake treats as an obstacle stands between two link ends, at the asset's
+        /// wall probe height above them. A bakeable collider only: a character or a trigger is no wall.
+        /// </summary>
+        private static bool IsWalledOff(Vector3 from, Vector3 to, WorldNavMeshAsset asset)
+        {
+            Vector3 lift = Vector3.up * asset.linkSettings.wallProbeHeight;
+            Vector3 along = to - from;
+            RaycastHit[] hits = Physics.RaycastAll(from + lift, along, along.magnitude,
+                                                   asset.settings.layerMask, QueryTriggerInteraction.Ignore);
+            foreach (RaycastHit hit in hits)
+                if (NavMeshSources.IsBakeable(hit.collider, asset.settings.layerMask, doorsShut: true)) return true;
+            return false;
+        }
+
+        /// <summary>
         /// Bakes and writes <see cref="AssetPath"/>. Returns a human-readable report.
         /// Leaves the editor's open scenes exactly as it found them.
         /// </summary>
@@ -156,6 +186,8 @@ namespace SpaceGame.World.NavMeshTools
                 EditorUtility.DisplayProgressBar("Baking world NavMesh", "writing asset", 0.95f);
                 StoreBakedData(asset, data);
 
+                string linkReport = StoreAutoLinks(asset);
+
                 asset.config = config;
                 asset.stamps = stamps.ToArray();
                 asset.sourceCount = sources.Count;
@@ -170,7 +202,7 @@ namespace SpaceGame.World.NavMeshTools
                        $"features spawned for bake: {featuresSpawned}" +
                        (unbakedFeatures > 0 ? $", WITHOUT baked meshes: {unbakedFeatures}" : "") +
                        (missingScenes > 0 ? $", missing scenes: {missingScenes}" : "") +
-                       $"\nwrote {AssetPath}";
+                       $"\n{linkReport}\nwrote {AssetPath}";
             }
             finally
             {
@@ -251,15 +283,9 @@ namespace SpaceGame.World.NavMeshTools
                 foreach (var terrain in root.GetComponentsInChildren<Terrain>(true))
                 {
                     if (terrain.terrainData == null) continue;
-                    if (!InMask(mask, terrain.gameObject.layer)) continue;
+                    if (!NavMeshSources.InMask(mask, terrain.gameObject.layer)) continue;
 
-                    into.Add(new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Terrain,
-                        sourceObject = terrain.terrainData,
-                        transform = Matrix4x4.TRS(terrain.transform.position, Quaternion.identity, Vector3.one),
-                        area = 0,
-                    });
+                    into.Add(NavMeshSources.FromTerrain(terrain));
 
                     Encapsulate(ref bounds, ref haveBounds,
                         new Bounds(terrain.transform.position + terrain.terrainData.size * 0.5f,
@@ -268,16 +294,9 @@ namespace SpaceGame.World.NavMeshTools
 
                 foreach (var col in root.GetComponentsInChildren<Collider>(true))
                 {
-                    if (col == null || col.isTrigger) continue;
                     if (col is TerrainCollider) continue;          // already covered by the Terrain
-                    if (!InMask(mask, col.gameObject.layer)) continue;
-
-                    // Anything with a non-kinematic body is scenery that moves; baking it fixes it
-                    // in place forever.
-                    var body = col.attachedRigidbody;
-                    if (body != null && !body.isKinematic) continue;
-
-                    if (!TryColliderToSource(col, out var src)) continue;
+                    if (!NavMeshSources.IsBakeable(col, mask)) continue;
+                    if (!NavMeshSources.TryColliderToSource(col, out var src)) continue;
 
                     into.Add(src);
                     Encapsulate(ref bounds, ref haveBounds, col.bounds);
@@ -285,75 +304,10 @@ namespace SpaceGame.World.NavMeshTools
             }
         }
 
-        private static bool InMask(LayerMask mask, int layer) => (mask.value & (1 << layer)) != 0;
-
         private static void Encapsulate(ref Bounds bounds, ref bool have, Bounds b)
         {
             if (!have) { bounds = b; have = true; }
             else bounds.Encapsulate(b);
-        }
-
-        /// <summary>
-        /// Collider to NavMesh source. Lifted from the runtime <c>NavMeshSourceCache</c> this change
-        /// deletes — the mapping was correct, it was the per-frame rebuilding around it that was not.
-        /// </summary>
-        private static bool TryColliderToSource(Collider col, out NavMeshBuildSource src)
-        {
-            src = default;
-            var t = col.transform;
-
-            switch (col)
-            {
-                case MeshCollider mc:
-                    if (mc.sharedMesh == null || !mc.sharedMesh.isReadable) return false;
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Mesh,
-                        sourceObject = mc.sharedMesh,
-                        transform = t.localToWorldMatrix,
-                        area = 0,
-                    };
-                    return true;
-
-                case BoxCollider bc:
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Box,
-                        transform = Matrix4x4.TRS(t.TransformPoint(bc.center), t.rotation,
-                                                  Vector3.Scale(t.lossyScale, bc.size)),
-                        size = Vector3.one,
-                        area = 0,
-                    };
-                    return true;
-
-                case SphereCollider sc:
-                {
-                    float s = Mathf.Max(t.lossyScale.x, t.lossyScale.y, t.lossyScale.z);
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Sphere,
-                        transform = Matrix4x4.TRS(t.TransformPoint(sc.center), t.rotation, Vector3.one),
-                        size = Vector3.one * (sc.radius * 2f * s),
-                        area = 0,
-                    };
-                    return true;
-                }
-
-                case CapsuleCollider cc:
-                {
-                    float s = Mathf.Max(t.lossyScale.x, t.lossyScale.y, t.lossyScale.z);
-                    src = new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Capsule,
-                        transform = Matrix4x4.TRS(t.TransformPoint(cc.center), t.rotation, Vector3.one),
-                        size = new Vector3(cc.radius * 2f * s, cc.height * s, cc.radius * 2f * s),
-                        area = 0,
-                    };
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         // ─────────────────────────────────────────────

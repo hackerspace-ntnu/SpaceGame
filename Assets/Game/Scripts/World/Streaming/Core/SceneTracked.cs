@@ -24,12 +24,21 @@ namespace SpaceGame.World
             // Use for player-attached entities (mounts) and anything that must outlive chunk unloads.
             Pin,
 
-            // Live in the chunk scene the entity is currently over. Forces the chunk to stay loaded
-            // while present (when keepChunksLoaded is true). Use for NPCs, dropped items, world props
-            // that should belong to whichever chunk they're in.
+            // Live in the chunk scene the entity is currently over, and keep that chunk loaded for
+            // as long as this is standing in it. Use for NPCs, vehicles and world props whose
+            // disappearing where somebody can see it would read as a bug.
             Migrate,
 
-            // Allow the chunk to unload normally. The entity will be destroyed with it.
+            // Live in the chunk scene the entity is currently over, and let that chunk go. The
+            // entity is captured into the save record as the chunk unloads and rebuilt from it when
+            // the chunk comes back, so nothing is lost — it simply is not resident while nobody is
+            // there. Use for the things a player leaves lying around: dropped items, which would
+            // otherwise keep a corner of the world loaded for each place anyone has ever put
+            // something down.
+            Release,
+
+            // Allow the chunk to unload normally. The entity will be destroyed with it, and stays
+            // in whatever scene it was created in until then.
             // Use for ephemeral things you don't want to persist a chunk for.
             Despawn,
         }
@@ -60,6 +69,14 @@ namespace SpaceGame.World
         /// joins rather than every frame.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// Set the unload policy at runtime, for an entity whose prefab does not carry this
+        /// component at all — a dropped item, which <c>SaveablePolicy.EnsureSpawned</c> gives one to
+        /// at the moment it is spawned. Nothing re-registers here because
+        /// <c>WorldStreamer.UpdateSceneMembership</c> reads the policy every tick.
+        /// </summary>
+        public void SetPolicy(UnloadPolicy value) => policy = value;
+
         public void SetKeepChunksLoaded(bool pin)
         {
             if (keepChunksLoaded == pin) return;

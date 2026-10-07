@@ -17,10 +17,9 @@
 // a field of a thing in the scene, and one fixture may own several. It borrows its owner's channel,
 // its coroutines and its lifetime, and the owner drives it from OnEnable/OnDisable.
 using System;
-using System.Collections;
-using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Diagnostics;
 
 namespace SpaceGame.Gameplay
 {
@@ -187,7 +186,14 @@ namespace SpaceGame.Gameplay
             // the same thing — and it keeps a whole class of hosts out of the coroutine machinery:
             // an EditMode test, or a scene opened straight from the editor, has no business there.
             if (Network.IsNetworked && !Network.Server && owner.isActiveAndEnabled)
-                askRoutine = owner.StartCoroutine(AskWhenConnected());
+                // `owner` rather than `this`: a NetLatch is a plain field on a component, not a
+                // Component itself, and it borrows its owner's coroutines.
+                //
+                // No teardown: the latch's own state is already "not answered", which is the
+                // correct reading after a failed ask. The barrier is here so a throw does not
+                // leave askRoutine pointing at a coroutine that is never going to complete.
+                askRoutine = owner.StartCoroutine(Fault.Coroutine(owner, "NetLatch.Ask",
+                    owner.NetToServerWhenSpawned(NetMsg.LatchSet, new NetArg { A = Index, B = AskVerb })));
         }
 
         /// <summary>
@@ -227,34 +233,6 @@ namespace SpaceGame.Gameplay
             if (owner == null || !Accepts(on)) return;
 
             owner.NetToServer(NetMsg.LatchSet, new NetArg { A = Index, B = on ? OnVerb : OffVerb });
-        }
-
-        /// <summary>
-        /// Ask the server what state this latch is in, once there is somebody to ask.
-        ///
-        /// Waits for the entity's NetworkObject to actually be spawned rather than sending on the
-        /// first frame: before that there is no relay, the send falls through to a local dispatch,
-        /// and the client cheerfully answers its own question with the state it already had — which
-        /// is the prefab's, which is the thing being corrected.
-        ///
-        /// Only reached on a client of a live session — <see cref="Enable"/> makes that decision.
-        /// </summary>
-        private IEnumerator AskWhenConnected()
-        {
-            GameObject root = NetChannel.RootOf(owner);
-            NetworkObject netObj = root != null ? root.GetComponent<NetworkObject>() : null;
-
-            // No NetworkObject means no wire: nobody to ask, and nobody who would hear the answer.
-            // The latch still works on this machine alone — NetChannel.WarnUnrelayed says so once.
-            if (netObj == null) yield break;
-
-            while (!netObj.IsSpawned)
-            {
-                if (!Network.IsNetworked) yield break;
-                yield return null;
-            }
-
-            owner.NetToServer(NetMsg.LatchSet, new NetArg { A = Index, B = AskVerb });
         }
 
         // ─────────── Answering ───────────

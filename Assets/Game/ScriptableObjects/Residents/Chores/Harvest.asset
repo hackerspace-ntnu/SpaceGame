@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd41bb12474a14ef08e0f9ddb5603574, type: 3}
+  m_Name: Harvest
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ChoreDefinition
+  displayName: bringing in the harvest
+  source: {fileID: 11400000, guid: 2e452e42898844dc9b901cabfee9c799, type: 2}
+  target: {fileID: 11400000, guid: b4ad545284bdd400b8bbe8dc47875b05, type: 2}
+  targetsPerRound: {x: 1, y: 1}
+  carried: {fileID: 11400000, guid: 694b68856690c4cf0b7839882a89fcb9, type: 2}
+  carryThroughout: 0
+  carriesProps: 1
+  sourceSeconds: {x: 4, y: 7}
+  targetSeconds: {x: 3, y: 6}

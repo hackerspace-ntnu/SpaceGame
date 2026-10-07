@@ -43,10 +43,10 @@ namespace SpaceGame.Tests
             // resolver hands back for two differently-launched instances, their storage must not
             // collide.
             string host = PlayerProfile.PrefsKeyFor(
-                SessionLauncher.ResolveProfileName(new[] { "SpaceGame.exe" }, "/proj/Assets"));
+                SessionProfile.Resolve(new[] { "SpaceGame.exe" }, "/proj/Assets"));
 
             string second = PlayerProfile.PrefsKeyFor(
-                SessionLauncher.ResolveProfileName(new[] { "SpaceGame.exe", "-sgprofile", "client" }, "/proj/Assets"));
+                SessionProfile.Resolve(new[] { "SpaceGame.exe", "-sgprofile", "client" }, "/proj/Assets"));
 
             Assert.AreNotEqual(host, second,
                 "A second instance on the same machine resolved to the same PlayerPrefs key as the " +
@@ -59,10 +59,10 @@ namespace SpaceGame.Tests
             // MPPM is how this project is actually play-tested with two clients, so it is the case
             // that has to work rather than a hypothetical.
             string main = PlayerProfile.PrefsKeyFor(
-                SessionLauncher.ResolveProfileName(new[] { "Unity" }, "/proj/Assets"));
+                SessionProfile.Resolve(new[] { "Unity" }, "/proj/Assets"));
 
             string virtualPlayer = PlayerProfile.PrefsKeyFor(
-                SessionLauncher.ResolveProfileName(new[] { "Unity", "-editor-mode", "-name", "Player2" }, "/proj/Assets"));
+                SessionProfile.Resolve(new[] { "Unity", "-editor-mode", "-name", "Player2" }, "/proj/Assets"));
 
             Assert.AreEqual(BareKey, main);
             Assert.AreEqual($"{BareKey}.Player2", virtualPlayer);
@@ -72,10 +72,10 @@ namespace SpaceGame.Tests
         public void ParrelSyncClone_GetsItsOwnKey()
         {
             string original = PlayerProfile.PrefsKeyFor(
-                SessionLauncher.ResolveProfileName(new[] { "Unity" }, "/work/SpaceGame/Assets"));
+                SessionProfile.Resolve(new[] { "Unity" }, "/work/SpaceGame/Assets"));
 
             string clone = PlayerProfile.PrefsKeyFor(
-                SessionLauncher.ResolveProfileName(new[] { "Unity" }, "/work/SpaceGame_clone_0/Assets"));
+                SessionProfile.Resolve(new[] { "Unity" }, "/work/SpaceGame_clone_0/Assets"));
 
             Assert.AreNotEqual(original, clone);
         }
@@ -88,7 +88,7 @@ namespace SpaceGame.Tests
             // asserts the sharing rather than the value, so it keeps holding if the rule changes.
             string[] args = { "SpaceGame.exe", "-sgprofile", "client" };
 
-            string instance = SessionLauncher.ResolveProfileName(args, "/proj/Assets");
+            string instance = SessionProfile.Resolve(args, "/proj/Assets");
 
             Assert.AreEqual("client", instance);
             Assert.AreEqual($"{BareKey}.client", PlayerProfile.PrefsKeyFor(instance));

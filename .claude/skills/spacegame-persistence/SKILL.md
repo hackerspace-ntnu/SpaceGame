@@ -5,6 +5,10 @@ description: Use when something must survive save/quit/load in SpaceGame — sta
 
 # SpaceGame Persistence
 
+> **Design check:** when deciding *what* the game should remember, or how saving is surfaced to the
+> player, read the `ARCH`, `UX` and `PROG` principles in
+> `docs/game-development-constitution/INDEX.md` and cite their IDs.
+
 Persistence in this project fails **silently**: nothing throws, no test goes red, and the player's
 session is simply gone. The core principle is that a saved object is addressed by **identity, never
 by scene** (`WorldStreamer` migrates entities between chunks, so scene membership is where a thing
@@ -13,7 +17,7 @@ is right now, not what it is), and each `ISaveable` owns exactly one key inside 
 
 Code lives in `Assets/Game/Scripts/Core/Persistence/` (`Format/` = asmdef `SpaceGame.Persistence`,
 zero references; `Runtime/`, `Adapters/`, `Editor/` = Assembly-CSharp).
-Full architecture narrative: `docs/architecture/Persistence.md`.
+Full system reference: `docs/AI/systems/Persistence.md`.
 Record shapes, adapter catalog, JSON rules, migrations: `reference.md` beside this file.
 
 ## When to Use
@@ -192,6 +196,7 @@ if (go.GetComponent<ProvocationModule>() != null && go.GetComponent<ProvocationS
 | `DuneFoilSaveable` | `dunefoil` | `SailRig` |
 | `OrnithopterSaveable` | `ornithopter` | `OrnithopterFlightMotor` (deferred; relaunches in-flight craft) |
 | `PlayerInventorySaveable` / `BackpackSaveable` | `inventory` / `backpack` | player prefab (PATH C) |
+| `FactionGoodwillSaveable` | `factionGoodwill` | player prefab (PATH C). One player's slice of `FactionGoodwillLedger`. Saves the **band as well as the value** — hysteresis makes the band a function of its own history, so recomputing it forgives a player over a loading screen — a UTC timestamp so an absence decays once on restore, and per faction a `warTier` (appended 2026-09-16, older saves read 0) so a tribe's war escalation survives a quit mid-cooldown: `WarPartyDirector.RestoreWarTier` seeds `WarBook` from it before the director reconciles any restored `AtWar` band into a live war |
 | `NpcWorldSaveable` | `npcworld` | `NpcWorldSim` — one record per group, not per member |
 | `GameStateSaveable` | `gameState` | registered by hand (PATH D) |
 
@@ -218,9 +223,13 @@ A persistence change that has not been round-tripped does not work. Do all of th
    A saver holding a `SaveRef` round-trips as `none` unless the test installs an `ISaveRefBinder`
    into `SaveRefBinding.Active` (pattern: `Assets/Game/Tests/EditMode/SaveRefTests.cs`).
    Run headlessly: `HeadlessTestRunner.RunEditModeDeferred("PrefabPersistenceTests")`, then read
-   `Temp/headless_tests.txt`. The two project-wide sweeps
-   (`EveryWorldEntityPrefabIsWiredForSaving`, `EveryWiredPrefabHasTheSaversItsComponentsImply`)
-   cover every new prefab automatically and go red until the wiring tool has been run.
+   `Temp/headless_tests.txt`. The three project-wide sweeps
+   (`EveryWorldEntityPrefabIsWiredForSaving`, `EveryWiredPrefabHasTheSaversItsComponentsImply`,
+   `EveryWorldEntityPrefabCarriesItsPrefabIdOnDisk`) cover every new prefab automatically and go red
+   until the wiring tool has been run. The third reads the prefab **file**, because `OnValidate`
+   fills `prefabId` in memory the moment an asset loads — so a prefab that ships the field blank
+   looks correct to every other check, and everything spawned from it is captured into the save and
+   then deleted.
 3. **Play-mode round trip.** Main menu → New/Load World (a world scene opened *directly* in the
    editor has no `WorldSession`, so every save is refused with `Save ignored: no world is active`).
    Change the thing → `F5` quicksave → `F9` quickload → the change must be there. Then quit the app
@@ -247,9 +256,11 @@ A persistence change that has not been round-tripped does not work. Do all of th
 | Opting in by sniffing for a non-kinematic `Rigidbody` | Every mount, walker and vehicle absent from the save file | Implement `IPersistentEntity` — legged rigs are kinematic and `DuneFoil` has no root `Rigidbody` |
 | `Instantiate` / `Destroy` for world objects | Restored object piles up a duplicate per reload; looted authored crate refills itself | `GameServices.World.Spawn` / `.Despawn` (the latter calls `SaveManager.NotifyDestroyed`, which tombstones authored objects) |
 | Renaming a `SaveKey`, or renaming/re-parenting an unwired scene object | Every record under the old spelling orphaned, silently | Keys are permanent. Bake identities with the wiring tool rather than relying on the derived hierarchy-path fallback |
+| Rebuilding a prefab that scene instances override | The scene's `authored`/`instanceId` override names a fileID the prefab no longer has, so it stops applying while still reading correctly in the scene file. The instance then counts as runtime and is duplicated on every chunk load (`EnsureScene` now catches this, but every *other* per-instance tweak is gone too) | Compare each override's target fileID against the anchors in the prefab file; re-place the instance or re-bake |
 | Assuming a saver on a child is captured by the parent | State lands in the child's own record | Collection stops at any nested `SaveableEntity` |
 | Giving a system-owned object its own `SaveableEntity` | Two competing copies of the same state, and a lifeless duplicate object standing beside the real one on every load | `SaveScope.External` on the prefab, or `SaveableEntity.DisownToExternal()` at runtime; store the state on the owning system's saver |
 | Adding a saver with `AddComponent` at runtime | New saver never captured — the entity cached its saver list on first use | `entity.InvalidateSavers()` after the add (see `PlayerSaveService.EnsureMomentumSaver`) |
+| `NetworkObject.Spawn()` for something a record rebuilds on load | Survives an in-session quickload (NGO keeps `destroyWithScene: false` roots through `LoadScene(Single)`) and stands beside its rebuilt copy; quit-to-menu hides it | `Spawn(destroyWithScene: true)` — `WorldService` and `NpcSpawn` both do |
 | Restoring 0 HP without guarding | Loot re-dropped and death reaction replayed on every load | `HealthComponent.IsRestoring` — checked by `HealthReactionModule` and `EntityLootTable` |
 
 ## Related
@@ -258,5 +269,5 @@ A persistence change that has not been round-tripped does not work. Do all of th
   touches netcode only at the seam: saving is server-only (`Network.Server`), restored objects go
   through `SaveNetworking.SpawnIfNetworked`, and player placement goes through `PlayerSaveService`
   because the player transform is owner-authoritative.
-- `docs/architecture/Persistence.md` — the long-form narrative and design rationale.
+- `docs/AI/systems/Persistence.md` — the source-verified system reference. Narrative version for humans: `docs/Human/08-saving-and-continuity.md`.
 - `reference.md` — record format, JSON rules, migrations, file map, save-file inspection script.

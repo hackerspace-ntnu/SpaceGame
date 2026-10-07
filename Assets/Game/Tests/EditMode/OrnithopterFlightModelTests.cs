@@ -25,6 +25,17 @@ namespace SpaceGame.Tests
             return s;
         }
 
+        /// <summary>Run the model forward with a rope pulling on it the whole way.</summary>
+        private static OrnithopterFlightState Tow(OrnithopterFlightState s, OrnithopterFlightConfig cfg,
+                                                  Vector3 towAcceleration, float seconds)
+        {
+            int steps = Mathf.RoundToInt(seconds / Dt);
+            for (int i = 0; i < steps; i++)
+                s = OrnithopterFlightModel.Step(s, OrnithopterFlightInput.Neutral, cfg, Dt,
+                                                towAcceleration);
+            return s;
+        }
+
         /// <summary>A craft already in the air with its wings open and trimmed level.</summary>
         private static OrnithopterFlightState Airborne(float speed = 20f)
         {
@@ -348,6 +359,163 @@ namespace SpaceGame.Tests
             Assert.IsFalse(float.IsNaN(s.Heading) || float.IsInfinity(s.Heading), "Heading diverged.");
             Assert.IsFalse(float.IsNaN(s.Roll) || float.IsInfinity(s.Roll), "Roll diverged.");
             Assert.GreaterOrEqual(s.Airspeed, 0f, "Airspeed must never go negative.");
+        }
+
+        // ─────────── The tow ───────────
+
+        [Test]
+        public void TowAheadAddsSpeed()
+        {
+            OrnithopterFlightConfig cfg = Config();
+            OrnithopterFlightState free = Fly(Airborne(20f), OrnithopterFlightInput.Neutral, cfg, 2f);
+
+            // Heading 0 flies along +Z, so a rope set straight ahead pulls that way.
+            OrnithopterFlightState towed = Tow(Airborne(20f), cfg, Vector3.forward * cfg.TowAcceleration, 2f);
+
+            Assert.Greater(towed.Airspeed, free.Airspeed + 5f,
+                "A rope hooked straight ahead is the whole point of the item: it must buy real " +
+                $"speed. Free glide reached {free.Airspeed:F1} m/s, the tow only {towed.Airspeed:F1}.");
+        }
+
+        [Test]
+        public void TowBehindBleedsSpeed()
+        {
+            OrnithopterFlightConfig cfg = Config();
+            OrnithopterFlightState free = Fly(Airborne(20f), OrnithopterFlightInput.Neutral, cfg, 2f);
+            OrnithopterFlightState towed = Tow(Airborne(20f), cfg, Vector3.back * cfg.TowAcceleration, 2f);
+
+            Assert.Less(towed.Airspeed, free.Airspeed,
+                "The along-path share of the pull is signed. A hook set in something already " +
+                "passed has to slow the craft down, which is what makes it usable as a brake.");
+        }
+
+        [Test]
+        public void TowAboveCurvesTheFlightPathUp()
+        {
+            OrnithopterFlightConfig cfg = Config();
+            OrnithopterFlightState free = Fly(Airborne(20f), OrnithopterFlightInput.Neutral, cfg, 1.5f);
+            OrnithopterFlightState towed = Tow(Airborne(20f), cfg, Vector3.up * cfg.TowAcceleration, 1.5f);
+
+            Assert.Greater(towed.Gamma, free.Gamma + 1f,
+                "A rope pulling upward has to bend the flight path upward, not merely make the " +
+                $"craft faster. Free glide sank to {free.Gamma:F1} deg, the tow to {towed.Gamma:F1}.");
+        }
+
+        [Test]
+        public void TowToOneSideTurnsTheCraft()
+        {
+            OrnithopterFlightConfig cfg = Config();
+
+            // Heading 0 flies along +Z; +X is off the right wing, and heading is measured +Z toward +X.
+            OrnithopterFlightState towed = Tow(Airborne(20f), cfg, Vector3.right * cfg.TowAcceleration, 1f);
+
+            Assert.Greater(Mathf.DeltaAngle(0f, towed.Heading), 5f,
+                "A hook set off to one side must swing the craft round onto the line. Heading " +
+                $"ended at {towed.Heading:F1} deg having started at 0.");
+        }
+
+        [Test]
+        public void TowSpendsTheSameStaminaFlappingDoes()
+        {
+            OrnithopterFlightConfig cfg = Config();
+            OrnithopterFlightState towed = Tow(Airborne(20f), cfg, Vector3.forward * cfg.TowAcceleration, 2f);
+
+            Assert.Less(towed.Stamina, 1f,
+                "An unpriced tow is free speed, and free speed makes the whole energy model — the " +
+                "reason this craft is interesting to fly — irrelevant. The rope must cost.");
+        }
+
+        [Test]
+        public void AnExhaustedPilotCannotBeTowedAnyFaster()
+        {
+            OrnithopterFlightConfig cfg = Config();
+
+            OrnithopterFlightState s = Airborne(20f);
+            s.Stamina = 0f;
+
+            OrnithopterFlightState free = Fly(Airborne(20f), OrnithopterFlightInput.Neutral, cfg, 1f);
+            free.Stamina = 0f;
+            OrnithopterFlightState towed = Tow(s, cfg, Vector3.forward * cfg.TowAcceleration, 1f);
+
+            Assert.Less(towed.Airspeed, free.Airspeed + 0.5f,
+                "The pull fades out on the stamina band, so a spent pilot gets nothing from the " +
+                $"rope. Exhausted tow reached {towed.Airspeed:F1} m/s against a free glide's " +
+                $"{free.Airspeed:F1}.");
+        }
+
+        [Test]
+        public void NoTowLeavesTheFlightUntouched()
+        {
+            OrnithopterFlightConfig cfg = Config();
+
+            OrnithopterFlightState plain = Fly(Airborne(20f), OrnithopterFlightInput.Neutral, cfg, 3f);
+            OrnithopterFlightState zeroTow = Tow(Airborne(20f), cfg, Vector3.zero, 3f);
+
+            Assert.AreEqual(plain.Airspeed, zeroTow.Airspeed, 1e-3f, "A zero tow changed the speed.");
+            Assert.AreEqual(plain.Gamma, zeroTow.Gamma, 1e-3f, "A zero tow changed the flight path.");
+            Assert.AreEqual(plain.Stamina, zeroTow.Stamina, 1e-3f,
+                "A zero tow charged stamina. Every existing call site passes no rope at all, so " +
+                "the untowed flight has to be bit-for-bit the flight it always was.");
+        }
+
+        [Test]
+        public void PathAxesAreOrthonormalAndOrientedCorrectly()
+        {
+            // 30 deg of climb on a 40 deg bearing — nothing special, just not an axis.
+            OrnithopterFlightModel.PathAxes(30f * Mathf.Deg2Rad, 40f * Mathf.Deg2Rad,
+                                            out Vector3 along, out Vector3 up, out Vector3 right);
+
+            Assert.AreEqual(1f, along.magnitude, 1e-4f, "Path direction is not a unit vector.");
+            Assert.AreEqual(1f, up.magnitude, 1e-4f, "Path up is not a unit vector.");
+            Assert.AreEqual(1f, right.magnitude, 1e-4f, "Path right is not a unit vector.");
+
+            Assert.AreEqual(0f, Vector3.Dot(along, up), 1e-4f, "Path up is not perpendicular.");
+            Assert.AreEqual(0f, Vector3.Dot(along, right), 1e-4f, "Path right is not perpendicular.");
+            Assert.AreEqual(0f, Vector3.Dot(up, right), 1e-4f, "The two perpendiculars are not.");
+
+            Assert.Greater(up.y, 0f, "Path up must point upward, or a tow overhead would dive.");
+            Assert.AreEqual(0f, right.y, 1e-4f,
+                "Heading is a compass bearing, so the axis it moves along has no vertical part.");
+
+            // The path direction has to agree with the velocity the model publishes, or a tow would
+            // be resolved against one heading and the craft flown along another.
+            OrnithopterFlightState s = OrnithopterFlightState.Launch(10f, 40f, 30f);
+            Assert.AreEqual(0f, Vector3.Distance(along * 10f, OrnithopterFlightModel.VelocityOf(s)), 1e-3f,
+                "PathAxes and VelocityOf disagree about which way the craft is going.");
+        }
+
+        // ─────────── Launching on a flight path ───────────
+
+        [Test]
+        public void LaunchingOnAClimbStartsAtZeroAngleOfAttack()
+        {
+            OrnithopterFlightState s = OrnithopterFlightState.Launch(24f, 0f, 30f);
+
+            Assert.AreEqual(30f, s.Gamma, 1e-3f, "The launch did not take the climb it was given.");
+            Assert.AreEqual(0f, s.AngleOfAttack, 1e-3f,
+                "Pitch must follow the flight path at launch. A craft pointing level on a path " +
+                "climbing at 30 deg is at MINUS thirty degrees of attack — the wing makes lift " +
+                "downward and drives the pilot into the ground on the frame the wings open.");
+        }
+
+        [Test]
+        public void LaunchingOnAClimbTradesTheHeightBackForSpeed()
+        {
+            OrnithopterFlightConfig cfg = Config();
+
+            OrnithopterFlightState level = OrnithopterFlightState.Launch(24f, 0f);
+            level.Deployment = level.WingSpread = 1f;
+
+            OrnithopterFlightState climbing = OrnithopterFlightState.Launch(24f, 0f, 30f);
+            climbing.Deployment = climbing.WingSpread = 1f;
+
+            OrnithopterFlightState flown = Fly(climbing, OrnithopterFlightInput.Neutral, cfg, 2f);
+
+            Assert.Less(flown.Airspeed, Fly(level, OrnithopterFlightInput.Neutral, cfg, 2f).Airspeed,
+                "Entering the flight climbing has to cost speed on the way up — that is the energy " +
+                "trade the whole model is built on, and a launch angle that dodged it would be free " +
+                "altitude.");
+            Assert.Greater(flown.Gamma, -20f, "A launch into a climb should not fall out of the sky.");
         }
     }
 }

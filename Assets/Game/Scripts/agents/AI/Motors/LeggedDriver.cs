@@ -28,15 +28,15 @@
 //
 // Runs at 50: after AgentController (0), so a MoveIntent or a rider's input lands before the twist
 // for that frame is computed, and before LeggedLocomotion (100), which consumes it.
+using SpaceGame.Gameplay;
 using SpaceGame.Locomotion;
 using UnityEngine;
-using UnityEngine.AI;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
 {
     [DefaultExecutionOrder(50)]
-    public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovementMotor
+    public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovementMotor, ITowable
     {
         [Header("Speeds")]
         [Tooltip("Top speed asked for at full throttle. Clamped to what the legs can carry, so raising " +
@@ -53,16 +53,11 @@ namespace SpaceGame.Agents
         [SerializeField] private float turnInPlaceAngle = 50f;
 
         [Header("AI pathfinding")]
-        [Tooltip("Seconds between route recalculations while following a NavMesh path.")]
-        [SerializeField] private float repathInterval = 0.5f;
-        [Tooltip("How far a destination must move before the route is rebuilt early.")]
-        [SerializeField] private float repathTolerance = 2f;
-        [Tooltip("How close to a path corner counts as rounded. Size this to the machine: too small " +
-                 "and one that cannot turn sharply grinds against the corner it is standing on.")]
-        [SerializeField] private float cornerArriveRadius = 6f;
-        [Tooltip("How far from the machine and from the destination to search for the NavMesh. A deck " +
-                 "that rides metres above the ground needs this to clear the ride height.")]
-        [SerializeField] private float navMeshSampleDistance = 20f;
+        [Tooltip("How the NavMesh route is followed. A deck that rides metres above the ground needs " +
+                 "navMeshSampleDistance to clear the ride height.")]
+        [SerializeField] private NavPathFollowerSettings route = new NavPathFollowerSettings(
+            repathInterval: 0.5f, repathTolerance: 2f, cornerArriveRadius: 6f, navMeshSampleDistance: 20f,
+            stillTargetRepathInterval: 5f);
 
         [Header("Steep ground")]
         [Tooltip("Seconds to commit to a way around ground the legs refused to climb.\n\nA machine " +
@@ -103,17 +98,13 @@ namespace SpaceGame.Agents
         private Vector3? destination;
         private float stopDistance;
 
-        // Pathfinding state. The buffer is reused across recalculations; `path` reports how much of it
-        // is real, so a stale tail from a longer route is never steered at.
-        //
-        // navPath is built in Awake rather than in a field initializer: NavMeshPath's constructor calls
-        // into native code, which Unity forbids during deserialisation.
-        private NavMeshPath navPath;
-        private readonly Vector3[] cornerBuffer = new Vector3[64];
-        private readonly WalkerPath path = new WalkerPath();
-        private Vector3? pathTarget;
-        private float repathTimer;
-        private bool hasPath;
+        // The NavMesh route being followed. Built on first use from the serialized pathfinding fields,
+        // so the values a builder or the Inspector wrote are the ones it steers by -- and so a driver
+        // ticked before its Awake (AddComponent in an EditMode test raises none) still falls back to
+        // steering straight at the destination instead of throwing.
+        private NavPathFollower follower;
+
+        private NavPathFollower Follower => follower ??= new NavPathFollower(route);
 
         // The way around steep ground, once one has been found, and how long it is committed to.
         private Vector3 detourDirection;
@@ -130,17 +121,13 @@ namespace SpaceGame.Agents
         {
             locomotion = GetComponent<LeggedLocomotion>();
             stopDistance = defaultStopDistance;
-            navPath = new NavMeshPath();
         }
 
         /// True on any frame a mounted rider supplied input.
         public bool IsRiderDriven => riderFrame == Time.frameCount;
 
         /// True while an AI route is being followed rather than a straight line to the destination.
-        public bool IsFollowingPath => hasPath && path.HasPath;
-
-        /// True while this machine is being steered as a planar drive rather than a heading.
-        public bool CanStrafe => lateralSteering;
+        public bool IsFollowingPath => Follower.HasPath;
 
         /// Drive externally: both in -1..1. For debug tools and cutscenes.
         public void SetInput(float forwardInput, float turnInput)
@@ -187,8 +174,71 @@ namespace SpaceGame.Agents
         // riderMotor as (AgentController.Motor as IRiderControllable) and returns early, so a driver
         // that is not the motor would never be reached.
         public Vector3 Velocity => locomotion != null ? locomotion.MeasuredVelocity : Vector3.zero;
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>. The locomotion owns the figure —
+        /// the driver's own speed knob is clamped by it.</summary>
+        public float TopSpeed => locomotion != null ? locomotion.MaxSpeed : 0f;
         public bool IsImmobile => false;
         public Vector3? CurrentDestination => destination;
+
+        // ─────────── ITowable ───────────
+        //
+        // A legged machine has to be ASKED, exactly as a mounted rider does, and for the same
+        // reason at one remove: LeggedLocomotion is the single author of the body transform
+        // (Invariant I4), so the rope's MovePosition on the Rigidbody is overwritten from pathPos
+        // on the next LateUpdate. A towed ostrich read as completely static — no resistance, no
+        // drift, nothing in the console.
+        //
+        // This lives on the driver rather than on the locomotion because ITowable is in the default
+        // assembly and no asmdef may reference it — the same constraint that put the driver out
+        // here in the first place.
+
+        /// <summary>The body itself: where a rope tied to a walking animal pulls from.</summary>
+        public Vector3 TowAttachPoint => locomotion != null && locomotion.IsReady
+            ? locomotion.BodyPosition
+            : transform.position;
+
+        /// <summary>
+        /// A rope wants this machine at <paramref name="anchor"/> this step.
+        ///
+        /// <para>
+        /// Capped at the machine's own top speed, so a rope can drag an animal about as fast as it
+        /// could walk and no faster. Without the cap the rope becomes a winch: the correction is a
+        /// position, and a position written every physics step is a teleport with extra steps.
+        /// </para>
+        /// </summary>
+        public bool RequestTow(Vector3 anchor)
+        {
+            // Nothing to drag yet, or somebody else's copy to drag: a peer towing a machine whose
+            // pose arrives over the wire would be a second authority on it.
+            if (locomotion == null || !locomotion.IsReady || locomotion.ExternallyPosed) return false;
+
+            Vector3 delta = anchor - TowAttachPoint;
+
+            float ceiling = Mathf.Max(0f, TopSpeed) * Time.fixedDeltaTime;
+            if (ceiling <= 0f) return false;
+
+            if (delta.magnitude > ceiling) delta = delta.normalized * ceiling;
+
+            locomotion.Drag(delta);
+            return true;
+        }
+
+        /// <summary>
+        /// Something strapped to this machine is pushing it at <paramref name="acceleration"/>.
+        ///
+        /// <para>
+        /// A walker has one speed and it belongs to the gait, so a thruster sets a DIRECTION and
+        /// nothing else: the drag below is capped at <see cref="TopSpeed"/> exactly as a rope's
+        /// is. Legs cannot step faster than they step, and a body dragged past its own gait skates
+        /// (Invariant I4's other half). So a booster on an ostrich hauls it flat out for as long
+        /// as it burns rather than launching it, which is the machine's answer and not the item's
+        /// (GDC-L1-SYS-0002).
+        /// </para>
+        /// </summary>
+        public bool RequestThrust(Vector3 acceleration)
+            => acceleration.sqrMagnitude >= 1e-8f
+               && RequestTow(TowAttachPoint + acceleration * Time.fixedDeltaTime);
 
         public bool HasReachedDestination =>
             !destination.HasValue || FlatDistanceTo(destination.Value) <= EffectiveStopDistance;
@@ -263,20 +313,13 @@ namespace SpaceGame.Agents
             if (locomotion != null) locomotion.SetTwist(0f, 0f);
         }
 
-        public void NudgeDestination(Vector3 offset)
-        {
-            if (destination.HasValue) destination = destination.Value + offset;
-        }
-
-        public void SuggestDestination(Vector3 position) => destination = position;
-
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
         // What is worth a record here is the standing ORDER and the machine's momentum, and nothing
         // else on the route.
         //
-        // The route itself — `navPath`, `path`, `pathTarget`, `hasPath`, `repathTimer` — is
-        // deliberately left out. It is a derived thing: `repathTimer` starts at zero, so the first
+        // The route itself — the `follower` and everything it holds — is deliberately left out. It
+        // is a derived thing: its repath timer starts at zero, so the first
         // Tick after a load rebuilds the whole route from the destination before the machine takes a
         // step, and a NavMeshPath cannot be serialized anyway. Worse, a stale corner list is
         // actively harmful: the terrain it was calculated over may not have streamed in, and a
@@ -338,31 +381,11 @@ namespace SpaceGame.Agents
 
         // ─────────── AI pathfinding ───────────
 
-        /// Follow the NavMesh route to `target`, rebuilding it when it goes stale. Falls back to
-        /// steering straight at the destination whenever no route can be had -- an unbaked test scene, a
-        /// chunk the streamer has not finished, a destination off the mesh -- so the machine still moves
-        /// rather than standing there waiting for a path that is not coming.
-        private void SteerAlongPath(Vector3 target, float deltaTime)
-        {
-            repathTimer -= deltaTime;
-            bool targetMoved = !pathTarget.HasValue ||
-                               Vector3.Distance(pathTarget.Value, target) > repathTolerance;
-
-            if (targetMoved || repathTimer <= 0f)
-            {
-                repathTimer = repathInterval;
-                pathTarget = target;
-                hasPath = TryBuildPath(target);
-            }
-
-            // Once the corners are spent the machine is within the last leg of the route; steer at the
-            // destination itself, which is where the stop distance is measured from anyway.
-            Vector3 steerAt = target;
-            if (hasPath && path.TryGetSteerTarget(transform.position, cornerArriveRadius, out Vector3 corner))
-                steerAt = corner;
-
-            SteerTowards(ApplyClimbDetour(steerAt, deltaTime));
-        }
+        /// Follow the NavMesh route to `target`. NavPathFollower rebuilds it when it goes stale and
+        /// falls back to the destination itself whenever no route can be had, so the machine still
+        /// moves rather than standing there waiting for a path that is not coming.
+        private void SteerAlongPath(Vector3 target, float deltaTime) =>
+            SteerTowards(ApplyClimbDetour(Follower.SteerTarget(transform.position, target, deltaTime), deltaTime));
 
         /// Go another way when the legs will not climb what is in front of them.
         ///
@@ -391,7 +414,7 @@ namespace SpaceGame.Agents
                 // The hold is there to stop the machine dithering on the boundary, not to make it
                 // walk a fixed distance away from a hill it has already cleared.
                 if (detourHold > 0f && !locomotion.CanTravel(direct))
-                    return transform.position + detourDirection * cornerArriveRadius;
+                    return transform.position + detourDirection * route.cornerArriveRadius;
 
                 detourHold = 0f;
             }
@@ -399,7 +422,7 @@ namespace SpaceGame.Agents
             if (!locomotion.ClimbBlocked) return steerAt;
 
             // The route may well be fine. Ask for a fresh one before committing to going around.
-            repathTimer = 0f;
+            Follower.RequestRepath();
 
             foreach (float angle in DetourAngles)
             {
@@ -408,7 +431,7 @@ namespace SpaceGame.Agents
 
                 detourDirection = candidate;
                 detourHold = detourHoldTime;
-                return transform.position + candidate * cornerArriveRadius;
+                return transform.position + candidate * route.cornerArriveRadius;
             }
 
             // Hemmed in on every heading tried. Keep steering at the goal rather than inventing a
@@ -417,41 +440,9 @@ namespace SpaceGame.Agents
             return steerAt;
         }
 
-        private bool TryBuildPath(Vector3 target)
-        {
-            if (!TrySampleNavMesh(transform.position, out Vector3 from)) return false;
-            if (!TrySampleNavMesh(target, out Vector3 to)) return false;
-
-            if (!NavMesh.CalculatePath(from, to, NavMesh.AllAreas, navPath)) return false;
-            // A partial path is kept: it is the best route toward a destination the mesh cannot fully
-            // reach, and the repath timer will pick up the rest once the streamer bakes it.
-            if (navPath.status == NavMeshPathStatus.PathInvalid) return false;
-
-            int corners = navPath.GetCornersNonAlloc(cornerBuffer);
-            if (corners < 2) return false;
-
-            path.Set(cornerBuffer, corners);
-            return true;
-        }
-
-        private bool TrySampleNavMesh(Vector3 around, out Vector3 onMesh)
-        {
-            if (NavMesh.SamplePosition(around, out NavMeshHit hit, navMeshSampleDistance, NavMesh.AllAreas))
-            {
-                onMesh = hit.position;
-                return true;
-            }
-
-            onMesh = around;
-            return false;
-        }
-
         private void ClearPath()
         {
-            path.Clear();
-            hasPath = false;
-            pathTarget = null;
-            repathTimer = 0f;
+            Follower.Clear();
             // A detour belongs to the route it was taken from. Carrying one across a new order is
             // how a machine sets off at right angles to a destination it was never blocked from.
             detourHold = 0f;
@@ -547,11 +538,12 @@ namespace SpaceGame.Agents
             acceleration = Mathf.Max(0.01f, acceleration);
             defaultStopDistance = Mathf.Max(0.1f, defaultStopDistance);
             turnInPlaceAngle = Mathf.Clamp(turnInPlaceAngle, 1f, 179f);
-            repathInterval = Mathf.Max(0.05f, repathInterval);
-            repathTolerance = Mathf.Max(0.1f, repathTolerance);
-            cornerArriveRadius = Mathf.Max(0.1f, cornerArriveRadius);
-            navMeshSampleDistance = Mathf.Max(0.5f, navMeshSampleDistance);
+            route.Validate();
             detourHoldTime = Mathf.Max(0f, detourHoldTime);
+
+            // The follower copies the route settings when it is built, so drop it: the next Tick
+            // rebuilds it from the values just edited instead of steering by the old ones.
+            follower = null;
         }
 
         private void OnDrawGizmosSelected()
@@ -565,14 +557,14 @@ namespace SpaceGame.Agents
             {
                 Gizmos.color = new Color(1f, 0.4f, 0.1f, 0.9f);
                 Gizmos.DrawLine(transform.position,
-                                transform.position + detourDirection * cornerArriveRadius);
+                                transform.position + detourDirection * route.cornerArriveRadius);
             }
 
             if (!IsFollowingPath) return;
 
             Gizmos.color = new Color(0.2f, 0.9f, 1f, 0.9f);
-            Gizmos.DrawLine(transform.position, path.CurrentCorner);
-            Gizmos.DrawWireSphere(path.CurrentCorner, cornerArriveRadius);
+            Gizmos.DrawLine(transform.position, Follower.CurrentCorner);
+            Gizmos.DrawWireSphere(Follower.CurrentCorner, route.cornerArriveRadius);
 
             if (destination.HasValue)
             {

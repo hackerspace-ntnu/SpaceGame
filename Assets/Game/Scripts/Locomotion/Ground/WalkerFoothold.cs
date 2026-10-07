@@ -70,5 +70,23 @@ namespace SpaceGame.Locomotion
         /// and the footholds disagree.
         public static Vector3 HipAtTouchdown(Vector3 hipNow, Vector3 travel, float swing)
             => hipNow + travel * swing;
+
+        /// Where the hip will be when this swing lands, for a body that TURNS as well as travels.
+        ///
+        /// The overload above adds a displacement, which is exact for travel and, for rotation, the
+        /// small-angle approximation carried in `drift`. That approximation has a hard limit and a
+        /// pivoting biped walks straight past it: its feet cover a whole stride on an arc a fraction
+        /// of the machine's own width, so ONE step can span hundreds of degrees, and a hip predicted
+        /// by adding a tangent is then nowhere near where the hip actually goes. Everything
+        /// downstream is measured against that prediction -- the reach clamp above, and the rest
+        /// foothold the step is aimed from -- so both are carried by the same rotation instead.
+        ///
+        /// Exact at any angle, and identical to the overload above when `turn` is the identity.
+        ///
+        /// `pivot` is the body's origin, `travel` the whole displacement over the swing (not a
+        /// velocity), `turn` the yaw the swing will cover.
+        public static Vector3 HipAtTouchdown(Vector3 hipNow, Vector3 pivot, Vector3 travel,
+                                             Quaternion turn)
+            => pivot + travel + turn * (hipNow - pivot);
     }
 }

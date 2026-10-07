@@ -14,8 +14,8 @@
 // "Autosave" recorded true; every file written by a live SaveOnExit recorded false.
 //
 // So the fix is ownership, not ordering: `isKinematic` belongs to whichever live component wants it
-// (NetworkRigidbody, MountModule, DropItemPhysics, GroundAnchorOnLand), and a save has no business
-// overriding them. These tests hold that line from both ends — the restore no longer applies the
+// (NetworkRigidbody, MountModule, NetAuthority, WorldItem, GroundAnchorOnLand), and a save has no
+// business overriding them. These tests hold that line from both ends — the restore no longer applies the
 // flag, and a player who somehow still ends up kinematic frees themselves.
 //
 // They live in Editor/ rather than the EditMode asmdef because both RigidbodySaveable and
@@ -90,7 +90,7 @@ namespace SpaceGame.EditorTools
             saver.RestoreState(Payload(velocity: new Vector3(9f, 9f, 9f), isKinematic: false));
 
             Assert.IsTrue(body.isKinematic,
-                "The save woke a body that MountModule or DropItemPhysics is deliberately holding.");
+                "The save woke a body that MountModule or NetAuthority is deliberately holding.");
         }
 
         /// <summary>

@@ -29,6 +29,9 @@ namespace SpaceGame.Agents
         [SerializeField] private GameObject projectilePrefab;
         [Tooltip("Initial speed (m/s) of the projectile along the muzzle's forward axis.")]
         [SerializeField] private float projectileSpeed = 35f;
+        [Tooltip("Metres a shot from this gun is heard over by NoiseReceiverModules. "
+                 + "0 = silent to AI.")]
+        [SerializeField] private float gunshotNoiseRadius = 55f;
         [Tooltip("Damage dealt by each projectile direct hit on an IDamageable.")]
         [SerializeField] private int damagePerHit = 50;
         [Tooltip("Seconds between shots.")]
@@ -71,8 +74,7 @@ namespace SpaceGame.Agents
         //
         // The head's aim is deliberately NOT saved: LateUpdate rebuilds it every frame from
         // `pitchAngle` and `yawAngle`, which are serialized, so it is a function of the prefab and
-        // this transform rather than state. That is the difference from TurretModule, whose barrel
-        // is aimed at a target and therefore has nowhere else to come from.
+        // this transform rather than state, so there is nothing about the head to persist.
         private bool cadenceRestored;
 
         public float CooldownTimer => cooldownTimer;
@@ -124,7 +126,7 @@ namespace SpaceGame.Agents
             // Fired everywhere so every player sees the rocket; damaging only where this launcher
             // is simulated, or the server bills the target once per machine that drew one. This
             // launcher fires on a fixed timer along a fixed heading, so the copies agree without
-            // anything being sent — see TurretModule.Fire for the aimed case.
+            // anything being sent.
             tp.Cosmetic = !authority.SimulatedHere;
             tp.Init(damagePerHit, gameObject);
 
@@ -133,6 +135,11 @@ namespace SpaceGame.Agents
                 rb = proj.AddComponent<Rigidbody>();
             rb.useGravity = useGravity;
             rb.linearVelocity = launchDir * projectileSpeed;
+
+            // Simulating machine only -- see the Cosmetic split above.
+            if (authority.SimulatedHere && gunshotNoiseRadius > 0f)
+                Noise.Emit(NoiseType.Gunshot, spawn.position, gunshotNoiseRadius,
+                           transform, transform);
         }
 
         private void OnDrawGizmosSelected()

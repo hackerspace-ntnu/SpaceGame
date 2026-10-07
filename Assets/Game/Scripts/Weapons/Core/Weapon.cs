@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using FMODUnity;
+using SpaceGame.Agents;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -26,6 +27,11 @@ namespace SpaceGame.Weapons
         [SerializeField] protected float spawnOffset = 0.5f;
         [SerializeField] protected LayerMask aimMask = ~0;
 
+        [Tooltip("How far the aim reaches for something to converge on, in metres. A shot at open " +
+                 "sky is aimed at this distance, which is also the far point the replicated " +
+                 "orientation is turned back into a target with.")]
+        [SerializeField] protected float aimRange = 500f;
+
         [Header("Ammo")]
         [SerializeField] private Magazine magazine;
         [SerializeField] protected int ammoPerShot = 1;
@@ -37,6 +43,14 @@ namespace SpaceGame.Weapons
         [Header("Audio")]
         [SerializeField] protected EventReference fireSound;
         [SerializeField] protected EventReference chargeStartSound;
+
+        // Hearing, not listening: this is what makes a shot a gameplay event rather than only a
+        // sound. Anything with a NoiseReceiverModule inside this radius is told a gun went off and
+        // who fired it — guards investigate, wildlife bolts. Zero disables it for a weapon that
+        // should not carry, which is why it is per-weapon and not a constant.
+        [Tooltip("Metres a shot from this weapon is heard over. Anything with a NoiseReceiverModule " +
+                 "inside it reacts. 0 = silent to AI.")]
+        [SerializeField] protected float gunshotNoiseRadius = 40f;
 
         [Header("Charging")]
         [SerializeField] protected bool enableCharging = false; // Toggle charging mode on/off
@@ -183,9 +197,30 @@ namespace SpaceGame.Weapons
                 return;
             }
 
+            // The holder's arm is doing the aiming, so the item must not also aim itself. Two
+            // things pointing the same weapon do not agree: this method writes a WORLD rotation
+            // about the item's own pivot, which walks the grip out of the palm — it never calls
+            // ReseatGrip, unlike the NPC path — and with the arm now in shot that shows.
+            //
+            // Checked on the holder rather than on a flag we set, so it stays true for a weapon
+            // that changes hands. A holder with no rig (a dropped weapon, a test rig, an NPC)
+            // keeps exactly the behaviour it had.
+            if (owner != null && owner.GetComponent<PlayerAimRig>() != null)
+            {
+                return;
+            }
+
             if (!Network.Owns(this))
             {
                 AimAlongReplicatedView();
+                return;
+            }
+
+            // The aim ray, not a camera's forward: the two are the same thing on foot and are not
+            // while the holder is riding anything. See GetLocalAimPoint.
+            if (aimProvider != null && aimProvider.AimTransform != null)
+            {
+                transform.rotation = Quaternion.LookRotation(aimProvider.GetAimRay().direction);
                 return;
             }
 
@@ -199,12 +234,10 @@ namespace SpaceGame.Weapons
                 return;
             }
 
-            // Get camera's forward direction
-            Vector3 cameraForward = aimCamera.transform.forward;
-
             // Create a rotation that points toward the camera's forward direction
             // This includes both pitch (up/down) and yaw (left/right)
-            transform.rotation = Quaternion.LookRotation(cameraForward, aimCamera.transform.up);
+            transform.rotation = Quaternion.LookRotation(aimCamera.transform.forward,
+                                                         aimCamera.transform.up);
         }
 
         /// <summary>
@@ -254,24 +287,9 @@ namespace SpaceGame.Weapons
             // If charging is enabled and we're already charging, launch the charged projectile
             if (enableCharging && isCharging)
             {
-                if (chargedProjectile != null)
-                {
-                    try
-                    {
-                        // Tell the projectile to finish charging and be ready to move
-                        chargedProjectile.OnChargeComplete();
-                    
-                        // Launch the already-charged projectile with current aim direction
-                        Fire();
-                    }
-                    catch (MissingReferenceException)
-                    {
-                        Debug.LogWarning("Charged projectile was destroyed before launch.");
-                    }
-                }
-            
-                chargedProjectile = null;
-                isCharging = false;
+                if (LaunchChargedProjectile())
+                    ReportGunshot();
+
                 nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
                 return true;
             }
@@ -293,9 +311,103 @@ namespace SpaceGame.Weapons
             {
                 // Normal firing (no charging)
                 Fire();
+                ReportGunshot();
                 nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
                 return true;
             }
+        }
+
+        /// <summary>
+        /// Finish the charge and send the orb on its way. Answers whether a round actually left.
+        ///
+        /// <para>
+        /// Shared by the authority (through <see cref="TryFire"/>) and by every watching machine
+        /// (through <see cref="Present"/>), because a charged shot has to LOOK the same everywhere
+        /// and the only difference between the two is whether the projectile can hurt anybody —
+        /// which <see cref="ShotDealsDamage"/> already decides, one layer down in the subclass.
+        /// Two copies of this would be two places for the launch to drift.
+        /// </para>
+        /// <para>
+        /// The gunshot report is deliberately NOT here. It is a noise the world reacts to, so it
+        /// belongs to the authority alone; a peer that reported it would wake every NPC in earshot
+        /// a second time, on its own machine, from a shot that had already been ruled on.
+        /// </para>
+        /// </summary>
+        protected bool LaunchChargedProjectile()
+        {
+            bool launched = false;
+
+            if (chargedProjectile != null)
+            {
+                try
+                {
+                    // Tell the projectile to finish charging and be ready to move
+                    chargedProjectile.OnChargeComplete();
+
+                    // Launch the already-charged projectile with current aim direction
+                    Fire();
+                    launched = true;
+                }
+                catch (MissingReferenceException)
+                {
+                    Debug.LogWarning("Charged projectile was destroyed before launch.");
+                }
+            }
+
+            chargedProjectile = null;
+            isCharging = false;
+            return launched;
+        }
+
+        // ─────────── Which press is this? ───────────
+        //
+        // A charging weapon is a two-press state machine, and a watching machine cannot work out
+        // which press it is being shown: it sees two identical NetMsg.ItemUsed messages. So the
+        // owner says, in NetArg.B — the same field GrapplingHookArtifact uses for Attach/Release
+        // and RepulsorGauntletArtifact for Fire/Miss.
+        //
+        // Before this, Present() simply gave up on charging weapons ("peers therefore hear a
+        // charged shot but do not draw one"), which meant ball lightning was a noise with no orb
+        // on every machine but the shooter's.
+
+        /// <summary>An ordinary shot, or a weapon that does not charge at all.</summary>
+        protected const int PhaseShot = 0;
+
+        /// <summary>First press: the orb appears at the barrel and starts growing.</summary>
+        protected const int PhaseChargeStart = 1;
+
+        /// <summary>Second press: it leaves.</summary>
+        protected const int PhaseChargeLaunch = 2;
+
+        /// <summary>
+        /// What the owner should report for a press, given whether this weapon charges and whether
+        /// it was already mid-charge when the press arrived.
+        ///
+        /// Pure and public so the two-press alternation can be tested without a weapon, a magazine
+        /// or a session — the arithmetic is trivial and the ORDER is the part that goes wrong.
+        /// </summary>
+        public static int PhaseForPress(bool charges, bool alreadyCharging) =>
+            !charges ? PhaseShot : alreadyCharging ? PhaseChargeLaunch : PhaseChargeStart;
+
+        /// <summary>
+        /// Is the press a watching machine is being shown the one that LAUNCHES the orb?
+        ///
+        /// <para>
+        /// <paramref name="reportedPhase"/> is what the owner put in <c>NetArg.B</c>. Trusted when
+        /// it says anything, because the owner is the only machine that knows. When it is
+        /// <see cref="PhaseShot"/> nobody filled it in — an NPC firing through
+        /// <c>EntityEquipmentController</c> never runs <c>OnRequestUse</c> — and this machine falls
+        /// back to mirroring its own alternation, which is sound because it has seen exactly the
+        /// same presses the authority has.
+        /// </para>
+        /// </summary>
+        public static bool IsLaunchPress(bool charges, int reportedPhase, bool alreadyCharging)
+        {
+            if (!charges) return false;
+            if (reportedPhase == PhaseChargeLaunch) return true;
+            if (reportedPhase == PhaseChargeStart) return false;
+
+            return alreadyCharging;
         }
 
         /// <summary>
@@ -332,7 +444,7 @@ namespace SpaceGame.Weapons
             // host, so a client's shot used to travel along the host's crosshair.
             if (UseArg.HasOrientation)
             {
-                return GetSpawnPosition() + UseArg.R * Vector3.forward * 500f;
+                return GetSpawnPosition() + UseArg.R * Vector3.forward * aimRange;
             }
 
             return GetLocalAimPoint();
@@ -348,6 +460,22 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual Vector3 GetLocalAimPoint()
         {
+            // The holder's own aim, and only the holder's. It is the one thing that knows which
+            // camera this player is actually looking through — riding anything, that is NOT the eye
+            // on their head, and the mount's orbit camera is deliberately left Untagged so the
+            // Camera.main fallback below cannot find it either — and it looks past the player's own
+            // body and the machine they are strapped into on the way out.
+            if (aimProvider != null && aimProvider.AimTransform != null)
+            {
+                return aimProvider.TryGetAimHit(aimRange, aimMask, out RaycastHit aimed)
+                    ? aimed.point
+                    : aimProvider.GetAimRay().GetPoint(aimRange);
+            }
+
+            // Nothing holding it that has a view: a weapon on a rack, an NPC, a test rig. Only a
+            // player carries an AimProvider, so a holder without one keeps exactly the behaviour it
+            // had — which for an NPC is also the wrong camera, and is why the agent's own combat
+            // module points its barrel instead (see ExternallyAimed).
             if (aimCamera == null)
             {
                 aimCamera = Camera.main;
@@ -356,17 +484,14 @@ namespace SpaceGame.Weapons
             if (aimCamera != null)
             {
                 Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-                Vector3 targetPoint = ray.origin + ray.direction * 500f; // Default far distance
 
-                if (Physics.Raycast(ray, out RaycastHit hit, 500f, aimMask, QueryTriggerInteraction.Ignore))
-                {
-                    targetPoint = hit.point;
-                }
-
-                return targetPoint;
+                return Physics.Raycast(ray, out RaycastHit hit, aimRange, aimMask,
+                                       QueryTriggerInteraction.Ignore)
+                    ? hit.point
+                    : ray.GetPoint(aimRange);
             }
 
-            return transform.position + transform.forward * 500f;
+            return transform.position + transform.forward * aimRange;
         }
 
         /// <summary>
@@ -451,6 +576,11 @@ namespace SpaceGame.Weapons
             arg.R = direction.sqrMagnitude > 0.0001f
                 ? Quaternion.LookRotation(direction)
                 : GetFireOrigin().rotation;
+
+            // Read BEFORE this press is applied anywhere, so it describes the press rather than the
+            // state after it. On the owner `isCharging` is true only between the two presses,
+            // whether this machine is the authority (TryFire set it) or a client (Present did).
+            arg.B = PhaseForPress(enableCharging, isCharging);
         }
 
         /// <summary>
@@ -471,23 +601,59 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected override void Present()
         {
-            PlayFireSound();
+            // Which press this is. The owner said so in NetArg.B; a use that came from somewhere
+            // that does not fill it in — an NPC firing through EntityEquipmentController — leaves
+            // PhaseShot, and for a charging weapon this machine then mirrors its own alternation,
+            // which is right because it has seen exactly the same presses the authority has.
+            bool launching = IsLaunchPress(enableCharging, UseArg.B, isCharging);
+
+            // The charge press is not a shot and must not sound like one; StartCharging plays the
+            // charge-up itself. Everything else gets the report.
+            if (!enableCharging || launching) PlayFireSound();
 
             if (Network.Simulates(this)) return;
 
             // Mirror the round off this machine's own magazine. Equipment is rebuilt locally on
             // every machine from the replicated hotbar, so each has its own Magazine — and the one
             // the owner's HUD reads is theirs, not the server's.
-            if (magazine != null) magazine.ConsumeAmmo(ammoPerShot);
+            //
+            // Only on the press that actually commits the round. TryFire takes the ammo when the
+            // charge STARTS and takes nothing when it launches, so consuming on both presses drained
+            // a watching machine's magazine twice as fast as the authority's and the owner's own HUD
+            // was the thing that drifted.
+            if (!launching && magazine != null) magazine.ConsumeAmmo(ammoPerShot);
 
-            // A charging weapon's shot is a two-press state machine — spawn on the first press,
-            // launch on the second — and a peer never saw the first press, so it has no projectile
-            // to launch. Peers therefore hear a charged shot but do not draw one. Showing it would
-            // mean replicating the charge itself, which is a bigger piece of work than this.
-            if (enableCharging) return;
-
+            // Nothing this machine does from here may hurt anybody: the hit was decided on the
+            // server. For a charging weapon the flag has to be down BEFORE the orb is spawned,
+            // because that is the moment the subclass reads it (BallLightningWeapon stamps
+            // projectile.Cosmetic from it).
             ShotDealsDamage = false;
-            Fire();
+
+            if (!enableCharging)
+            {
+                Fire();
+                return;
+            }
+
+            if (!launching)
+            {
+                // A stale orb from a launch this machine never saw would otherwise sit at the
+                // barrel for the rest of the session.
+                CancelCharging();
+                StartCharging();
+                return;
+            }
+
+            // Launching with nothing charged means the first press never arrived here — a late
+            // joiner, or a dropped message. Show nothing rather than a second orb appearing and
+            // instantly leaving, and clear the state so the next press starts a fresh charge.
+            if (chargedProjectile == null)
+            {
+                CancelCharging();
+                return;
+            }
+
+            LaunchChargedProjectile();
         }
 
         /// <summary>
@@ -499,6 +665,42 @@ namespace SpaceGame.Weapons
         /// bills the target for the same bullet.
         /// </summary>
         protected bool ShotDealsDamage { get; private set; } = true;
+
+        /// <summary>
+        /// Tell the world a shot was fired here, so AI can react to it.
+        ///
+        /// <para>
+        /// Called from <see cref="TryFire"/> only, and only after a round has actually left — not
+        /// when a charge starts, which makes no noise and puts nothing in the air. That placement is
+        /// also what keeps this authority-only without a check of its own: <c>TryFire</c> is reached
+        /// from <see cref="Use"/> and nowhere else, and <c>Use</c> runs on the deciding machine.
+        /// <see cref="Present"/> calls <c>Fire</c> directly, so a peer showing a copy of someone
+        /// else's shot never emits a second one.
+        /// </para>
+        /// <para>
+        /// That matters more than it looks: a creature only ticks on the machine that owns it, so a
+        /// noise emitted on a peer would be heard by a copy of the animal that cannot act on it,
+        /// while the copy that can heard nothing.
+        /// </para>
+        /// <para>
+        /// The instigator is the holder, not the gun. A receiver set to aggro on gunfire targets
+        /// whoever it is handed, and the weapon is about to be unequipped, dropped or destroyed.
+        /// </para>
+        /// </summary>
+        private void ReportGunshot()
+        {
+            if (gunshotNoiseRadius <= 0f)
+                return;
+
+            Transform origin = GetFireOrigin();
+            Transform shooter = owner != null ? owner.transform : transform;
+
+            Noise.Emit(NoiseType.Gunshot,
+                       origin != null ? origin.position : transform.position,
+                       gunshotNoiseRadius,
+                       shooter,
+                       shooter);
+        }
 
         // ── Per-instance state ─────────────────────────────────────────────────
         //

@@ -64,11 +64,11 @@ namespace SpaceGame.Agents
         [Header("Ranges")]
         [Tooltip("Candidates beyond this are never scored. Set this to comfortably exceed the " +
                  "longest weapon range on the agent, or it will never acquire something it could shoot.")]
-        public float acquisitionRange = 35f;
+        public float acquisitionRange = VisionBaseline.MinAcquisitionRange;
 
         [Tooltip("An acquired target is dropped once it passes this distance. Must exceed " +
                  "acquisitionRange or targets flicker at the boundary.")]
-        public float loseRange = 45f;
+        public float loseRange = VisionBaseline.MinLoseRange;
 
         [Header("Cadence")]
         [Tooltip("Seconds between re-scoring candidates. This is not perception latency — the held " +
@@ -78,7 +78,7 @@ namespace SpaceGame.Agents
         [Header("Memory")]
         [Tooltip("Seconds an unseen target stays acquired before the agent gives up on it. Only " +
                  "applies when requireLineOfSight is on and a PerceptionModule is present.")]
-        public float memoryDuration = 6f;
+        public float memoryDuration = VisionBaseline.MinMemory;
 
         [Header("Perception")]
         [Tooltip("Require field-of-view + line-of-sight to ACQUIRE a new target. Once acquired, " +

@@ -1,0 +1,203 @@
+// Builds the Sky City prefab from sky_city.fbx, colliders and all.
+//
+// The model comes out of Blender via
+// Assets/Game/Art/Models/_Source~/models/vehicles/sky_city_export.py. Everything
+// below that -- import settings, the collider set, the ladder markers, the
+// generated LODs (SettlementLodBaker), static flags and the prefab -- is generated here rather than
+// hand-authored, because a prefab wired by hand is a prefab nobody can rebuild
+// after the model changes.
+//
+// Re-running is safe and is the intended workflow: re-export the FBX, run this,
+// and the prefab and its collision hulls are rebuilt in place.
+//
+// Re-run from: Tools > Environment > Build Sky City Prefab
+//
+// ---------------------------------------------------------------------------
+// WHERE THE COLLISION COMES FROM
+//
+// Not from renderer bounds. The city's walkways, stairs, railings and houses are
+// merged meshes, leaning scrap and sagging rope; a box over any of them is either
+// a slab in mid-air or a wall across a path. So collision comes from three places,
+// and all three are checked in Blender, before export, by walking every route a
+// player can take (sky_city_traversal.verify):
+//
+//   * COL_SkyCity_#### -- the collision set sky_city_traversal authors, one
+//     convex island per object: every floor, stair ramp, railing, wall, house,
+//     tower and crane footprint. An eight-corner axis-aligned island becomes a
+//     BoxCollider, anything else a convex MeshCollider on a hull mesh saved to
+//     HullsPath. The island objects themselves are deleted.
+//   * The RULE TABLE below -- for renderers whose own shape is the right
+//     collision: the gas bags as convex hulls, the cage, cradles, old deck and
+//     stern gear as static mesh colliders, crates and the stern handrails as
+//     boxes. sky_city_traversal mirrors this table (MESH_COLLIDED,
+//     BOX_COLLIDED) so its route check tests exactly what ships. Change both.
+//   * Nothing else. Cloth, rope, washing, lamps, flags, the outriggers' rigging
+//     (which passes through the castle's rooms) and everything the island set
+//     already covers get no collider, by listed rule, not by omission.
+//
+// LADDERS -- LAD_SkyCity_## transforms are kept under Ladders, each with a _Top
+// child (where a climber steps off), an _Exit child (the floor they step onto)
+// and a Ladder component, which LadderClimber on the player climbs - from the
+// bottom, or from the top by walking into the gap its rails leave.
+//
+// SCALE -- the city is modelled, and route-checked in Blender, at 1 unit = 1 m,
+// and ships at Scale on the prefab root. The route check's player is a 2.0 m
+// capsule with 2.1 m of headroom; the real player is 3.0 m tall (a 2 m capsule
+// on a transform stretched 1.5 in Y, see PlayerCharacter.md), so every ceiling
+// the check passed has to grow by at least 3.0 / 2.1 = 1.43. Everything scales
+// with it, colliders and ladder markers included. Scaling only widens what the
+// check passed, with one cost: every lip between surfaces grows by the same
+// factor (the player has no step-up). Ladder-top gaps (0.7 m modelled) end up
+// wider than the 1.0 m-wide player, which is why a Ladder can be taken hold of
+// from the top.
+//
+// NOT STATIC -- the city is the flagship of a drifting fleet (SkyFleetBuilder), so nothing here
+// carries static flags: a batching-static mesh is combined where it stood when the scene loaded and
+// stays there while its hull flies off.
+//
+// Multiplayer / persistence -- art and collision with no state of its own: no NetworkObject, no
+// saver. The fleet root it is nested under carries both.
+// ---------------------------------------------------------------------------
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using Fit = SpaceGame.EditorTools.StaticPropBuilder.Fit;
+using NamedFit = SpaceGame.EditorTools.StaticPropBuilder.NamedFit;
+
+namespace SpaceGame.EditorTools
+{
+    public static class SkyCityBuilder
+    {
+        public const string FbxPath =
+            "Assets/Game/Art/Models/Environment/Structures/sky_city.fbx";
+        public const string PrefabPath =
+            "Assets/Game/Prefabs/Environment/Structures/SkyFleet/SkyCity.prefab";
+        public const string HullsPath =
+            "Assets/Game/Prefabs/Environment/Structures/SkyFleet/SkyCity_CollisionHulls.asset";
+        public const string CollisionPrefix = "COL_SkyCity_";
+        public const string CollisionGroup = "Collision";
+        public const string LadderPrefix = "LAD_SkyCity_";
+        public const string LadderGroup = "Ladders";
+        public const string LadderTop = ModelMarkerImport.LadderTop;
+        public const string LadderExit = ModelMarkerImport.LadderExit;
+        private const string RootName = "SkyCity";
+
+        /// <summary>Uniform scale on the prefab root. See SCALE above for its upper bound.</summary>
+        public const float Scale = 1.5f;
+
+        // -------------------------------------------------------------------
+        // Per-renderer rules. Ordered: the FIRST prefix match wins. Every
+        // renderer is Mesh_SkyCity_*.
+        // -------------------------------------------------------------------
+        private static readonly NamedFit[] Rules =
+        {
+            // Shape is the collision.
+            new NamedFit { Match = "Mesh_SkyCity_Bag", Fit = Fit.Convex, Note = "gas envelope, an ovoid fills half its box" },
+            new NamedFit { Match = "Mesh_SkyCity_Cage", Fit = Fit.Mesh, Note = "ring frames curve down over the lanes' inner edge" },
+            new NamedFit { Match = "Mesh_SkyCity_Cradles", Fit = Fit.Mesh, Note = "bag saddles and hoops beside the lanes" },
+            new NamedFit { Match = "Mesh_SkyCity_Decks", Fit = Fit.Mesh, Note = "lane lamps, deck edges; the islands carry the floor" },
+            new NamedFit { Match = "Mesh_SkyCity_SternGear", Fit = Fit.Mesh, Note = "pylons, ducts and rudder at the stern piers" },
+            new NamedFit { Match = "Mesh_SkyCity_Stow", Fit = Fit.Box, MinHeight = 1.2f, Note = "crate stacks; barrels are walked past" },
+            new NamedFit { Match = "Mesh_SkyCity_Rail", Fit = Fit.Box, Note = "stern apron handrails, straight kit parts" },
+
+            // Covered by the COL_SkyCity islands.
+            new NamedFit { Match = "Mesh_SkyCity_BowCastle", Fit = Fit.None, Note = "hollow castle: walls, floors, doors" },
+            new NamedFit { Match = "Mesh_SkyCity_CastleClimb", Fit = Fit.None, Note = "castle stairs, landings, terraces" },
+            new NamedFit { Match = "Mesh_SkyCity_SternBlock", Fit = Fit.None, Note = "stern tower, terrace and rim" },
+            new NamedFit { Match = "Mesh_SkyCity_SternTerrace", Fit = Fit.None, Note = "terrace railings" },
+            new NamedFit { Match = "Mesh_SkyCity_SternSupports", Fit = Fit.None, Note = "columns" },
+            new NamedFit { Match = "Mesh_SkyCity_Keel", Fit = Fit.None, Note = "girder under the deck" },
+            new NamedFit { Match = "Mesh_SkyCity_Prow", Fit = Fit.None, Note = "inside the castle's ground floor" },
+            new NamedFit { Match = "Mesh_SkyCity_Gantry", Fit = Fit.None, Note = "crown gantry deck, railings, galleries, balconies" },
+            new NamedFit { Match = "Mesh_SkyCity_Beacon", Fit = Fit.None, Note = "tower bodies and galleries" },
+            new NamedFit { Match = "Mesh_SkyCity_Dome", Fit = Fit.None, Note = "tower bodies and galleries" },
+            new NamedFit { Match = "Mesh_SkyCity_Dish", Fit = Fit.None, Note = "dish plinth and gallery" },
+            new NamedFit { Match = "Mesh_SkyCity_Walk", Fit = Fit.None, Note = "platforms, skywalks, piers, slots, underlays" },
+            new NamedFit { Match = "Mesh_SkyCity_Under", Fit = Fit.None, Note = "under-keel walkways" },
+            new NamedFit { Match = "Mesh_SkyCity_SkywalkStair", Fit = Fit.None, Note = "stairs, posts" },
+            new NamedFit { Match = "Mesh_SkyCity_Crossings", Fit = Fit.None, Note = "keel bridges, porch" },
+            new NamedFit { Match = "Mesh_SkyCity_LaneRail", Fit = Fit.None, Note = "lane railings and poles" },
+            new NamedFit { Match = "Mesh_SkyCity_ShaftLanding", Fit = Fit.None, Note = "ladder landings on the gantry" },
+            new NamedFit { Match = "Mesh_SkyCity_RoofTerrace", Fit = Fit.None, Note = "roof railings" },
+            new NamedFit { Match = "Mesh_SkyCity_Ladder", Fit = Fit.None, Note = "ladder rails" },
+            new NamedFit { Match = "Mesh_SkyCity_Home", Fit = Fit.None, Note = "houses, as boxes turned with them" },
+            new NamedFit { Match = "Mesh_SkyCity_Facade", Fit = Fit.None, Note = "street walls" },
+            new NamedFit { Match = "Mesh_SkyCity_Stilts", Fit = Fit.None, Note = "posts under raised shanties" },
+            new NamedFit { Match = "Mesh_SkyCity_Crane", Fit = Fit.None, Note = "crane footprints; booms and loads overhead" },
+            new NamedFit { Match = "Mesh_SkyCity_Goods", Fit = Fit.None, Note = "pile footprints" },
+            new NamedFit { Match = "Mesh_SkyCity_Stock", Fit = Fit.None, Note = "pile footprints" },
+            new NamedFit { Match = "Mesh_SkyCity_Shade", Fit = Fit.None, Note = "market awnings" },
+            new NamedFit { Match = "Mesh_SkyCity_Flood", Fit = Fit.None, Note = "floodlights" },
+
+            // Walked under, past or through.
+            new NamedFit { Match = "Mesh_SkyCity_StreetLife", Fit = Fit.None, Note = "washing, cables, plants, stalls - stalls and stoves are islands" },
+            new NamedFit { Match = "Mesh_SkyCity_Outriggers", Fit = Fit.None, Note = "rigging runs through the castle's rooms" },
+            new NamedFit { Match = "Mesh_SkyCity_Climbs", Fit = Fit.None, Note = "old ladders" },
+            new NamedFit { Match = "Mesh_SkyCity_Sail", Fit = Fit.None, Note = "sailcloth" },
+            new NamedFit { Match = "Mesh_SkyCity_Flag", Fit = Fit.None, Note = "pennants and mast rigs" },
+            new NamedFit { Match = "Mesh_SkyCity_Lamp", Fit = Fit.None, Note = "lanterns on the cage legs" },
+        };
+
+        [MenuItem("Tools/Environment/Build Sky City Prefab")]
+        public static void Build()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(FbxPath) == null)
+            {
+                Debug.LogError($"No FBX at {FbxPath}. Run sky_city_export.py first.");
+                return;
+            }
+
+            StaticPropBuilder.ConfigureImporter(FbxPath);
+            GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(FbxPath);
+
+            GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            root.name = RootName;
+            root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+            var report = new System.Text.StringBuilder();
+            report.AppendLine("SkyCityBuilder");
+            try
+            {
+                Vector3 ls = root.transform.lossyScale;
+                if ((ls - Vector3.one).sqrMagnitude > 1e-6f)
+                    throw new System.InvalidOperationException(
+                        $"{RootName} imported at lossyScale {ls:F4}, not 1 - the collision islands are in metres.");
+
+                ModelMarkerImport.CollisionCounts islands = ModelMarkerImport.BuildIslandColliders(
+                    root, CollisionPrefix, CollisionGroup, HullsPath, "sky_city_export.py");
+                // The hulls must be on disk before the prefab that references them.
+                AssetDatabase.SaveAssets();
+                int ladders = ModelMarkerImport.GatherLadders(root, LadderPrefix, LadderGroup, "sky_city_export.py");
+                StaticPropBuilder.FitCounts rules = StaticPropBuilder.ApplyFits(root, Rules);
+
+                Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+                root.transform.localScale = Vector3.one * Scale;
+
+                StaticPropBuilder.EnsureFolder(
+                    System.IO.Path.GetDirectoryName(PrefabPath).Replace('\\', '/'));
+                // After the root's scale: the transition heights are worked out from the size it is drawn at.
+                SettlementLodBaker.Bake(root, PrefabPath, SettlementLodSettings.Load().sky);
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+
+                int tris = renderers
+                    .Select(r => r.GetComponent<MeshFilter>())
+                    .Where(mf => mf != null && mf.sharedMesh != null)
+                    .Sum(mf => mf.sharedMesh.triangles.Length / 3);
+                report.AppendLine($"  {renderers.Length} renderers, {tris} tris, root scale {Scale}");
+                report.AppendLine($"  collision islands: {islands}");
+                report.AppendLine($"  renderer rules: {rules}");
+                report.AppendLine($"  {ladders} ladder markers under {LadderGroup}");
+                report.AppendLine($"  saved {PrefabPath} and {HullsPath}");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log(report.ToString());
+        }
+    }
+}

@@ -39,6 +39,13 @@ namespace SpaceGame.World
         public Vector2Int robotsPerGroup = new Vector2Int(3, 5);
         public float robotGroupSpread = 4f;
 
+        [Header("Outriders (mounted, scattered)")]
+        [Tooltip("Mounted units, each placed on its own somewhere between the inner and outer " +
+                 "rings. Separate from the patrol groups so a town can promise a NUMBER of riders " +
+                 "rather than roll for them.")]
+        public GameObject[] outriderPrefabs;
+        public int outriderTotal = 0;
+
         [Header("Vehicles (parked, scattered)")]
         public GameObject[] vehiclePrefabs;
         public int vehicleTotal = 10;

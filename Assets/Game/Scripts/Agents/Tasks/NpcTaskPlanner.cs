@@ -5,8 +5,10 @@
 // a caravan that is currently 3 km away and has no GameObjects at all. Two implementations of
 // "pick the next job" would drift, and the drift would only ever show up as a group that behaves
 // differently in the ten seconds after it spawns than it did for the hour before.
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Gameplay;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -55,6 +57,10 @@ namespace SpaceGame.Agents
             return -1;
         }
 
+        // Profiler marker (Diagnostics.md → Profiling).
+        private const string ResolveMarkerName = "SpaceGame.NpcTask.Resolve";
+        private static readonly ProfilerMarker ResolveMarker = new(ResolveMarkerName);
+
         /// <summary>
         /// Where this task should send the NPC.
         ///
@@ -76,25 +82,95 @@ namespace SpaceGame.Agents
                                               out Vector3 destination, out float arriveRadius,
                                               out string siteId, out string siteName)
         {
+            using ProfilerMarker.AutoScope sample = ResolveMarker.Auto();
+            if (TryResolveSite(task, origin, excludeSiteId, out destination, out arriveRadius, out siteId, out siteName))
+                return true;
+            if (task == null) return false;
+
+            LevelGroundRule level = task.levelGround;
+            return level.Enabled
+                ? TryLevelRoamPoint(origin, task.searchRadius, level, out destination)
+                : TryRoamPoint(origin, task.searchRadius, out destination);
+        }
+
+        /// <summary>
+        /// The site half of <see cref="ResolveDestination"/>: a site of the task's kind within its search
+        /// radius (on level ground, when the task asks for it), and false — no roam point — when none is.
+        /// </summary>
+        public static bool TryResolveSite(NpcTask task, Vector3 origin, string excludeSiteId,
+                                          out Vector3 destination, out float arriveRadius,
+                                          out string siteId, out string siteName)
+        {
             destination = origin;
             arriveRadius = task != null ? task.arriveRadius : 6f;
             siteId = string.Empty;
             siteName = string.Empty;
-
             if (task == null) return false;
 
-            if (WorldSiteRegistry.TryFindRandom(task.targetSite, origin, task.searchRadius,
-                                                out WorldSite site, excludeSiteId))
+            LevelGroundRule level = task.levelGround;
+            if (!WorldSiteRegistry.TryFindRandom(task.targetSite, origin, task.searchRadius,
+                                                 out WorldSite site, excludeSiteId))
+                return false;
+
+            // A site on a slope is passed over for level open ground rather than visited: the
+            // group needs somewhere to stand more than it needs that particular heap.
+            Vector3 stop = site.Position;
+            if (level.Enabled && !TryLevelStop(site.Position, level, NavMeshSampler(site.Position.y, level), out stop))
+                return false;
+
+            destination = stop;
+            arriveRadius = site.Radius;
+            siteId = site.Id;
+            siteName = site.Name;
+            return true;
+        }
+
+        /// <summary>
+        /// A roam point whose ground is level by <paramref name="rule"/>: up to
+        /// <see cref="LevelGroundRule.attempts"/> roam points, each nudged onto level ground within
+        /// the rule's search radius, and false — retry later — when none was. Measured on the
+        /// NavMesh (<see cref="NavMeshGround"/>), because a roam point is usually kilometres from
+        /// any loaded chunk and so from any heightmap or collider.
+        /// </summary>
+        public static bool TryLevelRoamPoint(Vector3 origin, float radius, LevelGroundRule rule, out Vector3 point)
+        {
+            for (int attempt = 0; attempt < rule.attempts; attempt++)
             {
-                destination = site.Position;
-                arriveRadius = site.Radius;
-                siteId = site.Id;
-                siteName = site.Name;
-                return true;
+                if (!TryRoamPoint(origin, radius, out Vector3 candidate)) continue;
+                if (TryLevelStop(candidate, rule, NavMeshSampler(candidate.y, rule), out point)) return true;
             }
 
-            return TryRoamPoint(origin, task.searchRadius, out destination);
+            point = origin;
+            return false;
         }
+
+        /// <summary>
+        /// The level spot nearest <paramref name="candidate"/> within the rule's search radius, found
+        /// by <see cref="LevelGroundSearch"/> over the rule's square footprint; false when the flattest
+        /// ground there is still steeper than the rule allows. Pure: the ground comes from
+        /// <paramref name="sample"/>.
+        /// </summary>
+        public static bool TryLevelStop(Vector3 candidate, LevelGroundRule rule,
+                                        HullFootprint.GroundSampler sample, out Vector3 stop)
+        {
+            stop = candidate;
+
+            if (!LevelGroundSearch.TryFind(new Vector2(candidate.x, candidate.z), 0f, rule.Extents,
+                                           rule.MaxSpread, rule.searchRadius, rule.searchStep, sample,
+                                           out Vector2 xz, out float _, out bool isLevel)
+                || !isLevel)
+                return false;
+
+            // The centre is one of the footprint's own samples, so a complete footprint has it; the
+            // search's height is the footprint's highest corner, not the ground under the group's leader.
+            if (!sample(xz, out float centreY)) return false;
+
+            stop = new Vector3(xz.x, centreY, xz.y);
+            return true;
+        }
+
+        private static HullFootprint.GroundSampler NavMeshSampler(float probeY, LevelGroundRule rule) =>
+            (Vector2 at, out float y) => NavMeshGround.TryHeight(at, probeY, rule.sampleReach, rule.sampleTolerance, out y);
 
         /// <summary>
         /// A point to head for when no site fits: a random bearing, somewhere between a third and
@@ -106,19 +182,30 @@ namespace SpaceGame.Agents
         /// </summary>
         public static bool TryRoamPoint(Vector3 origin, float radius, out Vector3 point)
         {
+            // Sample generously — the world is a heightmap, so a point picked on the flat is
+            // routinely tens of metres above or below the ground it lands on.
             float min = Mathf.Max(8f, radius * 0.33f);
-            float max = Mathf.Max(min + 1f, radius);
+            return TryRoamPoint(origin, min, radius, Mathf.Max(30f, radius * 0.25f), null, out point);
+        }
+
+        /// <summary>
+        /// A NavMesh point on a random bearing <paramref name="minDistance"/> to <paramref name="maxDistance"/>
+        /// out (flat, before the snap), found within <paramref name="sampleReach"/> of it and passing
+        /// <paramref name="accept"/> when one is given; false after eight misses.
+        /// </summary>
+        public static bool TryRoamPoint(Vector3 origin, float minDistance, float maxDistance, float sampleReach,
+                                        System.Predicate<Vector3> accept, out Vector3 point)
+        {
+            float max = Mathf.Max(minDistance + 1f, maxDistance);
 
             for (int attempt = 0; attempt < 8; attempt++)
             {
                 float angle = UnityEngine.Random.value * Mathf.PI * 2f;
-                float distance = UnityEngine.Random.Range(min, max);
+                float distance = UnityEngine.Random.Range(minDistance, max);
                 Vector3 candidate = origin + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * distance;
 
-                // Sample generously — the world is a heightmap, so a point picked on the flat is
-                // routinely tens of metres above or below the ground it lands on.
-                if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, Mathf.Max(30f, radius * 0.25f),
-                                           NavMesh.AllAreas))
+                if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, sampleReach, NavMesh.AllAreas) &&
+                    (accept == null || accept(hit.position)))
                 {
                     point = hit.position;
                     return true;

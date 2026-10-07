@@ -14,6 +14,7 @@
 // ground, the hull rises to "rider + ride height", the deck takes the rider up with it, and the
 // vehicle climbs into the sky on its own passenger, parked, at zero speed.
 using System;
+using System.Collections.Generic;
 using SpaceGame.Locomotion;
 using UnityEngine;
 
@@ -56,6 +57,25 @@ namespace SpaceGame.Agents
 
         private Transform self;
         private WalkerGround ground;
+
+        /// <summary>
+        /// Colliders belonging to things the craft is CARRYING, which are never ground.
+        ///
+        /// <para>
+        /// <c>WalkerGround</c> already rejects the craft's own colliders and anything under its own
+        /// physics, and between them those cover a rider who is parented to the hull or a crate
+        /// rolling about on the deck. They do not cover a body that is held in place WITHOUT being
+        /// parented and made kinematic to keep it there — which is exactly what <c>SeatedRider</c>
+        /// does, because the player transform is owner-authoritative and cannot be carried by
+        /// parenting. Such a rider is invisible to both rules: kinematic, so not a loose body, and
+        /// not a child, so not the craft's own.
+        /// </para>
+        /// <para>
+        /// Handed to <c>WalkerGround</c> by reference and re-read on every ray, so riders can be
+        /// added and dropped while the craft flies.
+        /// </para>
+        /// </summary>
+        private readonly HashSet<Collider> carried = new();
         private float smoothedGroundY;
         private float riseRate;
         private bool primed;
@@ -86,9 +106,37 @@ namespace SpaceGame.Agents
         public void Initialize(Transform self)
         {
             this.self = self;
-            ground = new WalkerGround(self, groundMask, probeStartHeight, probeDistance);
+            ground = new WalkerGround(self, groundMask, probeStartHeight, probeDistance, carried);
             primed = false;
             HasGround = false;
+        }
+
+        /// <summary>
+        /// Treat everything <paramref name="body"/> is made of as cargo rather than as ground.
+        ///
+        /// <para>
+        /// Without this a craft holding a passenger reads their capsule as the floor, rises to
+        /// "passenger plus ride height", carries them up with it, and finds them higher still on the
+        /// next probe — climbing into the sky at a steady rate, parked, at zero speed. The comment
+        /// at the top of this file describes that failure; this is the hook that lets a carrier
+        /// which cannot use parenting avoid it.
+        /// </para>
+        /// </summary>
+        public void Carry(GameObject body)
+        {
+            if (body == null) return;
+
+            foreach (Collider c in body.GetComponentsInChildren<Collider>(includeInactive: true))
+                carried.Add(c);
+        }
+
+        /// <summary>Counterpart to <see cref="Carry"/>. Safe to call for a body never carried.</summary>
+        public void StopCarrying(GameObject body)
+        {
+            if (body == null) return;
+
+            foreach (Collider c in body.GetComponentsInChildren<Collider>(includeInactive: true))
+                carried.Remove(c);
         }
 
         /// <summary>

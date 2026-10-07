@@ -143,12 +143,32 @@ Shader "SpaceGame/SandstormWall"
                 // Whatever the scene put in front of the storm ends the march. This is what stands
                 // in for a depth test: geometry nearer than the storm hides it, geometry inside it
                 // is correctly buried in sand.
+                //
+                // Only where there IS geometry. A sky pixel's depth is the camera's far PLANE, and
+                // a plane is nearest along the forward axis: at a 1000 m far clip the clamp lands
+                // at 1000 m in the centre of the screen and past 1600 m in the corner. Applied to
+                // sky it therefore cuts the storm off hardest exactly where the player is looking,
+                // so a wall standing more than a kilometre away is visible out of the corner of
+                // your eye and vanishes the moment you turn to face it — and the cut sweeps across
+                // it as you turn, because the plane turns with your head. Nothing occludes a storm
+                // seen against the sky, so nothing shortens the march there. Same guard and the
+                // same reason as VolumetricFog.shader and VolumetricClouds.shader; the vertex
+                // shader's far-plane clamp above solves the rasterisation half of this, not this
+                // half.
                 float rawDepth = SampleSceneDepth(screenUv);
-                float sceneEyeDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
-                float viewCos = max(1e-4, dot(rd, -UNITY_MATRIX_V[2].xyz));
-                float sceneDistance = sceneEyeDepth / viewCos;
+            #if UNITY_REVERSED_Z
+                bool isSky = rawDepth <= 0.0;
+            #else
+                bool isSky = rawDepth >= 1.0;
+            #endif
 
-                tFar = min(tFar, sceneDistance);
+                if (!isSky)
+                {
+                    float sceneEyeDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
+                    float viewCos = max(1e-4, dot(rd, -UNITY_MATRIX_V[2].xyz));
+                    tFar = min(tFar, sceneEyeDepth / viewCos);
+                }
+
                 if (tFar <= tNear)
                     discard;
 

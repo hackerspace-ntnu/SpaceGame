@@ -6,9 +6,9 @@
 // clock — which is precisely the desync the gate closed. So this is not a new feature; it is the
 // honest version of something the divergence was providing by accident.
 //
-// Shared rather than written once per module because melee and ranged put the identical thing on
-// the wire: a kind, an origin and a direction. Two copies of that encode would be two places for
-// the direction convention to drift, and a tracer drawn along the wrong axis is the sort of bug
+// Shared rather than written once per module because every kind puts the identical thing on the
+// wire: a kind, an origin and a direction. Two copies of that encode would be two places for the
+// direction convention to drift, and an attack drawn along the wrong axis is the sort of bug
 // nobody notices until somebody else is watching.
 using UnityEngine;
 using SpaceGame.Core;
@@ -35,18 +35,24 @@ namespace SpaceGame.Agents
         /// <para>
         /// <paramref name="origin"/> and <paramref name="direction"/> are a RAY, not a landing
         /// point — the same convention <see cref="NetMsg.UseItemHold"/> uses, and for the same
-        /// reason: a peer that re-derived the shot from its own copy of the world would draw it
+        /// reason: a peer that re-derived the attack from its own copy of the world would draw it
         /// leaving from wherever its own divergent brain happened to be pointing.
         /// </para>
         /// </summary>
-        public static void Broadcast(Component agent, int action, Vector3 origin, Vector3 direction)
+        /// <param name="detail">
+        /// Optional second number for actions that carry one — <see cref="AgentAction.Band"/> puts
+        /// the new aggression band here. Attacks leave it at zero; it rides in
+        /// <see cref="NetArg.B"/>, which they do not use.
+        /// </param>
+        public static void Broadcast(Component agent, int action, Vector3 origin, Vector3 direction,
+                                     int detail = 0)
         {
             if (agent == null) return;
 
             // Server-only, and asked here rather than left to NetRelay to refuse. AgentActed
             // travels outward and only outward — an NPC's decisions are the authority's alone, so
             // the id has no request direction — which means a machine that is not the server has
-            // nobody it is permitted to tell. NetRelay would log a warning for every shot instead
+            // nobody it is permitted to tell. NetRelay would log a warning for every attack instead
             // of dropping it quietly, and an agent whose NetworkObject has been handed to a client
             // (a creature carried on a player-owned vehicle) would produce one per swing.
             //
@@ -56,6 +62,7 @@ namespace SpaceGame.Agents
             if (!Network.Server) return;
 
             NetArg arg = Describe(action, origin, direction, agent.transform.rotation);
+            arg.B = detail;
 
             // Others, never All. This machine already drew the attack as part of performing it, and
             // NetRelay's Others filters the sender out of its own broadcast on arrival — so the
@@ -67,7 +74,7 @@ namespace SpaceGame.Agents
         /// Pack an attack into a <see cref="NetArg"/>. The exact inverse of
         /// <see cref="TryReadRay"/>, and split out from <see cref="Broadcast"/> so the pair can be
         /// tested against each other without a session — a direction convention that quietly
-        /// inverts is a tracer leaving the barrel backwards, which nothing else would catch.
+        /// inverts is an attack drawn backwards, which nothing else would catch.
         /// </summary>
         public static NetArg Describe(int action, Vector3 origin, Vector3 direction, Quaternion fallback)
         {
@@ -85,10 +92,10 @@ namespace SpaceGame.Agents
 
             Vector3 aim = direction.normalized;
 
-            // Vector3.up is the wrong hint for a shot going straight up or straight down.
+            // Vector3.up is the wrong hint for an attack aimed straight up or straight down.
             // LookRotation orthonormalizes the forward axis against it, and parallel inputs
             // collapse that basis — Unity answers with identity, which would send every watcher's
-            // tracer off along +Z while the authority's went vertically. A creature firing at
+            // attack off along +Z while the authority's went vertically. A creature striking at
             // something directly overhead is not hypothetical in a world that has flyers in it.
             Vector3 upHint = Mathf.Abs(Vector3.Dot(aim, Vector3.up)) > 0.999f
                 ? Vector3.forward

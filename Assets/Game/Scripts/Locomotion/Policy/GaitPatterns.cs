@@ -80,6 +80,15 @@ namespace SpaceGame.Locomotion
         /// however badly it is over-extended. Held to an emergency measure for genuinely broken
         /// ground: once the two legs fall into step the machine has both feet in the air half the
         /// time and is hopping rather than walking.
+        ///
+        /// A full swing is also how long a broken leg STAYS broken -- a leg that over-extends early
+        /// in its stance waits out the rest of this gate before it may rescue itself, measured at
+        /// 1.13 s on the conjurer. Cutting it to 0.65 to shorten that was tried and measured, and
+        /// the bipeds got worse rather than better: the ostrich's worst reach went 1.07 to 1.23 and
+        /// its longest break 1.58 s to 1.98 s, because stepping early lands the foot somewhere the
+        /// clock did not expect and the next stance starts from a worse place. The window is a
+        /// symptom; the cause is a machine that over-extends in the first place, and that is fixed
+        /// by not coasting onto a stretched leg -- see LeggedDriver's `acceleration`.
         private const float MinStanceFraction = 1.0f;
 
         private readonly float walkDuty;

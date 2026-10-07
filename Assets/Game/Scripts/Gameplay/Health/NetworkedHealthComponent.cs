@@ -14,7 +14,9 @@ namespace SpaceGame.Gameplay
     {
         /// <summary>
         /// Raised on every peer when a hit dealt by a player lands on anything — the victim, how
-        /// much, and which player's object did it.
+        /// much, how the victim met it, and which player's object did it. A blow blocked or dodged
+        /// whole arrives too, with an amount of 0: the attacker must learn it was stopped, not
+        /// just see nothing happen.
         /// <para>
         /// It carries the attacker rather than a "was it me" flag on purpose: whether a hit is
         /// worth drawing is a presentation question, and the answer differs between a damage
@@ -28,7 +30,7 @@ namespace SpaceGame.Gameplay
         /// safe; the arguments are the ones that may be destroyed and must be null-checked.
         /// </para>
         /// </summary>
-        public static event Action<HealthComponent, int, GameObject> DamageAnnounced;
+        public static event Action<HealthComponent, int, DamageDefense, GameObject> DamageAnnounced;
 
         private HealthComponent health;
 
@@ -67,13 +69,18 @@ namespace SpaceGame.Gameplay
                 // machine that ever learns who dealt a hit — LastDamageSource is written by
                 // HealthComponent.Damage, which runs nowhere else.
                 health.OnDamage += AnnounceDamage;
+                health.OnDefended += AnnounceStopped;
+                health.OnDamage += TellOwnerWhereFrom;
             }
             else
             {
                 // Late joiners and newly streamed-in entities arrive with the current value
                 // already in the variable and no change event coming, so read it once on spawn.
+                // A plain restore, not a replicated one: a body that is already dead in this
+                // snapshot died before this machine was watching, so it is hidden at once like a
+                // corpse from a save rather than shown falling.
                 networkHealth.OnValueChanged += ApplyHealth;
-                ApplyHealth(health.GetHealth, networkHealth.Value);
+                health.RestoreHealth(networkHealth.Value);
             }
         }
 
@@ -92,6 +99,8 @@ namespace SpaceGame.Gameplay
                     health.OnDeath -= SyncHealth;
                     health.OnRestored -= SyncHealth;
                     health.OnDamage -= AnnounceDamage;
+                    health.OnDefended -= AnnounceStopped;
+                    health.OnDamage -= TellOwnerWhereFrom;
                 }
                 else
                 {
@@ -112,7 +121,47 @@ namespace SpaceGame.Gameplay
             if (!Network.Simulates(this) || health == null || arg.A <= 0) return;
 
             GameObject source = arg.Resolve();
-            health.Damage(arg.A, source != null ? source.transform : null);
+            health.Damage(arg.A, source != null ? source.transform : null, (DamageKind)arg.B);
+        }
+
+        /// <summary>
+        /// Tells the victim's own machine which way the hit came from, so their visor can point at
+        /// it.
+        ///
+        /// <para>
+        /// Separate from <see cref="AnnounceDamage"/> and deliberately not folded into it. That one
+        /// is a BROADCAST and is gated on a player having dealt the hit, because damage numbers
+        /// over things nobody is watching are not worth the bandwidth — which means a client mauled
+        /// by a creature is told nothing at all by it. This is a UNICAST to one player about their
+        /// own body, so it is cheap enough to send for every source, creature and cactus included.
+        /// </para>
+        /// <para>
+        /// An Rpc rather than a NetMessaging message because that layer has no unicast: its sends
+        /// are to everyone or to everyone-but-me, and this must not tell the whole session which
+        /// way to flinch.
+        /// </para>
+        /// </summary>
+        private void TellOwnerWhereFrom(int amount)
+        {
+            if (health == null || amount <= 0) return;
+
+            // The host's own player already raised the event locally inside Damage(); sending to
+            // it as well would flash the arc twice for one hit.
+            if (!IsSpawned || OwnerClientId == NetworkManager.ServerClientId) return;
+
+            Transform source = health.LastDamageSource;
+            DamageDirectionRpc(amount, source != null ? source.position : Vector3.zero, source != null);
+        }
+
+        /// <summary>
+        /// Runs on the victim's machine only. Raises the directional event and changes no health:
+        /// the value itself arrives through <see cref="networkHealth"/>, and subtracting here as
+        /// well would apply the same hit twice.
+        /// </summary>
+        [Rpc(SendTo.Owner)]
+        private void DamageDirectionRpc(int amount, Vector3 sourcePosition, bool hasSource)
+        {
+            if (health != null) health.ReportDamageDirection(amount, sourcePosition, hasSource);
         }
 
         private void SyncHealth(int _) => SyncHealth();
@@ -132,7 +181,25 @@ namespace SpaceGame.Gameplay
         {
             if (amount <= 0 || health == null) return;
 
-            Transform source = health.LastDamageSource;
+            Announce(amount, health.LastDefense, health.LastDamageSource);
+        }
+
+        /// <summary>
+        /// Server side: a blow blocked or dodged whole. It raised no <c>OnDamage</c>, so
+        /// <see cref="AnnounceDamage"/> never hears of it — and a client whose punch was stopped
+        /// would otherwise see nothing at all where the number should be. A block that let part
+        /// through is left to <see cref="AnnounceDamage"/>, which carries the defence with the
+        /// amount, so one hit is never announced twice.
+        /// </summary>
+        private void AnnounceStopped(DamageHit hit)
+        {
+            if (hit.Amount > 0) return;
+
+            Announce(0, hit.Defense, hit.Source);
+        }
+
+        private void Announce(int amount, DamageDefense defense, Transform source)
+        {
             if (source == null) return;
 
             // GetComponentInParent, not GetComponent: callers disagree about what "source" is, and
@@ -143,20 +210,21 @@ namespace SpaceGame.Gameplay
             if (attacker == null) return;
 
             // Others, not All. This machine just applied the damage, so HealthComponent.AnyDamaged
-            // has already fired here and anything local has been shown. Sending to everyone would
-            // hand the authority its own news back and draw the number twice.
-            this.NetToOthers(NetMsg.Damaged, new NetArg { A = amount }.With(attacker));
+            // (or AnyDefended) has already fired here and anything local has been shown. Sending
+            // to everyone would hand the authority its own news back and draw the number twice.
+            this.NetToOthers(NetMsg.Damaged, new NetArg { A = amount, B = (int)defense }.With(attacker));
         }
 
         /// <summary>
-        /// Every peer, including the host that sent it: a player-dealt hit landed here. Republished
-        /// as a plain C# event so the UI never has to know a message id.
+        /// Every peer, including the host that sent it: a player-dealt hit landed here, or was
+        /// stopped. Republished as a plain C# event so the UI never has to know a message id.
         /// </summary>
         private void OnDamageAnnounced(in NetArg arg, ulong sender)
         {
-            if (health == null || arg.A <= 0) return;
+            var defense = (DamageDefense)arg.B;
+            if (health == null || (arg.A <= 0 && defense == DamageDefense.None)) return;
 
-            DamageAnnounced?.Invoke(health, arg.A, arg.Resolve());
+            DamageAnnounced?.Invoke(health, Math.Max(0, arg.A), defense, arg.Resolve());
         }
 
         /// <summary>
@@ -166,10 +234,15 @@ namespace SpaceGame.Gameplay
         /// that missed one update stayed wrong forever, a heal past max silently clamped away part
         /// of the correction, and every replicated hit fired the local damage flash a second time.
         /// RestoreHealth exists precisely for "this value is now the truth".
+        ///
+        /// Flagged as replicated, because a change event is something happening on the server
+        /// NOW: a death arriving here has to be shown and counted down like the host's, not
+        /// switched off on the spot like a corpse from a save (see
+        /// <see cref="HealthComponent.IsReplicating"/>).
         /// </summary>
         private void ApplyHealth(int previous, int current)
         {
-            if (health != null) health.RestoreHealth(current);
+            if (health != null) health.RestoreHealth(current, replicated: true);
         }
     }
 }

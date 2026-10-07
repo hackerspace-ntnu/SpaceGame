@@ -38,6 +38,12 @@ namespace SpaceGame.Locomotion
                 // about whether the foot can be honoured -- reading it as unreachable had the
                 // step-early rule firing on two thirds of all frames, which syncs the legs and
                 // turns a walk into a hop.
+                // Tripping this a few percent EARLY -- at 0.97, so the step is asked for before the
+                // foot visibly separates -- was tried and measured, and it is a trap. The six-legged
+                // machines gate step-early on planted count rather than on stance time, so an
+                // earlier flag means far more early steps: the crawler went from reach 0.95 and no
+                // unreachable frames to reach 1.65, 63 unreachable frames and 43 frames of actual
+                // FALLING while turning. It stays at the real limit.
                 leg.Unreachable = leg.Solved.ReachFraction > 1f && !leg.Swinging;
 
                 if (leg.Unreachable) unreachable++;

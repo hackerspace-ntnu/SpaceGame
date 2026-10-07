@@ -37,6 +37,14 @@ namespace SpaceGame.Agents
         [Header("Events")]
         public UnityEvent<Vector3> OnHearNoise;
 
+        /// <summary>
+        /// Every noise this receiver hears — type, origin, instigator — whatever its masks say.
+        /// Raised where noise is processed, which is the server: <see cref="Noise"/> is emitted on
+        /// the machine that decided the sound happened. For code that reacts in its own way (a
+        /// settlement resident waking to a racket) without being an investigate or aggro type.
+        /// </summary>
+        public event Action<NoiseType, Vector3, Transform> Heard;
+
         private AgentTargeting targeting;
 
         private bool isInvestigating;
@@ -45,6 +53,16 @@ namespace SpaceGame.Agents
 
         // Set by RestoreInvestigation, consumed by the next OnEnable.
         private bool restoredInvestigation;
+
+        /// <summary>
+        /// Replaces which noises are investigated and which make the instigator a target. For an owner
+        /// that answers the rest itself — a settlement resident, whose routine must not be walked off.
+        /// </summary>
+        public void ReactTo(NoiseTypeMask investigate, NoiseTypeMask aggro)
+        {
+            investigateOn = investigate;
+            aggroOn = aggro;
+        }
 
         // ── Persisted state ───────────────────────────────────────────────────────
         public bool IsInvestigating => isInvestigating;
@@ -55,6 +73,11 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            // Self-registration is what makes this hearable. Noise.Emit walks the registry
+            // rather than the physics scene, so a receiver that never registers is deaf no
+            // matter where it stands or what layer it is on.
+            Noise.Register(this);
+
             // The guard walking toward a gunshot has to still be walking toward it after a reload.
             if (restoredInvestigation)
             {
@@ -64,6 +87,11 @@ namespace SpaceGame.Agents
 
             isInvestigating = false;
             investigateTimer = 0f;
+        }
+
+        private void OnDisable()
+        {
+            Noise.Unregister(this);
         }
 
         /// <summary>
@@ -88,18 +116,62 @@ namespace SpaceGame.Agents
         private AgentTargeting Targeting =>
             targeting != null ? targeting : targeting = AgentTargeting.GetOrAdd(gameObject);
 
+        // A Hurt noise carries the ATTACKER as its instigator, and the attacker is whoever the
+        // faction table says it is. Without this check a Clanker hearing a nomad scream would turn
+        // on whoever shot the nomad — including another Clanker — and an ally that hurt this agent
+        // by accident would be targeted through the noise path even though the faction path never
+        // acquires an ally.
+        private bool IsAlly(Transform other)
+        {
+            EntityFaction self = GetComponent<EntityFaction>();
+            if (self == null) return false;
+            EntityFaction theirs = other.GetComponentInParent<EntityFaction>();
+            return theirs != null && self.IsAlliedWith(theirs);
+        }
+
         // Called by NoiseEmitter when this receiver is within range.
         public void OnNoiseHeard(NoiseType type, Vector3 origin, float radius, Transform instigator)
         {
             NoiseTypeMask typeMask = TypeToMask(type);
 
             OnHearNoise?.Invoke(origin);
+            Heard?.Invoke(type, origin, instigator);
 
-            if ((aggroOn & typeMask) != 0 && instigator)
+            // Never aggro onto yourself. AgentTargeting.ForceTarget has no self-check of its own,
+            // and a creature handed its own transform chases a target it can never lose and melees
+            // a target it can never miss — it beats itself to death with no attacker anywhere.
+            bool aggro = (aggroOn & typeMask) != 0 && instigator
+                         && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                         && !IsAlly(instigator);
+
+            if (aggro)
             {
-                Targeting.ForceTarget(instigator);
+                // The same split AlertReceiverModule makes, for the same reason: an agent already
+                // Hostile toward the instigator takes the noise as the order to attack it was
+                // before the meter existed, and one that is Neutral toward them weighs it instead.
+                // Without a meter at all — a plain robot — the old bare ForceTarget stands.
+                bool alreadyHostile = TryGetComponent(out EntityFaction self)
+                                      && self.IsHostileTo(instigator);
+
+                if (TryGetComponent(out ProvocationModule provocation) && !alreadyHostile)
+                    provocation.AddAggression(AggressionInput.AllyHurt, 1f, instigator);
+                else
+                    Targeting.ForceTarget(instigator);
+
                 isInvestigating = false;
                 return;
+            }
+
+            // A gunshot heard by an agent with a meter winds it up — and, if Gunshot is an
+            // investigate type, sends it to look as well. Deliberately outside that gate: the walk
+            // to the source is what the player sees, the meter is why the seventh shot near a camp
+            // is different from the first, and an agent that does not walk toward shots (a
+            // settlement resident) still has to count them.
+            if (type == NoiseType.Gunshot && instigator && !IsAlly(instigator)
+                && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                && TryGetComponent(out ProvocationModule heard))
+            {
+                heard.AddAggression(AggressionInput.Gunshot, 1f, instigator);
             }
 
             if ((investigateOn & typeMask) != 0)

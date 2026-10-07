@@ -59,10 +59,10 @@ namespace SpaceGame.Tests
             body.transform.SetParent(entity.transform);
             NavMeshAgent navAgent = body.AddComponent<NavMeshAgent>();
 
-            List<Behaviour> drivers = NetAuthority.Discover(entity);
+            List<Behaviour> drivers = SimulationDrivers.Discover(entity);
 
-            Assert.Contains(entity.GetComponent<AgentController>(), drivers,
-                "The brain is the first thing a remote copy must stop running.");
+            Assert.IsFalse(drivers.Contains(entity.GetComponent<AgentController>()),
+                "The brain stays on: without authority it ticks only its presentation modules.");
             Assert.Contains(navAgent, drivers,
                 "NavMeshAgent moves the transform on its own and has to be switched off too.");
         }
@@ -75,7 +75,7 @@ namespace SpaceGame.Tests
             Animator animator = entity.AddComponent<Animator>();
             AudioSource audio = entity.AddComponent<AudioSource>();
 
-            List<Behaviour> drivers = NetAuthority.Discover(entity);
+            List<Behaviour> drivers = SimulationDrivers.Discover(entity);
 
             Assert.IsFalse(drivers.Contains(animator),
                 "A remote copy still has to animate — something else is moving it, not nothing.");
@@ -85,8 +85,8 @@ namespace SpaceGame.Tests
         [Test]
         public void DiscoveryOnNothingIsEmptyRatherThanAnError()
         {
-            Assert.IsEmpty(NetAuthority.Discover(null));
-            Assert.IsEmpty(NetAuthority.Discover(NewObject("bare")));
+            Assert.IsEmpty(SimulationDrivers.Discover(null));
+            Assert.IsEmpty(SimulationDrivers.Discover(NewObject("bare")));
         }
 
         // ─────────── Damage ───────────

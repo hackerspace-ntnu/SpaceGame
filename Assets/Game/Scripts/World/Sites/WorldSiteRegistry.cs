@@ -6,9 +6,10 @@
 // journey with its destination's chunk unloaded. Anything holding a Transform would be holding
 // null. A record outlives the GameObject that registered it, which is the whole point.
 //
-// Nothing in here knows where sites come from. Today a WorldSiteMarker component registers them on
-// enable; when procedural world generation lands it registers them directly and not one line below
-// changes. That seam is the reason this is a registry and not a scene scan.
+// Nothing in here knows where sites come from. Today the world's baked WorldSiteCatalog is merged in
+// when the world starts, and each WorldSiteMarker re-registers its own site on enable; when procedural
+// world generation lands it registers them directly and not one line below changes. That seam is the
+// reason this is a registry and not a scene scan.
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -32,7 +33,7 @@ namespace SpaceGame.World
         public static IReadOnlyList<WorldSite> All => sites;
 
         /// <summary>
-        /// Wipe the registry when play starts.
+        /// Wipe the registry when play starts, and when a world is unloaded (<c>WorldStreamer.OnDestroy</c>).
         ///
         /// Static state survives leaving play mode when domain reload is off, which would carry
         /// every site from the previous session into the next one — including sites from a
@@ -55,25 +56,62 @@ namespace SpaceGame.World
         /// site again. Treating that as an update rather than a duplicate is what keeps a caravan
         /// from finding three copies of the same well.
         /// </summary>
-        public static string Register(SiteKind kind, Vector3 position, float radius, string name, string id = null)
+        public static string Register(SiteKind kind, Vector3 position, float radius, string name,
+                                      string id = null, bool airborne = false)
         {
             if (string.IsNullOrEmpty(id))
                 id = Guid.NewGuid().ToString("N");
 
-            var site = new WorldSite(id, kind, position, radius, name);
+            Put(new WorldSite(id, kind, position, radius, name, airborne));
+            Changed?.Invoke();
+            return id;
+        }
 
-            if (indexById.TryGetValue(id, out int existing))
+        /// <summary>
+        /// Registers a world's baked sites (<see cref="WorldSiteCatalog"/>), once, when the world starts — so a
+        /// site is a destination before its chunk has ever loaded, which for a place 2 km away is most of the
+        /// session. Null (a world never baked) registers nothing.
+        /// </summary>
+        public static void MergeCatalog(WorldSiteCatalog catalog)
+        {
+            if (catalog != null) MergeSites(catalog.sites);
+        }
+
+        /// <summary>
+        /// Adds each baked site whose id is not known yet; returns how many were added.
+        ///
+        /// A known id is left alone: a marker that has already enabled knows where its site is now, and the bake
+        /// only knows where it was. The reverse needs nothing — a marker that enables after the merge registers
+        /// under the same id and so updates its baked entry in place rather than adding a second site.
+        /// </summary>
+        public static int MergeSites(IReadOnlyList<WorldSiteCatalog.SiteEntry> entries)
+        {
+            if (entries == null) return 0;
+
+            int added = 0;
+            foreach (WorldSiteCatalog.SiteEntry entry in entries)
+            {
+                if (string.IsNullOrEmpty(entry.id) || indexById.ContainsKey(entry.id)) continue;
+
+                Put(entry.ToSite());
+                added++;
+            }
+
+            if (added > 0) Changed?.Invoke();
+            return added;
+        }
+
+        private static void Put(WorldSite site)
+        {
+            if (indexById.TryGetValue(site.Id, out int existing))
             {
                 sites[existing] = site;
             }
             else
             {
-                indexById[id] = sites.Count;
+                indexById[site.Id] = sites.Count;
                 sites.Add(site);
             }
-
-            Changed?.Invoke();
-            return id;
         }
 
         public static void Unregister(string id)
@@ -110,14 +148,42 @@ namespace SpaceGame.World
         }
 
         /// <summary>
+        /// The site with this exact name, airborne or not. For something that is not a ground
+        /// errand and already knows what place it means — the war-party director sending a party at
+        /// "the Sky City" by name, say — rather than a kind-scoped search that would have to be
+        /// told to include airborne sites just for this one lookup.
+        /// </summary>
+        public static bool TryFindByName(string name, out WorldSite site)
+        {
+            if (!string.IsNullOrEmpty(name))
+            {
+                for (int i = 0; i < sites.Count; i++)
+                {
+                    if (sites[i].Name == name)
+                    {
+                        site = sites[i];
+                        return true;
+                    }
+                }
+            }
+
+            site = default;
+            return false;
+        }
+
+        /// <summary>
         /// The closest site of <paramref name="kind"/>, or false if there is none in range.
         ///
         /// <paramref name="excludeId"/> is how a task avoids sending an NPC straight back to the
         /// place it has just finished working — without it, "nearest scrap field" is a stable
         /// answer and a scavenger stands on one heap forever.
+        ///
+        /// <paramref name="includeAirborne"/> defaults to false: this is the query ground errands
+        /// use, and a site nothing can walk to is not a valid answer for one of those.
         /// </summary>
         public static bool TryFindNearest(SiteKind kind, Vector3 from, float maxDistance,
-                                          out WorldSite site, string excludeId = null)
+                                          out WorldSite site, string excludeId = null,
+                                          bool includeAirborne = false)
         {
             site = default;
             float best = float.PositiveInfinity;
@@ -127,6 +193,7 @@ namespace SpaceGame.World
             {
                 WorldSite candidate = sites[i];
                 if (candidate.Kind != kind) continue;
+                if (candidate.Airborne && !includeAirborne) continue;
                 if (excludeId != null && candidate.Id == excludeId) continue;
 
                 float distance = candidate.FlatDistanceTo(from);
@@ -147,9 +214,12 @@ namespace SpaceGame.World
         /// deterministic, and a group of NPCs sharing a home and a task list that all query nearest
         /// walk the same route to the same place forever. Random over a wide radius is what makes
         /// the world look like it has people going about separate business in it.
+        ///
+        /// <paramref name="includeAirborne"/> defaults to false — see <see cref="TryFindNearest"/>.
         /// </summary>
         public static bool TryFindRandom(SiteKind kind, Vector3 from, float maxDistance,
-                                         out WorldSite site, string excludeId = null)
+                                         out WorldSite site, string excludeId = null,
+                                         bool includeAirborne = false)
         {
             scratch.Clear();
 
@@ -157,6 +227,7 @@ namespace SpaceGame.World
             {
                 WorldSite candidate = sites[i];
                 if (candidate.Kind != kind) continue;
+                if (candidate.Airborne && !includeAirborne) continue;
                 if (excludeId != null && candidate.Id == excludeId) continue;
                 if (candidate.FlatDistanceTo(from) > maxDistance) continue;
 
@@ -173,8 +244,12 @@ namespace SpaceGame.World
             return true;
         }
 
-        /// <summary>Every site of a kind within range, appended to <paramref name="results"/>.</summary>
-        public static int Query(SiteKind kind, Vector3 from, float maxDistance, List<WorldSite> results)
+        /// <summary>
+        /// Every site of a kind within range, appended to <paramref name="results"/>.
+        /// <paramref name="includeAirborne"/> defaults to false — see <see cref="TryFindNearest"/>.
+        /// </summary>
+        public static int Query(SiteKind kind, Vector3 from, float maxDistance, List<WorldSite> results,
+                                bool includeAirborne = false)
         {
             if (results == null) return 0;
 
@@ -183,6 +258,7 @@ namespace SpaceGame.World
             {
                 WorldSite candidate = sites[i];
                 if (candidate.Kind != kind) continue;
+                if (candidate.Airborne && !includeAirborne) continue;
                 if (candidate.FlatDistanceTo(from) > maxDistance) continue;
 
                 results.Add(candidate);

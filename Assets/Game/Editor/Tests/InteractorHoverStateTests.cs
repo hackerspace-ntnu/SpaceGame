@@ -2,7 +2,7 @@
 //
 // Mounting disables the rider's Interactor, which stops its Update — and the hover fields then
 // FROZE at whatever the player was looking at when they pressed the key, which is by definition the
-// thing they just climbed onto. InteractionPromptUI and CrosshairUI both poll those fields every
+// thing they just climbed onto. VisorReticle and CrosshairUI both poll those fields every
 // frame with no way to tell "still hovering" from "no longer being asked", so the "Press E" panel
 // sat on screen for the entire ride with the crosshair lit beside it.
 using NUnit.Framework;

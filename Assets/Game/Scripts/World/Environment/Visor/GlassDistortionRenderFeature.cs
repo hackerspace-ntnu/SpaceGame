@@ -66,6 +66,13 @@ namespace SpaceGame.World
                 this.settings = settings;
                 this.renderPassEvent = settings.renderPassEvent;
                 this.material = settings.distortionMaterial;
+
+                // The pass reads the camera colour and replaces it, so it cannot run against the
+                // back buffer: that handle carries no descriptor, and sizing the destination from
+                // it throws "The passed in texture handle does not have a valid descriptor" out of
+                // RecordRenderGraph. Declaring the requirement makes URP keep an intermediate
+                // colour texture alive instead of rendering straight to the back buffer.
+                requiresIntermediateTexture = true;
             }
 
             // New RenderGraph path

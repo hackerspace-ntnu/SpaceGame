@@ -71,9 +71,9 @@ namespace SpaceGame.Core.Persistence
             public Endpoint b;
 
             /// <summary>
-            /// Carried because <c>TerminateHandEndOnto</c> stretches it to fit the geometry it lands
-            /// on. Rebuilding a rope at the artifact's authored length would snap a long one the
-            /// instant physics resumed.
+            /// Carried because a tie across a wide gap pays the rope out to reach — once, and
+            /// capped, but permanently. Rebuilding at the artifact's authored length would put a
+            /// long rope under instant tension the moment physics resumed.
             /// </summary>
             public float maxLength;
         }
@@ -96,13 +96,13 @@ namespace SpaceGame.Core.Persistence
             {
                 Leash leash = live[i];
                 if (leash == null) continue;
-                if (leash.EndATransform == null || leash.EndBTransform == null) continue;
+                if (!leash.A.IsAlive || !leash.B.IsAlive) continue;
 
                 ropes.Add(new Rope
                 {
-                    a = Describe(leash.aKind, leash.EndATransform, leash.aLocalOffset, leash.EndAPos),
-                    b = Describe(leash.bKind, leash.EndBTransform, leash.bLocalOffset, leash.EndBPos),
-                    maxLength = leash.maxLength,
+                    a = Describe(leash.A),
+                    b = Describe(leash.B),
+                    maxLength = leash.Length,
                 });
             }
 
@@ -119,13 +119,14 @@ namespace SpaceGame.Core.Persistence
         /// saved is wrong: it was not going to be there either.
         /// </para>
         /// </summary>
-        private static Endpoint Describe(Leash.EndpointKind kind, Transform xform,
-                                         Vector3 localOffset, Vector3 worldPoint)
+        private static Endpoint Describe(LeashEnd end)
         {
-            if (kind == Leash.EndpointKind.Static)
+            Vector3 worldPoint = end.Position;
+
+            if (end.Kind == LeashEndKind.Static)
                 return new Endpoint { point = worldPoint };
 
-            SaveRef anchor = SaveRef.From(xform.gameObject);
+            SaveRef anchor = SaveRef.From(end.Anchor.gameObject);
 
             if (!anchor.IsSet)
                 return new Endpoint { point = worldPoint };
@@ -133,9 +134,9 @@ namespace SpaceGame.Core.Persistence
             return new Endpoint
             {
                 anchor = anchor,
-                offset = localOffset,
+                offset = end.LocalOffset,
                 point = worldPoint,
-                held = kind == Leash.EndpointKind.PlayerHand,
+                held = end.Kind == LeashEndKind.PlayerHand,
             };
         }
 
@@ -202,19 +203,12 @@ namespace SpaceGame.Core.Persistence
             LeashArtifact.TryResolveSettings(out Leash.Settings settings);
 
             // The stored length wins over the artifact's authored one — see Rope.maxLength.
-            if (rope.maxLength > 0.01f) settings.maxLength = rope.maxLength;
+            if (rope.maxLength > 0.01f) settings.length = rope.maxLength;
 
             Leash leash = Leash.Create(settings);
 
-            leash.RestoreEndpointA(new Leash.EndpointRestore
-            {
-                Root = rootA, LocalOffset = rope.a.offset, WorldPoint = rope.a.point, Held = rope.a.held,
-            });
-
-            leash.RestoreEndpointB(new Leash.EndpointRestore
-            {
-                Root = rootB, LocalOffset = rope.b.offset, WorldPoint = rope.b.point, Held = rope.b.held,
-            });
+            leash.RestoreEnd(true, rootA, rope.a.offset, rope.a.point, rope.a.held);
+            leash.RestoreEnd(false, rootB, rope.b.offset, rope.b.point, rope.b.held);
 
             return true;
         }

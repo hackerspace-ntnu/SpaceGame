@@ -20,7 +20,7 @@ namespace SpaceGame.EditorTools
     public class HostileDialogTests
     {
         private const string FaunaPath = "Assets/Game/ScriptableObjects/Factions/Core/FaunaFaction.asset";
-        private const string PlayerPath = "Assets/Game/ScriptableObjects/Factions/Core/PlayerFaction.asset";
+        private const string PlayerPath = "Assets/Game/ScriptableObjects/Factions/Core/HumansFaction.asset";
         private const string TablePath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
         private readonly System.Collections.Generic.List<GameObject> spawned = new();

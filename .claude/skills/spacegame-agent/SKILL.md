@@ -1,9 +1,13 @@
 ---
 name: spacegame-agent
-description: Use when adding or changing a creature, NPC, enemy, animal, turret, mount, or AI behaviour in the SpaceGame Unity repo — a new AgentController prefab, a new IBehaviourModule / IFacingModule, faction and FactionRelationshipTable wiring, TargetingProfile or AgentTargeting tuning, PerceptionModule / AlertBroadcaster / NoiseEmitter sensing, ChaseModule / FleeModule / WanderModule / CloseCombatModule / AgentRangedCombatModule composition, an AgentAnimatorDriver walk cycle that skates, NavMeshAgentMotor versus LeggedDriver movement, peaceful-until-provoked creatures, NpcTaskModule / AgentGoal errands, or NpcWorldSim caravans and creature spawning.
+description: Use when adding or changing a creature, NPC, enemy, animal, turret, mount, or AI behaviour in the SpaceGame Unity repo — a new AgentController prefab, a new IBehaviourModule / IFacingModule, faction and FactionRelationshipTable wiring, TargetingProfile or AgentTargeting tuning, PerceptionModule / AlertBroadcaster / NoiseEmitter sensing, ChaseModule / FleeModule / WanderModule / CloseCombatModule / NpcItemUseModule composition, an AgentAnimatorDriver walk cycle that skates, NavMeshAgentMotor versus LeggedDriver movement, peaceful-until-provoked creatures, NpcTaskModule / AgentGoal errands, or NpcWorldSim caravans and creature spawning.
 ---
 
 # SpaceGame agents
+
+> **Design check:** before tuning how a creature behaves, threatens or reads to the player, consult
+> the `SYS`, `DESIGN`, `FEEL` and `BAL` principles in `docs/game-development-constitution/INDEX.md`
+> and cite their IDs.
 
 ## Overview
 
@@ -22,12 +26,12 @@ motors and the animator contract are in **`reference.md`** beside this file.
 ## When to use
 
 New creature / NPC / enemy / animal / turret / mountable; a new AI behaviour; tuning aggression,
-perception, factions, herds, patrol, chatter, or NPC errands; a creature that animates wrong,
+perception, factions, formations, patrol, chatter, or NPC errands; a creature that animates wrong,
 targets the wrong thing, or ignores the player.
 
 ## When NOT to use
 
-- Mesh, rig, FBX export → **`blender-model`** skill.
+- Mesh, rig, FBX export → **`docs/AI/systems/ArtPipeline.md`**.
 - Save / load, `SaveableEntity`, savers, `SaveScope` → **`spacegame-persistence`**.
 - `NetworkObject` registration, RPCs, `NetRelay` / `NetChannel`, damage replication →
   **`spacegame-multiplayer`**.
@@ -51,23 +55,23 @@ Writing a new module is the last resort. In order:
 
 A new module is justified when it produces a genuinely new *locomotion* answer — a new reason to
 pick a destination. It is not justified for a new target rule (`TargetingProfile` +
-`AgentTargeting`), a new weapon (`AgentWeaponDefinition` / `AgentFireProfile` / `AgentAimProfile`,
-or an `InventoryItem` + `NpcItemUseModule`), or a new personality line (`ChatterModule`).
+`AgentTargeting`), a new weapon (an `InventoryItem` + `NpcItemUseModule` — the only NPC gun), or a new personality line (`ChatterModule`).
 
 ## End-to-end checklist: a new creature
 
-Reference implementation to copy: `Assets/Game/Editor/Creatures/GolemBuilder.cs`
-(`Tools/Creatures/Build Golem Prefab`). It assembles the whole stack in one place and is the
-best template for a new creature builder.
+Reference implementation to copy: a finished prefab such as `Golem.prefab`. The creature and
+nomad builders (`GolemBuilder`, `ClankerBuilder`, `NomadPrefabBuilder`…) were deleted; agent
+prefabs are authored assets now, so copy one and edit it in Prefab Mode.
 
-1. **Mesh + rig** — `blender-model` skill. Export through the model's own export script.
+1. **Mesh + rig** — author the `.blend`, then export through `_exportlib` (see `docs/AI/systems/ArtPipeline.md`).
 2. **Import check (humanoid rigs only)** — confirm the generated avatar reports `isHuman = true`.
    A downgraded generic avatar leaves the character standing still with a **completely clean
    console**.
 3. **Prefab** in `Assets/Game/Prefabs/agents/creatures/` (or `.../Robots/`, `.../Characters/`,
    `.../Caravan/`, `.../Vehicles/{Ground,Aircraft,Spacecraft}/`). Existing examples:
    `DuneRat.prefab`, `Golem.prefab`, `Ostrich.prefab`, `Vrescal.prefab`, `Nomad.prefab`,
-   `PatrolRobot.prefab`, `DeathmatchBot.prefab`.
+   `PatrolRobot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`) and
+   `PatrolRobot 1/2/3.prefab` (the same Clanker on three more bodies — `ClankerStack` + `ClankerBodyBuilder`).
 4. **Animator** — reuse the FBX's own `Animator`, never add a second one. Set
    `applyRootMotion = false` (the motor owns movement) and `cullingMode = AlwaysAnimate` for any
    rig built from many bone-parented renderers, or it freezes mid-stride when Unity thinks its
@@ -80,10 +84,10 @@ best template for a new creature builder.
    - Procedural legged rig: a `LeggedDriver` subclass in `Assets/Game/Scripts/Creatures/Drivers/`
      (must stay in Assembly-CSharp) plus a `LeggedLocomotion` subclass in its own
      `SpaceGame.Creatures.<Name>` asmdef. No NavMeshAgent, no `AgentAnimatorDriver`.
-   - Flyer: `FlyingRigidbodyMotor` + `AirWanderModule`. Vehicle: `RigidbodyMotor`.
+   - Hover craft: `HoverRigidbodyMotor` + `HoverGroundSensor`. Flyer: `OrnithopterFlightMotor`.
+     There is no plain physics ground or free-flight motor (both deleted 2026-10-02, unused).
 7. **`AgentController`** on the root; assign `MotorComponent` and `animatorDriver`.
    `AgentTargeting` and `AgentGoal` are auto-added in `Awake`. Set `nearbyAgentScanRadius` and
-   `nearbyAgentLayer` only if using `FlockingModule`.
 8. **`EntityFaction`** — a `FactionDefinition` from
    `Assets/Game/ScriptableObjects/Factions/Core/` **and** the one relationship table,
    `Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset`. Without this component
@@ -92,15 +96,21 @@ best template for a new creature builder.
 
    | Temperament | Faction | Rows in `GlobalRelationships.asset` | Extra |
    |---|---|---|---|
-   | Attacks on sight | `RobotFaction`, `BountyHunterFaction`, or a new one | `Hostile` toward `PlayerFaction` | combat modules |
-   | Peaceful until hurt | `FaunaFaction` (or a new empty one) | **none** — `FaunaFaction.asset` appears in zero rows; adding one "for completeness" makes every creature of that faction attack on sight | `ProvocationModule`, with `leashRange` ≤ `AgentTargeting.loseRange` |
-   | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward the player — change or reuse deliberately | — |
+   | Attacks on sight | `ClankerFaction`, `OutlawFaction`, or a new one | Clankers need none — `defaultStance = Hostile` covers every people-faction, including ones added later. Outlaws have one `Hostile` row toward `HumansFaction` | combat modules |
+   | Peaceful until hurt | `FaunaFaction`, `DriftersFaction`, or a new one | **no Hostile row, `defaultStance` left at `Neutral`, and a `Neutral` row toward `ClankerFaction`** — Hostile is unilateral, so without it the Clankers' Hostile default makes the pair Hostile and your creature attacks every robot it sees (Fauna and Drifters each have that one row). Adding a `Hostile` row "for completeness", or a `Hostile` default, makes every creature of that faction attack on sight | `ProvocationModule` with `leashRange` ≤ `AgentTargeting.loseRange`; an attack module (`CloseCombatModule`) or it can never hit back; a `ChatterModule` or its warnings are mute |
+   | Ambient wildlife | `WildlifeFaction` | already `Hostile` toward `HumansFaction` — change or reuse deliberately | — |
    | Afraid of the player | any | see below | `FleeModule` |
+
+   **`defaultStance` is the checkbox, not the rows.** It is the stance toward any faction the table
+   has no row for: `Hostile` if **either** side says so, `Allied` only if **both** do, else
+   `Neutral`. Only `ClankerFaction` sets it, and a row always beats it — which is exactly how
+   "Clankers shoot people but ignore animals" is expressed. Leave it `Neutral` for anything new
+   unless the whole point of the faction is that it is everyone's enemy.
 
    `FleeModule` resolves its own threat by **relationship**, not by "the player": it uses
    `fleeFromRelationship` (default `Hostile`) against `EntityTargetRegistry`. For a creature that
    should flee the player and nothing else, give it its own `FactionDefinition` with a single
-   `Hostile` row toward `PlayerFaction` and add **no** chase or combat module — `AgentTargeting`
+   `Hostile` row toward `HumansFaction` and add **no** chase or combat module — `AgentTargeting`
    acquires the player, and with only `FleeModule` above `WanderModule` on the ladder the creature
    runs. Setting `fleeFromRelationship = Neutral` instead makes it flee every neutral entity in the
    world, including other creatures.
@@ -113,16 +123,27 @@ best template for a new creature builder.
     serialized default of `Fallback (0)` and ties with wander.
 11. **Perception** — `PerceptionModule` for FOV/LoS; set `occlusionLayers` explicitly.
     `AlertBroadcaster` + `AlertReceiverModule` for pack alerts; `NoiseEmitter` +
-    `NoiseReceiverModule` for hearing.
+    `NoiseReceiverModule` for hearing. **Vision should meet `VisionBaseline`** (180° cone, 80 m
+    acquire, 110 m lose, 12 s target memory — the memory is `AgentTargeting`'s; `PerceptionModule`
+    is stateless). The component defaults already do; never author a narrower literal (wider is
+    fine — prey animals use 210–220°). `VisionBaselineTests` and its wiring menu were deleted, so
+    nothing enforces this.
+    A creature that deliberately sees less (a stationary boss whose range *is* its trigger, like
+    `LightningConjurer`) needs a comment on the prefab saying why. Any new visibility
+    raycast passes `QueryTriggerInteraction.Ignore` — the project hits triggers by default.
 12. **Animation parameters** (NavMesh creatures) — a controller in
     `Assets/Game/Art/Animations/Creatures/` carrying exactly `SpeedX`, `SpeedY`, `FallSpeed`,
-    `IsGrounded`, `IsImmobalized` *(sic)*, `IsAiming`, plus whatever triggers the combat and health
+    `IsGrounded`, `IsImmobalized` *(sic)*, plus whatever triggers the combat and health
     modules are configured to fire. Then set `animatorSpeedScale = groundSpeed / strideSpeed` or
-    the feet skate.
+    the feet skate. **A humanoid** wears the generated `Humanoid.controller` instead: no triggers
+    at all — run *Tools ▸ SpaceGame ▸ Animation ▸ Wire Humanoid Prefabs* and give its modules
+    `CharacterAction`s (docs/AI/systems/HumanoidAnimation.md). For a new behaviour's gesture, prefer
+    raising a moment (`BodyLanguage.React(this, CharacterMoment.X)`, or `ReactEverywhere` from the
+    server) and a row in `Resources/Animation/MomentReactions.asset` over naming a clip.
 13. **Streaming** — `SceneTracked` with `policy = Migrate`, `keepChunksLoaded = false` for anything
     that roams between chunks.
 14. **Persistence** — `SaveableEntity` + `TransformSaveable` + `HealthSaveable`, and
-    `AgentStateSaveable` for anything with an `AgentTargeting`. Add these **inside the builder**,
+    `AgentStateSaveable` for anything with an `AgentTargeting`. Add them on the prefab,
     then run `Tools/Save System/Wire Saveable Prefabs`. Details: **`spacegame-persistence`**.
     (`AgentController` implements `IPersistentEntity`, so every agent is save-eligible with no
     extra opt-in.)
@@ -134,10 +155,23 @@ best template for a new creature builder.
       `NpcGroupMemberSpec { prefab, isLeader, count }`, inlined in the scene, not an asset.
     - `Assets/Game/ScriptableObjects/Settlements/SettlementConfig.asset` → `robotPrefabs`
       (settlement patrols).
-    - `MatchManager.deathmatchBotPrefab` (arena).
     - A hand-placed instance in a chunk scene under `Assets/Game/Scenes/world/Chunks/`.
 17. **Verify in play**: it wanders; it acquires only what it should; the feet do not slide; the
     walk/run blend matches the motor; it dies, drops loot once, and despawns.
+
+## Rosters and war parties
+
+Adding a new tribe end to end — its `FactionRoster`, people, war parties and caravans — is a
+repeatable job with its own skill: **[spacegame-tribe](../spacegame-tribe/SKILL.md)**.
+
+- A member's `role` draws a prefab from the tribe's `FactionRoster` when `NpcGroupMemberSpec.prefab`
+  is left empty; a `runtimeOnly` template (`bountyHunters`, `tribe` set) is never seeded at startup —
+  `WarPartyDirector` creates one when a tribe goes `AtWar`, and without one in `NpcWorldSim.templates`
+  it logs "no war-party template" and no party ever comes.
+- **A nomad's `NpcRandomLoadout.candidates` must equal the roster's `handItems`, in order.** The
+  builder that baked it is gone, so edit both together; `RosterAssetTests` fails the moment they
+  disagree.
+- Full model, flows and gotchas: [AgentSystem.md](../../../docs/AI/systems/AgentSystem.md).
 
 ## Module quick reference
 
@@ -147,32 +181,28 @@ Social 15 · Ambient 10 · Personality 5 · Fallback 0`.
 | Want | Module | Priority |
 |---|---|---|
 | Roam | `WanderModule` | Fallback |
-| Roam in the air | `AirWanderModule` | Fallback |
-| Waypoints / area patrol | `PatrolModule`, `BasePatrolModule` | Fallback |
+| Waypoints / area patrol | `PatrolModule` | Fallback |
 | Run an errand | `NpcTaskModule` (writes goal) + `GoalTravelModule` (walks) | Fallback / Fallback+1 |
 | Close on a target | `ChaseModule` | Reactive |
 | Investigate where it lost you | `SearchModule` | Reactive−1 |
-| Take cover | `CoverModule` | Reactive+1 |
 | Run away | `FleeModule` | Override |
 | Kite / keep its distance | `KeepDistanceModule` | Ambient |
-| Walk up and talk | `ApproachModule` | Ambient |
-| Stop and stare | `WatchModule`, `FacePlayerModule` | Ambient |
+| Stop and stare | `WatchModule` | Ambient |
 | Melee | `CloseCombatModule` | MeleeAttack |
-| Built-in ranged weapon | `AgentRangedCombatModule` | RangedAttack |
 | Fire a real lootable item | `NpcItemUseModule` | RangedAttack (side-effect) |
-| Stationary gun | `TurretModule` | n/a |
-| Move as a herd | `HerdModule` / `FlockingModule` | Social |
+| Stationary gun | `RocketLauncherTurret` | n/a |
 | Travel as a column | `FormationModule` | Social |
+| Herd a band's livestock from the saddle (drag/flank stations, fetch strays) | `HerdingModule` (on the herders' mounts; the band leader routes) | Social+1 |
 | Peaceful until hit | `ProvocationModule` | order −40 |
 | React to allies / noise | `AlertReceiverModule`, `NoiseReceiverModule` | 19 / 18 |
 | Say something | `ChatterModule` | Personality (side-effect) |
 | Be rideable | `MountModule` + `SteerModule` | Fallback / Scripted |
+| Be rideable, but a fast physics wheel/vehicle rather than legs | A motor implementing `IMovementMotor` + `IRiderControllable` directly (no `LeggedLocomotion`) | n/a — see `MonowheelMotor` in [Vehicles.md](../../../docs/AI/systems/Vehicles.md) |
 
 What each module requires, its exact default priority and how it behaves: **`reference.md` §3**.
 
-Assets that tune them: `Assets/Game/ScriptableObjects/Weapons/{WPN_RobotPistol, FIRE_PistolBurst,
-AIM_GruntPoor}.asset`; `Assets > Create > Agents > {Weapon Definition, Fire Profile, Aim Profile,
-Targeting Profile}`; `Assets > Create > Factions > {Faction Definition, Relationship Table}`.
+Assets that tune them: `Assets > Create > Agents > Targeting Profile`; `Assets > Create > Factions >
+{Faction Definition, Relationship Table}`. An NPC's gun is an ordinary `InventoryItem`.
 `AgentTargeting` runs on its own inline fields unless a `TargetingProfile` asset is assigned, and
 the project has leaned on the inline fields — so authoring the first profile for a creature is a
 normal, expected step, not a sign something is missing.
@@ -317,7 +347,9 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Symptom | Cause | Fix |
 |---|---|---|
 | Creature never notices anything, no errors | No `EntityFaction`, or no relationship table assigned | Add both; `EntityFaction.Ensure(go, faction, table)` on spawn paths |
-| Every "peaceful" creature attacks on sight | A relationship row was added for its faction | Peaceful = **zero rows** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
+| Every "peaceful" creature attacks on sight | A Hostile relationship row was added for its faction, or its `defaultStance` is not `Neutral` | Peaceful = **no Hostile row, a `Neutral` default, a `Neutral` row toward `ClankerFaction`** + `ProvocationModule`; keep `leashRange` ≤ `AgentTargeting.loseRange` |
+| A "peaceful" creature attacks the robots on sight | No `Neutral` row toward `ClankerFaction`, whose own Hostile default makes the pair Hostile from both sides | Add the row; `SculptCharacterBuilder.VerifyAll` checks the drifters for exactly this |
+| Pointing a gun at an NPC does nothing | `MenaceSensor` also requires a shot THIS agent heard within `brandishWindow` (6 s) — by design, since facing someone armed is how you talk to them | Fire, then keep facing it; each shot also adds `gunshotGain` |
 | Creature chases A, shoots B, backs away from C | A module resolved its own target | Read `context.Targeting` |
 | Everything below one module never runs | That module returns `MoveIntent.Idle()` while merely waiting | Return `null` |
 | A script-added module is ignored | `Reset()` is not called for `AddComponent`; priority stayed 0 and tied with wander | Set `priority` explicitly |
@@ -325,23 +357,23 @@ means `Tick` only runs on the server), and despawn through the netcode path rath
 | Provoked NPC closes at a walking pace | `NavMeshAgent.speed` was set to the walk | Set it to the run; scale `walkSpeedMultiplier` down from it |
 | Character stands still after an FBX re-export, clean console | Unity downgraded the avatar: `isValid = true`, `isHuman = false` | Re-export via the model's export script (single armature, `add_leaf_bones=False`), reimport, re-check `isHuman` |
 | Creature freezes mid-stride when off screen | Bone-parented renderers give the Animator bind-pose bounds | `animator.cullingMode = AnimatorCullingMode.AlwaysAnimate` |
-| Death animation never plays | `AgentAnimatorDriver.TriggerDie` fires `"Die"`; `HealthReactionModule.dieAnimTrigger` defaults to `"Death"` | Match the controller. `CloseCombatModule` defaults to `"Meele"` and `AgentRangedCombatModule` to `"AssualtShoot"` — both misspellings are real, and `Golem.controller` carries `Die` *and* `Death` |
+| A humanoid NPC's punch never lands although the arm reaches you | Damage waits for the `attackAction`'s Contact mark and is dropped if the target left reach or the tick came more than `contactGrace` late | Check the action's Contact mark against the clip, and that nothing out-ranks `CloseCombatModule` mid-swing |
+| `[CharacterActions] 'X' has no state for action 'Y'` | The action was added after the humanoid controller was built | *Tools ▸ SpaceGame ▸ Animation ▸ Rebuild Humanoid Controller* |
+| A creature's death/hurt animation never plays | Its trigger field names a parameter its own controller lacks (`HealthReactionModule.dieAnimTrigger` defaults to `"Death"`; `Golem.controller` carries `Die` *and* `Death`) | Match the controller; `HumanoidWiringAssetTests` lists every mismatch |
 | Every NPC swings its gun to follow the host's head | `Weapon.UpdateWeaponRotation` aims at `Camera.main` for the owner, and the server owns every NPC | `EntityEquipmentController` sets `Weapon.ExternallyAimed`; keep `aimHeldItem` on |
 | Agent shoots through walls, intermittently | `PerceptionModule.occlusionLayers` left at `Nothing` (it warns and falls back) | Set the mask explicitly on the prefab |
 | Remote clients see it slide with still feet | `LeggedLocomotion` was left in `NetAuthority.simulationDrivers` | Remove it — the legs must keep solving against the replicated body |
-| A rebuild silently drops hand-added components | `*Builder` scripts in `Assets/Game/Editor/` overwrite the prefab wholesale, with no warning | Put every component in the builder. `GolemBuilder` lost the Golem's `SaveableEntity` exactly this way |
+| A rebuild silently drops hand-added components | `*Builder` scripts in `Assets/Game/Editor/` overwrite the prefab wholesale, with no warning | Historical: the agent builders are deleted, so this only bites through a builder that remains (`SculptCharacterBuilder`). Put every component in that builder |
 | Loot duplicates every time the world loads | A death reaction ran during a save restore | Check `HealthComponent.IsRestoring` |
 | A spawner's group duplicates on load | Its members were also captured by the world save | `SaveableEntity.DisownToExternal()` — see `spacegame-persistence` |
 | Vehicle carrying the creature climbs into the sky | Its ground probe hit the non-kinematic rider | Skip hits whose `attachedRigidbody` is non-kinematic; layer masks do not work here (the player is on layer 0) |
 | An agent with two `AgentTargeting` components | `[RequireComponent]` already added one before the builder did | Guard with `GetComponent<AgentTargeting>() == null` |
+| A mounted NPC rides up and never attacks | Its brain is off — it is a passenger | `NpcPassenger` takes the rider's *feet* (`AgentController.RidesAsPassenger` + `NavMeshAgent`/motors), never the `AgentController`. Do not arm the animal instead: a mount carries, the rider shoots |
 
 ## Cross-references
 
 - `reference.md` (beside this file) — tick order, execution orders, verbatim interface members,
   full module catalog, motors, targeting/faction API, animator contract.
-- `Assets/Game/Editor/Creatures/GolemBuilder.cs` — the reference creature builder.
-- `Assets/Game/Scripts/agents/Profiles/EntitySystemSetup.cs` — in-repo setup notes
-  (documentation only; some of its paths are stale).
-- Skills: `blender-model` (mesh/rig), `spacegame-persistence` (save/load),
+- Mesh/rig: `docs/AI/systems/ArtPipeline.md`. Skills: `spacegame-persistence` (save/load),
   `spacegame-multiplayer` (netcode, network prefabs, damage replication),
   `spacegame-artifact` (items an NPC carries and fires).

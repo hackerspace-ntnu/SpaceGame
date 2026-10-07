@@ -17,6 +17,7 @@ using UnityEngine.UI;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.World;
+using SpaceGame.World.Safety;
 
 namespace SpaceGame.Presentation
 {
@@ -55,6 +56,13 @@ namespace SpaceGame.Presentation
         private static LoadingScreenUI instance;
         private Coroutine watching;
         private string stage = "Loading";
+
+        /// <summary>
+        /// Up and still waiting. Read by <see cref="NetworkLoadingScreen"/>, which raises the
+        /// overlay for every machine the server pulls into a scene — including the one that raised
+        /// it itself a moment earlier, because Netcode reports the load locally on the server too.
+        /// </summary>
+        public static bool IsShowing => instance != null && instance.watching != null;
 
         public static LoadingScreenUI Ensure()
         {
@@ -153,8 +161,15 @@ namespace SpaceGame.Presentation
 
             if (streamer != null)
             {
-                yield return WaitUntil(() => streamer == null || streamer.InitialChunksLoaded,
-                                       "terrain streaming");
+                // Split by role, because InitialChunksLoaded is SERVER-SIDE bookkeeping. A client's
+                // WorldStreamer returns straight out of OnNetworkSpawn — the server issues every
+                // chunk load — so the flag is false on a client for the whole session, and waiting
+                // on it holds that client's overlay up until it kills the process.
+                if (Network.Client && !Network.Server)
+                    yield return WaitUntil(HasGroundUnderLocalPlayer, "terrain streaming");
+                else
+                    yield return WaitUntil(() => streamer == null || streamer.InitialChunksLoaded,
+                                           "terrain streaming");
             }
 
             // 4. A camera actually rendering. Until one exists Unity paints its own "no cameras
@@ -191,6 +206,33 @@ namespace SpaceGame.Presentation
 
                 yield return null;
             }
+        }
+
+        /// <summary>
+        /// What a client can measure of chunk streaming: terrain under the body it is about to be
+        /// handed. Its chunk scenes arrive as server-driven additive loads it keeps no account of,
+        /// so the outcome is the only thing it can read — see the note at the call site.
+        ///
+        /// True as well wherever the streamed world owes no ground at all: the minigame arena, an
+        /// interior, the grid's unauthored western padding. Terrain never arrives there, so
+        /// treating those as "still loading" would be a permanent overlay rather than a wait.
+        /// </summary>
+        private static bool HasGroundUnderLocalPlayer()
+        {
+            NetworkManager manager = NetworkManager.Singleton;
+            NetworkObject player = manager != null && manager.SpawnManager != null
+                ? manager.SpawnManager.GetLocalPlayerObject()
+                : null;
+
+            // Step 2 waited for this object, so a null here means it has gone rather than not yet
+            // arrived — a disconnect mid-load. There is no longer a body to place, and holding the
+            // overlay up for one would outlive the session it belonged to.
+            if (player == null) return true;
+
+            Vector3 position = player.transform.position;
+
+            return !TerrainProbe.IsInsideStreamedWorld(position) ||
+                   TerrainProbe.TryGetTerrainHeight(position, out _);
         }
 
         // Any enabled camera rendering to the screen counts. The overlay's own fallback is excluded:
@@ -261,9 +303,7 @@ namespace SpaceGame.Presentation
             // Above every other overlay in the project — this one exists to hide what's behind it.
             canvas.sortingOrder = 5000;
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             panel = CreateChild("Panel", canvasGo.transform, out RectTransform panelRect);
             panelRect.anchorMin = Vector2.zero;

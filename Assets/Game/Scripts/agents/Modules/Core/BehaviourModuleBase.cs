@@ -47,6 +47,15 @@ namespace SpaceGame.Agents
 
         public int Priority => priority;
         public bool IsActive => active && enabled && gameObject.activeInHierarchy;
+
+        /// <summary>
+        /// Flip only the runtime <c>active</c> switch -- never <c>enabled</c>, and never marks an
+        /// asset dirty (unlike the editor's EntityProfileEditorUtils.SetModuleActive). Separate from
+        /// <c>enabled</c> on purpose: suppressors (MountModule, MonowheelDriverGate) own
+        /// <c>enabled</c> and give back only what they took, so a caller that parks a module for its
+        /// own reason uses this bit and never fights them.
+        /// </summary>
+        public void SetRuntimeActive(bool value) => active = value;
         // Override to false in modules that only fire side effects and never return a MoveIntent.
         public virtual bool ClaimsMovement => true;
 

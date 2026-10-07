@@ -14,6 +14,7 @@
 // Turning needs no special case. A foot drifts backwards through the body frame at -(v + w x r),
 // which already accounts for rotation, so a leg on the outside of a turn is handed a longer stride
 // than one on the inside without anything here knowing about turns.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Locomotion
@@ -35,6 +36,12 @@ namespace SpaceGame.Locomotion
 
         private WalkerGait gait;
 
+        /// The feet that came down in the last Step. Read, not raised as an event: whatever answers
+        /// a footfall (dust, sound) runs after this component rather than inside the gait loop, so
+        /// a fault in it can never leave a frame's legs half-updated. Sized for six legs; a machine
+        /// with more grows it once.
+        private readonly List<Footfall> footfalls = new List<Footfall>(6);
+
         private void UpdateGait(float dt)
         {
             float runBlend = RunBlend;
@@ -46,6 +53,7 @@ namespace SpaceGame.Locomotion
             Vector3 linear = commandedWorldVelocity;
             float yawRate = CommandedYawRate * Mathf.Deg2Rad;
             float pace = Pace;
+            footfalls.Clear();
 
             int planted = 0;
             foreach (LegState leg in legs) if (!leg.Swinging) planted++;
@@ -81,6 +89,8 @@ namespace SpaceGame.Locomotion
                         leg.Foot = leg.SwingTo;
                         leg.Swinging = false;
                         planted++;
+                        footfalls.Add(new Footfall(leg.Measure.Index, leg.Foot, leg.GroundNormal,
+                                                   leg.Measure.FootprintRadius));
                     }
                     else
                     {
@@ -176,10 +186,38 @@ namespace SpaceGame.Locomotion
         private Vector3 ResolveFoothold(LegState leg, Vector3 home, Vector3 drift,
                                         float stance, float swing)
         {
-            Vector3 probe = WalkerGait.Foothold(home, drift, stance, swing, leg.Measure.StrideLength);
+            // The body's pose when this swing lands: where it will have travelled to, and how far
+            // round it will have turned. Both the aim and the reach clamp are measured against it,
+            // and they have to agree -- a foothold aimed at the arc but clamped against a hip
+            // predicted along the tangent is clipped by a budget that is measuring something else.
+            Vector3 travel = commandedWorldVelocity * swing;
+            Quaternion turn = Quaternion.AngleAxis(CommandedYawRate * swing, Vector3.up);
+
+            Vector3 probe = WalkerGait.Foothold(home, body.position, travel, turn, drift, stance,
+                                                leg.Measure.StrideLength);
+
+            // Clamp against the height the foot will LAND at, not the height `home` sits at.
+            //
+            // `home` is the rest foothold carried in body space, so a stride model that stands the
+            // machine down -- HipBudgetStride does, YawArcStride does not -- leaves it a whole
+            // stand-down BELOW the ground the foot actually meets. WalkerFoothold.Clamp measures its
+            // rise from the hip to the probe, so that error goes straight into the budget as an
+            // overstated rise; and the budget is a square root, so it does not degrade gracefully.
+            // On a rig whose REST hip height is close to its linkage length the root goes imaginary
+            // and the whole budget collapses onto its degenerate floor. Every step then lands barely
+            // ahead of the hip and spends its entire stance dragging out past what the leg can hold,
+            // which the body answers by diving to keep the trailing leg attached -- read from the
+            // outside as a machine walking with its feet in the ground, bouncing once per stride.
+            // The conjurer is 1% over that line and was doing exactly this; the ostrich is 9% under
+            // it and was merely taking shorter steps than its own numbers asked for.
+            //
+            // The foot this leg is standing on is ON the ground, so its height is the honest
+            // estimate of where the next one goes. Exact on the flat, and one step stale on a slope
+            // -- the same staleness the drift and the swing estimate already carry.
+            probe.y = leg.Foot.y;
 
             Vector3 hipAtTouchdown = WalkerFoothold.HipAtTouchdown(
-                leg.Rig.Anchor.position, commandedWorldVelocity, swing);
+                leg.Rig.Anchor.position, body.position, travel, turn);
 
             Vector3 aim = WalkerFoothold.Clamp(
                 probe, hipAtTouchdown, leg.Rig.Geometry.MaxReach, FootholdReachFraction);

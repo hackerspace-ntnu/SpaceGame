@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17eaf167041034dec9ffbd3321862ec0, type: 3}
+  m_Name: NomadTerraceStreets
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementStreetStyle
+  segmentLength: 10
+  maxTurn: 6
+  contourBias: 0.5
+  sideStreetChance: 0.8
+  alleyChance: 0.5
+  branchSpacing: 45
+  branchAngleJitter: 8
+  snapDistance: 6
+  frontageSlack: 1.3
+  maxSegments: 800
+  mainStreetSlabs: 1
+  sideStreetSlabs: 1
+  alleySlabs: 1
+  verge: 0.25
+  setback: 0
+  plazaHouseShare: 0.6
+  plazaMinRadius: 8
+  plazaMaxRadius: 16
+  plazaMinLanes: 2
+  plazaMaxLanes: 4
+  plazaHousesPerLane: 3
+  buildingCoverage: 0.35
+  denseCore: 0.5
+  backRowChance: 0.4
+  passageWidth: 1.6
+  backRowGap: 0.5
+  trimMargin: 3
+  stepHeight: 1.5
+  minRunBetweenStairs: 9
+  groundSmoothing: 6
+  gradeDistance: 10
+  wallReach: 4
+  wallStraightening: 0.75
+  fieldCellSize: 1
+  slabs:
+  - prefab: {fileID: 5794814630044111985, guid: dd4b11f6cf59949beb48396923bbb366, type: 3}
+    weight: 6
+  - prefab: {fileID: 8220278899347440567, guid: 1eb5ee6349a954c98b1e7d8b0c9050ef, type: 3}
+    weight: 1
+  - prefab: {fileID: 4538835401330264289, guid: 0732c509a0dd54e909d8ac7fc1f4c54b, type: 3}
+    weight: 1
+  - prefab: {fileID: 1520667110001228512, guid: b84c1cabff3834ed99aad016d8742717, type: 3}
+    weight: 1.5
+  slabGap: 0.25
+  slabSideGap: 0.15
+  narrowStairs: {fileID: 0}
+  wideStairs: {fileID: 0}
+  terraceWalls:
+  - prefab: {fileID: 3627380172680420467, guid: 3300004d27e944a3493cbef014586a67, type: 3}
+    weight: 1
+  maxTilt: 10
+  roadShare: 0.15
+  slabShare: 0.25
+  minBuildingsForRoad: 8
+  orderRankDistance: 40
+  doorSurface: 1
+  doorPathWidth: 1.2
+  road:
+    tiles:
+    - prefab: {fileID: 488115819180749931, guid: 9b0f321f850e94834af98324d8ca3ea9, type: 3}
+      weight: 1
+    node: {fileID: 3432042263768917660, guid: e6036c4816f264b2fa224dc454ef597d, type: 3}
+    end: {fileID: 6016822142861543454, guid: 56f1d22662e6e48c5906407871fa345c, type: 3}
+  stones:
+    pieces:
+    - prefab: {fileID: 59768636484786592, guid: 3b056fa564da843c98b06ebd00944e1d, type: 3}
+      weight: 3
+    - prefab: {fileID: 7935683793029068277, guid: 3e5d1f7b5189b45c197d45dd7a94127f, type: 3}
+      weight: 2
+    - prefab: {fileID: 4725337961170324613, guid: ca050082eaae44dcea675f9b22ba499e, type: 3}
+      weight: 1
+    - prefab: {fileID: 6489025195016654941, guid: 4e4dd8b8dd4884984aa688bbae89ecec, type: 3}
+      weight: 2
+    - prefab: {fileID: 3564108816037006798, guid: 1cef22382b29b442aa39a8a8b5910972, type: 3}
+      weight: 2
+    spacing: 1.2
+    spacingJitter: 0.25
+    lateral: 0.35
+    pairChance: 0.15
+    scaleJitter: 0.15
+    sinkMax: 0.03
+    minGap: 0.08
+    fadeStones: 3
+    fadeScale: 0.6
+    retries: 2
+  stonePathWidth: 2.25
+  tileFitRange: 0.15
+  nodeTurn: 20
+  nodeScale: 1.3
+  nodeClearance: 0.1
+  tileLift: 0.003
+  flightWide: {fileID: 5952120309247755987, guid: 7fe9bb8ef676c4f07ae18a14e5ceb41c, type: 3}
+  flightNarrow: {fileID: 6525559811325434332, guid: 0e0e29a7eaca6497ea8f2301d239a71b, type: 3}
+  landing: {fileID: 868894444588119471, guid: 8d1380fcf756a47c4bb77f7ef4c1138f, type: 3}
+  flightRun: 2.7
+  landingRun: 3.5
+  maxStairLevels: 4
+  mainStreetStairLevels: 1
+  flightsPerLanding: 2
+  stairGroundBelowNosing: 0.5
+  wallCourses:
+  - prefab: {fileID: 7405056236237108776, guid: 5936f7a7ba5274a8db44c340eb3340dd, type: 3}
+    weight: 1
+  wallPillar: {fileID: 8472487984417300341, guid: fdbbb06ae8d8e491b8336ea353453ceb, type: 3}
+  courseBatter: 0.1
+  maxWallCourses: 3
+  pillarEvery: 3
+  pillarTurn: 12
+  mirrorAlternateWallTops: 1

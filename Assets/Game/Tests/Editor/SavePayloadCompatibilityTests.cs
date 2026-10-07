@@ -40,7 +40,8 @@ namespace SpaceGame.EditorTests
         {
             Assert.AreEqual("health", HealthSaveable.Key);
             Assert.AreEqual("inventory", InventorySaveCodec.Key);
-            Assert.AreEqual("backpack", BackpackSaveCodec.Key);
+            Assert.AreEqual("backpack", BackpackSaveable.Key);
+            Assert.AreEqual("wallInventory", WallInventorySaveable.Key);
             Assert.AreEqual("rigidbody", RigidbodySaveable.Key);
             Assert.AreEqual("transform", TransformSaveable.Key);
             Assert.AreEqual("gameState", GameStateSaveable.Key);
@@ -147,7 +148,7 @@ namespace SpaceGame.EditorTests
         [Test]
         public void BackpackPayload_v1_StillLoads()
         {
-            var state = Read<BackpackSaveCodec.State>(
+            var state = Read<PackSaveCodec.State>(
                 @"{""strapItemIds"":[""s1"",null],""mainItemIds"":[null,""m2"",""m3""]}");
 
             Assert.AreEqual(new[] { "s1", null }, state.strapItemIds);

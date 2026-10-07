@@ -16,7 +16,8 @@ namespace SpaceGame.Core.Persistence
     /// used to be both, and it cost the game every loaded world: the player came back in a body
     /// physics could not move. It belongs to whichever live component wants it — <c>MountModule</c>
     /// while a rider is seated, <c>NetworkRigidbody</c> while ownership settles or for somebody
-    /// else's player, <c>DropItemPhysics</c> and <c>GroundAnchorOnLand</c> once a thing has landed
+    /// else's player, <c>NetAuthority</c> on a machine that does not simulate the thing, and
+    /// <c>WorldItem</c> and <c>GroundAnchorOnLand</c> once a thing has landed
     /// — and every one of them re-asserts it for itself on the far side of a load. A file that had
     /// an opinion about it could only ever overrule them, and the opinion it recorded was not even
     /// about the game: it was whatever netcode teardown had just done to the body on the way out.

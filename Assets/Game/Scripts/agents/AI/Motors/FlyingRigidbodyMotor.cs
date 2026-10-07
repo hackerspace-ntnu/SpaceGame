@@ -6,6 +6,18 @@
 // Expects a Rigidbody with reasonable linear/angular damping so the blimp doesn't drift forever.
 // The motor owns useGravity: thrust holds the craft up while it is being driven, and `gravityWhenIdle`
 // decides what happens when nothing is — a blimp keeps hanging, a grounded vehicle settles.
+//
+// `kinematicHull` flies a KINEMATIC body instead: a hull too big or too intricate to be a dynamic
+// body at all — the Sky City carries non-convex mesh colliders, which PhysX refuses on anything but a
+// kinematic body. A kinematic body ignores the velocity it is given, so the motor keeps that velocity
+// itself (the same ramps, the same facing) and moves the body by it with MovePosition/MoveRotation on
+// the physics clock. Gravity, damping and angular velocity mean nothing to such a body and are left
+// alone.
+//
+// Attitude is opt-in: a craft that should bank into its turns and pitch along its climb (the NPC
+// ornithopter) sets `bankPerTurnRate`/`pitchAlongPath`; with both off — every Sky fleet hull — the
+// rotation is the old upright yaw slerp, unchanged. A craft with attitude on that steers nowhere in a
+// tick levels its bank and pitch out at faceRotateSpeed, keeping its yaw.
 using UnityEngine;
 using SpaceGame.World;
 
@@ -30,6 +42,31 @@ namespace SpaceGame.Agents
         [SerializeField] private float faceRotateSpeed = 2.5f;
         [Tooltip("Tank-steer yaw rate in degrees/sec while rider is driving.")]
         [SerializeField] private float riderTurnSpeed = 45f;
+
+        [Header("Attitude (opt-in; a blimp leaves these at zero)")]
+        [Tooltip("Degrees of bank per degree/second of turn, on a dynamic body. 0 keeps the craft upright.")]
+        [SerializeField, Min(0f)] private float bankPerTurnRate;
+
+        [Tooltip("Steepest bank, degrees.")]
+        [SerializeField, Range(0f, 80f)] private float maxBank;
+
+        [Tooltip("Point the nose along the climb or descent, on a dynamic body.")]
+        [SerializeField] private bool pitchAlongPath;
+
+        [Tooltip("Steepest nose up or down when pitching along the path, degrees.")]
+        [SerializeField, Range(0f, 80f)] private float maxPitch = 45f;
+
+        // Below this horizontal speed there is no path to pitch along.
+        private const float MinPitchSpeed = 1f;
+
+        // Set when FaceDirection wrote this tick's attitude; a tick that steers nowhere levels out instead.
+        private bool attitudeSteered;
+
+        [Header("Hull")]
+        [Tooltip("Fly a kinematic body by moving it: the motor keeps its own velocity and applies it " +
+                 "with MovePosition/MoveRotation every physics step. For hulls that cannot be a " +
+                 "dynamic body, e.g. one with non-convex mesh colliders. The Rigidbody must be kinematic.")]
+        [SerializeField] private bool kinematicHull;
 
         [Header("Altitude Hold")]
         [Tooltip("When idle (no rider, no AI destination), drift back toward this world Y.")]
@@ -78,7 +115,33 @@ namespace SpaceGame.Agents
         private RiderInput pendingRiderInput;
         private bool hasPendingRiderInput;
 
-        public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
+        // A kinematic hull's commanded motion, which the body itself cannot hold (see the header).
+        // Facing is latched rather than written from Tick: Tick runs on the render clock, and a
+        // kinematic MoveRotation only lands on the next physics step, so several Ticks between two
+        // steps would each slerp from the same stale rotation and all but the last would be lost.
+        private Vector3 hullVelocity;
+        private Quaternion hullFacing = Quaternion.identity;
+        private float hullTurnRate;
+        private bool hullTurning;
+
+        public Vector3 Velocity => body ? LinearVelocity : Vector3.zero;
+
+        /// <summary>See the Hull header: true when this motor moves a kinematic body itself.</summary>
+        public bool KinematicHull => kinematicHull;
+
+        // The one place the two kinds of body differ for linear motion.
+        private Vector3 LinearVelocity
+        {
+            get => kinematicHull ? hullVelocity : body.linearVelocity;
+            set
+            {
+                if (kinematicHull) hullVelocity = value;
+                else body.linearVelocity = value;
+            }
+        }
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>.</summary>
+        public float TopSpeed => maxSpeed;
 
         public bool IsImmobile
         {
@@ -86,7 +149,7 @@ namespace SpaceGame.Agents
             {
                 if (!body)
                     return true;
-                return body.linearVelocity.sqrMagnitude <= 0.04f;
+                return LinearVelocity.sqrMagnitude <= 0.04f;
             }
         }
 
@@ -188,6 +251,7 @@ namespace SpaceGame.Agents
             riderYawValid = false;
             riderVelocityValid = false;
             hasPendingRiderInput = false;
+            attitudeSteered = false;
 
             switch (intent.Type)
             {
@@ -205,6 +269,9 @@ namespace SpaceGame.Agents
                     IdleHover(deltaTime);
                     break;
             }
+
+            if (AttitudeEnabled && !kinematicHull && !attitudeSteered)
+                LevelOut(deltaTime);
         }
 
         // Rider input is latched on the render loop and consumed on the physics loop below.
@@ -224,15 +291,36 @@ namespace SpaceGame.Agents
             hasPendingRiderInput = true;
         }
 
-        private void FixedUpdate()
-        {
-            if (!hasPendingRiderInput)
-                return;
+        private void FixedUpdate() => StepPhysics(Time.fixedDeltaTime);
 
+        /// <summary>
+        /// One physics step: the rider's latched input, then a kinematic hull's commanded motion.
+        /// Public so a test can step the motor without the physics loop.
+        /// </summary>
+        public void StepPhysics(float deltaTime)
+        {
             // Input is latched, not cleared: Update may run several times between physics steps (or
             // not at all), and the rider's intent is a held state rather than an event. Clearing it
             // here would drop steering on any frame the two loops did not line up.
-            DriveFromRider(pendingRiderInput, Time.fixedDeltaTime);
+            if (hasPendingRiderInput)
+                DriveFromRider(pendingRiderInput, deltaTime);
+
+            if (kinematicHull)
+                StepHull(deltaTime);
+        }
+
+        // Moves a kinematic hull by what Tick commanded. MovePosition/MoveRotation on a kinematic body
+        // land at the coming simulation step, which is what lets the solver carry contacts with it.
+        private void StepHull(float deltaTime)
+        {
+            if (!body)
+                return;
+
+            if (hullVelocity.sqrMagnitude > 0f)
+                body.MovePosition(body.position + hullVelocity * deltaTime);
+
+            if (hullTurning)
+                body.MoveRotation(Quaternion.Slerp(body.rotation, hullFacing, hullTurnRate * deltaTime));
         }
 
         // Called once per physics step with the physics clock — the only place the body is written.
@@ -255,6 +343,7 @@ namespace SpaceGame.Agents
             riderYaw += input.Move.x * riderTurnSpeed * deltaTime;
             Quaternion facing = Quaternion.Euler(0f, riderYaw, 0f);
             body.MoveRotation(facing);
+            hullTurning = false;   // the rider's heading now, not a latched AI one
 
             // Throttle along the yaw we just asked for — transform.forward is still a physics step
             // behind until MoveRotation lands. Level by construction, so no pitch to strip.
@@ -262,7 +351,7 @@ namespace SpaceGame.Agents
 
             if (!riderVelocityValid)
             {
-                Vector3 v = body.linearVelocity;
+                Vector3 v = LinearVelocity;
                 riderForwardSpeed = Vector3.Dot(v, forward);
                 riderVerticalSpeed = v.y;
                 riderVelocityValid = true;
@@ -279,7 +368,7 @@ namespace SpaceGame.Agents
             riderVerticalSpeed = Mathf.MoveTowards(riderVerticalSpeed, input.Vertical * maxVerticalSpeed, ramp);
 
             // Thrust always points along the current facing, so steering redirects it immediately.
-            body.linearVelocity = forward * riderForwardSpeed + Vector3.up * riderVerticalSpeed;
+            LinearVelocity = forward * riderForwardSpeed + Vector3.up * riderVerticalSpeed;
 
             currentDestination = null;
         }
@@ -293,10 +382,11 @@ namespace SpaceGame.Agents
             // Drop the latch as well — otherwise the next physics step re-applies the last throttle
             // and the stop is undone before it is ever rendered.
             hasPendingRiderInput = false;
+            hullTurning = false;
             if (!body)
                 return;
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
+            LinearVelocity = Vector3.zero;
+            SettleSpin(float.PositiveInfinity);
             // Dismounting is what hands the craft back to physics — don't wait for the next Tick,
             // which only arrives if something is still ticking the motor.
             ApplyGravity(FallsWhenIdle);
@@ -325,6 +415,8 @@ namespace SpaceGame.Agents
             if (distance <= stopDistance)
             {
                 DecelerateAll(deltaTime);
+                if (intent.OverrideFacing)
+                    FaceDirection(intent.FacePosition - transform.position, faceRotateSpeed, deltaTime);
                 return;
             }
 
@@ -335,12 +427,12 @@ namespace SpaceGame.Agents
             // AI is flying it to a 3D point, so the velocity below is the whole story.
             ApplyGravity(false);
 
-            body.linearVelocity = Vector3.MoveTowards(body.linearVelocity, desired, acceleration * deltaTime);
+            LinearVelocity = Vector3.MoveTowards(LinearVelocity, desired, acceleration * deltaTime);
 
-            // Face horizontal direction of travel.
-            Vector3 flatDir = moveDir;
-            flatDir.y = 0f;
-            FaceDirection(flatDir, faceRotateSpeed, deltaTime);
+            // Face the horizontal direction of travel, unless the intent's facing channel names a
+            // point to look at instead — an escort holding its flagship's heading while it drifts.
+            Vector3 facing = intent.OverrideFacing ? intent.FacePosition - transform.position : moveDir;
+            FaceDirection(facing, faceRotateSpeed, deltaTime);
         }
 
         private void IdleHover(float deltaTime)
@@ -348,7 +440,7 @@ namespace SpaceGame.Agents
             bool falls = FallsWhenIdle;
             ApplyGravity(falls);
 
-            Vector3 v = body.linearVelocity;
+            Vector3 v = LinearVelocity;
 
             // Bleed horizontal velocity.
             Vector3 horizontal = new Vector3(v.x, 0f, v.z);
@@ -370,8 +462,8 @@ namespace SpaceGame.Agents
             // else: leave Y to gravity and the ground contact, otherwise the fall is damped away
             // one step after it starts and the craft hangs exactly where it was parked.
 
-            body.linearVelocity = v;
-            body.angularVelocity = Vector3.MoveTowards(body.angularVelocity, Vector3.zero, deceleration * deltaTime);
+            LinearVelocity = v;
+            SettleSpin(deceleration * deltaTime);
         }
 
         private void DecelerateAll(float deltaTime)
@@ -379,8 +471,17 @@ namespace SpaceGame.Agents
             if (!body) return;
             // Commanded to hold station, which includes holding altitude.
             ApplyGravity(false);
-            body.linearVelocity = Vector3.MoveTowards(body.linearVelocity, Vector3.zero, deceleration * deltaTime);
-            body.angularVelocity = Vector3.MoveTowards(body.angularVelocity, Vector3.zero, deceleration * deltaTime);
+            LinearVelocity = Vector3.MoveTowards(LinearVelocity, Vector3.zero, deceleration * deltaTime);
+            SettleSpin(deceleration * deltaTime);
+        }
+
+        // Bleeds a dynamic body's spin. A kinematic hull has none, and Unity warns about a velocity
+        // written to a kinematic body.
+        private void SettleSpin(float maxDelta)
+        {
+            if (kinematicHull)
+                return;
+            body.angularVelocity = Vector3.MoveTowards(body.angularVelocity, Vector3.zero, maxDelta);
         }
 
         private void FaceDirection(Vector3 direction, float rotateSpeed, float deltaTime)
@@ -389,8 +490,59 @@ namespace SpaceGame.Agents
             if (direction.sqrMagnitude <= 1e-4f)
                 return;
             Quaternion target = Quaternion.LookRotation(direction.normalized);
+
+            if (kinematicHull)
+            {
+                hullFacing = target;
+                hullTurnRate = rotateSpeed;
+                hullTurning = true;
+                return;
+            }
+
             // MoveRotation rather than transform.rotation for the interpolation reason in ApplyRiderInput.
-            body.MoveRotation(Quaternion.Slerp(body.rotation, target, rotateSpeed * deltaTime));
+            body.MoveRotation(AttitudeEnabled
+                ? Attitude(target, rotateSpeed, deltaTime)
+                : Quaternion.Slerp(body.rotation, target, rotateSpeed * deltaTime));
+            attitudeSteered = true;
+        }
+
+        private bool AttitudeEnabled => bankPerTurnRate > 0f || pitchAlongPath;
+
+        /// <summary>
+        /// The same yaw slerp toward <paramref name="targetYaw"/>, plus a bank into the turn that slerp
+        /// makes and a pitch along the climb. Yaw is slerped on its own so the roll and pitch written last
+        /// step are not slerped back out.
+        /// </summary>
+        private Quaternion Attitude(Quaternion targetYaw, float rotateSpeed, float deltaTime)
+        {
+            float yaw = body.rotation.eulerAngles.y;
+            float newYaw = Quaternion.Slerp(Quaternion.Euler(0f, yaw, 0f), targetYaw, rotateSpeed * deltaTime).eulerAngles.y;
+            float turnRate = deltaTime > 0f ? Mathf.DeltaAngle(yaw, newYaw) / deltaTime : 0f;
+            float bank = Mathf.Clamp(turnRate * bankPerTurnRate, -maxBank, maxBank);
+
+            float pitch = 0f;
+            Vector3 v = LinearVelocity;
+            float horizontal = new Vector2(v.x, v.z).magnitude;
+            if (pitchAlongPath && horizontal >= MinPitchSpeed)
+                pitch = Mathf.Clamp(Mathf.Atan2(v.y, horizontal) * Mathf.Rad2Deg, -maxPitch, maxPitch);
+
+            // Unity's signs (OrnithopterFlightMotor.ApplyPose documents them): -X raises the nose, -Z
+            // drops the right wing — a right turn banks right.
+            return Quaternion.Euler(-pitch, newYaw, -bank);
+        }
+
+        /// <summary>
+        /// No steering this tick (holding station, idle, or a target straight above or below): ease the
+        /// bank and pitch out at the facing rate and keep the yaw, rather than freezing the last attitude —
+        /// a craft would otherwise hover or touch down nose-down or banked.
+        /// </summary>
+        private void LevelOut(float deltaTime)
+        {
+            // Per Euler axis, the same decomposition Attitude writes: slerping the whole quaternion toward
+            // upright would drag the yaw along with it.
+            Vector3 euler = body.rotation.eulerAngles;
+            float t = faceRotateSpeed * deltaTime;
+            body.MoveRotation(Quaternion.Euler(Mathf.LerpAngle(euler.x, 0f, t), euler.y, Mathf.LerpAngle(euler.z, 0f, t)));
         }
 
         private void OnValidate()
@@ -402,6 +554,7 @@ namespace SpaceGame.Agents
             faceRotateSpeed = Mathf.Max(0.01f, faceRotateSpeed);
             riderTurnSpeed = Mathf.Max(1f, riderTurnSpeed);
             altitudeHoldGain = Mathf.Max(0f, altitudeHoldGain);
+            maxBank = Mathf.Max(0f, maxBank);
         }
     }
 }

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CryoVapourSpray
+  m_Shader: {fileID: 4800000, guid: 6f02bd3cf7232425495de36d3c7b2c28, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Brightness: 2.4
+    - _CoreEnd: 0.74
+    - _Curl: 1.4
+    - _Cut: 0.3
+    - _DeepEnd: 0.22
+    - _Density: 0.42
+    - _Detail: 0.55
+    - _Facets: 5
+    - _Fill: 1.9
+    - _Halo: 0.16
+    - _IceEnd: 0.48
+    - _NoiseBite: 0.35
+    - _NoiseScale: 2.8
+    - _NoiseSpeed: 1.1
+    - _Rim: 0.8
+    - _Shard: 0.45
+    - _Softness: 0.09
+    - _Sparkle: 1.6
+    - _Stretch: 0.75
+    - _Warp: 1
+    m_Colors:
+    - _Color: {r: 0.682, g: 0.882, b: 0.961, a: 1}
+    - _CoreColor: {r: 0.98, g: 1, b: 1, a: 1}
+    - _DeepColor: {r: 0.36, g: 0.68, b: 0.96, a: 1}
+    - _IceColor: {r: 0.72, g: 0.93, b: 1, a: 1}
+    - _ShadowColor: {r: 0.16, g: 0.31, b: 0.62, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

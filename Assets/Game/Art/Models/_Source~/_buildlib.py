@@ -19,6 +19,7 @@ library root is not on sys.path:
 
 import math
 import os
+import re
 import random
 import sys
 
@@ -122,6 +123,70 @@ def collection(name, parent=None):
     return coll
 
 
+def append_objects(blend, names, into):
+    """Append (not link) named objects from a component file into `into`.
+
+    An export needs real mesh data — a linked object arrives as a proxy the
+    FBX writer skips. The depsgraph update matters: a freshly appended object
+    reports the identity matrix until the view layer updates, so anything
+    measured off it before then is wrong.
+
+    Lifted here from `models/props/repair_station.py` and
+    `models/props/oxygen_generator.py`, which carry their own earlier copies
+    and are left alone: both are historical records of hand-edited files.
+    """
+    with bpy.data.libraries.load(blend, link=False) as (src, dst):
+        missing = [n for n in names if n not in set(src.objects)]
+        if missing:
+            raise SystemExit("Not in %s: %s" % (blend, ", ".join(missing)))
+        dst.objects = list(names)
+    out = []
+    for name in names:
+        obj = bpy.data.objects[name]
+        into.objects.link(obj)
+        out.append(obj)
+    bpy.context.view_layer.update()
+    return out
+
+
+def append_reframed(blend, renames, into, frame):
+    """Lift finished parts out of a MODEL file into a component, re-seated at the origin.
+
+    `renames` maps each source object name to its component name. The parts arrive with
+    whatever rig and tilt the model gave them, so every one is unparented (world kept), then
+    moved by the inverse of the FRAME, rotation and translation only: `frame` is either the
+    name of one of the parts (that part lands at the origin, upright) or a Matrix for a point no
+    part sits on (an assembly's ground centre). The rest keep their relation to it. Parents inside
+    the set are restored afterwards, so a ring still carries its paddles. Anything the append
+    dragged in that was not asked for (the model's armature) is removed again.
+    """
+    before = set(bpy.data.objects)
+    objs = append_objects(blend, list(renames), into)
+    worlds = {o.name: o.matrix_world.copy() for o in objs}
+    parents = {o.name: (o.parent.name if o.parent and o.parent.name in renames else None) for o in objs}
+    loc, rot, _ = (frame if isinstance(frame, Matrix) else worlds[frame]).decompose()
+    to_origin = (Matrix.Translation(loc) @ rot.to_matrix().to_4x4()).inverted()
+    for o in objs:
+        o.parent = None
+        o.matrix_world = to_origin @ worlds[o.name]
+    for extra in [o for o in bpy.data.objects if o not in before and o.name not in renames]:
+        bpy.data.objects.remove(extra, do_unlink=True)
+    bpy.context.view_layer.update()
+    by_old = {o.name: o for o in objs}
+    for o in objs:
+        if parents[o.name]:
+            p = by_old[parents[o.name]]
+            w = o.matrix_world.copy()
+            o.parent = p
+            o.matrix_parent_inverse = p.matrix_world.inverted()
+            o.matrix_world = w
+    for old, new in renames.items():
+        by_old[old].name = new
+        by_old[old].data.name = new
+    bpy.context.view_layer.update()
+    return list(by_old.values())
+
+
 # --------------------------------------------------------------------------
 # Part — a bmesh under construction, with per-face material tracking
 # --------------------------------------------------------------------------
@@ -151,12 +216,16 @@ class Part:
         mesh = bpy.data.meshes.new("_scratch")
         bm2.to_mesh(mesh)
         bm2.free()
-        self.bm.faces.ensure_lookup_table()
-        n_before = len(self.bm.faces)
+        # The new faces are found by set difference, not by index. `from_mesh`
+        # into a non-empty bmesh does not append in order: slicing from the old
+        # face count returned mostly EARLIER faces (1 of 6 right, measured
+        # 2026-09-16), so lofts, prisms, tubes and tori tagged their material
+        # onto whatever was drawn before them, and callers transforming the
+        # returned faces flung earlier parts across the model.
+        before = set(self.bm.faces)
         self.bm.from_mesh(mesh)
-        self.bm.faces.ensure_lookup_table()
         bpy.data.meshes.remove(mesh)
-        return self._tag(self.bm.faces[n_before:], mat)
+        return self._tag([f for f in self.bm.faces if f not in before], mat)
 
     # -- primitives --------------------------------------------------------
 
@@ -288,6 +357,101 @@ class Part:
         _smooth_around(faces, _axis_vec(axis))
         return faces
 
+    def segment(self, a, b, stations, mat=0, hint=(1.0, 0.0, 0.0), ring=16, dome=True):
+        """A lofted body segment between two arbitrary points - a limb, a torso shell, a head.
+
+        `loft` only runs along a world axis; a limb runs along its bone. `stations`
+        are (t, half_width, half_depth) with t in 0..1 from `a` to `b`; the width axis
+        leans toward `hint`. With `dome` each end closes in a rounded cap the size of
+        its end section, so two segments meeting at a joint overlap as curves and never
+        share a face. Lifted from `components/organic/human_mannequin.py`.
+        """
+        a, b = Vector(a), Vector(b)
+        axis = b - a
+        length = axis.length
+        axis.normalize()
+        side = Vector(hint) - axis * Vector(hint).dot(axis)
+        if side.length < 1e-4:
+            side = Vector((1.0, 0.0, 0.0)) - axis * axis.x
+        side.normalize()
+        front = axis.cross(side).normalized()
+
+        rings = []
+        cap_angles = (80.0, 55.0, 28.0)
+        if dome:
+            t0, w0, d0 = stations[0]
+            for ang in cap_angles:
+                s, c = math.sin(math.radians(ang)), math.cos(math.radians(ang))
+                rings.append((t0 * length - max(w0, d0) * s, w0 * c, d0 * c))
+        rings += [(t * length, w, d) for t, w, d in stations]
+        if dome:
+            t1, w1, d1 = stations[-1]
+            for ang in reversed(cap_angles):
+                s, c = math.sin(math.radians(ang)), math.cos(math.radians(ang))
+                rings.append((t1 * length + max(w1, d1) * s, w1 * c, d1 * c))
+
+        bm2 = bmesh.new()
+        verts = []
+        for along, w, d in rings:
+            centre = a + axis * along
+            verts.append([bm2.verts.new(centre + side * (math.cos(2 * math.pi * i / ring) * w)
+                                        + front * (math.sin(2 * math.pi * i / ring) * d))
+                          for i in range(ring)])
+        for r0, r1 in zip(verts, verts[1:]):
+            for i in range(ring):
+                j = (i + 1) % ring
+                bm2.faces.new((r0[i], r0[j], r1[j], r1[i]))
+        bm2.faces.new(verts[0])
+        bm2.faces.new(list(reversed(verts[-1])))
+        faces = self._absorb(bm2, mat)
+        return self.shade(faces)
+
+    def sheet(self, rows, thickness, mat=0, closed=False, smooth=True):
+        """Thicken a grid of points into a solid shell - coat panels, collars, scarves, trims.
+
+        `rows` is a list of equal-length lists of points; neighbouring rows and columns
+        are bridged. The sheet is offset half `thickness` each way along the grid's own
+        normal, and its open borders are closed, so it has real thickness and nothing
+        laid against it can z-fight. `closed` joins the last column back to the first,
+        for a collar or a sleeve.
+        """
+        rows = [[Vector(p) for p in row] for row in rows]
+        nr, nc = len(rows), len(rows[0])
+        cols = nc if closed else nc - 1
+
+        def point(i, j):
+            return rows[max(0, min(nr - 1, i))][j % nc if closed else max(0, min(nc - 1, j))]
+
+        bm2 = bmesh.new()
+        outer, inner = [], []
+        for i in range(nr):
+            o_row, i_row = [], []
+            for j in range(nc):
+                du = point(i, j + 1) - point(i, j - 1)
+                dv = point(i + 1, j) - point(i - 1, j)
+                n = du.cross(dv)
+                n = n.normalized() if n.length > 1e-9 else Vector((0.0, 0.0, 1.0))
+                o_row.append(bm2.verts.new(rows[i][j] + n * (thickness / 2.0)))
+                i_row.append(bm2.verts.new(rows[i][j] - n * (thickness / 2.0)))
+            outer.append(o_row)
+            inner.append(i_row)
+
+        for i in range(nr - 1):
+            for j in range(cols):
+                k = (j + 1) % nc
+                bm2.faces.new((outer[i][j], outer[i][k], outer[i + 1][k], outer[i + 1][j]))
+                bm2.faces.new((inner[i][j], inner[i + 1][j], inner[i + 1][k], inner[i][k]))
+        for i in (0, nr - 1):
+            for j in range(cols):
+                k = (j + 1) % nc
+                bm2.faces.new((outer[i][j], inner[i][j], inner[i][k], outer[i][k]))
+        if not closed:
+            for j in (0, nc - 1):
+                for i in range(nr - 1):
+                    bm2.faces.new((outer[i][j], outer[i + 1][j], inner[i + 1][j], inner[i][j]))
+        faces = self._absorb(bm2, mat)
+        return self.shade(faces, smooth)
+
     # -- detail generators -------------------------------------------------
 
     def rivets(self, start, end, count, radius=0.018, height=0.012,
@@ -334,6 +498,37 @@ class Part:
             faces += self.box(p, s, mat)
         return faces
 
+    def helix(self, lo, hi, radius, wire, turns, mat=0, seg=6, per_turn=10):
+        """A coil spring, swept as a chain of short cylinders along a helix.
+
+        Nothing else here can make one. `loft` places its rings perpendicular to
+        a single axis, which turns a helix into a flat spiral ribbon rather than
+        a round wire, and `cyl` alone cannot follow a curve. So this walks the
+        helix and lays one cylinder per step, each rotated onto the local
+        tangent.
+
+        `per_turn` is the resolution: at ten steps per turn the bend between
+        neighbouring segments is 36 degrees, which does not read as faceted at
+        arm's length and keeps a five-turn coil to about 400 triangles.
+        """
+        steps = max(1, int(turns * per_turn))
+        faces = []
+        points = []
+        for i in range(steps + 1):
+            t = i / steps
+            a = 2 * math.pi * turns * t
+            points.append(Vector((radius * math.cos(a), radius * math.sin(a),
+                                  lo + (hi - lo) * t)))
+
+        for a, b in zip(points, points[1:]):
+            d = b - a
+            if d.length < 1e-6:
+                continue
+            rot = d.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+            faces += self.cyl((a + b) / 2.0, wire, d.length, 'Z', seg, mat,
+                              rot=rot)
+        return faces
+
     def louvres(self, lo, hi, count, axis='Y', mat=0, thickness=0.02):
         """A stack of angled slats filling a rectangular opening."""
         lo, hi = Vector(lo), Vector(hi)
@@ -376,8 +571,12 @@ class Part:
                  and e.calc_face_angle(0.0) > math.radians(angle)]
         if not edges:
             return
+        # material=-1 takes each chamfer's material from its neighbours. Left at
+        # its default the chamfers all get slot 0, which painted every bevelled
+        # edge in the library its model's FIRST material (measured 2026-09-16:
+        # a black cable in `street_life` came out three-quarters red).
         bmesh.ops.bevel(self.bm, geom=edges, offset=width, segments=segments,
-                        profile=0.5, affect='EDGES', clamp_overlap=True)
+                        profile=0.5, affect='EDGES', clamp_overlap=True, material=-1)
 
     def finish(self, name, coll, origin=(0, 0, 0)):
         """Emit the object. `origin` is in the space the geometry was built in
@@ -575,3 +774,105 @@ def report():
               % (o.name, n, *o.dimensions))
     print("  TOTAL TRIS: %d" % total)
     return total
+
+
+# --------------------------------------------------------------------------
+# Kit assembly - placing copies of appended component parts
+#
+# Extracted from models/buildings/nomad_settlement.py when the tent set needed
+# the same three helpers. A generator that appends parts and scatters copies of
+# them wants exactly this: measure the group, work out one transform that lands
+# its anchor where you want it, and stamp copies that share the source's mesh
+# datablock so a hundred placements cost one mesh.
+# --------------------------------------------------------------------------
+
+def bbox(objs, pre=None):
+    """World bounding box of a group, optionally seen through a pre-rotation."""
+    pre = pre or Matrix.Identity(4)
+    pts = [pre @ (o.matrix_world @ Vector(c)) for o in objs for c in o.bound_box]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts),
+                 min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts),
+                 max(p.z for p in pts)))
+    return lo, hi
+
+
+def group_size(srcs, pre_z=0.0):
+    lo, hi = bbox(srcs, Matrix.Rotation(math.radians(pre_z), 4, 'Z'))
+    return hi - lo
+
+
+def place_delta(srcs, target, k=1.0, rz=0.0, rx=0.0, pre_z=0.0,
+                anchor="center", pivot=None):
+    """Transform that carries a source group's anchor onto `target`.
+
+    anchor "center" uses the group's bounding-box centre, "base" its centre in
+    XY but its floor in Z, "axis" the centre of `pivot` in XY - which is how a
+    radially symmetric part finds the axis it was modelled around when the group
+    also holds something off-centre - and "origin" the pivot object's own
+    origin, the only anchor that works for a partial ring, whose bounding-box
+    centre is nowhere near its centre of curvature. "foot" is the centre of the
+    part's lowest slice - where it stands - which is what a pole, stake or crate
+    wants when its box centre is thrown off by a brace or an outrigger.
+
+    `k` is a uniform factor, or a 3-sequence for a per-axis one. Per-axis
+    scaling distorts a modelled bevel, so keep it for slabs, bands and
+    foundations and scale anything with a corner radius uniformly.
+    """
+    pre = Matrix.Rotation(math.radians(pre_z), 4, 'Z')
+    lo, hi = bbox(srcs, pre)
+    a = (lo + hi) * 0.5
+    if anchor == "base":
+        a.z = lo.z
+    elif anchor == "axis":
+        plo, phi = bbox([pivot], pre)
+        a.x, a.y = (plo.x + phi.x) * 0.5, (plo.y + phi.y) * 0.5
+        a.z = lo.z
+    elif anchor == "origin":
+        p = pre @ pivot.matrix_world.translation
+        a.x, a.y, a.z = p.x, p.y, lo.z
+    elif anchor == "foot":
+        # Where the part actually STANDS, not where its box is centred. An
+        # awning pole carries an outrigger brace, so its bounding-box centre is
+        # 0.23 m off its shaft, and anchoring on the box plants the pole beside
+        # the thing it is supposed to hold up.
+        pts = [pre @ (o.matrix_world @ v.co)
+               for o in (srcs if pivot is None else [pivot])
+               if o.type == 'MESH' for v in o.data.vertices]
+        if pts:
+            cut = lo.z + 0.12 * max(1e-4, hi.z - lo.z)
+            base = [p for p in pts if p.z <= cut] or pts
+            a.x = sum(p.x for p in base) / len(base)
+            a.y = sum(p.y for p in base) / len(base)
+        a.z = lo.z
+    return (Matrix.Translation(target)
+            @ Matrix.Rotation(rz, 4, 'Z')
+            @ Matrix.Rotation(rx, 4, 'X')
+            @ (Matrix.Diagonal((k[0], k[1], k[2], 1.0))
+               if hasattr(k, "__len__") else Matrix.Scale(k, 4))
+            @ Matrix.Translation(-a)
+            @ pre)
+
+
+def stamp(srcs, delta, coll, prefix, bag):
+    """Copy a source group into `coll`, transformed by `delta`.
+
+    Copies share their source's mesh datablock, so a town full of the same
+    window costs one mesh, not hundreds. Returns what it made, so the caller can
+    measure where the parts actually landed instead of estimating.
+    """
+    made = []
+    for s in srcs:
+        o = s.copy()
+        # Some kit parts are named `Cube.004`, with no type prefix to strip and
+        # a numeric tail of their own. Fold the dot away: a copy must not look
+        # like something Blender auto-suffixed, or the save guard trips on a
+        # name that was always spelled that way.
+        tail = s.name.split("_", 1)[1] if "_" in s.name else s.name
+        tail = re.sub(r"\.(\d{3})$", r"\1", tail)
+        o.name = "%s_%s" % (prefix, tail)
+        o.matrix_world = delta @ s.matrix_world
+        coll.objects.link(o)
+        bag.append(o)
+        made.append(o)
+    return made

@@ -27,7 +27,7 @@ using SpaceGame.Weapons;
 
 namespace SpaceGame.Agents
 {
-    public class EntityEquipmentController : MonoBehaviour
+    public class EntityEquipmentController : MonoBehaviour, INpcItemUser
     {
         [Header("Socket")]
         [Tooltip("Where held items are parented. Leave empty and it is resolved automatically: " +
@@ -46,14 +46,6 @@ namespace SpaceGame.Agents
         [Header("Startup")]
         [Tooltip("Which inventory slot to hold at spawn. -1 to start empty-handed.")]
         [SerializeField] private int startingSlot = 0;
-
-        [Header("Auto-use")]
-        [Tooltip("Fire the held item on a fixed timer regardless of target. Legacy behaviour, kept " +
-                 "for prefabs that relied on it — prefer NpcItemUseModule, which fires when there " +
-                 "is something to fire AT.")]
-        [SerializeField] private bool autoUse = false;
-
-        [SerializeField] private float autoUseInterval = 1f;
 
         [Header("Aiming")]
         [Tooltip("Point the held object at whatever it is being used on. Turn off for items held in " +
@@ -77,7 +69,6 @@ namespace SpaceGame.Agents
         private GameObject equippedObject;
         private UsableItem equippedUsable;
         private int equippedSlotIndex = -1;
-        private float autoUseTimer;
 
         private bool hasAimPoint;
         private Vector3 aimPoint;
@@ -85,7 +76,12 @@ namespace SpaceGame.Agents
         // ── Published state ──────────────────────────────────────────────────────
 
         public int EquippedSlotIndex => equippedSlotIndex;
-        public GameObject EquippedObject => equippedObject;
+
+        /// <summary>The item's instance in the hand; null with an empty hand.</summary>
+        public GameObject HeldObject => equippedObject;
+
+        /// <summary>The bone the held item is seated on.</summary>
+        public Transform HandBone => socket != null ? socket.Socket : null;
         public UsableItem HeldUsable => equippedUsable;
         public bool HasItem => equippedUsable != null;
 
@@ -200,7 +196,6 @@ namespace SpaceGame.Agents
         // meaningless in a file anyway.
         private bool equipmentRestored;
 
-        public float AutoUseTimer => autoUseTimer;
         public bool HasAimPoint => hasAimPoint;
         public Vector3 AimPoint => aimPoint;
 
@@ -212,14 +207,12 @@ namespace SpaceGame.Agents
         /// inventory's saver happen to run in. <see cref="EquipSlot"/> returns early when the slot
         /// asked for is already in hand, so the second call costs nothing and re-spawns nothing.
         /// </summary>
-        public void RestoreEquipment(int slotIndex, float autoTimer, bool aiming, Vector3 aimAt)
+        public void RestoreEquipment(int slotIndex, bool aiming, Vector3 aimAt)
         {
             equipmentRestored = true;
 
             if (slotIndex < 0) Unequip();
             else EquipSlot(slotIndex);
-
-            autoUseTimer = autoTimer;
 
             // After the equip, never before: Unequip clears the aim, so an aim written first would
             // be thrown away on the empty-handed path.
@@ -243,18 +236,6 @@ namespace SpaceGame.Agents
         {
             if (entityInventory)
                 entityInventory.OnSlotChanged -= OnInventorySlotChanged;
-        }
-
-        private void Update()
-        {
-            if (!autoUse || equippedUsable == null)
-                return;
-
-            autoUseTimer -= Time.deltaTime;
-            if (autoUseTimer > 0f) return;
-
-            autoUseTimer = autoUseInterval;
-            TryUseForward();
         }
 
         // Aim in LateUpdate, not Update. The held item is parented to a hand bone, and the Animator
@@ -397,52 +378,29 @@ namespace SpaceGame.Agents
 
             // NetAuthority already switches an NPC's AgentController off on machines that do not
             // simulate it, so in practice this is belt and braces — but the use path is also
-            // reachable from UnityEvents and from autoUse, and "the effect only happens once" has
+            // reachable from UnityEvents, and "the effect only happens once" has
             // to hold on every route in.
             if (!Network.Simulates(this)) return false;
 
             aimPoint = worldAimPoint;
             hasAimPoint = true;
 
-            Vector3 origin = FireOrigin;
-            Vector3 direction = worldAimPoint - origin;
-
-            var arg = new NetArg { A = equippedSlotIndex, P = origin };
-            arg.R = direction.sqrMagnitude > 0.0001f
-                ? Quaternion.LookRotation(direction.normalized, Vector3.up)
-                : transform.rotation;
-
-            // Owner-side hook first, exactly as the player path does it. An item that wants to
-            // describe its own use — a grapple reporting where it is hooking — gets the chance,
-            // and anything it writes overrides what was filled in above.
-            equippedUsable.OnRequestUse(ref arg);
-
-            // Presentation before effect, matching EquipmentController. Weapon.Present() returns
-            // early on the simulating machine after playing its report, so this does not put a
-            // second bullet in the air here.
-            equippedUsable.PlayUse(gameObject, arg);
-            equippedUsable.TryUse(gameObject, arg);
-
-            // Peers. Nothing is excluded: unlike a player's own use, no other machine has already
-            // presented this one locally.
-            this.NetToOthers(NetMsg.ItemUsed, arg);
+            NpcItemFire.Fire(this, equippedUsable,
+                             NpcItemFire.AimedArg(equippedSlotIndex, FireOrigin, worldAimPoint, transform.rotation));
 
             return true;
         }
 
         /// <summary>Use the held item at a point straight ahead. For items that need no target.</summary>
         public bool TryUseForward() =>
-            TryUseAt(FireOrigin + transform.forward * 100f);
+            TryUseAt(FireOrigin + transform.forward * NpcItemFire.ForwardReach);
 
         /// <summary>
-        /// Use the held item on this entity itself — a stim, a shield, an effect artifact.
-        ///
-        /// Aimed at the ground under its own feet rather than at nothing, because an aimed item
-        /// used with a degenerate direction falls back to its holder's forward, and a healing item
-        /// that happens to also raycast would otherwise hit whatever is in front of the NPC.
+        /// Use the held item on this entity itself — a stim, a shield, an effect artifact. Aimed at the
+        /// ground under its own feet (<see cref="NpcItemFire.SelfAimDrop"/>).
         /// </summary>
         public bool TryUseOnSelf() =>
-            TryUseAt(transform.position + Vector3.down * 0.5f);
+            TryUseAt(transform.position + Vector3.down * NpcItemFire.SelfAimDrop);
 
         /// <summary>Peer side: cosmetics only. The effect already happened on the server.</summary>
         private void OnItemUsedElsewhere(in NetArg arg, ulong sender)
@@ -475,7 +433,7 @@ namespace SpaceGame.Agents
             Transform item = equippedObject.transform;
 
             Vector3 direction = aimPoint - item.position;
-            if (direction.sqrMagnitude < 0.0001f) return;
+            if (direction.sqrMagnitude < UsableItem.MinAimDistanceSqr) return;
 
             Quaternion wanted = Quaternion.LookRotation(direction.normalized, Vector3.up);
 
@@ -496,7 +454,6 @@ namespace SpaceGame.Agents
 
         private void OnValidate()
         {
-            autoUseInterval = Mathf.Max(0.05f, autoUseInterval);
             aimTurnSpeed = Mathf.Max(0f, aimTurnSpeed);
             eyeHeight = Mathf.Max(0f, eyeHeight);
             holdScaleMultiplier = Mathf.Max(0.01f, holdScaleMultiplier);

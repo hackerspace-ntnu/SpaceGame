@@ -19,6 +19,10 @@ buildings needed a third. The flags are not arbitrary — each one is load-beari
     old ones.
   * **`FBX_SCALE_NONE`** keeps 1 Blender unit = 1 Unity unit, matching the
     library's metric convention.
+  * **`fix_inverted`** (opt-in) bakes out a negative-determinant transform and
+    recalculates normals, in memory only. A hand edit that drags a scale gizmo
+    past zero leaves the object mirrored; Blender draws it correctly and Unity
+    renders it inside-out, with nothing anywhere reporting a problem.
   * **`add_leaf_bones=False`** when a rig is kept. Blender otherwise appends a
     `<bone>_end` child to every chain tip, which shows up as a real transform
     in Unity and breaks any code that walks a bone's children by index or by
@@ -34,7 +38,9 @@ library root is not on `sys.path`:
 
 import os
 
+import bmesh
 import bpy
+from mathutils import Matrix, Vector
 
 LIB_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -77,25 +83,119 @@ def _localise_materials():
     return n
 
 
-def _drop_armatures():
-    """Un-parent meshes from the rig, in place, then delete the rig.
+def _unparent_meshes():
+    """Clear every mesh's parent, in place. Returns how many were unparented.
 
     Reading `matrix_world` before clearing the parent and writing it back after
     is what keeps the mesh where it was; clearing `parent` on its own drops the
     parent's transform and scatters the model.
+
+    Every world matrix is read first, in one pass, and only then are the parents
+    cleared, so one edit cannot invalidate the matrix the next read depends on.
     """
-    for obj in bpy.data.objects:
-        if obj.type == 'MESH' and obj.parent is not None:
-            world = obj.matrix_world.copy()
-            obj.parent = None
-            obj.matrix_world = world
+    bpy.context.view_layer.update()
+    parented = [o for o in bpy.data.objects
+                if o.type == 'MESH' and o.parent is not None]
+    worlds = [o.matrix_world.copy() for o in parented]
+
+    for obj, world in zip(parented, worlds):
+        obj.parent = None
+        obj.matrix_world = world
+
+    bpy.context.view_layer.update()
+    return len(parented)
+
+
+def _drop_armatures():
+    """Un-parent meshes from the rig, in place, then delete the rig."""
+    _unparent_meshes()
     rigs = [o for o in bpy.data.objects if o.type == 'ARMATURE']
     for obj in rigs:
         bpy.data.objects.remove(obj, do_unlink=True)
     return len(rigs)
 
 
-def export(src, dst, keep_armature=False):
+def _keep_only(names):
+    """Delete every object except `names`. Returns how many were dropped.
+
+    Component files hold several VARIATIONS of one thing stacked at the origin,
+    which is right for the library and useless as an FBX — exported whole, the
+    three rocket variations arrive in Unity as one interpenetrating lump. A
+    model file needs no filter and passes none.
+    """
+    wanted = set(names)
+    missing = wanted - {o.name for o in bpy.data.objects}
+    if missing:
+        raise SystemExit("Not in the file: %s" % ", ".join(sorted(missing)))
+
+    doomed = [o for o in bpy.data.objects if o.name not in wanted]
+    for obj in doomed:
+        bpy.data.objects.remove(obj, do_unlink=True)
+    return len(doomed)
+
+
+def _unmirror():
+    """Bake out any transform that INVERTS handedness, and fix the winding.
+
+    An object scaled negatively on one axis — the usual way a hand edit ends up
+    mirrored, e.g. dragging a scale gizmo past zero — has a negative-determinant
+    matrix. Blender still draws it correctly because the viewport respects the
+    flip, but the FBX carries the negative scale straight through and Unity
+    renders the mesh inside-out: you see its back faces and look through the
+    front of it. Nothing errors, and it looks fine right up until it is in the
+    game.
+
+    Detected by the determinant, not by eye, and confirmed by the mesh's
+    world-space signed volume going negative. The fix is to apply the transform
+    to the mesh data and recalculate normals outward — the world geometry is
+    identical afterwards, only the winding is repaired.
+
+    Opt-in via `export(fix_inverted=True)`, so no model that already ships is
+    changed by this existing. It mutates the in-memory scene only; `export`
+    never writes back to the .blend.
+    """
+    fixed = []
+    for obj in [o for o in bpy.data.objects if o.type == 'MESH']:
+        if obj.matrix_world.to_3x3().determinant() >= 0.0:
+            continue
+        if obj.data.users > 1:          # never mutate a mesh two objects share
+            obj.data = obj.data.copy()
+        obj.data.transform(obj.matrix_world)
+        obj.matrix_world = Matrix.Identity(4)
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(obj.data)
+        bm.free()
+        fixed.append(obj.name)
+    return fixed
+
+
+def _triangulate():
+    """Triangulate every mesh's data, in memory. Returns how many meshes it triangulated.
+
+    Unity discards an n-gon it judges self-intersecting and leaves a hole, and its test does not
+    agree with any crossing test run in Blender -- resculpting twists n-gons, and Raxy's body
+    came in with a hole behind the neck. Shipping triangles only is what works.
+
+    Done on the mesh data with `bmesh.ops.triangulate`, not with a TRIANGULATE modifier: on an
+    n-gon a sculpt has folded over itself the modifier DROPS triangles, and Raxy's resculpt came
+    out 4 short with a 2 mm pinhole in each brow. bmesh keeps every one. Triangulating adds no
+    vertices, so every weight and shape key survives.
+    """
+    meshes = {o.data for o in bpy.data.objects if o.type == 'MESH'}
+    for me in meshes:
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:])
+        bm.to_mesh(me)
+        bm.free()
+    return len(meshes)
+
+
+def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
+           fix_inverted=False, keep_collection=None, prepare=None, scale_all=False,
+           triangulate=False, animations=False):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -103,15 +203,74 @@ def export(src, dst, keep_armature=False):
     model is static set dressing, where a rig is dead weight, or when a builder
     script reparents the meshes itself and a bone hierarchy would get in the way
     (see `ship_rv_export.py`).
+
+    `keep` names the objects to ship when the source is a COMPONENT file rather
+    than a model — see `_keep_only`. Omit it for a model file, whose objects are
+    already exactly the model. `keep_collection` is the same filter by
+    COLLECTION name, resolved after the file is open: for a variation the user
+    keeps hand-editing, whatever they add to that collection ships, and nothing
+    has to be retyped here (`standing_terminal_export.py`).
+
+    `keep_empties` ships the file's empties as well. Off by default because an
+    empty in a model file is usually a build helper, not a socket; turn it on
+    when Unity reads one by reference — a muzzle, a hinge pivot, a seat — the
+    way `ruin_scanner_export.py` ships its `Emitter`.
+
+    `fix_inverted` bakes out negative-determinant transforms and repairs the
+    winding — see `_unmirror`. Off by default so nothing already shipping
+    changes; turn it on for a file whose hand edits left an object mirrored.
+
+    `prepare` is called with no arguments right after the file opens, for a
+    model whose export needs more than a keep-list - dropping build helpers,
+    adding sockets derived from the file's own data. Whatever it changes is in
+    memory only, like everything else here.
+
+    `scale_all` writes the unit scale into the FBX header (`FBX_SCALE_ALL`)
+    instead of into every transform. Turn it on for a skinned HUMANOID
+    character — the drifters ship this way: with `FBX_SCALE_NONE` every bone
+    imports at scale 100, which anything parented to a hand then inherits. Off
+    by default so nothing already shipping changes; Appa and the other
+    creatures size their bone-parented colliders against that 100.
+
+    `triangulate` ships triangles only -- see `_triangulate`. Off by default so nothing
+    already shipping changes; turn it on for a resculpted mesh whose n-gons Unity rejects.
+
+    `animations` bakes EVERY action in the file as its own take, named `<object>|<action>` and
+    bounded by the action's own frame range rather than the scene's. Trim and rename the actions
+    in `prepare` first: whatever actions exist when the FBX is written are what ships. Off by
+    default, because a static model has none and the takes cost import time.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
 
     bpy.ops.wm.open_mainfile(filepath=src)
+    if prepare is not None:
+        prepare()
+    if triangulate:
+        print("  triangulating %d mesh(es) in memory" % _triangulate())
+
+    if keep_collection is not None:
+        coll = bpy.data.collections.get(keep_collection)
+        if coll is None:
+            raise SystemExit("No collection %r in %s" % (keep_collection, src))
+        keep = sorted(o.name for o in coll.all_objects) + list(keep or [])
+        print("  collection %s: %s" % (keep_collection, ", ".join(keep)))
+
+    if keep is not None:
+        print("  keeping %d object(s), dropped %d other variation object(s)"
+              % (len(keep), _keep_only(keep)))
+
+    if fix_inverted:
+        unmirrored = _unmirror()
+        if unmirrored:
+            print("  un-mirrored %d inside-out object(s): %s"
+                  % (len(unmirrored), ", ".join(sorted(unmirrored))))
 
     localised = _localise_materials()
 
     types = {'MESH'}
+    if keep_empties:
+        types.add('EMPTY')
     if keep_armature:
         types.add('ARMATURE')
         rigs = [o for o in bpy.data.objects if o.type == 'ARMATURE']
@@ -125,27 +284,141 @@ def export(src, dst, keep_armature=False):
 
     print("  %d mesh(es), %d tri(s) pre-modifier, %d material(s) localised"
           % (len(meshes), tris, localised))
+    if keep_empties:
+        empties = [o.name for o in bpy.data.objects if o.type == 'EMPTY']
+        print("  keeping %d empt(ies): %s" % (len(empties), ", ".join(sorted(empties))))
     if keep_armature:
         print("  keeping %d armature(s), %d bone(s)" % (len(rigs), bones))
     else:
         print("  dropped %d armature(s); meshes flattened in place" % dropped)
 
+    if animations:
+        print("  baking %d action(s) as takes" % len(bpy.data.actions))
+    _write_fbx(dst, types, scale_all=scale_all, animations=animations)
+    # Deliberately no save_mainfile: the .blend is the source of truth.
+
+
+def _write_fbx(dst, types, use_selection=False, scale_all=False, animations=False):
+    """The twelve load-bearing flags, in one place. See the module docstring."""
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     bpy.ops.export_scene.fbx(
         filepath=dst,
-        use_selection=False,
+        use_selection=use_selection,
         object_types=types,
-        apply_scale_options='FBX_SCALE_NONE',
+        apply_scale_options='FBX_SCALE_ALL' if scale_all else 'FBX_SCALE_NONE',
         axis_forward='-Z',
         axis_up='Y',
         mesh_smooth_type='FACE',
         use_mesh_modifiers=True,
         add_leaf_bones=False,
-        bake_anim=False,
+        bake_anim=animations,
+        bake_anim_use_all_actions=animations,
+        bake_anim_use_nla_strips=False,
+        bake_anim_force_startend_keying=True,
         armature_nodetype='NULL',
         bake_space_transform=False,
         path_mode='COPY',
         embed_textures=False,
     )
     print("  wrote %s (%.1f MB)" % (dst, os.path.getsize(dst) / 1e6))
-    # Deliberately no save_mainfile: the .blend is the source of truth.
+
+
+def export_collections(src, jobs, fix_inverted=False):
+    """Open `src` ONCE and write one FBX per collection named in `jobs`.
+
+    `jobs` is a sequence of `(collection name, destination path)`. This exists
+    for the files that hold a whole CONTACT SHEET of finished models — the forty
+    nomad buildings, the eighteen shade sails — where `export(keep_collection=)`
+    would mean re-opening an 8000-object .blend once per model, and would leave
+    every model standing on its grid square instead of on its own origin.
+
+    Each collection is moved onto the world origin by its `instance_offset` —
+    the point the generators set to the model's ground centre — exported through
+    `use_selection`, and put back.
+
+    Every mesh is unparented first, so each part is moved on its own rather than
+    through a root the exporter is not going to write out.
+
+    **`fix_inverted` is not safe on a contact sheet and this is the wrong place
+    to reach for it.** Measured on `nomad_settlement.blend`: with it on, three of
+    the forty buildings shipped their mirrored kit parts up to 137 m from the
+    model — the .blend reads correct vertex-by-vertex, the FBX does not — and
+    with it off all forty match the source to under 10 mm. Those files share one
+    mesh datablock between as many as 75 objects across several collections,
+    which is the one case `_unmirror`'s copy-on-write does not survive. Fix a
+    mirrored part's winding on the Unity side instead, per renderer.
+    """
+    if not os.path.exists(src):
+        raise SystemExit("No model at %s" % src)
+
+    bpy.ops.wm.open_mainfile(filepath=src)
+    print("  %d mesh(es) unparented" % _unparent_meshes())
+    print("  %d material(s) localised" % _localise_materials())
+    if fix_inverted:
+        unmirrored = _unmirror()
+        print("  un-mirrored %d inside-out object(s)" % len(unmirrored))
+
+    for name, dst in jobs:
+        coll = bpy.data.collections.get(name)
+        if coll is None:
+            raise SystemExit("No collection %r in %s" % (name, src))
+        meshes = [o for o in coll.all_objects if o.type == 'MESH']
+        if not meshes:
+            raise SystemExit("Collection %r holds no mesh" % name)
+
+        offset = Vector(coll.instance_offset)
+        for obj in meshes:
+            obj.location = obj.location - offset
+
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in meshes:
+            obj.select_set(True)
+        bpy.context.view_layer.update()
+        tris = sum(sum(max(0, len(p.vertices) - 2) for p in o.data.polygons) for o in meshes)
+        print("  %s: %d mesh(es), %d tri(s) pre-modifier" % (name, len(meshes), tris))
+        _write_fbx(dst, {'MESH'}, use_selection=True)
+
+        for obj in meshes:
+            obj.location = obj.location + offset
+
+
+def to_unity(v):
+    """Blender `(x, y, z)` as it arrives in Unity through `export`'s flags:
+    `(−x, z, −y)`. The X flip is the handedness change and was measured on an
+    asymmetric model in `grapple_bracer_BUILD.md`; the dart family, being
+    symmetric about x = 0, could not tell and documents it without the flip."""
+    return (-v[0], v[2], -v[1])
+
+
+def describe(worn_scale=None):
+    """Print every pivot and the whole model's bounds, in both frames.
+
+    Run after `export`, on the still-open file. A prefab wires pivots by
+    serialized reference and needs to know where each landed, and `ItemGrip`'s
+    `holdSize` is the model's longest axis times the wear scale — printing both
+    here beats measuring them in the editor afterwards.
+    """
+    objs = [o for o in bpy.data.objects if o.type in ('MESH', 'EMPTY')]
+    for obj in sorted(objs, key=lambda o: o.name):
+        b = obj.location
+        u = to_unity(b)
+        tag = "empty" if obj.type == 'EMPTY' else (
+            "uv" if obj.data.uv_layers else "--")
+        print("  PIVOT %-30s blender (%8.4f, %8.4f, %8.4f)  unity (%8.4f, %8.4f, %8.4f)  %s"
+              % (obj.name, b.x, b.y, b.z, u[0], u[1], u[2], tag))
+
+    meshes = [o for o in objs if o.type == 'MESH']
+    pts = [obj.matrix_world @ v.co for obj in meshes for v in obj.data.vertices]
+    lo = [min(p[i] for p in pts) for i in range(3)]
+    hi = [max(p[i] for p in pts) for i in range(3)]
+    size = [hi[i] - lo[i] for i in range(3)]
+    ulo, uhi = to_unity(lo), to_unity(hi)
+    print("  BOUNDS blender min (%.4f, %.4f, %.4f) max (%.4f, %.4f, %.4f)"
+          % (lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]))
+    print("  BOUNDS unity   min (%.4f, %.4f, %.4f) max (%.4f, %.4f, %.4f)"
+          % (min(ulo[0], uhi[0]), min(ulo[1], uhi[1]), min(ulo[2], uhi[2]),
+             max(ulo[0], uhi[0]), max(ulo[1], uhi[1]), max(ulo[2], uhi[2])))
+    print("  BOUNDS size (%.4f, %.4f, %.4f) — longest %.4f"
+          % (size[0], size[1], size[2], max(size)))
+    if worn_scale is not None:
+        print("  holdSize for a %.1fx wear = %.4f" % (worn_scale, max(size) * worn_scale))

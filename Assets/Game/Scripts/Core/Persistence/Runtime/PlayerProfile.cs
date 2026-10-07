@@ -25,7 +25,7 @@ namespace SpaceGame.Core.Persistence
     ///
     /// <para>
     /// The key is therefore namespaced by the same instance name UGS signs in under — see
-    /// <see cref="SessionLauncher.ResolveProfileName"/>, which exists because anonymous
+    /// <see cref="SessionProfile.Resolve"/>, which exists because anonymous
     /// authentication caches its credential in this very PlayerPrefs file and had the identical
     /// collision. Reusing that resolver rather than inventing a second rule is the point: two
     /// answers to "which instance am I" could disagree, and the pair that disagreed would be a
@@ -62,7 +62,7 @@ namespace SpaceGame.Core.Persistence
             {
                 if (!string.IsNullOrEmpty(cachedId)) return cachedId;
 
-                string key = PrefsKeyFor(SessionLauncher.ResolveProfileName(
+                string key = PrefsKeyFor(SessionProfile.Resolve(
                     Environment.GetCommandLineArgs(), Application.dataPath));
 
                 cachedId = PlayerPrefs.GetString(key, string.Empty);

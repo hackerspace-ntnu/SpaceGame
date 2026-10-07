@@ -1785,6 +1785,7 @@ GameObject:
   - component: {fileID: -4623893970965523647}
   - component: {fileID: -5899206964481542120}
   - component: {fileID: -6536609851289175598}
+  - component: {fileID: 5825457211544572727}
   m_Layer: 0
   m_Name: DuneOrnithopter
   m_TagString: Untagged
@@ -1867,6 +1868,8 @@ MonoBehaviour:
     StaminaDrainPerSecond: 0.16
     StaminaRecoverPerSecond: 0.22
     StaminaFadeBand: 0.25
+    TowAcceleration: 14
+    TowStaminaDrainPerSecond: 0.22
     PitchRate: 45
     RollRate: 90
     RollCentringRate: 60
@@ -1878,6 +1881,9 @@ MonoBehaviour:
     TuckSpreadLoss: 0.65
   spreadDuration: 0.6
   launchAirspeed: 12
+  maxLaunchClimb: 45
+  maxLaunchDive: 12
+  towReleaseDistance: 12
   groundProbeDistance: 1.4
   groundMask:
     serializedVersion: 2
@@ -1955,6 +1961,7 @@ MonoBehaviour:
   lookActionName: Look
   lookSensitivity: 20
   lookPitchClamp: 75
+  firstPersonYawClamp: 180
   defaultMountedPitch: -8
   orbitPitchMin: -25
   orbitPitchMax: 60
@@ -2084,7 +2091,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 0
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -2094,12 +2101,12 @@ MonoBehaviour:
   SyncScaleX: 1
   SyncScaleY: 1
   SyncScaleZ: 1
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
   InLocalSpace: 0
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
@@ -2116,6 +2123,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 224ea88323b7644c2a480ebc564c8756, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &3090664193185887337
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2282,6 +2290,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
+--- !u!114 &5825457211544572727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3241331717362755362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+  frozen:
+    seconds: 10
+    shatterDamage: 25
+  slick:
+    seconds: 20
+    grip: 0.03
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  inflationTarget: {fileID: 3166342794791078911}
 --- !u!1 &3426127597216960582
 GameObject:
   m_ObjectHideFlags: 0

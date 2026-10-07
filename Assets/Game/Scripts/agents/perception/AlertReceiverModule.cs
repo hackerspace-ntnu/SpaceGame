@@ -1,6 +1,7 @@
 // Receives alerts from AlertBroadcaster and forces AgentTargeting onto a target the agent has
 // not independently detected yet, so chase and both attack modules all act on it at once.
 // Drag onto any entity that should respond to ally alerts (guards, pack hunters, etc.).
+using System;
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -18,6 +19,14 @@ namespace SpaceGame.Agents
 
         // Set by RestoreAlert, consumed by the next OnEnable.
         private bool restoredAlert;
+
+        /// <summary>
+        /// An alert about somebody this agent has no quarrel with — the case the meter weighs as
+        /// <see cref="AggressionInput.AllyHurt"/> — with that somebody and the victim (null when the
+        /// alert named none). Raised before the meter moves, so a listener can take a side first:
+        /// join (<see cref="ProvocationModule.Raise"/> to Grudge) or stay out (<see cref="ClearAlert"/>).
+        /// </summary>
+        public event Action<Transform, Transform> HeardAllyHurt;
 
         // ── Persisted state ───────────────────────────────────────────────────────
         public Vector3 AlertPosition => alertPosition;
@@ -54,17 +63,66 @@ namespace SpaceGame.Agents
             restoredAlert = true;
         }
 
-        // Called by AlertBroadcaster.
-        public void ReceiveAlert(Transform target, Vector3 lastKnownPosition)
+        // Called by AlertBroadcaster and by SettlementAlarm. victim: whose fight it is, when known.
+        public void ReceiveAlert(Transform target, Vector3 lastKnownPosition, Transform victim = null)
         {
             alertPosition = lastKnownPosition;
             alertTimer = alertDuration;
 
-            // Hand the target straight to the shared targeting decision so chase and both attack
-            // modules act on it together. GetOrAdd rather than a cached Awake reference: alerts can
-            // arrive before AgentController has run its own resolve.
-            if (target)
+            if (!target)
+                return;
+
+            // Through the grudge when there is one, not a bare ForceTarget. A receiver whose
+            // faction is Neutral toward the target (any nomad) cannot re-acquire it by itself, and
+            // AgentTargeting's staleness pass drops a forced target within seconds — the documented
+            // "a gunshot target does not stick" failure. ProvocationModule re-asserts it every frame
+            // for as long as the leash holds, which is what makes the alert stick. Announce is off:
+            // a target that arrived by alert must not be re-broadcast, or one sighting cascades.
+            //
+            // GetOrAdd rather than a cached Awake reference: alerts can arrive before
+            // AgentController has run its own resolve.
+            if (!TryGetComponent(out ProvocationModule provocation))
+            {
                 Targeting.ForceTarget(target);
+                return;
+            }
+
+            // Who the alert is ABOUT decides what it is worth, and the faction stance already knows.
+            //
+            //   Somebody this agent is Hostile toward — a Clanker told where the player is — is an
+            //   instant grudge. It was going to attack on sight anyway; making it work up to that
+            //   through a meter would be a robot cowboy hesitating, and would mean a patrol that
+            //   only half-answers its own alarm.
+            //
+            //   Somebody it is Neutral toward — a nomad told a tribesman has been hurt — is worth
+            //   allyHurtGain instead. The first scream makes him wary and the second draws his gun,
+            //   so a caravan that hears trouble closes up and warns you before it shoots. That
+            //   escalation is the whole point of having a meter rather than a flag, and it only
+            //   applies to the people who had no quarrel with you to begin with.
+            //
+            // A hit landing on this body is an instant fight either way, because hitGain says so.
+            // AddAggression no-ops once provoked, so an alert mid-fight costs nothing, and a fight it
+            // does start is not re-announced (ProvocationModule.Announces).
+            if (IsHostileTo(target))
+            {
+                provocation.Provoke(target, announce: false);
+                return;
+            }
+
+            HeardAllyHurt?.Invoke(target, victim);
+            provocation.AddAggression(AggressionInput.AllyHurt, 1f, target);
+        }
+
+        /// <summary>
+        /// Does this agent's faction already call <paramref name="target"/> an enemy? Read through
+        /// EntityFaction so the grudge and goodwill layers get their say too
+        /// (<see cref="FactionRelations.Resolve"/>) — an agent that has been pushed into a grudge
+        /// answers its own alerts without climbing the meter a second time.
+        /// </summary>
+        private bool IsHostileTo(Transform target)
+        {
+            return TryGetComponent(out EntityFaction self)
+                   && self.IsHostileTo(target);
         }
 
         private AgentTargeting Targeting =>

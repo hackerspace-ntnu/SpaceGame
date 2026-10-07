@@ -113,6 +113,27 @@ namespace SpaceGame.World
         }
 
         /// <summary>
+        /// Whether all the ground within <paramref name="radius"/> of <paramref name="worldPos"/> has
+        /// streamed in: every chunk there that has terrain is <c>Loaded</c>. False while the streamer
+        /// is not ready — no answer yet is a wait, not a yes. For anything that reads the ground
+        /// around a point and must not mistake "not loaded yet" for "nothing there": a settlement
+        /// counting its residents, a vessel choosing where to land.
+        /// </summary>
+        public bool IsGroundLoadedAround(Vector3 worldPos, float radius)
+        {
+            if (!isReady || config == null) return false;
+
+            config.Grid.CoordsAround(worldPos, radius, groundCoords);
+            foreach (Vector2Int coord in groundCoords)
+            {
+                ChunkInfo? chunk = config.GetChunk(coord);
+                if (chunk.HasValue && !chunk.Value.hasTerrain) continue;
+                if (GetChunkState(coord) != ChunkState.Loaded) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Sample the ground height at <paramref name="worldPos"/> using a downward raycast first,
         /// then the chunk's terrain as fallback. Returns false if neither is available.
         /// </summary>
@@ -198,6 +219,7 @@ namespace SpaceGame.World
         private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
         private readonly Dictionary<Vector2Int, float> unloadTimers = new();
         private readonly List<Transform> trackedTransforms = new();
+        private readonly List<Vector2Int> groundCoords = new();
 
         // ── Scene migration replication (see MoveTracked) ──────────────────────────
         //
@@ -213,6 +235,12 @@ namespace SpaceGame.World
         // Preload callers waiting for chunk CONTENT, not just the scene load — see WhenChunkContentBuilt.
         private readonly List<Action> pendingContentCallbacks = new();
         private readonly List<Action> contentCallbackBuffer = new();
+
+        // Callers waiting on a chunk load that was already in flight when they asked — see EnqueueLoad.
+        private readonly Dictionary<Vector2Int, List<Action>> loadListeners = new();
+
+        // Anchors that are pulling no chunks in for now — see SuspendAnchor.
+        private readonly HashSet<Transform> suspendedAnchors = new();
 
         // Per-tracker history, so the streamer knows how fast each anchor is travelling and can
         // load ahead of it instead of behind it.
@@ -259,6 +287,28 @@ namespace SpaceGame.World
             public Type OperationType;
             public Vector2Int Coord;
             public Action OnComplete;
+        }
+
+        /// <summary>
+        /// The world's baked sites become destinations now, before any chunk loads — on every machine, since the
+        /// registry is plain data. Awake rather than Start or a network spawn: chunk scenes cannot have loaded
+        /// yet, and a marker in this scene that enabled first keeps its live record (see MergeSites).
+        /// </summary>
+        private void Awake()
+        {
+            if (config == null) return;
+
+            if (config.siteCatalog == null)
+                Debug.LogWarning($"[WorldStreamer] {config.name} has no site catalog, so a site is known only once its " +
+                                 "chunk has loaded. Run Tools/SpaceGame/World/Bake Site Catalog.", this);
+            WorldSiteRegistry.MergeCatalog(config.siteCatalog);
+        }
+
+        /// <summary>The world is being unloaded: its sites go with it, so none leaks into the next world played.</summary>
+        public override void OnDestroy()
+        {
+            WorldSiteRegistry.Clear();
+            base.OnDestroy();
         }
 
         private void Start()
@@ -365,6 +415,12 @@ namespace SpaceGame.World
             // The queue drains itself (see ChunkActivationRunner); the streamer only owns the rate.
             ChunkActivationQueue.Shared.budgetMs = chunkActivationBudgetMs;
 
+            // Before the next operation is started, not after: a preload whose last chunk has just
+            // finished building is answered on the frame the activation queue drains. Answered
+            // after, the next load would already be in flight and its content would refill the
+            // queue — see FlushContentCallbacks for what that cost.
+            FlushContentCallbacks();
+
             // Never overlap a chunk's construction with the next chunk's load — that is how two
             // costly phases end up in one frame. The queue is drained every frame regardless, so
             // this defers the next operation rather than blocking it.
@@ -373,8 +429,6 @@ namespace SpaceGame.World
             {
                 ProcessNextOperation();
             }
-
-            FlushContentCallbacks();
 
             if (Time.time < nextUpdateTime) return;
             nextUpdateTime = Time.time + updateInterval;
@@ -434,7 +488,9 @@ namespace SpaceGame.World
 
             var coord = config.WorldToChunkCoord(worldPos);
             var chunks = GetChunksInRadius(coord, config.loadRadius);
-            var toLoad = chunks.Where(c => GetChunkState(c) == ChunkState.NotLoaded).ToList();
+
+            // Anything not yet Loaded is waited for — including a load somebody else started.
+            var toLoad = chunks.Where(c => GetChunkState(c) != ChunkState.Loaded).ToList();
 
             if (toLoad.Count == 0)
             {
@@ -475,7 +531,9 @@ namespace SpaceGame.World
 
                 foreach (var chunk in GetChunksInRadius(coord, config.loadRadius))
                 {
-                    if (GetChunkState(chunk) == ChunkState.NotLoaded)
+                    // Anything not yet Loaded is waited for — including a load somebody else
+                    // started. Six players preloading one spawn area must all wait for it.
+                    if (GetChunkState(chunk) != ChunkState.Loaded)
                         chunksToLoad.Add(chunk);
                 }
             }
@@ -525,11 +583,18 @@ namespace SpaceGame.World
         /// Fire any preload callbacks that were waiting on chunk content to finish building.
         /// Called every frame from <c>Update</c>; cheap while the list is empty.
         /// </summary>
+        // Gated on the activation queue ALONE. A callback only lands here once every chunk its
+        // preload asked for has loaded, so the one thing left to wait for is that content being
+        // built. It used to wait for the whole operation queue to empty as well, and in a
+        // six-player session that queue never empties: five crew already seated 2 km up were
+        // pulling chunks in around themselves, every load refilled the activation queue, and the
+        // host's own spawn callback — first in, its chunks long since built — was held behind
+        // twenty of somebody else's loads. The loading screen sat past its 30 s warning on a
+        // world that was ready.
         private void FlushContentCallbacks()
         {
             if (pendingContentCallbacks.Count == 0) return;
             if (ChunkActivationQueue.Shared.PendingCount > 0) return;
-            if (operationInProgress || operationQueue.Count > 0) return;
 
             // Copy first: a callback may spawn a player, which can register a tracker and enqueue
             // more loads, and mutating the list we are iterating would throw.
@@ -571,16 +636,24 @@ namespace SpaceGame.World
             }
 
             // Chunks that contain a tracker which would be destroyed by the unload (Pin/Migrate)
-            // get pinned even if they're outside the load radius. Despawn-policy trackers don't pin.
-            // Without this guard a Migrate'd vehicle could still get yanked out from under itself
-            // if it idled at the very edge of a chunk for the grace period.
+            // get pinned even if they're outside the load radius. Without this guard a Migrate'd
+            // vehicle could still get yanked out from under itself if it idled at the very edge of a
+            // chunk for the grace period.
+            //
+            // Despawn and Release trackers do not pin, for opposite reasons: a Despawn'd one is
+            // meant to die with its chunk, and a Release'd one is captured into the save record on
+            // the way out and rebuilt when the chunk returns. Release exists because this pin is
+            // otherwise permanent — every place a player had ever dropped something would hold its
+            // chunk resident for the rest of the session.
             foreach (var entity in s_trackedEntities)
             {
                 if (entity.Policy == SceneTracked.UnloadPolicy.Despawn) continue;
+                if (entity.Policy == SceneTracked.UnloadPolicy.Release) continue;
                 AddAnchor(requiredChunks, entity.TrackedTransform, 0);
             }
 
             PruneAnchorHistory();
+            suspendedAnchors.RemoveWhere(t => t == null);
 
             // Load required chunks that aren't loaded
             foreach (var coord in requiredChunks)
@@ -624,9 +697,37 @@ namespace SpaceGame.World
         /// past the edge of the grid is not enough, because sailing off the map is something a
         /// player does at speed and they still need the ground behind them to exist.
         /// </summary>
+        /// <summary>
+        /// Stops <paramref name="t"/> pulling chunks in around itself until
+        /// <see cref="ResumeAnchor"/>. For a body that is being carried somewhere by something that
+        /// needs no ground on the way — the arrival crew, held in their seats two kilometres up
+        /// while the hull is teleported down an arc. Every anchor rule goes through
+        /// <see cref="AddAnchor"/>, so this covers a player object, a registered transform and a
+        /// tracked entity alike.
+        /// </summary>
+        public void SuspendAnchor(Transform t)
+        {
+            if (t != null) suspendedAnchors.Add(t);
+        }
+
+        /// <summary>
+        /// Lets <paramref name="t"/> pull chunks in again, starting from where it is NOW. Its
+        /// velocity history is dropped on purpose: the last sample was taken before the hold, and
+        /// a body that reappears kilometres away would otherwise be read as travelling there at
+        /// thousands of metres a second and pull in a look-ahead box off the edge of the world.
+        /// </summary>
+        public void ResumeAnchor(Transform t)
+        {
+            if (t == null) return;
+
+            suspendedAnchors.Remove(t);
+            anchorHistory.Remove(t);
+        }
+
         private void AddAnchor(HashSet<Vector2Int> required, Transform t, int radius)
         {
             if (t == null) return;
+            if (suspendedAnchors.Contains(t)) return;
 
             Vector3 position = t.position;
             Vector3 velocity = SampleVelocity(t, position);
@@ -722,6 +823,14 @@ namespace SpaceGame.World
 
             foreach (var entity in s_trackedEntities)
             {
+                // A body that walked into an interior is not in the exterior world at all, and its
+                // scene belongs to InteriorManager for the length of the visit. Without this the
+                // two passes fight each other every tick: Pin drags a mount straight back out of
+                // the cave it just carried its rider into, and Migrate hands it to whichever chunk
+                // happens to sit under the interior's world-origin coordinates.
+                if (InteriorManager.Instance != null && InteriorManager.Instance.IsInsideInterior(entity.gameObject))
+                    continue;
+
                 Scene desired = ResolveDesiredScene(entity);
                 if (!desired.IsValid() || !desired.isLoaded) continue;
 
@@ -899,6 +1008,7 @@ namespace SpaceGame.World
                     return persistentScene;
 
                 case SceneTracked.UnloadPolicy.Migrate:
+                case SceneTracked.UnloadPolicy.Release:
                 {
                     var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
                     if (loadedScenes.TryGetValue(coord, out var scene) && scene.IsValid() && scene.isLoaded)
@@ -919,12 +1029,27 @@ namespace SpaceGame.World
         //  Sequential operation queue
         // ─────────────────────────────────────────────
 
+        // A chunk somebody else is already loading is WAITED for, not treated as done. Five
+        // clients preloading the same spawn area used to find the first caller's chunks in the
+        // Loading state, be told "nothing to load", and go looking for ground that was not there
+        // yet; only the first caller ever actually waited for the world.
         private void EnqueueLoad(Vector2Int coord, Action onComplete = null)
         {
-            if (GetChunkState(coord) != ChunkState.NotLoaded)
+            switch (GetChunkState(coord))
             {
-                onComplete?.Invoke();
-                return;
+                case ChunkState.Loaded:
+                    onComplete?.Invoke();
+                    return;
+
+                case ChunkState.Loading:
+                    if (onComplete != null) AddLoadListener(coord, onComplete);
+                    return;
+
+                // Mid-unload there is nothing to attach to: the anchor pass reloads it within a
+                // tick once the unload lands, and a caller told to wait here would wait on nothing.
+                case ChunkState.Unloading:
+                    onComplete?.Invoke();
+                    return;
             }
 
             chunkStates[coord] = ChunkState.Loading;
@@ -1002,7 +1127,7 @@ namespace SpaceGame.World
             {
                 Debug.LogWarning($"[WorldStreamer] No chunk data for {op.Coord}");
                 chunkStates[op.Coord] = ChunkState.NotLoaded;
-                FinishOperation(op.OnComplete);
+                FinishLoad(op.Coord, op.OnComplete);
                 return;
             }
 
@@ -1025,7 +1150,7 @@ namespace SpaceGame.World
                 {
                     Debug.LogError($"[WorldStreamer] Failed to load {sceneName}: {status}");
                     chunkStates[op.Coord] = ChunkState.NotLoaded;
-                    FinishOperation(op.OnComplete);
+                    FinishLoad(op.Coord, op.OnComplete);
                 }
                 // Completion handled in HandleSceneEvent
             }
@@ -1036,7 +1161,7 @@ namespace SpaceGame.World
                 {
                     Debug.LogError($"[WorldStreamer] Failed to load {sceneName} (offline).");
                     chunkStates[op.Coord] = ChunkState.NotLoaded;
-                    FinishOperation(op.OnComplete);
+                    FinishLoad(op.Coord, op.OnComplete);
                     return;
                 }
                 asyncOp.completed += _ => OnOfflineSceneLoaded(op.Coord, sceneName, op.OnComplete);
@@ -1065,7 +1190,7 @@ namespace SpaceGame.World
             SnapAgentsToNavMesh(coord);
             Debug.Log($"[WorldStreamer] Chunk {coord} loaded (offline)");
             RaiseChunkLoaded(coord);
-            FinishOperation(onComplete);
+            FinishLoad(coord, onComplete);
         }
 
         private void ExecuteUnload(SceneOperation op)
@@ -1160,7 +1285,7 @@ namespace SpaceGame.World
                 SnapAgentsToNavMesh(pendingCoord);
                 Debug.Log($"[WorldStreamer] Chunk {pendingCoord} loaded");
                 RaiseChunkLoaded(pendingCoord);
-                FinishOperation(pendingCallback);
+                FinishLoad(pendingCoord, pendingCallback);
             }
             else if (sceneEvent.SceneEventType == SceneEventType.UnloadEventCompleted
                      && pendingSceneName == null)
@@ -1206,6 +1331,34 @@ namespace SpaceGame.World
             pendingSceneName = null;
             callback?.Invoke();
             ProcessNextOperation();
+        }
+
+        /// <summary>
+        /// Ends a load operation for <paramref name="coord"/>, whether it succeeded or not, and
+        /// answers everyone who asked for that chunk while it was in flight (see
+        /// <see cref="EnqueueLoad"/>). Listeners are answered on failure too, or a preload that
+        /// joined a load that then failed would wait forever.
+        /// </summary>
+        private void FinishLoad(Vector2Int coord, Action callback)
+        {
+            if (loadListeners.Remove(coord, out List<Action> listeners))
+            {
+                foreach (Action listener in listeners)
+                    listener?.Invoke();
+            }
+
+            FinishOperation(callback);
+        }
+
+        private void AddLoadListener(Vector2Int coord, Action onComplete)
+        {
+            if (!loadListeners.TryGetValue(coord, out List<Action> listeners))
+            {
+                listeners = new List<Action>();
+                loadListeners[coord] = listeners;
+            }
+
+            listeners.Add(onComplete);
         }
 
         // ─────────────────────────────────────────────

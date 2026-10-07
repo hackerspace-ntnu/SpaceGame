@@ -5,6 +5,11 @@
 //
 // Factions are the SOLE definition of who targets whom — there is no string-tag
 // fallback. An entity without an EntityFaction is invisible to the targeting system.
+//
+// One exception, and it is per-asker rather than per-faction: EntityFaction.Ignores lets a
+// single entity be blanked out for a single other entity. Every query below honours it, which
+// is the point — AgentTargeting is not the only thing that hunts, and an exemption the dormant,
+// flee, watch and approach modules could not see would be one they act on anyway.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -51,6 +56,8 @@ namespace SpaceGame.Agents
                 }
                 if (e == owner)
                     continue;
+                if (owner.Ignores(e))
+                    continue;
                 if (owner.GetRelationshipWith(e) != required)
                     continue;
 
@@ -93,7 +100,40 @@ namespace SpaceGame.Agents
                     continue;
                 if ((e.transform.position - position).sqrMagnitude > maxRangeSqr)
                     continue;
+                if (owner.Ignores(e))
+                    continue;
                 if (owner.GetRelationshipWith(e) != required)
+                    continue;
+
+                results.Add(e);
+            }
+        }
+
+        // The same query for something that has a side but is not itself an entity — a settlement
+        // alarm, a territory. It owns no EntityFaction (registering one would make the town a
+        // target), so it asks by definition and table instead — through FactionRelations, so a
+        // tribe's goodwill toward a player counts here exactly as it does for its people.
+        public static void Query(FactionDefinition owner, FactionRelationshipTable table,
+                                 FactionRelationship required, Vector3 position, float maxRange,
+                                 List<EntityFaction> results)
+        {
+            results.Clear();
+            if (owner == null || table == null)
+                return;
+
+            float maxRangeSqr = maxRange > 0f ? maxRange * maxRange : float.MaxValue;
+
+            for (int i = entities.Count - 1; i >= 0; i--)
+            {
+                EntityFaction e = entities[i];
+                if (e == null)
+                {
+                    entities.RemoveAt(i);
+                    continue;
+                }
+                if ((e.transform.position - position).sqrMagnitude > maxRangeSqr)
+                    continue;
+                if (FactionRelations.Resolve(owner, table, e) != required)
                     continue;
 
                 results.Add(e);
@@ -107,6 +147,8 @@ namespace SpaceGame.Agents
             foreach (EntityFaction e in entities)
             {
                 if (e == null || e == owner)
+                    continue;
+                if (owner.Ignores(e))
                     continue;
                 if (owner.GetRelationshipWith(e) == required)
                     return true;

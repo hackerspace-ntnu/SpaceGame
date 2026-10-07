@@ -93,6 +93,30 @@ namespace SpaceGame.World.Weather
             return density * Falloff(sideways, f.LateralExtent, f.EdgeFeather);
         }
 
+        /// <summary>
+        /// True when any sand of the storm lies within <paramref name="radius"/> of
+        /// <paramref name="worldXZ"/> on the ground plane — the feathered edge included, height
+        /// ignored (sand fills below the base, and a storm's ceiling is far above anything that
+        /// stands). For a Wall the test is the slab grown by the radius, so it is generous by at
+        /// most the radius at the slab's corners.
+        /// </summary>
+        public static bool ReachesCircle(in StormFootprint f, Vector2 worldXZ, float radius)
+        {
+            Vector2 relative = worldXZ - f.Center;
+            float reach = f.EdgeFeather + radius;
+
+            if (f.Kind == StormShapeKind.Cell)
+                return relative.magnitude < f.Radius + reach;
+
+            Vector2 heading = f.Heading.sqrMagnitude > 0f ? f.Heading.normalized : Vector2.up;
+            Vector2 across = new Vector2(-heading.y, heading.x);
+
+            if (Mathf.Abs(Vector2.Dot(relative, heading)) >= f.Radius + reach)
+                return false;
+
+            return f.LateralExtent <= 0f || Mathf.Abs(Vector2.Dot(relative, across)) < f.LateralExtent + reach;
+        }
+
         public static float VerticalDensity(in StormFootprint f, float worldY)
         {
             float above = worldY - f.BaseY;

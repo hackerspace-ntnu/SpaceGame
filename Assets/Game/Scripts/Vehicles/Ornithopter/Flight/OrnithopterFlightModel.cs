@@ -44,7 +44,8 @@ namespace SpaceGame.Vehicles.Ornithopter
             in OrnithopterFlightState state,
             in OrnithopterFlightInput input,
             OrnithopterFlightConfig cfg,
-            float dt)
+            float dt,
+            Vector3 towAcceleration = default)
         {
             if (cfg == null) throw new ArgumentNullException(nameof(cfg));
             if (dt <= 0f) return state;
@@ -61,14 +62,29 @@ namespace SpaceGame.Vehicles.Ornithopter
             // ── Stamina ─────────────────────────────────────────────────────────────────
             // Drains while flapping, recovers while gliding. This is what makes level flight a
             // rhythm rather than a held button.
+            //
+            // A tow drains it too, and that is the whole reason the tow is not free. Flapping and
+            // being hauled along a rope are the two ways energy gets into this machine, and a
+            // second source with no sink would make "hook something and hold on" strictly better
+            // than flying: an unpriced tow turns the energy model the craft is built around into
+            // scenery. One budget, two ways to spend it, and neither refills while either is running.
+            bool towing = towAcceleration.sqrMagnitude > 1e-8f;
             float flapDemand = Mathf.Clamp01(input.Flap);
-            s.Stamina = Mathf.Clamp01(flapDemand > 0.01f
-                ? s.Stamina - cfg.StaminaDrainPerSecond * flapDemand * dt
+            float drain = cfg.StaminaDrainPerSecond * flapDemand
+                          + (towing ? cfg.TowStaminaDrainPerSecond : 0f);
+
+            s.Stamina = Mathf.Clamp01(flapDemand > 0.01f || towing
+                ? s.Stamina - drain * dt
                 : s.Stamina + cfg.StaminaRecoverPerSecond * dt);
 
             // Effort is what the wings can actually deliver, which is demand limited by stamina.
             // Scaling by stamina rather than cutting off at zero makes exhaustion a fade.
-            s.FlapEffort = flapDemand * Mathf.Clamp01(s.Stamina / Mathf.Max(0.01f, cfg.StaminaFadeBand));
+            float staminaFade = Mathf.Clamp01(s.Stamina / Mathf.Max(0.01f, cfg.StaminaFadeBand));
+            s.FlapEffort = flapDemand * staminaFade;
+
+            // The rope fades out on the same band the beat does, so running dry mid-tow is a pull
+            // that goes slack rather than one that stops between two physics steps.
+            towAcceleration *= staminaFade;
 
             // Flap phase advances with effort, and keeps advancing at a slow idle so the wings
             // never freeze mid-beat when the pilot lets off.
@@ -118,10 +134,22 @@ namespace SpaceGame.Vehicles.Ornithopter
             float gammaRad = s.Gamma * Mathf.Deg2Rad;
             float rollRad = s.Roll * Mathf.Deg2Rad;
 
+            // The flight path's own axes, so the tow can be resolved against the motion the same
+            // way lift and weight already are. Everything below adds into exactly one of the three
+            // rates, which is why a rope composes with the stall, the glide and the turn without a
+            // single special case for it anywhere.
+            PathAxes(gammaRad, s.Heading * Mathf.Deg2Rad,
+                     out Vector3 along, out Vector3 pathUp, out Vector3 pathRight);
+
             // ── Speed: the energy equation ──────────────────────────────────────────────
             // Nose down (gamma < 0) makes sin negative, so gravity ADDS speed in a dive and
             // takes it away in a climb. This one term is what "trade altitude for speed" means.
-            float speedRate = thrust - drag - Gravity * Mathf.Sin(gammaRad);
+            //
+            // The tow's along-path share is SIGNED, and deliberately: a rope anchored ahead hauls
+            // the craft forward, one anchored behind bleeds its speed off. Hooking something you
+            // have already passed is a way to slow down for a landing, not a broken pull.
+            float speedRate = thrust - drag - Gravity * Mathf.Sin(gammaRad)
+                              + Vector3.Dot(towAcceleration, along);
             s.Airspeed = Mathf.Max(0f, s.Airspeed + speedRate * dt);
 
             float vEff = Mathf.Max(SpeedFloor, s.Airspeed);
@@ -129,7 +157,11 @@ namespace SpaceGame.Vehicles.Ornithopter
             // ── Flight path: where lift actually takes the craft ────────────────────────
             // Only the vertical component of lift (cos roll) fights gravity, which is why a
             // steeply banked turn sinks unless the pilot pulls harder.
-            float gammaRate = (lift * Mathf.Cos(rollRad) - Gravity * Mathf.Cos(gammaRad)) / vEff;
+            // The tow's vertical share curves the path just as lift does — which is what makes a
+            // hook thrown at something above pull the nose up onto the line rather than only
+            // making the craft faster.
+            float gammaRate = (lift * Mathf.Cos(rollRad) - Gravity * Mathf.Cos(gammaRad)
+                               + Vector3.Dot(towAcceleration, pathUp)) / vEff;
             s.Gamma = Mathf.Clamp(s.Gamma + gammaRate * Mathf.Rad2Deg * dt, -89f, 89f);
 
             // ── Heading: the coordinated turn ───────────────────────────────────────────
@@ -138,10 +170,40 @@ namespace SpaceGame.Vehicles.Ornithopter
             // so the machine still answers at low speed, where bank alone has nothing to work with.
             float turnRate = lift * Mathf.Sin(rollRad) / vEff * Mathf.Rad2Deg;
             turnRate += input.Turn * cfg.TailYawRate * authority;
+
+            // And its sideways share turns the craft. A rope is not a rudder — nothing here scales
+            // with control authority — so a hook set off to one side swings a stalled machine round
+            // just as readily as a flying one.
+            turnRate += Vector3.Dot(towAcceleration, pathRight) / vEff * Mathf.Rad2Deg;
             s.Heading = Mathf.Repeat(s.Heading + turnRate * dt, 360f);
             s.TurnRate = turnRate;
 
             return s;
+        }
+
+        /// <summary>
+        /// The right-handed frame of the flight path: where the craft is going, the perpendicular
+        /// that leans it up or down, and the perpendicular that swings it left or right.
+        ///
+        /// <paramref name="along"/> is the direction <see cref="VelocityOf"/> points.
+        /// <paramref name="pathUp"/> is the direction increasing gamma moves it — perpendicular to
+        /// the path, in the vertical plane, always with a positive y. <paramref name="pathRight"/>
+        /// is the direction increasing heading moves it, and is horizontal by construction, because
+        /// heading is a compass bearing and a bearing has no vertical part.
+        ///
+        /// Split out so a world-space acceleration handed to <see cref="Step"/> can be split into
+        /// the same three rates the model already integrates, rather than being bolted on as a
+        /// fourth thing that moves the craft.
+        /// </summary>
+        public static void PathAxes(float gammaRad, float headingRad,
+                                    out Vector3 along, out Vector3 pathUp, out Vector3 pathRight)
+        {
+            float sg = Mathf.Sin(gammaRad), cg = Mathf.Cos(gammaRad);
+            float sh = Mathf.Sin(headingRad), ch = Mathf.Cos(headingRad);
+
+            along = new Vector3(sh * cg, sg, ch * cg);
+            pathUp = new Vector3(-sh * sg, cg, -ch * sg);
+            pathRight = new Vector3(ch, 0f, -sh);
         }
 
         /// <summary>

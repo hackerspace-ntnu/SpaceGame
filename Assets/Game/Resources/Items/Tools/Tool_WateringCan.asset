@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: Tool_WateringCan
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: 9e7aab83f21af416ba0afcee2fdc67d1
+  itemName: Watering Can
+  itemPrefab: {fileID: 4173253686506645984, guid: b625f56542aa64ffe8989c7c0b26b5a5, type: 3}
+  icon: {fileID: 21300000, guid: 32b2b88229d7d45a48e7c9aee6530ba1, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0
+  menacing: 0
+  curiosity: 0
+  showInDevBrowser: 0

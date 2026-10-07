@@ -103,6 +103,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6558388417224476658, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: flungShake
+      value: 
+      objectReference: {fileID: 11400000, guid: e3f3f8de9dc7648c9a33232644e78bd4, type: 2}
     m_RemovedComponents:
     - {fileID: 2750247493964292827, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
     - {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
@@ -131,7 +135,10 @@ PrefabInstance:
       insertIndex: 10
       addedObject: {fileID: 5592241152626822122}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      insertIndex: 15
+      insertIndex: 11
+      addedObject: {fileID: 519412105137966564}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: 16
       addedObject: {fileID: 2648420191720355216}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
@@ -163,6 +170,21 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7731988448858959287}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6845326683234165101}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3713526863936286617}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7033699476868429178}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3689896606733552587}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6593306872714551834}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -220,7 +242,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 1
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -230,12 +252,12 @@ MonoBehaviour:
   SyncScaleX: 0
   SyncScaleY: 0
   SyncScaleZ: 0
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
   InLocalSpace: 0
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
@@ -273,49 +295,7 @@ MonoBehaviour:
   NetworkAnimatorExpanded: 0
   AuthorityMode: 0
   m_Animator: {fileID: 8862626371871872524}
-  TransitionStateInfoList:
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 33332140
-    DestinationState: -1907200461
-    TransitionDuration: 0.25
-    TriggerNameHash: -1992750699
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -535349013
-    DestinationState: -1907200461
-    TransitionDuration: 0.1
-    TriggerNameHash: -1992750699
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -535349013
-    DestinationState: -1718659478
-    TransitionDuration: 0.15
-    TriggerNameHash: -801778589
-    TransitionIndex: 4
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -1288562623
-    DestinationState: -1718659478
-    TransitionDuration: 0.25
-    TriggerNameHash: -801778589
-    TransitionIndex: 3
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 1505629670
-    DestinationState: -1907200461
-    TransitionDuration: 0.1
-    TriggerNameHash: -1992750699
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 1486804723
-    DestinationState: 738289533
-    TransitionDuration: 0.05
-    TriggerNameHash: -1478861625
-    TransitionIndex: 1
+  TransitionStateInfoList: []
   AnimatorParameterEntries:
     ParameterEntries:
     - name: IdleIndex
@@ -346,34 +326,82 @@ MonoBehaviour:
       NameHash: -2061662632
       Synchronize: 1
       ParameterType: 4
-    - name: IsThrow
-      NameHash: -1992750699
+    - name: MoveAnimSpeed
+      NameHash: 541295930
       Synchronize: 1
-      ParameterType: 9
-    - name: AssualtShoot
-      NameHash: -1478861625
+      ParameterType: 1
+    - name: HoldStyle
+      NameHash: 1638206472
       Synchronize: 1
-      ParameterType: 9
-    - name: Death
-      NameHash: 646380074
-      Synchronize: 1
-      ParameterType: 9
-    - name: Hurt
-      NameHash: 1740614436
-      Synchronize: 1
-      ParameterType: 9
-    - name: Meele
-      NameHash: -801778589
-      Synchronize: 1
-      ParameterType: 9
-    - name: IsAiming
-      NameHash: 2025090383
+      ParameterType: 3
+    - name: Seated
+      NameHash: -398636658
       Synchronize: 1
       ParameterType: 4
-    - name: Hold
-      NameHash: -1074224583
+    - name: ArmRaise
+      NameHash: -267549924
+      Synchronize: 1
+      ParameterType: 3
+    - name: AimPitch
+      NameHash: 170749544
+      Synchronize: 1
+      ParameterType: 1
+    - name: IsGliding
+      NameHash: 129336386
       Synchronize: 1
       ParameterType: 4
+    - name: HoldMirror
+      NameHash: -129432694
+      Synchronize: 1
+      ParameterType: 4
+    - name: WornLeftStyle
+      NameHash: -1542630508
+      Synchronize: 1
+      ParameterType: 3
+    - name: CycleOffset
+      NameHash: -97425982
+      Synchronize: 1
+      ParameterType: 1
+    - name: ActionMirrorFull
+      NameHash: 143714217
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedFull
+      NameHash: -61310031
+      Synchronize: 1
+      ParameterType: 1
+    - name: ActionMirrorUpper
+      NameHash: 392923147
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedUpper
+      NameHash: 83089601
+      Synchronize: 1
+      ParameterType: 1
+    - name: ActionMirrorLeftArm
+      NameHash: -281963784
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedLeftArm
+      NameHash: -1253052592
+      Synchronize: 1
+      ParameterType: 1
+    - name: ActionMirrorRightArm
+      NameHash: -1093204901
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedRightArm
+      NameHash: 1719685628
+      Synchronize: 1
+      ParameterType: 1
+    - name: ActionMirrorAdditive
+      NameHash: -903261661
+      Synchronize: 1
+      ParameterType: 4
+    - name: ActionSpeedAdditive
+      NameHash: 310249348
+      Synchronize: 1
+      ParameterType: 1
   AnimatorParametersExpanded: 0
 --- !u!114 &-3757295630438121014
 MonoBehaviour:
@@ -401,10 +429,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventoryNetwork
   ShowTopMostFoldoutHeaderGroup: 1
-  inventorySize: 4
+  inventorySize: 3
   startingItems:
+  - {fileID: 11400000, guid: 80fc5802176e94e75bcc95e24616cdf1, type: 2}
+--- !u!114 &519412105137966564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193d5a1890499444f96633adef0c73d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BodyEquipmentNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+  startingBody:
   - {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
   - {fileID: 11400000, guid: c48f2b7d16ae4c93a5e07f81d3b62c40, type: 2}
+  - {fileID: 11400000, guid: 6633f38a345214c3d9edb14bb20a36a9, type: 2}
 --- !u!114 &2648420191720355216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -565,6 +609,78 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   aimSmoothing: 18
   publishThreshold: 0.25
+--- !u!114 &6845326683234165101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9dbe4e81f9ce45c49e98316907196fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SuitOxygen
+  ShowTopMostFoldoutHeaderGroup: 1
+  suitSeconds: 60
+  drainPerSecond: 1
+  refillPerSecond: 6
+  suffocationDamage: 5
+  suffocationInterval: 1
+  warnFraction: 0.1
+--- !u!114 &3713526863936286617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a8d5d2682cfcb14fbe8ad6008286ca3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerEmotes
+  endLoopAbove: 0.5
+--- !u!114 &7033699476868429178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ba932df8957eae4cad9476c50e33d33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionGoodwillNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &3689896606733552587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e78ab6ef7ef8949cc83007bb038bd12a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerSeating
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &6593306872714551834
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea30603b9f5e4876a21a4a2f80f868a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerPushing
+  ShowTopMostFoldoutHeaderGroup: 1
+  pushSpeed: 3.5
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

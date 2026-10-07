@@ -1,15 +1,15 @@
 // Keeps a group travelling together in a loose column.
 //
-// Sibling to HerdModule, not a replacement for it, and deliberately not an edit of it: a herd
-// spreads onto a CIRCLE around a shared destination, which is right for animals settling at a
-// waterhole and wrong for anything crossing a map. A caravan wants a line — mostly. Both live at
-// Social priority and a prefab takes whichever it wants.
+// A line rather than a circle: spreading onto a ring around a shared destination is right for
+// animals settling at a waterhole and wrong for anything crossing a map. A caravan wants a line —
+// mostly. Lives at Social priority.
 //
 // The division of labour: the LEADER is not managed at all. It runs its own task, goal, wander and
 // combat modules exactly as if it were alone, and this module only reads where it is and which way
 // it is going. Followers steer to a slot behind it. That is what keeps a caravan's route the
 // product of one NPC's actual errand rather than of a formation controller inventing destinations.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -52,11 +52,15 @@ namespace SpaceGame.Agents
 
         [Header("At rest")]
         [Tooltip("Below this leader speed the group is treated as stopped: followers gather loosely " +
-                 "within restRadius and then yield, instead of holding a marching column in place.")]
+                 "within restRadius and then yield, instead of holding a marching column in place " +
+                 "(with holdSlotAtRest on they keep their marching slot instead).")]
         [SerializeField] private float leaderMovingSpeed = 0.4f;
 
         [Tooltip("How loosely the group clusters once the leader has stopped.")]
         [SerializeField] private float restRadius = 6f;
+
+        [Tooltip("While the leader is stopped, hold this follower's marching slot instead of joining the rest ring. Machines that must not bunch up turn this on.")]
+        [SerializeField] private bool holdSlotAtRest;
 
         [Header("Recovery")]
         [Tooltip("A follower further than this from its slot has been separated — by a fight, a " +
@@ -100,6 +104,13 @@ namespace SpaceGame.Agents
         public string FormationId => formationId;
         public bool IsLeader => isLeader;
 
+        /// <summary>Whether this member is the one its formation follows right now (see <see cref="LeaderOf"/>).
+        /// Live: a dead or disabled flagged leader hands the lead on, so ask every tick.</summary>
+        public bool LeadsFormation => !string.IsNullOrWhiteSpace(formationId) && LeaderOf(formationId) == this;
+
+        /// <summary>Beyond this distance from the leader a follower abandons its slot and rides straight back.</summary>
+        public float RegroupDistance => regroupDistance;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Social);
 
         private void Awake()
@@ -115,12 +126,14 @@ namespace SpaceGame.Agents
         private void OnDisable() => Unregister(this);
 
         public override string ModuleDescription =>
-            "Group travel in a loose column. Sibling to HerdModule, which spreads onto a circle instead.\n\n" +
+            "Group travel in a loose column.\n\n" +
             "• formationId — members sharing this string travel together\n" +
             "• isLeader — this member routes; everyone else follows. Its own task/goal drives the group.\n" +
             "• shape.Lanes — 1 = single file, 2 = mostly a line, 3+ = a travelling mob\n" +
             "• LateralJitter / DriftAmplitude — what stops the column looking printed\n" +
-            "• catchUpGain — stragglers speed up to close, so the leader never has to wait\n\n" +
+            "• catchUpGain — stragglers speed up to close, so the leader never has to wait\n" +
+            "• holdSlotAtRest — once stopped, keep the marching slot instead of gathering in the " +
+            "rest ring (machines that must not bunch up)\n\n" +
             "Followers yield the frame once in position, so idle/look-around modules still run while " +
             "walking. For a mounted caravan, put this on the MOUNTS — the animals form the line.";
 
@@ -194,6 +207,19 @@ namespace SpaceGame.Agents
             if (wasRegistered) Register(this);
         }
 
+        /// <summary>
+        /// Out of every formation: nobody's leader and nobody's follower, so the column closes up
+        /// without it and it never rejoins one. For a member a player took from its group
+        /// (NpcWorldSim.ReleaseToPlayer). Unlike <see cref="SetFormation"/>, which never leaves a
+        /// member without a formation.
+        /// </summary>
+        public void LeaveFormation()
+        {
+            Unregister(this);
+            formationId = string.Empty;
+            isLeader = false;
+        }
+
         public void SetShape(FormationShape newShape) => shape = newShape.Sanitised();
 
         // ─────────── For the save system ───────────
@@ -254,6 +280,20 @@ namespace SpaceGame.Agents
             return fallback;
         }
 
+        /// <summary>
+        /// Fills <paramref name="into"/> (cleared first) with the live members of <paramref name="id"/>,
+        /// in column order -- the leader among them.
+        /// </summary>
+        public static void CollectMembers(string id, List<FormationModule> into)
+        {
+            into.Clear();
+            if (string.IsNullOrWhiteSpace(id) || !formations.TryGetValue(id, out List<FormationModule> list))
+                return;
+
+            foreach (FormationModule member in list)
+                if (member != null && member.isActiveAndEnabled) into.Add(member);
+        }
+
         public static int MemberCount(string id) =>
             !string.IsNullOrWhiteSpace(id) && formations.TryGetValue(id, out List<FormationModule> list)
                 ? list.Count
@@ -261,8 +301,13 @@ namespace SpaceGame.Agents
 
         // ── Tick ─────────────────────────────────────────────────────────────────
 
+        // Profiler marker (Diagnostics.md → Profiling).
+        private const string TickMarkerName = "SpaceGame.Formation.Tick";
+        private static readonly ProfilerMarker TickMarker = new(TickMarkerName);
+
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = TickMarker.Auto();
             FormationModule leader = LeaderOf(formationId);
             if (leader == null) return null;
 
@@ -290,14 +335,18 @@ namespace SpaceGame.Agents
                 return MoveIntent.MoveTo(leaderPosition, restRadius, maxSpeedMultiplier, isRunning: true);
             }
 
-            Vector3 slot = moving
+            // At rest the march slot hangs off the leader's last smoothed heading, which TrackHeading
+            // keeps while it stands still, so a stopped column that holds its slots keeps its shape.
+            bool marchSlot = FormationMath.UseMarchSlot(moving, holdSlotAtRest);
+            Vector3 slot = marchSlot
                 ? FormationMath.SlotPosition(followerIndex, leaderPosition, leader.smoothedHeading,
                                              in shape, memberSeed, Time.time)
                 : RestPosition(followerIndex, leaderPosition);
 
-            // Tolerance widens when the group has stopped, so a halted caravan settles into a loose
-            // cluster and hands the frame to idle behaviour rather than shuffling onto marks.
-            float tolerance = moving ? slotTolerance : restRadius;
+            // Tolerance widens when a stopped follower joins the rest ring, so a halted caravan
+            // settles into a loose cluster and hands the frame to idle behaviour rather than
+            // shuffling onto marks. One that holds its march slot at rest keeps slotTolerance.
+            float tolerance = marchSlot ? slotTolerance : restRadius;
 
             float distanceToSlot = Flat(slot - context.Position).magnitude;
             if (distanceToSlot <= tolerance)
@@ -382,8 +431,9 @@ namespace SpaceGame.Agents
 
         protected override void OnValidate()
         {
-            if (string.IsNullOrWhiteSpace(formationId)) formationId = "caravan";
-
+            // An empty id is "not in a band" -- Register already skips it -- so a prefab can ship
+            // the module inert and let whatever places it name the band (the Clanker; every one
+            // of them would otherwise be in one formation called "caravan" with the nomads).
             shape = shape.Sanitised();
             slotTolerance = Mathf.Max(0.3f, slotTolerance);
             catchUpGain = Mathf.Max(0f, catchUpGain);

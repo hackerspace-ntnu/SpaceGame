@@ -15,6 +15,10 @@
 //     cannot make the walker plant its feet on itself.
 //   * Locomotion, driver, AI and the carry volume that lets a player ride the deck. Not a mount
 //     rig: the crawler is autonomous and is neither mountable nor steerable.
+//   * A Strider worker's FormationModule: it follows the walking city and digs at every stop.
+//   * Everything a rebuild used to drop — NetworkObject and its tuned transform sync, identity,
+//     streaming and status components — then the netcode, prefab-list and save wiring passes, so
+//     the prefab is whole straight out of this script.
 //
 // The model is generated from Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler.py — see that file and
 // Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler_BUILD.md. It has since been hand-edited,
@@ -27,7 +31,7 @@
 // `Collector_Bucket`, as the retired `Cube.001` was), not here.
 //
 // Model orientation: authored −Y forward in Blender, which the default FBX axis conversion lands
-// on Unity's +Z. There is deliberately no ModelYaw here, unlike ShipRVBuilder.
+// on Unity's +Z, so there is deliberately no ModelYaw here.
 //
 // Re-run from: Tools ▸ Vehicles ▸ Build Desert Crawler Prefab
 using System.Collections.Generic;
@@ -36,8 +40,15 @@ using SpaceGame.Locomotion;
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Core;
+using SpaceGame.Core.Persistence;
+using SpaceGame.Core.Persistence.EditorTools;
+using SpaceGame.Gameplay.Status;
 using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.Crawler;
+using SpaceGame.World;
+using SpaceGame.World.Safety;
+using Unity.Netcode;
 
 namespace SpaceGame.EditorTools
 {
@@ -46,8 +57,27 @@ namespace SpaceGame.EditorTools
         private const string ModelPath = "Assets/Game/Art/Models/Vehicles/Crawler/desert_crawler.fbx";
         // The live prefab, the one persistentScene references. Was left pointing at the pre-restructure
         // path, where a rebuild wrote a second, orphaned prefab and reported success.
-        private const string PrefabPath =
+        public const string PrefabPath =
             "Assets/Game/Prefabs/Agents/Vehicles/Ground/DesertCrawler.prefab";
+
+        /// <summary>How far from the column's leader a worker digs while the city is stopped: the
+        /// formation rest ring, so the crawler wanders the site and its tools run at every pause.</summary>
+        public const float WorkRadius = 60f;
+        // Machine-sized formation tolerances: a 21 m crawler cannot hold a person-sized slot.
+        private const float SlotTolerance = 8f;
+        private const float FormationNavSample = 20f;
+        // The crawler's hand-tuned mass, carried over from the prefab this builder used to overwrite.
+        private const float BodyMass = 100f;
+        // The crawler's hand-tuned transform sync, carried over the same way: a slow 21 m machine
+        // does not need millimetre deltas, so it sends coarser, compressed, unreliable ones.
+        private const float SyncPositionThreshold = 0.02f;
+        private const float SyncRotationThreshold = 0.5f;
+
+        /// <summary>Puffs of sand thrown per foot landing (VehicleDustWiring.AddFootfallDust).</summary>
+        public const int PuffsPerFootfall = 5;
+        /// <summary>Feet landing per second at the crawler's top speed: measured 3.9 walking flat out and
+        /// 4.1 turning on the spot, plus headroom. StriderDustPrefabTests walks the crawler to check.</summary>
+        public const float PeakFootfallsPerSecond = 5f;
 
         private static readonly string[] LegIds = { "P1", "P2", "P3", "N1", "N2", "N3" };
 
@@ -141,15 +171,32 @@ namespace SpaceGame.EditorTools
             BuildBayFloor(root, parts, ref boxes);
 
             WireLocomotion(root, armature, carry);
+            VehicleDustWiring.AddFootfallDust(root, PuffsPerFootfall, PeakFootfallsPerSecond);
+            VehicleDustWiring.AddFarDust(root, PeakFootfallsPerSecond * PuffsPerFootfall);
+            WireNetworkAndPersistence(root, instance.transform);
 
             // Read anything wanted for the report BEFORE the scratch hierarchy goes away: `armature`
             // points into `root`, and a destroyed Transform throws on `.name`, not returns null.
             string rigName = armature.name;
 
+            // This builder overwrites the prefab wholesale, so the faction has to be put back on by
+            // the same pass that owns it for the five crawler-like prefabs nobody generates —
+            // otherwise a rebuild silently drops it and the crawler goes back to being invisible to
+            // every targeting module in the game.
+            EntityFactionWiring.Ensure(root, System.IO.Path.GetFileNameWithoutExtension(PrefabPath));
+            AgentNetworkWiring.Ensure(root);
+
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
+            SettlementLodBaker.Bake(root, PrefabPath, SettlementLodSettings.Load().strider);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             AssetDatabase.SaveAssets();
+
+            Debug.Log(NetworkPrefabRegistrar.Sync(out _, out _));
+            if (!SaveableWiring.TryWirePrefabs())
+                Debug.LogError("[DesertCrawlerBuilder] Save wiring failed.");
+            // Last write: the scratch root lived in the open scene, which switched this off.
+            NetworkObjectDefaults.KeepSceneMigrationSync(PrefabPath);
 
             Debug.Log($"[DesertCrawler] Built {PrefabPath}: {boxes} collision boxes, " +
                       $"{LegIds.Length} legs on {rigName}.");
@@ -356,33 +403,33 @@ namespace SpaceGame.EditorTools
         {
             DesertCrawlerLocomotion loco = root.AddComponent<DesertCrawlerLocomotion>();
             var so = new SerializedObject(loco);
-            Set(so, "armatureRoot", armature);
-            Set(so, "body", root.transform);
-            SetFloat(so, "yawRange", 40f);
-            SetFloat(so, "hipRange", 45f);
-            SetFloat(so, "kneeRange", 60f);
-            SetFloat(so, "ankleRange", 45f);
-            SetFloat(so, "rollRange", 30f);
+            SerializedFields.Set(so, "armatureRoot", armature);
+            SerializedFields.Set(so, "body", root.transform);
+            SerializedFields.SetFloat(so, "yawRange", 40f);
+            SerializedFields.SetFloat(so, "hipRange", 45f);
+            SerializedFields.SetFloat(so, "kneeRange", 60f);
+            SerializedFields.SetFloat(so, "ankleRange", 45f);
+            SerializedFields.SetFloat(so, "rollRange", 30f);
             // Two legs in the air at once, not one. Six legs swinging singly gives a duty of 1/6, a
             // 3.7 s gait cycle and 1.5 m/s — the machine shuffles. At two it still has four feet down,
             // comfortably clear of MinPlantedLegs = 3, and it moves at a pace that matches its stride.
-            SetInt(so, "swingLegs", 2);
-            SetFloat(so, "stepDuration", 0.5f);
-            SetFloat(so, "stepClearance", 0.08f);
-            SetFloat(so, "obstacleClearance", 1.5f);
+            SerializedFields.SetInt(so, "swingLegs", 2);
+            SerializedFields.SetFloat(so, "stepDuration", 0.5f);
+            SerializedFields.SetFloat(so, "stepClearance", 0.08f);
+            SerializedFields.SetFloat(so, "obstacleClearance", 1.5f);
             // Every layer. Left unset this serialises as 0, and a walker whose ground mask matches
             // nothing finds no ground at all: it never snaps down, never places a foothold, and stands
             // perfectly still with six planted feet looking for all the world like a rig fault.
             // The machine's own colliders are rejected by WalkerGround regardless of mask.
-            SetInt(so, "groundMask", ~0);
-            SetFloat(so, "rayStartAbove", 14f);
-            SetFloat(so, "rayLength", 400f);
-            SetBool(so, "snapToGroundOnStart", true);
+            SerializedFields.SetInt(so, "groundMask", ~0);
+            SerializedFields.SetFloat(so, "rayStartAbove", 14f);
+            SerializedFields.SetFloat(so, "rayLength", 400f);
+            SerializedFields.SetBool(so, "snapToGroundOnStart", true);
             // Left on: the rest pose already stands the machine at its design height, so the measured
             // value is the authored one, and it re-derives itself if the model is re-proportioned.
-            SetBool(so, "autoCalibrateRideHeight", true);
-            SetFloat(so, "heightSmooth", 5f);
-            SetBool(so, "drawGizmos", true);
+            SerializedFields.SetBool(so, "autoCalibrateRideHeight", true);
+            SerializedFields.SetFloat(so, "heightSmooth", 5f);
+            SerializedFields.SetBool(so, "drawGizmos", true);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // Driver limits sized to the machine rather than left at the defaults, which are tuned for
@@ -390,12 +437,12 @@ namespace SpaceGame.EditorTools
             // for 6 m/s when the gait tops out around 3 just means permanently saturated throttle.
             DesertCrawlerDriver driver = root.AddComponent<DesertCrawlerDriver>();
             var dso = new SerializedObject(driver);
-            SetFloat(dso, "moveSpeed", 3.2f);
-            SetFloat(dso, "turnSpeed", 16f);
-            SetFloat(dso, "acceleration", 1.2f);
-            SetFloat(dso, "defaultStopDistance", 12f);
-            SetFloat(dso, "cornerArriveRadius", 10f);
-            SetFloat(dso, "navMeshSampleDistance", 25f);
+            SerializedFields.SetFloat(dso, "moveSpeed", 3.2f);
+            SerializedFields.SetFloat(dso, "turnSpeed", 16f);
+            SerializedFields.SetFloat(dso, "acceleration", 1.2f);
+            SerializedFields.SetFloat(dso, "defaultStopDistance", 12f);
+            SerializedFields.SetFloat(dso, "route.cornerArriveRadius", 10f);
+            SerializedFields.SetFloat(dso, "route.navMeshSampleDistance", 25f);
             dso.ApplyModifiedPropertiesWithoutUndo();
 
             // Kinematic, gravity off. The locomotion writes the hull transform directly, so a dynamic
@@ -409,6 +456,7 @@ namespace SpaceGame.EditorTools
             body.useGravity = false;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            body.mass = BodyMass;
 
             // Deliberately NO MountModule / SteerModule. The crawler is an autonomous scrap collector,
             // not a vehicle: it wanders and works its tools under its own AI and the player never
@@ -417,7 +465,7 @@ namespace SpaceGame.EditorTools
             if (carry != null)
             {
                 var cso = new SerializedObject(carrier);
-                Set(cso, "carryVolume", carry);
+                SerializedFields.Set(cso, "carryVolume", carry);
                 cso.ApplyModifiedPropertiesWithoutUndo();
             }
 
@@ -447,25 +495,79 @@ namespace SpaceGame.EditorTools
 
             WanderModule wander = root.AddComponent<WanderModule>();
             var wso = new SerializedObject(wander);
-            SetInt(wso, "priority", ModulePriority.Fallback);
-            SetBool(wso, "limitWanderRadius", false);
-            SetFloat(wso, "freeRoamRadius", 120f);
-            SetFloat(wso, "sampleDistance", 30f);
-            SetFloat(wso, "minDestinationDistance", 25f);
-            SetFloat(wso, "stopDistance", 8f);
-            SetFloat(wso, "minWaitTime", 4f);
-            SetFloat(wso, "maxWaitTime", 12f);
+            SerializedFields.SetInt(wso, "priority", ModulePriority.Fallback);
+            SerializedFields.SetBool(wso, "limitWanderRadius", false);
+            SerializedFields.SetFloat(wso, "freeRoamRadius", 120f);
+            SerializedFields.SetFloat(wso, "sampleDistance", 30f);
+            SerializedFields.SetFloat(wso, "minDestinationDistance", 25f);
+            SerializedFields.SetFloat(wso, "stopDistance", 8f);
+            SerializedFields.SetFloat(wso, "minWaitTime", 4f);
+            SerializedFields.SetFloat(wso, "maxWaitTime", 12f);
             wso.ApplyModifiedPropertiesWithoutUndo();
 
             CrawlerToolRig tools = root.AddComponent<CrawlerToolRig>();
             var tso = new SerializedObject(tools);
-            Set(tso, "armatureRoot", armature);
+            SerializedFields.Set(tso, "armatureRoot", armature);
             tso.ApplyModifiedPropertiesWithoutUndo();
 
             CrawlerToolModule toolBrain = root.AddComponent<CrawlerToolModule>();
             var mso = new SerializedObject(toolBrain);
-            SetInt(mso, "priority", ModulePriority.Ambient);
+            SerializedFields.SetInt(mso, "priority", ModulePriority.Ambient);
             mso.ApplyModifiedPropertiesWithoutUndo();
+
+            // A Strider worker: follows the walking city's column, and at a stop the wide rest ring
+            // hands the frame to WanderModule so the crawler roams the site and digs. Priority is
+            // set by hand because AddComponent from editor code does not run Reset. The empty id
+            // leaves it inert until the city names the band.
+            FormationModule formation = Ensure<FormationModule>(root);
+            var fso = new SerializedObject(formation);
+            SerializedFields.SetInt(fso, "priority", ModulePriority.Social);
+            SerializedFields.SetString(fso, "formationId", string.Empty);
+            SerializedFields.SetFloat(fso, "restRadius", WorkRadius);
+            SerializedFields.SetFloat(fso, "slotTolerance", SlotTolerance);
+            SerializedFields.SetFloat(fso, "regroupDistance", RosterAuthoring.CityRegroupDistance);
+            SerializedFields.SetFloat(fso, "navSampleDistance", FormationNavSample);
+            fso.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// The identity, streaming and status components the live prefab carries that no wiring pass
+        /// adds. They are added here, before the save, because the save matches the new hierarchy to
+        /// the old one by name and component type: a NetworkObject or SaveableEntity present at save
+        /// time keeps its file id, so the GlobalObjectIdHash and every scene instance's overrides
+        /// (position, instanceId) survive a rebuild. The savers and the prefabId stamp come from
+        /// SaveableWiring after the save; the rest of the netcode from AgentNetworkWiring.
+        private static void WireNetworkAndPersistence(GameObject root, Transform model)
+        {
+            // NetworkObject first, so the NetworkBehaviours AgentNetworkWiring adds have one to ride.
+            // DontDestroyWithOwner: ownership of a machine players stand on can move to a client, and
+            // the crawler must not vanish from the world when that client leaves.
+            NetworkObject netObject = Ensure<NetworkObject>(root);
+            netObject.DontDestroyWithOwner = true;
+
+            // Added here rather than left to AgentNetworkWiring, which adds a stock one and never
+            // tunes what is already there.
+            ClientNetworkTransform sync = Ensure<ClientNetworkTransform>(root);
+            sync.UseUnreliableDeltas = true;
+            sync.PositionThreshold = SyncPositionThreshold;
+            sync.RotAngleThreshold = SyncRotationThreshold;
+            sync.UseQuaternionSynchronization = true;
+            sync.UseQuaternionCompression = true;
+            sync.UseHalfFloatPrecision = true;
+
+            Ensure<SaveableEntity>(root);
+
+            SceneTracked tracked = Ensure<SceneTracked>(root);
+            tracked.SetPolicy(SceneTracked.UnloadPolicy.Migrate);
+            tracked.SetKeepChunksLoaded(false);
+
+            Ensure<UnderTerrainGuard>(root);
+
+            // Inflation scales the model child, not the root: the world save records the root's
+            // scale, so a save taken mid-inflation would load the crawler permanently oversized.
+            StatusReceiver status = Ensure<StatusReceiver>(root);
+            var sso = new SerializedObject(status);
+            SerializedFields.Set(sso, "inflationTarget", model);
+            sso.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// Add a component only if a [RequireComponent] attribute has not already brought one along.
@@ -473,42 +575,6 @@ namespace SpaceGame.EditorTools
         {
             T existing = go.GetComponent<T>();
             return existing != null ? existing : go.AddComponent<T>();
-        }
-
-        // Private [SerializeField] fields are not reachable from an editor script any other way, and
-        // making them public purely so this could set them would widen the runtime API for a build-time
-        // convenience. A missing name fails loudly rather than silently doing nothing.
-        private static void Set(SerializedObject so, string field, Object value)
-        {
-            SerializedProperty p = Find(so, field);
-            if (p != null) p.objectReferenceValue = value;
-        }
-
-        private static void SetFloat(SerializedObject so, string field, float value)
-        {
-            SerializedProperty p = Find(so, field);
-            if (p != null) p.floatValue = value;
-        }
-
-        private static void SetInt(SerializedObject so, string field, int value)
-        {
-            SerializedProperty p = Find(so, field);
-            if (p != null) p.intValue = value;
-        }
-
-        private static void SetBool(SerializedObject so, string field, bool value)
-        {
-            SerializedProperty p = Find(so, field);
-            if (p != null) p.boolValue = value;
-        }
-
-        private static SerializedProperty Find(SerializedObject so, string field)
-        {
-            SerializedProperty p = so.FindProperty(field);
-            if (p == null)
-                Debug.LogWarning($"[DesertCrawler] {so.targetObject.GetType().Name} has no " +
-                                 $"serialized field '{field}' — it was renamed; this value is unset.");
-            return p;
         }
     }
 }

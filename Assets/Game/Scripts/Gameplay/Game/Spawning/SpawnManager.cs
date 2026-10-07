@@ -20,8 +20,7 @@ namespace SpaceGame.Gameplay
 
         [Header("Targeting")]
         [Tooltip("Faction assigned to every spawned player so AI can see them. Without this the " +
-                 "player is absent from EntityTargetRegistry and no enemy will ever target them. " +
-                 "MatchManager overrides this with a team/solo faction while a match is running.")]
+                 "player is absent from EntityTargetRegistry and no enemy will ever target them.")]
         [SerializeField] private FactionDefinition playerFaction;
         [SerializeField] private FactionRelationshipTable relationshipTable;
 
@@ -308,12 +307,12 @@ namespace SpaceGame.Gameplay
             // they have. Leaving them face down until a bay somewhere becomes satisfiable is the
             // failure this fallback exists to stop.
             //
-            // So the ship stops being a requirement. Nothing about coming back to life needs a
-            // cargo bay — open sand next to it is a perfectly good place to stand up — and open
-            // ground is measured against the heightmap, which answers wherever the world is loaded
-            // and is not blocked by a hull, a full bay or a ship parked on a slope. A roof
-            // overhead is the disqualifier rather than a preference: it is what tells us we are
-            // back under the hull we were trying to leave.
+            // Note the respawn rule itself lives elsewhere: a dead player comes back inside their
+            // ship, resolved by ShipRespawn, and PlayerRespawn only reaches this method when no
+            // ship can take them at all. So by the time this runs there is no bay to insist on,
+            // and open ground is the honest answer: it is measured against the heightmap, which
+            // answers wherever the world is loaded. A roof overhead is the disqualifier rather
+            // than a preference — it is what tells us we are back under a hull.
             CollectOccupied(occupied);
 
             if (TryGetSpawnAnchor(out Vector3 anchor) &&
@@ -514,18 +513,11 @@ namespace SpaceGame.Gameplay
             GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, spawnRotation);
 
             // Before the network spawn, so the entity is registered for targeting from its first
-            // frame. MatchManager reassigns the faction below when a match is running.
+            // frame.
             EntityFaction.Ensure(playerObj, playerFaction, relationshipTable);
 
             // Spawn it specifically as the Player Object for that ID
             playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
-
-            // MatchManager picks the team/faction and moves the player to that side's
-            // spawn point. Only runs when one is present in the loaded scene (i.e. the
-            // minigame flow), so the main game's plain spawn path is unaffected.
-            var matchManager = FindFirstObjectByType<MatchManager>();
-            if (matchManager != null)
-                matchManager.RegisterPlayerEntity(playerObj);
         }
     }
 }

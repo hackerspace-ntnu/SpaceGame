@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace SpaceGame.Persistence
 {
@@ -86,5 +87,38 @@ namespace SpaceGame.Persistence
 
         /// <summary>Runs after ordinary deferred savers.</summary>
         public const int Late = 100;
+    }
+
+    /// <summary>
+    /// Implemented by a component whose object's live pose is not the one a save should keep.
+    ///
+    /// <para>
+    /// A ragdoll is the case this exists for. While limp its root sits AT the pelvis and carries
+    /// the body's tilt, so that every watcher can rebuild the pelvis from it — but a load puts the
+    /// root back and the model on it in its standing pose. A knocked-down body is alive and
+    /// standing on load, so it wants its tilt dropped; a corpse goes limp again, so it wants the
+    /// root placed where its standing pose puts the pelvis back where it lay, rather than a hip
+    /// height further along the tilted up axis. The object answers for itself here rather than
+    /// every place that records a pose learning about ragdolls. Read it through
+    /// <see cref="SavedPose"/>.
+    /// </para>
+    /// </summary>
+    public interface ISavedPose
+    {
+        /// <summary>The position to record for this object's transform right now.</summary>
+        Vector3 PositionToSave { get; }
+
+        /// <summary>The rotation to record for this object's transform right now.</summary>
+        Quaternion RotationToSave { get; }
+    }
+
+    /// <summary>The one way a pose capture reads a pose. See <see cref="ISavedPose"/>.</summary>
+    public static class SavedPose
+    {
+        public static Vector3 PositionOf(Transform transform) =>
+            transform.TryGetComponent(out ISavedPose saved) ? saved.PositionToSave : transform.position;
+
+        public static Quaternion RotationOf(Transform transform) =>
+            transform.TryGetComponent(out ISavedPose saved) ? saved.RotationToSave : transform.rotation;
     }
 }

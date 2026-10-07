@@ -21,13 +21,18 @@
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Locomotion;
 using SpaceGame.Vehicles.DuneFoil;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Vehicles
 {
-    public class DeckBoarding : MonoBehaviour, IInteractable, IContextualInteractable,
+    public class DeckBoarding : MonoBehaviour, IInteractable, IInteractionMoment, IContextualInteractable,
                                 IInteractionReadout
     {
+        /// <summary>Nothing on the body: boarding moves the body onto the deck at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         [Header("Where you land")]
         [Tooltip("Exact spot to put the player. When empty, the top of the deck collider is used.")]
         [SerializeField] private Transform boardPoint;
@@ -55,8 +60,8 @@ namespace SpaceGame.Vehicles
         /// <summary>What the craft is called on the HUD.</summary>
         public string Label => "Dune foiler";
 
-        /// <summary>Prompt text. Drawn by InteractionPromptUI.</summary>
-        public string Prompt => "E: climb aboard";
+        /// <summary>Prompt text. Drawn by VisorReticle's info box.</summary>
+        public string Prompt => "RMB: climb aboard";
 
         /// <summary>Boarding has no position to show, so no bar is drawn.</summary>
         public float? Value01 => null;
@@ -192,8 +197,9 @@ namespace SpaceGame.Vehicles
 
         /// <summary>
         /// Where the player's ROOT has to go for their feet to land on the deck. Measured off their
-        /// own collider rather than assumed, because the player's pivot is not at their feet and a
-        /// hardcoded offset would bury them to the knees or drop them from a height.
+        /// own collider rather than assumed — see <see cref="BodyFeet"/> — because the player's
+        /// pivot is not at their feet and a hardcoded offset would bury them to the knees or drop
+        /// them from a height.
         /// </summary>
         private bool ResolveLanding(Transform player, out Vector3 landing)
         {
@@ -208,14 +214,12 @@ namespace SpaceGame.Vehicles
             if (deckSurface == null) return false;
 
             Bounds deck = deckSurface.bounds;
-            float rootAboveFeet = 0f;
+            float rootAboveFeet = new BodyFeet(player).RootAboveFeet;
+
             float radius = 0.4f;
             foreach (Collider c in player.GetComponentsInChildren<Collider>())
-            {
-                if (c.isTrigger) continue;
-                rootAboveFeet = Mathf.Max(rootAboveFeet, player.position.y - c.bounds.min.y);
-                if (c is CapsuleCollider capsule) radius = Mathf.Max(radius, capsule.bounds.extents.x);
-            }
+                if (c is CapsuleCollider capsule && !capsule.isTrigger)
+                    radius = Mathf.Max(radius, capsule.bounds.extents.x);
 
             float footY = deck.max.y + footClearance;
             float rootY = footY + rootAboveFeet;

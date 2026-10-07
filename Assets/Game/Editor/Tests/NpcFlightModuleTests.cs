@@ -580,6 +580,64 @@ namespace SpaceGame.Tests
             Assert.IsTrue(flight.Tick(Context(), 1f).HasValue, "a falling nomad waited out the launch delay");
             Assert.IsTrue(flight.InFlight);
         }
+
+        // ── Take-offs on an owner's order ──────────────────────────────────────────
+
+        [Test]
+        public void TakeOffInAir_MakesTheCraftAroundTheNomad_WithNoLaunchDelayOrGoal_AndHoldsItOutOfTheSave()
+        {
+            SavedNomad(SaveScope.World);
+            Invoke(flight, "OnEnable");   // starts the launch delay a spawn order must skip
+            nomad.transform.position = FarAway + Vector3.up * 60f;
+
+            Assert.IsTrue(flight.TakeOffInAir(Vector3.right, FarAway, out NpcAviator aviator));
+
+            Assert.IsTrue(flight.InFlight, "the nomad is not flying");
+            Assert.AreSame(aviator, flight.Aviator);
+            Assert.AreEqual(nomad, aviator.Pilot, "the nomad is not in the cradle");
+            Assert.AreEqual(FlightOrder.Cruise, aviator.Order, "a craft made in the air should cruise on until it is given an order");
+            Assert.IsTrue(KeepsNomadOutOfSave, "a flier was left in the save (D4)");
+        }
+
+        [Test]
+        public void TakeOffInAir_IsRefused_WithoutAWingPack()
+        {
+            nomad.GetComponent<EntityBodyEquipment>().Remove(BodySlot.Torso);
+
+            Assert.IsFalse(flight.TakeOffInAir(Vector3.right, FarAway, out NpcAviator aviator));
+            Assert.IsNull(aviator);
+            Assert.IsFalse(flight.InFlight);
+        }
+
+        [Test]
+        public void TakeOffNow_IgnoresTheFight_AndTheFlightDistance_ButNotTheRoomToLaunch()
+        {
+            Invoke(flight, "OnEnable");
+            Assert.IsTrue(flight.TakeOffNow(Vector3.forward, out NpcAviator aviator), "an ordered take-off from open ground was refused");
+            Assert.IsTrue(flight.InFlight);
+
+            Land();
+            nomad.transform.position = FarAway;
+            var roof = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            junk.Add(roof);
+            roof.transform.position = FarAway + Vector3.up * 8f;   // inside the launch headroom over its head
+            roof.transform.localScale = new Vector3(20f, 1f, 20f);
+            Physics.SyncTransforms();
+
+            Assert.IsFalse(flight.TakeOffNow(Vector3.forward, out _), "an ordered take-off went straight through a roof");
+        }
+
+        [Test]
+        public void AFlierWhoLandsAlive_IsGivenBackToTheSave()
+        {
+            SavedNomad(SaveScope.World);
+            Assert.IsTrue(flight.TakeOffNow(Vector3.forward, out _));
+            Assume.That(KeepsNomadOutOfSave);
+
+            Land();
+
+            Assert.IsFalse(KeepsNomadOutOfSave, "a resident back on its deck stayed out of the save");
+        }
     }
 
     public class SaveScopeHoldTests

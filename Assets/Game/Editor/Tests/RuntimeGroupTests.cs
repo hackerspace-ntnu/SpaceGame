@@ -97,7 +97,7 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ReleaseGroup_OfASpawnedGroup_ClearsTheQuarry_AndWaitsForTheFold()
+        public void ReleaseGroup_OfASpawnedGroup_EndsTheHunt_AndWaitsForTheFold()
         {
             NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
             group.QuarryProfileId = "p";
@@ -107,7 +107,36 @@ namespace SpaceGame.EditorTools
 
             Assert.AreSame(group, sim.FindGroup("w"));
             Assert.IsFalse(group.IsWarParty);
+            Assert.IsFalse(group.IsOwnedByWar, "a released party must never be adopted back into a war");
             Assert.IsTrue(group.DisbandWhenFolded);
+        }
+
+        [Test]
+        public void ReleaseGroup_OfASpawnedGroup_KeepsWhomItHunted_SoItsSurvivorsStaySelfDefence()
+        {
+            NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
+            group.QuarryProfileId = "p";
+            group.Spawned = true;
+
+            sim.ReleaseGroup("w");
+
+            Assert.IsTrue(group.Released);
+            Assert.AreEqual("p", group.QuarryProfileId,
+                            "its bodies are still standing and still hostile: hitting them must stay free for the quarry");
+        }
+
+        [Test]
+        public void AReleasedParty_IsSavedAsHuntingNobody_SoALoadDropsIt()
+        {
+            NpcGroup group = sim.CreateGroup(warParty, "w", Vector3.zero);
+            group.QuarryProfileId = "p";
+            group.Spawned = true;
+            sim.ReleaseGroup("w");
+
+            NpcGroup.Record record = group.ToRecord();
+
+            Assert.IsTrue(string.IsNullOrEmpty(record.quarryProfileId));
+            Assert.IsFalse(NpcWorldSim.KeepsRuntimeRecord(in record, new HashSet<string>()));
         }
 
         [Test]

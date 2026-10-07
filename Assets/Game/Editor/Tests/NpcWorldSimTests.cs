@@ -273,5 +273,64 @@ namespace SpaceGame.EditorTools
             }
             finally { CleanUpSim(); }
         }
+    
+        // ── An air patrol ──────────────────────────────────────────────────────────
+
+        private static NpcGroupTemplate AirPatrol(float spawnRadius) => new NpcGroupTemplate
+        {
+            id = "air-patrol-test",
+            useStartPosition = true,
+            travelSpeed = 17.5f,
+            airPatrol = new NpcGroupAirPatrol
+            {
+                route = new[] { Vector3.zero, new Vector3(1000f, 0f, 0f), new Vector3(1000f, 0f, 1000f) },
+                spawnRadius = spawnRadius,
+            },
+        };
+
+        private NpcWorldSim SimWith(NpcGroupTemplate template)
+        {
+            var sim = Junk("Sim", Vector3.zero).AddComponent<NpcWorldSim>();
+            typeof(NpcWorldSim).GetField("templates", Private).SetValue(sim, new[] { template });
+            Call(sim, "Awake");
+            Call(sim, "Start");
+            return sim;
+        }
+
+        private static float SpawnRadiusFor(NpcWorldSim sim, NpcGroupTemplate template) =>
+            (float)typeof(NpcWorldSim).GetMethod("SpawnRadiusFor", Private).Invoke(sim, new object[] { template });
+
+        [Test]
+        public void AnAirPatrol_SpawnsFurtherOutThanAWalkingGroup_ButNeverWhereItWouldFoldAgain()
+        {
+            try
+            {
+                NpcWorldSim sim = SimWith(AirPatrol(550f));
+                float airborneFold = (float)typeof(NpcWorldSim).GetField("airborneFoldRadius", Private).GetValue(sim);
+
+                Assert.AreEqual(550f, SpawnRadiusFor(sim, AirPatrol(550f)), 0.01f);
+                Assert.AreEqual(sim.SpawnRadius, SpawnRadiusFor(sim, new NpcGroupTemplate()), 0.01f, "a walking group's radius changed");
+                Assert.AreEqual(airborneFold, SpawnRadiusFor(sim, AirPatrol(airborneFold * 3f)), 0.01f,
+                                "a patrol spawning past the airborne fold radius would fold on the next tick and spawn again");
+            }
+            finally { CleanUpSim(); }
+        }
+
+        [Test]
+        public void AFoldedAirPatrol_FliesItsLoop_NotAnErrand()
+        {
+            try
+            {
+                NpcWorldSim sim = SimWith(AirPatrol(550f));
+                NpcGroup group = sim.FindGroup("air-patrol-test");
+
+                Call(sim, "TickGroup", group, 1f);
+
+                Assert.IsTrue(group.HasGoal);
+                Assert.AreEqual(new Vector3(1000f, 0f, 0f), group.GoalPosition, "a patrol at its first waypoint did not head for the second");
+                Assert.IsFalse(group.Spawned, "no player is near, yet it spawned");
+            }
+            finally { CleanUpSim(); }
+        }
     }
 }

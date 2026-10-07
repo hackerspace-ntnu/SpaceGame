@@ -442,6 +442,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 5
@@ -607,6 +620,109 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
+    formation:
+      Lanes: 2
+      RowSpacing: 3.5
+      LaneSpacing: 2.4
+      LateralJitter: 1
+      LongitudinalJitter: 1.3
+      DriftAmplitude: 0.8
+      DriftRate: 0.07
+  - id: sky-patrol
+    displayName: Sky Patrol
+    tribe: {fileID: 11400000, guid: 923eec0f916110345a38b7b84afa3b3c, type: 2}
+    runtimeOnly: 0
+    members:
+    - prefab: {fileID: 0}
+      role: 0
+      isLeader: 1
+      crew: 0
+      count: 1
+      countWeights: []
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    - prefab: {fileID: 0}
+      role: 1
+      isLeader: 0
+      crew: 0
+      count: 1
+      countWeights:
+      - count: 2
+        weight: 0.35
+      - count: 3
+        weight: 0.4
+      - count: 4
+        weight: 0.25
+      column:
+        shuffled: 0
+        kind: 
+        withinFirstSlots: 0
+        keepsClear: 0
+        footprint:
+          serializedVersion: 2
+          x: 0
+          y: 0
+          width: 0
+          height: 0
+        slotTolerance: 0
+    tasks: []
+    travelSpeed: 17.5
+    startNearSite: 1
+    useStartPosition: 1
+    startPosition: {x: 2600, y: 110, z: 1600}
+    initialStaySeconds: 0
+    bountyHunters: 0
+    showFromAfar: 0
+    transport:
+      smallVessel: {fileID: 0}
+      largeVessel: {fileID: 0}
+      travelSpeed: 28
+      homeSiteName: Sky City
+      dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route:
+      - {x: 2600, y: 110, z: 1600}
+      - {x: 2450, y: 110, z: 1050}
+      - {x: 2550, y: 110, z: 450}
+      - {x: 3150, y: 110, z: 400}
+      - {x: 3450, y: 110, z: 750}
+      - {x: 3450, y: 110, z: 1450}
+      - {x: 3200, y: 110, z: 850}
+      - {x: 2650, y: 110, z: 800}
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -733,6 +849,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -1078,6 +1207,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 35
@@ -1351,6 +1493,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -1378,6 +1533,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -1405,6 +1573,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 18
@@ -1432,6 +1613,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 3.5
@@ -1495,6 +1689,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 2
       RowSpacing: 3
@@ -1618,6 +1825,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 3
       RowSpacing: 9
@@ -1741,6 +1961,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 3
       RowSpacing: 9
@@ -1864,6 +2097,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 3
       RowSpacing: 9
@@ -1989,6 +2235,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 3
       RowSpacing: 9
@@ -2016,6 +2275,19 @@ MonoBehaviour:
       travelSpeed: 28
       homeSiteName: Sky City
       dockSpacing: 45
+      escortRadius: 40
+      escortHeight: 12
+      escortLandingSpread: 30
+      flierWeaponDropChance: 0.25
+    airPatrol:
+      route: []
+      leaderSpeed: 0.7
+      waypointDwell: {x: 0, y: 40}
+      arriveRadius: 80
+      spawnRadius: 550
+      wingLateral: 16
+      wingBehind: 14
+      wingStepUp: 2.5
     formation:
       Lanes: 1
       RowSpacing: 3
@@ -2026,6 +2298,7 @@ MonoBehaviour:
       DriftRate: 0.1
   spawnRadius: 250
   despawnRadius: 360
+  airborneFoldRadius: 750
   spawnSampleDistance: 25
   groundProbe:
     castReach: 300
@@ -2034,6 +2307,8 @@ MonoBehaviour:
   playerRefreshInterval: 2
   transportRetryDelay: 15
   dockReuseRadius: 150
+  strayDistance: 200
+  strayTimeout: 60
   leadLifetime: 180
   hunterRoamRadius: 900
   logGroupEvents: 1
@@ -2110,6 +2385,7 @@ MonoBehaviour:
     trailFuzz: 30
     caughtCredit: 15
     defeatedCredit: 4
+    peaceMargin: 1
   decisionInterval: 0.5
   trailArriveRadius: 20
   absentQuarryGrace: 120

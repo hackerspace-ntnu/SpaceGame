@@ -47,6 +47,9 @@ namespace SpaceGame.Vehicles
         [SerializeField] private float stopDistance = 0.5f;
 
         private IMovementMotor ownMotor;
+        // Never quite zero: a motor asked for no speed at all stops steering toward the station.
+        private const float MinSpeedFraction = 0.01f;
+
         private IMovementMotor flagshipMotor;
         private Transform flagshipMotorOwner;
 
@@ -86,11 +89,9 @@ namespace SpaceGame.Vehicles
             if (flagship == null)
                 return null;
 
-            Vector3 target = StationPoint(Time.time) + FlagshipVelocity() * leadSeconds;
+            Vector3 target = StationKeeping.Led(StationPoint(Time.time), FlagshipVelocity(), leadSeconds);
             float distance = Vector3.Distance(context.Position, target);
-
-            float topSpeed = OwnTopSpeed();
-            float multiplier = topSpeed > 0f ? Mathf.Clamp(distance * catchUpGain / topSpeed, 0.01f, 1f) : 1f;
+            float multiplier = StationKeeping.SpeedFraction(distance, catchUpGain, OwnTopSpeed(), MinSpeedFraction, 1f);
 
             return MoveIntent.MoveTo(target, stopDistance, multiplier)
                              .WithFacing(context.Position + flagship.forward);

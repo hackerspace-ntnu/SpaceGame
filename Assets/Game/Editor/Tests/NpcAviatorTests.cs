@@ -159,7 +159,7 @@ namespace SpaceGame.Tests
             typeof(NpcAviator).GetField("lastVelocity", Private).SetValue(aviator, new Vector3(0f, 0f, 25f));
 
             typeof(NpcAviator).GetMethod("Crash", Private)
-                .Invoke(aviator, new object[] { craft.transform.position, Vector3.back });
+                .Invoke(aviator, new object[] { craft.transform.position, Vector3.back, false });
 
             Assert.IsNull(pilot.transform.parent);
             CollectionAssert.Contains(world.Despawned, craft);

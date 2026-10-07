@@ -115,6 +115,10 @@ namespace SpaceGame.Items
             arg.P = new Vector3(carry.Speed, carry.ClimbDegrees, 0f);
         }
 
+        /// <summary>Is <paramref name="item"/> a wing pack — what flies a Sky nomad and what its corpse may drop?</summary>
+        public static bool IsWingPack(InventoryItem item) =>
+            item != null && item.itemPrefab != null && item.itemPrefab.GetComponent<WingPackItem>() != null;
+
         /// <summary>
         /// Turn how the pilot was moving into how the craft starts flying.
         ///

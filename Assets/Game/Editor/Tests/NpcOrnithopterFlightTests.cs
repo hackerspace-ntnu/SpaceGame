@@ -120,6 +120,58 @@ namespace SpaceGame.Tests
             Assert.Greater(climb, 15f, $"climbed only {climb:F1} degrees over its first {Out} m: a low skim nobody reads as taking off");
         }
 
+        /// <summary>
+        /// Formation flight is only worth building if the real craft can hold it: a wingman on the real prefab keeps
+        /// its chevron station on a leader cruising at the patrol's 0.7 of top speed, through a 90° turn.
+        /// </summary>
+        [Test]
+        public void TheRealCraft_HoldsAWingStation_OnALeaderThroughATurn()
+        {
+            const float SettleSeconds = 15f, TurnStart = 20f, TurnSeconds = 15f, TotalSeconds = 50f, StationTolerance = 12f;
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcOrnithopterBuilder.PrefabPath);
+            Assert.IsNotNull(prefab, "build the NPC craft first");
+            var craft = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            junk.Add(craft);
+            var motor = craft.GetComponent<FlyingRigidbodyMotor>();
+            typeof(FlyingRigidbodyMotor).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(motor, null);
+            var aviator = craft.GetComponent<NpcAviator>();
+            var escort = (EscortSettings)typeof(NpcAviator).GetField("escort", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(aviator);
+            escort.driftAmplitude = 0f;
+
+            // The leader: a plain transform flown by the test at 0.7 of the craft's top speed, 60 m up.
+            var leader = new GameObject("Leader");
+            junk.Add(leader);
+            leader.transform.position = Ground0 + Vector3.up * 60f;
+            float leaderSpeed = 0.7f * motor.TopSpeed;
+            var patrol = new NpcGroupAirPatrol();
+            Vector3 offset = NpcAirPatrol.WingOffset(0, patrol);
+
+            craft.transform.position = leader.transform.TransformPoint(offset);
+            GameObject pilot = NpcAviatorTests.Pilot(junk);
+            pilot.transform.position = craft.transform.position;
+            Assert.IsTrue(aviator.Board(pilot, 60f, 6f, Ground0));
+            aviator.Escort(FlightStation.Fixed(leader.transform, offset, 0));
+
+            PhysicsScene physics = scene.GetPhysicsScene();
+            float worst = 0f;
+            for (float t = 0f; t < TotalSeconds; t += Dt)
+            {
+                if (t >= TurnStart && t < TurnStart + TurnSeconds) leader.transform.Rotate(0f, 90f / TurnSeconds * Dt, 0f);
+                leader.transform.position += leader.transform.forward * leaderSpeed * Dt;
+
+                MoveIntent applied = aviator.Tick(new AgentContext { Self = craft.transform, Position = craft.transform.position }, Dt) ?? MoveIntent.Idle();
+                motor.Tick(in applied, Dt);
+                motor.StepPhysics(Dt);
+                physics.Simulate(Dt);
+
+                if (t >= SettleSeconds)
+                    worst = Mathf.Max(worst, Vector3.Distance(craft.transform.position, leader.transform.TransformPoint(offset)));
+            }
+
+            Assert.Less(worst, StationTolerance, $"the wingman strayed {worst:F1} m from its station: no formation would hold");
+            Assert.IsTrue(pilot.transform.IsChildOf(craft.transform), "the wingman landed");
+        }
+
         // pitch: craft nose up (+) / down (-), degrees; roll: bank, degrees. The craft banks to 35 and pitches to 40.
         [TestCase(1f, true, 0f, 0f)]
         [TestCase(-1f, false, 0f, 0f)]

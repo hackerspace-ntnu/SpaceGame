@@ -9,7 +9,8 @@
 //
 // Persistence: EntityBodyEquipmentSaveable ("npcWorn"). A restore wins over the prefab's starting gear,
 // including a restore that says "nothing" — a looted pack must not grow back on reload.
-// Loot: EntityLootTable takes everything worn on death (TakeAllWorn) and drops it with the bag.
+// Loot: EntityLootTable takes what it drops off the body slot by slot on death (Remove) — every worn item but
+// a wing pack, which only a death aloft or a war-party flier sheds.
 using System;
 using System.Collections.Generic;
 using Unity.Collections;
@@ -154,18 +155,6 @@ namespace SpaceGame.Agents
             InventoryItem item = worn[(int)slot];
             if (item != null) Write((int)slot, null);
             return item;
-        }
-
-        /// <summary>Everything worn, taken off — for the loot table on death. Server only.</summary>
-        public List<InventoryItem> TakeAllWorn()
-        {
-            var taken = new List<InventoryItem>();
-            for (int i = 0; i < worn.Length; i++)
-            {
-                InventoryItem item = Remove((BodySlot)i);
-                if (item != null) taken.Add(item);
-            }
-            return taken;
         }
 
         /// <summary>A save's view of what is worn, positional by slot. Server only; wins over starting gear.</summary>

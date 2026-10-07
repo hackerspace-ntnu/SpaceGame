@@ -83,8 +83,8 @@ namespace SpaceGame.Tests
         public void TheWingPack_HasAFoldedPoseForBodiesWithoutARig()
         {
             var fit = Load("Assets/Game/Prefabs/Items/Equipment/WingPack.prefab").GetComponent<WornFit>();
+            // Its size is the player's worn pack's, measured: EntityBodyEquipmentTests.TheFoldedWingPack_IsAsBigAsThePlayersWornOne.
             Assert.IsTrue(fit.HasFoldedPose, "NPCs would wear the stowed wings hanging off nothing (D3)");
-            Assert.Less(fit.FoldedSize, fit.Size, "the folded bundle is drawn at the stowed wings' size");
         }
 
         [Test]

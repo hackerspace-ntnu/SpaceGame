@@ -20,6 +20,11 @@
 // away once unseen after sortieLifetime (UnseenRemoval), so the city's refills cannot pile people up on
 // the ground.
 //
+// On an owner's ORDER none of the above is asked: TakeOffInAir puts a nomad its group spawned seated in
+// mid-air into a craft made around it (a war party's escort, an air patrol), and TakeOffNow launches one
+// standing on a deck (the Sky City's swarm) with only the room-to-launch check. Either hands the craft back
+// with no order of its own; the owner gives it one (NpcAviator.Escort / CruiseTo / LandAt / LandOnDeck).
+//
 // Persistence (D4): a world-scope flier is withheld from the world save for the flight (SaveScopeHold:
 // its record is dropped, not just skipped) and given back on landing; a dead pilot is given back as a
 // corpse once its loot is down (LootAwaitingGround); a group member is External throughout.
@@ -139,6 +144,9 @@ namespace SpaceGame.Agents
         public bool IsAirborne => airborneFor > 0f;
         public bool OnSortie { get; private set; }
 
+        /// <summary>How high over the ground this nomad cruises, metres: where a group spawned in the air is made.</summary>
+        public float CruiseHeight => cruiseHeight;
+
         public override string ModuleDescription =>
             "Flies a far AgentGoal on the worn wing pack (NpcOrnithopter); never in a fight; deploys when falling; " +
             "sorties off an airborne site. Override priority, claims only the deploy frame.";
@@ -215,8 +223,7 @@ namespace SpaceGame.Agents
         private bool WearsWingPack()
         {
             if (craftPrefab == null || Body == null) return false;
-            InventoryItem item = Body.ItemIn(BodySlot.Torso);
-            return item != null && item.itemPrefab != null && item.itemPrefab.GetComponent<WingPackItem>() != null;
+            return WingPackItem.IsWingPack(Body.ItemIn(BodySlot.Torso));
         }
 
         /// <summary>Own goal, else — for a formation follower — its leader's (D5).</summary>
@@ -231,6 +238,40 @@ namespace SpaceGame.Agents
 
         private bool TryLaunch(Vector3 feet, Vector3 heading, bool airborne, Vector3 destination)
         {
+            if (!TryTakeOff(feet, heading, airborne, out NpcAviator aviator)) return false;
+            aviator.LandAt(destination);
+            return true;
+        }
+
+        /// <summary>
+        /// Take off from where it stands, on its owner's order and with no order for the craft yet: no launch
+        /// delay, no flight distance, no fight check (the caller decided) — only room to launch. Server only.
+        /// </summary>
+        public bool TakeOffNow(Vector3 heading, out NpcAviator aviator)
+        {
+            aviator = null;
+            if (InFlight || !WearsWingPack()) return false;
+            return TryTakeOff(transform.position, Flat(heading, transform.forward), false, out aviator);
+        }
+
+        /// <summary>
+        /// Already in the air — spawned seated at cruise height by its group: the craft is made around it where
+        /// it is, flying, with no take-off at all. <paramref name="groundBelow"/> is the ground under it, which
+        /// the craft cannot read off a pilot in mid-air. Server only.
+        /// </summary>
+        public bool TakeOffInAir(Vector3 heading, Vector3 groundBelow, out NpcAviator aviator)
+        {
+            aviator = null;
+            if (InFlight || !WearsWingPack()) return false;
+
+            Quaternion facing = Quaternion.LookRotation(Flat(heading, transform.forward), Vector3.up);
+            return TryDeploy(CraftPositionFor(transform.position, facing, 0f), facing, groundBelow, out aviator);
+        }
+
+        /// <summary>Room to launch (unless already falling), then the craft, with this nomad boarded and no order given.</summary>
+        private bool TryTakeOff(Vector3 feet, Vector3 heading, bool airborne, out NpcAviator aviator)
+        {
+            aviator = null;
             if (!airborne)
             {
                 takeoffProbe.IgnoreHierarchy(transform);
@@ -238,12 +279,23 @@ namespace SpaceGame.Agents
             }
 
             Quaternion facing = Quaternion.LookRotation(heading, Vector3.up);
-            Vector3 seat = craftPrefab.GetComponent<VesselSeats>().SeatPose(0).position;
-            Vector3 at = CraftDeployment.LaunchPosition(craftPrefab.transform, seat, feet, facing, takeoffLift);
+            return TryDeploy(CraftPositionFor(feet, facing, takeoffLift), facing, null, out aviator);
+        }
 
+        /// <summary>Where the craft's root goes so that its cradle is <paramref name="lift"/> above <paramref name="feet"/>.</summary>
+        private Vector3 CraftPositionFor(Vector3 feet, Quaternion facing, float lift)
+        {
+            Vector3 seat = craftPrefab.GetComponent<VesselSeats>().SeatPose(0).position;
+            return CraftDeployment.LaunchPosition(craftPrefab.transform, seat, feet, facing, lift);
+        }
+
+        /// <summary>Spawn the craft, hold this nomad out of the save and board it. Undone in full on any refusal.</summary>
+        private bool TryDeploy(Vector3 at, Quaternion facing, Vector3? groundHint, out NpcAviator aviator)
+        {
+            aviator = null;
             GameObject craft = GameServices.World.Spawn(craftPrefab, at, facing);
             if (craft == null) return false;
-            if (!craft.TryGetComponent(out NpcAviator aviator))
+            if (!craft.TryGetComponent(out NpcAviator spawned))
             {
                 Debug.LogError($"{name}: craftPrefab '{craftPrefab.name}' has no NpcAviator.", this);
                 CraftDeployment.Retire(craft);
@@ -251,15 +303,16 @@ namespace SpaceGame.Agents
             }
 
             saveHold.Hold(gameObject);
-            if (!aviator.Fly(gameObject, destination, cruiseHeight, landingSampleDistance))
+            if (!spawned.Board(gameObject, cruiseHeight, landingSampleDistance, groundHint))
             {
                 saveHold.Release();
                 CraftDeployment.Retire(craft);
                 return false;
             }
 
-            Aviator = aviator;
-            aviator.PilotReleased += OnPilotReleased;
+            Aviator = spawned;
+            spawned.PilotReleased += OnPilotReleased;
+            aviator = spawned;
             return true;
         }
 

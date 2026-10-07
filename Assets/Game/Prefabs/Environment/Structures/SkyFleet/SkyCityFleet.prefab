@@ -31,6 +31,7 @@ GameObject:
   - component: {fileID: 5550949123970974592}
   - component: {fileID: 7891564353136042925}
   - component: {fileID: 5529052291479890839}
+  - component: {fileID: 1188712893599619995}
   m_Layer: 0
   m_Name: SkyCityFleet
   m_TagString: Untagged
@@ -226,6 +227,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 3018655414324054041}
   animatorDriver: {fileID: 0}
+  acquiresTargets: 1
   speedVariationAmount: 0
   speedVariationPeriod: 6
 --- !u!114 &4826425007690622783
@@ -493,6 +495,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &1188712893599619995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 765982938715578520}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 928465c74a1199446b90dd5099abb386, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Vehicles.SettlementLoiterFlights
+  route: {fileID: 3238984927745301974}
+  population: {fileID: 5360083236196031162}
+  reachableFrom: {fileID: 3046347877781187321}
+  checkInterval: 20
+  launchChance: 0.5
+  maxAloft: 3
+  candidatesPerCheck: 3
+  audienceDistance: 900
+  landingBudget: 60
+  pairChance: 0.35
+  orbitRadius: {x: 90, y: 110}
+  orbitHeight: 100
+  orbitHeightJitter: 5
+  orbitSpeed: 0.55
+  loiterSeconds: {x: 60, y: 150}
+  maxLoiterSeconds: 600
+  wingmanOffset: {x: -16, y: 2.5, z: -14}
+  padCount: 4
+  padCandidates: 32
+  padSampleRadius: 90
+  padSpacing: 25
+  padClearRadius: 8
+  padClearHeight: 40
+  padNavMeshReach: 4
+  approachFixDistance: 220
+  approachFixHeight: 50
+  approachClearRadius: 6
+  approachMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probe:
+    castReach: 300
+    surfaceSkin: 0.5
 --- !u!1 &1193916070837550130
 GameObject:
   m_ObjectHideFlags: 0

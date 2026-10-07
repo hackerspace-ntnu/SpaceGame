@@ -1,5 +1,8 @@
 // Defines what an entity drops on death and handles the actual drop.
-// Drops items from EntityInventoryComponent and everything worn (guaranteed) plus random rolls from the loot table.
+// Drops items from EntityInventoryComponent and everything worn (guaranteed) plus random rolls from the loot table —
+// except a worn WING PACK, which only a body killed while flying (seated aloft) or a war-party flier sheds; any
+// other Sky corpse keeps its pack on (user decision 2026-10-07). A war-party flier's bag (its hand weapon) drops
+// only on a roll (MarkWarFlier).
 // Every drop lies beside the body for `lootLifetime` and is then taken away like the body (Remains).
 // Requires HealthComponent on the same GameObject.
 using System;
@@ -52,6 +55,13 @@ namespace SpaceGame.Agents
         // letting the body go before this table hears OnDeath (handler order) cannot turn it into a ground death.
         private bool seatedAloft;
 
+        // What this death was: latched in Drop, read when the drop happens (at once, or once the body is down).
+        private bool diedAloft;
+
+        // A war-party flier (MarkWarFlier): sheds its pack wherever it dies, and its bag only on a roll.
+        private bool warFlier;
+        private float warFlierBagChance = 1f;
+
         /// <summary>A death now hands the drop to <see cref="LootAwaitingGround"/> (seated aloft, latched).</summary>
         internal bool DropsOnceDown => seatedAloft;
 
@@ -64,6 +74,21 @@ namespace SpaceGame.Agents
             if (!health)
                 Debug.LogWarning($"{name}: EntityLootTable needs a HealthComponent.", this);
         }
+
+        /// <summary>
+        /// This body flies in a war party's escort: it drops its wing pack wherever it dies, and the bag (its hand
+        /// weapon) only with <paramref name="bagDropChance"/>. Set at spawn by the world sim, server only; never
+        /// saved, because a war party's members are not saved individually.
+        /// </summary>
+        public void MarkWarFlier(float bagDropChance)
+        {
+            warFlier = true;
+            warFlierBagChance = Mathf.Clamp01(bagDropChance);
+        }
+
+        /// <summary>Is a worn item shed on death? Everything is, but a wing pack only from a death aloft or a war flier.</summary>
+        public static bool DropsWorn(bool isWingPack, bool diedAloft, bool warFlier) =>
+            !isWingPack || diedAloft || warFlier;
 
         private void OnEnable()
         {
@@ -103,6 +128,7 @@ namespace SpaceGame.Agents
 
             // Killed in the air (D8): the body falls, and its loot goes down with it rather than from the
             // kill point.
+            diedAloft = seatedAloft;
             if (seatedAloft)
             {
                 LootAwaitingGround.Begin(gameObject, DropAll, landedHeight, groundSearchDepth);
@@ -117,7 +143,7 @@ namespace SpaceGame.Agents
         {
             if (dropInventoryContents)
             {
-                if (entityInventory != null) DropBag();
+                if (entityInventory != null && (!warFlier || UnityEngine.Random.value <= warFlierBagChance)) DropBag();
                 DropWorn();
             }
 
@@ -156,14 +182,20 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// What it was wearing, under the same guards and lifetime as the bag: a Sky nomad's wing pack is
-        /// how a player gets to fly (D7). Taken off the body as it drops, so a corpse never holds a copy
-        /// of what is lying beside it.
+        /// What it was wearing, under the same guards and lifetime as the bag. A Sky nomad's wing pack is how a
+        /// player gets to fly (D7), but only a flier shot down or a war-party flier sheds it (DropsWorn); anyone
+        /// else is buried in theirs. Taken off the body as it drops, so a corpse never holds a copy of what is
+        /// lying beside it.
         /// </summary>
         private void DropWorn()
         {
             if (!TryGetComponent(out EntityBodyEquipment body)) return;
-            foreach (InventoryItem item in body.TakeAllWorn()) DropOne(item);
+            foreach (BodySlot slot in (BodySlot[])Enum.GetValues(typeof(BodySlot)))
+            {
+                InventoryItem item = body.ItemIn(slot);
+                if (item == null || !DropsWorn(WingPackItem.IsWingPack(item), diedAloft, warFlier)) continue;
+                if (body.Remove(slot) != null) DropOne(item);
+            }
         }
 
         private void DropOne(InventoryItem item)

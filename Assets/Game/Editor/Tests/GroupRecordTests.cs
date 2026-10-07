@@ -35,6 +35,7 @@ namespace SpaceGame.EditorTools
                 WipedOut = true,
                 Delivered = true,
             };
+            group.Fallen.AddRange(new[] { 0, 1003 });
 
             JObject json = JObject.FromObject(group.ToRecord(), SaveSerializer.Serializer);
             NpcGroup.Record back = json.ToObject<NpcGroup.Record>(SaveSerializer.Serializer);
@@ -48,6 +49,8 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(restored.IsWarParty);
             Assert.IsTrue(restored.WipedOut, "a party wiped out just before the save must not respawn on load");
             Assert.IsTrue(restored.Delivered, "a party already dropped off comes back on foot, not in a vessel");
+            CollectionAssert.AreEqual(new[] { 0, 1003 }, restored.Fallen,
+                "a party saved after losing people must not come back whole on load");
         }
 
         [Test]
@@ -66,6 +69,7 @@ namespace SpaceGame.EditorTools
             Assert.IsFalse(group.IsWarParty);
             Assert.IsFalse(group.WipedOut);
             Assert.IsFalse(group.Delivered, "an older save's party has not been dropped off");
+            CollectionAssert.IsEmpty(group.Fallen, "an older save's party has lost nobody");
         }
 
         [Test]

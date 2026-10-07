@@ -39,9 +39,10 @@ symptoms:
   - "items multiply in the world: one more copy of each carried piece after every load"
   - "weapons and items appear lying around the world for no reason"
   - "a dead NPC drops nothing, or its gun appears on the sand only after I reload"
-  - "a Sky nomad I shot dropped its gun but not its wing pack"
+  - "I can't pick up the wing pack a Sky nomad dropped"
+  - "the pickup prompt shows but RMB does nothing, and the console is clean"
 reads_with: [Artifacts, Backpack, BodyEquipment, Persistence, Combat, Oxygen]
-updated: 2026-10-06
+updated: 2026-10-07
 ---
 
 # Items & Inventory core
@@ -163,7 +164,7 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 - **`ForceMode.Impulse` is divided by mass.** Every item weighed the Rigidbody default of 1 kg until `WorldItem` started deriving one from the item's bulk, so the drop toss read the same either way. It does not any more — the impulse that lobbed a scanner drops a hull module straight down its own side. `PlayerDropService` uses `VelocityChange`: how far a dropped thing is lobbed is a decision about the drop, not about how heavy the thing is.
 - **A collider left live in the hand** shoves the holder around; `Sanitize` disables the whole hierarchy. `keepColliders` is an escape hatch, not a default. Nothing is restored on unequip — the instance is destroyed.
 - **A refilling item must override `OnMaxUsesReached`** to stay silent, or `EquipmentController.ItemDepleted` removes it from the inventory.
-- **Deleting a prefab** nulls `InventoryItem.itemPrefab` silently — restore by GUID.
+- **Two silent null references, one each way.** Deleting a prefab nulls `InventoryItem.itemPrefab` — restore by GUID. And **`PickupableItem.item` is the ONLY thing a pickup hands over, and a null one refuses silently.** `Pickup` calls `TryAddItem(item)`; with no asset that is `TryAddItem(null)`, which fails, so the object reads "RMB: pick up", clicks, and stays on the sand — clean console, every machine. The wing pack, jetpack, wingsuit and lasso all shipped that way: the gauntlet-architecture commit (f3d8a158, 2026-09-04) rewrote the Equipment prefabs with `item: {fileID: 0}`, and nothing noticed until a Sky nomad's dropped pack — the only way to get one without the dev browser — could not be taken (fixed 2026-10-07). The drop path itself (`EntityLootTable.DropWorn` → `PlayerDropService.DropItem` → `World.Spawn(item.itemPrefab)`) was never at fault: a dead NPC's gear is a fresh copy of the item's prefab, not the worn visual. `WorldItemTests.EveryItemsPrefab_PicksUpAsThatItem` now holds the back-reference for every asset under `Resources/Items`; `EntityBodyEquipmentPersistenceTests.ADeadWearer_DropsGearAPlayerCanPickUp` holds the death drop.
 - **`Sync Network Prefabs` only ever ADDS.** [`NetworkPrefabRegistrar.Sync`](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) walks every prefab that exists and appends the ones missing from the list; it has no pass that drops rows whose prefab is gone. So deleting an item prefab leaves a `Prefab: {fileID: 0}` row behind — in **two** files, because `Assets/DefaultNetworkPrefabs.asset` is Netcode's own regenerated copy alongside the one the NetworkManager actually reads. Take both rows out by hand; re-running the sync will not do it and reports "already in sync".
 - Audits: `Tools/SpaceGame/Items/Audit Held Item Poses`, `Tools/SpaceGame/Items/Audit Item Scale Ladder`, `Tools/SpaceGame/Items/Audit Pack Orientation (whole roster)`, `Tools/Generate All Item Icons`. Tests: [HoldPoseTests](Assets/Game/Editor/Tests/HoldPoseTests.cs), [GripFrameTests](Assets/Game/Editor/Tests/GripFrameTests.cs), [HoldLatchTests](Assets/Game/Editor/Tests/HoldLatchTests.cs).
 
@@ -173,7 +174,7 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 2. Script → `Assets/Game/Scripts/Items/Artifacts/…/<Name>Artifact.cs`, namespace `SpaceGame.Items`, subclass `ToolItem` or `EffectItem`. No asmdef under `Scripts/Items`; editor tests go in `Assets/Game/Editor/`.
 3. Prefab → `Assets/Game/Prefabs/Items/…/<Name>.prefab` with `NetworkObject`, `PickupableItem`, the script and an `ItemGrip`; then `ItemWorldPresence.Apply(root)` for the collider, body, `WorldItem` and netcode — never write that block by hand. Prefer an editor builder script when it nests an FBX.
 4. Item asset → `Assets/Game/Resources/Items/<Category>/<Name>.asset` (`Create > Items > Item`); set `itemName` + `itemPrefab`.
-5. Back-reference: set `PickupableItem.item` on the prefab to that asset.
+5. Back-reference: set `PickupableItem.item` on the prefab to that asset — without it the item cannot be picked up, silently (`WorldItemTests.EveryItemsPrefab_PicksUpAsThatItem`).
 6. Icon: `Tools/Generate All Item Icons`.
 7. Grip: set `holdSize` from the bracket table in `ItemScaleLadder` (add the prefab to `Ladder`), then tune `rotationOffset`/`positionOffset` and re-run the pose audit.
 8. Register the prefab: `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`, then `Tools/SpaceGame/Items/Audit World Item Bodies`.

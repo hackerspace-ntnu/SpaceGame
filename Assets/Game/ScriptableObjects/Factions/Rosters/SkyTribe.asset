@@ -57,13 +57,27 @@ MonoBehaviour:
   - roles:
     - role: 0
       count: 2
+      ownWings: 0
+    - role: 1
+      count: 2
+      ownWings: 1
   - roles:
     - role: 1
       count: 3
+      ownWings: 0
     - role: 0
       count: 1
+      ownWings: 0
+    - role: 1
+      count: 4
+      ownWings: 1
   - roles:
     - role: 1
       count: 5
+      ownWings: 0
     - role: 0
       count: 2
+      ownWings: 0
+    - role: 1
+      count: 6
+      ownWings: 1

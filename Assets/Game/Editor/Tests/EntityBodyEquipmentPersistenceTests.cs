@@ -106,14 +106,36 @@ namespace SpaceGame.Tests
             Assert.IsNotNull(npc.GetComponent<EntityBodyEquipmentSaveable>());
         }
 
+        /// <summary>
+        /// Only a Sky person killed flying, or a war-party flier, sheds its wing pack (user decision 2026-10-07):
+        /// one killed on foot is buried in it.
+        /// </summary>
         [Test]
-        public void ADeadWearer_DropsItsPackOnce_AndARestoredCorpseDropsNothing()
+        public void AWearerKilledOnFoot_KeepsItsPack()
+        {
+            GameObject npc = EntityBodyEquipmentTests.Npc(junk);
+            var health = npc.AddComponent<HealthComponent>();
+            var loot = npc.AddComponent<EntityLootTable>();
+            Invoke(loot, "Awake");
+            Invoke(loot, "OnEnable");
+            var body = npc.GetComponent<EntityBodyEquipment>();
+            body.TryWear(Pack);
+
+            health.Damage(999);
+
+            Assert.AreEqual(0, PacksDropped, "a Sky nomad killed on foot dropped its wing pack");
+            Assert.AreEqual(Pack, body.ItemIn(BodySlot.Torso), "the corpse lost the pack it kept");
+        }
+
+        [Test]
+        public void AWarFlier_DropsItsPackOnce_AndARestoredCorpseDropsNothing()
         {
             GameObject npc = EntityBodyEquipmentTests.Npc(junk);
             var health = npc.AddComponent<HealthComponent>();
             var loot = npc.AddComponent<EntityLootTable>();
             foreach (string m in new[] { "Awake", "OnEnable" })
                 typeof(EntityLootTable).GetMethod(m, BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(loot, null);
+            loot.MarkWarFlier(1f);
             var body = npc.GetComponent<EntityBodyEquipment>();
             body.TryWear(Pack);
 
@@ -142,6 +164,7 @@ namespace SpaceGame.Tests
             var loot = npc.AddComponent<EntityLootTable>();
             Invoke(loot, "Awake");
             Invoke(loot, "OnEnable");
+            loot.MarkWarFlier(1f);   // a war flier sheds its pack wherever it dies
             var body = npc.GetComponent<EntityBodyEquipment>();
             Assert.IsTrue(body.TryWear(Pack));
             Assert.IsTrue(body.TryWear(repulsor));
@@ -212,7 +235,7 @@ namespace SpaceGame.Tests
         }
 
         [Test]
-        public void APilotSetDownAlive_DropsAtOnceWhereItLaterDies()
+        public void APilotSetDownAlive_DiesOnFoot_AndKeepsItsPack()
         {
             (GameObject npc, HealthComponent health) = PilotAloft();
             npc.transform.SetParent(null, true);
@@ -220,8 +243,30 @@ namespace SpaceGame.Tests
 
             health.Damage(999);
 
-            Assert.AreEqual(1, PacksDropped, "a pilot that had landed alive held its pack as if killed aloft");
-            Assert.IsNull(npc.GetComponent<LootAwaitingGround>());
+            Assert.IsNull(npc.GetComponent<LootAwaitingGround>(), "a pilot that had landed alive waited for the ground as if killed aloft");
+            Assert.AreEqual(0, PacksDropped, "a pilot killed on foot after landing dropped its pack");
+        }
+
+        [Test]
+        public void AWarFlierWhoseWeaponRollFails_KeepsItsGun_ButStillShedsItsPack()
+        {
+            InventoryItem gun = EntityBodyEquipmentTests.Asset<InventoryItem>(EntityBodyEquipmentTests.RepulsorPath);
+            GameObject npc = EntityBodyEquipmentTests.Npc(junk);
+            var health = npc.AddComponent<HealthComponent>();
+            var bag = npc.AddComponent<EntityInventoryComponent>();
+            Invoke(bag, "Awake");
+            Assert.IsTrue(bag.TryAddItem(gun));
+            var loot = npc.AddComponent<EntityLootTable>();
+            Invoke(loot, "Awake");
+            Invoke(loot, "OnEnable");
+            loot.MarkWarFlier(0f);
+            npc.GetComponent<EntityBodyEquipment>().TryWear(Pack);
+
+            health.Damage(999);
+
+            Assert.AreEqual(1, PacksDropped, "a war flier kept its pack");
+            Assert.AreEqual(0, world.Spawned.Count(go => go.name.StartsWith(gun.itemPrefab.name)),
+                            "a war flier whose weapon roll failed dropped its gun");
         }
 
         [Test]

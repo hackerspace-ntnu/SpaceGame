@@ -9,6 +9,7 @@ paths:
   - Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs
 symptoms:
   - "dead bodies and dropped loot vanish while nobody is looking"
+  - "a Sky nomad I shot on foot dropped its gun but not its wing pack"
   - "a dead NPC's body stays lying there for minutes"
   - "a creature disappears for clients when it walks into another chunk"
   - "console warns No prefab registered for id when loading a world"
@@ -19,7 +20,7 @@ symptoms:
   - "a moving NPC keeps nine chunks loaded around itself"
   - "a Sky transport prefab carries a SaveableEntity and savers after a merge"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-10-05
+updated: 2026-10-07
 ---
 
 # Entity System
@@ -65,7 +66,7 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 | `Registry<T>` | [Core/Registry/Registry.cs](Assets/Game/Scripts/Core/Registry/Registry.cs) | Generic `IRegistryEntry` store keyed by string `ID`. **Items only** — nothing entity-shaped uses it. Filled by [RegistryLoader](Assets/Game/Scripts/Core/Registry/RegistryLoader.cs) from `Resources/Items`. |
 | `EntityInventoryComponent` | [agents/Entity/EntityInventoryComponent.cs](Assets/Game/Scripts/agents/Entity/EntityInventoryComponent.cs) | Same `Inventory` class the player uses, on an NPC. |
 | `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
-| `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents + rolled `LootEntry` list. |
+| `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents and worn gear + rolled `LootEntry` list. A worn **wing pack** drops only from a body killed seated aloft or a war-party flier (`DropsWorn`; any other corpse keeps it on, user decision 2026-10-07); `MarkWarFlier(bagDropChance)` (set at spawn by `NpcWorldSim`, never saved) also makes the bag drop only on that roll. |
 | `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
 | `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling (**not saved**: `HealthReactionSaveable` was deleted 2026-10-02 because every prefab's threshold list was empty — a prefab that authors one replays it from scratch after a load), hurt/death SFX; on death the body lies where it fell and the server starts its `Remains` countdown (`corpseLifetime`, 180 s; 0 = stays, a monowheel wreck). See [Combat.md](Combat.md) Gotchas. |
 

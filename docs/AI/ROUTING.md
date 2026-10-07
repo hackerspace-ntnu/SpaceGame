@@ -176,6 +176,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a mesh built under a pack surface lands tens of metres away | [Backpack](systems/Backpack.md) |
 | a mesh renders inside-out in Unity and looks correct in Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | a MeshCollider I added is missing from the bake and nothing errors | [NavMeshSystem](systems/NavMeshSystem.md) |
+| a metal from the palette looks like matte paint in Unity | [ArtPipeline](systems/ArtPipeline.md) |
 | a mid-air quicksave reloads standing still in the sky | [Wingsuit](systems/Wingsuit.md) |
 | a mid-air save reloads with the ornithopter falling out of the sky | [Ornithopter](systems/Ornithopter.md) |
 | a model placed from an editor script lies on its side, though the FBX previews upright | [ArtPipeline](systems/ArtPipeline.md) |
@@ -210,6 +211,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
 | a player's punch shows BLOCKED and does no damage | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a PNG named after a Blender image appeared beside the .blend after an export | [ArtPipeline](systems/ArtPipeline.md) |
+| a polished surface reflects a flat pale grey instead of what is around it | [ProjectConfig](systems/ProjectConfig.md) |
 | A polygon of Mesh ... is self-intersecting and has been discarded | [ArtPipeline](systems/ArtPipeline.md) |
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a position 16 km out reads as terrain in the corner of the world | [WorldStreaming](systems/WorldStreaming.md) |
@@ -229,6 +231,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
 | a re-unwrapped eye still renders the old mesh although its normals and file are correct | [StylizedEyes](systems/StylizedEyes.md) |
 | a readout writes a ValueText and the number never appears on screen | [Visor](systems/Visor.md) |
+| a realtime reflection probe has no texture in the editor | [ProjectConfig](systems/ProjectConfig.md) |
 | a refused click beeps on the body but is silent on the rail | [BodyEquipment](systems/BodyEquipment.md) |
 | a renamed [SerializeField] and the wiring pass quietly stopped setting it | [EditorTooling](systems/EditorTooling.md) |
 | a renamed garment object leaves its old garment prefab rendering nothing, still nested in an outfit | [CharacterClothes](systems/CharacterClothes.md) |
@@ -437,6 +440,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every item fires straight down while I am riding something, whatever I am pointing at | [PlayerCharacter](systems/PlayerCharacter.md) |
 | every left-side vertex group of a copied character is empty | [ArtPipeline](systems/ArtPipeline.md) |
 | every limb of the ragdoll is jointed straight to one hub instead of down the limb | [Combat](systems/Combat.md) |
+| every mirror shows the same big dark wedge | [SunShrine](systems/SunShrine.md) |
 | every module on the schematic reads MISSING on a ship that is clearly whole | [ShipSchematic](systems/ShipSchematic.md) |
 | every NPC of one prefab stands in the same idle and steps off on the same foot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
@@ -692,6 +696,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
+| the beam visibly misses a mirror but the light still counts as reaching it | [SunShrine](systems/SunShrine.md) |
 | the beam whips around whenever I fire a gauntlet | [Flashlight](systems/Flashlight.md) |
 | the body pokes through the poncho mid-stride | [CharacterClothes](systems/CharacterClothes.md) |
 | the body screen is open but I have a cursor, no controls and no camera | [BodyEquipment](systems/BodyEquipment.md) |
@@ -895,6 +900,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the menu item a doc names is not in the Tools menu | [EditorTooling](systems/EditorTooling.md) |
 | the menu's decorative astronauts stand in front of the roster once the lobby has several teams | [Lobby](systems/Lobby.md) |
 | the mirrors are right but the seal never fills | [SunShrine](systems/SunShrine.md) |
+| the mirrors look like flat gold or grey discs, not mirrors | [SunShrine](systems/SunShrine.md) |
 | the model comes out 100x too big when parented to a socket | [ArtPipeline](systems/ArtPipeline.md) |
 | the model is correct in Blender and only some of its parts are in the wrong place in the FBX | [ArtPipeline](systems/ArtPipeline.md) |
 | the module the schematic had lit goes dark the moment the mouse button goes down | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1060,6 +1066,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the storm's fog and grit are drawn inside the ship, and the crew take sandstorm damage indoors | [PlayerShip](systems/PlayerShip.md) |
 | the strap-on booster does nothing at all when I aim at the ground or a wall | [StrapOnBooster](systems/StrapOnBooster.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
+| the sunbeam is brightest up in the sky and fades out at the mirrors | [SunShrine](systems/SunShrine.md) |
 | the sunbeam is there but invisible against the sand | [SunShrine](systems/SunShrine.md) |
 | the supply gauge bar floats in the air behind the grip | [Flamethrower](systems/Flamethrower.md) |
 | the swinger keeps rope steering after somebody cut their grapple cable | [RopeCutting](systems/RopeCutting.md) |
@@ -1291,6 +1298,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Animations/Creatures/Glintback.controller` | [Glintback](systems/Glintback.md) |
+| `Assets/Game/Art/Materials/Environment/SunMirrorSilver.mat` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Messaging/NetJoin.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
@@ -1320,6 +1328,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/WingsuitRecolor.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Art/Textures/Effects/SunShaftProfile.png` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BurningStatus.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1335,6 +1344,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/WingsuitWings.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
+| `Assets/Game/Art/Materials/Environment/SunShaft.mat` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Models/Creatures/Organic/Glintback` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Art/Models/Props/standing_terminal.fbx` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader` | [FoamGun](systems/FoamGun.md) |
@@ -1573,4 +1583,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1167 symptoms, 380 paths, 65 docs -->
+<!-- 1174 symptoms, 383 paths, 65 docs -->

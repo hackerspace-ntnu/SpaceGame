@@ -9,13 +9,20 @@ paths:
   - Assets/Game/Prefabs/Environment/SunShrine
   - Assets/Game/Art/Models/Environment/SunShrine
   - "Assets/Game/Art/Models/_Source~/models/buildings/sun_shrine.blend"
+  - Assets/Game/Art/Materials/Environment/SunShaft.mat
+  - Assets/Game/Art/Materials/Environment/SunMirrorSilver.mat
+  - Assets/Game/Art/Textures/Effects/SunShaftProfile.png
 symptoms:
   - "the sunbeam is there but invisible against the sand"
+  - "the sunbeam is brightest up in the sky and fades out at the mirrors"
+  - "the beam visibly misses a mirror but the light still counts as reaching it"
   - "the mirrors are right but the seal never fills"
   - "the puzzle cannot be solved at some hours"
   - "the vault is sealed again after loading a save"
-reads_with: [WeathervanePuzzle, Environment, InteractionSystem, Multiplayer, Persistence]
-updated: 2026-09-30
+  - "the mirrors look like flat gold or grey discs, not mirrors"
+  - "every mirror shows the same big dark wedge"
+reads_with: [WeathervanePuzzle, Environment, InteractionSystem, Multiplayer, Persistence, ArtPipeline]
+updated: 2026-10-07
 ---
 
 # Sun Shrine
@@ -55,13 +62,21 @@ added (the scene's static light is disabled). Not in any world chunk yet.
 - Legibility (`GDC-L1-SYS-0006`, `GDC-L1-DESIGN-0006`): a visible shaft, each crank saying "in the
   sunbeam", the seal's fill as the crank readout's 0–1 bar, the seal glowing as it fills, and a
   sundial outside with the waking third of its rim inlaid in gold.
+- **The beam is drawn exactly as wide as it hits** (`2 × beamRadius`, set in code, with no width of
+  its own in the prefab). A beam that visibly grazes a mirror's rim counts, and one that visibly
+  misses does not. It is two renderers: `skyShaft`, the sunlight falling onto mirror 1 and fading in
+  from the sky (shown whenever the sun reaches the mirror, even one turned away), and `beam`, the
+  reflected path, which keeps a uniform strength and rounds its corners at each bounce.
+- **The panes are real mirrors**: silver, reflecting the ruin and the sky of the current hour through
+  the `MirrorReflections` probe ([Environment.md](Environment.md): `TimedReflectionProbe`). Nothing
+  crosses the pane's face; the frame holds it on two short pins.
 
 ## Key types
 
 | Type | File | Role |
 | --- | --- | --- |
-| `SunShrine` | [SunShrine.cs](Assets/Game/Scripts/Gameplay/Puzzles/SunShrine/SunShrine.cs) | A `DialSet`: two dials per mirror (turn 2i, tilt 2i+1), packed mixed-radix. Traces, draws the `LineRenderer`, fills and glows the seal. `LightsSeal(arrangement, toSun)` is the pure query the tests use |
-| `SunMirror` | [SunMirror.cs](Assets/Game/Scripts/Gameplay/Puzzles/SunShrine/SunMirror.cs) | Presentation + geometry: poses `YawPivot`/`TiltPivot`, spins the cranks. `Normal` follows the swing so the beam sweeps with it; `NormalAt(steps)` is pure |
+| `SunShrine` | [SunShrine.cs](Assets/Game/Scripts/Gameplay/Puzzles/SunShrine/SunShrine.cs) | A `DialSet`: two dials per mirror (turn 2i, tilt 2i+1), packed mixed-radix. Traces, draws the `skyShaft` and `beam` `LineRenderer`s, fills and glows the seal. `LightsSeal(arrangement, toSun)` is the pure query the tests use |
+| `SunMirror` | [SunMirror.cs](Assets/Game/Scripts/Gameplay/Puzzles/SunShrine/SunMirror.cs) | Presentation + geometry: poses `YawPivot`/`TiltPivot`, spins the cranks. `Normal` follows the swing so the beam sweeps with it; `NormalAt(steps)` is pure. The `Mirror_Pane` renderer wears `SunMirrorSilver.mat`, not the FBX's material |
 | `SunSeal` | [SunSeal.cs](Assets/Game/Scripts/Gameplay/Puzzles/SunShrine/SunSeal.cs) | One-way `NetLatch` (`ILatchHost`, `IPersistentEntity`); sinks the door `sinkDepth` |
 | `DialCrank` | [DialCrank.cs](Assets/Game/Scripts/Gameplay/Puzzles/Dials/DialCrank.cs) | "Mirror crank", "RMB: turn" / "RMB: tilt"; bar = `SunShrine.Progress` |
 | `SunSealSaveable` / `DialSetSaveable` | [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/SunSealSaveable.cs) | Keys `sunSeal` `{ open }` and `dials` `{ arrangement }` |
@@ -73,6 +88,8 @@ added (the scene's static light is disabled). Not in any world chunk yet.
 | `oculusHalfAngle` / `stormCutoff` | 60° / 0.65 | shrine |
 | `sealRadius` / `sealAcceptDegrees` | 0.7 m / 15° | shrine |
 | `holdSeconds` / `drainSeconds` | 5 s / 3 s | shrine |
+| beam look | `beamColour` (alpha-blended gold); cross-section `SunShaftProfile.png` on `SunShaft.mat` | shrine / material |
+| mirror reflections | 256 px, box-projected, re-rendered every 10 s, captured 1.5 m above the mirror tops | `MirrorReflections` probe |
 
 ## Flows
 
@@ -101,6 +118,10 @@ A few extra routes open around noon.
 
 - **The shrine must stand square to the world axes.** The puzzle is solvable only because the sun's plane lines up with the 30° turn grid. `SunShrineTests` reads the prefab at identity. A rotated instance can be unsolvable, and nothing warns.
 - **An additive shaft is invisible in daylight** against pale sand. `SunShaft.mat` is alpha-blended for that reason.
+- **The shaft's texture must vary only across the ribbon.** A `LineRenderer` in Stretch mode spreads its texture's U over the *whole* line. `SunShaft.mat` used Unity's round default-particle blob, so the beam was brightest halfway up the 40 m sky shaft and almost gone at the mirrors and the seal, where players look. `SunShaftProfile.png` is a 4×64 strip: bright core, soft edges, constant along its length.
+- **The visible width and `beamRadius` must not be tuned separately.** The beam used to be drawn 0.45 m wide while the hit test padded each disc by 0.45 m (a 0.9 m column), so light visibly passed beside a mirror and still counted. `DrawBeam` now sets the width from `beamRadius` every frame; a width typed into the prefab is overwritten.
+- **The pane's silver lives on the prefab, not in the FBX.** The FBX import loses `metallic` ([ArtPipeline.md](ArtPipeline.md)), so the palette's `Mat_Metal_Chrome_Scuffed` on the pane in Blender arrives as matte grey. `SunMirror.prefab`'s `Mirror_Pane` renderer is assigned `SunMirrorSilver.mat` (metallic 1, smoothness 0.96). Re-exporting keeps it, because the renderer references the mesh by name.
+- **The probe must capture from above the mirrors.** Captured from among them, the neighbouring mirrors and stands filled half its cubemap, and every pane showed the same big dark wedge. `MirrorReflections` sits 1.5 m above the mirror tops, with box projection on so the reflections still line up with the walls.
 - **`maxBounces` and the recess are the only limits on emergent routes.** Widening `sealAcceptDegrees` lets mirror 1 light the seal alone at some hours.
 - The mirror's reflecting face is the `PaneFace` empty, not the FBX pane node: FBX nodes carry the axis conversion, so their `forward` is not the face.
 
@@ -108,4 +129,4 @@ A few extra routes open around noon.
 
 1. **Retune the drift:** change `tiltStepDegrees`, `beamRadius` or mirror `radius`, then run `SunShrineTests`. They check it is solvable at every waking degree, that no arrangement holds for more than two in-game hours, and that some arrangement holds for at least 20 s.
 2. **Place it in the world:** copy `SunShrine` into a chunk scene at rotation 0. Put the reward in the vault; the test scene uses a SmallMotor hull module.
-3. **Models:** `models/buildings/sun_shrine.blend` holds `Coll_SunShrine_Ruin`, `Coll_SunMirror`, `Coll_SunSealDoor` and `Coll_SunDial`; re-export with `_exportlib.export_collections` to `Environment/SunShrine/`.
+3. **Models:** `models/buildings/sun_shrine.blend` holds `Coll_SunShrine_Ruin`, `Coll_SunMirror`, `Coll_SunSealDoor` and `Coll_SunDial`; re-export with `_exportlib.export_collections` to `Environment/SunShrine/`. `Mirror_Frame` is a rim, a backing disc behind the pane, and two pins (material slot 1) from the rim to the yoke arms. Keep anything off the pane's face: it would cover the mirror and stand in the beam.

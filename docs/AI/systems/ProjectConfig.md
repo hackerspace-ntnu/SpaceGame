@@ -15,8 +15,10 @@ symptoms:
   - "a .asset or .unity file fails with 'Unknown error occurred while loading'"
   - "legacy Input.GetKey compiles fine but throws at runtime"
   - "which Unity, URP or Netcode version is this project on, and what packages are installed"
+  - "a polished surface reflects a flat pale grey instead of what is around it"
+  - "a realtime reflection probe has no texture in the editor"
 reads_with: [Multiplayer, NavMeshSystem, WorldStreaming, Environment]
-updated: 2026-09-08
+updated: 2026-10-07
 ---
 
 # Project Config
@@ -119,7 +121,7 @@ Physics ([DynamicsManager.asset](ProjectSettings/DynamicsManager.asset)) — the
 
 URP `PC_RPAsset` (`PC_Renderer`, deferred `m_RenderingMode: 2`, native render pass on): HDR on, MSAA off (`m_MSAA: 1`), render scale 1, depth **and** opaque textures required, shadow distance 50 m / 4 cascades / soft shadows, 2048 shadowmaps, 4 additional lights per object, SRP Batcher on, dynamic batching off, light layers on.
 Renderer features on `PC_Renderer`: `VolumetricCloudsRenderFeature`, `SandstormRenderFeature`, `FogRenderFeature`, `NewURPRenderFeature`, `ScreenSpaceAmbientOcclusion` **enabled**; `LensDistortionRenderFeature`, `GlassDistortionRenderFeature` **disabled**.
-QualitySettings has exactly **one** level, `PC` (index 0): shadow distance 40, `antiAliasing: 0`, `vSyncCount: 0`, `lodBias: 2`, realtime reflection probes off, terrain tree distance 5000.
+QualitySettings has exactly **one** level, `PC` (index 0): shadow distance 40, `antiAliasing: 0`, `vSyncCount: 0`, `lodBias: 2`, realtime reflection probes **on** (turned on 2026-10-07 for the sun shrine's mirrors; the only realtime probe is its `TimedReflectionProbe`, every other probe is baked — see [Environment.md](Environment.md)), terrain tree distance 5000.
 
 ## Version control
 
@@ -142,6 +144,7 @@ It **deliberately does not** force `*.asset` / `*.unity` / `*.prefab` to text �
 8. **`NewURPRenderFeature` on `PC_Renderer` is an enabled feature with a placeholder name.** Identify what it actually does before touching it.
 9. **Legacy `Input.GetKey` will not compile-warn — it throws at runtime** (`activeInputHandler: 1`). Bindings live in the generated `InputControls.cs`, which only regenerates on `.inputactions` reimport.
 10. **`m_EnterPlayModeOptionsEnabled: 1` with `m_EnterPlayModeOptions: 0`** means fast enter-play-mode is switched on but neither domain nor scene reload is actually disabled — statics *do* reset. Do not assume otherwise.
+11. **Nothing re-renders reflections when the sky changes.** The default reflection is the skybox as baked, and every probe except the sun shrine's is baked, so a polished surface reflects a flat, pale, unchanging grey at every hour. Realtime probes were also switched **off** in QualitySettings until 2026-10-07, which made the first one render nothing and log nothing. **A realtime probe renders only in Play mode**: in the editor `realtimeTexture` stays null and `RenderProbe()` does nothing, so judge reflections in Play mode. For a reflection that follows the day, use a Realtime / Via Scripting probe with a `TimedReflectionProbe` ([Environment.md](Environment.md)).
 
 ## Extending
 

@@ -45,8 +45,9 @@ symptoms:
   - "a model placed from an editor script lies on its side, though the FBX previews upright"
   - "an animated creature exports with no takes at all"
   - "every face of a scripted mesh wears the same material after its slots were rebuilt"
+  - "a metal from the palette looks like matte paint in Unity"
 reads_with: [Vehicles, PlayerShip, AgentSystem, Backpack, CharacterClothes, TalkingMouth]
-updated: 2026-09-28
+updated: 2026-10-07
 ---
 
 # Art Pipeline
@@ -106,6 +107,7 @@ FBX live under `Assets/Game/Art/Models/`, split by category: `Environment`, `Veh
 - **How a mesh gets its material:** face material indices are stamped in Blender from linked palette slots → `_exportlib` calls `make_local()` (a *linked* material does not survive into the FBX; without this the meshes arrive untextured) → Unity imports them as **sub-assets of the FBX** (`materialLocation: 1`, `materialName: 0`, `materialSearch: 1` on every model FBX meta), regenerated on every reimport. `raxy.fbx` is the exception. Its clothes and mouth materials are remapped on its import settings to `Materials/Characters/Raxy/Raxy_*.mat` ([CharacterClothes.md](CharacterClothes.md)); only its `raxy_body`/`raxy_eyes` stay embedded, for the drifter builder to replace.
 - Because they are sub-assets, per-material flags cannot be edited in place. [`DoubleSidedMaterials.Apply()`](Assets/Game/Editor/Support/DoubleSidedMaterials.cs) copies each to `Assets/Game/Art/Materials/Vehicles/<name> (DoubleSided).mat` and rewires the renderers. Vehicle hulls are modelled as surfaces, so back-face culling makes cabins see-through.
 - Hand-authored `.mat` assets (terrain, portal, surfaces, VFX) live in the domain folders under [`Materials/`](Assets/Game/Art/Materials) and are unrelated to the palette.
+- **Metallic does not survive the FBX.** Every palette metal arrives in Unity as URP Lit with `_Metallic` **0** and a smoothness the importer derived itself (`Mat_Metal_Gold_Leaf`, metallic 1 / roughness 0.26 in Blender, imports at metallic 0 / smoothness 0.74). A surface that has to read as real metal or a mirror needs a hand-authored `.mat` assigned on the prefab's renderer — the sun shrine's panes use `Materials/Environment/SunMirrorSilver.mat` ([SunShrine.md](SunShrine.md)).
 
 ## Rigs & animation
 

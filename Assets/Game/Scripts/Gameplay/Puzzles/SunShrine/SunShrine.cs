@@ -72,13 +72,19 @@ namespace SpaceGame.Gameplay.Puzzles
 
         [Header("Beam")]
         [Tooltip("How far from a disc's rim the beam's centre may pass and still count as a hit. " +
-                 "Half the shaft's apparent width: the light is a column, not a line.")]
+                 "Half the shaft's drawn width: the light is a column, not a line.")]
         [SerializeField, Min(0f)] private float beamRadius = 0.45f;
 
         [Tooltip("What stops a beam between mirrors: walls, pillars, a player standing in it.")]
         [SerializeField] private LayerMask occluders = 1;
 
+        [Tooltip("The reflected light, from the first mirror to wherever it ends.")]
         [SerializeField] private LineRenderer beam;
+
+        [Tooltip("The sunlight falling on the first mirror, fading in from the sky. Its own renderer " +
+                 "so the fade stays off the bounces, and so it shows whenever the sun reaches the " +
+                 "mirror, even one turned away from it.")]
+        [SerializeField] private LineRenderer skyShaft;
         [Tooltip("Alpha-blended, not additive: an additive shaft vanishes against pale sand in daylight.")]
         [SerializeField, ColorUsage(true, true)] private Color beamColour = new(1f, 0.78f, 0.32f, 0.75f);
 
@@ -297,17 +303,32 @@ namespace SpaceGame.Gameplay.Puzzles
 
         private void DrawBeam(float strength, Vector3 toSun)
         {
-            if (beam == null) return;
+            if (beam == null || skyShaft == null) return;
 
-            beam.enabled = strength > 0f && path.Count > 1;
-            if (!beam.enabled) return;
-
-            beam.positionCount = path.Count + 1;
-            beam.SetPosition(0, path[0] + toSun * SkyShaftLength);
-            for (int i = 0; i < path.Count; i++) beam.SetPosition(i + 1, path[i]);
+            skyShaft.enabled = strength > 0f;
+            beam.enabled = skyShaft.enabled && path.Count > 1;
+            if (!skyShaft.enabled) return;
 
             Color colour = beamColour;
             colour.a *= strength;
+            Color fromSky = colour;
+            fromSky.a = 0f;
+
+            // Drawn exactly as wide as the hit test pads each disc, so a beam that visibly grazes a
+            // mirror's rim is one that counts, and one that visibly misses does not.
+            float width = 2f * beamRadius;
+
+            Vector3 firstMirror = mirrors[0].Centre;
+            skyShaft.widthMultiplier = width;
+            skyShaft.SetPosition(0, firstMirror + toSun * SkyShaftLength);
+            skyShaft.SetPosition(1, firstMirror);
+            skyShaft.startColor = fromSky;
+            skyShaft.endColor = colour;
+
+            if (!beam.enabled) return;
+            beam.widthMultiplier = width;
+            beam.positionCount = path.Count;
+            for (int i = 0; i < path.Count; i++) beam.SetPosition(i, path[i]);
             beam.startColor = beam.endColor = colour;
         }
 

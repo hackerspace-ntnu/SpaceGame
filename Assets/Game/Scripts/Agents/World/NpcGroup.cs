@@ -201,8 +201,13 @@ namespace SpaceGame.Agents
         [Range(0.1f, 1f)]
         public float leaderSpeed = 0.7f;
 
-        [Tooltip("Seconds the patrol circles a waypoint before flying on, rolled per waypoint.")]
-        public Vector2 waypointDwell = new Vector2(0f, 40f);
+        [Tooltip("Height the patrol cruises at over the ground under it, metres: high enough to read as a skein " +
+                 "crossing the sky, never so high it is lost from the spawn edge.")]
+        [Min(20f)]
+        public float cruiseHeight = 180f;
+
+        [Tooltip("Seconds the patrol circles a waypoint before flying on, rolled per waypoint (0: straight on through).")]
+        public Vector2 waypointDwell = Vector2.zero;
 
         [Tooltip("Within this of a waypoint (flat) the folded record counts as there, metres.")]
         [Min(1f)]
@@ -211,7 +216,7 @@ namespace SpaceGame.Agents
         [Tooltip("A player this close (flat) to the folded record spawns it — further than a walking group's, because " +
                  "a flier pops into an open sky in plain view. Capped at NpcWorldSim's airborne fold radius.")]
         [Min(1f)]
-        public float spawnRadius = 550f;
+        public float spawnRadius = 600f;
 
         [Tooltip("Chevron: sideways step per rank, metres.")]
         [Min(1f)]

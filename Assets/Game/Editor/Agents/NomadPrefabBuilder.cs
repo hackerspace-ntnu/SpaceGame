@@ -1613,10 +1613,12 @@ namespace SpaceGame.EditorTools
         private const float SortieSearchRadius = 1500f;
         private const float SortieArriveRadius = 12f;
 
-        // How often a Sky person flies (playtest 2026-10-07, second pass: fliers off the moored city were
-        // still too rare to be seen). Chance per SortieCheckInterval that a resident with nothing to do sorties.
-        private const float SortieChance = 0.2f;
-        private const float SortieCheckInterval = 20f;
+        // How often a Sky person sorties down to the ground and lands. Chance per SortieCheckInterval that a
+        // resident with nothing to do goes. Playtest 2026-10-07, third pass: at 0.2 / 20 s "way too many flyers
+        // ... landing" — the sky's sight is the high skein (sky-patrol) and the city's swarm, which never land
+        // on the ground; a sortie is now an occasional one (0.05 / 30 s, ~one every 37 s at most from 16).
+        internal const float SortieChance = 0.05f;
+        internal const float SortieCheckInterval = 30f;
         // Goals nearer than this, flat metres, are walked.
         private const float MinFlightDistance = 150f;
         // The empty sky a ground take-off needs, metres: height above takeoffLift, and half-width.

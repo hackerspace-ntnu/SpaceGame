@@ -23,7 +23,10 @@ namespace SpaceGame.EditorTools
         internal static NpcGroupTemplate ReadTemplate(string id) => ReadTemplates().Single(t => t.id == id);
 
         /// <summary>Every template in the persistent scene's NpcWorldSim, opened (and closed again) if needed.</summary>
-        internal static NpcGroupTemplate[] ReadTemplates()
+        internal static NpcGroupTemplate[] ReadTemplates() => ReadSimField<NpcGroupTemplate[]>("templates");
+
+        /// <summary>A private field of the persistent scene's NpcWorldSim, the scene opened (and closed again) if needed.</summary>
+        internal static T ReadSimField<T>(string field)
         {
             Scene scene = SceneManager.GetSceneByPath(ScenePath);
             bool opened = !scene.isLoaded;
@@ -31,9 +34,8 @@ namespace SpaceGame.EditorTools
             try
             {
                 NpcWorldSim sim = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<NpcWorldSim>(true)).Single();
-                var templates = (NpcGroupTemplate[])typeof(NpcWorldSim)
-                    .GetField("templates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(sim);
-                return templates;
+                return (T)typeof(NpcWorldSim)
+                    .GetField(field, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(sim);
             }
             finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
         }

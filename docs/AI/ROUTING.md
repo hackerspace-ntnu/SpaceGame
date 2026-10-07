@@ -698,6 +698,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | copies of my gear are falling below the terrain at thousands of metres down | [Persistence](systems/Persistence.md) |
 | Could not start a local session on port 7782 after a script recompiled during play | [Multiplayer](systems/Multiplayer.md) |
 | Could not start a local session on port N / another program may be using it | [Multiplayer](systems/Multiplayer.md) |
+| couldnt see any swarmers around the Sky City | [SkyTribe](systems/SkyTribe.md) |
 | Creating missing CharacterActions component for PlayerEmotes in PlayerCharacterNetworked | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | creatures path through geometry that is no longer there | [NavMeshSystem](systems/NavMeshSystem.md) |
 | creatures take burn damage from the flamethrower but no flames ever appear on them | [Flamethrower](systems/Flamethrower.md) |
@@ -960,6 +961,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | NPCs stand frozen where a despawned sky transport was, never walking again | [SkyTribe](systems/SkyTribe.md) |
 | NPCs stand frozen where a despawned sky transport was, never walking again | [Vehicles](systems/Vehicles.md) |
 | NPCs walk straight through a settlement's buildings I just generated | [TerrainGeneration](systems/TerrainGeneration.md) |
+| NullReferenceException in NpcWorldSim.Spawn, dozens of times, while near the sky patrol's loop | [AgentSystem](systems/AgentSystem.md) |
 | on a client a corpse's pelvis stands upright with the body hanging off it | [Combat](systems/Combat.md) |
 | on a client a creature that dies tips over stiff as a plank instead of collapsing | [Combat](systems/Combat.md) |
 | on my own client my player dies standing up and stays frozen upright, while the others see my pelvis dragged into the ground | [Combat](systems/Combat.md) |
@@ -1295,6 +1297,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the folded ornithopter can be put inside the backpack on a back panel instead of only on the rack | [Ornithopter](systems/Ornithopter.md) |
 | the folded wing is a bedsheet draped over a folded frame | [Ornithopter](systems/Ornithopter.md) |
 | the folded worn wing lies flat across the back instead of standing on edge | [Ornithopter](systems/Ornithopter.md) |
+| the formation of flyers is low and lands; it should be high up in the sky like a flock of geese | [SkyTribe](systems/SkyTribe.md) |
 | the fourth item of an old save is gone after loading | [BodyEquipment](systems/BodyEquipment.md) |
 | the gadget works for the host but does nothing for a client | [Artifacts](systems/Artifacts.md) |
 | the game is frozen behind a free cursor with no menu on screen | [Diagnostics](systems/Diagnostics.md) |
@@ -1757,6 +1760,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
 | walking into the robot town raises no alarm and nobody comes | [AgentSystem](systems/AgentSystem.md) |
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
+| way too many flyers, flying really close to the ground and then landing | [NpcFlight](systems/NpcFlight.md) |
+| way too many flyers, flying really close to the ground and then landing | [SkyTribe](systems/SkyTribe.md) |
 | weapons and items appear lying around the world for no reason | [AgentSystem](systems/AgentSystem.md) |
 | weapons and items appear lying around the world for no reason | [Inventory](systems/Inventory.md) |
 | weapons float in mid-air round NPCs after they despawn, on the host only | [Multiplayer](systems/Multiplayer.md) |
@@ -2491,4 +2496,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1758 symptoms, 707 paths, 93 docs -->
+<!-- 1763 symptoms, 707 paths, 93 docs -->

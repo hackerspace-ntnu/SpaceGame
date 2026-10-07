@@ -797,21 +797,29 @@ namespace SpaceGame.EditorTools
             new Vector3(2650f, 110f, 800f),
         };
 
-        /// <summary>Wingmen behind the leader: two to four, so a patrol is three to five fliers.</summary>
+        /// <summary>Wingmen behind the leader: five to seven, so a skein is six to eight (user, 2026-10-07).</summary>
         internal static readonly WeightedCount[] SkyPatrolWingmen =
         {
-            new WeightedCount { count = 2, weight = 0.35f },
-            new WeightedCount { count = 3, weight = 0.40f },
-            new WeightedCount { count = 4, weight = 0.25f },
+            new WeightedCount { count = 5, weight = 0.35f },
+            new WeightedCount { count = 6, weight = 0.40f },
+            new WeightedCount { count = 7, weight = 0.25f },
         };
 
         // The leader cruises at this share of the craft's top speed; folded, the record moves at the same speed.
         internal const float SkyPatrolLeaderSpeed = 0.7f;
 
+        // Metres over the ground the skein cruises at (user, 2026-10-07: "high up in the sky").
+        internal const float SkyPatrolCruiseHeight = 180f;
+
+        // A player this close (flat) spawns the folded record, metres: at cruise height ~630 m away, a skein
+        // of dots crossing the sky; well inside NpcWorldSim's airborne fold radius (900).
+        internal const float SkyPatrolSpawnRadius = 600f;
+
         /// <summary>
-        /// A Sky patrol: three to five fliers in a chevron, always in the air, flying a loop over the basin — the
-        /// airborne twin of the Sand riders' caravans (user, 2026-10-07: "I want to sometimes see flyers flying idle
-        /// through the sky in formation"). Seeded at the loop's first point; never lands (NpcAirPatrol).
+        /// A Sky patrol: a skein of six to eight fliers in a V, high in the sky, flying a loop over the basin
+        /// straight through each waypoint — the airborne twin of the Sand riders' caravans (user, 2026-10-07: "the
+        /// formation of flyers should be high up in the sky ... Basically like a flock of geese"). Seeded at the
+        /// loop's first point; never lands (NpcAirPatrol).
         /// Idempotent: rewrites its template by id.
         /// </summary>
         [MenuItem("Tools/SpaceGame/Agents/Wire Sky Patrol")]
@@ -849,6 +857,9 @@ namespace SpaceGame.EditorTools
                 for (int i = 0; i < SkyPatrolRoute.Length; i++)
                     route.GetArrayElementAtIndex(i).vector3Value = SkyPatrolRoute[i];
                 patrol.FindPropertyRelative("leaderSpeed").floatValue = SkyPatrolLeaderSpeed;
+                patrol.FindPropertyRelative("cruiseHeight").floatValue = SkyPatrolCruiseHeight;
+                patrol.FindPropertyRelative("spawnRadius").floatValue = SkyPatrolSpawnRadius;
+                patrol.FindPropertyRelative("waypointDwell").vector2Value = Vector2.zero;
 
                 SerializedProperty members = t.FindPropertyRelative("members");
                 members.arraySize = 0;

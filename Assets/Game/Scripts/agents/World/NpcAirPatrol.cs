@@ -4,9 +4,9 @@
 //   Folded: the record flies its loop at travelSpeed, waypoint to waypoint, circling each for a rolled dwell.
 //           The leg is never saved on its own: the next waypoint is the one after the waypoint nearest the
 //           record (NextLeg), so position, goal and dwell — already in the record — are all a reload needs.
-//   Spawned: every member is made seated in mid-air at cruise height (the leader at the record, the rest on
-//           its chevron, WingOffset) and takes off at once in its own craft (GroupFlight): no take-off, no
-//           launch delay. The leader cruises to the record's waypoint (NpcAviator.CruiseTo) at leaderSpeed;
+//   Spawned: every member is made seated in mid-air at the patrol's cruiseHeight (the leader at the record,
+//           the rest on its V, WingOffset) and takes off at once in its own craft (GroupFlight), cruising at
+//           that height: no take-off, no launch delay. The leader cruises to the record's waypoint (NpcAviator.CruiseTo) at leaderSpeed;
 //           each wingman keeps its chevron station on the leader's craft (NpcAviator.Escort). Steer runs every
 //           sim tick: a leader shot down hands the lead to the next pilot and the chevron re-forms on it.
 //   It never lands: neither order ever does, so the only ways down are dying (a wreck) and a fold (beyond
@@ -82,7 +82,7 @@ namespace SpaceGame.Agents
         {
             Vector3 heading = group.Heading;
             foreach (GameObject member in new List<GameObject>(group.Live))
-                GroupFlight.TakeOffOrDrop(group, member, heading, groundBelow, out _);
+                GroupFlight.TakeOffOrDrop(group, member, heading, groundBelow, out _, patrol.cruiseHeight);
 
             group.AirLeader = null;
             if (!group.HasGoal && group.DwellRemaining <= 0f) SetNextWaypoint(group, patrol);

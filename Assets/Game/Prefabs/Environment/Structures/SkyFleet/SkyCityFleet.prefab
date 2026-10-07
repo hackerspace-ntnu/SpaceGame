@@ -510,12 +510,11 @@ MonoBehaviour:
   route: {fileID: 3238984927745301974}
   population: {fileID: 5360083236196031162}
   reachableFrom: {fileID: 3046347877781187321}
-  checkInterval: 20
+  checkInterval: 10
   launchChance: 0.5
   maxAloft: 3
   candidatesPerCheck: 3
   audienceDistance: 900
-  landingBudget: 60
   pairChance: 0.35
   orbitRadius: {x: 90, y: 110}
   orbitHeight: 100

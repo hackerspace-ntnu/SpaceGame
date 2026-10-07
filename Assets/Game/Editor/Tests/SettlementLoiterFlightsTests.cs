@@ -2,9 +2,11 @@
 // The Sky City's swarm: who may go up and when, where its orbit sits (clear of every escort hull), how a flier
 // comes back in to land (straight in, never a spiral among the houses), and how deck pads are picked.
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using SpaceGame.Agents;
 using SpaceGame.EditorTools;
 using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.Ornithopter;
@@ -36,13 +38,37 @@ namespace SpaceGame.Tests
         }
 
         [Test]
-        public void ALaunch_NeedsAMooredCityWithTimeInHand_RoomAloft_AndSomeoneWatching()
+        public void ALaunch_NeedsAMooredCity_RoomAloft_AndSomeoneWatching_NotAFreshMooring()
         {
-            Assert.IsTrue(LoiterRules.MayLaunch(false, 240f, 210f, 2, 3, true));
-            Assert.IsFalse(LoiterRules.MayLaunch(true, 240f, 210f, 0, 3, true), "a launch under way");
-            Assert.IsFalse(LoiterRules.MayLaunch(false, 100f, 210f, 0, 3, true), "a launch with no time left to land before departure");
-            Assert.IsFalse(LoiterRules.MayLaunch(false, 240f, 210f, 3, 3, true), "a fourth flier");
-            Assert.IsFalse(LoiterRules.MayLaunch(false, 240f, 210f, 0, 3, false), "a launch with nobody near");
+            // Playtest 2026-10-07, "couldnt see any swarmers": a launch needed 210 s of a 240 s mooring left, so
+            // only its first 30 s could send anyone up. Now any moment of a mooring will do; a flier still up when
+            // the city sets off circles on with it and lands at the next mooring.
+            Assert.IsTrue(LoiterRules.MayLaunch(false, 2, 3, true));
+            Assert.IsFalse(LoiterRules.MayLaunch(true, 0, 3, true), "a launch under way (the deck has parked everyone)");
+            Assert.IsFalse(LoiterRules.MayLaunch(false, 3, 3, true), "a fourth flier");
+            Assert.IsFalse(LoiterRules.MayLaunch(false, 0, 3, false), "a launch with nobody near");
+        }
+
+        private static bool IsIdle(EntityFaction person) =>
+            (bool)typeof(SettlementLoiterFlights).GetMethod("IsIdle", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { person, null });
+
+        [Test]
+        public void AResidentAsleepForDistance_MayStillGoUp_ButOneSentOffstageMayNot()
+        {
+            // The city's residents sleep beyond ~250-360 m of every player (SimulationRange), while the swarm is
+            // for an audience out to 900 m: refusing a sleeper meant nobody watching from afar ever saw one go up.
+            var go = new GameObject("Resident");
+            junk.Add(go);
+            var person = go.AddComponent<EntityFaction>();
+            var controller = go.AddComponent<AgentController>();
+            go.AddComponent<NpcFlightModule>();
+
+            controller.Dormant = true;
+            Assert.IsTrue(IsIdle(person), "a resident asleep only for distance was refused");
+
+            controller.Offstage = true;
+            Assert.IsFalse(IsIdle(person), "a resident its routine has put offstage (indoors) was sent up");
         }
 
         [Test]

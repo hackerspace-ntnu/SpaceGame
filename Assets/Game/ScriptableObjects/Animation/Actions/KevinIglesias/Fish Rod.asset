@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Fish Rod
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 0
+  playback: 2
+  variants:
+  - clip: {fileID: 3094330708855449807, guid: b533ccc0ff1cca34694d3496604caf80, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 3094330708855449807, guid: 9bb381d8c734acc4f9dd616db5757abd, type: 3}
+    exit: {fileID: 3094330708855449807, guid: 3bdf6b8a77c66a743b63eed6906c3163, type: 3}
+    selectionWeight: 1
+    contactAt: 0
+  - clip: {fileID: 3094330708855449807, guid: fa330eb5470c2e441929ad836b5b2ac7, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 3094330708855449807, guid: dcd382bc710f9e145be168b4fc0473f2, type: 3}
+    exit: {fileID: 3094330708855449807, guid: 45ad824ed003504429169c12c75109e7, type: 3}
+    selectionWeight: 1
+    contactAt: 0
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 0.95, y: 1.05}
+  fadeIn: 0.2
+  fadeOut: 0.25
+  marks: []
+  reach: {x: -0.003401151, y: 1.6009272, z: 0.5419661}
+  cues:
+  - {fileID: 11400000, guid: 6a3b0bb805d2c4abfad993b181fec0df, type: 2}
+  - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  postures: 0

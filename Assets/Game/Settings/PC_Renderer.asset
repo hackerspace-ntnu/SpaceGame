@@ -1,0 +1,194 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-5204703223940573354
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e2a94cd1f04b28a65d3c80e9f417c2, type: 3}
+  m_Name: PastelQuantizeRenderFeature
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.PastelQuantizeRenderFeature
+  m_Active: 0
+  settings:
+    renderPassEvent: 600
+    material: {fileID: 2100000, guid: 8c4d92a01b5e4f76ad3c60e9f21b7d54, type: 2}
+    blend: 0.038
+    ink:
+      amount: 0.22
+      width: 1
+      color: {r: 0.11, g: 0.12, b: 0.17, a: 1}
+      tint: 0
+      lumaThreshold: 0.03
+      depthThreshold: 0.02
+      softness: 0.03
+    noise:
+      kind: 0
+      amount: 0.03
+      scale: 6
+      density: 0.15
+--- !u!114 &-4383293298973362782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 729ab83ad86934f4cb5bff0f4c8b4fca, type: 3}
+  m_Name: VolumetricCloudsRenderFeature
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.VolumetricCloudsRenderFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 94925933a599b97f85eb7e824e1f2f50, type: 2}
+    renderPassEvent: 400
+    quality: 1
+    maxDistance: 90000
+--- !u!114 &-3278497697722331721
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb2ada628a771447e938158d87040b39, type: 3}
+  m_Name: SandstormRenderFeature
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Weather.SandstormRenderFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 791d1452872034c8cb9db87d7a474aad, type: 2}
+    renderPassEvent: 450
+    quality: 1
+    maxDistance: 900
+--- !u!114 &-2528986388548306642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc7fe407849febdc8af094096026861d, type: 3}
+  m_Name: FogRenderFeature
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.FogRenderFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 61bd12b7efec319a1d7900ca919ae1db, type: 2}
+    renderPassEvent: 450
+    quality: 1
+    maxDistance: 600
+--- !u!114 &-2197434478218598147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e29e162683637284c921be5bfd435e6b, type: 3}
+  m_Name: GlassDistortionRenderFeature
+  m_EditorClassIdentifier: Assembly-CSharp::GlassDistortionRenderFeature
+  m_Active: 0
+  settings:
+    renderPassEvent: 550
+    distortionMaterial: {fileID: 2100000, guid: 7aff092fca931cb47b4d7ecfc5bc40d4, type: 2}
+    lensCenterX: 0.5
+    lensCenterY: 0.51
+    lensRadius: 0.992
+    distortionStrength: 0.7
+    chromaticAberration: 0.498
+    lensZoom: 1
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
+  m_Name: PC_Renderer
+  m_EditorClassIdentifier: 
+  debugShaders:
+    debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
+    hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
+    probeVolumeSamplingDebugComputeShader: {fileID: 7200000, guid: 53626a513ea68ce47b59dc1299fe3959, type: 3}
+  probeVolumeResources:
+    probeVolumeDebugShader: {fileID: 4800000, guid: e5c6678ed2aaa91408dd3df699057aae, type: 3}
+    probeVolumeFragmentationDebugShader: {fileID: 4800000, guid: 03cfc4915c15d504a9ed85ecc404e607, type: 3}
+    probeVolumeOffsetDebugShader: {fileID: 4800000, guid: 53a11f4ebaebf4049b3638ef78dc9664, type: 3}
+    probeVolumeSamplingDebugShader: {fileID: 4800000, guid: 8f96cd657dc40064aa21efcc7e50a2e7, type: 3}
+    probeSamplingDebugMesh: {fileID: -3555484719484374845, guid: 57d7c4c16e2765b47a4d2069b311bffe, type: 3}
+    probeSamplingDebugTexture: {fileID: 2800000, guid: 24ec0e140fb444a44ab96ee80844e18e, type: 3}
+    probeVolumeBlendStatesCS: {fileID: 7200000, guid: b9a23f869c4fd45f19c5ada54dd82176, type: 3}
+  m_RendererFeatures:
+  - {fileID: 7833122117494664109}
+  - {fileID: -2197434478218598147}
+  - {fileID: -3278497697722331721}
+  - {fileID: -4383293298973362782}
+  - {fileID: -2528986388548306642}
+  - {fileID: -5204703223940573354}
+  m_RendererFeatureMap: ad6b866f10d7b46cfda8950cfc2481e1b70d53d2b66f80d2a2b557e0f7692bc32eb9c75c473ce7dc5617b157fe2dc5b7
+  m_UseNativeRenderPass: 1
+  xrSystemData: {fileID: 0}
+  postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
+  m_AssetVersion: 3
+  m_PrepassLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_OpaqueLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_TransparentLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_DefaultStencilState:
+    overrideStencilState: 0
+    stencilReference: 1
+    stencilCompareFunction: 3
+    passOperation: 2
+    failOperation: 0
+    zFailOperation: 0
+  m_ShadowTransparentReceive: 1
+  m_RenderingMode: 2
+  m_DepthPrimingMode: 0
+  m_CopyDepthMode: 0
+  m_DepthAttachmentFormat: 0
+  m_DepthTextureFormat: 0
+  m_AccurateGbufferNormals: 0
+  m_IntermediateTextureMode: 0
+--- !u!114 &7833122117494664109
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f62c9c65cf3354c93be831c8bc075510, type: 3}
+  m_Name: ScreenSpaceAmbientOcclusion
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  m_Settings:
+    AOMethod: 0
+    Downsample: 0
+    AfterOpaque: 0
+    Source: 1
+    NormalSamples: 1
+    Intensity: 0.8
+    DirectLightingStrength: 0.25
+    Radius: 1.5
+    Samples: 1
+    BlurQuality: 0
+    Falloff: 100
+    SampleCount: -1

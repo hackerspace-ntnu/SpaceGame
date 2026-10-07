@@ -1,0 +1,308 @@
+using UnityEngine;
+using UnityEngine.UI;
+using SpaceGame.Gameplay;
+
+namespace SpaceGame.Presentation
+{
+    /// <summary>
+    /// Two thin curved warning lines (left + right) that appear when the player
+    /// takes damage. Each hit grows the affected side's arc length, then both
+    /// length and opacity decay over time when no further damage arrives.
+    ///
+    /// Driven entirely by HitSide()/HitBoth(): no sustained, threat, or low-health
+    /// behavior — keep it simple.
+    /// </summary>
+    [RequireComponent(typeof(RectTransform))]
+    public class HelmetDangerVignette : MonoBehaviour
+    {
+        public enum Side { Left = 0, Right = 1 }
+        private const int SideCount = 2;
+
+        [Header("Look")]
+        [SerializeField] private Color dangerColor = new Color(0.788f, 0.247f, 0.247f, 1f);
+        [Range(0f, 4f)] [SerializeField] private float intensity = 1.4f;
+
+        [Header("Arc shape")]
+        [Tooltip("How far outside the screen the arc center sits. Larger = gentler curve.")]
+        [Range(0.5f, 4f)] [SerializeField] private float arcCenterOffset = 1.27f;
+        [Tooltip("Radius of the arc line from its (off-screen) center.")]
+        [Range(0.5f, 4f)] [SerializeField] private float arcRadius = 2.27f;
+        [Tooltip("Thickness of the arc line, in UV units.")]
+        [Range(0.001f, 0.05f)] [SerializeField] private float arcThickness = 0.012f;
+        [Tooltip("Soft fade at each end of the arc.")]
+        [Range(0f, 0.3f)] [SerializeField] private float spanFeather = 0.249f;
+
+        [Header("Damage response")]
+        [Tooltip("Arc half-span (0..0.5) added per full-strength hit.")]
+        [Range(0f, 0.5f)] [SerializeField] private float spanPerHit = 0.198f;
+        [Tooltip("Maximum arc half-span.")]
+        [Range(0f, 0.5f)] [SerializeField] private float maxSpan = 0.323f;
+        [Tooltip("Extra span added on hit that snaps back instantly — gives the line a punchy 'overshoot' on impact.")]
+        [Range(0f, 0.2f)] [SerializeField] private float spanOvershoot = 0.06f;
+        [Tooltip("Time (s) for the overshoot to settle back to the baseline span.")]
+        [SerializeField] private float overshootSettle = 0.18f;
+        [Tooltip("Time (s) the impact spike (extra brightness + thickening) lasts.")]
+        [SerializeField] private float spikeDecay = 0.22f;
+
+        [Header("Holographic motion")]
+        [Tooltip("Soft outer glow halo around the line.")]
+        [Range(0f, 0.2f)] [SerializeField] private float haloThickness = 0.05f;
+        [Range(0f, 1.5f)] [SerializeField] private float haloStrength = 0.55f;
+        [Tooltip("How fast the bright shimmer bead scrolls along the line.")]
+        [Range(-3f, 3f)] [SerializeField] private float shimmerSpeed = 0.7f;
+        [Tooltip("Width of the shimmer bead (UV units).")]
+        [Range(0.02f, 0.6f)] [SerializeField] private float shimmerWidth = 0.18f;
+        [Tooltip("Brightness of the shimmer bead.")]
+        [Range(0f, 2f)] [SerializeField] private float shimmerStrength = 0.85f;
+        [Tooltip("Fast random brightness jitter for the holographic flicker.")]
+        [Range(0f, 1f)] [SerializeField] private float flickerStrength = 0.18f;
+        [Range(0f, 60f)] [SerializeField] private float flickerSpeed = 22f;
+        [Tooltip("How much the line thickens during the impact spike.")]
+        [Range(0f, 4f)] [SerializeField] private float spikeThicken = 1.6f;
+        [Tooltip("How much the line brightens during the impact spike.")]
+        [Range(0f, 4f)] [SerializeField] private float spikeBrighten = 1.8f;
+
+        [Header("Decay")]
+        [Tooltip("Seconds with no damage before the arc starts to fade.")]
+        [SerializeField] private float fadeDelay = 0.6f;
+        [Tooltip("How long, after the delay, the arc fades from full to invisible (alpha).")]
+        [SerializeField] private float fadeDuration = 4f;
+        [Tooltip("How long, after the delay, the arc shrinks back to zero span.")]
+        [SerializeField] private float shrinkDuration = 2f;
+
+        [Header("Direction")]
+        [Tooltip("Camera the bearing of a hit is measured against. Left empty it uses Camera.main, " +
+                 "re-read each hit, which is what lets the arcs stay correct after the view moves " +
+                 "onto a mount.")]
+        [SerializeField] private Camera referenceCamera;
+
+        private Material material;
+        private readonly Image[] images = new Image[SideCount];
+        private readonly float[] currentSpan = new float[SideCount];
+        private readonly float[] currentAlpha = new float[SideCount];
+        private readonly float[] lastHitTime = new float[SideCount];
+        // Animation channels driven instantaneously on hit, decayed in Update.
+        private readonly float[] currentSpike = new float[SideCount];     // 0..1, fast decay, drives _Spike
+        private readonly float[] currentOvershoot = new float[SideCount]; // extra span, fast decay
+
+        [Tooltip("Damage amount that maps to a full-strength flare. Smaller hits scale down.")]
+        [SerializeField, Min(1)] private int damageForFullFlash = 25;
+
+        /// <summary>
+        /// Whose hits this arc reacts to. Set by <see cref="HelmetHUDController"/> when the local
+        /// player resolves; until then the vignette listens and ignores everything, which is
+        /// correct — a hit on somebody else must never flash this player's visor.
+        /// </summary>
+        private HealthComponent watched;
+
+        /// <summary>Points the vignette at the wearer's health. Safe with null, and idempotent.</summary>
+        public void Watch(HealthComponent health) => watched = health;
+
+        /// <summary>
+        /// Builds the two arc panels. Called by <see cref="HelmetHUDController"/> straight after it
+        /// adds this component, with a shader it holds a serialized reference to: a shader found by
+        /// name is stripped from a player build, and the stand-in that "works" there is a full-screen
+        /// red rectangle per side.
+        /// </summary>
+        public void Build(Shader vignetteShader)
+        {
+            if (vignetteShader == null)
+            {
+                Debug.LogError("[HelmetDangerVignette] No vignette shader assigned on HelmetHUDController; " +
+                               "the damage arcs are disabled.", this);
+                return;
+            }
+
+            BuildPanels(vignetteShader);
+        }
+
+        private void OnEnable()
+        {
+            // The static carries every hit in the world, which is why the handler filters by
+            // victim. Subscribing per-victim instead is not possible here: on a client the hit is
+            // announced by a replicated message, not by the victim's own Damage call.
+            HealthComponent.AnyDamagedFrom += OnAnyDamagedFrom;
+        }
+
+        private void OnDisable()
+        {
+            HealthComponent.AnyDamagedFrom -= OnAnyDamagedFrom;
+        }
+
+        private void OnAnyDamagedFrom(HealthComponent victim, int amount, Vector3 sourcePosition, bool hasSource)
+        {
+            if (watched == null || victim != watched || amount <= 0) return;
+
+            float strength = Mathf.Clamp01((float)amount / Mathf.Max(1, damageForFullFlash));
+
+            // No source means a fall, suffocation or the sand: nothing to point at, so the whole
+            // rim lights rather than an arbitrary side of it.
+            if (hasSource) HitFrom(sourcePosition, strength);
+            else HitBoth(strength);
+        }
+
+        private void BuildPanels(Shader shader)
+        {
+            material = new Material(shader) { hideFlags = HideFlags.DontSave };
+
+            for (int i = 0; i < SideCount; i++)
+                CreatePanel((Side)i);
+
+            // Initialize state to "invisible" and far in the past.
+            for (int i = 0; i < SideCount; i++)
+            {
+                currentSpan[i] = 0f;
+                currentAlpha[i] = 0f;
+                lastHitTime[i] = -999f;
+            }
+        }
+
+        private void CreatePanel(Side side)
+        {
+            var go = new GameObject($"DangerArc_{side}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(transform, false);
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            var img = go.GetComponent<Image>();
+            var perPanelMat = new Material(material) { hideFlags = HideFlags.DontSave };
+            perPanelMat.SetFloat("_Side", (float)side);
+            perPanelMat.SetColor("_Color", dangerColor);
+            ApplyShapeUniforms(perPanelMat);
+            perPanelMat.SetFloat("_Span", 0f);
+            perPanelMat.SetFloat("_Pulse", 0f);
+            img.material = perPanelMat;
+            img.color = Color.white;
+            img.raycastTarget = false;
+
+            images[(int)side] = img;
+        }
+
+        /// <summary>
+        /// Register a hit on one side. Grows that side's arc and resets its fade timer.
+        /// strength 0..1 scales how much span is added (1 = spanPerHit).
+        /// </summary>
+        public void HitSide(Side side, float strength = 1f)
+        {
+            int i = (int)side;
+            float s = Mathf.Clamp01(strength);
+            currentSpan[i] = Mathf.Min(maxSpan, currentSpan[i] + spanPerHit * s);
+            currentAlpha[i] = 1f;
+            currentSpike[i] = Mathf.Max(currentSpike[i], s);
+            currentOvershoot[i] = Mathf.Max(currentOvershoot[i], spanOvershoot * s);
+            lastHitTime[i] = Time.time;
+        }
+
+        /// <summary>Hit both sides — for omni-damage with no clear direction.</summary>
+        public void HitBoth(float strength = 1f)
+        {
+            HitSide(Side.Left, strength);
+            HitSide(Side.Right, strength);
+        }
+
+        /// <summary>
+        /// Register a hit that came from somewhere, splitting it across the two arcs by how far to
+        /// the left or right of the view that somewhere is.
+        ///
+        /// <para>
+        /// A hit from due left lights the left arc alone, from due right the right one, and one
+        /// from directly ahead or directly behind splits evenly — which is exactly
+        /// <see cref="HitBoth"/>. <b>Front and back are deliberately indistinguishable</b>: there
+        /// are two arcs and they are on the left and right edges of the screen, so there is no
+        /// honest way to say "behind you" with them. Widening that would be a shader change, not a
+        /// maths change.
+        /// </para>
+        /// </summary>
+        public void HitFrom(Vector3 worldSource, float strength = 1f)
+        {
+            Camera view = referenceCamera != null ? referenceCamera : Camera.main;
+            if (view == null)
+            {
+                HitBoth(strength);
+                return;
+            }
+
+            Vector3 toSource = worldSource - view.transform.position;
+
+            // Flattened: a hit from above should not read as a hit from the side just because the
+            // player happened to be looking at their feet.
+            toSource.y = 0f;
+            if (toSource.sqrMagnitude < 0.0001f)
+            {
+                HitBoth(strength);
+                return;
+            }
+
+            float lateral = Vector3.Dot(toSource.normalized, view.transform.right);
+            float rightShare = 0.5f + (0.5f * Mathf.Clamp(lateral, -1f, 1f));
+
+            HitSide(Side.Right, strength * rightShare);
+            HitSide(Side.Left, strength * (1f - rightShare));
+        }
+
+        private void Update()
+        {
+            float dt = Time.deltaTime;
+            for (int i = 0; i < SideCount; i++)
+            {
+                float since = Time.time - lastHitTime[i];
+
+                if (since > fadeDelay)
+                {
+                    float t = since - fadeDelay;
+                    // Fade alpha (linear from 1 to 0 over fadeDuration).
+                    float alphaT = Mathf.Clamp01(t / Mathf.Max(0.01f, fadeDuration));
+                    currentAlpha[i] = Mathf.Max(0f, 1f - alphaT);
+                    // Shrink span (linear, clamped at zero).
+                    currentSpan[i] = Mathf.Max(0f,
+                        currentSpan[i] - (maxSpan * dt / Mathf.Max(0.01f, shrinkDuration)));
+                }
+
+                // Spike: exponential decay over spikeDecay seconds (~63% gone per spikeDecay).
+                currentSpike[i] = Mathf.Max(0f,
+                    currentSpike[i] - currentSpike[i] * dt / Mathf.Max(0.01f, spikeDecay));
+
+                // Overshoot: settles to zero exponentially over overshootSettle.
+                currentOvershoot[i] = Mathf.Max(0f,
+                    currentOvershoot[i] - currentOvershoot[i] * dt / Mathf.Max(0.01f, overshootSettle));
+
+                var img = images[i];
+                if (img == null || img.material == null) continue;
+                img.material.SetColor("_Color", dangerColor);
+                ApplyShapeUniforms(img.material);
+                float renderedSpan = Mathf.Min(maxSpan + spanOvershoot, currentSpan[i] + currentOvershoot[i]);
+                img.material.SetFloat("_Span", renderedSpan);
+                img.material.SetFloat("_Pulse", currentAlpha[i]);
+                img.material.SetFloat("_Spike", currentSpike[i]);
+            }
+        }
+
+        private void ApplyShapeUniforms(Material m)
+        {
+            m.SetFloat("_Intensity", intensity);
+            m.SetFloat("_ArcCenterOffset", arcCenterOffset);
+            m.SetFloat("_ArcRadius", arcRadius);
+            m.SetFloat("_ArcThickness", arcThickness);
+            m.SetFloat("_SpanFeather", spanFeather);
+            m.SetFloat("_HaloThickness", haloThickness);
+            m.SetFloat("_HaloStrength", haloStrength);
+            m.SetFloat("_ShimmerSpeed", shimmerSpeed);
+            m.SetFloat("_ShimmerWidth", shimmerWidth);
+            m.SetFloat("_ShimmerStrength", shimmerStrength);
+            m.SetFloat("_FlickerStrength", flickerStrength);
+            m.SetFloat("_FlickerSpeed", flickerSpeed);
+            m.SetFloat("_SpikeThicken", spikeThicken);
+            m.SetFloat("_SpikeBrighten", spikeBrighten);
+        }
+
+        private void OnDestroy()
+        {
+            if (material != null) Destroy(material);
+            for (int i = 0; i < SideCount; i++)
+                if (images[i] != null && images[i].material != null) Destroy(images[i].material);
+        }
+    }
+}

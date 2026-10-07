@@ -1,0 +1,194 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39bf313ec092248f3803ae25e6ddcb56, type: 3}
+  m_Name: CrystalCavern
+  m_EditorClassIdentifier: Assembly-CSharp::CaveProfile
+  description: Cellular-noise walls (chunky broken rock), cathedrals, vertical shafts,
+    dense glowing crystals.
+  shape:
+    seed: 3003
+    halfExtents: {x: 75, y: 50, z: 75}
+    voxelSize: 1.25
+    boundsPadding: 2
+    roomCount: 18
+    roomRadius: {x: 3.5, y: 9}
+    bigRoomChance: 0.4
+    maxCorridorLength: 22
+    minConnectionsPerRoom: 2
+    extraConnectionRatio: 0.25
+    corridorRadius: {x: 1.4, y: 3}
+    wideCorridorChance: 0.3
+    verticalRange: 30
+    verticalWalkBias: 0.55
+    perRoomVerticalJitter: 4
+    maxCorridorSlope: 0.6
+    noiseType: 2
+    noiseAmplitude: 1.8
+    noiseFrequency: 0.12
+    domainWarpStrength: 2.5
+    smoothUnionRadius: 1.8
+    enableCathedralChambers: 1
+    cathedralCeilingLift: 16
+    enableSlotCanyons: 0
+    slotCanyonChance: 0.3
+    slotCanyonHeightStretch: 2.5
+    enableVerticalShafts: 1
+    verticalShaftChance: 0.4
+    verticalShaftMinDrop: 10
+    verticalShaftRadius: 3
+    flattenFloors: 1
+    floorFlattenDepth: 1.5
+    floorFlattenStrength: 0.65
+    floorSlopeAmount: 0.18
+    floorRoughness: 0.55
+    floorRoughnessFrequency: 0.35
+    floorClampY: -16
+    use32BitIndices: 1
+    flatShade: 0
+    recalculateTangents: 0
+    smoothingIterations: 3
+    smoothingStrength: 0.5
+    smoothingPreserveVolume: 1
+    useGradientNormals: 1
+    gradientEpsilon: 0.625
+    bakeNavMeshOnGenerate: 1
+  decoration:
+    enabled: 1
+    floorCeilingThreshold: 0.7
+    globalInstanceCap: 1500
+    rules:
+    - name: CrystalLattices
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 11698ae43d32545eaa0e2bfdf07112c3, type: 3}
+      fallbackColor: {r: 0.5, g: 0.7, b: 0.9, a: 1}
+      fallbackEmission: {r: 0.8, g: 1.4, b: 2.4, a: 2}
+      fallbackPrimitive: 3
+      surfaceType: 3
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 1
+      liquidProximityBoost: 0
+      densityPerSqM: 0.006
+      minSpacing: 3
+      maxInstances: 0
+      densityNoiseScale: 0.04
+      densityNoiseContrast: 0.7
+      scaleRange: {x: 0.4, y: 1.4}
+      normalAlignment: 0.9
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 6
+      attachedLightIntensity: 1.4
+      seedSalt: 2003
+    - name: Stalagmites
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 7f75c57a1369442b2a49eb80d2bfbf4b, type: 3}
+      - {fileID: 919132149155446097, guid: 76b73fbc731f44357bcd45dc13cbfbd5, type: 3}
+      fallbackColor: {r: 0.45, g: 0.4, b: 0.35, a: 1}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 1}
+      fallbackPrimitive: 2
+      surfaceType: 1
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 0.6
+      liquidProximityBoost: 0
+      densityPerSqM: 0.012
+      minSpacing: 2.2
+      maxInstances: 0
+      densityNoiseScale: 0.05
+      densityNoiseContrast: 0.6
+      scaleRange: {x: 0.6, y: 1.6}
+      normalAlignment: 0.8
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 1001
+    - name: Stalactites
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 72a7185d7c2d14924a192e339f256dc5, type: 3}
+      - {fileID: 919132149155446097, guid: 185d9e7a1223e486b8225643a7e654d9, type: 3}
+      fallbackColor: {r: 0.4, g: 0.35, b: 0.3, a: 1}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 1}
+      fallbackPrimitive: 2
+      surfaceType: 2
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 0.7
+      liquidProximityBoost: 0
+      densityPerSqM: 0.01
+      minSpacing: 1.8
+      maxInstances: 0
+      densityNoiseScale: 0.05
+      densityNoiseContrast: 0.6
+      scaleRange: {x: 0.4, y: 1.2}
+      normalAlignment: 0.95
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 1002
+    - name: Boulders
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: dae687604988c45319af0adacf8cb16d, type: 3}
+      - {fileID: 919132149155446097, guid: e6d87a807fb80407e9ee67da080f8232, type: 3}
+      - {fileID: 919132149155446097, guid: 40a370f42e00c4356be996ce6c428c05, type: 3}
+      - {fileID: 919132149155446097, guid: f634fb906c3444d3594467e5428cf215, type: 3}
+      fallbackColor: {r: 0.35, g: 0.33, b: 0.3, a: 1}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 1}
+      fallbackPrimitive: 0
+      surfaceType: 1
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 0.5
+      liquidProximityBoost: 0
+      densityPerSqM: 0.012
+      minSpacing: 1.5
+      maxInstances: 0
+      densityNoiseScale: 0.05
+      densityNoiseContrast: 0.5
+      scaleRange: {x: 0.4, y: 1.2}
+      normalAlignment: 0.2
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 1003
+  liquid:
+    enabled: 0
+    fillFraction: 0.18
+    minPoolVolume: 4
+    maxPoolCount: 16
+    liquidMaterial: {fileID: 0}
+    liquidTag: Untagged
+    spawnTriggerVolume: 1
+    triggerDepth: 3
+  material:
+    primaryMaterial: {fileID: 0}
+    chamberMaterial: {fileID: 0}
+    clusterLightCount: 6
+    clusterLightColor: {r: 0.7, g: 0.5, b: 1, a: 1}
+    clusterLightIntensity: 0.8
+    clusterLightRange: 5
+    clusterLightMaxNormalY: 0.7
+    overrideFog: 1
+    fogColor: {r: 0.06, g: 0.05, b: 0.1, a: 1}
+    fogDensity: 0.018
+    caveLayer: Interior

@@ -1,0 +1,702 @@
+// The single place an agent decides who it is fighting.
+//
+// Before this existed, the chase, melee, ranged and keep-distance modules each ran their own
+// EntityTargetRegistry query on their own schedule with their own staleness rules. Three consequences, all visible in play:
+//   * One agent could chase A, shoot B and back away from C in the same frame.
+//   * Most of them held their first-resolved target until it died, so an agent would walk past
+//     an enemy standing next to it to reach whoever happened to be nearest at spawn.
+//   * The registry was scanned once per module per agent per frame.
+//
+// This component resolves once per interval, scores candidates instead of taking the raw
+// nearest, and publishes the answer through AgentContext.Targeting. Behaviour modules read it.
+//
+// Runs ahead of AgentController (execution order 0) so the decision is already current when
+// modules tick. Optional: agents without it fall back to their own per-module resolution.
+using System.Collections.Generic;
+using Unity.Profiling;
+using UnityEngine;
+using SpaceGame.Gameplay;
+using SpaceGame.World.Weather;
+
+namespace SpaceGame.Agents
+{
+    [DefaultExecutionOrder(-50)]
+    public class AgentTargeting : MonoBehaviour
+    {
+        [Tooltip("Tuning asset. When assigned it overrides every inline value below — that is how " +
+                 "the same prefab hunts cautiously in the open world and aggressively in the arena.")]
+        [SerializeField] private TargetingProfile profile;
+
+        [Header("Inline tuning (ignored when a profile is assigned)")]
+        [SerializeField] private FactionRelationship relationship = FactionRelationship.Hostile;
+        [Tooltip("Candidates beyond this are never scored. Automatically widened at Awake to cover " +
+                 "the agent's own longest weapon range.")]
+        [SerializeField] private float acquisitionRange = VisionBaseline.MinAcquisitionRange;
+        [Tooltip("An acquired target is dropped past this distance. Kept above acquisitionRange so " +
+                 "targets don't flicker at the boundary.")]
+        [SerializeField] private float loseRange = VisionBaseline.MinLoseRange;
+        [Tooltip("Require field-of-view + line-of-sight to acquire. Turn off for arena modes where " +
+                 "everyone is expected to know where everyone else is.")]
+        [SerializeField] private bool requireLineOfSightToAcquire = true;
+        [Tooltip("Acquire anything inside this radius regardless of facing, so an agent reacts to " +
+                 "something that walked up behind it.")]
+        [SerializeField] private float proximityAcquireRange = 4f;
+
+        [Tooltip("Draw the current target link in the Scene view while this object is selected.")]
+        [SerializeField] private bool drawGizmos = true;
+
+        // ── Published state ───────────────────────────────────────────────────────
+        public Transform Target { get; private set; }
+        public bool HasTarget => Target != null;
+
+        /// <summary>
+        /// Raised on the deciding machine when this agent takes a NEW target. The bool is whether
+        /// the agent found it by itself (scored and seen in <c>Reevaluate</c>) or was handed it
+        /// (<see cref="ForceTarget"/>: an ally's alert, a heard noise, a provocation).
+        ///
+        /// <para>
+        /// <see cref="AlertBroadcaster"/> is the listener that matters, and the bool is why it
+        /// exists: an alert is passed on only for a target the agent spotted itself. Re-announcing
+        /// a target that arrived by alert would make every receiver a broadcaster and one sighting
+        /// wake the whole map.
+        /// </para>
+        /// </summary>
+        public event System.Action<Transform, bool> TargetAcquired;
+
+        // Distance from this agent to the target, refreshed every frame. Modules should read this
+        // rather than recomputing it — five modules each calling Vector3.Distance on the same pair
+        // was a measurable share of the per-frame cost with a full arena.
+        public float DistanceToTarget { get; private set; }
+
+        public bool CanSeeTarget { get; private set; }
+        public Vector3 LastKnownPosition { get; private set; }
+        public bool HasLastKnownPosition { get; private set; }
+        public float TimeSinceSeen { get; private set; }
+
+        // Whoever most recently damaged this agent. Scored as a strong bias so an agent turns on
+        // its attacker instead of continuing toward a marginally closer target.
+        public Transform LastAttacker { get; private set; }
+
+        /// <summary>
+        /// Who this agent counts as an enemy. Resolves <see cref="settings"/> on demand for the same
+        /// reason <see cref="ForceTarget"/> does: a restore can ask before Awake has run.
+        /// </summary>
+        public FactionRelationship Relationship
+        {
+            get
+            {
+                EnsureSettings();
+                return settings.relationship;
+            }
+        }
+
+        /// <summary>
+        /// The tuning asset currently in force, or null when the agent is running the inline fields.
+        ///
+        /// Not the same question as "what does the prefab say": <see cref="ApplyProfile"/> swaps this
+        /// at runtime, so it is the only place that knows a MatchManager arena profile is live rather
+        /// than the one Awake read.
+        /// </summary>
+        public TargetingProfile ActiveProfile => profile;
+
+        /// <summary>
+        /// Seconds an unseen target and its last-known position survive before the agent gives up.
+        ///
+        /// Exposed for the save system, which clamps a restored memory to it — see
+        /// <c>AgentStateSaveable</c>. Falls back to the profile default when asked before Awake,
+        /// which is what an EditMode test does.
+        /// </summary>
+        public float MemoryDuration
+        {
+            get
+            {
+                EnsureSettings();
+                return settings != null ? settings.memoryDuration : FallbackMemoryDuration;
+            }
+        }
+
+        // Matches TargetingProfile.memoryDuration's own default.
+        private const float FallbackMemoryDuration = VisionBaseline.MinMemory;
+
+        // ── Internals ─────────────────────────────────────────────────────────────
+        private TargetingProfile settings;
+
+        /// <summary>
+        /// Makes sure <see cref="settings"/> exists, whoever asks first.
+        ///
+        /// It used to be built only in <c>Awake</c>, and that was a real ordering hazard rather than
+        /// a tidiness question: the save system talks to components on objects it has just hydrated,
+        /// so <see cref="ForceTarget"/> — which reads <c>settings.reevaluateInterval</c> — is
+        /// reachable from a restore before Awake has run. It threw a NullReferenceException out of
+        /// the deferred pass, which <c>SaveableEntity.NotifyLoadComplete</c> catches and logs, so the
+        /// restored grudge was silently dropped and the creature came back peaceful. Same class of
+        /// bug the restore was written to fix, arriving one layer down.
+        ///
+        /// Idempotent, so Awake calling it and a restore calling it first are the same thing.
+        /// </summary>
+        private void EnsureSettings()
+        {
+            if (settings != null) return;
+
+            // Without an asset, synthesise one from the inline fields. Everything downstream then
+            // reads a single settings object and never has to know which source it came from.
+            if (profile == null)
+            {
+                runtimeDefaults = ScriptableObject.CreateInstance<TargetingProfile>();
+                runtimeDefaults.hideFlags = HideFlags.HideAndDontSave;
+                runtimeDefaults.relationship = relationship;
+                runtimeDefaults.acquisitionRange = acquisitionRange;
+                runtimeDefaults.loseRange = Mathf.Max(loseRange, acquisitionRange);
+                runtimeDefaults.requireLineOfSightToAcquire = requireLineOfSightToAcquire;
+                runtimeDefaults.proximityAcquireRange = proximityAcquireRange;
+                settings = runtimeDefaults;
+            }
+            else
+            {
+                settings = profile;
+            }
+        }
+        private TargetingProfile runtimeDefaults;
+        private EntityFaction selfFaction;
+        private PerceptionModule perception;
+        private HealthComponent health;
+        private float reevaluateTimer;
+
+        // Acquisition ranges actually used, after widening to cover the agent's own weapons.
+        // Held here rather than written back to the profile: a profile is a shared asset and
+        // several prefabs point at the same one.
+        private float effectiveAcquisitionRange;
+        private float effectiveLoseRange;
+
+        // How far this agent can see through the weather, 0 to 1. Refreshed on an interval rather
+        // than per frame: a sandstorm's density where one agent is standing changes over seconds,
+        // and sampling it every frame for every agent is exactly the per-agent-per-frame cost this
+        // component was written to remove.
+        private float stormSightFactor = 1f;
+        private float stormSampleTimer;
+        private const float StormSampleInterval = 1f;
+
+        // Both are floored at proximityAcquireRange. Without that floor a thick enough storm would
+        // shrink the working range inside the point-blank bypass, and an agent would fail to react
+        // to something it is standing next to — which reads as broken AI, not as bad weather.
+        /// <summary>Acquisition range after weather. What the agent can actually spot at.</summary>
+        public float SightRange =>
+            Mathf.Max(effectiveAcquisitionRange * stormSightFactor, settings.proximityAcquireRange);
+
+        /// <summary>Retention range after weather, so a target lost in the sand is dropped too.</summary>
+        public float LoseRange =>
+            Mathf.Max(effectiveLoseRange * stormSightFactor, settings.proximityAcquireRange);
+
+        // Shared across agents rather than one list each: Reevaluate fills and fully consumes it
+        // inside a single synchronous call, so no other agent can observe it mid-use.
+        private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
+
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ReevaluateMarkerName = "SpaceGame.Targeting.Reevaluate";
+        private static readonly ProfilerMarker ReevaluateMarker = new(ReevaluateMarkerName);
+        private const string RefreshMarkerName = "SpaceGame.Targeting.Refresh";
+        private static readonly ProfilerMarker RefreshMarker = new(RefreshMarkerName);
+
+        private AgentAuthority authority;
+
+        // Read for AgentController.IsParked: an agent that is not in the scene's action acquires no one.
+        private AgentController controller;
+
+        /// <summary>
+        /// Is this machine the one deciding this agent's target? See <see cref="AgentAuthority"/>.
+        ///
+        /// <para>
+        /// Null-tolerant because this component is added at runtime by
+        /// <see cref="GetOrAdd(GameObject)"/>, and outside play mode AddComponent does not run
+        /// Awake — an editor tool that pokes this must get the single-player answer, not an NRE.
+        /// </para>
+        /// </summary>
+        public bool SimulatesHere => authority == null || authority.SimulatedHere;
+
+        private void Awake()
+        {
+            authority = new AgentAuthority(this);
+            controller = GetComponent<AgentController>();
+            selfFaction = GetComponent<EntityFaction>();
+            perception = GetComponent<PerceptionModule>();
+            health = GetComponent<HealthComponent>();
+
+            EnsureSettings();
+
+            if (selfFaction == null)
+            {
+                Debug.LogWarning($"{name}: AgentTargeting needs an EntityFaction to know who is hostile. " +
+                                 "Without one this agent can never acquire a target.", this);
+            }
+
+            RecomputeEffectiveRanges();
+        }
+
+        // Attach or fetch the component. Used by AgentController and by the alert/noise modules so
+        // none of them depend on Awake ordering, and so a prefab that predates this component still
+        // gets one shared target decision instead of falling back to per-module resolution.
+        public static AgentTargeting GetOrAdd(GameObject host)
+        {
+            AgentTargeting existing = host.GetComponent<AgentTargeting>();
+            return existing != null ? existing : host.AddComponent<AgentTargeting>();
+        }
+
+        // An agent that can shoot 22 m but only acquires at 15 m never starts the fight it is
+        // equipped for. Widen the working ranges to cover the longest weapon on the agent rather
+        // than making every profile author remember to.
+        private void RecomputeEffectiveRanges()
+        {
+            float weaponRange = 0f;
+            foreach (CloseCombatModule melee in GetComponents<CloseCombatModule>())
+                weaponRange = Mathf.Max(weaponRange, melee.AttackRange);
+
+            // The artifacts the agent is actually carrying or wearing: an NPC holding a looted rifle that
+            // reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to join.
+            // A module with nothing to fire reads 0 (ItemUseModuleBase.MaxRange): a bare forearm widens nothing.
+            foreach (ItemUseModuleBase item in GetComponents<ItemUseModuleBase>())
+                weaponRange = Mathf.Max(weaponRange, item.MaxRange);
+
+            effectiveAcquisitionRange = Mathf.Max(settings.acquisitionRange, weaponRange + WeaponRangeMargin);
+            effectiveLoseRange = Mathf.Max(settings.loseRange, effectiveAcquisitionRange + WeaponRangeMargin);
+        }
+
+        // Headroom past the longest weapon range, so a target that steps just outside the fire band
+        // stays acquired instead of being dropped and immediately re-acquired.
+        private const float WeaponRangeMargin = 5f;
+
+        private void OnEnable()
+        {
+            ClearTarget();
+
+            // Memory too, not just the target: a respawned entity that kept its last known position
+            // would walk straight back to where it died to investigate its own corpse.
+            HasLastKnownPosition = false;
+            TimeSinceSeen = 0f;
+            LastAttacker = null;
+
+            // Random phases, so a crowd enabled on one frame (a city unfolding) does not re-score and
+            // re-sample the weather on one frame every interval: the AgentController
+            // speedVariationPhase precedent. Not saved, for the reason that one is not.
+            EnsureSettings();
+            PhaseTimers();
+            if (health != null)
+                health.OnDamage += HandleDamaged;
+
+            // Worn gear goes on after Awake (Start, the server's spawn) and comes off when looted, so
+            // the reach is re-read whenever a module's changes rather than only at startup.
+            itemUseModules = GetComponents<ItemUseModuleBase>();
+            foreach (ItemUseModuleBase item in itemUseModules)
+                item.ReachChanged += RecomputeEffectiveRanges;
+            RecomputeEffectiveRanges();
+        }
+
+        private void OnDisable()
+        {
+            if (health != null)
+                health.OnDamage -= HandleDamaged;
+
+            if (itemUseModules != null)
+                foreach (ItemUseModuleBase item in itemUseModules)
+                    if (item != null) item.ReachChanged -= RecomputeEffectiveRanges;
+        }
+
+        // The modules subscribed to in OnEnable, so OnDisable unsubscribes from exactly those.
+        private ItemUseModuleBase[] itemUseModules;
+
+        // The cached authority lookup walks up to the nearest NetworkObject, and reparenting is the
+        // only thing that changes which one that is. See AgentAuthority.Invalidate.
+        private void OnTransformParentChanged() => authority?.Invalidate();
+
+        private void OnDestroy()
+        {
+            if (runtimeDefaults != null)
+                Destroy(runtimeDefaults);
+        }
+
+        // Swap tuning at runtime — a spawner can use this to give its bots a more aggressive
+        // profile than the same prefab runs with in the open world.
+        public void ApplyProfile(TargetingProfile newProfile)
+        {
+            if (newProfile == null)
+                return;
+
+            profile = newProfile;
+            settings = newProfile;
+            RecomputeEffectiveRanges();
+            PhaseTimers();
+        }
+
+        private void PhaseTimers()
+        {
+            reevaluateTimer = Random.Range(0f, settings.reevaluateInterval);
+            stormSampleTimer = Random.Range(0f, StormSampleInterval);
+        }
+
+        // Forced acquisition from outside the scoring loop — ally alerts and heard noises.
+        // Bypasses line-of-sight on purpose: being told where someone is is the whole point.
+        public void ForceTarget(Transform target)
+        {
+            if (!TargetResolution.IsViable(target))
+                return;
+
+            // An ally shouting about somebody, or a noise heard through a wall, is still a route to
+            // a target and has to obey the same exemption the scoring loop does. Without this, a
+            // conjurer carrying a passenger acquires them the moment another robot calls them out —
+            // through a path that deliberately bypasses line of sight.
+            if (IsIgnored(target))
+                return;
+
+            EnsureSettings();
+
+            Transform previous = Target;
+            Target = target;
+            DistanceToTarget = Vector3.Distance(transform.position, target.position);
+            LastKnownPosition = target.position;
+            HasLastKnownPosition = true;
+            TimeSinceSeen = 0f;
+            if (previous != target)
+                TargetAcquired?.Invoke(target, false);
+
+            // Hold the forced target for a full interval before re-scoring, so an alert isn't
+            // immediately overruled by whoever happens to be marginally nearer.
+            reevaluateTimer = settings.reevaluateInterval;
+        }
+
+        /// <summary>
+        /// True when this agent is currently fighting <paramref name="other"/>.
+        ///
+        /// Matched by hierarchy rather than by reference, because the two sides name the same
+        /// entity differently. Targeting holds whatever the registry scored — the entity root that
+        /// carries the EntityFaction — while a caller usually holds a component somewhere inside
+        /// the body: an Interactor on a camera rig, a collider on a limb. Comparing those two
+        /// transforms directly answers "no" for a player who is being chased and hit.
+        /// </summary>
+        public bool IsFightingWith(Transform other)
+        {
+            if (other == null || Target == null) return false;
+
+            return Target.root == other.root;
+        }
+
+        /// <summary>
+        /// How many times this agent has let go of a target it was holding. Readers compare it with
+        /// the count they last handled instead of watching <see cref="HasTarget"/> fall: a module is
+        /// only ticked on the frames nothing above it claims movement, so the frame a target is
+        /// dropped is exactly the frame it never sees. <see cref="SearchModule"/> started on that
+        /// falling edge and therefore never searched at all.
+        /// </summary>
+        public int LostCount { get; private set; }
+
+        /// <summary>
+        /// Lets go of the target, counting it in <see cref="LostCount"/>. A held target that has
+        /// been DESTROYED counts too: Unity's null would say nothing is held, but a target that
+        /// despawned, logged out or streamed away was lost exactly as much as one that walked off.
+        /// </summary>
+        public void ClearTarget()
+        {
+            if (!ReferenceEquals(Target, null))
+                LostCount++;
+
+            Target = null;
+            CanSeeTarget = false;
+            DistanceToTarget = float.MaxValue;
+        }
+
+        /// <summary>
+        /// Let go of a target this agent has since been told to overlook.
+        ///
+        /// <para>
+        /// <see cref="EntityFaction.Ignore"/> keeps an entity out of future queries; it says nothing
+        /// about the one already held. Called on the re-evaluation interval, that gap is up to
+        /// <c>reevaluateInterval</c> seconds long — long enough for a conjurer to put a bolt on the
+        /// player who has just climbed onto its shoulder. So whoever grants the exemption calls this
+        /// too, and the seat is empty of a target on the same frame it is filled with a rider.
+        /// </para>
+        /// <para>
+        /// The remembered position goes with it. A target that is no longer perceivable is not
+        /// somewhere to go and look, and leaving it standing sends SearchModule walking toward a
+        /// player the agent is carrying.
+        /// </para>
+        /// </summary>
+        public void ForgetIgnored()
+        {
+            if (Target != null && IsIgnored(Target))
+            {
+                ClearTarget();
+                HasLastKnownPosition = false;
+            }
+
+            if (LastAttacker != null && IsIgnored(LastAttacker))
+                LastAttacker = null;
+        }
+
+        /// <summary>
+        /// Is <paramref name="candidate"/> exempt for this agent? Walks up to the entity that
+        /// carries the faction, because callers hold anything from a limb collider to an entity root.
+        /// </summary>
+        private bool IsIgnored(Transform candidate)
+        {
+            if (selfFaction == null || candidate == null)
+                return false;
+
+            EntityFaction candidateFaction = candidate.GetComponentInParent<EntityFaction>();
+            return candidateFaction != null && selfFaction.Ignores(candidateFaction);
+        }
+
+        // Puts back what this agent remembered, for a save being loaded.
+        //
+        // Separate from ForceTarget because the two say different things. ForceTarget is an event —
+        // "someone just told you where they are" — and it deliberately resets the re-scoring timer and
+        // treats the target as seen this instant. A restore is not an event: the agent should come back
+        // holding exactly the memory it had, including a target it had LOST sight of seconds ago, so
+        // that a search resumes from where it left off instead of restarting.
+        //
+        // The target is set directly rather than through ForceTarget for that reason, and viability is
+        // still checked — a saved target that has since died must not be re-acquired.
+        //
+        // targetWasHeld is whether the save recorded a target at all. One that was held but cannot be
+        // had back (died, logged out, never streamed in) counts as a loss, exactly as if the agent had
+        // dropped it this frame — so a SearchModule goes to look instead of standing on a memory.
+        public void RestoreMemory(Transform target, bool targetWasHeld, Vector3 lastKnownPosition,
+                                  bool hasLastKnownPosition, float timeSinceSeen, Transform lastAttacker)
+        {
+            if (TargetResolution.IsViable(target))
+            {
+                Target = target;
+                DistanceToTarget = Vector3.Distance(transform.position, target.position);
+            }
+            else if (targetWasHeld)
+            {
+                LostCount++;
+            }
+
+            LastKnownPosition = lastKnownPosition;
+            HasLastKnownPosition = hasLastKnownPosition;
+            TimeSinceSeen = timeSinceSeen;
+            LastAttacker = lastAttacker;
+        }
+
+        private void HandleDamaged(int _)
+        {
+            if (health == null)
+                return;
+
+            Transform source = health.LastDamageSource;
+            if (source == null)
+                return;
+
+            // Attribute the hit to the entity, so the bias actually matches a scoring candidate.
+            Transform entity = TargetResolution.EntityOf(source);
+            EntityFaction attacker = entity.GetComponent<EntityFaction>();
+
+            // A passenger who shoots the machine they are riding is still a passenger. Recording
+            // them here would not acquire them on its own — an exempt entity is never scored — but
+            // it would leave a stale bias pointing at somebody this agent cannot see.
+            if (attacker != null && selfFaction != null && selfFaction.Ignores(attacker))
+                return;
+
+            LastAttacker = entity;
+        }
+
+        private void Update()
+        {
+            // Who an agent is fighting is a decision, and this is the component that exists so it
+            // is made once. Made once per MACHINE it is not made once at all: every peer scored the
+            // registry on its own schedule and reached its own answer, so the creature you were
+            // watching charge somebody else was, on the server, already on top of you. Deciding on
+            // the authority alone is also what keeps the cost off machines that do not own the
+            // agent — Reevaluate scores every faction in range, per agent, on an interval.
+            if (!SimulatesHere)
+                return;
+
+            // Parked (indoors, asleep, out of range): nobody to acquire and nothing to score — the same as the
+            // controller starving its modules. The current target, if any, is left as it was.
+            if (controller != null && controller.IsParked)
+                return;
+
+            float deltaTime = Time.deltaTime;
+
+            if (!ReferenceEquals(Target, null) && !TargetResolution.IsViable(Target))
+            {
+                // Destroyed rather than dead: it despawned, logged out or streamed away, which from
+                // here looks like it vanished where it was last seen. That is a loss like losing
+                // sight — the memory stays and SearchModule goes to look — and the same answer
+                // RestoreMemory gives for a saved target a load cannot bring back.
+                bool vanished = Target == null;
+                ClearTarget();
+
+                // A target that died is not worth investigating. Dropping the memory here is what
+                // stops SearchModule from walking over to sniff the corpse of something the agent
+                // just killed — losing sight of a live target still leaves the memory intact.
+                if (!vanished)
+                    HasLastKnownPosition = false;
+            }
+
+            stormSampleTimer -= deltaTime;
+            if (stormSampleTimer <= 0f)
+            {
+                stormSampleTimer = StormSampleInterval;
+                stormSightFactor = Sandstorms.SightFactorAt(transform.position);
+            }
+
+            // Strictly on the interval, including while the agent has no target at all. Re-scanning
+            // every frame when nothing is acquired is the case that scales worst: it is exactly the
+            // situation where every agent in the scene is querying the whole registry at once.
+            reevaluateTimer -= deltaTime;
+            if (reevaluateTimer <= 0f)
+            {
+                Reevaluate();
+                reevaluateTimer = settings.reevaluateInterval;
+            }
+
+            RefreshTargetState(deltaTime);
+        }
+
+        // Distance, visibility and memory for the target we currently hold. Runs every frame —
+        // the interval above only governs how often candidates are re-scored, not how current
+        // the held target's state is.
+        private void RefreshTargetState(float deltaTime)
+        {
+            using ProfilerMarker.AutoScope sample = RefreshMarker.Auto();
+
+            if (!HasTarget)
+            {
+                if (HasLastKnownPosition)
+                {
+                    TimeSinceSeen += deltaTime;
+                    if (TimeSinceSeen > settings.memoryDuration)
+                        HasLastKnownPosition = false;
+                }
+                return;
+            }
+
+            DistanceToTarget = Vector3.Distance(transform.position, Target.position);
+
+            if (DistanceToTarget > LoseRange)
+            {
+                ClearTarget();
+                return;
+            }
+
+            // Cached: the held target's sight line is re-cast on PerceptionModule's interval, not
+            // every frame (CanSeeCached).
+            CanSeeTarget = perception == null
+                           || DistanceToTarget <= settings.proximityAcquireRange
+                           || perception.CanSeeCached(Target);
+
+            if (CanSeeTarget)
+            {
+                LastKnownPosition = Target.position;
+                HasLastKnownPosition = true;
+                TimeSinceSeen = 0f;
+                return;
+            }
+
+            TimeSinceSeen += deltaTime;
+
+            // Only give up on an unseen target when sight is what acquired it in the first place.
+            // Arena modes turn requireLineOfSightToAcquire off so bots keep converging through walls.
+            if (settings.requireLineOfSightToAcquire && TimeSinceSeen > settings.memoryDuration)
+                ClearTarget();
+        }
+
+        // Scores every candidate in range and keeps the best. Score is an "effective distance":
+        // biases make a candidate count as nearer than it is, penalties as further, so everything
+        // stays in metres and the numbers on the profile mean something readable.
+        private void Reevaluate()
+        {
+            using ProfilerMarker.AutoScope sample = ReevaluateMarker.Auto();
+
+            if (selfFaction == null)
+                return;
+
+            // The backstop. ForgetIgnored is called by whoever grants an exemption so the drop is
+            // immediate; running it again here means an exemption granted by anything that does not
+            // know to is still honoured, one interval later, rather than held forever.
+            ForgetIgnored();
+
+            // Sight range, not the raw acquisition range: in a sandstorm an agent scores only what
+            // it could actually see. proximityAcquireRange below is deliberately left alone — a
+            // robot still notices something at arm's length, so the storm hides you without
+            // turning you into a ghost.
+            EntityTargetRegistry.Query(selfFaction, settings.relationship, transform.position,
+                                       SightRange, candidateBuffer);
+
+            Transform best = null;
+            float bestScore = float.MaxValue;
+
+            for (int i = 0; i < candidateBuffer.Count; i++)
+            {
+                Transform candidate = candidateBuffer[i].transform;
+                if (!TargetResolution.IsViable(candidate))
+                    continue;
+
+                float distance = Vector3.Distance(transform.position, candidate.position);
+                bool visible = IsCandidateVisible(candidate, distance);
+
+                // Sight gates acquisition, not retention: an agent that cannot see anything new
+                // keeps whatever it already had rather than dropping to no target at all.
+                if (settings.requireLineOfSightToAcquire && !visible && candidate != Target)
+                    continue;
+
+                float score = distance;
+                if (candidate == Target)
+                    score *= 1f - settings.currentTargetBias;
+                if (candidate == LastAttacker)
+                    score *= 1f - settings.lastAttackerBias;
+                if (!visible)
+                    score *= 1f + settings.occludedPenalty;
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = candidate;
+                }
+            }
+
+            if (best != null)
+            {
+                Transform previous = Target;
+                Target = best;
+                if (previous != best)
+                    TargetAcquired?.Invoke(best, true);
+            }
+        }
+
+        private bool IsCandidateVisible(Transform candidate, float distance)
+        {
+            if (perception == null)
+                return true;
+            if (distance <= settings.proximityAcquireRange)
+                return true;
+
+            // IsVisible, not CanSeeCached: the cache holds one slot, for the held target, so scoring a
+            // crowd through it would re-cast every call and evict the held target's answer.
+            return perception.IsVisible(candidate);
+        }
+
+        private void OnValidate()
+        {
+            acquisitionRange = Mathf.Max(1f, acquisitionRange);
+            loseRange = Mathf.Max(acquisitionRange, loseRange);
+            proximityAcquireRange = Mathf.Clamp(proximityAcquireRange, 0f, acquisitionRange);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (!drawGizmos || !Application.isPlaying)
+                return;
+
+            if (HasTarget)
+            {
+                Gizmos.color = CanSeeTarget ? Color.red : new Color(1f, 0.5f, 0f);
+                Gizmos.DrawLine(transform.position + Vector3.up, Target.position + Vector3.up);
+            }
+            else if (HasLastKnownPosition)
+            {
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(LastKnownPosition, 0.6f);
+            }
+        }
+    }
+}

@@ -1,0 +1,546 @@
+using System;
+using FMODUnity;
+using Unity.Netcode;
+using UnityEngine;
+using SpaceGame.Audio;
+using SpaceGame.Characters;
+using SpaceGame.Core;
+using SpaceGame.Presentation;
+
+namespace SpaceGame.Items
+{
+    /// <summary>Which machine runs an item's effect.</summary>
+    public enum UseAuthority
+    {
+        /// <summary>
+        /// The server. For anything that changes the shared world — spawning a turret, dealing
+        /// damage, consuming something another player could also have taken.
+        /// </summary>
+        Server,
+
+        /// <summary>
+        /// The player holding it. For tools whose whole effect is that player's own body moving:
+        /// the grapple, the lasso, the leash, a potion that changes how you fall. Their body is
+        /// already owner-authoritative, so the result replicates through the transform they own,
+        /// and routing the swing through the server would put a round trip inside the feel of it.
+        /// </summary>
+        Owner,
+    }
+
+    /// <summary>
+    /// Base for everything the player can hold and trigger.
+    ///
+    /// One use splits into two jobs that used to be one, because they belong on different machines:
+    ///
+    ///   • <see cref="Use"/> — what the use DOES. Spawning, damage, consuming a charge. Runs only
+    ///     where this entity has authority, which is the server, or everywhere in single-player.
+    ///   • <see cref="Present"/> — what the use LOOKS AND SOUNDS LIKE. Runs on every machine,
+    ///     immediately on the owner's so the item never feels like it is waiting for a round trip.
+    ///
+    /// Splitting it here rather than per item is what makes every artifact — the ones that exist
+    /// and the ones nobody has written yet — networked by default. An item that overrides neither
+    /// still works; it simply does its work on the server only.
+    /// </summary>
+    public abstract class UsableItem : MonoBehaviour, IItemStateCarrier
+    {
+        [SerializeField] private int maxUses = -1; // -1 means unlimited uses
+
+        // Deliberately None rather than a sensible-looking default: Weapon derives from this and
+        // plays its own fire sound, so anything non-None here would double up on every shot. Items
+        // that want a use sound opt in, per item.
+        [Tooltip("Sound this item makes when used. Leave at None for items whose own logic makes the noise.")]
+        [SerializeField] protected EventReference useSound;
+
+        [Tooltip("What the holder's body does on every use — a gun's recoil, a spell's cast. " +
+                 "Played on every machine alongside the sound. A gun takes an Additive-slot recoil " +
+                 "(Pistol Recoil, Rifle Recoil), which kicks from wherever the arm is aimed; an " +
+                 "overriding shot clip would snap the aimed arm level. Empty for none; an item that " +
+                 "picks its own moment for a gesture (a gauntlet's thrust) plays it through " +
+                 "PlayOnHolder instead.")]
+        [SerializeField] private CharacterAction useAction;
+
+        private int currentUses = 0;
+
+        // The holder's action player, found once per equip. Null for a holder with no humanoid body.
+        private CharacterActions holderActions;
+
+        protected GameObject owner;
+
+        /// <summary>
+        /// Where the holder is pointing.
+        ///
+        /// Resolved on demand rather than cached in <see cref="Use"/>, so it is also available in
+        /// <see cref="OnRequestUse"/> — which is the only place an aim can honestly be read,
+        /// because it is the only one that runs on the machine holding the camera. A peer's copy of
+        /// a remote player has an <see cref="AimProvider"/> with no live camera behind it, so aimed
+        /// items must report their result rather than recompute it.
+        ///
+        /// Lives here rather than on <c>ToolItem</c> because <c>Weapon</c> is the other half of the
+        /// aimed items and derives straight from this class; it had its own <c>Camera.main</c>
+        /// lookup instead, which answers with the HOST's camera on a server and with nothing at all
+        /// while its holder is riding something.
+        /// </summary>
+        protected AimProvider aimProvider =>
+            owner != null ? owner.GetComponent<AimProvider>() : null;
+
+        /// <summary>
+        /// Where the holder is pointing, whoever the holder is: a player's AimProvider, else an NPC's
+        /// INpcAim (EntityBodyEquipment aims its gauntlets), else this item's own forward — the old
+        /// fallback, which for a worn gauntlet is the line of a dangling forearm.
+        /// </summary>
+        protected Ray HolderAimRay()
+        {
+            if (aimProvider != null) return aimProvider.GetAimRay();
+
+            if (owner != null && owner.TryGetComponent(out INpcAim npc) && npc.HasAimPoint)
+            {
+                Vector3 toAim = npc.AimPoint - transform.position;
+                if (toAim.sqrMagnitude > MinAimDistanceSqr) return new Ray(transform.position, toAim.normalized);
+            }
+
+            return new Ray(transform.position, transform.forward);
+        }
+
+        /// <summary>An aim point closer than this (squared; a centimetre) names no direction.</summary>
+        public const float MinAimDistanceSqr = 1e-4f;
+
+        /// <summary>
+        /// What the owner reported about this use — chiefly where they were aiming.
+        ///
+        /// A remote machine cannot recompute that: it has neither the owner's camera nor their
+        /// exact frame. Whatever <see cref="OnRequestUse"/> put in here is what every machine,
+        /// including the server, works from.
+        /// </summary>
+        protected NetArg UseArg { get; private set; }
+
+        public event Action<UsableItem> OnItemDepleted;
+
+        /// <summary>Where <see cref="Use"/> runs. See <see cref="UseAuthority"/>.</summary>
+        public virtual UseAuthority Authority => UseAuthority.Server;
+
+        /// <summary>
+        /// Does this item keep acting for as long as the button is held?
+        ///
+        /// False for everything that existed before the laser staff, and that is the point: a
+        /// press-and-forget item is untouched by the held-use path, which never runs for it. An
+        /// item that answers true additionally gets <see cref="OnRequestHold"/>,
+        /// <see cref="Hold"/> and <see cref="PresentHold"/> called on the same three machines, at
+        /// the send rate EquipmentController streams at, until the button comes up.
+        ///
+        /// A continuous item still gets the ordinary press first. That is deliberate rather than
+        /// incidental: the press is what plays the ignition sound and what counts against
+        /// <c>maxUses</c>, so a held item is a normal item that also happens to keep going.
+        /// </summary>
+        public virtual bool IsContinuous => false;
+
+        /// <summary>
+        /// Does this item want the hold to continue even though the button is up?
+        ///
+        /// <para>
+        /// False for a beam you steer by holding the trigger — that one ends when you let go, and
+        /// nothing here changes for it. True for an item that runs for a fixed time once triggered:
+        /// the laser staff burns for three seconds whether or not the finger stays down.
+        /// </para>
+        /// <para>
+        /// It exists because a self-timed burst still needs the aim to keep flowing. Hold ticks are
+        /// the only channel that carries an aim, and they stop the instant the button comes up — so
+        /// without this, tapping the button leaves every other machine, INCLUDING the server that
+        /// decides what the beam is burning, drawing and billing along an aim frozen at the moment
+        /// of the press while the owner's own view sweeps freely. Ending the burst is then the
+        /// item's job rather than the button's: EquipmentController keeps streaming until this goes
+        /// false again.
+        /// </para>
+        /// </summary>
+        public virtual bool WantsHold => false;
+
+        /// <summary>
+        /// Owner-side, before the request leaves: add anything the other machines cannot work out
+        /// for themselves. Aim points go in <c>P</c>, orientations in <c>R</c>.
+        /// </summary>
+        public virtual void OnRequestUse(ref NetArg arg) { }
+
+        /// <summary>
+        /// Authority-side: actually use the item. Called on the server, or on the only machine
+        /// there is when offline. Never on a peer.
+        /// </summary>
+        public void TryUse(GameObject useOwner, NetArg arg = default)
+        {
+            owner = useOwner;
+            UseArg = arg;
+
+            if (!CanUse()) return;
+
+            useCancelled = false;
+            Use();
+
+            // A use that changed nothing costs nothing. See CancelUse.
+            if (useCancelled) return;
+
+            currentUses++;
+
+            // Check if we've reached max uses
+            if (maxUses >= 0 && currentUses >= maxUses)
+            {
+                OnMaxUsesReached();
+            }
+        }
+
+        /// <summary>
+        /// Set by <see cref="CancelUse"/> for the length of one <see cref="Use"/> call.
+        /// </summary>
+        private bool useCancelled;
+
+        /// <summary>
+        /// Spend no charge for this use: call it from <see cref="Use"/> on a path that changed
+        /// nothing in the world.
+        ///
+        /// <para>
+        /// Aimed items need this and <see cref="RefundUse"/> cannot serve, because the counter is
+        /// incremented *after* <see cref="Use"/> returns — a refund from inside would be undone by
+        /// that increment, and on the very first press it would leave the item one charge worse off
+        /// than it started. A press that missed the ground, hit nothing in range, or arrived after
+        /// the target had gone must not cost a charge; the alternative is an item that eats its
+        /// ammunition on the clicks that did nothing, which reads as the item being broken.
+        /// </para>
+        /// </summary>
+        protected void CancelUse() => useCancelled = true;
+
+        /// <summary>
+        /// Every machine: play the use. Sound always, plus whatever <see cref="Present"/> draws.
+        ///
+        /// Deliberately not gated on <see cref="CanUse"/>. The authority already decided the use
+        /// happened; re-deciding here from a peer's copy of the charge count is how one machine
+        /// ends up silently skipping an effect everyone else saw.
+        /// </summary>
+        public void PlayUse(GameObject useOwner, NetArg arg = default)
+        {
+            owner = useOwner;
+            UseArg = arg;
+
+            Sfx.Play(useSound, transform.position);
+
+            Present();
+            PlayOnHolder(useAction, UsingArm);
+        }
+
+        /// <summary>
+        /// Play <paramref name="action"/> on the holder's body. Call it from the presentation half
+        /// — <see cref="Present"/> or a hold tick — which runs on every machine; the holder's
+        /// <see cref="CharacterActions"/> decides which of them writes the body.
+        /// </summary>
+        protected bool PlayOnHolder(CharacterAction action, ItemGrip.Hand? arm = null) =>
+            action != null && holderActions != null && holderActions.Play(action, arm);
+
+        /// <summary>The arm this item is used with: the forearm it is worn on, or the hand gripping it.</summary>
+        protected ItemGrip.Hand? UsingArm
+        {
+            get
+            {
+                if (Worn) return WornOn;
+                var grip = GetComponent<ItemGrip>();
+                return grip != null ? grip.HeldIn : (ItemGrip.Hand?)null;
+            }
+        }
+
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // Every held object in this game is a fresh Instantiate of the item prefab, destroyed on
+        // unequip — see ItemState. So anything an item has BECOME lives in the hotbar slot rather
+        // than on the instance, and these two methods are how it gets there and back.
+        //
+        // The charge count is here because it belongs to every item: a limited-use artifact whose
+        // charges refilled every time the player scrolled past it was not a save bug, it was a
+        // gameplay bug that a save merely made visible.
+
+        /// <summary>State key for the charge count. Written into save files — never rename.</summary>
+        private const string UsesKey = "uses";
+
+        /// <summary>
+        /// Write what this instance would otherwise lose. Subclasses override and call base.
+        /// </summary>
+        public virtual void CaptureItemState(ItemState state)
+        {
+            if (state == null) return;
+
+            // An unlimited item has no count worth storing, and storing a zero for every artifact in
+            // the game would put a bag on every slot that has nothing in it.
+            if (maxUses >= 0 && currentUses > 0) state.Set(UsesKey, currentUses);
+
+            if (Reservoir != null) Reservoir.CaptureItemState(state);
+        }
+
+        /// <summary>
+        /// Apply a captured bag. Runs after <see cref="OnEquipped"/>, so it is free to overwrite
+        /// whatever equipping set up.
+        /// </summary>
+        public virtual void RestoreItemState(ItemState state)
+        {
+            // A null bag is "this item is at its defaults", which for a fresh instance is already
+            // true — but the reset is written out rather than assumed, because the same instance can
+            // be handed a bag and then handed none.
+            currentUses = state == null ? 0 : state.GetInt(UsesKey, 0);
+
+            if (Reservoir != null) Reservoir.RestoreItemState(state);
+        }
+
+        private SupplyReservoir reservoir;
+        private bool reservoirResolved;
+
+        /// <summary>
+        /// The tank on this item, if it has one, resolved once.
+        ///
+        /// <para>
+        /// The base class carries this for the same reason it carries the charge count: it belongs
+        /// to whichever items have one, and only the ONE <c>UsableItem</c> on a prefab is ever asked
+        /// for a state bag. <c>EquipmentController</c>, <c>BodyEquipmentController</c> and the savers
+        /// all reach an <see cref="IItemStateCarrier"/> through <c>GetComponent&lt;UsableItem&gt;</c>,
+        /// so a <see cref="SupplyReservoir"/> that implemented the interface and nothing more would
+        /// never be called — and every artifact that grew a tank would have to remember the two
+        /// forwarding lines above. They are written here once instead.
+        /// </para>
+        /// <para>
+        /// Lazily, not in <c>Awake</c>: an <c>AddComponent</c> outside play mode raises no Awake, and
+        /// these two methods are the only callers.
+        /// </para>
+        /// </summary>
+        private SupplyReservoir Reservoir
+        {
+            get
+            {
+                if (reservoirResolved) return reservoir;
+
+                reservoir = SupplyReservoir.On(gameObject);
+                reservoirResolved = true;
+                return reservoir;
+            }
+        }
+
+        /// <summary>How many uses are left, or -1 when this item is unlimited.</summary>
+        protected int ChargesLeft => maxUses < 0 ? -1 : Mathf.Max(0, maxUses - currentUses);
+
+        /// <summary>
+        /// The authored charge limit, or -1 when unlimited.
+        ///
+        /// Exposed so a refilling item can tell when it is full without carrying a second copy of
+        /// the number. A subclass that hardcoded its own maximum would be a magic number that
+        /// silently disagrees with the prefab the moment a designer changes one of them.
+        /// </summary>
+        protected int MaxCharges => maxUses;
+
+        /// <summary>
+        /// Give one charge back.
+        ///
+        /// <para>
+        /// The count is otherwise monotonic, which was right while every limited item in the game
+        /// was strictly consumable. An item that REFILLS — the net gun is the first — has no way to
+        /// express that without this, and the alternative is a second ammo counter running beside
+        /// this one, which would then be the one that persists incorrectly.
+        /// </para>
+        /// <para>
+        /// Note that an item which refills must also override <see cref="OnMaxUsesReached"/> to
+        /// stay silent: the default raises <c>OnItemDepleted</c>, and
+        /// <c>EquipmentController.ItemDepleted</c> answers that by removing the item from the
+        /// inventory altogether.
+        /// </para>
+        /// </summary>
+        protected void RefundUse()
+        {
+            if (currentUses > 0) currentUses--;
+        }
+
+        protected virtual bool CanUse()
+        {
+            // Prevent use if max uses reached
+            if (maxUses >= 0 && currentUses >= maxUses)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Called when the item reaches its maximum number of uses.
+        /// Override in subclasses for custom behavior.
+        /// </summary>
+        protected virtual void OnMaxUsesReached()
+        {
+            Deplete();
+        }
+
+        /// <summary>
+        /// Take this item out of the holder's inventory now, whatever the use counter says.
+        ///
+        /// <para>
+        /// For items that are spent by SUCCEEDING rather than by being used a fixed number of
+        /// times. A placeable is the case: `maxUses = 1` would consume it on the click that missed
+        /// the ground as readily as on the one that put it down, and <see cref="RefundUse"/> cannot
+        /// undo that because <see cref="TryUse"/> increments the counter *after* Use() returns.
+        /// Calling this from Use(), only on the path that actually did something, is the honest
+        /// version: nothing is spent until the world has changed.
+        /// </para>
+        /// <para>
+        /// Authority-side only, like Use() itself — <c>EquipmentController.ItemDepleted</c> answers
+        /// it by removing the item from the inventory, which is server state.
+        /// </para>
+        /// </summary>
+        protected void Deplete()
+        {
+            OnItemDepleted?.Invoke(this);
+        }
+
+        // ── Held use ───────────────────────────────────────────────────────────
+        //
+        // The same request/authority/present split as a press, because a hold has the same three
+        // machines with the same three jobs. `active` is false on the final tick, which is the
+        // release — every override must treat that as "stop", including the case where it never
+        // saw the ticks that came before it.
+
+        /// <summary>
+        /// Owner-side, before each hold tick leaves: describe the aim, which is knowable only here.
+        /// </summary>
+        public virtual void OnRequestHold(ref NetArg arg, bool active) { }
+
+        /// <summary>Authority-side: keep doing the thing. See <see cref="TryUse"/>.</summary>
+        public void TryHold(GameObject useOwner, NetArg arg, bool active)
+        {
+            owner = useOwner;
+            UseArg = arg;
+            Hold(arg, active);
+        }
+
+        /// <summary>Every machine: keep showing the thing. See <see cref="PlayUse"/>.</summary>
+        public void PlayHold(GameObject useOwner, NetArg arg, bool active)
+        {
+            owner = useOwner;
+            UseArg = arg;
+            PresentHold(arg, active);
+        }
+
+        /// <summary>Authority-only, once per hold tick. Empty unless the item is continuous.</summary>
+        protected virtual void Hold(NetArg arg, bool active) { }
+
+        /// <summary>Cosmetic half of a hold tick, on every machine.</summary>
+        protected virtual void PresentHold(NetArg arg, bool active) { }
+
+        /// <summary>
+        /// Lifecycle hook fired by EquipmentController right after the item prefab is
+        /// instantiated and parented to the player's hand. Use for "while held"
+        /// effects (animation flags, audio loops, glow, etc). Subclasses overriding
+        /// this should call base.OnEquipped() so the shared HoldAnimator wiring
+        /// still fires.
+        /// </summary>
+        public virtual void OnEquipped(GameObject holder)
+        {
+            // Set here and not only in TryUse/PlayUse, because OnRequestUse runs BEFORE either of
+            // those on the very first use of a freshly equipped item. Anything that reads the
+            // holder to describe a use — an aim ray, a muzzle, a velocity — would otherwise find
+            // null exactly once per equip.
+            owner = holder;
+            holderActions = holder != null ? holder.GetComponentInChildren<CharacterActions>(true) : null;
+
+            // A worn item — a gauntlet on the forearm, a pack on the back — must never pose the
+            // arm as though gripping it: the hand is free to hold something else at the same time.
+            if (Worn) return;
+
+            // Give the item a hold pose whether or not anyone remembered to author one.
+            //
+            // This used to read the component and do nothing when it was absent, which made the
+            // pose opt-in and silently so — an artifact without a HoldAnimator does not fail or
+            // warn, it just stands in the idle tree holding a gun. Four of eleven equippable
+            // artifacts had the component; the other seven were the bug.
+            //
+            // An authored component is left exactly as it is, because it carries per-prefab
+            // tuning. This only fills the gap.
+            //
+            // The opt-out is checked BEFORE the component is looked up, not only before it is
+            // added: an item that says it poses nothing must pose nothing, and gating only the
+            // AddComponent left the opt-out silently undone the moment somebody dropped a
+            // HoldAnimator on the prefab.
+            if (!UsesHoldPose) return;
+
+            var hold = GetComponent<HoldAnimator>();
+            if (hold == null) hold = gameObject.AddComponent<HoldAnimator>();
+            hold.SetHeld(holder, true);
+        }
+
+        /// <summary>
+        /// Is this instance worn on the body rather than held in the hand?
+        ///
+        /// <para>
+        /// Set by the controller that seats it, BEFORE <see cref="OnEquipped"/>, and read only
+        /// there: a worn instance skips the hold pose. Everything else an item does on equip —
+        /// its own setup, its state restore, its use pipeline — is identical either way, which is
+        /// the point: the gauntlet is the same artifact it was in the hand, fired from a different
+        /// button.
+        /// </para>
+        /// </summary>
+        public bool Worn { get; set; }
+
+        /// <summary>
+        /// Which forearm a worn gauntlet sits on. Set beside <see cref="Worn"/> by the controller
+        /// that seats it, and meaningless without it — a torso item leaves it at its default.
+        ///
+        /// <para>
+        /// Here rather than found by the item because the item cannot work it out: an instance is
+        /// parented to a forearm BONE, and reading the arm back off the hierarchy means matching
+        /// bone names, which is exactly the guess <c>ForearmSeat</c> exists to avoid. The slot is
+        /// the fact; this is it, passed on.
+        /// </para>
+        /// </summary>
+        public ItemGrip.Hand WornOn { get; set; }
+
+        /// <summary>
+        /// Whether holding this item should pose the holder's body.
+        ///
+        /// <para>
+        /// True for anything gripped. Override to false where posing the arms around this item is
+        /// wrong: something worn rather than held — a pack, a suit module — or something held
+        /// whose only available pose says the wrong thing. Every hold style on the Upper Body
+        /// layer is a firearm clip, so an item that is not aimed like a firearm is better served
+        /// by the base layer's own arms than by a pose that reads as taking aim with a pistol.
+        /// </para>
+        /// </summary>
+        protected virtual bool UsesHoldPose => true;
+
+        /// <summary>
+        /// Lifecycle hook fired by EquipmentController right before the item prefab
+        /// is unparented/destroyed. Mirror of OnEquipped — clean up here.
+        /// </summary>
+        public virtual void OnUnequipped(GameObject holder)
+        {
+            holderActions = null;
+            var hold = GetComponent<HoldAnimator>();
+            if (hold != null) hold.SetHeld(holder, false);
+        }
+
+        /// <summary>
+        /// True when the local player is the one holding this item.
+        ///
+        /// Asked of the OWNER rather than of this item. An equipped artifact is instantiated into
+        /// a hand and never spawned, so its own NetworkObject is dormant and
+        /// <see cref="Network.Simulates"/> would answer "yes, you simulate it" on every machine
+        /// in the session — every peer would then run owner-only effects for a remote player's
+        /// item. The owner's spawned NetworkObject is the one that can actually tell.
+        /// </summary>
+        protected bool OwnerIsLocal()
+        {
+            if (!Network.IsNetworked) return true;
+
+            if (owner != null && owner.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
+                return netObj.IsOwner;
+
+            return true;
+        }
+
+        /// <summary>Authority-only effect. See the class summary.</summary>
+        protected abstract void Use();
+
+        /// <summary>
+        /// Cosmetic half, on every machine. Empty by default: most items either affect only their
+        /// own owner, or change the world through objects that replicate themselves. Override it
+        /// for effects a peer would otherwise never see — a VFX burst, a beam, a muzzle flash.
+        /// </summary>
+        protected virtual void Present() { }
+    }
+}

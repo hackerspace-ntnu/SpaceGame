@@ -1,0 +1,105 @@
+using UnityEngine;
+using SpaceGame.Core;
+using SpaceGame.Gameplay;
+
+namespace SpaceGame.Items
+{
+    public class LightningSpell : ToolItem
+    {
+        [SerializeField] private GameObject lightningVFXPrefab;
+        [SerializeField] private float spawnHeightOffset = 10f;
+        [SerializeField] private float raycastDistance = 500f;
+
+        [Header("Damage")]
+        [Tooltip("Dealt to everything caught in the strike. Whole points — NetDamage discards anything that rounds to zero.")]
+        [SerializeField] private int damage = 120;
+
+        [Tooltip("How wide the strike bites, in metres, measured from where the bolt earths rather than from where it was drawn.")]
+        [SerializeField] private float damageRadius = 3.5f;
+
+        [Tooltip("What the strike can hurt. Triggers are always ignored.")]
+        [SerializeField] private LayerMask damageMask = ~0;
+
+        [Tooltip("Whether the caster can be caught in their own bolt. Off by default: the spell is aimed at what you are looking at, so hitting yourself with it is nearly always a mis-click rather than a choice.")]
+        [SerializeField] private bool damagesCaster;
+
+        /// <summary>
+        /// The rod is held, not aimed, so it takes no upper-body pose.
+        ///
+        /// <para>
+        /// Every hold style on the Upper Body layer is a firearm clip — <c>Relaxed</c>, despite
+        /// the name, is <c>HumanM@Gun_Aim02</c>. On a rod that calls a bolt out of the sky that
+        /// read as the character holding an invisible pistol up in the air, which is both odd to
+        /// look at and a lie about what the item does: the pose said "taking aim with a gun" while
+        /// the strike lands wherever the CROSSHAIR is, from any posture. Dropping it leaves the
+        /// arms on the Base Layer, where they idle and walk with the rod in hand.
+        /// </para>
+        /// </summary>
+        protected override bool UsesHoldPose => false;
+
+        /// <summary>
+        /// Where the bolt lands, decided by the player who cast it.
+        ///
+        /// Every machine has to strike the same spot, and only the caster's machine can work out
+        /// which spot that is — it is the one holding their camera. So the aim travels with the
+        /// use instead of each peer raycasting from its own copy of a remote player and striking
+        /// somewhere slightly different.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
+        {
+            RaycastHit hit = default;
+            bool struck = aimProvider != null
+                          && aimProvider.TryGetAimHit(raycastDistance, out hit);
+
+            // Zero means "aimed at open sky" — see Present. `?? Vector3.zero` used to be read as a
+            // position, so aiming at nothing struck the world origin.
+            arg.P = struck ? hit.point + Vector3.up * spawnHeightOffset : Vector3.zero;
+        }
+
+        /// <summary>
+        /// Server-run: what the strike actually does to what it lands on.
+        ///
+        /// <para>
+        /// Damage is shared world state and exactly one machine may decide it. Applying it here
+        /// rather than beside the visual in <see cref="Present"/> is the whole difference between
+        /// a bolt that kills a creature and a bolt that kills it once per player watching.
+        /// </para>
+        /// <para>
+        /// It bills the GROUND point, not <c>UseArg.P</c>. What travels on the wire is where the
+        /// bolt is DRAWN from — ten metres up, so the graph has sky to fall through — and billing
+        /// that would put the blast radius in the air above everything it was supposed to hit.
+        /// </para>
+        /// </summary>
+        protected override void Use()
+        {
+            Vector3 strike = UseArg.P;
+            if (strike == Vector3.zero) return;
+
+            LightningStrike.Damage(strike - Vector3.up * spawnHeightOffset,
+                                   damage, damageRadius, damageMask,
+                                   owner != null ? owner.gameObject : gameObject,
+                                   damagesCaster);
+        }
+
+        protected override void Present()
+        {
+            Vector3 strike = UseArg.P;
+            if (strike == Vector3.zero) return;
+
+            if (lightningVFXPrefab == null)
+            {
+                Debug.LogWarning("LightningSpell: No Lightning VFX prefab assigned.", this);
+                return;
+            }
+
+            LightningStrike.Present(lightningVFXPrefab, strike,
+                                    strike - Vector3.up * spawnHeightOffset);
+        }
+
+        private void OnValidate()
+        {
+            damage = Mathf.Max(0, damage);
+            damageRadius = Mathf.Max(0f, damageRadius);
+        }
+    }
+}

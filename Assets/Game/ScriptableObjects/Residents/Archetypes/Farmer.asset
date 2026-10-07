@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54862c0fb1d14b798837a1e081db32ca, type: 3}
+  m_Name: Farmer
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentArchetype
+  roleName: farmer
+  post: {fileID: 11400000, guid: c1ad0bcac5fcc4157bc1a9e176fcdc76, type: 2}
+  trips: 0
+  chore: {fileID: 11400000, guid: de0dac9908a684bfa8510c6f1f647fad, type: 2}
+  duty: 0
+  challengesArmed: 0
+  nerve: 0.4
+  temper: 0.3
+  heldItem: {fileID: 11400000, guid: 9107ce1e45bba4663b9dd1feb071d2e2, type: 2}
+  beltItems:
+  - {fileID: 11400000, guid: dc59bb03beb4c49778a07d37e5a1b701, type: 2}

@@ -1,0 +1,126 @@
+---
+system: SceneTransitions
+layer: world
+summary: Additive interior scenes any body can walk into, the door/threshold orchestrator, and the one instant move
+paths:
+  - Assets/Game/Scripts/Core/SceneManagement/
+  - Assets/Game/Scripts/Core/Teleporting/
+  - Assets/Game/Scripts/Core/Persistence/Runtime/SaveTeleport.cs
+  - Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs
+symptoms:
+  - "a client walks through a door and nothing happens"
+  - "the player teleports and snaps straight back to where they were"
+  - "a creature is teleported but its NavMeshAgent stays behind"
+  - "walking through a door bounces the player straight back in"
+  - "the fade to black hangs and the door stays busy"
+  - "a rider is left behind, or arrives twice as far, when its mount teleports"
+  - "loading a save does not put the player back inside the cave they were in"
+  - "two doors log a duplicate TransitionId and one loses its effects"
+  - "X has no PlayerInteriorTransit, so an interior transition cannot be routed to the server"
+  - "a mount carries its rider into a cave and the rider still sees the exterior's lighting"
+  - "a creature or mount inside a cave is pulled back out of the interior scene a moment later"
+  - "a mount that walked into a cave cannot walk back out of it"
+  - "[InteriorManager] Failed to load interior X: SceneEventInProgress"
+  - "a swallowed body stays standing where it was instead of going into the void"
+  - "an interior scene stays loaded after the last occupant left"
+reads_with: [Portals, Persistence, Cutscenes, InteractionSystem]
+updated: 2026-10-03
+---
+
+# Scene Transitions, Interiors & Teleporting
+
+Additive interior scenes, the pluggable door/threshold orchestrator that sends bodies into them, and the single instant-move API every teleport in the game goes through.
+**Scope:** [`Assets/Game/Scripts/Core/SceneManagement/`](Assets/Game/Scripts/Core/SceneManagement), [`Assets/Game/Scripts/Core/Teleporting/`](Assets/Game/Scripts/Core/Teleporting), [`SaveTeleport.cs`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveTeleport.cs), [`NetworkedTeleport.cs`](Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs).
+**Related:** [Portals.md](Portals.md) · [Persistence.md](Persistence.md) · [Cutscenes.md](Cutscenes.md) · [InteractionSystem.md](InteractionSystem.md)
+
+## Model
+
+- An **occupant** is anything that can walk through a door — a player, a creature, a mount with a rider parented to its back. `InteriorManager` keys everything on the occupant GameObject, and a rider is inside on the record of whatever *carried* them in.
+- Interiors are **additive** scenes loaded beside the streamed exterior. The exterior never unloads, so re-exit is instant and `SceneTracked` entities outside stay alive.
+- Every interior transition is split along one line: **session state** (which scenes are loaded, which scene an object lives in, where a body stands) is the server's; **view state** (active scene, exterior lights/volumes off) is one player's machine only.
+- A transition is three orthogonal axes around one orchestrator: *trigger* (component) → `SceneTransition` → *destination* (SO) + *effects* (SO[]). Adding a kind is one new file.
+- `SaveTeleport.Move` is the **only** instant-move function in the project. It disables the `CharacterController`, `NavMeshAgent.Warp`s (checking the return value), resyncs every `Rigidbody` under the target, then raises `ITeleportAware.OnTeleported` with a `TeleportMove`.
+- A `TeleportMove` carries the two poses **and** the rigid `Transfer` matrix, so listeners rebase held world-space state (footholds, path position, leap endpoints, carried riders) with one multiply.
+- `NetworkedTeleport.Move` is the authority wrapper: the **owner** performs the move; the server RPCs the owner. Player transforms are owner-authoritative, so a server-side write is overwritten within a tick.
+
+## Key types
+
+| Type | File | Role |
+|---|---|---|
+| `InteriorManager` | [InteriorManager.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorManager.cs) | Server-side loader. Refcounts scenes, holds `ReturnInfo` + streamer pin **per occupant** (keyed by the GameObject), raises `OnInteriorLoaded` / `OnInteriorWillUnload` / `OnInteriorUnloaded`, answers `IsInsideInterior` / `ResolveOccupant`. Plain MonoBehaviour — **no RPCs of its own**. |
+| `PlayerInteriorTransit` | [PlayerInteriorTransit.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/PlayerInteriorTransit.cs) | `NetworkBehaviour` on the player. Owner→server RPCs for enter/exit; server→owner `ViewChangedRpc`. |
+| `PersistentSceneVisibility` | [PersistentSceneVisibility.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/PersistentSceneVisibility.cs) | Suspends/restores persistent-scene directional lights, `Volume`s and objects named `*visor*`. Per-machine. |
+| `InteriorScene` | [InteriorScene.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorScene.cs) | SO: scene name + `spawnAnchorId`. `OnValidate` checks Build Settings and (if loaded) the anchor. |
+| `InteriorAnchor` | [InteriorAnchor.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorAnchor.cs) | Spawn/exit marker; static `(scene.name, id)` registry, `Find` / `FindAnywhere` / `SetAnchorId`. |
+| `InteriorEntrance` | [InteriorEntrance.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorEntrance.cs) | Minimal `IInteractable` door — no fade, no cutscene. Not deprecated, just simpler than the transition stack. |
+| `SceneTransition` | [SceneTransition.cs](Assets/Game/Scripts/Core/SceneManagement/Transitions/Core/SceneTransition.cs) | `ITriggerable` orchestrator. `Trigger(initiator)`, busy flag, static cross-transition lockout, stable `TransitionId`. |
+| `SceneTransitionViewer` | [SceneTransitionViewer.cs](Assets/Game/Scripts/Core/SceneManagement/Transitions/Core/SceneTransitionViewer.cs) | Auto-installed on every player via `PlayerIdentity.RosterChanged`. Plays effects for a remote owner; carries the out-phase ack. |
+| `TransitionRunner` | [TransitionRunner.cs](Assets/Game/Scripts/Core/SceneManagement/Transitions/Core/TransitionRunner.cs) | DDOL coroutine host — the door's own GameObject is routinely unloaded mid-transition. |
+| `SceneDestination` | [Destinations/](Assets/Game/Scripts/Core/SceneManagement/Transitions/Destinations) | SO base. `InteriorSceneDestination`, `ExitInteriorDestination`, `SameSceneAnchorDestination`. |
+| `SceneTransitionEffect` / `EffectHandle` | [Effects/](Assets/Game/Scripts/Core/SceneManagement/Transitions/Effects) | SO base + per-run handle. `FadeToBlackEffect` (Screen), `WalkThroughCutsceneEffect` (Camera, blocks the load). |
+| `SaveTeleport` | [SaveTeleport.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveTeleport.cs) | The one instant move. `Move(go, pos, rot, zeroVelocity = true)`. |
+| `TeleportMove` / `ITeleportAware` | [Teleporting/](Assets/Game/Scripts/Core/Teleporting) | Own tiny asmdef (`SpaceGame.Teleporting`, zero references) so any assembly can implement it. |
+| `Bootstrapper` / `SceneReference` | [Core/](Assets/Game/Scripts/Core/SceneManagement/Core) | Forces build-index 0 to load first; SO wrapper for a scene name. |
+
+## Flows
+
+1. **Enter.** Trigger → `SceneTransition.Trigger` → busy + coroutine on `TransitionRunner` → effects out-phase → `InteriorSceneDestination.Apply` → `InteriorManager.EnterInterior`, which routes on one question: a body **with** a `PlayerInteriorTransit` (a player, owner-authoritative) goes through `RequestEnter` → server; anything else is server-authoritative and already server-side, so `ServerEnterInterior` runs directly.
+2. **Server enter.** Record `ReturnInfo` (position, rotation, exterior scene) + spawn an `InteriorReturnPin` registered with `WorldStreamer` → refcount++ → `LoadInteriorAdditive` (one in-flight load per interior; waits out a pending unload of the same scene) → `AnnounceLoaded` (raises `OnInteriorLoaded` **before** placing the occupant) → `MoveGameObjectToScene` + `NetworkedTeleport.Move` to the anchor → `NotifyEntered` to **every `PlayerInteriorTransit` under the occupant** (itself, plus any rider parented to it), owner-side only.
+3. **Effects.** `AudienceFor(initiator)`: offline/owner ⇒ this machine; server + remote owner ⇒ `NetMsg.SceneEffects` broadcast on the initiator's channel, filtered by ownership, acked with `NetMsg.SceneEffectsDone` (8 s cap); AI or unowned ⇒ nobody.
+4. **Exit.** `ExitInteriorDestination` (or `CaveExitCover`, which resolves the walker to its occupant via `ResolveOccupant` — press-E from a rider names the *mount*) → `ServerExitInterior` → coroutine waits for `WorldStreamer.IsChunkLoadedAt(returnPos)` (8 s cap) → unparent + `MoveGameObjectToScene` back → teleport → `NotifyExited` → one frame → `GroundClampPlayer` (lift only, capped) → arm `postExitEntranceLockout` → refcount-- → `OnInteriorWillUnload` then `UnloadInterior`, which retries `UnloadScene` and holds the scene name in `unloadingInteriors` until it is really gone.
+5. **Same-scene teleport.** `SameSceneAnchorDestination` → `InteriorAnchor.FindAnywhere` → `anchor.TeleportPlayer`. No scene load.
+6. **Any teleport.** `SaveTeleport.Move` reads the pre-move pose, moves, resyncs bodies, then announces a `TeleportMove` to every `ITeleportAware` under the object.
+
+## Multiplayer
+
+- **Server decides, owner moves.** `VolumeTrigger` fires only on `!Network.IsNetworked || Network.Server`; interactables fire for the body their machine owns. A player reaches `InteriorManager.Server*` only via `PlayerInteriorTransit`, which guarantees the server; a non-player body has no transit to route with, so `EnterInterior`/`ExitInterior` check `Network.Server` themselves and warn rather than let a client move a creature into a scene no one else has loaded.
+- **A rider is moved by its mount, not on its own.** `MountModule` reparents the rider's `NetworkObject` to the seat, so the scene move and the teleport carry them for free; only the *view* has to be handed over, which is why `NotifyViewers` searches children.
+- Interior loads use `NetworkManager.SceneManager.LoadScene(..., Additive)` when networked and `SceneManager.LoadSceneAsync` offline; unload mirrors that. Both networked calls are **retried** on `SceneEventInProgress` (`sceneEventRetryDelay` 0.2 s, `sceneEventRetryTimeout` 10 s) rather than treated as failures. Clients receive the scene through NGO's own scene event, so client-side scene arrival lags the server by a synchronisation round trip — every destination waits on `initiator.scene.name` with a timeout rather than assuming.
+- Enter/exit RPCs are `SendTo.Server` with `InvokePermission = RpcInvokePermission.Owner` — one client cannot shove another through a door.
+- `FixedString64Bytes` throws rather than truncating: scene and anchor names are pre-checked against 61 UTF-8 bytes and refused with a named error.
+- `ITeleportAware` implementors: [`LeggedLocomotion.Teleport.cs`](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Teleport.cs), [`NavMeshAgentMotor`](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs), [`OrnithopterFlightMotor`](Assets/Game/Scripts/agents/AI/Motors/OrnithopterFlightMotor.cs), [`AgentRagdoll`](Assets/Game/Scripts/Gameplay/Ragdoll/AgentRagdoll.cs) / [`RagdollRig`](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollRig.cs), [`DuneFoilLocomotion`](Assets/Game/Scripts/Vehicles/DuneFoil/Core/DuneFoilLocomotion.cs), [`WalkerPlatformCarrier`](Assets/Game/Scripts/Vehicles/Systems/WalkerPlatformCarrier.cs), [`PortalTraveller`](Assets/Game/Scripts/Portals/PortalTraveller.cs).
+- **Rider + mount as one composite.** `WalkerPlatformCarrier.OnTeleported` re-teleports last-step riders it owns by `move.Point/Rotation` with `zeroVelocity: false`, skipping any rider whose `PortalTraveller.InPortal` is true (it is traversing under its own name; carrying it too applies the transfer twice). Riders parented to a mount move with it for free — see `PortalTraveller.Carrier`.
+
+## Persistence
+
+- **Interior contents** hydrate/dehydrate like chunks: `SaveManager` subscribes to the three `InteriorManager` events and drives `WorldSaveStore`. `OnInteriorWillUnload` fires *before* the unload — the last moment anything in the cave is readable.
+- **A rider's visit is their carrier's.** `TryGetVisit` walks up the parents, so a mounted player writes the mount's return position instead of nothing — a player saved as "outside" while standing in a cave reloads at interior coordinates in the exterior world, i.e. inside the terrain with no door.
+- **Which interior a player is in** is player-scoped, not world-scoped: [`InteriorVisitSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/InteriorVisitSaveable.cs), save key `"interior"` (never rename). Absent key = not in an interior.
+- Restore is deferred (`IDeferredSaveable.OnLoadComplete`) and idempotent — it runs world-wide, per player binding and per late chunk hydrate. `InteriorManager.RestoreVisit` bails on clients, bails if a `ReturnInfo` already exists, and places the player at the **saved position**, not at the anchor.
+- A saved entity belongs to the scene it was in: exterior chunk scenes for the world, the interior's own scene for anything inside one. Return position and return rotation are saved alongside so the exit still works after a reload.
+
+## Gotchas
+
+- **A `SceneTracked` occupant is skipped by `WorldStreamer.UpdateSceneMembership` while it is inside.** Otherwise the two passes fight every tick: `Pin` drags a mount straight back out of the cave, `Migrate` hands it to whatever chunk sits under the interior's world-origin coordinates.
+- **Records key on the occupant GameObject.** They used to key on `NetworkObjectId`, which is 0 for everything without a `NetworkObject` — every such body shared one record.
+- **`InteriorManager` has no `NetworkObject`.** Declaring `[Rpc]` on it is inert — Netcode only rewrites `NetworkBehaviour`s. That bug made clients run the *server* half on themselves. Route through `PlayerInteriorTransit`.
+- **Never write a remote player's transform on the server.** Player `NetworkTransform` is owner-authoritative. Always `NetworkedTeleport.Move` (which delegates to `SaveTeleport.Move`).
+- **`SceneEventProgressStatus.SceneEventInProgress` means "ask again", not "this failed".** Netcode keeps ONE busy flag for the whole session, not one per scene, so a streamed chunk load anywhere rejects an interior load or unload. Treating it as a failure dropped the load and left a body that was already marked as swallowed standing in the exterior (`[InteriorManager] Failed to load interior SingularityVoid: SceneEventInProgress`). `LoadInteriorRoutine` / `UnloadInteriorRoutine` re-issue the same call every `sceneEventRetryDelay` until `sceneEventRetryTimeout`, the same treatment `WorldStreamer` gives chunk loads.
+- **One load per interior, whoever asked.** `pendingInteriorLoads` coalesces callbacks: a singularity swallows several bodies on one frame, and a second `LoadScene` for the same scene would open a second copy of it.
+- **A scene whose unload has been issued still reports `isLoaded`.** Entry must go through `IsInteriorUsable`, which excludes `unloadingInteriors` — an occupant placed in that window is destroyed with the scene. Entry during the window waits for the unload, then loads afresh.
+- **Anchors key on `scene.name`.** Two loaded scenes with the same name collide. Instanced interiors need a `Scene`-handle key first.
+- **Interiors load at world origin** and overlap whatever exterior chunk sits at (0,0,0). Harmless today, not by design.
+- **`player.scene != trigger.scene` is normal** — world streaming migrates players between chunk sub-scenes. Use `InteriorManager.IsInsideInterior`, never scene equality.
+- **Yo-yo guards are three separate mechanisms**: `InteriorManager.postExitEntranceLockout` (per player), `SceneTransition.postTransitionLockoutSeconds` (static, cross-transition, armed *before* `Apply` and again after), and `VolumeTrigger.reentryCooldown` (per volume+player, keyed by stable identity so it survives streaming).
+- **`TransitionId` is a FNV-1a hash of scene name + hierarchy path + sibling indices.** Two doors that hash equal log an error and one loses its remote effects — rename the GameObject. `string.GetHashCode` cannot be used (per-process seed).
+- **Statics survive play-mode exit** when domain reload is off. `SceneTransition`, `VolumeTrigger` and friends clear theirs from `RuntimeInitializeOnLoadMethod(SubsystemRegistration)`; new statics here must do the same.
+- `busy` clears as soon as the destination lands, not after the in-phase — a hanging fade must never dead-lock a door. A 20 s self-heal is the last line of defence, not the mechanism.
+- **`NavMeshAgent.Warp` fails silently** and `agent.isOnNavMesh` answers `true` exactly when it failed. Check the return value; `SaveTeleport` schedules a `DeferredNavMeshWarp` retry.
+- `SaveTeleport` treats a move under 0.1 mm / 0.01° as a **resync** and raises no `ITeleportAware` — netcode does several of those a second.
+- `InteriorAnchor.TeleportPlayer` predates `SaveTeleport` and does its own CC/Rigidbody dance; it does **not** raise `ITeleportAware`. Prefer `SaveTeleport.Move` for anything with world-space state.
+- `Bootstrapper.AfterSceneLoad` is `async void` — it swallows exceptions.
+- Live interior assets: `Interior_AlgeaCave` → `AlgeaCave.unity`, `Interior_SandstoneCave` → `SandstoneCaveInterior.unity`, `Interior_NomadHome` → `NomadHome.unity` (in [`Assets/Game/Resources/Interiors/`](Assets/Game/Resources/Interiors)). The Mars colony's buildings are walked into directly, inside their own hulls, with no interior scene ([ColonyInterior.md](ColonyInterior.md)).
+- **`NomadHome` is the ONE interior every nomad dwelling's door opens** (2026-10-02). Prefab [`NomadDoor`](Assets/Game/Prefabs/Environment/Structures/NomadSettlement/Door/NomadDoor.prefab) = `SettlementEntrance` (so a building listing it as a child gets a main door, and `Dwelling.Door` finds it) + `SceneTransition` (`Destination_EnterNomadHome`, fade) + `InteractableTrigger`; its `Leaf` BoxCollider is what the look ray hits. It is exterior scenery with no `NetworkObject`. Drop it into a building prefab as a child, **+Z pointing away from the building**; it is true scale (door 2.3 x 3.5 m), so a building root that Unity scales 2-5x scales the door too: compensate on the door's own scale. **Placed (2026-10-02):** all 14 `Dwelling` buildings (`NomadBuilding_B04/07/10/11/16/17/18/19/20/22/24/29/31/35`) carry a `Door_Main` instance in the old `Entrance_M` slot, so it is the first `SettlementEntrance` (the resident threshold, the street path end). Each is scaled non-uniformly to the building's own frame (x = frame width / 3.24, y = frame height / 4.41, z = the smaller), 0.1 m proud of the frame plane, found by raycasting the building's `Collision` mesh along the old entrance's forward; the marker had been ~0.4 m in front of the frame, except B18 whose door is 2.8 m back, 1.2 m up a stair. Every one targets the same `NomadHome`. The `Entrance_A*` alternates stay as plain markers. The door's `Sill` is the walkable step in front; the leaf only blocks the doorway itself. Inside, `Exit_Door` (`Destination_ExitRuin`, which is just the generic `ExitInteriorDestination`, and `Effect_FadeToBlack_Ruin`, both reused) is a BoxCollider just inside the closed leaf. **The scene root sits at (-6000, 0, -6000), off every `WorldStreamingConfig` grid, on purpose.** Anywhere over the streamed grid has terrain above or below it, and `UnderTerrainGuard` (on the player) lifts a body that is under the heightmap unless a built floor is within 1.7 m: standing is exempt, but a jump or a fall off the loft is not, so the player would be teleported out into the open world. Off the grid `TerrainProbe` finds no terrain and the guard does nothing (`WorldFloorY` / `absoluteFloorY` are -500, so stay above that). Everything is on the `Interior` layer; the room's lights cull to `Interior`+`Default` (the player body is on `Default`, not `Player`) and the daylight is a bounded **spot** through the oculus, not a directional light, which would light the outdoors for everyone while the scene is loaded. NavMesh is baked into the scene's `NavMeshSurface` (`NomadHome/NavMesh-NomadHome.asset`, physics colliders on `Interior`): it is patchy by design, the room is cluttered. **The loft is only partly walkable for the 3 m player** (bed, wardrobe and stargazer leave under 1.5 m beside the rail). Verified offline with a stand-in walker: enter via the prefab door lands on the `entrance` anchor, `Exit_Door` returns it. **Residents call in while a player is inside** (2026-10-03; [HouseVisits.md](HouseVisits.md)): `HouseRoom` + `HouseVisits` on the scene root, `Door_Stand` just inside the leaf, three `Seat`s round the hearth (`Seat_Clay_North`, `Seat_Clay_South`, `Seat_Pillow_East`) each with a `SettlementSpot` 1 m out. **The interior is baked 1.25x** (the player felt too big): the FBX carries the size, so the scene's anchor, `Exit_Door` box and lights are scaled by the same factor, and the NavMesh was rebaked (2026-10-03). **Not verified:** a client, a save made inside and reloaded, residents inside across a save.
+- **`Interior_SingularityVoid` is the one interior with no door.** It is entered by being eaten (see [BottledSingularity](BottledSingularity.md)) and left when the well lets go, so every way that well can stop existing strands its occupant — `SingularityVoidGuard` measures "in the void with no singularity holding you" and puts a player back. Anything else that builds a doorless interior needs its own version of that guard, or it is a permanent trap. `InteriorTestBootstrap` is off (`autoInstallEnabled = false`).
+- Open: a **late joiner is not placed into an interior others are inside**; items dropped in an interior are lost when the last occupant leaves unless the object is save-wired.
+- Open: a **non-player occupant has no visit record in a save**. A mount that carried its rider into a cave is dehydrated with the interior scene like any other object in it, so it comes back inside — but with no `ReturnInfo`, so it cannot walk back out until somebody re-enters on it. Give a mount prefab an `InteriorVisitSaveable` (the component is not player-specific) if that matters. A rider saved mid-visit reloads **inside the interior on foot**: the visit is theirs via the carrier, the seat is not.
+
+## Extending
+
+1. **New interior:** build the scene under `Assets/Game/Scenes/Interiors/`, add an `InteriorAnchor` (`anchorId = "entrance"`), bake NavMesh, **add the scene to Build Settings and enable it**, then `Create → Scene Management → Interior Scene` in `Assets/Game/Resources/Interiors/`.
+2. **New door:** GameObject + `SceneTransition` + `InteractableTrigger` (E-press) and/or `VolumeTrigger` (walk-in, needs `isTrigger`); assign an `InteriorSceneDestination` and effects on distinct `TransitionChannel`s.
+3. **New exit:** same, inside the interior scene, with an `ExitInteriorDestination`.
+4. **New destination:** subclass `SceneDestination` in `Destinations/`; implement `IsValid()` and `Apply()`; `Apply` must yield until the initiator is actually placed **and** time out loudly rather than deadlock.
+5. **New effect:** subclass `SceneTransitionEffect` in `Effects/`; pick a channel; return an `EffectHandle`; run it on a DDOL host (`LetterboxOverlay`, `TransitionRunner`) because the door's scene may unload. Override `AwaitOutPhase` only if the effect must block the load.
+6. **New teleport-aware system:** implement `SpaceGame.Teleporting.ITeleportAware` and rebase every world-space field with `move.Point` / `move.Direction` / `move.Rotation`. Do not move the object again inside the handler.
+7. **New way to teleport:** call `NetworkedTeleport.Move` (networked bodies) or `SaveTeleport.Move`. Never assign `transform.position` — `Physics.autoSyncTransforms` is off and the body snaps home.

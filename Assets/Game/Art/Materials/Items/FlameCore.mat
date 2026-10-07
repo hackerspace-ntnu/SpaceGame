@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: FlameCore
+  m_Shader: {fileID: 4800000, guid: 5930b78f993314013a5398546209d2ba, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Belly: 0.72
+    - _Brightness: 4.2
+    - _Cool: 0.55
+    - _CoreEnd: 0.72
+    - _Curl: 1.9
+    - _Cut: 0.26
+    - _Detail: 0.9
+    - _EdgeEnd: 0.2
+    - _Fill: 2.6
+    - _Halo: 0.1
+    - _MidEnd: 0.46
+    - _NoiseScale: 14
+    - _NoiseSpeed: 1.6
+    - _Root: 0.55
+    - _Softness: 0.07
+    - _Stretch: 0.35
+    - _Sway: 0.45
+    - _Tip: 0.9
+    - _TipBite: 2.4
+    - _Warp: 1.15
+    - _Wither: 0.8
+    m_Colors:
+    - _CoreColor: {r: 1, g: 0.97, b: 0.85, a: 1}
+    - _EdgeColor: {r: 0.95, g: 0.33, b: 0.05, a: 1}
+    - _MidColor: {r: 1, g: 0.72, b: 0.2, a: 1}
+    - _SootColor: {r: 0.36, g: 0.09, b: 0.03, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

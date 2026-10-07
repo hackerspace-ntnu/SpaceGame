@@ -1,0 +1,276 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using UnityEditor;
+using UnityEngine;
+using SpaceGame.Items;
+
+namespace SpaceGame.EditorTools
+{
+    /// <summary>
+    /// Renders one inventory icon per <see cref="InventoryItem"/> from that item's own
+    /// <see cref="InventoryItem.itemPrefab"/>, and writes the result back into the asset's
+    /// <see cref="InventoryItem.icon"/> field.
+    ///
+    /// This exists beside <see cref="IconGenerator"/> rather than replacing it. That window is
+    /// the manual tool: you hand it one prefab and dial in pitch, yaw and zoom by eye. It is
+    /// still the right thing for a one-off. But because every icon was framed by hand, no two
+    /// in the set share a framing, and because nothing ties the rendered prefab back to the
+    /// asset, several items ended up pointing at another item's sprite entirely — the basic gun
+    /// wore the grappling hook's icon, the ball lightning weapon wore a grey sphere.
+    ///
+    /// So the rule here is that the prefab is never chosen by name, by folder, or by hand: it is
+    /// read from the asset being written to — <see cref="InventoryItem.iconPrefab"/> when the item
+    /// sets one (for items whose held form is not what the icon should show), otherwise
+    /// <see cref="InventoryItem.itemPrefab"/>. An item whose <c>itemPrefab</c> is null is skipped
+    /// and reported rather than guessed at.
+    /// </summary>
+    public static class BatchIconGenerator
+    {
+        private const string ItemsRoot = "Assets/Game/Resources/Items";
+        private const string SpriteDir = "Assets/Game/Art/Sprites/Items";
+        private const int Resolution = 256;
+
+        /// <summary>Neutral grey. Opaque, so icons read the same on any slot background.</summary>
+        private static readonly Color Background = new Color32(0x3A, 0x3A, 0x3A, 0xFF);
+
+        /// <summary>The house 3/4 view, shared with every other preview in the project.</summary>
+        private static readonly Vector2 DefaultAngle = PrefabPreviewRenderer.DefaultAngle;
+
+        /// <summary>
+        /// Per-asset (pitch, yaw) overrides.
+        ///
+        /// Two items sharing one model is the first reason: <c>basicgun</c> and
+        /// <c>BallLightningWeapon</c> are both <c>cixinGunFinal.fbx</c>, so rendering them from
+        /// the same angle would produce two identical icons. Shooting them from opposite sides
+        /// at least keeps them tellable apart in the hotbar. The real fix is a distinct model for
+        /// the ball lightning weapon.
+        ///
+        /// The second is an item whose only legible feature faces one way. The gauntlet item
+        /// scanner is a dark steel box whose one bright surface is its CRT, and that screen looks
+        /// out over the arm's little-finger flank — Unity <c>(0.959, 0, -0.285)</c>, measured in
+        /// <c>gauntlet_item_scanner_BUILD.md</c>. <see cref="DefaultAngle"/> looks ALONG +X, so it
+        /// catches the console's blank back and renders near-black on a near-black ground. Turned
+        /// to look back down −X instead, at the same 3/4 obliqueness the house angle uses, the
+        /// screen and the antenna both read. It only became the whole icon on 2026-09-04, when the
+        /// bracer stopped being part of the item and stopped carrying the silhouette.
+        /// </summary>
+        private static readonly Dictionary<string, Vector2> AngleOverrides =
+            new Dictionary<string, Vector2>
+            {
+                { "basicgun", new Vector2(18f, 125f) },
+                { "BallLightningWeapon", new Vector2(30f, 305f) },
+                { "ItemScanner", new Vector2(22f, 320f) },
+            };
+
+        [MenuItem("Tools/Generate Icon For Selected Item")]
+        private static void GenerateForSelection()
+        {
+            var item = Selection.activeObject as InventoryItem;
+            if (item == null)
+            {
+                Debug.LogWarning("Select an InventoryItem asset first.");
+                return;
+            }
+
+            Debug.Log(GenerateFor(item, out string note)
+                ? "Icon regenerated for " + item.name
+                  + (note.Length > 0 ? "   (" + note + ")" : "")
+                : "Could not regenerate " + item.name + " — " + note);
+        }
+
+        /// <summary>
+        /// Re-render one item's icon in place, with the same framing <see cref="GenerateAll"/>
+        /// uses.
+        ///
+        /// <para>
+        /// For the common case of a single model changing. <see cref="GenerateAll"/> rewrites
+        /// every PNG in the set, so a one-model change arrives as forty modified files and the
+        /// reviewer cannot see which one mattered. This writes over the sprite the item already
+        /// owns and touches nothing else — which is also why it only works for an item that has
+        /// one. An item with no icon yet has no path to write to and no claim on one; deciding
+        /// that is the batch pass's job, so this reports and declines.
+        /// </para>
+        /// </summary>
+        public static bool GenerateFor(InventoryItem item, out string note)
+        {
+            note = "";
+            if (item == null) { note = "no item"; return false; }
+            if (item.itemPrefab == null) { note = "itemPrefab is null"; return false; }
+            if (item.icon == null) { note = "no icon yet — run Generate All Item Icons"; return false; }
+
+            string target = AssetDatabase.GetAssetPath(item.icon);
+            Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a) ? a : DefaultAngle;
+            GameObject renderPrefab = item.iconPrefab != null ? item.iconPrefab : item.itemPrefab;
+
+            Texture2D tex = PrefabPreviewRenderer.Render(
+                renderPrefab, angle, Resolution, Background, out note);
+            if (tex == null) return false;
+
+            File.WriteAllBytes(target, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.Refresh();
+            ImportAsSprite(target);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        /// <summary>
+        /// Give an item that has no icon its first one: render it with the house framing into
+        /// <c>Sprites/Items/&lt;name&gt;.png</c> and bind the sprite.
+        ///
+        /// <para>
+        /// For a builder that has just made an item, which <see cref="GenerateFor"/> declines (no
+        /// icon to write over) and <see cref="GenerateAll"/> would answer by rewriting every other
+        /// item's PNG as well. An item that already has an icon is left alone.
+        /// </para>
+        /// </summary>
+        public static bool CreateFor(InventoryItem item, out string note)
+        {
+            note = "";
+            if (item == null) { note = "no item"; return false; }
+            if (item.icon != null) return true;
+            if (item.itemPrefab == null) { note = "itemPrefab is null"; return false; }
+
+            Directory.CreateDirectory(SpriteDir);
+            string target = Path.Combine(SpriteDir, item.name + ".png").Replace('\\', '/');
+            Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a) ? a : DefaultAngle;
+            GameObject renderPrefab = item.iconPrefab != null ? item.iconPrefab : item.itemPrefab;
+
+            Texture2D tex = PrefabPreviewRenderer.Render(renderPrefab, angle, Resolution, Background, out note);
+            if (tex == null) return false;
+
+            File.WriteAllBytes(target, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.Refresh();
+            ImportAsSprite(target);
+
+            item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(target);
+            EditorUtility.SetDirty(item);
+            return item.icon != null;
+        }
+
+        [MenuItem("Tools/Generate All Item Icons")]
+        public static void GenerateAll()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:InventoryItem", new[] { ItemsRoot });
+            var items = guids
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<InventoryItem>)
+                .Where(i => i != null)
+                .OrderBy(i => i.name)
+                .ToList();
+
+            Directory.CreateDirectory(SpriteDir);
+
+            // An icon file is only safe to overwrite in place when it belongs to exactly one
+            // item. Where two assets currently share a sprite, one of them is wrong — writing
+            // over it would corrupt whichever item it legitimately belonged to.
+            var iconUsers = new Dictionary<string, int>();
+            foreach (var item in items)
+            {
+                if (item.icon == null) continue;
+                string p = AssetDatabase.GetAssetPath(item.icon);
+                iconUsers.TryGetValue(p, out int n);
+                iconUsers[p] = n + 1;
+            }
+
+            var log = new StringBuilder();
+            var written = new List<string>();
+
+            try
+            {
+                for (int i = 0; i < items.Count; i++)
+                {
+                    InventoryItem item = items[i];
+                    EditorUtility.DisplayProgressBar("Generating item icons",
+                        item.name, (float)i / items.Count);
+
+                    if (item.itemPrefab == null)
+                    {
+                        log.Append("\nSKIP  " + item.name + " — itemPrefab is null");
+                        continue;
+                    }
+
+                    string current = item.icon != null
+                        ? AssetDatabase.GetAssetPath(item.icon) : null;
+                    bool ownsCurrent = current != null
+                        && iconUsers.TryGetValue(current, out int users) && users == 1;
+                    string target = ownsCurrent
+                        ? current
+                        : Path.Combine(SpriteDir, item.name + ".png").Replace('\\', '/');
+
+                    Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a)
+                        ? a : DefaultAngle;
+
+                    GameObject renderPrefab = item.iconPrefab != null
+                        ? item.iconPrefab : item.itemPrefab;
+
+                    Texture2D tex = PrefabPreviewRenderer.Render(
+                        renderPrefab, angle, Resolution, Background, out string note);
+                    if (tex == null)
+                    {
+                        log.Append("\nSKIP  " + item.name + " — " + note);
+                        continue;
+                    }
+
+                    File.WriteAllBytes(target, tex.EncodeToPNG());
+                    Object.DestroyImmediate(tex);
+                    written.Add(target);
+
+                    log.Append("\nOK    " + item.name.PadRight(22)
+                        + renderPrefab.name.PadRight(22)
+                        + "-> " + target.Substring(SpriteDir.Length + 1)
+                        + (note.Length > 0 ? "   (" + note + ")" : ""));
+                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+
+            AssetDatabase.Refresh();
+            foreach (string path in written) ImportAsSprite(path);
+
+            // Reassign only after import, so the Sprite sub-asset exists to bind to.
+            foreach (var item in items)
+            {
+                if (item.itemPrefab == null) continue;
+                string current = item.icon != null
+                    ? AssetDatabase.GetAssetPath(item.icon) : null;
+                bool ownsCurrent = current != null
+                    && iconUsers.TryGetValue(current, out int users) && users == 1;
+                string target = ownsCurrent
+                    ? current
+                    : Path.Combine(SpriteDir, item.name + ".png").Replace('\\', '/');
+                if (!written.Contains(target)) continue;
+
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(target);
+                if (sprite != null && item.icon != sprite)
+                {
+                    item.icon = sprite;
+                    EditorUtility.SetDirty(item);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log("Item icons regenerated:" + log);
+        }
+
+        private static void ImportAsSprite(string assetPath)
+        {
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+            var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (importer == null) return;
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = false;
+            importer.mipmapEnabled = false;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+        }
+    }
+}

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: Tool_Harpoon_Iron
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: 36e74def75f6c44fb9a8bb72c3060685
+  itemName: Iron Harpoon
+  itemPrefab: {fileID: 1700742283695869877, guid: f0e2433e6bc6c40f083261df9b26ad4c, type: 3}
+  icon: {fileID: 21300000, guid: 048ea1d999c3f4ef9b3dfa62def57d0c, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0
+  menacing: 0
+  curiosity: 0
+  showInDevBrowser: 0

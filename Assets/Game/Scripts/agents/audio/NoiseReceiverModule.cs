@@ -1,0 +1,234 @@
+// Hears noise events emitted by NoiseEmitters and reacts either by handing the instigator to
+// AgentTargeting or by moving toward the noise source. Drag onto any entity that should respond
+// to sound. Configure which NoiseTypes trigger investigation vs immediate aggro.
+using System;
+using UnityEngine;
+using UnityEngine.Events;
+
+namespace SpaceGame.Agents
+{
+    [Flags]
+    public enum NoiseTypeMask
+    {
+        None      = 0,
+        Footstep  = 1 << 0,
+        Alert     = 1 << 1,
+        Hurt      = 1 << 2,
+        Death     = 1 << 3,
+        Gunshot   = 1 << 4,
+        Explosion = 1 << 5,
+        Custom    = 1 << 6,
+        All       = ~0
+    }
+
+    public class NoiseReceiverModule : BehaviourModuleBase
+    {
+        [Header("Hearing")]
+        [Tooltip("Which noise types trigger investigation.")]
+        [SerializeField] private NoiseTypeMask investigateOn = NoiseTypeMask.Footstep | NoiseTypeMask.Gunshot | NoiseTypeMask.Explosion;
+        [Tooltip("Which noise types immediately hand the instigator to AgentTargeting as a target.")]
+        [SerializeField] private NoiseTypeMask aggroOn = NoiseTypeMask.Alert | NoiseTypeMask.Hurt;
+
+        [Header("Investigation")]
+        [SerializeField] private float investigateDuration = 5f;
+        [SerializeField] private float stopDistance = 0.5f;
+        [SerializeField] private float speedMultiplier = 1.1f;
+
+        [Header("Events")]
+        public UnityEvent<Vector3> OnHearNoise;
+
+        /// <summary>
+        /// Every noise this receiver hears — type, origin, instigator — whatever its masks say.
+        /// Raised where noise is processed, which is the server: <see cref="Noise"/> is emitted on
+        /// the machine that decided the sound happened. For code that reacts in its own way (a
+        /// settlement resident waking to a racket) without being an investigate or aggro type.
+        /// </summary>
+        public event Action<NoiseType, Vector3, Transform> Heard;
+
+        private AgentTargeting targeting;
+
+        private bool isInvestigating;
+        private Vector3 investigatePosition;
+        private float investigateTimer;
+
+        // Set by RestoreInvestigation, consumed by the next OnEnable.
+        private bool restoredInvestigation;
+
+        /// <summary>
+        /// Replaces which noises are investigated and which make the instigator a target. For an owner
+        /// that answers the rest itself — a settlement resident, whose routine must not be walked off.
+        /// </summary>
+        public void ReactTo(NoiseTypeMask investigate, NoiseTypeMask aggro)
+        {
+            investigateOn = investigate;
+            aggroOn = aggro;
+        }
+
+        // ── Persisted state ───────────────────────────────────────────────────────
+        public bool IsInvestigating => isInvestigating;
+        public Vector3 InvestigatePosition => investigatePosition;
+        public float InvestigateTimer => investigateTimer;
+
+        private void Reset() => SetPriorityDefault(ModulePriority.Reactive - 2); // 18 — below Chase, above Search
+
+        private void OnEnable()
+        {
+            // Self-registration is what makes this hearable. Noise.Emit walks the registry
+            // rather than the physics scene, so a receiver that never registers is deaf no
+            // matter where it stands or what layer it is on.
+            Noise.Register(this);
+
+            // The guard walking toward a gunshot has to still be walking toward it after a reload.
+            if (restoredInvestigation)
+            {
+                restoredInvestigation = false;
+                return;
+            }
+
+            isInvestigating = false;
+            investigateTimer = 0f;
+        }
+
+        private void OnDisable()
+        {
+            Noise.Unregister(this);
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// The aggro branch of <see cref="OnNoiseHeard"/> needs nothing here: it hands the instigator
+        /// to <c>AgentTargeting</c> and clears the investigation, and <c>AgentStateSaveable</c> owns
+        /// the target.
+        /// </summary>
+        public void RestoreInvestigation(bool investigating, Vector3 position, float timer)
+        {
+            investigateTimer = Mathf.Max(0f, timer);
+
+            // An expired investigation is not one — restoring it costs a frame of walking and then
+            // gives up, which reads as a twitch.
+            isInvestigating = investigating && investigateTimer > 0f;
+            investigatePosition = position;
+            restoredInvestigation = true;
+        }
+
+        // Resolved lazily: noises can arrive before AgentController has run its own resolve.
+        private AgentTargeting Targeting =>
+            targeting != null ? targeting : targeting = AgentTargeting.GetOrAdd(gameObject);
+
+        // A Hurt noise carries the ATTACKER as its instigator, and the attacker is whoever the
+        // faction table says it is. Without this check a Clanker hearing a nomad scream would turn
+        // on whoever shot the nomad — including another Clanker — and an ally that hurt this agent
+        // by accident would be targeted through the noise path even though the faction path never
+        // acquires an ally.
+        private bool IsAlly(Transform other)
+        {
+            EntityFaction self = GetComponent<EntityFaction>();
+            if (self == null) return false;
+            EntityFaction theirs = other.GetComponentInParent<EntityFaction>();
+            return theirs != null && self.IsAlliedWith(theirs);
+        }
+
+        // Called by NoiseEmitter when this receiver is within range.
+        public void OnNoiseHeard(NoiseType type, Vector3 origin, float radius, Transform instigator)
+        {
+            NoiseTypeMask typeMask = TypeToMask(type);
+
+            OnHearNoise?.Invoke(origin);
+            Heard?.Invoke(type, origin, instigator);
+
+            // Never aggro onto yourself. AgentTargeting.ForceTarget has no self-check of its own,
+            // and a creature handed its own transform chases a target it can never lose and melees
+            // a target it can never miss — it beats itself to death with no attacker anywhere.
+            bool aggro = (aggroOn & typeMask) != 0 && instigator
+                         && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                         && !IsAlly(instigator);
+
+            if (aggro)
+            {
+                // The same split AlertReceiverModule makes, for the same reason: an agent already
+                // Hostile toward the instigator takes the noise as the order to attack it was
+                // before the meter existed, and one that is Neutral toward them weighs it instead.
+                // Without a meter at all — a plain robot — the old bare ForceTarget stands.
+                bool alreadyHostile = TryGetComponent(out EntityFaction self)
+                                      && self.IsHostileTo(instigator);
+
+                if (TryGetComponent(out ProvocationModule provocation) && !alreadyHostile)
+                    provocation.AddAggression(AggressionInput.AllyHurt, 1f, instigator);
+                else
+                    Targeting.ForceTarget(instigator);
+
+                isInvestigating = false;
+                return;
+            }
+
+            // A gunshot heard by an agent with a meter winds it up — and, if Gunshot is an
+            // investigate type, sends it to look as well. Deliberately outside that gate: the walk
+            // to the source is what the player sees, the meter is why the seventh shot near a camp
+            // is different from the first, and an agent that does not walk toward shots (a
+            // settlement resident) still has to count them.
+            if (type == NoiseType.Gunshot && instigator && !IsAlly(instigator)
+                && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform)
+                && TryGetComponent(out ProvocationModule heard))
+            {
+                heard.AddAggression(AggressionInput.Gunshot, 1f, instigator);
+            }
+
+            if ((investigateOn & typeMask) != 0)
+            {
+                investigatePosition = origin;
+                investigateTimer = investigateDuration;
+                isInvestigating = true;
+            }
+        }
+
+        public override string ModuleDescription =>
+            "Hears noise events from nearby NoiseEmitters and reacts based on noise type.\n\n" +
+            "• investigateOn — noise types that trigger moving to the source (footsteps, gunshots)\n" +
+            "• aggroOn — noise types that immediately target the instigator (alerts, hurt sounds)\n" +
+            "• investigateDuration — how long to investigate a noise source before giving up\n" +
+            "• NoiseEmitters in the scene emit the events.\n" +
+            "• OnHearNoise — UnityEvent fired on any heard noise, regardless of type mask";
+
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime)
+        {
+            // Don't investigate if the agent already has something to fight.
+            if (context.Targeting != null && context.Targeting.HasTarget)
+            {
+                isInvestigating = false;
+                return null;
+            }
+
+            if (!isInvestigating)
+                return null;
+
+            investigateTimer -= deltaTime;
+            if (investigateTimer <= 0f)
+            {
+                isInvestigating = false;
+                return null;
+            }
+
+            return MoveIntent.MoveTo(investigatePosition, stopDistance, speedMultiplier);
+        }
+
+        private static NoiseTypeMask TypeToMask(NoiseType type) => type switch
+        {
+            NoiseType.Footstep  => NoiseTypeMask.Footstep,
+            NoiseType.Alert     => NoiseTypeMask.Alert,
+            NoiseType.Hurt      => NoiseTypeMask.Hurt,
+            NoiseType.Death     => NoiseTypeMask.Death,
+            NoiseType.Gunshot   => NoiseTypeMask.Gunshot,
+            NoiseType.Explosion => NoiseTypeMask.Explosion,
+            NoiseType.Custom    => NoiseTypeMask.Custom,
+            _                   => NoiseTypeMask.None
+        };
+
+        protected override void OnValidate()
+        {
+            investigateDuration = Mathf.Max(0.1f, investigateDuration);
+            stopDistance = Mathf.Max(0.01f, stopDistance);
+            speedMultiplier = Mathf.Max(0.01f, speedMultiplier);
+        }
+    }
+}

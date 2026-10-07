@@ -1,0 +1,219 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39bf313ec092248f3803ae25e6ddcb56, type: 3}
+  m_Name: WetGrotto
+  m_EditorClassIdentifier: Assembly-CSharp::CaveProfile
+  description: Damp earthen grotto with shallow pools, moss, and fleshy pulsing nodules
+    near water.
+  shape:
+    seed: 2002
+    halfExtents: {x: 60, y: 30, z: 60}
+    voxelSize: 1.25
+    boundsPadding: 2
+    roomCount: 14
+    roomRadius: {x: 3.5, y: 9}
+    bigRoomChance: 0.25
+    maxCorridorLength: 22
+    minConnectionsPerRoom: 2
+    extraConnectionRatio: 0.25
+    corridorRadius: {x: 1.4, y: 3}
+    wideCorridorChance: 0.3
+    verticalRange: 18
+    verticalWalkBias: 0.55
+    perRoomVerticalJitter: 4
+    maxCorridorSlope: 0.6
+    noiseType: 0
+    noiseAmplitude: 1.6
+    noiseFrequency: 0.09
+    domainWarpStrength: 2.5
+    smoothUnionRadius: 1.8
+    enableCathedralChambers: 0
+    cathedralCeilingLift: 10
+    enableSlotCanyons: 0
+    slotCanyonChance: 0.3
+    slotCanyonHeightStretch: 2.5
+    enableVerticalShafts: 0
+    verticalShaftChance: 0.25
+    verticalShaftMinDrop: 8
+    verticalShaftRadius: 2.5
+    flattenFloors: 1
+    floorFlattenDepth: 1.5
+    floorFlattenStrength: 0.65
+    floorSlopeAmount: 0.18
+    floorRoughness: 0.55
+    floorRoughnessFrequency: 0.35
+    floorClampY: -16
+    use32BitIndices: 1
+    flatShade: 0
+    recalculateTangents: 0
+    smoothingIterations: 3
+    smoothingStrength: 0.5
+    smoothingPreserveVolume: 1
+    useGradientNormals: 1
+    gradientEpsilon: 0.625
+    bakeNavMeshOnGenerate: 1
+  decoration:
+    enabled: 1
+    floorCeilingThreshold: 0.7
+    globalInstanceCap: 1500
+    rules:
+    - name: Stalagmites
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 7f75c57a1369442b2a49eb80d2bfbf4b, type: 3}
+      - {fileID: 919132149155446097, guid: 76b73fbc731f44357bcd45dc13cbfbd5, type: 3}
+      fallbackColor: {r: 0.45, g: 0.4, b: 0.35, a: 1}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 1}
+      fallbackPrimitive: 2
+      surfaceType: 1
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 0.6
+      liquidProximityBoost: 0
+      densityPerSqM: 0.012
+      minSpacing: 2.2
+      maxInstances: 0
+      densityNoiseScale: 0.05
+      densityNoiseContrast: 0.6
+      scaleRange: {x: 0.6, y: 1.6}
+      normalAlignment: 0.8
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 1001
+    - name: Stalactites
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 72a7185d7c2d14924a192e339f256dc5, type: 3}
+      - {fileID: 919132149155446097, guid: 185d9e7a1223e486b8225643a7e654d9, type: 3}
+      fallbackColor: {r: 0.4, g: 0.35, b: 0.3, a: 1}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 1}
+      fallbackPrimitive: 2
+      surfaceType: 2
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 0.7
+      liquidProximityBoost: 0
+      densityPerSqM: 0.01
+      minSpacing: 1.8
+      maxInstances: 0
+      densityNoiseScale: 0.05
+      densityNoiseContrast: 0.6
+      scaleRange: {x: 0.4, y: 1.2}
+      normalAlignment: 0.95
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 1002
+    - name: Boulders
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: dae687604988c45319af0adacf8cb16d, type: 3}
+      - {fileID: 919132149155446097, guid: e6d87a807fb80407e9ee67da080f8232, type: 3}
+      - {fileID: 919132149155446097, guid: 40a370f42e00c4356be996ce6c428c05, type: 3}
+      - {fileID: 919132149155446097, guid: f634fb906c3444d3594467e5428cf215, type: 3}
+      fallbackColor: {r: 0.35, g: 0.33, b: 0.3, a: 1}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 1}
+      fallbackPrimitive: 0
+      surfaceType: 1
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 0.5
+      liquidProximityBoost: 0
+      densityPerSqM: 0.008
+      minSpacing: 3
+      maxInstances: 0
+      densityNoiseScale: 0.04
+      densityNoiseContrast: 0.5
+      scaleRange: {x: 0.5, y: 1.8}
+      normalAlignment: 0.2
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 1003
+    - name: AlienMoss
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 6c5c9dbbe09e5461cbd68f89207af599, type: 3}
+      fallbackColor: {r: 0.25, g: 0.45, b: 0.3, a: 1}
+      fallbackEmission: {r: 0.030000001, g: 0.09, b: 0.045, a: 0.3}
+      fallbackPrimitive: 0
+      surfaceType: 0
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 1
+      liquidProximityBoost: 8
+      densityPerSqM: 0.06
+      minSpacing: 0.6
+      maxInstances: 0
+      densityNoiseScale: 0.06
+      densityNoiseContrast: 0.4
+      scaleRange: {x: 0.15, y: 0.4}
+      normalAlignment: 0.4
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 2005
+    - name: PulsingNodules
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: debdf0c9e710e496abd7caec683b1415, type: 3}
+      fallbackColor: {r: 0.5, g: 0.1, b: 0.3, a: 1}
+      fallbackEmission: {r: 1, g: 0.2, b: 0.4, a: 1}
+      fallbackPrimitive: 0
+      surfaceType: 0
+      allowedRoomKinds: 
+      minWorldY: -1000000
+      maxWorldY: 1000000
+      maxSurfaceTilt: 1
+      liquidProximityBoost: 6
+      densityPerSqM: 0.02
+      minSpacing: 0.9
+      maxInstances: 0
+      densityNoiseScale: 0.09
+      densityNoiseContrast: 0.6
+      scaleRange: {x: 0.2, y: 0.6}
+      normalAlignment: 0.6
+      yawRange: {x: 0, y: 360}
+      surfaceEmbed: -0.05
+      attachedLightRange: 0
+      attachedLightIntensity: 1
+      seedSalt: 2004
+  liquid:
+    enabled: 1
+    fillFraction: 0.2
+    minPoolVolume: 4
+    maxPoolCount: 8
+    liquidMaterial: {fileID: 0}
+    liquidTag: Untagged
+    spawnTriggerVolume: 1
+    triggerDepth: 2.5
+  material:
+    primaryMaterial: {fileID: 0}
+    chamberMaterial: {fileID: 0}
+    clusterLightCount: 18
+    clusterLightColor: {r: 0.55, g: 0.85, b: 0.7, a: 1}
+    clusterLightIntensity: 1
+    clusterLightRange: 5
+    clusterLightMaxNormalY: 0.7
+    overrideFog: 1
+    fogColor: {r: 0.08, g: 0.12, b: 0.1, a: 1}
+    fogDensity: 0.04
+    caveLayer: Interior

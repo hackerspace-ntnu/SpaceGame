@@ -1,0 +1,299 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5688946959485001370
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4088990703443905507}
+  - component: {fileID: 3970678620155996125}
+  - component: {fileID: 2253580214262016603}
+  - component: {fileID: 3309634948838369564}
+  - component: {fileID: 1892988454937043171}
+  - component: {fileID: -7324569408806818162}
+  - component: {fileID: -4258697430553932521}
+  m_Layer: 0
+  m_Name: HoloProjector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4088990703443905507
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1025763897798628519}
+  - {fileID: 1563925180588665729}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &3970678620155996125
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.2
+  m_Height: 0.95
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.45, z: 0}
+--- !u!114 &2253580214262016603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77b0f783117524e86a88023381402ca7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.MapHologramTerrain
+  config: {fileID: 11400000, guid: 303234dac994845669b13bb8047213be, type: 2}
+  toggleActionName: 
+  startVisible: 0
+  projectorAnchor: {fileID: 1563925180588665729}
+  helmetAnchor: {fileID: 1563925180588665729}
+  helmetHeightFallback: 1.7
+  distance: 0
+  sideOffset: 0
+  height: 0.4
+  yawTowardPlayer: 0
+  leanTowardPlayer: 0
+  footprint: 0.9
+  verticalExaggeration: 0.6
+  viewRadius: 3
+  centerOnPlayer: 1
+  hologramTint: {r: 0.45, g: 0.95, b: 1, a: 1}
+  valleyTint: {r: 0.1, g: 0.45, b: 0.65, a: 1}
+  peakTint: {r: 0.85, g: 1, b: 1, a: 1}
+  intensity: 0.7
+  contourSpacing: 20
+  contourThickness: 0.08
+  gridSpacing: 32
+  gridStrength: 0.4
+  fresnelPower: 2.5
+  fresnelStrength: 1.6
+  showBeam: 1
+  beamRadiusFraction: 0.449
+  beamOriginOffset: 0.02
+  sunrayCount: 86
+  sunrayBaseWidth: 0.3
+  sunraySpinSpeed: 6
+  sunrayApexAlpha: 0.14
+  sunrayBaseAlpha: 0
+  sunrayEdgeSharpness: 7.02
+  sunrayShimmer: 0.333
+  sunrayShimmerSpeed: 0.6
+  hologramLayerName: Hologram
+  disableGlassDistortionWhileOpen: 0
+  playerMarkerSize: 0.025
+  markerSize: 0.018
+  markerLift: 0.04
+  markerSpikeHeight: 0.06
+  markerSpikeWidth: 0.005
+  playerIntensity: 1.75
+  markerIntensity: 1.25
+  showOnlyRevealedMarkers: 1
+  revealAllChunks: 1
+  showMarkerLabels: 1
+  markerLabelFontSize: 8
+  markerLabelHeight: 2.5
+  markerLabelColor: {r: 0.85, g: 1, b: 1, a: 1}
+  enableHiddenMarkerFog: 1
+  hiddenFogColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  hiddenFogIntensity: 1.6
+  hiddenFogTintRadius: 350
+  hiddenFogTintFalloff: 200
+  hiddenFogPositionJitter: 80
+  spawnRiseTime: 0.35
+  wobbleAmplitudeDeg: 0.8
+  wobbleSpeed: 0.4
+  enableFogOfWar: 1
+  discoveryRadius: 700
+  discoveryFalloff: 280
+  discoveryPointSpacing: 120
+  maxDiscoveryPoints: 256
+  fogColor: {r: 0.2, g: 0.4, b: 0.55, a: 1}
+  fogIntensity: 0.6
+  fogNoiseScale: 0.015
+  fogNoiseSpeed: 0.08
+  fogSlopeDim: 0.85
+  fogViewDim: 0.6
+  mapRadius: 3000
+  mapEdgeFalloff: 500
+--- !u!114 &3309634948838369564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 003e477fd12514500b2da38473e7c546, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.HoloProjectorInteraction
+  hologram: {fileID: 2253580214262016603}
+--- !u!114 &1892988454937043171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14874500d820f46469e2ef241a8f03a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.ProjectorSaveable
+--- !u!114 &-7324569408806818162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 963feb7d7050c4c87be87456aa520da9
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-4258697430553932521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5688946959485001370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!1 &7616031811287229424
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1563925180588665729}
+  m_Layer: 0
+  m_Name: ProjectorAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1563925180588665729
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7616031811287229424}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.871, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4088990703443905507}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &699895956065776460
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4088990703443905507}
+    m_Modifications:
+    - target: {fileID: -9030226284518856438, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+--- !u!4 &1025763897798628519 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 033e4f0dc542843ff9d7c2b3523ca3a4, type: 3}
+  m_PrefabInstance: {fileID: 699895956065776460}
+  m_PrefabAsset: {fileID: 0}

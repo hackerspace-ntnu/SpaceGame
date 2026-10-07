@@ -1,0 +1,660 @@
+# Every system, briefly
+
+The ten chapters explain the game by theme. This page goes the other way: one short entry for
+every part of the codebase, so you can look up a name you heard in a meeting or a commit message
+and find out what it is in a few sentences.
+
+Each entry ends with **Worth knowing** — the one thing about that system most worth carrying
+around. Often that is a constraint, sometimes it is something that is currently broken. Those are
+honest, and deliberately so.
+
+The italic name in each heading is the technical document that covers it in full, in
+[../AI/systems/](../AI/systems/). Those are written for AI agents rather than people: exact,
+dense, and kept current with the code. Come here first, go there when you need the detail.
+
+## Core — the parts everything else stands on
+
+### Startup and the shared plumbing *(CoreServices)*
+
+This is the glue: the order the game boots in, the handful of shared lookup tables everything else asks questions of, the player's keyboard and controller bindings, and the options menu values stored on the local machine. Pressing Play in any scene quietly bounces you through a tiny boot scene first, which loads the item catalogue, the audio system and the networking object, then sends you on to where you meant to go. Input is attached to each player's own body rather than being global, so it can be switched off cleanly during death, menus and cutscenes.
+
+**Worth knowing:** editing the input bindings asset does nothing on its own — a generated copy of those bindings is what actually runs, so a rebind that was never reimported silently does not exist.
+
+### Playing together over the network *(Multiplayer)*
+
+All networking runs through one small message channel instead of a bespoke sync class per feature: a feature sends a message, the server decides, and everyone else is told the result. Single-player is really a host with one player in it, so every networking rule applies even when you are alone and there is no separate offline code path to rot. Sessions, joining, player identity, chat and the catch-up snapshot a late joiner receives all live here.
+
+**Worth knowing:** if a runtime-spawned thing is missing from the network prefab list, the host works perfectly and every client sees nothing — so testing on the host alone proves nothing.
+
+### Saving and loading *(Persistence)*
+
+Each world is one text file, assembled from small per-component payloads captured on the server. Everything saved is keyed by the object's own identity rather than the scene it happens to be in, because the world moves objects between map tiles as you walk around. Objects placed by hand save only what changed about them; objects created during play save a recipe that recreates them.
+
+**Worth knowing:** this system fails silently — nothing throws, the state is just gone — so a feature is only proven saved once you have quit, reloaded, and seen the value in the file.
+
+### Project-wide settings *(ProjectConfig)*
+
+The engine-level dials: engine and package versions, the physics settings, the named layers objects sit on, and the version-control rules that keep Unity's binary files intact. Gravity here is -18, nearly twice Earth, so anything copied in from a tutorial falls about twice as fast as its author intended. Notably the physics layers are only labels: every layer collides with every other layer, and every "do not hit that" rule is written into the individual query instead.
+
+**Worth knowing:** the `Player` layer is declared but nothing is on it, so at least two pieces of code that try to exclude the player exclude nothing at all.
+
+### The scene map *(Scenes)*
+
+74 scenes exist, 67 of them ship in the build. One small boot scene is first, the main menu is second, and one root gameplay scene holds the managers; everything else in game — map tiles, cave interiors — is layered additively on top of it. Scene names are looked up through small named assets rather than typed as raw text, so the menu and the lobby cannot drift apart.
+
+**Worth knowing:** five personal test scenes are in the build list and ship as content today.
+
+### Tests and checks *(Testing)*
+
+Roughly 1,800 automated checks, all of them running in the editor without ever entering play mode, plus a script that type-checks the code headlessly and a two-process test that actually runs a host and a client against each other. Because none of it plays the game, anything needing real frames, physics or navigation is checked by hand or by that two-process run. A useful category here is "wiring" checks that open a prefab and assert its parts are actually connected — catching the case where the code is right and the asset is not.
+
+**Worth knowing:** whole areas have zero tests — all of terrain and settlement generation, conventional weapons, audio, cutscenes, and most of the HUD.
+
+### When something breaks mid-game *(Diagnostics)*
+
+When one feature goes wrong at runtime, that feature stops and everyone keeps playing. A part that fails repeatedly switches itself off and says so in chat, naming what stopped, rather than taking the session down with it; `/faults` lists what has gone wrong and can write the lot to a file to attach to a bug report. Separately, the game watches itself for the states that leave a player stranded — frozen behind a cursor with no menu on screen, unable to move with nothing holding the controls, sitting on a mount that no longer exists, staring at a black screen — and hands the session back a few seconds later, always logging an error, because the repair means a real bug happened somewhere else.
+
+**Worth knowing:** this is only for parts that can fail independently. Anything the machines must agree on — damage, ownership, spawning — refuses outright instead of half-happening, because a session where two players disagree never recovers.
+
+## The world
+
+### Loading the world in tiles *(WorldStreaming)*
+
+The main world is 4000 by 3000 metres cut into 48 tiles of 500 metres square, and only the tiles near a player are loaded. Players, and anything else marked as an anchor, pull tiles in around themselves plus a second batch ahead of where they are heading; tiles leave after a ten-second grace period. Only the server does any of this, and it also moves creatures and vehicles into whichever tile they are currently standing on, telling everyone else about the move.
+
+**Worth knowing:** twelve of the 48 tiles are deliberately empty padding with no ground at all, and anything positioned outside the grid gets clamped to the nearest edge tile — which is why a place 16 km away can read as the corner of the world.
+
+### Generated landmarks, caves and settlements *(TerrainGeneration)*
+
+Several generators that all run while designers work, never during play: mesa and cliff formations grown from a footprint you drag out, and caves grown from a seeded room-and-corridor graph. Each is a pure function of one seed number, so the same seed always gives the same result, and the output is baked to a mesh asset that the game simply loads. Nothing about the base ground shape is generated — that is authored and sliced into tiles by hand. One settlement generator rings buildings, patrols and vehicles around a core structure from a recipe of prefabs and counts; it built the one Clanker robot settlement in the world today. A second, general-purpose settlement generator grows a tight cluster of buildings from a simple prefab-and-count list wherever you place it — each building a set number of metres from its neighbour, with a size dial that doubles it or adds a random half again — then fills it with decorations and people standing anywhere walkable, reshaping the ground under and around them so buildings sit flat without leaving an obvious flattened circle — its layout comes from where you put it in the world, so the same list of buildings can be dropped in many places and always look a little different.
+
+**Worth knowing:** only two landmark types survive, mesas and cliffs; a dozen others were deleted, and because scenes store the type as a number, those numbers must never be renumbered or reused.
+
+### Planned towns on terraces *(SettlementStreets)*
+
+The second way the general-purpose settlement generator can lay a town out. Instead of growing a loose cluster, it grows streets the way city generators do — a main street out of the centre, side streets branching off it, alleys off those — and lines both sides of every street with buildings facing it, the biggest ones on the main street near the middle. Every such town is built round a square, its town centre: its larger buildings ring an open plaza facing its centre, and two to four lanes leave the square between them with the rest of the houses along them. The middle of town is packed tight, with a second row of houses tucked behind the street-front ones and reached through narrow passages; the edges are looser, and every street ends at its last house. The ground is cut into flat terraces a man's half-height apart, with concrete retaining walls topped by a paved edge between them, and wherever a street climbs from one terrace to the next there is a flight of stairs. Streets and door paths are simple concrete slabs with gaps between them.
+
+**Worth knowing:** on steep ground this means a lot of wall — a big hillside town can run to thousands of wall blocks — because every 1.5 m of height is a terrace.
+
+### Clay roads, stone paths and long stairs *(SettlementTerraceKit)*
+
+A second set of pieces for the same planned towns, in the nomads' clay. Streets get one of three surfaces by how important they are: only the heart of the main street becomes a kerbed flagstone road (with a large round paved node at its crossings and a frayed end where it stops), the next most important stretches get plain concrete slabs, and everything else — the outskirts, every alley and the paths to front doors — is loose stepping stones in the sand. A small town gets no road at all. Stone paths simply climb with the hill; where a road or slab street climbs, it can take several terraces in one long flight of stairs with landings, framed at the top by two lantern pillars. Walls between buildings are stacked from stone courses instead of stretched, with pillars at the bends.
+
+**Worth knowing:** nothing in this kit is ever stretched, so the style's step height and stair lengths must match the models exactly — a test checks them.
+
+### Outposts *(Outposts)*
+
+A hand-built camp — tents, scaffold walkways, bell towers, a fire ring, a drill rig — that a handful of people live at. Eleven of them were built in Blender out of the same decoration pieces the settlements use, so each one arrives with the seats, work posts and ladders those pieces carry. To put one in the world you drop an Outpost component on an empty object, give it an outpost prefab and the character prefabs that live there, and press Generate: the ground is levelled, the people move in, and they sit at the fire, climb the towers and carry things between the stacks like any settlement's residents.
+
+**Worth knowing:** an outpost has no beds, so exactly the characters you list move in, and they sleep where they stand; and rebuilding the prefabs from the Blender layout wipes any hand edits made to them.
+
+### The broken satellite tower *(SatelliteDish)*
+
+A rusted radar station you place by hand: a concrete base with a control room behind a steel door, stairs up to a deck and a shack, a caged ladder to the catwalk round the dish's pedestal, and a 30-metre dish with a panel torn out of it that a grappling hook can catch on. In the control room a lectern takes over the dish: right-click it and the view cuts to a camera looking at the dish, and the movement keys swing it round and tilt it up and down on a slow, heavy motor while a readout shows where it points.
+
+**Worth knowing:** everyone sees the same dish — the server turns it, one person at a time may drive it, and where it was left pointing is saved with the world. It will not tilt below 15 degrees, because lower than that its hanging beams would hit the shack roof.
+
+### Where characters can walk *(NavMeshSystem)*
+
+One single walkable-surface map is baked for the entire world at author time and simply switched on when the game starts — nothing is calculated at runtime. All 48 tiles are opened at once to bake it, which means editing any one tile invalidates the whole thing and there is no per-tile shortcut. Caves are excluded and carry their own separate bake.
+
+**Worth knowing:** there are no jump or gap links anywhere in the project, so characters cannot cross a gap by navigation; every leap you see is hand-simulated movement, not pathing.
+
+### Weather, fog and sky *(Environment)*
+
+Sandstorms, volumetric fog, clouds and the day/night sun. Almost nothing is sent over the network: a storm is a roughly 30-byte record written once when it is born, and every machine works out where it is and how hard it blows from a shared clock. One shape function decides both what the storm looks like on screen and who takes damage from it, so the picture and the gameplay cannot disagree.
+
+**Worth knowing:** installing a new screen effect is not just adding it to a list — the render pipeline keeps a second parallel list, and an effect added to only one of them sits in the asset and never runs.
+
+### Tuning how the game looks *(LookLab)*
+
+The game's colours come from a fixed palette — every pixel on screen snaps to the nearest of
+204 colours, which is what gives the flat, poster-like look. Deciding what those 204 colours
+should be used to mean editing code and waiting minutes to see the result, one place in the
+world at a time.
+
+The Look Lab is a mixing desk for that decision. It is a window inside the editor: move a
+slider and the game repaints on the same frame, whether or not it is running. One button
+flips back to the palette the game currently ships with, because the eye is far better at
+spotting a change than at comparing two things side by side.
+
+It used to be a web page driven by a small server, so that screenshots taken around the world
+could be repainted side by side. That was three moving parts in service of a worse picture
+than the game itself already draws, and it is gone.
+
+It is a workshop, not a wardrobe. You can try as many looks as you like in it, but the game
+still ships with exactly one, written into the code — which is what keeps the palette from
+quietly drifting into a dozen half-finished variants.
+
+### The Mars colony: airlocks, stairs and interiors *(ColonyInterior)*
+
+The Mars colony's buildings are hollow now, and you walk straight into them: no loading, no fade. Climb the stairs and right-click the round hull door: the chamber vents in a blast of mist under a spinning amber beacon, and the door swings open. Step in, shut it behind you, right-click the inner hatch, and the chamber fills with haze as it pressurises before the inner hatch slides apart. If you forget the door behind you, the inner hatch tells you to close it first. Inside, modules, domed hubs and the tubes between them are one connected station, with windows you can look out of and a geodesic dome you can see the sky through. You can breathe in there, and every room is furnished from one library of colony props: bunks sized for a suited 3 m crew, lockers, a galley, hydroponics, research desks, rock analysis benches, workbenches, shelving and crates along the walls, the real EVA suits hanging on their stands, an oxygen filler that already has power, a map projector and, in the domed buildings, a gear wall. The large colony has a rover bay: the real rover parked on a lift under the dome, with its tool wall, wheel rack and diagnostic cart round it. Gear lies only on the gear walls and the small wall boards, and only batteries and oxygen tanks: take them and they stay taken, even after a reload.
+
+**Worth knowing:** the server decides every hatch, so every player sees the same ones — but only in a colony that stands in a generated settlement; one placed by hand runs a separate airlock on each machine. A hatch someone left open on the far side is sealed for you when you cannot reach it, never on someone standing in it, and nothing about the airlocks is saved: after a load every hatch is shut; and research and crafting are scenery for now — the game has no mechanic behind the desks and benches yet (the colonists do sleep in the bunks: see the next entry).
+
+### Doorways, interiors and teleporting *(SceneTransitions)*
+
+Cave and building interiors load alongside the outdoor world rather than replacing it, so stepping back outside is instant and everything you left out there is still alive. A doorway is assembled from three interchangeable pieces — what triggers it, where it sends you, and what the screen does while it happens — so a new kind of door is one new file. Every instant move in the whole game funnels through a single teleport function that also tells legged rigs, riders and pathing agents to rebase their world-space state.
+
+**Worth knowing:** a late-joining player is not placed into an interior other players are already inside, and items dropped in an interior are lost when the last occupant leaves unless they were explicitly set up to save.
+
+### Portals *(Portals)*
+
+Sprayable pairs of openings you walk through, treated as doors rather than windows: the surface is a stylised swirl, not a live view of the other side, so nothing has to line up visually. A portal is not a networked object at all — its placement travels as a message and each machine builds its own copy, which is why they work offline, on a host and on a peer alike. The opening's shape is paint, up to 24 blobs merged together, and the shader and the physics read the exact same shape, so a lobe you can see is a lobe you can walk through.
+
+**Worth knowing:** trigger volumes never worked here — the collider is on a child object, so Unity never delivered the messages — and the crossing is instead swept by hand once per frame; reintroducing triggers would break it again.
+
+## Characters and creatures
+
+### The colony's people and rovers *(ColonyResidents)*
+
+Fourteen astronauts live in the colony, and you can watch them do it. An engineer tends life support, a chef works the galley, a botanist waters the hydroponics, a geologist carries cores between the drill site and the lab, a rover tech works on rover parts in the bay or out on a service pad, a medic keeps the med bay, and a surveyor walks out to read the land; guards walk the perimeter in pairs, and the rest of the crew wander the corridors and sit on the stools in the evening. At night they go to bed in the bunks, lying down where you can see them (the top bunk only when nobody is looking). They go in and out through the real airlocks: a colonist waits at the outer hatch, it vents and opens, the colonist walks in, the hatch shuts, the chamber fills, the inner hatch slides apart. Several who arrive together cross on one cycle. Three rovers drive slow loops round the colony, over the same ground every time, and they are in the same place on every player's screen with nothing sent between them.
+
+**Worth knowing:** a colonist whose turn at an airlock never comes, and whom nobody can see, hops across instead of waiting forever; while anyone watches, it keeps waiting. The colonists work with empty hands for now (the astronaut's hands are bigger than the tools were made for), the exterior stations reuse existing props (no new art), about one place in eight is still unusable (the window benches and a table nook that furniture walls in), and none of this has been run on a client or through a save and reload yet.
+
+### The astronaut you play *(PlayerCharacter)*
+
+The suited figure the player drives: walking, sprinting, crouching, jumping, first-person looking, the arms that hold whatever is in your hands, suit colour and dying. Every machine in a session carries a copy of every player's body — your own is switched on, everyone else's is switched off apart from the parts other people need to see, like stance and the aiming arms. The body is 3 m tall, the eyes sit about 2.45 m above the soles, and the view is first person only; the third-person cameras belong to mounts, ragdolls and spectating.
+
+**Worth knowing:** anything hung on the camera — a torch, an attached prop — is invisible to every other player, because the whole camera is switched off on remote copies.
+
+### Climbing ladders *(Ladders)*
+
+Walk into a ladder, or press Jump beside it, and you climb it: forward or Jump held goes up, back goes down, and letting go of everything makes you slide slowly down rather than fall. At the top you step off onto the floor behind it on your own; from the top, walking off into the gap the ladder leaves catches you on the ladder to climb down. A hard sideways push lets go. There is no climbing animation yet.
+
+**Worth knowing:** the player is 3 m tall, so their head reaches the floor at the top of a ladder a whole body height before their feet do — the climb steps you over that lip rather than stopping you under it.
+
+### Climbing ledges *(LedgeClimbing)*
+
+Press Space in front of something too tall to jump onto and you climb it — up onto the top if there is room to stand there, over it if it is only a fence or a thin wall. It reaches about a jump plus an arm's length, roughly four and a half metres. The grappling hook finishes the same way: reel yourself to a hook near an edge and you hang just under it until you press Space to pull yourself up. Hold Space while jumping or falling past an edge and you catch it on the way. There are no climbing animations yet, so the climb runs on a fixed timer until they are made.
+
+**Worth knowing:** a double tap of Space always opens the wings, even if its first tap had started a climb — the climb is cancelled.
+
+### Creatures, NPCs and turrets *(AgentSystem)*
+
+Every creature, villager, enemy and gun emplacement is a body plus a stack of small behaviour parts that bid for control each frame; the highest-priority part that wants to act wins and the rest are ignored. Three decisions have exactly one owner each — who to fight, where to go, how to move — and where the body points is a separate second channel layered on top after the winner is picked. Wandering, patrolling, fleeing, chasing, keeping distance, taking cover, herding, formations, melee and ranged attacks are all separate parts you mix per creature. Caravans of NPCs exist as lightweight records travelling in a straight line and only become real bodies when a player gets close.
+
+**Worth knowing:** a creature with no faction is invisible to every targeting system with no error at all, and a species is peaceful precisely by having *zero* relationship rows — adding one "for completeness" makes the whole faction attack on sight.
+
+### The people who live in a settlement *(Residents)*
+
+A settlement is one component and one Generate button: it lays out the buildings, puts one villager in every bed the houses have (plus any one-of-a-kind characters, such as a quest giver, who always appear), and gives each a name, a trade, a home and a family. Everything a villager can do comes with the buildings themselves — the market stand brings a place behind its counter and places for customers, the hearth brings seats round the fire, a sail tent brings shade to sit in — so a new building or decoration brings new things to do without touching the settlement. The villagers live a day: they wake, walk to their work (the forge, the stall, the kitchen, the pen, the garden or the watch) and hold it, take staggered breaks so a post is never left empty, spend their free time on seats, in the shade and at the stalls — preferring wherever a friend already is — gather at the hearth in the evening and go home to bed, and a few leave in the morning to hunt or scout and come back before dusk. Each person's whole day is worked out in advance from the settlement's layout and the date, so loading a save, joining late or skipping the clock forward simply asks "where should they be now". How a villager treats you comes from two dials — how bold they are and how prickly — plus what they remember: whether they know you, and whether you hurt them or their family recently. What they say is picked from a spreadsheet of lines by matching the situation, and everyone nearby sees it as a speech bubble.
+
+**Worth knowing:** a punch or a shot is a fight on the spot, and the people nearby join it — the bold ones and anyone close to whoever you hurt — while the timid hurry home and stay out of it. Bumping into someone is what warns first: shove a villager and you get a warning, then a last warning, then a fight, and how many shoves that takes depends on their temper. Word of what you did gets round the settlement by itself — see the next entry.
+
+### Seats *(Seats)*
+
+Sitting used to be a trick: a villager was lifted to whatever height was under its spot. Now a seat is a real object — a clay drum, a rope-ringed cushion, a wooden chair — placed on every spot where somebody sits. A villager walks to its spot, takes a free seat there and sits on it facing the way the seat faces; if there is no seat it simply stays standing. You sit the same way: right-click a free seat, and jump or right-click again to get up. One person per seat, and a seat that is moved lets go of whoever sits on it.
+
+**Worth knowing:** nothing about who is sitting where is saved. After a load the villagers walk back to their spots and sit down again, and you stand wherever you were.
+
+### Carts you can push *(Pushables)*
+
+A cart used to be a prop glued to a pair of hands, held up over the head with its wheels in the air. Now it is a real object standing on the ground: walk up, right-click, and your hands close on its handlebar; the cart comes round in front of you, wheels on the sand, and follows wherever you walk, turning when you turn. Shafts lift as your hands do. Let go (right-click again, jump, or draw something) and it stays where it stands. A villager whose job calls for a cart does the same.
+
+**Worth knowing:** nothing is sent while a cart moves, because it simply follows the body that pushes it; only where it was left is remembered, for everyone and in the save. Carts do not yet bump into walls, and no settlement has a cart beside the drover's post yet, so the drover still works empty-handed.
+
+### Lifting something heavy by one end *(Lifting)*
+
+The oxygen plant the crash throws out of the ship is too heavy to pick up, so you lift one end of it. Right-click its handle and your character squats, takes hold and heaves the near end up to the waist; the far end stays on the sand and slides after you, swinging round when you turn and riding up ramps and over bumps. You walk a little slower than usual, cannot sprint or jump, and Esc or right-click puts it down again where you stand; carry it to the empty frame on the ship's wall and right-click there to set it back in its mount.
+
+**Worth knowing:** the lifted end is drawn from your own body on your own screen, so it never lags your hands; everyone else sees it follow your character. Only one person can carry it at a time, and a world saved mid-carry reloads with the plant lying where you were carrying it.
+
+### Work stations: the right motion at the right prop *(Stations)*
+
+A villager at work used to pick a motion out of a grab-bag: a cook might swing a pickaxe, a weaver might chop vegetables, and a farmer's hoe stopped a metre short of the bed. Now every kind of work has its own word (stirring, grilling, chopping, wiping, weaving, mining, ploughing, hammering), the prop decides which one a villager does there (the pot stirs, the grill grills, the bread oven works a pan), and the motion is only ever one that was made for that job. The villager takes the tool the motion is made for out of its bag, or puts its tool away for work done with bare hands, and stands where the tool actually reaches the bed, the ore or the stove, measured from the animation itself. Where no motion exists for a prop yet (animals, the shrine, the kiln, the drying racks, a smith's grindstone) the villager just stands there instead of miming something unrelated; the list of those, prop by prop, is in the station table.
+
+**Worth knowing:** a station that looks wrong is almost always data, not code: the cue a prop holds, the loops behind the cue, or the tool its clips need. Nothing here is saved or sent between machines: every machine works out the same station from the same scenery.
+
+### The station table *(StationTable)*
+
+A table, written automatically from the game's data, lists every kind of workplace and place to sit: what props carry it, which motion the villager does there, which tool that motion needs, who works there and what they carry, and whether it is fine, has no motion yet (the villager stands) or has a fault. Next to it sit the honest notes (which motions are only the nearest available) and the measured reach of every work motion. A test fails if the table is out of date.
+
+### Callers in the houses *(HouseVisits)*
+
+Every house door opens into the same round room, and it used to be a still room you were always alone in. Now, while you are inside, the village drops in: a resident with nothing to do is let in by the door, takes one of the seats round the hearth, sits and talks with whoever is already there, and leaves again after a few minutes — some people are already settled when you walk in. They are the same villagers you meet outside (people who live in that house first, then their friends and family, then anyone), so after they leave they walk on to wherever their day was taking them.
+
+Violence follows you in: anyone you hurt in the room stands up and fights it out there rather than being whisked outside, and villagers who were chasing you when you went through the door run in after you a few seconds later.
+
+**Worth knowing:** there are three seats, so at most three people sit at once, and at night everyone is asleep so the room stays empty — evening, when people are free, is when it is lively. Nothing about who was there is saved; the next time you walk in, a new set of callers comes.
+
+### Recording a settlement's day *(ResidentsBaseline)*
+
+A test you start from the editor that plays one whole day of the settlement on its own — no player input, the clock sped up — and writes down, for every villager and every part of their day, where they were meant to be, whether they got there, and what they did: errands run, things carried, conversations, and the gossip passed on at midnight. Running it before and after a change to the villagers shows whether the change kept their day the same.
+
+**Worth knowing:** it only means something when the settlement's walkable ground is up to date — over a stale one every villager spends the day on a break at their own door, and the record looks perfect because nobody goes anywhere.
+
+### Errands, wandering and the watch *(Errands)*
+
+On top of that day, villagers have errands. A gardener goes round the beds with a bucket, filling it at the well and watering each plant in turn; an apprentice carries ore from the pile to the smelter; a hauler carries goods between the stores and the stalls. People with nothing in particular to do wander the streets and drop in at the shops, and friends and relatives often walk in pairs, talking as they go. A settlement is also guarded: pairs of guards walk its perimeter a few metres outside the buildings, one pair the other way round from the next, and talk about keeping the peace as they walk, while a guard stands watch on each tower. Guards are quick to challenge anyone who goes armed or runs in their sight — a warning, then a last warning — but a single shove is never a fight.
+
+**Worth knowing:** none of this needs the settlement to be rebuilt by hand — a chore is just two kinds of place and a thing to carry, so a new decoration that offers one (a well, a plant bed, an ore pile) puts people to work the moment the settlement lists it. A guard on a tower is put up there, and taken down again, only while nobody is looking, because no one can walk up a ladder but you.
+
+### What a settlement says about you *(ResidentReputation)*
+
+Everything you do to a villager — or for one — becomes news. The person it happened to and anyone who saw it know at once, and they tell whoever is within earshot, who tell whoever is near them, so it walks across the settlement neighbour to neighbour. Each villager's opinion of you moves by what it was worth, and by how close they are to the person it happened to: the most for that person, then their family, their friends, their workmates, and a little for everyone else. Hit someone and the whole settlement likes you a little less and their family a lot less; step in when something is attacking a villager and they thank you, and the news warms everyone in the same way.
+
+**Worth knowing:** news only changes how people feel about you — the fighting spreads another way. A Raxy fighting you shouts for help every second, in a settlement or out in the dunes, and every Raxy and friendly character within earshot answers: the bold ones and the fighter's friends and family join in and start shouting too, the timid ones run home. Lost favor does not wear off with time — talking to people and doing them good is how you win it back.
+
+### Bands that leave the settlement *(Expeditions)*
+
+A settlement always has one band of its own people out in the world. In the morning the chosen few gather at the edge of town with spears in hand, stand together for a while, and walk out down the road; once they are far enough away the game swaps them for copies that carry their names and gear and roam the land for days — travelling, searching, stopping for the night — while their beds at home stay empty. Then they walk back in as the same people, minus anyone who died on the way, and the next band sets out. It keeps going while nobody is anywhere near the settlement.
+
+**Worth knowing:** who is out, where they are and who has died is remembered in the save, so a band you leave mid-trip is still mid-trip when you come back. So far there is only one kind of trip (scouting) and no farewell ceremony or campfire yet, and none of it has been tried in a real game.
+
+### The tribe that lives in the sky *(SkyTribe)*
+
+A second neutral tribe, living in a city that drifts slowly across the sky 280 metres up, on its own little NavMesh, with seven smaller ships keeping station round it and black smoke trailing from every engine. It sails a fixed loop and moors at each stop for a couple of minutes; while it is moving its people stand still where they are, and when it stops they walk the decks again. Its people are the sand nomads wearing a different colour, and it goes to war the same way Sand does — except its war parties do not walk out to find you. A skiff or a freighter lifts off from the city, flies to wherever you are, looks for ground flat enough to land on and touches down, or hovers a few metres up and drops its passengers onto the nearest walkable ground if it cannot. The party then fights on foot like any other, and the empty hull flies itself home once you are out of sight.
+
+**Worth knowing:** nobody flies these ships but the game itself — there is no seat, no camera, no controls — and you can shoot one down out of the sky; its passengers just drop straight to the ground below wherever they were when it died.
+
+The sky people also fly on their own. Each wears a folded wing pack on their back — the same aircraft you can fly. Now and then one steps off the moored city and flies down to the desert, and a pair of scouts hops from place to place by air, landing and walking the last stretch. They shoot from the cradle while they fly. Now and then a patrol of three to five passes overhead in a V, flying a long loop over the desert and never landing; and while the city is moored, a few of its people go up and circle it before landing back on the deck. When the tribe goes to war, fliers escort its airship and come down beside it where it drops its warriors. Shoot a flier down and its body and its pack fall to the ground together, and the pack is yours to fly — someone killed on foot keeps theirs on, unless they came with a war party's escort. A flight in progress is not saved: after a reload the flier is gone, or back on its feet, and a patrol simply appears in the air again.
+
+### The tribe that lives on walking machines *(Striders)*
+
+A third neutral tribe of masked, long-coated wanderers, whose home is a city that walks: two six-legged houses with a crew of six on each deck, three tracked dune barges with four lookouts on each roof, two digging crawlers, two crab riders scouting alongside, and a column of one-wheeled monowheels — some ridden two-up with a gunner riding pillion — a pair of which are always off sweeping wide of the city and riding back in, all marching together from one salvage site to the next. One to three elders ride with it — old Striders whose bodies now walk on four robot legs — each standing on the front of a house's deck. At every stop the crew and the elders climb down one by one and work the ground while the crawlers spread out and dig; when the stay is over they are called back, and the city does not move off until the last of them is back aboard. Its war parties are convoys of those same monowheels, who dismount to fight on foot like every rider does.
+
+**Worth knowing:** the houses are the player's own walking rig with the helm taken out — you can climb onto a deck and ride along, but nobody can steer a Strider house except the city itself; the barges are the same — you can walk aboard and go inside, but only the city drives them — and in this first version the machines cannot be destroyed.
+
+### Standing still when nobody is near *(SimulationDistance)*
+
+People and animals that no player is near simply stop: they stand where they were, still visible, until someone comes within about 250 metres, and they only settle again once everyone is beyond roughly 360. This keeps tribes, Clanker towns and wildlife from fighting each other where nobody can see. Machines and travelling groups never stop, so the sky city still drifts in the distance, and anything hunting a player keeps coming.
+
+**Worth knowing:** a shot from far away wakes its target for half a minute, so a sniped creature fights back or flees instead of standing there as a dummy.
+
+### Picking a creature up off the ground *(CarriedAgent)*
+
+Animals and people who walk the world walk on an invisible navigation surface, and until now that surface held them down absolutely: a rope could drag a creature along the sand but could never lift it, so a pilot with a jetpack and a leash hauled a dune rat about at ground level while paying the full cost of carrying it. A roped creature pulled steeply enough now comes off that surface and hangs from the rope, falls under its own weight when the rope lets go, and puts itself back down wherever it lands.
+
+**Worth knowing:** it stays awake the whole time. Being carried is not the same as being caught — a hoisted animal is upright and still angry, and lands on its feet ready to carry on, which is what keeps it different from a net or a tie.
+
+### What makes something a thing in the world *(EntitySystem)*
+
+There is no single entity class and no central entity manager. Something becomes a proper world object by making three independent claims: that it is part of the changeable world worth saving, that it follows the player between the streamed chunks of the map, and that AI can see it. Four authoring presets exist for stamping the standard creature, NPC, enemy or vehicle setup onto a prefab in one click; the preset deletes itself once applied.
+
+**Worth knowing:** death here means "switch the object off", not destroy — corpses stay registered and saveable, and code that read "still registered" as "still alive" once resurrected every dead creature on each reload.
+
+### Procedural walking *(Locomotion)*
+
+Legged creatures and walking machines do not play walk animations; their feet are placed on the actual ground by one shared walking engine, with four small swappable policies per machine — stride length, gait pattern, how the body rides and bobs, and foot shape. Shipped that way: ostrich, crab, horse, humanoid and the six-legged desert crawler vehicle. The walking clock advances by distance travelled rather than by time, which is why the feet can never skate.
+
+**Worth knowing:** you cannot move a walker by setting its position — it silently overwrites that next frame, so teleports, respawns, portals and save restores all have to go through the proper teleport path.
+
+### Health, damage and death *(Combat)*
+
+Everything that can hurt anything — guns, gadgets, creature claws, cacti, sandstorms — funnels through one damage pipeline that the server decides, so a hit is billed exactly once no matter how many players are watching. Every machine draws its own bullet, tracer, impact and sound; only the deciding copy actually applies damage. Death and ragdolls hang off the same health events, and ragdolls are built at runtime from the model's own skinning weights, so one implementation covers all ten rigs with no hand-authored joints anywhere.
+
+**Worth knowing:** damage multiplied by the number of players in the session is the classic symptom of a missing "this copy is cosmetic only" gate.
+
+## What you carry and touch
+
+### Hotbar and items *(Inventory)*
+
+Three hotbar slots, each holding an item definition; selecting a slot spawns a fresh copy of that item into the hand and unselecting destroys it, and re-selecting the slot you are already on empties your hands. One prefab is both the thing in your hand and the thing lying in the sand, so pickup and drop are a round trip through the same asset. Because the held copy is thrown away on every slot switch, whatever an item remembers is stored on the slot instead of on the object.
+
+**Worth knowing:** an item asset saved outside the items Resources folder is never registered — absent from the dev browser and every save slot holding it comes back empty, with no error anywhere.
+
+### Gear you wear *(BodyEquipment)*
+
+Some gadgets are worn, not held: two gauntlets on your forearms and one thing on your trunk. The left gauntlet fires on Q, the right on E, and the trunk item — the wing pack — deploys when you tap Space twice. Press I for the gear screen: the camera steps out in front of you and you see your own character, with a faint ghost of a blank device standing on each empty forearm and the three hand slots along the bottom. Pick something up and every place it can go lights up — a see-through copy of it sitting exactly where it will sit — then click there. Pick up something that goes on your **back** and the camera swings right round behind you, to the bar across your pack whose ends stick out past each side; the bar lights up, and that is what you clip the wing pack to. Some gear goes on your **chest** instead, and for that the camera stays where it is. You get one or the other, never both — the back and the chest are two places for the same single slot, so putting something on one takes whatever was on the other back off. Nothing pauses while you do it. A gauntlet can sit in the hotbar, but it does nothing until it is on an arm. **You are always wearing the bracers themselves.** Both forearms carry one from the moment you exist — an armoured shell with a flat hardpoint deck on the back of the arm — and a gauntlet is only the machine that clamps onto that deck. So an empty arm is not a bare sleeve, it is a mount with nothing on it, and every gadget you own is the size of a gadget rather than a whole forearm. Seven gadgets are gauntlets: the grappling hook, the sucker puncher, the leash, both scanners, the repulsor and the torch. They share a mount rather than a costume, so a stranger across a dune is recognisable by the device on their arm rather than by seven unrelated shapes.
+
+**Worth knowing:** Q and E also steer every mount, so gauntlets go quiet while you are riding; and moving an item through the body screen resets whatever it remembered, the same as the backpack does.
+
+### Gadgets you can use *(Artifacts)*
+
+Every gadget, spell, scanner, throwable and hand tool that occupies a hotbar slot and fires on the Use button. Each use splits in two: the part that changes the world runs on one machine only, while the part you see and hear runs everywhere, and on the user's own machine immediately so nothing waits for a round trip. Around twenty exist — lightning spell, dragon bazooka, gravel blaster, repulsor gauntlet, sucker puncher, laser staff, grappling hook, lasso, leash, net gun, rocket turret, item and ruin scanners, jumping rod, portal spray can, wing pack. Held gadgets that run continuously stream at 15 ticks a second while the button is down.
+
+**Worth knowing:** aim is captured once on the machine that actually has a camera and travels with the message — recompute it on the receiving end and every client's shot follows the host's crosshair instead of their own.
+
+### The backpack you lay gear on *(Backpack)*
+
+A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear. It lands **shut** — a box you set down and open, not a mat that unrolls itself: click the standing board, or press R, to lay it flat and get at your gear.
+
+**Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix. The ship's gear wall shares the whole placement layer, so it answers a click the same way.
+
+### Building with foam *(FoamGun)*
+
+Hold the trigger and the gun throws a thick, boiling jet of foam at whatever you are pointing at, thirty gobs a second. Each one lands wet, slides off whatever it landed on and runs downhill until the slope will hold it, then swells and welds into whatever is already there. So a sweep leaves a single lumpy mass rather than a row of balls, and holding the trigger on one spot piles up a spreading mound rather than a column — a ramp up a cliff, a plug in a hole, a bridge over a gap. It is loud, wide and hard to aim precisely, and it is meant to be: you are laying material, not placing blocks.
+
+Foam that lands on the ground stands for a minute. Foam that lands on a *person* holds them where they are for ten seconds. That difference is on purpose — a ramp should still be there when you have climbed back down, while being stuck should be a setback rather than a sentence.
+
+The foam keeps swelling for about three seconds after it lands, so a wall you sprayed is still visibly rising while you walk away from it. For those three seconds it is still soft — darker than the foam around it, and you fall straight through it. Spray the ramp ahead of you, not under your feet.
+
+**Worth knowing:** the cartridge under the barrel is the only thing that tells you how much you have left, and the jet cuts out while the trigger is still down when it runs dry. You can only have so much of your own foam standing at once; spray past that and the oldest of it dissolves behind you.
+
+### Throwing weather *(StormFlask)*
+
+Uncork the flask at a patch of ground and a storm gathers over it — a small, flat, rotating cloud about twenty-four metres across, hanging fifteen metres up, standing for half a minute. It rains underneath. Fires go out, the ground turns wet and a little slippery, and every couple of seconds the cloud throws a bolt of lightning at whatever is tallest beneath it.
+
+Tallest includes you. The storm has no idea who threw it, and that is the whole tension of the thing: standing next to your own weather on high ground is a way to be struck by it, and standing in a ditch while something towers over you is a way to make it useful.
+
+You can walk into it, and it is meant to be worth doing. The cloud and the rain are both real volumes rather than pictures painted on a surface, so the cloud boils and turns over as you watch it, and the rain has depth — curtains of it crossing in front of each other, gusts sweeping through, and the far side of the storm eleven metres away through the weather. When a bolt goes, it lights the cloud from the inside, from the place it actually left.
+
+**Worth knowing:** the cloud is drawn no wider than the circle the lightning can reach, so what you can see is what can hit you. There is a limit on how many storms can stand at once; uncork past it and the oldest one blows out.
+
+### The lander's burnt-out transmitter *(ShipTransmitterFire)*
+
+The ship lands with its long-range transmitter dead: a scorched box jammed in a cradle on the cabin wall, spitting sparks. The crash also burst the back door open and threw the oxygen plant out onto the sand, so there is no air in the cabin until the crew drag it back by its handle — slowly, scraping, faster with two — and give it a power cell. A little after the plant is running again, the dead transmitter catches fire. A fire extinguisher hangs in a bracket nearby: grab it and hold the trigger on the flames until they die. Only then does the unit come loose; pulled out, it drops on the floor, fizzles and is gone, and the working transmitter from the old satellite dish can go in its place. The ship cannot count as airworthy until it has.
+
+**Worth knowing:** the fire happens exactly once per world. Everyone sees the same fire, and a save remembers whether it is burning, how strongly, or that it has already been put out.
+
+### The signal the new transmitter hears *(ShipSignal)*
+
+The moment the working transmitter goes in, the ship picks up a voice: a looped call on the open band from someone out in the desert, telling whoever came down in the fireball to walk to them. The terminal grows a COMMS page that prints the call with a bearing and a distance, the map table marks the place, and a new objective, "Answer the signal", points the crew there with a light column on the horizon. The place is the nearest settlement that stays put and will not shoot at you: never the walking Strider city, the flying Sky City or the Clanker town, and never the settlement the wreck came down beside (anything within 300 m is skipped).
+
+**Worth knowing:** the destination is picked once per world, by the host, from where the ship actually landed, and then saved, so it never changes on reload and every player is sent to the same place. Today that is the Mars colony, about 390 m south-east of the crash site.
+
+### Burning the ground *(Flamethrower)*
+
+Hold the trigger and a jet of fire reaches about six metres. Anything caught in it starts burning on its own clock and keeps burning after the flame has moved on — and so does the sand. You do not have to aim down at the ground: anything the flame passes low over catches, so firing across open sand leaves a line of fire standing in it, lighting the ground for about five seconds, and anything that walks into it catches too. That is the point of the weapon: you are not shooting things, you are deciding where it is dangerous to stand.
+
+The fire is stylised rather than photoreal — hard bands of white, orange and soot, boiling and breaking into tongues at the far end — so it sits with the rest of the game's look instead of fighting it.
+
+Everything catches, and everything that catches visibly burns: creatures, other players, crates, barrels, anything loose enough to be knocked about wears its own flames until the fire goes out, sized to whatever it is. The ground itself is the exception — it does not become one burning object, it grows patches of fire standing on it.
+
+**Worth knowing:** the patches burn friend and foe alike, including you. The pilot flame at the muzzle is lit the whole time you are holding the thing, which is the only warning anything standing in front of you gets.
+
+### The strap-on booster *(StrapOnBooster)*
+
+A rack of five rockets, each about the size of a thermos, with a clamp on one end and a bell on the other. Point at anything and press use: one leaves your hand, clamps where you were looking, and lights. It burns for two seconds and then falls off, spent — and you keep the rest until the fifth is gone.
+
+It sticks to *anything* — a crate, a barrel, a parked hull, an animal, a wall, the sand. What it does after that is your problem, because nothing about the rocket chooses a direction: the thrust runs straight out of the bell, and the bell points out of whatever surface you stuck it to. One on the side of a crate slides the crate away from you. One underneath it flies it. One on a cliff face is a firework. The crosshair lights up when you are aiming at something the booster would actually move, so you can tell the two apart before you spend it — and it is only spent when it actually sticks, never on a press that clamped nothing.
+
+An off-centre clamp spins whatever it is stuck to rather than pushing it straight, which is most of the fun and all of the difficulty. It burns with the jetpack's flame, so a booster going off reads as the same kind of machine from a long way away.
+
+**Worth knowing:** it throws hard enough to put a person the better part of a hundred metres up, which is well past what the ground forgives. Arriving somewhere at speed costs whatever the booster was pushing, on the same closing-speed rule the glider and the jetpack use, and the bill lands on the thing that got launched — so riding one is a plan that needs a landing in it. Strapping one to a teammate is the best use of the item and also the worst.
+
+### The bottled singularity *(BottledSingularity)*
+
+A flask about the size of a fist, with a machined collar and a black core behind thick glass. Throw it. Where it lands the collar twists open and a white, half-see-through ball starts growing out of it, ringed like Saturn in a band of pure black. For three seconds everything loose inside it is dragged toward the middle — crates, barrels, animals, other players — hard at the centre and weakly at the rim.
+
+Then it gulps. The ball snaps out to twice its size, goes completely black, and falls in on itself over about a second, and everything it was holding *is gone*. Not knocked over, not ragdolled — gone. For five seconds there is nothing there but the little black core sitting in the sand.
+
+If you were one of the things it took, you are somewhere else. A room that is completely white — floor, walls, sky, all the same white with no edge between them and no horizon. You can walk around in it. There is nothing in it but whatever else got swallowed with you, and there is no way out.
+
+Then the white ball flashes back in the desert for an instant and throws the lot out at once, in every direction, hard — and you are back where you were standing, in the air, going somewhere.
+
+There are no exemptions. It does not know who threw it and it does not care.
+
+**Worth knowing:** a level throw only carries about seven metres and the reach is eight, so if you throw it flat, you are in it — lob it if you want to watch from outside. It cannot pull anything it cannot see, so a wall or a rock between you and it is real cover. And the white room is about six seconds long with nothing to do in it. That is the price of standing too close, and it is meant to be a strange six seconds.
+
+### Roping an animal *(Lasso)*
+
+Hold the button and a loop starts turning over your head, opening wider the longer you wind it — which is both how far the throw will reach and how big a mouth it will have when it gets there. While you are winding, a faint arc runs out from your hand to a ring on the ground showing exactly where the loop will land; let go and it flies that arc. Catch something and the loop cinches shut, the rope cracks tight, and the animal starts fighting you — pulling away, throwing its weight across the rope, taking line off you while it has the strength. Right-click reels line back in. Which end of the rope actually moves depends on which end is heavier: a small creature comes to you, a big one plants its feet and takes you with it. Give it slack and it gets its wind back; hold it hard and the rope wears through and parts. When you have walked it somewhere you want it, point at a post or a rock and click — the rope becomes an ordinary tied rope, and your lasso comes back to your hand.
+
+**Worth knowing:** the loop spinning over your head is what everyone *else* sees you doing, and it is deliberately not what you read the throw off — you are looking along the arc instead, because the loop is above your own eyeline.
+
+### Ropes tied between things *(LeashSystem)*
+
+One button ties a rope between any two things in the world: creature to post, player to crate, anything to a moving vehicle. The rope is a fixed-length limit rather than a spring, so below its length it does nothing at all, and each machine draws its own copy and only ever pulls the end it owns. Rope length is set once when you tie it, and it sags and lies over the ground it crosses.
+
+Getting a rope **off** you is an act, not a matter of walking away from it: you throw yourself from side to side, and about nine of those tears an ordinary rope — a dozen if the other end is bolted to the landscape, half that if it is something small and light. Simply holding a movement key does nothing at all, which is what lets somebody drag you across the desert for as long as they like if you do not fight, and what lets you tow a loaded hull behind a ship without your own rope parting under it.
+
+**Worth knowing:** the AI is never told it has been leashed — a roped creature keeps trying to walk where it was going, and that visible straining against the rope is the whole effect.
+
+### Cutting a rope *(RopeCutting)*
+
+A rope is not only broken by whoever is fighting it — anybody with the laser staff can cut it. Sweep the arc across a rope and it parts on contact: a tied rope, a lasso somebody has a creature on, or the cable a player is swinging from. There is no burning through and no holding it there; the beam either crossed the rope or it did not.
+
+That makes the staff the answer to being roped by somebody else, and it makes a swinging player something a bystander can drop out of the air. A rope behind cover is safe, because the cut only reaches as far as the beam does, and a throw still in the air cannot be swatted down — the loop has to have caught something first.
+
+**Worth knowing:** the cut is the rope's own break, not a separate outcome. A lasso that is cut cracks and lets the animal go exactly as it does when it wears through, so nothing about it needs to be learned twice.
+
+### Tying somebody up *(Hogtie)*
+
+The same leash also hogties, but only somebody who is **already on the ground** — netted, or knocked flat by a blast. You cannot tie a person who is standing, so a tie is always the second thing you do, never the first, and whoever you are tying got a chance to answer the first one. Once the rope is on they stay down for **two minutes**, and there are only two ways out early: fight it, which takes about forty-five seconds of throwing yourself about — four times longer than struggling out of a net, because a tie is meant to feel like being properly captured rather than briefly caught — or have somebody walk over and cut you loose, empty-handed, which is instant. Being netted and tied at once is exactly what it sounds like: whichever comes off first, the other still has you.
+
+**Worth knowing:** a tie is over the moment you die, and nothing about it survives quitting and reloading — you come back untied. That is on purpose: a saved game that put you back in the world unable to move, with nothing telling you why, would be a far worse thing to ship than a rope that quietly falls off. There is also no rope drawn round the body yet, so for now a tied person and a netted person look the same.
+
+### Looking at things and right-clicking *(InteractionSystem)*
+
+Doors, levers, ship consoles, seats and helms, pickups, cave exits and dialogue all work the same way: look at a collider, right-click (it was E until the right gauntlet took that key, then I until interact took right mouse outright). One ray picks the target, one resolver turns it into the label and prompt you read, and the thing itself owns whatever it takes to get its effect onto other machines. Prompts are on by default — anything interactable gets a readable name derived from what it is unless it is given a better one.
+
+**Worth knowing:** trading is fully written but completely unauthored — no trader profile asset exists and nothing in any prefab or scene references it, so barter has never actually run in the game.
+
+### Air, and running out of it *(Oxygen)*
+
+Your suit holds one minute of air. That is not the supply — it is the alarm. The real supply is the tank clipped into the socket on the back of your pack, which holds thirty minutes, and while it has anything left in it your suit stays full and the tank is what empties. When the tank runs dry the suit's minute starts, the visor says so, and when that minute is gone you begin to suffocate. Indoors — the lander, and anywhere else sealed — nothing drains at all and the suit tops itself back up for free.
+
+You can carry as many tanks as fit on the pack, but only the one in the socket is plugged into you: a tank in your hand or lying on the mat is luggage. Swapping means opening the pack and dragging a fresh one into the socket, which is exactly what the suit's last minute is for.
+
+The crash landing vents every bottle and leaves the crew on an emergency suit reserve of about four minutes ("O2 RESERVE"): bring the oxygen plant home, fill an empty bottle from the gear wall at its collar, press B and seat it in the pack's socket.
+
+**Worth knowing:** the tank is where the number lives, so two tanks on your mat can read 12% and 87% and you pick. There is no way to breathe a tank without the pack — set out without one and you have sixty seconds, full stop.
+
+### The oxygen plant *(Oxygen)*
+
+A wall-mounted machine on the lander's main deck with two receptacles that can only take one thing each: a rectangular slot for a slab battery, and a round collar above it that an oxygen tank plugs into base-first. Fit a battery and the machine's amber lamp and green readout come on; plug in a tank and it hisses while the tank's own gauge climbs, and you take it back fuller than you left it. Filling costs both time and power in proportion to how much you actually take, so topping up a nearly full tank is quick and nearly free. Either receptacle can be emptied again by right-clicking it, and both keep what is in them — and how full they are — across a save.
+
+**Worth knowing:** nothing recharges a battery yet. One is worth about twenty-five full tanks, and when the last one in the world is flat there is no more oxygen; a charger is the next thing this system needs. The two receptacles differ in *shape* before they differ in colour on purpose: a battery physically cannot enter the tank collar, so you can see which is which before any words appear, and the same is true for a player who cannot tell green from orange.
+
+### The ship's terminal *(Terminal)*
+
+A leaning, cream-cased CRT console standing on the starboard side of the cockpit. Right-click it and the camera glides from your eyes to a seat in front of the glass, the cursor comes free, and the screen shows one of its pages: the lander itself in 3D with its missing parts glowing red (see below), a status readout in words plus who is aboard and the ship's clock, a GPS page with the ship's position and heading and a radar of where the crew are standing, and, once the ship can hear the outside world, a COMMS page. Until a working long-range transmitter is fitted only the 3D drawing works: every other page is snow and "NO CARRIER", and there is no COMMS tab at all. Click the tabs or press 1 to 4 to flip pages; Esc, right-click again, or simply walking off puts the camera back in your head.
+
+**Worth knowing:** the page you pick is the page everyone sees — it is a real screen in the world, so a crewmate looking over your shoulder reads what you read — and while you are at it the terminal says "In use" to anyone else. Nothing it shows is stored anywhere; every line is read off systems that already save and replicate themselves. It stands at its author's own size rather than the 1.7x the other fixtures use, because its screen leans back to face an eye above it.
+### The ship's schematic *(ShipSchematic)*
+
+The terminal's first page: your own lander drawn as a green wireframe, turning slowly behind the glass — edges inked like a draughtsman's drawing, with the near side hiding the far one so you can tell which way round it is. Everything the ship is missing — its engines, its reactor cores, its turbines, its intake, its gun — glows red and pulses where it ought to be. Drag to turn the hull, roll the wheel to zoom, and hover a part to read its name, whether it is fitted, how many of that kind you have, and what the ship cannot do without it. Click a part to select it — it turns pale and stays that way while you read; click it again, or click empty space, to let it go, and clicking a different part simply moves the selection across. You do not have to hit it exactly: some of these parts are barely bigger than the cursor, so clicking near one picks it. The view never moves itself either, so a part you can see is a part you can click.
+
+**Worth knowing:** the little ship is cut from the same model as the real one, so it can never show you a lander that does not exist. What it says about missing parts is the same thing every other player sees, because it reads the ship's own state — but the turning and zooming are yours alone, and someone watching over your shoulder just sees the hull rotating gently.
+
+### How full a thing is *(SupplyCharge)*
+
+Oxygen tanks and batteries are not full-or-empty — each one carries its own percentage, and it follows that particular object everywhere: into your hand, onto the pack, into a machine, onto the ground if you drop it, and into the save file. Two tanks of the same kind are two separate things with two separate readings.
+
+**Worth knowing:** this is why the pack can hold two of something at all. Until this existed, a container identified everything it carried by *what kind of thing it was*, so it could never hold two of one kind — a limit nobody had noticed, because the only thing anyone wanted two of was an oxygen tank, and a full one and an empty one used to count as different kinds.
+
+### Reading a tank at a glance *(SupplyGauge)*
+
+Oxygen tanks and batteries wear their charge on the outside: a bar that fills along the little window on the front, green when full, through amber, to red when it is nearly out. You get the same reading wherever the object is — held, dropped in the sand, plugged into the oxygen plant while it fills, or lying on your pack — because all three are painted from the same place.
+
+**Worth knowing:** the *bar* is the reading and the colour is only a second opinion. Roughly one man in twelve cannot reliably tell the green from the red, so a gauge that changed only colour told them nothing at all — which is exactly what the old one did. It also means the battery finally has a real gauge: the five lit segments moulded into its case were always just decoration, and could never move.
+
+### The torch *(Flashlight)*
+
+Toggled with L, built in three layers: an ordinary short-range spot light of about 40 m that lights the world for everyone, a cheap shadowless long-throw glow reaching 120 m that only certain terrain and cave surfaces respond to, and a screen-space cone so you can see the beam hanging in the air. The split is what lets the near light be bright without blowing out a wall a metre in front of you. The beam's visible length comes from firing a handful of probe rays and taking the shortest hit.
+
+**Worth knowing:** the torch is a gauntlet you wear, not part of the suit. Take it off and you have no light at all — and because it is bolted to your forearm, it lights where your arm points rather than where you are looking, so switching it on brings that arm up into the body's ordinary carrying pose, and switching it off lets it drop. There can also only ever be one long-throw torch: that far-reaching layer is a single global slot owned by the local player's lamp, so other players' torches light the world with their ordinary spot light only.
+
+## Getting around
+
+### Riding and driving machines *(Vehicles)*
+
+Every machine you can operate works one of two ways. Either you *mount* it — you drop into a seat, the camera and controls become the vehicle's, and your body is held there but still shootable and ropeable — or you board a *station*, where you keep your own body and camera and walk a deck, claiming one control at a time. The catalogue spans a rideable ostrich, a piloted six-legged walker, a sand sailer with no seat at all, the flapping-wing craft, and two spacecraft.
+
+**Worth knowing:** Seats are addressed by their position number in the prefab, so reordering a vehicle's parts between builds quietly reassigns them — before that numbering existed, one press seated a player in all four of the lander's chairs at once.
+
+### The lander you crash in *(PlayerShip)*
+
+A 60-tonne walkable, drivable hover vehicle with four seats, which also flies the one-time crash landing that opens a world: the crew is seated in the air, everyone launches on the same frame, and the hull is walked down a fixed 26-second arc from 2200 m. Its side panels, boarding stair and sill platform all deploy from one switch, and taking the helm closes the lot. The only hand-authored part is the Blender interior; every collider, seat, socket and marker in the finished ship is generated from it by a script.
+
+**Worth knowing:** Anything you add to the ship by hand in the editor is destroyed, silently, the next time that generator runs — every fix has to go into the generator instead.
+
+### The flapping-wing glider *(Ornithopter)*
+
+A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; you fly it lying prone in a cradle. It has no throttle — speed is bought with altitude or with flapping, and flapping spends a stamina bar that only refills while gliding, so you get roughly six seconds of hard climb. Pulling back does not climb directly, it raises the wing's angle and the flight path curves up a moment later; push too far and it stalls, drops its nose, and recovers on its own.
+
+**Worth knowing:** Crash damage is measured on how fast you close on the surface, not how fast you were travelling — gliding onto sand at 20 m/s costs nothing and a scraped wingtip costs nothing, while a held dive into a cliff is instantly fatal.
+
+### NPCs flying ornithopters *(NpcFlight)*
+
+NPCs can fly the same ornithopter you do, but not the same way: their craft is a copy of yours with the hard flight model taken out, so it simply flies where it is told — climbs to a cruising height, heads for its goal, circles down if it arrives too high, and sets its pilot down within a few metres of where it was going. Nobody can climb into an NPC's craft and take it, and it is never saved: after a load the NPC is back, not its flight.
+
+**Worth knowing:** shoot the pilot and the body drops straight down while the empty craft spirals into the ground nearby.
+
+### The wingsuit *(Wingsuit)*
+
+A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about five metres forward for every metre down, pointing where you look — the mouse steers at exactly the sensitivity it turns your head on foot, so aiming the wing feels like aiming anything else, and the wing visibly rolls into the turn. A and D bank harder on top; Ctrl pulls your arms in and dives. Tap Space twice again to fold, and touching the ground folds it for you.
+
+It takes the same single slot as the wing pack and the jetpack, so you carry one of the three. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
+
+**Worth knowing:** It uses the ornithopter's crash rule, so flying it onto sand properly costs nothing while a held dive into a rock face is still fatal — the wingsuit is a way down, not a way out of falling.
+
+### The jetpack *(Jetpack)*
+
+Two motors on a bar across your back. Tap Space twice — standing on flat sand is fine, unlike the other two — and they light, kick you off the ground and fly your own body. There is one control and it is Space: hold it for full thrust, let go and the motors idle and you fall. Nothing catches you, so coming down is something you steer with short burns and landing is a burn you have to aim.
+
+**The motors swing, and they are what you are actually steering.** W, A, S and D do not push you; they tell the nozzles where to point, and the nozzles take about half a second to get there. Where you look changes how far over they swing — look down while holding W and you go flat and fast, look up and the same key climbs. Turning your body with the mouse swings the thrust with it. The result is that you fly arcs rather than corners: you have to set a turn up before you need it, and stopping is something you plan. That is the whole difficulty of the thing, and it is one rule rather than a list of them.
+
+**It runs on heat, not fuel.** Held at full thrust it overheats in six seconds. Falling is what cools it, at about a third of the rate the burn heats it — so a long flight is a rhythm of burning, dropping, and burning again, and a pilot who spends three seconds falling for every one climbing can stay up indefinitely. When it does overheat the motors cut dead and will not relight until it is most of the way cool, so overheating high up is a real fall. The nozzle tips glow red and smoke as it gets close, and because they are behind you there is a burn gauge on your visor as well — it empties toward danger, like the air and health bars beside it.
+
+**The view steps out behind you while you fly it**, because the machine is on your back — in first person every part of it, the swinging motors, the flames, the tips going red, is behind the camera. Each lit motor leaves a smoke trail, and once it starts overheating the trail thickens into something you can see from a long way off.
+
+**Worth knowing:** Height is the thing you are spending. Every metre you climb is a metre you fall back down, and the flames are lit only while you are actually holding Space — dark nozzles mean you are falling, whether you let go or the pack cut out on you. Landing is priced the same way the wingsuit and the ornithopter are, on how fast you close on the ground, so both an overheat and a careless drop pay for themselves.
+
+### The monowheels *(Monowheel)*
+
+The desert monowheels are tall iron rings with wooden paddles, which a rider sits inside (or two riders, on the double-wheeled ones). When one moves, its wheels turn with the ground they cover. The paddles fling sand, which hangs behind as a dust cloud for about five seconds, and smoke curls up out of each hub. It is all worked out from how the vehicle actually moves, so everyone in a multiplayer game sees the same thing without any extra network traffic.
+
+**Worth knowing:** The two-wheeled versions lean their wheels out at an angle, so each wheel's spin axis is measured from the model itself when the prefab is built, never assumed. A fixed axis made tilted wheels wobble.
+
+### Dust off the walking city *(VehicleDust)*
+
+Everything in the Strider city kicks up the same sand clouds the monowheels do. Each time a foot of a walking house, a digging crawler or a crab outrider comes down, a ring of dust bursts out from under it, sized to the foot, and hangs in the air for several seconds; the barges leave a wall of it behind their tracks. Every computer works this out from what it already sees the machines doing, so nothing extra is sent over the network.
+
+**Worth knowing:** A dust cloud counts as something drawn, so anything that measures a machine by everything it draws sees the cloud too: the first build sat the crab outrider's rider eleven metres up in the air.
+
+### Settlements seen from afar *(SettlementLods)*
+
+The walking city's machines and the sky fleet each carry a second, cheap version of themselves that the game draws once they are far away: every piece of the machine fused into one mesh per kind of paint, which then simplifies itself further as it recedes. Nobody models these by hand; a tool makes them every time a machine is rebuilt. Far away the moving parts freeze in place. The walking city can also be seen marching in its dust from the edge of the loaded ground, long before it is close enough to come to life; when you reach it, the real city takes over in the same places.
+
+**Worth knowing:** Smoke and dust are never part of the cheap version, so they keep running at every distance.
+
+### Tracks that turn *(TrackBelts)*
+
+The Strider barges' tracks work the way real ones do: each link travels round the loop and every wheel turns, at the speed that side of the barge is actually covering, so the links on the sand stay put while the barge rolls over them. A barge turning on the spot runs one track forward and the other back. Every computer works this out from how the barge is seen to move, so nothing extra is sent over the network, and nothing is saved.
+
+**Worth knowing:** Each track link in the model is its own piece, but all of them share one pivot at the middle of the barge, so a link is moved by working out where its own slot on the loop is, never by its position.
+
+### The dune barge *(DuneBarge)*
+
+The dune barge is a rusted tracked land-ship you can walk around on and go inside. You reach its fenders by ladders at the front of each track, and you get in through a round armoured hatch in each side. Interact with a hatch and the lid swings up, you crawl through on your own, and it shuts behind you. Inside there is a hold, a gun deck at the stern and a stair up through the neck into the cockpit, with heavy steel doors between them. From outside you only ever see the hull. The rooms inside are drawn only once you are in them, or peering in through a hatch.
+
+**Worth knowing:** The barge is its own place in the world rather than a separate interior you load into. That is because it is built to be driven: a room you teleport into would stay behind while the barge drove on.
+
+## What you see and hear
+
+### Screens, menus and the HUD *(UI)*
+
+Every menu page, overlay, hotbar, helmet display and floating world label is built in code at runtime — there is no UI art in the project at all, and the rounded panels, discs and chevrons are drawn into textures as the game runs. Three visual languages coexist: dark navy lettering over the live 3D menu set, a near-black panel with a blue accent for anything opening over gameplay, and the helmet visor described below. One shared owner hands the cursor, the input and the clock between screens, so two overlays can be open at once and control is returned cleanly; time only actually freezes when you are playing alone.
+
+**Worth knowing:** Never tint a label to show that a row is selected — the shared button animation rewrites the label's colour on every state change, so the tint survives exactly one frame; say it on a separate object instead.
+
+### The helmet visor *(Visor)*
+
+The blue readout projected on the inside of your helmet glass: how intact your suit is and what you are looking at. It follows one rule, which is what makes it feel like a single machine rather than a pile of widgets — **blue is the language, warm is the alarm**. Everything the suit tells you is drawn in the same cold blue, and amber and orange are spent on nothing except danger, so a warning is impossible to miss without having to shout. Because colour alone excludes anyone who cannot separate the two, an alarm also changes shape and adds a word. The layer lags a few pixels behind your head when you turn, which is the small trick that makes it read as light on glass rather than a picture stuck to your monitor.
+
+It also carries the game's one system voice — hints, warnings, and events all arrive in the same place instead of in three competing boxes — and the team chat now reads in the same language. Your air is a real resource: it drains whenever you are not somewhere breathable, a charged bottle from the ship's oxygen plant is what refills it, and running out suffocates you rather than killing you outright.
+
+**Worth knowing:** H used to switch the visor off entirely, but your health lives on it now — so it cycles through three states instead, and the middle one hides the world commentary — the target bracket and system messages — while keeping every readout you actually play by. The warning banner stays visible even then: turning the world commentary off is not consent to stop being told your suit is failing.
+
+### Scripted camera moments *(Cutscenes)*
+
+Cutscenes here are plain components running a coroutine, with no Timeline and no Cinemachine: you drop one on an object, point a trigger at it, and hook up whatever should happen afterwards, all three pieces independent of each other. Only one can play at a time, and everything is purely local — a cutscene runs on the machine that triggered it, for that machine's player, and nothing about it crosses the network. The crash landing is the worked example of splitting a moment that must look right everywhere: the ship's flight is decided on the host, the fade and rumble are presentation each player runs for themselves.
+
+**Worth knowing:** Camera shake does nothing anywhere in the game right now — the component that performs it sits on a prefab nothing references, so damage, the bazooka, the gauntlet, the gravel blast and the sucker puncher all shake an empty screen.
+
+### Sound *(Audio)*
+
+Sound runs on FMOD, but nothing asks for an audio file directly: code asks for a *meaning* — 71 named sounds such as "player jump" or "portal open" — and one catalog asset decides which event plays, how loud, how often it may repeat and how far away it can be heard. Sustained sounds like engines and ambience are owned by an emitter that must be stopped on both of the two ways an object can go away. Nothing is ever sent over the network; each machine plays its own sounds off state it already has, which is why a sound placed on host-only code is silent for everyone else.
+
+**Worth knowing:** There is no FMOD project in the repository, only the compiled banks, so the 71 named sounds share just 19 real events between them and no genuinely new sound can be authored until that source project comes back.
+
+### Getting into a game together *(Lobby)*
+
+Hosting, browsing, joining, the roster and the team rules, built on Unity's lobby service. The lobby itself outlives the menu deliberately, so a host can start playing and still let friends in afterwards — there is no ready check, and a late joiner is simply pulled into the running world. The roster is not a list of rows: it is a rank of actual astronauts standing in the menu scene, with names and team plates tracking them on screen.
+
+**Worth knowing:** A crash, a timeout or a killed process leaves your player identity sitting in the old lobby, and since anonymous sign-in hands you the same identity every launch, your next join is refused until the game sweeps and retries — and two editors on one machine sign in as the same person, so the second is always refused.
+
+### Match types *(GameModes)*
+
+Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *story run* is the ordinary game with a timer and a win scene. *Disposable* is a throwaway sandbox off the main menu for trying something out: it skips the crash-landing cutscene entirely — the ship is already sitting there, landed — and nothing about the session is ever written to disk, so there is no world to name, save or come back to.
+
+**Worth knowing:** a third mode, a bot deathmatch arena, was deleted in September 2026. Its scene had been empty for months, no match orchestrator was placed anywhere, and no menu button reached it.
+
+### The opening objectives *(Objectives)*
+
+After the crash the crew share one short chain of objectives: try the basic controls, haul the oxygen plant back in, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, get the long-range transmitter working (put out its fire, pull it, fetch a working one from the radar dish tower), answer the signal it picks up by walking to the settlement calling, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
+
+**Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, fit transmitter, answer signal, repair ship) decides what finishes it. A new kind of step is a new small class; the chain itself does not change.
+
+## How the game gets made
+
+### From Blender to the game *(ArtPipeline)*
+
+Every 3D asset starts as a Blender file in a source library Unity deliberately cannot see, sitting beside the script that generated it and a note recording how it was built. Colours never come from the model: they are linked from one shared palette of 54 materials that grows only when nothing existing serves, and the export makes them local on the way out. From there an export writes the FBX, Unity imports it, and a generator script assembles the prefab, its clips and its animation controller — the finished prefab is never wired by hand.
+
+**Worth knowing:** Never re-run a generator over a Blender file that already exists — the file, not the script, is the truth, and several of them (the lander interior, the nomad, the six-legged vrescal) carry hand edits that exist nowhere else and would be gone forever.
+
+### The eyes on a character's face *(StylizedEyes)*
+
+Characters' eyes are painted, not lit: a pupil, a coloured iris that darkens toward its edge, a dark ring around it and a white glint are all drawn straight into a picture that is wrapped round the eyeball. There are eight of them — six bright alien colours on a near-black eye, one pale human one, and one blank white one with no pupil at all — and a character picks the one it wears by name. Seven of them glow faintly. They also blink: every few seconds a pair of lids, painted in the character's own skin colour, sweeps over the ball and back, and a dead character's eyes stay shut.
+
+**Worth knowing:** The eyeballs arrived from the sculpt with their wrapping broken in a way that looks perfectly fine until you paint on one, at which point a single pupil comes out as two or four pointing different ways. The build fixes the wrapping itself rather than trusting what shipped.
+
+### A mouth that moves when it talks *(TalkingMouth)*
+
+A character with a jaw opens and shuts its mouth while the speech bubble types out what it is saying. The mouth follows the letters: wide on an "a" or an "o", half open on the other vowels, barely open on consonants, and shut on an "m", a "b", a "p" and between words. So it pauses where the text pauses, and stops the moment you skip to the end of the line. Raxy is the first to have one: its lip line was cut open onto a jaw bone, with a dark mouth behind it.
+
+**Worth knowing:** Unity's humanoid animation drives the jaw on every frame, and it drives it slightly clenched, so the mouth has to hold its own jaw shut between lines. Remove it and every Raxy stands with its lower lip pushed into its upper one.
+
+### Clothes *(CharacterClothes)*
+
+Clothes are modelled on the character in Blender and then each one becomes its own piece in the game: a poncho, pants, shorts, armour, straps, a belt, a backpack and bracelets for Raxy, each in its own colour. A character wears them by having them placed on it, and they bend with its body as it walks. Two dressed Raxys come ready-made, one in the poncho and one in the armour, and any Raxy can be dressed by dragging clothes onto it.
+
+**Worth knowing:** The clothes were modelled with a faceted, low-poly look, and in the game that faceting read as a noisy speckle across the cloth, so they are now smoothed. Loose clothes still let an arm or a hip poke through mid-stride; the fix for that is in how each piece is weighted in Blender.
+
+### How people move, gesture and fight *(HumanoidAnimation)*
+
+Everyone with a human-shaped body — the astronaut you play and every drifter, nomad and astronaut colonist — shares one animation setup, and nobody builds it by hand: it is generated from a list of "actions" (a wave, a punch, a flinch, sitting down to talk) plus a set of walking and standing clips. Adding an animation means adding an action and pressing Rebuild. Every body stands in its own idle and walks slightly out of step with its neighbours, a hit makes it flinch on every player's screen at once, and an NPC's punch now only hurts when its fist actually arrives — so you can step back from one you see coming.
+
+On top of that sits a body-language vocabulary of about fifty words — greet, talk, gesture, pick up, flinch, fidget. Each animation is tagged with the words it can express, and the game reports what just happened (a line was said, something was picked up, a hit landed) against a table that says which word to answer with and how often. So an NPC talks with its hands while its line types out, bows or waves when a conversation starts, stretches or looks around when it has stood still a while, and adding a new greeting is just tagging one more animation. About four hundred and fifty animations are in, most of them cut from the free CMU motion-capture library, and every one of them can be played by name in game with `/act`.
+
+**Worth knowing:** The player's body is animated only on its owner's machine and copied to everyone else, while an NPC is animated on every machine at once; mixing the two up is how a gesture ends up playing twice or not at all for other players.
+
+### What the animation library covers *(AnimationCatalog)*
+
+The animations come from free packs and mocap libraries, and none of them arrives game-ready: a bartender's performance is twenty-seven seconds long, a mocap walk travels across a stage, a "loop" may not close. Each pack gets a small import rule and a cut list that says which seconds of a long take are the usable beats and which of them repeat, and every cut is checked by drawing it as a row of stick figures. The latest pass added the Mixamo singles, the Mocap Central sample, the Motion Cast emotions, a cooking set, a crate-carrying set and the Kevin Iglesias work animations: farming, fishing, mining, hammering, cooking, serving, dancing, singing, piano, reading, falling over and getting up, crying, laughing, exhaustion, and an injured, a drunk, a swaggering and a heavy way of walking.
+
+The same doc keeps the honest list of what is still missing (hits that depend on where the blow came from, sword blocks, nodding, seated work, getting into bed) and the plan for how each kind of NPC should use all of this: which jobs hold which animation, which moments trigger which reaction, and what is pure data versus a bit of code.
+
+**Worth knowing:** A clip that moves across the floor looks fine in a preview and then slides the character out of its own collision capsule in game. Half of the older mocap clips did exactly that until the import rule was corrected; every new clip is measured on a real animated body before it is used.
+
+### How every kind of NPC should move and act *(NpcAnimationPlan)*
+
+A written plan, not a feature: for each situation an NPC can be in — walking hurt or drunk, working a field, serving drinks, fishing, fighting, falling over, sleeping — it lists which animation is available now, what is still missing, and whether the fix is just data (tag a spot, pick a walk style for a character) or a small piece of code. It also records that none of the animation work has been watched in a running game yet, which is the first thing to do before building more.
+
+### The build menus *(EditorTooling)*
+
+Roughly fifty menu commands sit behind the editor's Tools menu and cover almost everything: rebuilding a creature, vehicle, weapon or item from its model; carving the world into streamed chunks and baking navigation into it; generating item icons; registering things for multiplayer; checking that saving is wired up. Commands named Audit, Report or Validate only look; commands named Build, Wire, Apply, Fix or Bake write to disk, and the two are kept as separate twins on purpose. Two hooks run automatically whenever a model is imported; everything else you invoke deliberately.
+
+**Worth knowing:** In some sessions the asset database quietly goes read-only and throws away what a builder writes without raising anything at all, so a build can report complete success having changed nothing — the only defence is reading every written file back off disk afterwards and checking it.
+
+### Putting things down *(Placeables)*
+
+Some items are meant to be set down rather than carried: you point at a patch of ground, place it, and the item leaves your pack because it is now standing over there. Looking at it and pressing Q picks it back up again. The loop is deliberately tight — a placed thing is never also in your inventory, and picking it up hands back exactly the item that placed it, so nothing multiplies by being set down and collected a few times.
+
+The first one is a camp lantern: set it down and it lights the ground around it, pick it up and it is a lantern in your pack again.
+
+**Worth knowing:** Q is the "take that back" key everywhere, which is why it also strips a saddle off an animal. It is kept separate from E on purpose: a placed thing that *does* something keeps E for doing it, so a lamp lights with E and goes back in your pack with Q, and you never have to guess which one a single key meant this time. Placing refuses steep ground, and nothing is taken from your pack unless something actually appeared where you aimed.
+
+### Tools in the hand and on the belt *(HandTools)*
+
+Settlers carry things: hammers, spears, buckets, baskets, water tanks, carts and an electric harpoon gun, all modelled in the decoration library. A Raxy holds one in its fist and hangs the rest on its belt. They are props: using one does nothing except, for a few, a short body animation.
+
+**Worth knowing:** every resident with a trade carries its tools (17 trades; storytellers, elders and villagers carry none), and the harpoon gun does not fire.
+
+### Saddling an animal *(Saddles)*
+
+Use a saddle on a creature and it becomes something you can ride and something that carries your gear — three faces of it, laid out cell by cell the same way the expedition pack is. Nothing wears a saddle by default, and nothing can be ridden without one: a bare animal simply offers you nothing when you look at it. Taking the saddle back off is a separate action on the saddle itself rather than on the animal, so you never need to be holding one to remove one — either by looking at one of its straps, or by standing beside the animal and pressing Q.
+
+**Worth knowing:** Everything stowed on a saddle falls to the ground around the animal when the saddle comes off, rather than disappearing with it. Gear on an animal is gear on something that wanders away, so it always ends up somewhere you can pick it up again — and a saddle with a rider still on it refuses to come off at all.
+
+## If you want more
+
+- Read the themed chapters instead: start at [01-the-game.md](01-the-game.md), or see the
+  [chapter list](README.md).
+- For the exact technical answer on any system above, open the matching document in
+  [../AI/systems/](../AI/systems/).
+- For the current list of things known to be broken, see [../AI/DEFECTS.md](../AI/DEFECTS.md).

@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 186e034591c7b9d49b3e29f79d84439d, type: 3}
+  m_Name: SandTribe
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FactionRoster
+  faction: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  members:
+  - role: 0
+    prefab: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
+    weight: 1
+  - role: 0
+    prefab: {fileID: 154119959528579656, guid: c3ae6b451d3393043b8ad3f1c9f152b0, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 4221512317380112477, guid: 3dd19ea998c782741b5658356b358c39, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 186451250979758891, guid: 293f29de5bcd0ef4993bad64f0876f7a, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 897023725316746875, guid: 616a62777e9f3314cab65cc10f965972, type: 3}
+    weight: 1
+  - role: 1
+    prefab: {fileID: 154119959528579656, guid: c3ae6b451d3393043b8ad3f1c9f152b0, type: 3}
+    weight: 1
+  - role: 2
+    prefab: {fileID: 3760312103620484764, guid: f7d4cf6b779214121888a8c5e9171f01, type: 3}
+    weight: 1
+  handItems:
+  - {fileID: 11400000, guid: 4c3ecf8e279975a4985ffafb2b2e4e95, type: 2}
+  - {fileID: 11400000, guid: 389c3378f71bb489a923ddc9f01a635d, type: 2}
+  - {fileID: 11400000, guid: 8c681dba239b64a2bb05284dd50a53b0, type: 2}
+  - {fileID: 11400000, guid: 0a253a69974fa4c9ab285facd212241c, type: 2}
+  - {fileID: 11400000, guid: d605743f174310540b335f13c8228851, type: 2}
+  - {fileID: 11400000, guid: d8687029645eadc48aac1213f4448f06, type: 2}
+  - {fileID: 11400000, guid: 656fdb406700d4336946445c27efbba2, type: 2}
+  hostileLines: {fileID: 11400000, guid: 0616491d1ccd4844face14c04fd77cda, type: 2}
+  warPartyTiers:
+  - roles:
+    - role: 0
+      count: 2
+  - roles:
+    - role: 1
+      count: 3
+    - role: 0
+      count: 1
+  - roles:
+    - role: 1
+      count: 3
+    - role: 2
+      count: 2

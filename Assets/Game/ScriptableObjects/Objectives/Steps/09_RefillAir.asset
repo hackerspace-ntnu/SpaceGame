@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80a3df2b738ed1d4e966eb5e293700b6, type: 3}
+  m_Name: 09_RefillAir
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.RefillAirStep
+  id: refill-air
+  title: Refill your air
+  briefing:
+  - 'Good, the plant is breathing again. You are not: the crash vented every bottle
+    we had, and your suit is running on its reserve.'
+  - Take an empty bottle from the gear wall with RMB, and fill it at the plant's
+    round collar.
+  - Then press B to open your pack, and put the full bottle in its socket on the
+    back. That is the only place a bottle feeds your suit.
+  lookAtFocus: 0
+  bottle: {fileID: 11400000, guid: f78494893a7b54bd0a9d7c390fe6babe, type: 2}
+  filledFraction: 0.9
+  takeStatus: Take an empty bottle from the gear wall  <b>(RMB)</b>
+  fillStatus: Fill it at the oxygen plant's collar  <b>(RMB)</b>
+  seatStatus: Press <b>B</b> and put the full bottle in your pack's socket
+  doneStatus: Breathing from a full bottle
+  reserveRemark:
+  - Your suit reserve is running low. Fill a bottle and get it in your pack, now.
+  reserveRemarkAt: 0.35
+  beaconLift: 1.5

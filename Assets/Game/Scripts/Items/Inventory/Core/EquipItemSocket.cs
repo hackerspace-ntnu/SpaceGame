@@ -1,0 +1,331 @@
+using UnityEngine;
+using SpaceGame.Weapons;
+
+namespace SpaceGame.Items
+{
+    /// <summary>
+    /// Puts an item in a hand and takes it out again.
+    ///
+    /// <para>
+    /// Every held object in the game passes through here — the player's artifacts by way of
+    /// <see cref="EquipmentController"/>, an NPC's weapons by way of
+    /// <c>EntityEquipmentController</c> — so this is the one place that has to get the pose right,
+    /// and the one place that can.
+    /// </para>
+    /// <para>
+    /// Three things happen at equip time, and each fixes something that used to be wrong:
+    /// </para>
+    /// <list type="number">
+    /// <item><b>Pose.</b> The item is rotated into the hand's <see cref="HandGripFrame"/> — an
+    /// anatomy-derived frame, not the bone's arbitrary exported axes — and then translated so its
+    /// grip point lands in the palm. Rotating and translating together is the point: seating the
+    /// pivot and hoping, which is what this did before, only works for items whose pivot happens
+    /// to be on the handle.</item>
+    /// <item><b>Size.</b> The item is scaled to a real size in metres, measured from its own mesh
+    /// and divided by whatever scale the rig carries, so the number an artist types means the same
+    /// thing on every character.</item>
+    /// <item><b>Physics.</b> Colliders and bodies are switched off <i>throughout the hierarchy</i>.
+    /// Doing only the root — which is what <c>GetComponent</c> did here — left child colliders
+    /// live on the end of an arm, shoving the holder about and snagging on the world as they
+    /// walked.</item>
+    /// </list>
+    /// </summary>
+    public class EquipItemSocket
+    {
+        /// <summary>
+        /// Longest-axis size, in metres, given to an item that never declared one. Shared with the
+        /// pack and the world so an unsized item is one size everywhere — see
+        /// <see cref="ItemBounds.DefaultSize"/>.
+        /// </summary>
+        private const float DefaultHoldSize = ItemBounds.DefaultSize;
+
+        private readonly Transform socket;
+        private readonly HandGripFrame frame;
+        private readonly float scaleMultiplier;
+
+        private GameObject currentObject;
+        private Transform currentGrip;
+
+        public EquipItemSocket(Transform socket)
+            : this(socket, HandGripFrame.Identity("caller supplied no grip frame"), 1f)
+        {
+        }
+
+        public EquipItemSocket(Transform socket, HandGripFrame frame, float scaleMultiplier = 1f)
+        {
+            this.socket = socket;
+            this.frame = frame;
+            this.scaleMultiplier = Mathf.Max(0.0001f, scaleMultiplier);
+        }
+
+        /// <summary>The bone items hang off.</summary>
+        public Transform Socket => socket;
+
+        /// <summary>Where in the world the hand actually grips — the palm, not the wrist.</summary>
+        public Vector3 GripPosition =>
+            socket != null ? socket.TransformPoint(frame.LocalPosition) : Vector3.zero;
+
+        /// <summary>The orientation a held item is posed against.</summary>
+        public Quaternion GripRotation =>
+            socket != null ? socket.rotation * frame.LocalRotation : Quaternion.identity;
+
+        /// <summary>
+        /// The grip frame's rotation in the hand bone's own space.
+        ///
+        /// <para>
+        /// Needed by anything that aims the HAND and wants the ITEM to end up pointing somewhere.
+        /// The two differ by exactly this, and on this rig that difference is most of a right
+        /// angle — see <see cref="HandGripFrame"/>.
+        /// </para>
+        /// </summary>
+        public Quaternion FrameLocalRotation => frame.LocalRotation;
+
+        public GameObject Current => currentObject;
+
+        public GameObject Equip(GameObject prefab)
+        {
+            Unequip();
+
+            if (!prefab || socket == null)
+                return null;
+
+            currentObject = Object.Instantiate(prefab, socket);
+
+            Sanitize(currentObject);
+            Seat(currentObject);
+
+            return currentObject;
+        }
+
+        public void Unequip()
+        {
+            if (currentObject)
+            {
+                Object.Destroy(currentObject);
+                currentObject = null;
+            }
+            currentGrip = null;
+        }
+
+        /// <summary>
+        /// Slide the item back so its grip point sits in the palm again, leaving its rotation alone.
+        ///
+        /// <para>
+        /// For anything that aims a held item by writing to its rotation. An item rotates about its
+        /// own pivot, and the pivot is not the handle, so every turn walks the grip out of the hand
+        /// unless it is put back.
+        /// </para>
+        /// </summary>
+        public void ReseatGrip()
+        {
+            if (currentObject == null || currentGrip == null || socket == null) return;
+            currentObject.transform.position += GripPosition - currentGrip.position;
+        }
+
+        // ── Seating ──────────────────────────────────────────────────────────────
+
+        private void Seat(GameObject item)
+        {
+            Transform t = item.transform;
+            var grip = item.GetComponent<ItemGrip>();
+
+            // Scale before anything else. Both the grip point's position and the mesh bounds move
+            // when the item is resized, so seating first would seat it to a size it no longer is.
+            float holdSize = grip != null ? grip.HoldSize : DefaultHoldSize;
+
+            // Measured against whatever the item says represents its size — the Lasso's handle
+            // rather than the rope coiled in the same prefab. Narrowing only ever happens when
+            // there IS an ItemGrip, and an ItemGrip also names the grip point, so the bounds are
+            // never both narrowed and used for seating.
+            Bounds bounds = ItemBounds.Measure(item, grip != null ? grip.SizeReference : null);
+
+            ApplyScale(t, holdSize, bounds);
+
+            // Orientation: the hand's frame, plus whatever the item asked for on top.
+            Quaternion handRotation = GripRotation;
+            t.rotation = handRotation * (grip != null ? Quaternion.Euler(grip.RotationOffset) : Quaternion.identity);
+
+            // Position: put the grip point in the palm, then apply the item's offset along the
+            // hand's own axes rather than the item's, so "slide it further out the thumb side"
+            // stays true whatever angle the item ended up at.
+            currentGrip = ResolveGripPoint(item, grip, bounds);
+
+            Vector3 target = GripPosition;
+            if (grip != null)
+                target += handRotation * grip.PositionOffset;
+
+            t.position += target - currentGrip.position;
+        }
+
+        /// <summary>
+        /// Which point on the item the hand closes around, best source first.
+        ///
+        /// <para>
+        /// The bounds-centre fallback is what makes this scale to artifacts nobody has tuned: an
+        /// item with no grip declared is held through its middle, which is never exactly right and
+        /// never badly wrong. Adding an <see cref="ItemGrip"/> is then a refinement rather than a
+        /// rescue.
+        /// </para>
+        /// </summary>
+        private Transform ResolveGripPoint(GameObject item, ItemGrip grip, Bounds localBounds)
+        {
+            if (grip != null) return grip.GripPoint;
+
+            // A weapon already carries a hand-authored grip under a different name. Honouring it
+            // here is what lets the special case that used to live in this class go away.
+            var weapon = item.GetComponent<Weapon>();
+            if (weapon != null && weapon.Handle1 != null) return weapon.Handle1;
+
+            // Nothing authored. Hold it through the middle of its own mesh.
+            var proxy = new GameObject("GripPoint (auto)").transform;
+            proxy.SetParent(item.transform, false);
+            proxy.localPosition = localBounds.center;
+            proxy.localRotation = Quaternion.identity;
+            return proxy;
+        }
+
+        /// <summary>
+        /// Resize the item so its longest side is <paramref name="holdSize"/> metres in the world.
+        ///
+        /// <para>
+        /// A <paramref name="holdSize"/> of zero means "keep the size the artist built", but even
+        /// then the rig's own scale has to be divided out, or an item authored at a metre becomes
+        /// a hundred on a character imported at scale 100.
+        /// </para>
+        /// </summary>
+        private void ApplyScale(Transform t, float holdSize, Bounds localBounds)
+        {
+            Vector3 parentScale = socket.lossyScale;
+            if (Mathf.Abs(parentScale.x) < 1e-6f || Mathf.Abs(parentScale.y) < 1e-6f || Mathf.Abs(parentScale.z) < 1e-6f)
+                return;
+
+            Vector3 authored = t.localScale;
+
+            // Undo the rig, so local scale now means world scale.
+            Vector3 neutral = new Vector3(authored.x / parentScale.x,
+                                          authored.y / parentScale.y,
+                                          authored.z / parentScale.z);
+
+            if (holdSize <= 0f)
+            {
+                t.localScale = neutral * scaleMultiplier;
+                return;
+            }
+
+            // Longest side of the mesh, at the size the artist built it.
+            Vector3 worldSize = Vector3.Scale(localBounds.size, new Vector3(Mathf.Abs(authored.x), Mathf.Abs(authored.y), Mathf.Abs(authored.z)));
+            float longest = Mathf.Max(worldSize.x, Mathf.Max(worldSize.y, worldSize.z));
+
+            if (longest < 1e-5f)
+            {
+                // Nothing measurable — a pure-effect item, or all its geometry is spawned at use
+                // time. Leaving it at the artist's scale beats resizing off a bogus measurement.
+                t.localScale = neutral * scaleMultiplier;
+                return;
+            }
+
+            t.localScale = neutral * (holdSize / longest) * scaleMultiplier;
+        }
+
+        // ── Physics ──────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Make the item inert for as long as it is held.
+        ///
+        /// <para>
+        /// Nothing is restored on unequip because nothing survives it — the instance is destroyed
+        /// and a dropped item is built from the prefab again.
+        /// </para>
+        /// </summary>
+        /// <summary>
+        /// Turn a fresh instance into something that can hang off a bone: not a world entity, every
+        /// collider off, every body kinematic and not detecting collisions. Public because a worn
+        /// item is seated by its own socket and needs exactly this, and a second copy of the rule
+        /// would be the one that forgets a component.
+        /// </summary>
+        public static void Sanitize(GameObject item)
+        {
+            // Before the KeepColliders escape hatch, not after: an item that keeps its colliders in
+            // the hand is still an item in a HAND, and the world's sizing has to come off it either
+            // way. WorldItem.Awake has already run — Instantiate is synchronous — and its scale is
+            // the one thing below does not undo.
+            WorldItem.Suppress(item);
+            Disinherit(item);
+
+            // Every equip path comes through here, so this is the one place that can promise the
+            // mark is on. RagdollRig reads it to keep the thing in your hand out of your skeleton.
+            BodyAttachment.Mark(item);
+
+            var grip = item.GetComponent<ItemGrip>();
+            if (grip != null && grip.KeepColliders) return;
+
+            var colliders = item.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+                colliders[i].enabled = false;
+
+            var bodies = item.GetComponentsInChildren<Rigidbody>(true);
+            for (int i = 0; i < bodies.Length; i++)
+            {
+                Rigidbody rb = bodies[i];
+
+                // detectCollisions before isKinematic: a body that is still awake and colliding
+                // when it is pinned to a moving bone reports contacts against whatever the hand
+                // sweeps through, and a kinematic body's contacts are not free.
+                rb.detectCollisions = false;
+                rb.isKinematic = true;
+                rb.useGravity = false;
+                rb.interpolation = RigidbodyInterpolation.None;
+            }
+        }
+
+        /// <summary>
+        /// Take the world's RECORD off an instance that is not in the world after all.
+        ///
+        /// <para>
+        /// An item prefab ships a <see cref="SpaceGame.Core.Persistence.SaveableEntity"/> because a copy lying in
+        /// the sand is a world object that has to survive a reload. A copy in a hand or on a bone
+        /// is not: its identity is the inventory slot that holds it, and that slot is saved by
+        /// <c>BodyEquipmentSaveable</c> and <c>InventorySaveable</c>, which also carry its
+        /// <c>ItemState</c>. So the equipped copy has no record of its own to keep — and keeping
+        /// one is not merely redundant, it duplicates the item.
+        /// </para>
+        /// <para>
+        /// <b>This is what made worn gear walk off the body.</b> <c>WorldSaveStore.CaptureScene</c>
+        /// finds saveables with <c>GetComponentsInChildren</c> from every scene root, so it reaches
+        /// down INSIDE the wearer and writes the gauntlet strapped to their forearm into the save
+        /// as a world entity — at its world pose, with the mirrored scale <see cref="ForearmSeat"/>
+        /// gave it. On the next hydrate <c>WorldSaveStore.SpawnEntities</c> builds that record back
+        /// as a loose root object with its Rigidbody live, so a second gauntlet appears at the
+        /// player and falls. Nothing warns, and the copy is captured again on the next save: one
+        /// more per load, each sinking further than the last. Six generations of Jetpack,
+        /// GrapplingHook and RepulsorGauntlet were found stacked from y=110 down to y=-8153 in a
+        /// single save file.
+        /// </para>
+        /// <para>
+        /// Destroyed rather than scoped to <c>SaveScope.External</c>, which would also stop the
+        /// capture: External means another system owns this object's record, and no system owns
+        /// this one — there is no record. Destroying says that, drops the entity out of
+        /// <c>SaveableEntity.LiveEntities</c> through its own <c>OnDestroy</c>, and stops
+        /// <c>SaveRefBinder</c> resolving a saved reference to something in a pocket. The savers
+        /// beside it are left alone: nothing collects an <c>ISaveable</c> without an entity to
+        /// hang it on, and a dropped item is built from the prefab again.
+        /// </para>
+        /// <para>
+        /// Children too, not just the root. A prefab that nests one — a fixture on a hull module —
+        /// is captured by exactly the same walk.
+        /// </para>
+        /// </summary>
+        private static void Disinherit(GameObject item)
+        {
+            var entities = item.GetComponentsInChildren<SpaceGame.Core.Persistence.SaveableEntity>(true);
+            for (int i = 0; i < entities.Length; i++)
+            {
+                // DestroyImmediate, not Destroy: a deferred destroy leaves the entity registered
+                // and capturable for the rest of the frame, and an autosave landing in that window
+                // is the very record this exists to prevent. DisplayCopy strips its copies the same
+                // way and for the same reason.
+                if (entities[i] != null) Object.DestroyImmediate(entities[i]);
+            }
+        }
+    }
+}

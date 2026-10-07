@@ -1,0 +1,114 @@
+using UnityEngine;
+using SpaceGame.Core;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+namespace SpaceGame.Items
+{
+    /// <summary>
+    /// How strange an item looks to a settlement resident — what makes them stop and ask about it.
+    /// Ordered by how much it draws the eye.
+    /// </summary>
+    public enum Curiosity : byte { None, Odd, Precious, Alien }
+
+    /// <summary>
+    /// ScriptableObject representing an item that can be stored in the inventory. Contains data about the item such as its name, prefab, and icon.
+    /// </summary>
+    [CreateAssetMenu(menuName = "Items/Item")]
+    public class InventoryItem : ScriptableObject, IRegistryEntry
+    {
+        /// <summary>
+        /// The asset's GUID, assigned by <see cref="OnValidate"/>. Save files store this rather than
+        /// a name or a list index, so it must stay stable — it is what lets an item asset be renamed
+        /// or moved without emptying that slot in every existing save.
+        ///
+        /// <para>
+        /// <b><c>[field: SerializeField]</c> is what makes this exist outside the editor at all.</b>
+        /// Unity does not serialize an auto-property's compiler-generated backing field unless it is
+        /// asked to, and <see cref="OnValidate"/> is editor-only — so without the attribute the
+        /// value was recomputed on every import and never written to the asset. In the editor that
+        /// is invisible, because the recompute always ran. In a built player nothing assigns it and
+        /// every item ships with a null id: <c>RegistryLoader</c> then calls
+        /// <c>Registry.Register</c>, which indexes a dictionary by that null and throws
+        /// <see cref="System.ArgumentNullException"/> on the first item, leaving the game with no
+        /// item registry at all.
+        /// </para>
+        ///
+        /// <para>
+        /// That failure is editor-invisible and build-only, which is the worst combination this
+        /// project has: real multiplayer means built players, so the one configuration that could
+        /// not work is the one every session actually runs in.
+        /// </para>
+        /// </summary>
+        [field: SerializeField]
+        public string ID { get; set; }
+
+        [Tooltip("Display name of the item")]
+        public string itemName = "NewItem";
+
+        [Tooltip("Prefab that will be instantiated and equipped when this item is selected.")]
+        public GameObject itemPrefab;
+
+        [Tooltip("Optional icon for UI display.")]
+        public Sprite icon;
+
+        [Tooltip("Optional prefab to render the icon from instead of itemPrefab, for items whose "
+            + "held form is not what the player thinks of as the item — e.g. the Wing Pack's icon "
+            + "shows the unfurled ornithopter, not the furled pack in the hand.")]
+        public GameObject iconPrefab;
+
+        [Tooltip("Where this item is equipped. Hand items go into the palm from a hotbar slot; a " +
+                 "Gauntlet is worn on a forearm and fired on that arm's key; a Back item is worn " +
+                 "on the back and deployed on a double tap of jump. Worn kinds are inert in the hotbar.")]
+        public EquipKind equipKind = EquipKind.Hand;
+
+        [Tooltip("Does holding this read as a threat to an NPC?\n\n" +
+                 "Tick it for things that are unmistakably a weapon when they are pointed at you — " +
+                 "guns, staves, the bazooka, the flamethrower. Leave it off for everything else, " +
+                 "which is most of the item list: tools, placeables, ship parts, potions and " +
+                 "supplies.\n\n" +
+                 "GAUNTLETS ARE NEVER MENACING, whatever they do. A gauntlet is gear you are " +
+                 "wearing rather than something you have drawn, so a wrist blade and a grappling " +
+                 "hook are no more threatening than a torch.\n\n" +
+                 "Read by MenaceSensor, which needs this AND a shot fired in the last few seconds " +
+                 "before it reports anything: holding a gun is not a threat, having just fired one " +
+                 "while squared up at somebody is.")]
+        public bool menacing;
+
+        [Tooltip("An NPC wearing this gauntlet fires it at its target (NpcGauntletUseModule). Off by default: " +
+                 "most gadgets assume a player's camera, so each one opts in after it has been checked to " +
+                 "work from an NPC's aim (UsableItem.HolderAimRay).")]
+        public bool npcUsable;
+
+        [Tooltip("How strange this item looks to a settlement resident when you hold it in front " +
+                 "of them.\n\n" +
+                 "None — ordinary gear nobody remarks on (most of the list).\n" +
+                 "Odd — clearly not from around here: they ask what it is.\n" +
+                 "Precious — valuable or rare: they eye it, and traders want it.\n" +
+                 "Alien — nothing they have a word for: they stare, and the timid back away.")]
+        public Curiosity curiosity;
+
+        [Tooltip("List this item in the developer artifact browser (O)?\n\n" +
+                 "Leave it on for anything a developer might want to hand themselves. Turn it off " +
+                 "for props that exist for a character to carry and that mean nothing in the " +
+                 "player's hotbar — the hand tools and vessels residents hold. The item still " +
+                 "registers, saves, drops and picks up like any other.")]
+        public bool showInDevBrowser = true;
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            string path = AssetDatabase.GetAssetPath(this);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+
+            if (ID != guid)
+            {
+                ID = guid;
+                EditorUtility.SetDirty(this);
+            }
+        }
+#endif
+    }
+}

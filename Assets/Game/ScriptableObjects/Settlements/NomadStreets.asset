@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17eaf167041034dec9ffbd3321862ec0, type: 3}
+  m_Name: NomadStreets
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementStreetStyle
+  segmentLength: 10
+  maxTurn: 6
+  contourBias: 0.5
+  sideStreetChance: 0.8
+  alleyChance: 0.5
+  branchSpacing: 45
+  branchAngleJitter: 8
+  snapDistance: 6
+  frontageSlack: 1.3
+  maxSegments: 800
+  mainStreetSlabs: 2
+  sideStreetSlabs: 1
+  alleySlabs: 1
+  verge: 1
+  setback: 0.5
+  stepHeight: 1.5
+  minRunBetweenStairs: 9
+  gradeDistance: 10
+  wallReach: 4
+  fieldCellSize: 1
+  slabs:
+  - prefab: {fileID: 5794814630044111985, guid: dd4b11f6cf59949beb48396923bbb366, type: 3}
+    weight: 6
+  - prefab: {fileID: 8220278899347440567, guid: 1eb5ee6349a954c98b1e7d8b0c9050ef, type: 3}
+    weight: 1
+  - prefab: {fileID: 4538835401330264289, guid: 0732c509a0dd54e909d8ac7fc1f4c54b, type: 3}
+    weight: 1
+  - prefab: {fileID: 1520667110001228512, guid: b84c1cabff3834ed99aad016d8742717, type: 3}
+    weight: 1.5
+  slabGap: 0.25
+  slabSideGap: 0.15
+  narrowStairs: {fileID: 8855931762744491364, guid: 3bfca62500cc6439d8f0e5519128c1dd, type: 3}
+  wideStairs: {fileID: 7628088526298748607, guid: 05a54642f21ca4bceb712135c4498be3, type: 3}
+  terraceWalls:
+  - prefab: {fileID: 1313481725582987753, guid: c31d0314f33224ea6876ad279a33b073, type: 3}
+    weight: 3
+  - prefab: {fileID: 266497761593951101, guid: 8301255b629f54f1199e9e302ab50678, type: 3}
+    weight: 1
+  maxTilt: 10

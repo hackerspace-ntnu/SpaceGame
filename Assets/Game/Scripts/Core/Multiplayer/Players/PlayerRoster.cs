@@ -20,13 +20,17 @@ namespace SpaceGame.Core
             /// <summary>Round-trip time in ms, or -1 where this peer cannot measure it.</summary>
             public readonly int PingMilliseconds;
 
-            public Entry(ulong clientId, string name, bool isLocal, bool isHost, int ping)
+            /// <summary>This player's versus team, or -1 outside a versus match.</summary>
+            public readonly int Team;
+
+            public Entry(ulong clientId, string name, bool isLocal, bool isHost, int ping, int team)
             {
                 ClientId = clientId;
                 Name = name;
                 IsLocal = isLocal;
                 IsHost = isHost;
                 PingMilliseconds = ping;
+                Team = team;
             }
         }
 
@@ -54,7 +58,8 @@ namespace SpaceGame.Core
                     identity.DisplayName,
                     identity.IsOwner,
                     identity.IsSessionHost,
-                    MeasurePing(identity.OwnerClientId)));
+                    MeasurePing(identity.OwnerClientId),
+                    identity.Team));
             }
 
             rows.Sort((a, b) =>

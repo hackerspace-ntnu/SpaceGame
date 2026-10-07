@@ -269,8 +269,49 @@ namespace SpaceGame.Presentation
         /// A full-width button row, for actions that live inside a page rather than the footer
         /// (reset to defaults, and similar).
         /// </summary>
+        /// <summary>
+        /// A read-only level bar, for a live signal the player watches rather than sets — the
+        /// microphone input beside its threshold. <paramref name="level"/> is 0-1 and
+        /// <paramref name="lit"/> colours the fill, so "the gate is open" reads at a glance.
+        /// <para>
+        /// This does not poll. Whatever puts it on screen calls <see cref="Row.Refresh"/> every
+        /// frame while it is visible, and stops when it is not — a meter refreshed on the page's
+        /// own Refresh would sit frozen at whatever the level was when the page opened.
+        /// </para>
+        /// </summary>
+        public static Row Meter(RectTransform parent, string label, Func<float> level, Func<bool> lit)
+        {
+            RectTransform row = NewRow(parent, label, out RectTransform control);
+
+            var track = UIBuilder.Fill(UIBuilder.Rect("Track", control), 0f, 18f, 0f, 18f);
+            UIBuilder.Solid(track, UITheme.TrackEmpty);
+
+            var fillRect = UIBuilder.Rect("Fill", track);
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = new Vector2(0f, 1f);
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            Image fill = UIBuilder.Solid(fillRect, UITheme.Faint);
+
+            var handle = new Row { Rect = row };
+            handle.RefreshAction = () =>
+            {
+                fillRect.anchorMax = new Vector2(Mathf.Clamp01(level()), 1f);
+                fillRect.offsetMin = Vector2.zero;
+                fillRect.offsetMax = Vector2.zero;
+                fill.color = lit() ? UITheme.Accent : UITheme.Faint;
+            };
+
+            handle.Refresh();
+            return handle;
+        }
+
+        /// <param name="describe">
+        /// Optional live button text. Supply it for a button that toggles something and has to say
+        /// which way it will go next; the caller refreshes the row when that state changes.
+        /// </param>
         public static Row Action(RectTransform parent, string label, string buttonText, Action onClick,
-            Color? tint = null)
+            Color? tint = null, Func<string> describe = null)
         {
             RectTransform row = NewRow(parent, label, out RectTransform control);
 
@@ -283,15 +324,23 @@ namespace SpaceGame.Presentation
 
             Color color = tint ?? UITheme.Accent;
             Image background = UIBuilder.Sprite(buttonRect, UITheme.ChipSprite, Color.white);
-            UIBuilder.LabelIn(buttonRect, "Text", buttonText, UITheme.LabelSize, color,
-                TextAlignmentOptions.Center, FontStyles.Bold);
+            TextMeshProUGUI text = UIBuilder.LabelIn(buttonRect, "Text", buttonText, UITheme.LabelSize,
+                color, TextAlignmentOptions.Center, FontStyles.Bold);
 
             UIBuilder.Clickable(buttonRect, background,
                     new Color(color.r, color.g, color.b, 0.16f),
                     new Color(color.r, color.g, color.b, 0.32f))
                 .onClick.AddListener(() => onClick());
 
-            return new Row { Rect = row };
+            var handle = new Row { Rect = row };
+
+            if (describe != null)
+            {
+                handle.RefreshAction = () => text.text = describe();
+                handle.Refresh();
+            }
+
+            return handle;
         }
 
         // ----------------------------------------------------------------- plumbing
@@ -348,7 +397,9 @@ namespace SpaceGame.Presentation
         /// Standard uGUI Slider assembled by hand. The fill's anchors are overwritten by the
         /// Slider every frame it changes, so its offsets — not its anchors — are what position it.
         /// </summary>
-        private static UnityEngine.UI.Slider BuildSlider(RectTransform rect, float min, float max)
+        // Internal rather than private so the per-person voice rows in PlayerListView build the same
+        // slider instead of a second copy of it.
+        internal static UnityEngine.UI.Slider BuildSlider(RectTransform rect, float min, float max)
         {
             UIBuilder.HitArea(rect);
 
